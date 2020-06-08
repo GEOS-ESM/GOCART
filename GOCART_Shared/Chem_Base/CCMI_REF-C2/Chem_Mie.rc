@@ -1,0 +1,14 @@
+#
+# Resorce file for Chem_Mie Module. Defines filename with LUTs and
+#   available channels
+#
+
+Chem_Mie::du_optics_file: ExtData/PIESA/x/opticsBands_DU.v15_3.nc
+Chem_Mie::ss_optics_file: ExtData/PIESA/x/opticsBands_SS.v3_3.nc
+Chem_Mie::su_optics_file: ExtData/PIESA/x/opticsBands_SU.v1_3.nc
+Chem_Mie::ni_optics_file: ExtData/PIESA/x/opticsBands_NI.v2_5.nc
+Chem_Mie::oc_optics_file: ExtData/PIESA/x/opticsBands_OC.v1_3.nc
+Chem_Mie::bc_optics_file: ExtData/PIESA/x/opticsBands_BC.v1_3.nc
+
+Chem_Mie::channels:  1 2 3 4 5 6 7 8
+

@@ -1,0 +1,55 @@
+# lcv2prs.rc
+#
+#  This is a resource file for the lcv2prs utility.
+#
+# !REVISION HISTORY:
+#
+#  27Jan2006  B. Yin    First version.
+#  25Apr2006  Todling   Declared dims so fvsetup get set them up.
+#  17May2006  Stassi    modified from tavg3d_tmp_v.rc for pressure levels
+#
+#...........................................................................
+
+#                     ----------------------
+#                     Output File Resolution
+#                     ----------------------
+
+zonal_resolution: 540              # no. of zonal grid-points (im)
+west_most_longitude_in_deg: -180.0 # longitude of first point (i=1)
+meridional_resolution: 361         # no. meridional grid-points (jm)
+vertical_levels_in_hPa: 1000 975 950 925 900 850 800 750 700 650 600 550 500 450 400 350 300 250 200 150 100 70 50 30 20 10
+
+#                       ----------------
+#                       Variable Classes
+#                       ----------------
+ 
+# A variable class lists the variable names that make up a file type or product.
+
+#
+###  PRODUCT: tavg3d_ext_p (3-D tendency)
+VarClass*tavg3d_ext_p: delp rh extinction ssa tau
+#                         --------------------
+#                         Variable Translation
+#                         --------------------
+
+Variable_translation_table::
+
+#      Output          |                       Input
+#  Name       Units    | Name             scale_factor  add_offset Positive check
+#  ------------------------------------------------------------------------------
+   DELP       Pa         delp                   1.0        0.0         0
+   RH         fraction   rh                     1.0        0.0         0
+   SSA        fraction   ssa                    1.0        0.0         0
+   EXTINCTION 1/km       extinction             1.0        0.0         0
+   TAU        UNITLESS   tau                    1.0        0.0         0
+::
+
+
+
+# Table for variable names and description:
+
+DELP:       Pressure difference between layer edges
+RH:         Relative Humidity
+SSA:        Aerosol Single Scatter Albedo [532 nm]
+EXTINCTION: Aerosol Extinction [532 nm]
+TAU:        Aerosol Layer Optical Thickness [532 nm]
