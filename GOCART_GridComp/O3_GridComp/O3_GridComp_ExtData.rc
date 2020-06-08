@@ -1,0 +1,52 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+O3_ireg NA  Y Y - none none ireg ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID001 NA  Y Y - none none iuseVegID001 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID002 NA  Y Y - none none iuseVegID002 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID003 NA  Y Y - none none iuseVegID003 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID004 NA  Y Y - none none iuseVegID004 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID005 NA  Y Y - none none iuseVegID005 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID006 NA  Y Y - none none iuseVegID006 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID007 NA  Y Y - none none iuseVegID007 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID008 NA  Y Y - none none iuseVegID008 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID009 NA  Y Y - none none iuseVegID009 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID010 NA  Y Y - none none iuseVegID010 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID011 NA  Y Y - none none iuseVegID011 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID012 NA  Y Y - none none iuseVegID012 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID013 NA  Y Y - none none iuseVegID013 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID014 NA  Y Y - none none iuseVegID014 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_iuseVegID015 NA  Y Y - none none iuseVegID015 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID001 NA  Y Y - none none ilandVegID001 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID002 NA  Y Y - none none ilandVegID002 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID003 NA  Y Y - none none ilandVegID003 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID004 NA  Y Y - none none ilandVegID004 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID005 NA  Y Y - none none ilandVegID005 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID006 NA  Y Y - none none ilandVegID006 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID007 NA  Y Y - none none ilandVegID007 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID008 NA  Y Y - none none ilandVegID008 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID009 NA  Y Y - none none ilandVegID009 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID010 NA  Y Y - none none ilandVegID010 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID011 NA  Y Y - none none ilandVegID011 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID012 NA  Y Y - none none ilandVegID012 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID013 NA  Y Y - none none ilandVegID013 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID014 NA  Y Y - none none ilandVegID014 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_ilandVegID015 NA  Y Y - none none ilandVegID015 ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+O3_laiVegID001 NA  Y Y - none none laiVegID001 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID002 NA  Y Y - none none laiVegID002 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID003 NA  Y Y - none none laiVegID003 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID004 NA  Y Y - none none laiVegID004 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID005 NA  Y Y - none none laiVegID005 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID006 NA  Y Y - none none laiVegID006 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID007 NA  Y Y - none none laiVegID007 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID008 NA  Y Y - none none laiVegID008 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID009 NA  Y Y - none none laiVegID009 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID010 NA  Y Y - none none laiVegID010 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID011 NA  Y Y - none none laiVegID011 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID012 NA  Y Y - none none laiVegID012 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID013 NA  Y Y - none none laiVegID013 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID014 NA  Y Y - none none laiVegID014 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+O3_laiVegID015 NA  Y Y - none none laiVegID015 ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+%%

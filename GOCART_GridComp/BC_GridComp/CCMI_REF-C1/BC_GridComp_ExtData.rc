@@ -1,0 +1,22 @@
+PrimaryExports%%
+# -------------|-----------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |           |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        |   Units   | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-----------|-------|--------|----------------------|--------|--------|-------------|----------|
+# Biomass burning
+BC_BIOMASS       kgBC/m2/s     N        Y     %y4-%m2-%d2t12:00:00    none     none    biomass      /discover/nobackup/mmanyin/CCM/EXT_DATA/BC/CCMI/CCMI_REF-C1.bioburn_BC.x720_y361_t12.%y4.nc
+
+# Biofuel Source -- Included in AeroCom anthropogenic emissions
+BC_BIOFUEL           NA        N        N     %y4-%m2-%d2t12:00:00    none     none    biofuel      /dev/null
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+BC_ANTEBC1       kgBC/m2/s     N        Y     %y4-%m2-%d2t12:00:00    none     none    antebc1      /discover/nobackup/mmanyin/CCM/EXT_DATA/BC/CCMI/CCMI_REF-C1.nonenergy_anth_BC.x720_y361_t12.%y4.nc
+BC_ANTEBC2       kgBC/m2/s     N        Y     %y4-%m2-%d2t12:00:00    none     none    antebc2      /discover/nobackup/mmanyin/CCM/EXT_DATA/BC/CCMI/CCMI_REF-C1.energy_BC.x720_y361_t12.%y4.nc
+
+# EDGAR based ship emissions of BC
+BC_SHIP              NA        N        N     %y4-%m2-%d2t12:00:00    none     none    bc_ship      /dev/null
+
+BC_AVIATION_LTO      NA        N        Y     %y4-%m2-%d2t12:00:00    none     none    none         /dev/null
+BC_AVIATION_CDS      NA        N        Y     %y4-%m2-%d2t12:00:00    none     none    none         /dev/null 
+BC_AVIATION_CRS      NA        N        Y     %y4-%m2-%d2t12:00:00    none     none    none         /dev/null
+%%

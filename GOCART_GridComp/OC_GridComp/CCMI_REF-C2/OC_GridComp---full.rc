@@ -1,0 +1,48 @@
+#
+# Resource file for OC parameters. 
+#
+
+number_oc_classes:  2 
+
+
+# Indicate regions using a comma-delimited list of integers.
+# To activate all land boxes, use -1, or all or global (not case sensitive)
+OC_regions_indices: global
+
+# For all land boxes in a latitude range, set doZoneMasking to
+# 1 then specify BOTH the south and north limits in degrees.
+# WARNING: When set, zone masking OVERRIDES regions setting above!
+# ----------------------------------------------------------------
+doZoneMasking: 0
+LatitudeSouth: 45.0
+LatitudeNorth: 90.0
+
+# Heights [m] of LTO, CDS and CRS aviation emissions layers
+aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
+
+# Fraction of terpene emissions for SOA production
+terpene_emission_fraction: 0.1
+
+# Ratio of POM/OC -> convert source masses from carbon to POM
+pom_oc_ratio: 1.4
+
+# Initially hydrophobic portion
+hydrophobic_fraction: 0.5
+
+# Scavenging efficiency per bin [km-1] (NOT USED UNLESS RAS IS CALLED)
+fscav: 0.0  0.4
+
+# Dry particle density [kg m-3]
+particle_density: 1800   1800
+
+# Molecular weight of species [kg mole-1]
+molecular_weight: 0.18  0.18
+
+# Number of particles per kg mass
+fnum: 9.76e17  9.76e17
+
+# Number median radius [um]
+particle_radius_number: 0.0212  0.0212
+
+# Sigma of lognormal number distribution
+sigma: 2.20  2.20

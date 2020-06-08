@@ -1,0 +1,22 @@
+#
+#  DU main resource file defining the particular instances.
+#
+#  For detailed description of the ARCTAS tags consult:
+#
+#  http://geos5.org/wiki/index.php?title=GEOS-5_Configuration_for_ARCTAS
+#
+# ------------------|-------|------------
+#       Region      | Tag   |   Masking
+# ------------------|-------|------------
+#  Boreal           | bo    | [45N,90N]
+#  Non-Boreal 	    | nb    | [90S,45N)
+#  Northern Asia    | nas   | 9, 10
+#  Southern Asian   | sas   |   4
+#  Europe           | eur   |   3
+#  North America    | nam   | 1, 2
+#  South America    | sam   |   6
+#  Australia        | aus   |   7
+#  Africa           | afr   |   5
+# ------------------|-------|------------
+
+DU_instances: full afr sas aus
