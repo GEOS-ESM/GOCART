@@ -7,9 +7,6 @@ set (srcs
         ChemTracers_private.F90
         ChemTracers.F90
         MissingFields.F90
-        FieldDictEntry.F90
-        FieldDictMap.F90
-        FieldDict.F90
         )
 
 esma_add_library(${this}
