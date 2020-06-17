@@ -1,0 +1,44 @@
+module test_FieldDict
+    use FieldDict_mod
+    use FieldDictEntry_mod
+    use FieldDictMap_mod
+    use pFunit
+
+    use gFTL_StringIntegerMap
+
+    implicit none
+
+contains
+    @test
+    subroutine test_map()
+        type(StringIntegerMap) :: map
+
+        call map%insert('test', 1)
+
+        @assert_that(map%at('test'), is(equal_to(1)))
+
+    end subroutine test_map
+    @test
+    subroutine test_read_FieldDict()
+        type(FieldDict)              :: field_dict
+        type(FieldDictEntry),pointer :: field_entry
+        type(FieldDictIterator)      :: iter
+
+        call read_FieldDict('test_FieldDict.yaml', field_dict)
+
+        @assert_that(field_dict%count('test1') > 0, is(true()))
+        iter = field_dict%begin()
+        @assert_that(iter%key(), is(equal_to('test1')))
+!        field_entry = iter%value()
+!        @assert_that(field_entry%standard_name, is(equal_to('test1')))
+        field_entry => field_dict%at('test1')
+
+!        @assert_that(field_dict%count('t1')    > 0, is(true()))
+!        @assert_that(field_dict%count('tst1')  > 0, is(true()))
+
+        @assert_that(field_dict%count('test2') > 0, is(true()))
+!        @assert_that(field_dict%count('t2')    > 0, is(true()))
+!        @assert_that(field_dict%count('tst2')  > 0, is(true()))
+        @assert_that(field_dict%count('test3') > 0, is(true()))
+    end subroutine test_read_FieldDict
+end module test_FieldDict

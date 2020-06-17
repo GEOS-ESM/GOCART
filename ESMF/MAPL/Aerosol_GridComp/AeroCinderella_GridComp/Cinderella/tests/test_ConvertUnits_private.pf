@@ -1,0 +1,550 @@
+#include "MAPL_Generic.h"
+
+module test_ConvertUnits_private
+    use, intrinsic :: iso_fortran_env, only: REAL32, REAL64, INT64
+
+    use ConvertUnits_private_mod
+    use LinearFields_mod
+    use gFTL_StringReal32Map
+    use gFTL_StringReal64Map
+    use pFunit
+    use MAPL
+    use ESMF
+    use ESMF_TestCase_mod
+    use ESMF_TestMethod_mod
+
+    implicit none
+
+    interface add_field
+        module procedure add_field_real32
+        module procedure add_field_real64
+    end interface add_field
+
+    interface create_map
+        module procedure create_map_real32
+        module procedure create_map_real64
+    end interface create_map
+
+contains
+    subroutine create_config(config, rc)
+        type(ESMF_Config), intent(out) :: config
+        integer, optional, intent(out) :: rc
+
+        integer :: status
+
+        config = ESMF_ConfigCreate(rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_ConfigLoadFile(config, "test_ConvertUnits.rc", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_config
+
+    subroutine create_ESMF_state(state, rc)
+        type(ESMF_State),  intent(out) :: state
+        integer, optional, intent(out) :: rc
+
+        type(ESMF_Field) :: field
+        integer          :: status
+
+        state = ESMF_StateCreate(name="test", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_ESMF_state
+
+    subroutine create_ESMF_field(name, field, f_array, t_array, rc)
+        character(*),                                   intent(in   ) :: name
+        type(ESMF_Field),                               intent(  out) :: field
+        real(kind=REAL32), allocatable, dimension(:,:), intent(  out) :: f_array, t_array
+        integer, optional,                              intent(  out) :: rc
+
+        type(ESMF_Grid)     :: grid
+        type(ESMF_DistGrid) :: dist_grid
+        type(ESMF_Array)    :: array
+
+        real(kind=REAL32)     :: f_array_val
+        integer, dimension(2) :: fa_shape
+        integer               :: x_dim, y_dim, i, j, status, field_rank
+
+        x_dim = 4
+        y_dim = 3
+
+        grid = ESMF_GridCreateNoPeriDim(minIndex=[1,1], maxIndex=[x_dim,y_dim], &
+                regDecomp=[1,1], name="grid", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGet(grid=grid, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                distgrid=dist_grid, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGetFieldBounds(grid=grid, localDe=0, &
+                staggerloc=ESMF_STAGGERLOC_CENTER, totalCount=fa_shape, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(fa_shape(1), is(equal_to(x_dim)))
+        @assert_that(fa_shape(2), is(equal_to(y_dim)))
+
+        allocate(f_array(fa_shape(1), fa_shape(2)))
+        allocate(t_array(fa_shape(1), fa_shape(2)))
+        f_array_val = 1.0
+        do i=1, fa_shape(1)
+            do j=1, fa_shape(2)
+                f_array(i,j) = f_array_val
+                f_array_val = f_array_val + 1.0
+            end do
+        end do
+
+        t_array = f_array
+
+        @assert_that(f_array_val, is(equal_to(fa_shape(1)*fa_shape(2) + 1.0)))
+
+        array = ESMF_ArrayCreate(dist_grid, f_array, &
+                indexflag=ESMF_INDEX_DELOCAL, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        field = ESMF_FieldCreate(grid=grid, name=name, array=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, rank=field_rank, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_rank, is(equal_to(2)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_ESMF_field
+
+    subroutine add_field_real32(name, value, state, map, f_array, t_array, rc)
+        character(*),                                   intent(in   ) :: name
+        real(kind=REAL32),                              intent(in   ) :: value
+        type(ESMF_State),                               intent(inout) :: state
+        type(ScaleMapReal32),                           intent(inout) :: map
+        real(kind=REAL32), allocatable, dimension(:,:), intent(  out) :: f_array, t_array
+        integer, optional,                              intent(  out) :: rc
+
+        type(ESMF_Field) :: field
+        integer          :: status
+
+        call create_ESMF_field(name, field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateAdd(state, [field], rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call map%insert(name, value)
+
+        _RETURN(_SUCCESS)
+    end subroutine add_field_real32
+
+    subroutine create_map_real32(name, value, state, map, f_array, t_array, rc)
+        character(*),                                   intent(in   ) :: name
+        real(kind=REAL32),                              intent(in   ) :: value
+        type(ESMF_State),                               intent(  out) :: state
+        type(ScaleMapReal32),                           intent(  out) :: map
+        real(kind=REAL32), allocatable, dimension(:,:), intent(  out) :: f_array, t_array
+        integer, optional,                              intent(  out) :: rc
+
+        type(ESMF_Field) :: field
+        integer          :: status
+
+        call create_ESMF_state(state, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call add_field(name, value, state, map, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_map_real32
+
+    subroutine add_field_real64(name, value, state, map, f_array, t_array, rc)
+        character(*),                                   intent(in   ) :: name
+        real(kind=REAL64),                              intent(in   ) :: value
+        type(ESMF_State),                               intent(inout) :: state
+        type(ScaleMapReal64),                           intent(inout) :: map
+        real(kind=REAL32), allocatable, dimension(:,:), intent(  out) :: f_array, t_array
+        integer, optional,                              intent(  out) :: rc
+
+        type(ESMF_Field) :: field
+        integer          :: status
+
+        call create_ESMF_field(name, field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateAdd(state, [field], rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call map%insert(name, value)
+
+        _RETURN(_SUCCESS)
+    end subroutine add_field_real64
+
+    subroutine create_map_real64(name, value, state, map, f_array, t_array, rc)
+        character(*),                                   intent(in   ) :: name
+        real(kind=REAL64),                              intent(in   ) :: value
+        type(ESMF_State),                               intent(  out) :: state
+        type(ScaleMapReal64),                           intent(  out) :: map
+        real(kind=REAL32), allocatable, dimension(:,:), intent(  out) :: f_array, t_array
+        integer, optional,                              intent(  out) :: rc
+
+        type(ESMF_Field) :: field
+        integer          :: status
+
+        call create_ESMF_state(state, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call add_field(name, value, state, map, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_map_real64
+
+    @test
+    subroutine test_read_scale_config_real32()
+        type(ESMF_Config)    :: config
+        type(ScaleMapReal32) :: scale_map
+        integer              :: status
+
+        call create_config(config, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call read_scale_config_real32(config, scale_map, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(scale_map%size(), is(equal_to(14_INT64)))
+
+        @assert_that(scale_map%at("BCPhobic"), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("BCPhilic"), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("OCPhobic"), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("OCPhilic"), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("DU001"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("DU002"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("DU003"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("DU004"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("DU005"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("SS001"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("SS002"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("SS003"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("SS004"   ), is(equal_to(1.e-9)))
+        @assert_that(scale_map%at("SS005"   ), is(equal_to(1.e-9)))
+    end subroutine test_read_scale_config_real32
+
+    @test
+    subroutine test_read_scale_config_real64()
+        type(ESMF_Config)    :: config
+        type(ScaleMapReal64) :: scale_map
+        integer              :: status
+
+        call create_config(config, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call read_scale_config_real64(config, scale_map, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(scale_map%size(), is(equal_to(14_INT64)))
+
+        @assert_that(scale_map%at("BCPhobic"), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("BCPhilic"), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("OCPhobic"), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("OCPhilic"), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("DU001"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("DU002"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("DU003"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("DU004"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("DU005"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("SS001"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("SS002"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("SS003"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("SS004"   ), is(equal_to(1.d-9)))
+        @assert_that(scale_map%at("SS005"   ), is(equal_to(1.d-9)))
+    end subroutine test_read_scale_config_real64
+
+    @test
+    subroutine test_scale_field_in_real32()
+        type(ESMF_State)                               :: state
+        type(ScaleMapReal32)                           :: map
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array, t_array
+        integer                                        :: status
+        type(ESMF_Field)                               :: field
+        type(StringReal32MapIterator)                  :: iter
+        real(kind=REAL32), pointer                     :: ptr(:,:)
+
+        call create_map('test_field', 2.0, state, map, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        iter = map%begin()
+        @assert_that(iter%key(),   is(equal_to('test_field')))
+        @assert_that(iter%value(), is(equal_to(2.0         )))
+
+        call scale_field_in_real32(state, iter, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateGet(state, 'test_field', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array)))
+        @assert_that(ptr, is(not(equal_to(t_array))))
+        @assert_that(ptr, is(equal_to(t_array*(2.0))))
+    end subroutine test_scale_field_in_real32
+
+    @test
+    subroutine test_scale_in_real32()
+        type(ESMF_State)                               :: state
+        type(ScaleMapReal32)                           :: map
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array1, t_array1
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array2, t_array2
+        integer                                        :: status
+        type(ESMF_Field)                               :: field
+        real(kind=REAL32), pointer                     :: ptr(:,:)
+
+        call create_map('test_field1', 2.0, state, map, f_array1, t_array1, rc=status)
+        @assert_that(status, is(equal_to(0)))
+        call add_field('test_field2', 3.0, state, map, f_array2, t_array2, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(map%size(), is(equal_to(2_INT64)))
+
+        call map%scale_in(state, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateGet(state, 'test_field1', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array1)))
+        @assert_that(ptr, is(not(equal_to(t_array1))))
+        @assert_that(ptr, is(equal_to(t_array1*(2.0))))
+
+        call ESMF_StateGet(state, 'test_field2', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array2)))
+        @assert_that(ptr, is(not(equal_to(t_array2))))
+        @assert_that(ptr, is(equal_to(t_array2*(3.0))))
+    end subroutine test_scale_in_real32
+
+    @test
+    subroutine test_scale_field_in_real64()
+        type(ESMF_State)                               :: state
+        type(ScaleMapReal64)                           :: map
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array, t_array
+        integer                                        :: status
+        type(ESMF_Field)                               :: field
+        type(StringReal64MapIterator)                  :: iter
+        real(kind=REAL32), pointer                     :: ptr(:,:)
+
+        call create_map('test_field', 2.d0, state, map, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        iter = map%begin()
+        @assert_that(iter%key(),   is(equal_to('test_field')))
+        @assert_that(iter%value(), is(equal_to(2.d0         )))
+
+        call scale_field_in_real64(state, iter, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateGet(state, 'test_field', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array)))
+        @assert_that(ptr, is(not(equal_to(t_array))))
+        @assert_that(ptr, is(equal_to(t_array*(2.0))))
+    end subroutine test_scale_field_in_real64
+
+    @test
+    subroutine test_scale_in_real64()
+        type(ESMF_State)                               :: state
+        type(ScaleMapReal64)                           :: map
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array1, t_array1
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array2, t_array2
+        integer                                        :: status
+        type(ESMF_Field)                               :: field
+        real(kind=REAL32), pointer                     :: ptr(:,:)
+
+        call create_map('test_field1', 2.d0, state, map, f_array1, t_array1, rc=status)
+        @assert_that(status, is(equal_to(0)))
+        call add_field('test_field2', 3.d0, state, map, f_array2, t_array2, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(map%size(), is(equal_to(2_INT64)))
+
+        call map%scale_in(state, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateGet(state, 'test_field1', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array1)))
+        @assert_that(ptr, is(not(equal_to(t_array1))))
+        @assert_that(ptr, is(equal_to(t_array1*(2.0))))
+
+        call ESMF_StateGet(state, 'test_field2', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array2)))
+        @assert_that(ptr, is(not(equal_to(t_array2))))
+        @assert_that(ptr, is(equal_to(t_array2*(3.0))))
+    end subroutine test_scale_in_real64
+
+    @test
+    subroutine test_scale_field_out_real32()
+        type(ESMF_State)                               :: state
+        type(ScaleMapReal32)                           :: map
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array, t_array
+        integer                                        :: status
+        type(ESMF_Field)                               :: field
+        type(StringReal32MapIterator)                  :: iter
+        real(kind=REAL32), pointer                     :: ptr(:,:)
+
+        call create_map('test_field', 2.0, state, map, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        iter = map%begin()
+        @assert_that(iter%key(),   is(equal_to('test_field')))
+        @assert_that(iter%value(), is(equal_to(2.0         )))
+
+        call scale_field_out_real32(state, iter, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateGet(state, 'test_field', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array)))
+        @assert_that(ptr, is(not(equal_to(t_array))))
+        @assert_that(ptr, is(equal_to(t_array*(1.0/2.0))))
+    end subroutine test_scale_field_out_real32
+
+    @test
+    subroutine test_scale_out_real32()
+        type(ESMF_State)                               :: state
+        type(ScaleMapReal32)                           :: map
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array1, t_array1
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array2, t_array2
+        integer                                        :: status
+        type(ESMF_Field)                               :: field
+        real(kind=REAL32), pointer                     :: ptr(:,:)
+
+        call create_map('test_field1', 2.0, state, map, f_array1, t_array1, rc=status)
+        @assert_that(status, is(equal_to(0)))
+        call add_field('test_field2', 3.0, state, map, f_array2, t_array2, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(map%size(), is(equal_to(2_INT64)))
+
+        call map%scale_out(state, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateGet(state, 'test_field1', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array1)))
+        @assert_that(ptr, is(not(equal_to(t_array1))))
+        @assert_that(ptr, is(equal_to(t_array1*(1.0/2.0))))
+
+        call ESMF_StateGet(state, 'test_field2', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array2)))
+        @assert_that(ptr, is(not(equal_to(t_array2))))
+        @assert_that(ptr, is(equal_to(t_array2*(1.0/3.0))))
+    end subroutine test_scale_out_real32
+
+    @test
+    subroutine test_scale_field_out_real64()
+        type(ESMF_State)                               :: state
+        type(ScaleMapReal64)                           :: map
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array, t_array
+        integer                                        :: status
+        type(ESMF_Field)                               :: field
+        type(StringReal64MapIterator)                  :: iter
+        real(kind=REAL32), pointer                     :: ptr(:,:)
+
+        call create_map('test_field', 2.d0, state, map, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        iter = map%begin()
+        @assert_that(iter%key(),   is(equal_to('test_field')))
+        @assert_that(iter%value(), is(equal_to(2.d0         )))
+
+        call scale_field_out_real64(state, iter, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateGet(state, 'test_field', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array)))
+        @assert_that(ptr, is(not(equal_to(t_array))))
+        @assert_that(ptr, is(equal_to(t_array*(1.0/2.0))))
+    end subroutine test_scale_field_out_real64
+
+    @test
+    subroutine test_scale_out_real64()
+        type(ESMF_State)                               :: state
+        type(ScaleMapReal64)                           :: map
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array1, t_array1
+        real(kind=REAL32), allocatable, dimension(:,:) :: f_array2, t_array2
+        integer                                        :: status
+        type(ESMF_Field)                               :: field
+        real(kind=REAL32), pointer                     :: ptr(:,:)
+
+        call create_map('test_field1', 2.d0, state, map, f_array1, t_array1, rc=status)
+        @assert_that(status, is(equal_to(0)))
+        call add_field('test_field2', 3.d0, state, map, f_array2, t_array2, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(map%size(), is(equal_to(2_INT64)))
+
+        call map%scale_out(state, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_StateGet(state, 'test_field1', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array1)))
+        @assert_that(ptr, is(not(equal_to(t_array1))))
+        @assert_that(ptr, is(equal_to(t_array1*(1.0/2.0))))
+
+        call ESMF_StateGet(state, 'test_field2', field, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(ptr, is(equal_to(f_array2)))
+        @assert_that(ptr, is(not(equal_to(t_array2))))
+        t_array2 = t_array2*(1.d0/3.d0)
+        @assert_that(ptr, is(equal_to(t_array2)))
+    end subroutine test_scale_out_real64
+end module test_ConvertUnits_private
