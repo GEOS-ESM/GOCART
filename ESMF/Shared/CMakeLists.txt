@@ -3,5 +3,7 @@ if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/@GSW )
 endif()
 
 esma_add_subdirectories (
-        @MAPL
+        MAPL
+        Chem_Base
+        Chem_Shared
 )

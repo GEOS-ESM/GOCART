@@ -1,15 +1,15 @@
 cmake:
-  local: ./@cmake
+  local: ./cmake@
   remote: ../ESMA_cmake.git
   tag: v3.0.6
   develop: develop
 
 ecbuild:
-  local: ./@cmake/@ecbuild
+  local: ./cmake@/ecbuild@
   remote: ../ecbuild.git
   tag: geos/v1.0.5
 
 MAPL:
-  local: ./ESMF/MAPL/Shared/@MAPL
+  local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
   branch: develop
