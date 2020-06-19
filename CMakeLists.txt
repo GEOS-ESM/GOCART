@@ -32,6 +32,9 @@ include (esma)
 
 ecbuild_declare_project()
 
+# This is a KLUDGE to emulate paths used in GEOSgcm so that GOCART Legacy code generation works
+file (MAKE_DIRECTORY ${esma_include}/GEOSchem_GridComp)
+
 # Generic DFLAGS
 # These should be relocated and/or eliminated.
 add_definitions(-Dsys${CMAKE_SYSTEM_NAME} -DESMA64)

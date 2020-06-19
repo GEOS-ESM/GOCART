@@ -9,6 +9,11 @@ ecbuild:
   remote: ../ecbuild.git
   tag: geos/v1.0.5
 
+HEMCO:
+  local: ./ESMF/HEMCO_GridComp@
+  remote: ../HEMCO.git
+  tag: GEOS_12.8
+
 NCEP_Shared:
   local: ./ESMF/Shared/NCEP_Shared@
   remote: ../NCEP_Shared.git
