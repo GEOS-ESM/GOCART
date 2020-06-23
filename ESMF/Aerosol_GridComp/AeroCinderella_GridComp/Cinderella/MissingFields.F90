@@ -9,21 +9,33 @@ module MissingFields_mod
     implicit none
     private
 
+    public get_ZLE
+
 contains
     subroutine get_AIRDENS()
         
     end subroutine get_AIRDENS
     
-    subroutine get_AIRDENS_DRYP()
-        
+    subroutine get_AIRDENS_DRYP(PLE, T, AIRDENS_DRYP)
+        real(kind=REAL32), intent(in   ) :: PLE(:,:,:)
+        real(kind=REAL32), intent(in   ) :: T(:,:,:)
+        real(kind=REAL32), intent(  out) :: AIRDENS_DRYP(:,:,:)
+
+        AIRDENS_DRYP = PLE/(MAPL_RDRY*T)
     end subroutine get_AIRDENS_DRYP
-    
-    subroutine get_AREA()
-        
-    end subroutine get_AREA
-    
-    subroutine get_DELP()
-        
+
+    subroutine get_DELP(PRESS, DELP)
+        real(kind=REAL32), intent(in   ) :: PRESS(:,:,:)
+        real(kind=REAL32), intent(  out) :: DELP(:,:,:)
+
+        integer :: i, n(3)
+
+        n = size(PRESS)
+
+        do i=1, n(3)-1
+            DELP(:,:,i) =  PRESS(:,:,i+1) - PRESS(:,:,i)
+        end do
+
     end subroutine get_DELP
     
     subroutine get_FRACI()
@@ -42,7 +54,9 @@ contains
         
     end subroutine get_PS
     
-    subroutine get_ZLE()
-        
+    subroutine get_ZLE(ZLE)
+        real(kind=REAL32), intent(inout) :: ZLE(:,:,:)
+
+        ZLE = ZLE/MAPL_GRAV
     end subroutine get_ZLE
 end module MissingFields_mod
