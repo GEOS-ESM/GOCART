@@ -1,1 +1,2 @@
-#define VERIFY_ESMF_(A) if(ESMF_LogFoundError(A, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE)) call ESMF_Finalize(endflag=ESMF_LOGERR_PASSTHRU)
+#define VERIFY_ESMF_(A) if(ESMF_LogFoundError(A, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE__)) call ESMF_Finalize(endflag=ESMF_END_ABORT)
+#define VERIFY_NUOPC_(A, B) VERIFY_ESMF_(A); VERIFY_ESMF_(B)
