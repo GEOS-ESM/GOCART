@@ -1,0 +1,1 @@
+#define VERIFY_ESMF_(A) if(ESMF_LogFoundError(A, msg=ESMF_LOGERR_PASSTHRU, line=__LINE__, file=__FILE)) call ESMF_Finalize(endflag=ESMF_LOGERR_PASSTHRU)
