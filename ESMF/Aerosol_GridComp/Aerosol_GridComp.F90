@@ -1,6 +1,6 @@
 #include "MAPL_Generic.h"
 
-module Aerosols_GridComp_mod
+module Aerosol_GridComp_mod
     use ESMF
     use MAPL
 
@@ -16,7 +16,7 @@ module Aerosols_GridComp_mod
 contains
     subroutine SetServices(gc, rc)
         type(ESMF_GridComp), intent(inout) :: gc
-        integer, optional,   intent(  out) :: rc
+        integer,             intent(  out) :: rc
 
         type(Aerosol_GridComp), pointer :: self
 
@@ -82,4 +82,4 @@ contains
 
         _RETURN(_SUCCESS)
     end subroutine Run
-end module Aerosols_GridComp_mod
+end module Aerosol_GridComp_mod
