@@ -47,6 +47,7 @@ contains
         ! attach specializing method
         call NUOPC_CompSpecialize(model, specLabel=ufsLA, &
                 specRoutine=ModelAdvance, rc=rc)
+        VERIFY_ESMF_(rc)
     end subroutine SetServices
 
     subroutine AdvertiseFields(model, import_state, export_state, clock, rc)
