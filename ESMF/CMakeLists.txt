@@ -1,5 +1,6 @@
 set (HEMCO_EXTERNAL_CONFIG TRUE)
 set (MAPL_ESMF TRUE)
+set (BUILD_GEOS_INTERFACE TRUE)
 
 esma_add_subdirectories(
         Apps
