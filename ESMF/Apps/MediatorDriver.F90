@@ -1,7 +1,7 @@
 #include "NUOPC_ErrLog.h"
 #include "MAPL_Generic.h"
 
-module MaplNuopc_driver
+module Mediator_Driver
     use ESMF
     use NUOPC
 
@@ -12,7 +12,9 @@ module MaplNuopc_driver
 
     use MAPL
     use MAPL_NUOPCWrapperMod, only: wrapperSS => SetServices, init_wrapper
+    use NUOPC_Connector,      only: cplSS => SetServices
 
+    use agcm_ctm_mediator,     only: mediator_set_services => SetServices
     use MAPL_Provide_GridComp, only: provideSS => SetServices
     use MAPL_Recieve_GridComp, only: recieveSS => SetServices
 
@@ -56,7 +58,8 @@ contains
 
         type(ESMF_VM)       :: vm
         type(ESMF_Config)   :: config
-        type(ESMF_GridComp) :: provide, recieve
+        type(ESMF_GridComp) :: provide, recieve, mediator
+        type(ESMF_CplComp)  :: connector
 
         logical              :: seq
         integer              :: i, n_pes, n_provide_pes, n_recieve_pes
@@ -106,6 +109,16 @@ contains
         VERIFY_ESMF_(rc)
         call init_wrapper(wrapper_gc=recieve, name="recieve", &
                 cap_rc_file="RECIEVE_CAP.rc", root_set_services=recieveSS, rc=rc)
+        VERIFY_ESMF_(rc)
+
+        call NUOPC_DriverAddComp(driver, "mediator", mediator_set_services, comp=mediator, &
+                petlist=recieve_petlist, rc = rc)
+        VERIFY_ESMF_(rc)
+        call NUOPC_DriverAddComp(driver, srcCompLabel="provide", dstCompLabel="mediator", &
+                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
+        VERIFY_ESMF_(rc)
+        call NUOPC_DriverAddComp(driver, srcCompLabel="mediator", dstCompLabel="recieve", &
+                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
         VERIFY_ESMF_(rc)
     end subroutine SetModelServices
 
@@ -180,6 +193,24 @@ contains
         type(ESMF_GridComp)  :: driver
         integer, intent(out) :: rc
 
+        type(ESMF_Time)         :: startTime, stopTime
+        type(ESMF_TimeInterval) :: timeStep
+        type(ESMF_Config)       :: config
+        type(NUOPC_FreeFormat)  :: run_sequence_ff
+
         rc = ESMF_SUCCESS
+
+        call ESMF_GridCompGet(driver, config=config, rc=rc)
+        VERIFY_ESMF_(rc)
+
+        run_sequence_ff = NUOPC_FreeFormatCreate(config, label="run_sequence::", rc=rc)
+        VERIFY_ESMF_(rc)
+
+        ! ingest FreeFormat run sequence
+        call NUOPC_DriverIngestRunSequence(driver, run_sequence_ff, rc=rc)
+        VERIFY_ESMF_(rc)
+
+        call NUOPC_FreeFormatDestroy(run_sequence_ff, rc=rc)
+        VERIFY_ESMF_(rc)
     end subroutine SetRunSequence
-end module MaplNuopc_driver
+end module Mediator_Driver

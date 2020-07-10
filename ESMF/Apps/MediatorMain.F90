@@ -1,12 +1,12 @@
 #include "NUOPC_ErrLog.h"
 
-program MaplNuopcMain
+program  MediatorMain
     use ESMF
     use NUOPC
     use, intrinsic :: iso_fortran_env, only: INT64
 
-    use MaplNuopc_driver, only: driverSS => SetServices
-    use MAPL_Profiler,    only: BaseProfiler, TimeProfiler, get_global_time_profiler
+    use Mediator_Driver, only: driverSS => SetServices
+    use MAPL_Profiler,   only: BaseProfiler, TimeProfiler, get_global_time_profiler
 
     implicit none
     include "mpif.h"
@@ -84,4 +84,4 @@ program MaplNuopcMain
     call ESMF_Finalize()
 
     call t_p%stop()
-end program MaplNuopcMain
+end program MediatorMain
