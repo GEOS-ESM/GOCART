@@ -4,7 +4,6 @@ set (BUILD_GEOS_INTERFACE TRUE)
 
 esma_add_subdirectories(
         Apps
-        include
         Shared
         Aerosol_GridComp
         GOCART_GridComp

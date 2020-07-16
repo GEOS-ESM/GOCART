@@ -16,7 +16,7 @@ ecbuild_add_executable(
         TARGET SyntheticApp.x
         SOURCES SyntheticApp.F90 Synthetic_Driver.F90 Mediator.F90 Mediator_Interpolator.F90 Provider_GridComp.F90 Reciever_GridComp.F90
         LIBS gftl-shared MAPL
-        INCLUDES ${esma_include}/NUOPC ${esma_include}/MAPL
+        INCLUDES ${esma_include}/MAPL
 )
 
 # ecbuild_add_executable(

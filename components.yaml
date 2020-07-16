@@ -31,4 +31,4 @@ GMAO_Shared:
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  branch: develop
+  branch: feature/wjamieso/NUOPC_wrapper_updates
