@@ -1,10 +1,9 @@
-   
 !-------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 610.1     !
 !-------------------------------------------------------------------------
 !
 #include "MAPL_Generic.h"
-   
+
 MODULE Reciever_GridCompMod
 !
 ! !USES:

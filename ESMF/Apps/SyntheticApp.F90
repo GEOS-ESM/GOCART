@@ -1,3 +1,5 @@
+#include "NUOPC_ErrLog.h"
+
 program prototype
 
   !-----------------------------------------------------------------------------
@@ -36,37 +38,21 @@ program prototype
   ! Initialize ESMF
   print*,"ESMF initialize"
   call ESMF_Initialize(logkindflag=ESMF_LOGKIND_MULTI, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  VERIFY_ESMF_(rc)
 
   print*,"ESMF log start"
   call ESMF_LogWrite("esmApp STARTING", ESMF_LOGMSG_INFO, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  VERIFY_ESMF_(rc)
 
   ! Create the earth system Component
   print*,"ESMF create ESM"
   esmComp = ESMF_GridCompCreate(name="esm", rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  VERIFY_ESMF_(rc)
 
   ! SetServices for the earth system Component
   print*,"ESM Set Services"
   call ESMF_GridCompSetServices(esmComp, driverSS, userRc=urc, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
-  if (ESMF_LogFoundError(rcToCheck=urc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  VERIFY_ALL_ESMF_(rc, urc)
 
   ! ! Set Profiling Attribute    
   ! print*,"ESMF profiling start"
@@ -79,26 +65,12 @@ program prototype
   ! Call Initialize for the earth system Component
   print*,"ESM Initialize"
   call ESMF_GridCompInitialize(esmComp, userRc=urc, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
-  if (ESMF_LogFoundError(rcToCheck=urc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  VERIFY_ALL_ESMF_(rc, urc)
 
   ! Call Run  for earth the system Component
   print*,"ESM Run"
   call ESMF_GridCompRun(esmComp, userRc=urc, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
-  if (ESMF_LogFoundError(rcToCheck=urc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  VERIFY_ALL_ESMF_(rc, urc)
 
    if (rank == 0) then
      call system_clock(t1, count_rate)
@@ -112,30 +84,17 @@ program prototype
   ! Call Finalize for the earth system Component
   print*,"ESM Finalize"
   call ESMF_GridCompFinalize(esmComp, userRc=urc, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
-  if (ESMF_LogFoundError(rcToCheck=urc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
-  
+  VERIFY_ALL_ESMF_(rc, urc)
+
   ! Destroy the earth system Component
   print*,"ESM Destroy"
   call ESMF_GridCompDestroy(esmComp, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  VERIFY_ESMF_(rc)
 
   CALL MPI_Comm_set_errhandler(MPI_COMM_WORLD,MPI_ERRORS_RETURN,rc)
   print*,"ESMF log finish"
   call ESMF_LogWrite("esmApp FINISHED", ESMF_LOGMSG_INFO, rc=rc)
-  if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-       line=__LINE__, &
-       file=__FILE__)) &
-       call ESMF_Finalize(endflag=ESMF_END_ABORT)
+  VERIFY_ESMF_(rc)
 
   ! Finalize ESMF
   print*,"ESMF finalize"
