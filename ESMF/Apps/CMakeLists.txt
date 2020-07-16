@@ -13,8 +13,15 @@ ecbuild_add_executable(
 )
 
 ecbuild_add_executable(
-        TARGET MediatorApp.x
-        SOURCES MediatorMain.F90 MediatorDriver.F90 Mediator.F90 Mediator_Interpolator.F90 MaplProvide_GridComp.F90 MaplRecieve_GridComp.F90
+        TARGET SyntheticApp.x
+        SOURCES SyntheticApp.F90 Synthetic_Driver.F90 Mediator.F90 Mediator_Interpolator.F90 Provider_GridComp.F90 Reciever_GridComp.F90
         LIBS gftl-shared MAPL
         INCLUDES ${esma_include}/NUOPC ${esma_include}/MAPL
 )
+
+# ecbuild_add_executable(
+#         TARGET MediatorApp.x
+#         SOURCES MediatorMain.F90 MediatorDriver.F90 Mediator.F90 Mediator_Interpolator.F90 MaplProvide_GridComp.F90 MaplRecieve_GridComp.F90
+#         LIBS gftl-shared MAPL
+#         INCLUDES ${esma_include}/NUOPC ${esma_include}/MAPL
+# )
