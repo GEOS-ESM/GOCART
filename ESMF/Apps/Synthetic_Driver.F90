@@ -79,14 +79,14 @@ contains
     type(ESMF_GridComp)  :: driver
     integer, intent(out) :: rc
 
-    type(ESMF_GridComp)           :: agcm, ctm, mediator
-    type(ESMF_CplComp)            :: connector, connector2
+    type(ESMF_GridComp)           :: provider, reciever, mediator
+    type(ESMF_CplComp)            :: connector
     type(ESMF_VM) :: vm
     type(ESMF_Config) :: config
 
     logical :: seq
-    integer :: i, npes, n_agcm_pes, n_ctm_pes
-    integer, allocatable :: agcm_petlist(:), ctm_petlist(:)
+    integer :: i, npes, n_provider_pes, n_reciever_pes
+    integer, allocatable :: provider_petlist(:), reciever_petlist(:)
 
     print*, "Driver start Set Model Services"
     rc = ESMF_SUCCESS
@@ -104,58 +104,63 @@ contains
     print*,"Driver read from config"
     call ESMF_ConfigGetAttribute(config, seq, label = "sequential:", rc = rc)
     VERIFY_NUOPC_(rc)
-    call ESMF_ConfigGetAttribute(config, n_agcm_pes, label = "agcm_pets:", rc = rc)
+    call ESMF_ConfigGetAttribute(config, n_provider_pes, label = "provider_pets:", rc = rc)
     VERIFY_NUOPC_(rc)
-    call ESMF_ConfigGetAttribute(config, n_ctm_pes, label = "ctm_pets:", rc = rc)
+    call ESMF_ConfigGetAttribute(config, n_reciever_pes, label = "reciever_pets:", rc = rc)
     VERIFY_NUOPC_(rc)
 
     print*,"Driver create pet lists"
-    allocate(agcm_petlist(n_agcm_pes), ctm_petlist(n_ctm_pes))
+    allocate(provider_petlist(n_provider_pes), reciever_petlist(n_reciever_pes))
 
     if (seq) then
-        _ASSERT((n_agcm_pes == n_ctm_pes), "agcm_pets must be equal to ctm_pets in sequential")
-        _ASSERT((n_agcm_pes == npes), "agcm_pets must be equal to number of pets in sequential")
+        _ASSERT((n_provider_pes == n_reciever_pes), "provider_pets must be equal to reciever_pets in sequential")
+        _ASSERT((n_provider_pes == npes), "provider_pets must be equal to number of pets in sequential")
 
-        agcm_petlist = [(i, i = 0, n_agcm_pes - 1)]
-        ctm_petlist = [(i, i = 0, n_ctm_pes - 1)]
+        provider_petlist = [(i, i = 0, n_provider_pes - 1)]
+        reciever_petlist = [(i, i = 0, n_reciever_pes - 1)]
     else
-        _ASSERT(((n_agcm_pes + n_ctm_pes) == npes), "agcm_pets + ctm_pets must be equal to number of pets")
+        _ASSERT(((n_provider_pes + n_reciever_pes) == npes), "provider_pets + reciever_pets must be equal to number of pets")
 
-        agcm_petlist = [(i, i = 0, n_agcm_pes - 1)]
-        ctm_petlist = [(i, i = n_agcm_pes, npes - 1)]
+        provider_petlist = [(i, i = 0, n_provider_pes - 1)]
+        reciever_petlist = [(i, i = n_provider_pes, npes - 1)]
     end if
 
     print*,"Driver add provider"
-    call NUOPC_DriverAddComp(driver, "agcm", wrapper_ss, comp = agcm, &
-         petlist = agcm_petlist, rc = rc)
+    call NUOPC_DriverAddComp(driver, "provider", wrapper_ss, comp = provider, &
+         petlist = provider_petlist, rc = rc)
     VERIFY_NUOPC_(rc)
     print*,"Driver wrap provider MAPL"
-    call init_wrapper(wrapper_gc = agcm, name = "agcm", &
+    call init_wrapper(wrapper_gc = provider, name = "provider", &
          cap_rc_file = "AGCM_CAP.rc", root_set_services =provider_set_services, rc = rc)
     VERIFY_NUOPC_(rc)
 
     print*,"Driver add reciever"
-    call NUOPC_DriverAddComp(driver, "ctm", wrapper_ss, comp = ctm, &
-         petlist = ctm_petlist, rc = rc)
+    call NUOPC_DriverAddComp(driver, "reciever", wrapper_ss, comp = reciever, &
+         petlist = reciever_petlist, rc = rc)
     VERIFY_NUOPC_(rc)
     print*,"Driver wrap reciever MAPL"
-    call init_wrapper(wrapper_gc = ctm, name = "ctm", &
+    call init_wrapper(wrapper_gc = reciever, name = "reciever", &
          cap_rc_file = "CTM_CAP.rc", root_set_services = reciever_set_services, rc = rc)
     VERIFY_NUOPC_(rc)
 
-    print*,"Driver add mediator"
-    call NUOPC_DriverAddComp(driver, "mediator", mediator_set_services, comp = mediator, &
-         petlist = ctm_petlist, rc = rc)
+    ! print*,"Driver add mediator"
+    ! call NUOPC_DriverAddComp(driver, "mediator", mediator_set_services, comp = mediator, &
+    !      petlist = reciever_petlist, rc = rc)
+    ! VERIFY_NUOPC_(rc)
+
+    print*,"Driver connect compoinents"
+    call NUOPC_DriverAddComp(driver, srcCompLabel = "provider", dstCompLabel = "reciever", &
+         compSetServicesRoutine = cplSS, comp = connector, rc = rc)
     VERIFY_NUOPC_(rc)
 
-    print*,"Driver connect provider to mediator"
-    call NUOPC_DriverAddComp(driver, srcCompLabel = "agcm", dstCompLabel = "mediator", &
-         compSetServicesRoutine = cplSS, comp = connector, rc = rc)
-    VERIFY_NUOPC_(rc)
-    print*,"Driver connect mediator to reciever"
-    call NUOPC_DriverAddComp(driver, srcCompLabel = "mediator", dstCompLabel = "ctm", &
-         compSetServicesRoutine = cplSS, comp = connector, rc = rc)
-    VERIFY_NUOPC_(rc)
+    ! print*,"Driver connect provider to mediator"
+    ! call NUOPC_DriverAddComp(driver, srcCompLabel = "provider", dstCompLabel = "mediator", &
+    !      compSetServicesRoutine = cplSS, comp = connector, rc = rc)
+    ! VERIFY_NUOPC_(rc)
+    ! print*,"Driver connect mediator to reciever"
+    ! call NUOPC_DriverAddComp(driver, srcCompLabel = "mediator", dstCompLabel = "reciever", &
+    !      compSetServicesRoutine = cplSS, comp = connector, rc = rc)
+    ! VERIFY_NUOPC_(rc)
 
     print*, "Driver finish Set Model Services"
   end subroutine SetModelServices
