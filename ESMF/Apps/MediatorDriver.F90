@@ -33,23 +33,23 @@ contains
 
         ! NUOPC_Driver registers the generic methods
         call NUOPC_CompDerive(driver, driverSS, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! attach specializing method(s)
         call NUOPC_CompSpecialize(driver, specLabel=modelSS, &
                 specRoutine=SetModelServices, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         call NUOPC_CompSpecialize(driver, specLabel=runSS, &
                 specRoutine=SetRunSequence, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         config = ESMF_ConfigCreate(rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_ConfigLoadFile(config, "NUOPC_run_config.txt", rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_GridCompSet(driver, config=config, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
     end subroutine SetServices
 
     subroutine SetModelServices(driver, rc)
@@ -70,16 +70,16 @@ contains
         call set_clock(driver)
 
         call ESMF_GridCompGet(driver, vm=vm, config=config, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_VMGet(vm, petCount=n_pes, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         call ESMF_ConfigGetAttribute(config, seq, label="sequential:", rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_ConfigGetAttribute(config, n_provide_pes, label="provide_pets:", rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_ConfigGetAttribute(config, n_recieve_pes, label="recieve_pets:", rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         allocate(provide_petlist(n_provide_pes), recieve_petlist(n_recieve_pes))
 
@@ -99,27 +99,27 @@ contains
 
         call NUOPC_DriverAddComp(driver, "provide", wrapperSS, comp=provide, &
                 petlist=provide_petlist, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call init_wrapper(wrapper_gc=provide, name="provide", &
                 cap_rc_file="PROVIDE_CAP.rc", root_set_services=provideSS, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         call NUOPC_DriverAddComp(driver, "recieve", wrapperSS, comp=recieve, &
                 petlist=recieve_petlist, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call init_wrapper(wrapper_gc=recieve, name="recieve", &
                 cap_rc_file="RECIEVE_CAP.rc", root_set_services=recieveSS, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         call NUOPC_DriverAddComp(driver, "mediator", mediator_set_services, comp=mediator, &
                 petlist=recieve_petlist, rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call NUOPC_DriverAddComp(driver, srcCompLabel="provide", dstCompLabel="mediator", &
                 compSetServicesRoutine=cplSS, comp=connector, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call NUOPC_DriverAddComp(driver, srcCompLabel="mediator", dstCompLabel="recieve", &
                 compSetServicesRoutine=cplSS, comp=connector, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
     end subroutine SetModelServices
 
     subroutine set_clock(driver)
@@ -143,37 +143,37 @@ contains
         call UnpackDateTime(start_date_and_time, yy, mm, dd, h, m, s)
         call ESMF_TimeSet(startTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, &
                 calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Read the end time
         call ESMF_GridCompGet(driver, config = config, rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_ConfigGetAttribute(config, end_date_and_time(1), label = "end_date:", rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_ConfigGetAttribute(config, end_date_and_time(2), label = "end_time:", rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Set the end time
         call UnpackDateTime(end_date_and_time, yy, mm, dd, h, m, s)
         call ESMF_TimeSet(stopTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, &
                 calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Read the interpolation time interval
         call ESMF_ConfigGetAttribute(config, dt, label = "interpolation_dt:", rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Create the driver clock
         call ESMF_TimeIntervalSet(timeStep, s=dt, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         internalClock = ESMF_ClockCreate(name="Driver Clock", timeStep = timeStep, &
                 startTime=startTime, stopTime=stopTime, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! set the driver clock
         call ESMF_GridCompSet(driver, clock=internalClock, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
     contains
         subroutine UnpackDateTime(DATETIME, YY, MM, DD, H, M, S)
             integer, intent(IN)  :: DATETIME(:)
@@ -201,16 +201,16 @@ contains
         rc = ESMF_SUCCESS
 
         call ESMF_GridCompGet(driver, config=config, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         run_sequence_ff = NUOPC_FreeFormatCreate(config, label="run_sequence::", rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! ingest FreeFormat run sequence
         call NUOPC_DriverIngestRunSequence(driver, run_sequence_ff, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         call NUOPC_FreeFormatDestroy(run_sequence_ff, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
     end subroutine SetRunSequence
 end module Mediator_Driver
