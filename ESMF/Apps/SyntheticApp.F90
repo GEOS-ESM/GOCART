@@ -31,9 +31,9 @@ program prototype
      call system_clock(t0)
   end if
 
-  t_p => get_global_time_profiler()
-  t_p = TimeProfiler('All', comm_world = MPI_COMM_WORLD)
-  call t_p%start()
+  ! t_p => get_global_time_profiler()
+  ! t_p = TimeProfiler('All', comm_world = MPI_COMM_WORLD)
+  ! call t_p%start()
   
   ! Initialize ESMF
   print*,"ESMF initialize"
@@ -100,7 +100,7 @@ program prototype
   print*,"ESMF finalize"
   call ESMF_Finalize()
 
-  call t_p%stop()
+  ! call t_p%stop()
 
   print*,"complete"
 end program prototype
