@@ -1,193 +1,93 @@
-!-------------------------------------------------------------------------
-!     NASA/GSFC, Global Modeling and Assimilation Office, Code 610.1     !
-!-------------------------------------------------------------------------
-!
 #include "MAPL_Generic.h"
 
-MODULE Reciever_GridCompMod
-!
-! !USES:
-!
-      use ESMF
-      use MAPL
+module Reciever_GridCompMod
+    use ESMF
+    use MAPL
 
-      IMPLICIT NONE
-      PRIVATE
-!
-! !PUBLIC MEMBER FUNCTIONS:
+    implicit none
+    private
 
-      PUBLIC SetServices
+    public SetServices
 
-      include "mpif.h"
+    include "mpif.h"
+contains
+    subroutine SetServices(gc, rc)
+        type(ESMF_GridComp), intent(inout) :: gc
+        integer,             intent(  out) :: rc
 
-   contains
+        character(len=ESMF_MAXSTR) :: comp_name
 
-!BOP
+        __Iam__('SetServices')
+        call ESMF_GridCompGet(gc, name=comp_name, __RC__)
+        Iam = trim(comp_name) //'::'// Iam
 
-! !IROUTINE: SetServices -- Sets ESMF services for this component
+        print*, "Reciever start Set Services"
 
-! !INTERFACE:
+        print*, "Reciever Entry Points"
+        call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_INITIALIZE, Initialize, __RC__)
+        call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, __RC__)
 
-      subroutine SetServices ( GC, RC )
+        print*, "Reciever set import"
+        call MAPL_AddImportSpec(gc, &
+                short_name='var1', &
+                long_name='na', &
+                units='na', &
+                dims=MAPL_DimsHorzOnly, &
+                vlocation=MAPL_VLocationNone, __RC__)
 
-! !ARGUMENTS:
+        print*, "Reciever Call Generic Set Services"
+        call MAPL_GenericSetServices(gc, __RC__)
 
-         type(ESMF_GridComp), intent(INOUT) :: GC  ! gridded component
-         integer,             intent(  OUT) :: RC  ! return code
+        print*, "Reciever finish Set Services"
+        _RETURN(_SUCCESS)
+    end subroutine SetServices
 
-! !DESCRIPTION:  The SetServices registers the Radiation component
+    subroutine Initialize(gc, import, export, clock, rc)
+        type(ESMF_GridComp), intent(inout) :: gc
+        type(ESMF_State),    intent(inout) :: import
+        type(ESMF_State),    intent(inout) :: export
+        type(ESMF_Clock),    intent(inout) :: clock
+        integer, optional,   intent(  out) :: rc
 
-!EOP
+        character(len=ESMF_MAXSTR) :: comp_name
 
-!=============================================================================
-!
-! ErrLog Variables
+        __Iam__('Initialize')
+        call ESMF_GridCompGet(gc, name=comp_name, __RC__)
+        Iam = trim(comp_name) //'::'// Iam
 
-         character(len=ESMF_MAXSTR)              :: IAm
-         integer                                 :: STATUS
-         character(len=ESMF_MAXSTR)              :: COMP_NAME
+        print*, "Reciever start Initialize"
 
-         type(ESMF_Config)          :: cf
+        print*, "Provider MAPL_GridCreate"
+        call MAPL_GridCreate(gc, __RC__)
 
-!=============================================================================
+        print*, "Reciever Generic initialize"
+        call MAPL_GenericInitialize(gc, import, export, clock, __RC__)
 
-! Begin...
+        print*, "Reciever finish Initialize"
+        _RETURN(_SUCCESS)
+    end subroutine Initialize
 
-! Get my name and set-up traceback handle
-! ---------------------------------------
+    subroutine Run(gc, import, export, clock, rc)
+        type(ESMF_GridComp), intent(inout) :: gc
+        type(ESMF_State),    intent(inout) :: import
+        type(ESMF_State),    intent(inout) :: export
+        type(ESMF_Clock),    intent(inout) :: clock
+        integer, optional,   intent(  out) :: rc
 
-         Iam = 'SetServices'
-         call ESMF_GridCompGet( GC, NAME=COMP_NAME, CONFIG=CF, RC=STATUS )
-         _VERIFY(STATUS)
-         Iam = trim(COMP_NAME) // "::" // Iam
+        character(len=ESMF_MAXSTR) :: comp_name
+        real, pointer              :: ptr2d(:,:)
 
-!   Set the Initialize, Run, Finalize entry points
-!   ----------------------------------------------
-         call MAPL_GridCompSetEntryPoint ( GC, ESMF_METHOD_INITIALIZE,  Initialize_, RC=status)
-         _VERIFY(STATUS)
-         call MAPL_GridCompSetEntryPoint ( GC, ESMF_METHOD_RUN,   Run_, RC=status)
-         _VERIFY(STATUS)
+        __Iam__('Run')
+        call ESMF_GridCompGet(gc, name=comp_name, __RC__)
+        Iam = trim(comp_name) //'::'// Iam
 
+        print*, "Reciever start Run"
 
-         call MAPL_AddImportSpec(GC,&
-               short_name='var1', &
-               long_name='na' , &
-               units = 'na', &
-               dims = MAPL_DimsHorzOnly, &
-               vlocation = MAPL_VLocationNone, rc=status)
+        print*,"Reciever get import value"
+        call MAPL_GetPointer(import, ptr2d, 'var1', __RC__)
+        print*, 'The value of var1 is:', minval(ptr2d), maxval(ptr2d)
 
-!   Generic Set Services
-!   --------------------
-         call MAPL_GenericSetServices ( GC, rc=status)
-         _VERIFY(STATUS)
-
-         _RETURN(ESMF_SUCCESS)
-
-      end subroutine SetServices
-
-!BOP
-!
-! !IROUTINE:  Initialize_ --- Initialize RUT
-!
-! !INTERFACE:
-!
-
-      SUBROUTINE Initialize_ ( GC, IMPORT, EXPORT, CLOCK, rc )
-
-! !USES:
-
-         implicit NONE
-
-! !INPUT PARAMETERS:
-
-         type(ESMF_Clock),  intent(inout) :: CLOCK     ! The clock
-
-! !OUTPUT PARAMETERS:
-
-         type(ESMF_GridComp), intent(inout) :: GC      ! Grid Component
-         type(ESMF_State), intent(inout) :: IMPORT     ! Import State
-         type(ESMF_State), intent(inout) :: EXPORT     ! Export State
-         integer, intent(out)            :: rc         ! Error return code:
-!  0 - all is well
-!  1 - 
-
-! !DESCRIPTION: This is a simple ESMF wrapper.
-!
-! !REVISION HISTORY:
-!
-!  29 Sep 2011  Anton Darmenov   Cloned from the ExtData GC code
-!
-!EOP
-!-------------------------------------------------------------------------
-
-
-         type(ESMF_Config)           :: CF          ! Universal Config 
-         character(len=ESMF_MAXSTR)  :: Iam
-         integer                     :: status
-         character(len=ESMF_MAXSTR)  :: comp_name
-
-!  Get my name and set-up traceback handle
-!  ---------------------------------------
-         Iam = "Initialize_"
-         call ESMF_GridCompGet( GC, name=comp_name,rc=status)
-         _VERIFY(status)
-         Iam = trim(comp_name) // '::' // trim(Iam)
-
-         call MAPL_GridCreate(GC, rc=status)
-         _VERIFY(STATUS)
-
-!  Initialize MAPL Generic
-!  -----------------------
-         call MAPL_GenericInitialize ( GC, IMPORT, EXPORT, clock, RC=status)
-         _VERIFY(STATUS)
-
-         _RETURN(ESMF_SUCCESS)
-
-      END SUBROUTINE Initialize_
-
-      SUBROUTINE Run_ ( GC, IMPORT, EXPORT, CLOCK, rc )
-
-! !USES:
-
-         implicit NONE
-
-! !INPUT PARAMETERS:
-
-         type(ESMF_Clock),  intent(inout) :: CLOCK     ! The clock
-
-! !OUTPUT PARAMETERS:
-
-         type(ESMF_GridComp), intent(inout)  :: GC     ! Grid Component
-         type(ESMF_State), intent(inout) :: IMPORT     ! Import State
-         type(ESMF_State), intent(inout) :: EXPORT     ! Export State
-         integer, intent(out) ::  rc                   ! Error return code:
-
-         character(len=ESMF_MAXSTR)    :: Iam
-         integer                       :: STATUS
-         character(len=ESMF_MAXSTR)    :: comp_name
-         real, pointer :: ptr2d(:,:)
-         integer :: localPet
-         type(ESMF_VM) :: vm
-
-!  Get my name and set-up traceback handle
-!  ---------------------------------------
-         Iam = "Run_"
-         call ESMF_GridCompGet( GC, name=comp_name, rc=status )
-         _VERIFY(STATUS)
-         Iam = trim(comp_name) // '::' // trim(Iam)
-
-         call ESMF_VMGetCurrent(vm,rc=status)
-         _VERIFY(status)
-         call ESMF_VMGet(vm,localPet=localPet,rc=status)
-         _VERIFY(status)
-         call MAPL_GetPointer(import,ptr2d,'var1',rc=status)
-         _VERIFY(status)
-         print*,'The value of the pointer is ',minval(ptr2d),maxval(ptr2d)
-
-!  --------
-         _RETURN(ESMF_SUCCESS)
-
-      END SUBROUTINE Run_
-
+        print*, "Reciever finish Run"
+        _RETURN(_SUCCESS)
+    end subroutine Run
 end module Reciever_GridCompMod
-
