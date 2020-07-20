@@ -100,12 +100,12 @@ contains
         type(ESMF_GridComp)  :: model
         integer, intent(out) :: rc
 
-        integer          :: i, num_items
+        integer          :: i, num_items_import, num_items_export
         type(ESMF_State) :: import_state, export_state
         type(ESMF_Field) :: field
         real, pointer    :: ptr2d_in(:,:), ptr2d_out(:,:)
 
-        character(len=ESMF_MAXSTR), allocatable :: item_names(:)
+        character(len=ESMF_MAXSTR), allocatable :: item_names_import(:), item_names_export(:)
 
         rc = ESMF_SUCCESS
 
@@ -117,15 +117,26 @@ contains
         VERIFY_NUOPC_(rc)
 
         print*, "UFS get number of import items"
-        call ESMF_StateGet(import_state, itemcount=num_items, rc=rc)
+        call ESMF_StateGet(import_state, itemcount=num_items_import, rc=rc)
         VERIFY_NUOPC_(rc)
+        print*, "UFS num import:", num_items_import
 
-        allocate(item_names(num_items))
+        allocate(item_names_import(num_items_import))
         print*, "UFS get import names"
-        call ESMF_StateGet(import_state, itemnamelist=item_names, rc=rc)
+        call ESMF_StateGet(import_state, itemnamelist=item_names_import, rc=rc)
         VERIFY_NUOPC_(rc)
+        print*, "UFS import names are:", item_names_import
 
-        print*, "UFS import names are:", item_names
+        print*, "UFS get number of export items"
+        call ESMF_StateGet(export_state, itemcount=num_items_export, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "UFS num export:", num_items_export
+
+        allocate(item_names_export(num_items_export))
+        print*, "UFS get export names"
+        call ESMF_StateGet(export_state, itemnamelist=item_names_export, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "UFS export names are:", item_names_export
 
 !        print*, "UFS get imports"
 !        do i=1, ImportFieldCount
