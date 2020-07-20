@@ -33,6 +33,9 @@ contains
 
         rc = ESMF_SUCCESS
 
+        print*,"UFS start SetServices"
+
+
         ! Register NUOPC generic methods
         call NUOPC_CompDerive(model, ufsSS, rc=rc)
         VERIFY_NUOPC_(rc)
@@ -50,6 +53,8 @@ contains
         call NUOPC_CompSpecialize(model, specLabel=ufsLA, &
                 specRoutine=ModelAdvance, rc=rc)
         VERIFY_NUOPC_(rc)
+
+        print*,"UFS finish SetServices"
     end subroutine SetServices
 
     subroutine AdvertiseFields(model, import_state, export_state, clock, rc)
@@ -61,6 +66,7 @@ contains
         _UNUSED_DUMMY(clock)
 
         rc = ESMF_SUCCESS
+        print*,"UFS start advertise"
 
         if (ImportFieldCount > 0) then
             call NUOPC_Advertise(import_state, ImportFieldNames, &
@@ -75,6 +81,8 @@ contains
                     SharePolicyField="share", rc=rc)
             VERIFY_NUOPC_(rc)
         end if
+
+        print*,"UFS finish advertise"
     end subroutine AdvertiseFields
 
     subroutine RealizeFields(model, import_state, export_state, clock, rc)
@@ -94,8 +102,8 @@ contains
 
         rc = ESMF_SUCCESS
 
-        print*,"UFS starting advance"
+        print*,"UFS start advance"
 
-        print*,"UFS finishing advance"
+        print*,"UFS finish advance"
     end subroutine ModelAdvance
 end module UFS_Testing_Cap
