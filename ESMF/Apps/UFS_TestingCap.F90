@@ -115,9 +115,11 @@ contains
 
         print*, "UFS get imports"
         do i=1, ImportFieldCount
+            print*, "UFS get field"
             call ESMF_StateGet(import_state, field=field, &
                     itemName=trim(ImportFieldNames(i)), rc=rc)
             VERIFY_NUOPC_(rc)
+            print*, "UFS get ptr"
             call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr2d_in, rc=rc)
             VERIFY_NUOPC_(rc)
 
