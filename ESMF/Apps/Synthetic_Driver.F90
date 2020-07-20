@@ -20,7 +20,6 @@ module synthetic_driver
     private
 
     public SetServices
-
 contains
     subroutine SetServices(driver, rc)
         type(ESMF_GridComp)  :: driver

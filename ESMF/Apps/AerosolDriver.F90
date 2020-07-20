@@ -5,12 +5,13 @@ module aerosol_driver
     use NUOPC
 
     use NUOPC_Driver, &
-        driverSS => SetServices, &
-        modelSS  => label_SetModelServices, &
-        runSS    => label_SetRunSequence
+            driverSS => SetServices, &
+            modelSS  => label_SetModelServices, &
+            runSS    => label_SetRunSequence
 
     use MAPL
     use MAPL_NUOPCWrapperMod, only: wrapperSS => SetServices, init_wrapper
+    use NUOPC_Connector,      only: cplSS     => SetServices
 
     use Aerosol_GridComp_mod, only: aerosolSS => SetServices
 
@@ -25,29 +26,29 @@ contains
 
         type(ESMF_Config) :: config
 
-        rc = ESMF_SUCCESS
-
         ! Register NUOPC generic methods
         call NUOPC_CompDerive(driver, driverSS, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Attach specializing methods
         call NUOPC_CompSpecialize(driver, specLabel=modelSS, &
                 specRoutine=SetModelServices, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         call NUOPC_CompSpecialize(driver, specLabel=runSS, &
                 specRoutine=SetRunSequence, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Set the NUOPC configuration file
         config = ESMF_ConfigCreate(rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         call ESMF_ConfigLoadFile(config, "NUOPC_run_config.txt", rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_GridCompSet(driver, config=config, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
+
+        _RETURN(_SUCCESS)
     end subroutine SetServices
 
     subroutine SetModelServices(driver, rc)
@@ -61,15 +62,13 @@ contains
         integer              :: i, n_pes
         integer, allocatable :: petlist(:)
 
-        rc = ESMF_SUCCESS
-
         call set_clock(driver)
 
         ! Read GridComp configuration
         call ESMF_GridCompGet(driver, vm=vm, config=config, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_VMGet(vm, petCount=n_pes, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         allocate(petlist(n_pes))
         petlist = [(i, i = 0, n_pes - 1)]
@@ -77,10 +76,12 @@ contains
         ! Create the MAPL grid_comp
         call NUOPC_DriverAddComp(driver, "agcm", wrapperSS, comp=comp, &
                 petlist=petlist, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call init_wrapper(wrapper_gc=comp, name="agcm", &
                 cap_rc_file="AGCM_CAP.rc", root_set_services=aerosolSS, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
+
+        _RETURN(_SUCCESS)
     end subroutine SetModelServices
 
     subroutine set_clock(driver)
@@ -104,37 +105,37 @@ contains
         call UnpackDateTime(start_date_and_time, yy, mm, dd, h, m, s)
         call ESMF_TimeSet(startTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, &
                 calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Read the end time
         call ESMF_GridCompGet(driver, config = config, rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_ConfigGetAttribute(config, end_date_and_time(1), label = "end_date:", rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
         call ESMF_ConfigGetAttribute(config, end_date_and_time(2), label = "end_time:", rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Set the end time
         call UnpackDateTime(end_date_and_time, yy, mm, dd, h, m, s)
         call ESMF_TimeSet(stopTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, &
                 calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Read the interpolation time interval
         call ESMF_ConfigGetAttribute(config, dt, label = "interpolation_dt:", rc = rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! Create the driver clock
         call ESMF_TimeIntervalSet(timeStep, s=dt, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         internalClock = ESMF_ClockCreate(name="Driver Clock", timeStep = timeStep, &
                 startTime=startTime, stopTime=stopTime, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
         ! set the driver clock
         call ESMF_GridCompSet(driver, clock=internalClock, rc=rc)
-        VERIFY_ESMF_(rc)
+        VERIFY_NUOPC_(rc)
 
     contains
 
