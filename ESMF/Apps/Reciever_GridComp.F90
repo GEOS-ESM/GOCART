@@ -1,4 +1,5 @@
 #include "MAPL_Generic.h"
+#include "NUOPC_ErrLog.h"
 
 module Reciever_GridCompMod
     use ESMF
@@ -77,6 +78,9 @@ contains
         character(len=ESMF_MAXSTR) :: comp_name
         real, pointer              :: ptr2d(:,:)
 
+        integer :: num_import, num_export
+        character(len=ESMF_MAXSTR), allocatable :: names_import(:), names_export(:)
+
         __Iam__('Run')
         call ESMF_GridCompGet(gc, name=comp_name, __RC__)
         Iam = trim(comp_name) //'::'// Iam
@@ -86,6 +90,28 @@ contains
         print*,"Reciever get import value"
         call MAPL_GetPointer(import, ptr2d, 'var1', __RC__)
         print*, 'The value of var1 is:', minval(ptr2d), maxval(ptr2d)
+
+        print*,"Reciever get number of imports"
+        call ESMF_StateGet(import, itemcount=num_import, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "Reciever num import:", num_import
+
+        allocate(names_import(num_import))
+        print*,"Reciever get import names"
+        call ESMF_StateGet(import, itemnamelist=names_import, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*,"Reciever import names are:", names_import
+
+        print*,"Reciever get number of exports"
+        call ESMF_StateGet(export, itemcount=num_export, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "Reciever num export:", num_export
+
+        allocate(names_export(num_export))
+        print*,"Reciever get export names"
+        call ESMF_StateGet(export, itemnamelist=names_export, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*,"Reciever export names are:", names_export
 
         print*, "Reciever finish Run"
         _RETURN(_SUCCESS)
