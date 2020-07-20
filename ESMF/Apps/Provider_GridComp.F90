@@ -88,7 +88,7 @@ contains
         print*,"Provider set export value"
         call MAPL_GetPointer(export, ptr2d, 'var1', __RC__)
         ptr2d = ptr2d + 1.0
-        print*,"The value of var1 is set to:", minval(ptr2d), maxval(ptr2d)
+        print*, "The value var1 is set to is:", minval(ptr2d), maxval(ptr2d)
 
         print*, "Provider finish Run"
         _RETURN(_SUCCESS)
@@ -131,6 +131,7 @@ contains
                         _ASSERT((1 == 2), "invalid field for test defined")
                     end if
                 end if
+            end do
         end if
 
         _RETURN(_SUCCESS)
