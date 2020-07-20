@@ -1,4 +1,5 @@
 #include "MAPL_Generic.h"
+#include "NUOPC_ErrLog.h"
 
 module Provider_GridCompMod
     use ESMF
@@ -79,6 +80,9 @@ contains
         character(len=ESMF_MAXSTR) :: comp_name
         real, pointer              :: ptr2d(:,:)
 
+        integer :: num_import, num_export
+        character(len=ESMF_MAXSTR), allocatable :: names_import(:), names_export(:)
+
         __Iam__('Run')
         call ESMF_GridCompGet(gc, name=comp_name, __RC__)
         Iam = trim(comp_name) //'::'// Iam
@@ -89,6 +93,28 @@ contains
         call MAPL_GetPointer(export, ptr2d, 'var1', __RC__)
         ptr2d = ptr2d + 1.0
         print*, "The value var1 is set to is:", minval(ptr2d), maxval(ptr2d)
+
+        print*,"Provider get number of imports"
+        call ESMF_StateGet(import, itemcount=num_import, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "Provider num import:", num_import
+
+        allocate(names_import(num_import))
+        print*,"Provider get import names"
+        call ESMF_StateGet(import, itemnamelist=names_import, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*,"Provider import names are:", names_import
+
+        print*,"Provider get number of exports"
+        call ESMF_StateGet(export, itemcount=num_export, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "Provider num export:", num_export
+
+        allocate(names_export(num_export))
+        print*,"Provider get export names"
+        call ESMF_StateGet(export, itemnamelist=names_export, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*,"Provider export names are:", names_export
 
         print*, "Provider finish Run"
         _RETURN(_SUCCESS)
