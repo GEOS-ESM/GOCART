@@ -100,10 +100,29 @@ contains
         type(ESMF_GridComp)  :: model
         integer, intent(out) :: rc
 
+        integer          :: i
+        type(ESMF_State) :: import_state, export_state
+        type(ESMF_Field) :: field
+        real, pointer    :: ptr2d_in(:,:), ptr2d_out(:,:)
+
         rc = ESMF_SUCCESS
 
         print*,"UFS start advance"
 
+        print*, "UFS get import and export states"
+        call NUOPC_ModelGet(model, importState=import_state, &
+                exportState=export_state, rc=rc)
+
+        print*, "UFS get imports"
+        do i=1, ImportFieldCount
+            call ESMF_StateGet(import_state, field=field, &
+                    itemName=trim(ImportFieldNames(i)), rc=rc)
+            VERIFY_NUOPC_(rc)
+            call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr2d_in, rc=rc)
+            VERIFY_NUOPC_(rc)
+
+            print*, 'The value of ', trim(ImportFieldNames(i)), ' is:', minval(ptr2d_in), maxval(ptr2d_in)
+        end do
         print*,"UFS finish advance"
     end subroutine ModelAdvance
 end module UFS_Testing_Cap
