@@ -30,7 +30,7 @@ contains
         print*, "Reciever set import"
         call MAPL_AddImportSpec(gc, &
                 short_name='var1', &
-                long_name='na', &
+                long_name='var1', &
                 units='na', &
                 dims=MAPL_DimsHorzOnly, &
                 vlocation=MAPL_VLocationNone, __RC__)

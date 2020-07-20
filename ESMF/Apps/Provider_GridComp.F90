@@ -30,7 +30,7 @@ contains
         print*, "Provider set export"
         call MAPL_AddExportSpec(GC,&
                 short_name='var1', &
-                long_name='na' , &
+                long_name='var1' , &
                 units = 'na', &
                 dims = MAPL_DimsHorzOnly, &
                 vlocation = MAPL_VLocationNone, __RC__)
