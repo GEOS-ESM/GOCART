@@ -100,10 +100,12 @@ contains
         type(ESMF_GridComp)  :: model
         integer, intent(out) :: rc
 
-        integer          :: i
+        integer          :: i, num_items
         type(ESMF_State) :: import_state, export_state
         type(ESMF_Field) :: field
         real, pointer    :: ptr2d_in(:,:), ptr2d_out(:,:)
+
+        character(len=ESMF_MAXSTR), allocatable :: item_names(:)
 
         rc = ESMF_SUCCESS
 
@@ -112,19 +114,31 @@ contains
         print*, "UFS get import and export states"
         call NUOPC_ModelGet(model, importState=import_state, &
                 exportState=export_state, rc=rc)
+        VERIFY_NUOPC_(rc)
 
-        print*, "UFS get imports"
-        do i=1, ImportFieldCount
-            print*, "UFS get field"
-            call ESMF_StateGet(import_state, field=field, &
-                    itemName=trim(ImportFieldNames(i)), rc=rc)
-            VERIFY_NUOPC_(rc)
-            print*, "UFS get ptr"
-            call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr2d_in, rc=rc)
-            VERIFY_NUOPC_(rc)
+        print*, "UFS get number of import items"
+        call ESMF_StateGet(import_state, itemcount=num_items, rc=rc)
+        VERIFY_NUOPC_(rc)
 
-            print*, 'The value of ', trim(ImportFieldNames(i)), ' is:', minval(ptr2d_in), maxval(ptr2d_in)
-        end do
+        allocate(item_names(num_items))
+        print*, "UFS get import names"
+        call ESMF_StateGet(import_state, itemnamelist=item_names, rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        print*, "UFS import names are:", item_names
+
+!        print*, "UFS get imports"
+!        do i=1, ImportFieldCount
+!            print*, "UFS get field"
+!            call ESMF_StateGet(import_state, field=field, &
+!                    itemName=trim(ImportFieldNames(i)), rc=rc)
+!            VERIFY_NUOPC_(rc)
+!            print*, "UFS get ptr"
+!            call ESMF_FieldGet(field, localDE=0, farrayPtr=ptr2d_in, rc=rc)
+!            VERIFY_NUOPC_(rc)
+!
+!            print*, 'The value of ', trim(ImportFieldNames(i)), ' is:', minval(ptr2d_in), maxval(ptr2d_in)
+!        end do
         print*,"UFS finish advance"
     end subroutine ModelAdvance
 end module UFS_Testing_Cap
