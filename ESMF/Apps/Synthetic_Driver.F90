@@ -126,7 +126,7 @@ contains
         VERIFY_NUOPC_(rc)
         print*,"Driver wrap provider MAPL"
         call init_wrapper(wrapper_gc=provider, name="provider", &
-                cap_rc_file="AGCM_CAP.rc", root_set_services=providerSS, rc=rc)
+                cap_rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
         VERIFY_NUOPC_(rc)
 
         print*,"Driver add reciever"
@@ -135,7 +135,7 @@ contains
         VERIFY_NUOPC_(rc)
         print*,"Driver wrap reciever MAPL"
         call init_wrapper(wrapper_gc=reciever, name="reciever", &
-                cap_rc_file="CTM_CAP.rc", root_set_services=recieverSS, rc=rc)
+                cap_rc_file="RECIEVER_CAP.rc", root_set_services=recieverSS, rc=rc)
         VERIFY_NUOPC_(rc)
 
         print*,"Driver add ufs"
