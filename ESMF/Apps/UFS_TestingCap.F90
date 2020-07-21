@@ -91,11 +91,25 @@ contains
         type(ESMF_Clock)     :: clock
         integer, intent(out) :: rc
 
-        type(ESMF_Grid) :: grid_import
+        type(ESMF_Grid)  :: grid_import
+        type(ESMF_Field) :: field_import
 
         _UNUSED_DUMMY(clock)
 
         rc = ESMF_SUCCESS
+
+        print*,"UFS start realize"
+
+        grid_import = ESMF_GridEmptyCreate(rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        field_import = ESMF_FieldCreate(name='var1', grid=grid_import, typekind=ESMF_TYPEKIND_R8, rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        call NUOPC_Realize(import_state, field_import, rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        print*,"UFS finish realize"
     end subroutine RealizeFields
 
     subroutine ModelAdvance(model, rc)
