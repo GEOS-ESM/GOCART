@@ -82,6 +82,10 @@ contains
 
         integer :: num_import, num_export
         character(len=ESMF_MAXSTR), allocatable :: names_import(:), names_export(:)
+        character(len=ESMF_MAXSTR) :: name
+
+        type(ESMF_Field) :: field
+        type(ESMF_Grid)  :: grid
 
         __Iam__('Run')
         call ESMF_GridCompGet(gc, name=comp_name, __RC__)
@@ -115,6 +119,15 @@ contains
         call ESMF_StateGet(export, itemnamelist=names_export, rc=rc)
         VERIFY_NUOPC_(rc)
         print*,"Provider export names are:", names_export
+
+        call ESMF_StateGet(export, field=field, itemName="var1", rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        call ESMF_FieldGet(field, grid=grid, rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        call ESMF_GridGet(grid, name=name, rc=rc)
+        print*,"Var1 grid name:", name
 
         print*, "Provider finish Run"
         _RETURN(_SUCCESS)

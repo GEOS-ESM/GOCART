@@ -5,8 +5,8 @@ module UFS_Testing_Cap
     use ESMF
     use NUOPC
     use NUOPC_Model, &
-        ufsSS => SetServices, &
-        ufsLA => label_Advance
+            ufsSS => SetServices, &
+            ufsLA => label_Advance
 
     use MAPL
 
@@ -24,8 +24,8 @@ module UFS_Testing_Cap
     integer, parameter :: ExportFieldCount = 1
     character(len=*), dimension(ExportFieldCount), parameter :: &
             ExportFieldNames = [ &
-                "var2" &
-            ]
+                    "var2" &
+                    ]
 contains
     subroutine SetServices(model, rc)
         type(ESMF_GridComp)  :: model
@@ -90,6 +90,8 @@ contains
         type(ESMF_State)     :: import_state, export_state
         type(ESMF_Clock)     :: clock
         integer, intent(out) :: rc
+
+        type(ESMF_Grid) :: grid_import
 
         _UNUSED_DUMMY(clock)
 
