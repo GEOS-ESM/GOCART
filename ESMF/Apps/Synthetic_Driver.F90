@@ -117,8 +117,15 @@ contains
 
             provider_petlist = [(i, i = 0, n_provider_pes - 1)]
             reciever_petlist = [(i, i = n_provider_pes, n_provider_pes + n_reciever_pes - 1)]
-            reciever_petlist = [(i, i = n_provider_pes + n_reciever_pes, npes - 1)]
+            ufs_petlist      = [(i, i = n_provider_pes + n_reciever_pes, npes - 1)]
+
+            print*,"Conncurrent mode"
         end if
+
+        print*, "Sequential? :", seq
+        print*, "Provider_petlist:", provider_petlist
+        print*, "Reciever_petlist:", reciever_petlist
+        print*, "UFS_petlist:", ufs_petlist
 
         print*,"Driver add provider"
         call NUOPC_DriverAddComp(driver, "provider", wrapperSS, comp=provider, &
@@ -150,9 +157,9 @@ contains
         call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="ufs", &
                 compSetServicesRoutine=cplSS, comp=connector, rc=rc)
         VERIFY_NUOPC_(rc)
-        call NUOPC_DriverAddComp(driver, srcCompLabel="ufs", dstCompLabel="reciever", &
-                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
-        VERIFY_NUOPC_(rc)
+        ! call NUOPC_DriverAddComp(driver, srcCompLabel="ufs", dstCompLabel="reciever", &
+        !         compSetServicesRoutine=cplSS, comp=connector, rc=rc)
+        ! VERIFY_NUOPC_(rc)
 
         print*, "Driver finish Set Model Services"
 

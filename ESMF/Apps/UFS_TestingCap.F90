@@ -21,11 +21,11 @@ module UFS_Testing_Cap
                     "var1" &
                     ]
 
-    integer, parameter :: ExportFieldCount = 1
-    character(len=*), dimension(ExportFieldCount), parameter :: &
-            ExportFieldNames = [ &
-                    "var2" &
-                    ]
+    ! integer, parameter :: ExportFieldCount = 1
+    ! character(len=*), dimension(ExportFieldCount), parameter :: &
+    !         ExportFieldNames = [ &
+    !                 "var2" &
+    !                 ]
 contains
     subroutine SetServices(model, rc)
         type(ESMF_GridComp)  :: model
@@ -35,18 +35,29 @@ contains
 
         print*,"UFS start SetServices"
 
-
         ! Register NUOPC generic methods
         call NUOPC_CompDerive(model, ufsSS, rc=rc)
         VERIFY_NUOPC_(rc)
 
-        ! set entry point for methods that require specific implementation
-        call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
-                phaseLabelList=["IPDv05p1"], userRoutine=AdvertiseFields, rc=rc)
+        call ESMF_GridCompSetEntryPoint(model, ESMF_METHOD_INITIALIZE, &
+                userRoutine=initialize_p0, phase=0, rc=rc)
         VERIFY_NUOPC_(rc)
 
+        ! set entry point for methods that require specific implementation
+        print*,"UFS register advertise fields"
+        ! call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
+        !         phaseLabelList=["IPDv05p1"], userRoutine=AdvertiseFields, rc=rc)
+        ! VERIFY_NUOPC_(rc)
         call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
-                phaseLabelList=["IPDv05p4"], userRoutine=RealizeFields, rc=rc)
+                phaseLabelList=["IPDv02p1"], userRoutine=AdvertiseFields, rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        print*,"UFS register realize fields"
+        ! call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
+        !         phaseLabelList=["IPDv05p4"], userRoutine=RealizeFields, rc=rc)
+        ! VERIFY_NUOPC_(rc)
+        call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
+                phaseLabelList=["IPDv02p3"], userRoutine=RealizeFields, rc=rc)
         VERIFY_NUOPC_(rc)
 
         ! attach specializing method
@@ -54,8 +65,29 @@ contains
                 specRoutine=ModelAdvance, rc=rc)
         VERIFY_NUOPC_(rc)
 
+        call NUOPC_CompSpecialize(model, specLabel=label_Finalize, &
+                specRoutine=model_finalize, rc=rc)
+        VERIFY_NUOPC_(rc)
+
         print*,"UFS finish SetServices"
     end subroutine SetServices
+
+    subroutine initialize_p0(model, import_state, export_state, clock, rc)
+        type(ESMF_GridComp)  :: model
+        type(ESMF_State)     :: import_state, export_state
+        type(ESMF_Clock)     :: clock
+        integer, intent(out) :: rc
+
+        rc = ESMF_SUCCESS
+
+        print*,"UFS start initialize_p0"
+
+        call NUOPC_CompFilterPhaseMap(model, ESMF_METHOD_INITIALIZE, &
+                acceptStringList=(/"IPDv02p"/), rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        print*,"UFS finish initialize_p0"
+     end subroutine initialize_p0
 
     subroutine AdvertiseFields(model, import_state, export_state, clock, rc)
         type(ESMF_GridComp)  :: model
@@ -65,22 +97,35 @@ contains
 
         _UNUSED_DUMMY(clock)
 
-        rc = ESMF_SUCCESS
         print*,"UFS start advertise"
 
+        rc = ESMF_SUCCESS
+
         if (ImportFieldCount > 0) then
-            call NUOPC_Advertise(import_state, ImportFieldNames, &
-                    TransferOfferGeomObject="cannot provide", &
-                    SharePolicyField="share", rc=rc)
+
+           print*,"UFS adding imports to dictionary"
+           if (.not. NUOPC_FieldDictionaryHasEntry("var1")) then
+              call NUOPC_FieldDictionaryAddEntry(standardName="var1", &
+                     canonicalUnits="na", rc=rc)
+              VERIFY_NUOPC_(rc)
+           end if
+
+           print*,"UFS advertising imports"
+           call NUOPC_Advertise(import_state, StandardName="var1", rc=rc)
+            ! call NUOPC_Advertise(import_state, ImportFieldNames, &
+            !         ! TransferOfferGeomObject="cannot provide", &
+            !         ! SharePolicyField="share", &
+            !         rc=rc)
+            print*,"UFS advertising imports rc:", rc
             VERIFY_NUOPC_(rc)
         end if
 
-        if (ExportFieldCount > 0) then
-            call NUOPC_Advertise(export_state, ExportFieldNames, &
-                    TransferOfferGeomObject="cannot provide", &
-                    SharePolicyField="share", rc=rc)
-            VERIFY_NUOPC_(rc)
-        end if
+        ! if (ExportFieldCount > 0) then
+        !     call NUOPC_Advertise(export_state, ExportFieldNames, &
+        !             TransferOfferGeomObject="cannot provide", &
+        !             SharePolicyField="share", rc=rc)
+        !     VERIFY_NUOPC_(rc)
+        ! end if
 
         print*,"UFS finish advertise"
     end subroutine AdvertiseFields
@@ -100,14 +145,21 @@ contains
 
         print*,"UFS start realize"
 
-        grid_import = ESMF_GridEmptyCreate(rc=rc)
-        VERIFY_NUOPC_(rc)
+        ! print*,"UFS create import grid"
+        ! grid_import = ESMF_GridEmptyCreate(rc=rc)
+        ! VERIFY_NUOPC_(rc)
 
-        field_import = ESMF_FieldCreate(name='var1', grid=grid_import, typekind=ESMF_TYPEKIND_R8, rc=rc)
-        VERIFY_NUOPC_(rc)
+        ! print*,"UFS create import grid rc:", rc
 
-        call NUOPC_Realize(import_state, field_import, rc=rc)
-        VERIFY_NUOPC_(rc)
+        ! print*,"UFS create import field"
+        ! field_import = ESMF_FieldCreate(name='var1', grid=grid_import, typekind=ESMF_TYPEKIND_R8, rc=rc)
+        ! VERIFY_NUOPC_(rc)
+
+        ! print*,"UFS create import field rc:", rc
+
+        ! print*,"UFS nuopc realize import field"
+        ! call NUOPC_Realize(import_state, field_import, rc=rc)
+        ! VERIFY_NUOPC_(rc)
 
         print*,"UFS finish realize"
     end subroutine RealizeFields
@@ -168,4 +220,11 @@ contains
 !        end do
         print*,"UFS finish advance"
     end subroutine ModelAdvance
+
+    subroutine model_finalize(model, rc)
+        type(ESMF_GridComp)  :: model
+        integer, intent(out) :: rc
+
+        rc = ESMF_SUCCESS
+    end subroutine model_finalize
 end module UFS_Testing_Cap
