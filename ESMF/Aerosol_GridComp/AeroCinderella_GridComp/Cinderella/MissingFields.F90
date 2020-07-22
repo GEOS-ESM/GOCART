@@ -53,10 +53,27 @@ contains
     subroutine get_PS()
         
     end subroutine get_PS
+
+    subroutine get_RH2(RH2)
+        real(kind=REAL32), intent(out) :: RH2(:,:,:)
+
+    end subroutine
+
+    subroutine get_DZ()
+
+    end subroutine
     
     subroutine get_ZLE(ZLE)
         real(kind=REAL32), intent(inout) :: ZLE(:,:,:)
 
         ZLE = ZLE/MAPL_GRAV
     end subroutine get_ZLE
+
+    subroutine get_PFI_LSAN()
+
+    end subroutine get_PFI_LSAN
+
+    subroutine get_PFL_LSAN()
+
+    end subroutine get_PFL_LSAN
 end module MissingFields_mod
