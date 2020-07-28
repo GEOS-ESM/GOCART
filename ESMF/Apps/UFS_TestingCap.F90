@@ -6,6 +6,7 @@ module UFS_Testing_Cap
     use NUOPC
     use NUOPC_Model, &
             ufsSS => SetServices, &
+            ufsDI => label_DataInitialize, &
             ufsLA => label_Advance
 
     use MAPL
@@ -189,6 +190,10 @@ contains
                 phaseLabelList=["IPDv05p6"], userRoutine=RealizeFields, rc=rc)
         VERIFY_NUOPC_(rc)
 
+        call NUOPC_CompSpecialize(model, specLabel=ufsDI, &
+                specRoutine=initialize_data, rc=rc)
+        VERIFY_NUOPC_(rc)
+
         ! attach specializing method
         call NUOPC_CompSpecialize(model, specLabel=ufsLA, &
                 specRoutine=ModelAdvance, rc=rc)
@@ -230,20 +235,35 @@ contains
 
         rc = ESMF_SUCCESS
 
-        if (ImportFieldCount > 0) then
-            print*,"UFS adding imports to dictionary"
-            if (.not. NUOPC_FieldDictionaryHasEntry("var1")) then
-                call NUOPC_FieldDictionaryAddEntry(standardName="var1", &
-                    canonicalUnits="na", rc=rc)
-                VERIFY_NUOPC_(rc)
-            end if
+        ! if (ImportFieldCount > 0) then
 
-            print*,"UFS advertising imports"
-            call NUOPC_Advertise(import_state, StandardName="var1", &
-                    TransferOfferGeomObject="cannot provide", rc=rc)
-            print*,"UFS advertising imports rc:", rc
+        ! print*,"UFS adding imports to dictionary"
+        ! if (.not. NUOPC_FieldDictionaryHasEntry("var1")) then
+        !     call NUOPC_FieldDictionaryAddEntry(standardName="var1", &
+        !             canonicalUnits="na", rc=rc)
+        !     VERIFY_NUOPC_(rc)
+        ! end if
+
+        ! print*,"UFS advertising imports"
+        ! call NUOPC_Advertise(import_state, StandardName="var1", &
+        !         TransferOfferGeomObject="cannot provide", rc=rc)
+        !     ! call NUOPC_Advertise(import_state, ImportFieldNames, &
+        !     !         ! TransferOfferGeomObject="cannot provide", &
+        !     !         ! SharePolicyField="share", &
+        !     !         rc=rc)
+        !     print*,"UFS advertising imports rc:", rc
+        !     VERIFY_NUOPC_(rc)
+        ! end if
+
+        print*,"UFS adding exports to dictionary"
+        if (.not. NUOPC_FieldDictionaryHasEntry("var2")) then
+            call NUOPC_FieldDictionaryAddEntry(standardName="var2", &
+                    canonicalUnits="na", rc=rc)
             VERIFY_NUOPC_(rc)
         end if
+        print*,"UFS advertising exports"
+        call NUOPC_Advertise(export_state, StandardName="var2", &
+                TransferOfferGeomObject="cannot provide", rc=rc)
 
         print*,"UFS finish advertise"
     end subroutine AdvertiseFields
@@ -254,8 +274,10 @@ contains
         type(ESMF_Clock)     :: clock
         integer, intent(out) :: rc
 
-        type(ESMF_Grid)  :: grid_import
-        type(ESMF_Field) :: field_import
+        integer :: num_items_import, num_items_export
+        character(len=ESMF_MAXSTR), allocatable :: item_names_import(:), item_names_export(:)
+        type(ESMF_Field) :: field_export, field_to_export
+        type(ESMF_Grid)  :: grid_export
 
         _UNUSED_DUMMY(clock)
 
@@ -263,24 +285,86 @@ contains
 
         print*,"UFS start realize"
 
-        ! print*,"UFS create import grid"
-        ! grid_import = ESMF_GridEmptyCreate(rc=rc)
+        print*, "UFS get number of import items"
+        call ESMF_StateGet(import_state, itemcount=num_items_import, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "UFS num import:", num_items_import
+
+        allocate(item_names_import(num_items_import))
+        print*, "UFS get import names"
+        call ESMF_StateGet(import_state, itemnamelist=item_names_import, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "UFS import names are:", item_names_import
+
+        ! ! call ESMF_StateGet(import_state, field=field_import, &
+        ! !     itemName="var1", rc=rc)
+        ! ! VERIFY_NUOPC_(rc)
+        ! ! call NUOPC_Realize(import_state, field_import, rc=rc)
+        ! ! VERIFY_NUOPC_(rc)
+
+        print*, "UFS get number of export items"
+        call ESMF_StateGet(export_state, itemcount=num_items_export, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "UFS num export:", num_items_export
+
+        allocate(item_names_export(num_items_export))
+        print*, "UFS get export names"
+        call ESMF_StateGet(export_state, itemnamelist=item_names_export, rc=rc)
+        VERIFY_NUOPC_(rc)
+        print*, "UFS export names are:", item_names_export
+
+        print*, "UFS create grid for var2"
+        grid_export = ESMF_GridCreateNoPeriDimUfrm(maxIndex=(/10, 100/), &
+                minCornerCoord=(/10._ESMF_KIND_R8, 20._ESMF_KIND_R8/), &
+                maxCornerCoord=(/100._ESMF_KIND_R8, 200._ESMF_KIND_R8/), &
+                coordSys=ESMF_COORDSYS_CART, &
+                staggerLocList=(/ESMF_STAGGERLOC_CENTER/), &
+                rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        print*, "UFS create field for var2"
+        field_to_export = ESMF_FieldCreate(name="var2", grid=grid_export, &
+                typekind=ESMF_TYPEKIND_R8, rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        ! print*, "UFS complete var2"
+        ! call ESMF_FieldEmptyComplete(field_to_export, grid_export, rc=rc)
         ! VERIFY_NUOPC_(rc)
 
-        ! print*,"UFS create import grid rc:", rc
+        print*, "UFS realize var2"
+        call NUOPC_realize(export_state, field_to_export, rc=rc)
+        VERIFY_NUOPC_(rc)
 
-        ! print*,"UFS create import field"
-        ! field_import = ESMF_FieldCreate(name='var1', grid=grid_import, typekind=ESMF_TYPEKIND_R8, rc=rc)
-        ! VERIFY_NUOPC_(rc)
+        ! ! print*,"UFS create import grid"
+        ! ! grid_import = ESMF_GridEmptyCreate(rc=rc)
+        ! ! VERIFY_NUOPC_(rc)
 
-        ! print*,"UFS create import field rc:", rc
+        ! ! print*,"UFS create import grid rc:", rc
 
-        ! print*,"UFS nuopc realize import field"
-        ! call NUOPC_Realize(import_state, field_import, rc=rc)
-        ! VERIFY_NUOPC_(rc)
+        ! ! print*,"UFS create import field"
+        ! ! field_import = ESMF_FieldCreate(name='var1', grid=grid_import, typekind=ESMF_TYPEKIND_R8, rc=rc)
+        ! ! VERIFY_NUOPC_(rc)
+
+        ! ! print*,"UFS create import field rc:", rc
+
+        ! ! print*,"UFS nuopc realize import field"
+        ! ! call NUOPC_Realize(import_state, field_import, rc=rc)
+        ! ! VERIFY_NUOPC_(rc)
 
         print*,"UFS finish realize"
     end subroutine RealizeFields
+
+    subroutine initialize_data(model, rc)
+        type(ESMF_GridComp)  :: model
+        integer, intent(out) :: rc
+
+        rc = ESMF_SUCCESS
+
+        call NUOPC_CompAttributeSet(model, name="InitializeDataComplete", &
+                value="true", rc=rc)
+        VERIFY_NUOPC_(rc)
+
+    end subroutine initialize_data
 
     subroutine ModelAdvance(model, rc)
         type(ESMF_GridComp)  :: model

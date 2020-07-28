@@ -35,6 +35,12 @@ contains
                 units='na', &
                 dims=MAPL_DimsHorzOnly, &
                 vlocation=MAPL_VLocationNone, __RC__)
+        call MAPL_AddImportSpec(gc, &
+                short_name='var2', &
+                long_name='var2', &
+                units='na', &
+                dims=MAPL_DimsHorzOnly, &
+                vlocation=MAPL_VLocationNone, __RC__)
 
         print*, "Reciever Call Generic Set Services"
         call MAPL_GenericSetServices(gc, __RC__)
@@ -63,6 +69,9 @@ contains
 
         print*, "Reciever Generic initialize"
         call MAPL_GenericInitialize(gc, import, export, clock, __RC__)
+
+        print*, "Reciever Force allocate"
+        call ForceAllocation(import, __RC__)
 
         print*, "Reciever finish Initialize"
         _RETURN(_SUCCESS)
@@ -116,4 +125,47 @@ contains
         print*, "Reciever finish Run"
         _RETURN(_SUCCESS)
     end subroutine Run
+
+    subroutine ForceAllocation(state, rc)
+        type(ESMF_State),  intent(inout) :: state
+        integer, optional, intent(  out) :: rc
+
+        integer                                 :: itemCount, i, dims
+        character(len=ESMF_MAXSTR), allocatable :: itemNameList(:)
+        type(ESMF_StateItem_FLAG),  allocatable :: itemTypeList(:)
+
+        type(ESMF_Field) :: field
+        real, pointer    :: ptr2d(:,:), ptr3d(:,:,:)
+
+        __Iam__('ForceAllocation')
+
+        call ESMF_StateGet(state, itemCount=itemCount, __RC__)
+        allocate(itemNameList(itemCount), stat=status)
+        VERIFY_(status)
+        allocate(itemTypeList(itemCount), stat=status)
+        VERIFY_(status)
+
+        call ESMF_StateGet(state, itemNameList=itemNameList, &
+                itemTypeList=itemTypeList, __RC__)
+
+        if (itemCount /= 0) then
+            do i=1, itemCount
+                if (itemTypeList(i) == ESMF_STATEITEM_FIELD) then
+                    call ESMF_StateGet(state, trim(itemNameList(i)), field, __RC__)
+                    call ESMF_AttributeGet(field, name='DIMS', value=dims, __RC__)
+                    if (dims == MAPL_DimsHorzOnly) then
+                        call MAPL_GetPointer(state, ptr2d, trim(itemNameList(i)), &
+                                alloc=.true., __RC__)
+                    else if (dims == MAPL_DimsHorzVert) then
+                        call MAPL_GetPointer(state, ptr3d, trim(itemNameList(i)), &
+                                alloc=.true., __RC__)
+                    else
+                        _ASSERT((1 == 2), "invalid field for test defined")
+                    end if
+                end if
+            end do
+        end if
+
+        _RETURN(_SUCCESS)
+    end subroutine ForceAllocation
 end module Reciever_GridCompMod

@@ -154,12 +154,12 @@ contains
         call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="reciever", &
                 compSetServicesRoutine=cplSS, comp=connector, rc=rc)
         VERIFY_NUOPC_(rc)
-        call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="ufs", &
-                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
-        VERIFY_NUOPC_(rc)
-        ! call NUOPC_DriverAddComp(driver, srcCompLabel="ufs", dstCompLabel="reciever", &
+        ! call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="ufs", &
         !         compSetServicesRoutine=cplSS, comp=connector, rc=rc)
         ! VERIFY_NUOPC_(rc)
+        call NUOPC_DriverAddComp(driver, srcCompLabel="ufs", dstCompLabel="reciever", &
+                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
+        VERIFY_NUOPC_(rc)
 
         print*, "Driver finish Set Model Services"
 
