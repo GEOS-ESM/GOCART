@@ -5,6 +5,13 @@ ecbuild_add_executable(
         INCLUDES ${esma_include}/MAPL
 )
 
+ecbuild_add_executable(
+        TARGET esmApp.x
+        SOURCES esmApp.F90 esm.F90 atm.F90 ocn.F90
+        LIBS gftl-shared MAPL
+        INCLUDES ${esma_include}/MAPL
+)
+
 #ecbuild_add_executable(
 #        TARGET AerosolApp.x
 #        SOURCES AerosolMain.F90 AerosolDriver.F90 UFS_TestingCap.F90
