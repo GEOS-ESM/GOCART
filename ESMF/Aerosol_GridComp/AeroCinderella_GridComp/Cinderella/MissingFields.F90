@@ -6,22 +6,24 @@ module MissingFields_mod
     use ESMF
     use MAPL
 
+    use GEOS_UtilsMod
+
     implicit none
     private
 
     public get_ZLE
 
 contains
-    subroutine get_AIRDENS()
-        
-    end subroutine get_AIRDENS
-    
-    subroutine get_AIRDENS_DRYP(PLE, T, AIRDENS_DRYP)
+    subroutine get_AIRDENS(PLE, T, AIRDENS)
         real(kind=REAL32), intent(in   ) :: PLE(:,:,:)
         real(kind=REAL32), intent(in   ) :: T(:,:,:)
-        real(kind=REAL32), intent(  out) :: AIRDENS_DRYP(:,:,:)
+        real(kind=REAL32), intent(  out) :: AIRDENS(:,:,:)
 
-        AIRDENS_DRYP = PLE/(MAPL_RDRY*T)
+        AIRDENS = PLE/(MAPL_RDRY*T)
+    end subroutine get_AIRDENS
+
+    subroutine get_AIRDENS_DRYP()
+        
     end subroutine get_AIRDENS_DRYP
 
     subroutine get_DELP(PRESS, DELP)
@@ -35,7 +37,6 @@ contains
         do i=1, n(3)-1
             DELP(:,:,i) =  PRESS(:,:,i+1) - PRESS(:,:,i)
         end do
-
     end subroutine get_DELP
     
     subroutine get_FRACI()
@@ -54,8 +55,23 @@ contains
         
     end subroutine get_PS
 
-    subroutine get_RH2(RH2)
-        real(kind=REAL32), intent(out) :: RH2(:,:,:)
+    subroutine get_RH2(T, PLE, Q, RH2)
+        real(kind=REAL32), intent(in   ) :: T(:,:,:)
+        real(kind=REAL32), intent(in   ) :: PLE(:,:,:)
+        real(kind=REAL32), intent(in   ) :: Q(:,:,:)
+        real(kind=REAL32), intent(  out) :: RH2(:,:,:)
+
+        integer :: i, j, k, n(3)
+
+        n = size(T)
+
+        do i=1, n(1)
+            do j=1, n(2)
+                do k=1, n(3)
+                    RH2(i,j,k) = Q(i,j,k) / GEOS_Qsat(T(i,j,k), PLE(i,j,k))
+                end do
+            end do
+        end do
 
     end subroutine
 

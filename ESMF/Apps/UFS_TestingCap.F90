@@ -26,7 +26,142 @@ module UFS_Testing_Cap
     !         ExportFieldNames = [ &
     !                 "var2" &
     !                 ]
+
+    type FieldSpec
+        character(len=:), allocatable :: name
+        type(ESMF_TYPEKIND_Flag)      :: typekind
+        integer, allocatable          :: grid_to_field_map(:), &
+                                         ungridded_lbound(:), &
+                                         ungridded_ubound(:)
+        integer                       :: dims, vlocation
+    contains
+        procedure :: populate_from_field
+        procedure :: complete_field_in_state
+        procedure :: complete_field
+        procedure :: create_field
+    end type FieldSpec
 contains
+    subroutine populate_from_field(this, field, rc)
+        class(FieldSpec), intent(inout) :: this
+        type(ESMF_Field), intent(in   ) :: field
+        integer,          intent(  out) :: rc
+
+        integer                    :: typekind_int, item_count
+        character(len=ESMF_MAXSTR) :: field_name
+
+        rc = ESMF_SUCCESS
+
+        ! Get the field's name
+        call ESMF_FieldGet(field, name=field_name, rc=rc)
+        VERIFY_NUOPC_(rc)
+        this%name = trim(field_name)
+
+        ! Get the field's typekind
+        call ESMF_AttributeGet(field, name='TypeKind', convention='NUOPC', &
+                purpose='Instance', value=typekind_int, rc=rc)
+        VERIFY_NUOPC_(rc)
+        this%typekind = typekind_int
+
+        ! Get the field's grid_to_field_map
+        call NUOPC_GetAttribute(field, name='GridToFieldMap', &
+                itemCount=item_count, rc=rc)
+        VERIFY_NUOPC_(rc)
+        if  (item_count > 0) then
+            allocate(this%grid_to_field_map(item_count))
+            call ESMF_AttributeGet(field,  name='GridToFieldMap', &
+                    convention='NUOPC', purpose='Instance', &
+                    valueList=this%grid_to_field_map, rc=rc)
+            VERIFY_NUOPC_(rc)
+        end if
+
+        ! Get the field's ungridded lbound
+        call NUOPC_GetAttribute(field, name='UngriddedLBound', &
+                itemCount=item_count, rc=rc)
+        VERIFY_NUOPC_(rc)
+        if  (item_count > 0) then
+            allocate(this%grid_to_field_map(item_count))
+            call ESMF_AttributeGet(field,  name='UngriddedLBound', &
+                    convention='NUOPC', purpose='Instance', &
+                    valueList=this%ungridded_lbound, rc=rc)
+            VERIFY_NUOPC_(rc)
+        end if
+
+        ! Get the field's ungridded ubound
+        call NUOPC_GetAttribute(field, name='UngriddedUBound', &
+                itemCount=item_count, rc=rc)
+        VERIFY_NUOPC_(rc)
+        if  (item_count > 0) then
+            allocate(this%grid_to_field_map(item_count))
+            call ESMF_AttributeGet(field,  name='UngriddedUBound', &
+                    convention='NUOPC', purpose='Instance', &
+                    valueList=this%ungridded_ubound, rc=rc)
+            VERIFY_NUOPC_(rc)
+        end if
+    end subroutine populate_from_field
+
+    subroutine complete_field_in_state(this, state, rc)
+        class(FieldSpec), intent(in   ) :: this
+        type(ESMF_State), intent(inout) :: state
+        integer,          intent(  out) :: rc
+
+        type(ESMF_Field) :: field
+
+        rc = ESMF_SUCCESS
+
+        call ESMF_StateGet(state, field=field, itemName=this%name, rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        call this%complete_field(field, rc=rc)
+        VERIFY_NUOPC_(rc)
+    end subroutine complete_field_in_state
+
+    subroutine complete_field(this, field, rc)
+        class(FieldSpec), intent(in   ) :: this
+        type(ESMF_Field), intent(inout) :: field
+        integer,          intent(  out) :: rc
+
+        rc = ESMF_SUCCESS
+
+        if (allocated(this%ungridded_lbound) .and. &
+                allocated(this%ungridded_ubound)) then
+            call ESMF_FieldEmptyComplete(field, typekind=this%typekind, &
+                    gridToFieldMap=this%grid_to_field_map, &
+                    ungriddedLBound=this%ungridded_lbound, &
+                    ungriddedUBound=this%ungridded_ubound, &
+                    rc=rc)
+            VERIFY_NUOPC_(rc)
+        else
+            call ESMF_FieldEmptyComplete(field, this%typekind, &
+                    gridToFieldMap=this%grid_to_field_map, rc=rc)
+            VERIFY_NUOPC_(rc)
+        end if
+    end subroutine complete_field
+
+    function create_field(this, grid, rc) result(field)
+        class(FieldSpec), intent(in   ) :: this
+        type(ESMF_Grid),  intent(in   ) :: grid
+        integer,          intent(  out) :: rc
+        type(ESMF_Field)                :: field
+
+        rc = ESMF_SUCCESS
+
+        if (allocated(this%ungridded_lbound) .and. &
+                allocated(this%ungridded_ubound)) then
+            field = ESMF_FieldCreate(grid, name=this%name, &
+                    typekind=this%typekind, &
+                    gridToFieldMap=this%grid_to_field_map, &
+                    ungriddedLBound=this%ungridded_lbound, &
+                    ungriddedUBound=this%ungridded_ubound, &
+                    rc=rc)
+            VERIFY_NUOPC_(rc)
+        else
+!            call ESMF_FieldCreate(grid, name=this%name, &
+!                    typekind=this%typekind, &
+!                    gridToFieldMap=this%grid_to_field_map, rc=rc)
+!            VERIFY_NUOPC_(rc)
+        end if
+    end function create_field
+
     subroutine SetServices(model, rc)
         type(ESMF_GridComp)  :: model
         integer, intent(out) :: rc
@@ -45,19 +180,13 @@ contains
 
         ! set entry point for methods that require specific implementation
         print*,"UFS register advertise fields"
-        ! call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
-        !         phaseLabelList=["IPDv05p1"], userRoutine=AdvertiseFields, rc=rc)
-        ! VERIFY_NUOPC_(rc)
         call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
-                phaseLabelList=["IPDv02p1"], userRoutine=AdvertiseFields, rc=rc)
+                phaseLabelList=["IPDv05p1"], userRoutine=AdvertiseFields, rc=rc)
         VERIFY_NUOPC_(rc)
 
         print*,"UFS register realize fields"
-        ! call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
-        !         phaseLabelList=["IPDv05p4"], userRoutine=RealizeFields, rc=rc)
-        ! VERIFY_NUOPC_(rc)
         call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE,&
-                phaseLabelList=["IPDv02p3"], userRoutine=RealizeFields, rc=rc)
+                phaseLabelList=["IPDv05p6"], userRoutine=RealizeFields, rc=rc)
         VERIFY_NUOPC_(rc)
 
         ! attach specializing method
@@ -83,7 +212,7 @@ contains
         print*,"UFS start initialize_p0"
 
         call NUOPC_CompFilterPhaseMap(model, ESMF_METHOD_INITIALIZE, &
-                acceptStringList=(/"IPDv02p"/), rc=rc)
+                acceptStringList=(/"IPDv05p"/), rc=rc)
         VERIFY_NUOPC_(rc)
 
         print*,"UFS finish initialize_p0"
@@ -102,30 +231,19 @@ contains
         rc = ESMF_SUCCESS
 
         if (ImportFieldCount > 0) then
+            print*,"UFS adding imports to dictionary"
+            if (.not. NUOPC_FieldDictionaryHasEntry("var1")) then
+                call NUOPC_FieldDictionaryAddEntry(standardName="var1", &
+                    canonicalUnits="na", rc=rc)
+                VERIFY_NUOPC_(rc)
+            end if
 
-           print*,"UFS adding imports to dictionary"
-           if (.not. NUOPC_FieldDictionaryHasEntry("var1")) then
-              call NUOPC_FieldDictionaryAddEntry(standardName="var1", &
-                     canonicalUnits="na", rc=rc)
-              VERIFY_NUOPC_(rc)
-           end if
-
-           print*,"UFS advertising imports"
-           call NUOPC_Advertise(import_state, StandardName="var1", rc=rc)
-            ! call NUOPC_Advertise(import_state, ImportFieldNames, &
-            !         ! TransferOfferGeomObject="cannot provide", &
-            !         ! SharePolicyField="share", &
-            !         rc=rc)
+            print*,"UFS advertising imports"
+            call NUOPC_Advertise(import_state, StandardName="var1", &
+                    TransferOfferGeomObject="cannot provide", rc=rc)
             print*,"UFS advertising imports rc:", rc
             VERIFY_NUOPC_(rc)
         end if
-
-        ! if (ExportFieldCount > 0) then
-        !     call NUOPC_Advertise(export_state, ExportFieldNames, &
-        !             TransferOfferGeomObject="cannot provide", &
-        !             SharePolicyField="share", rc=rc)
-        !     VERIFY_NUOPC_(rc)
-        ! end if
 
         print*,"UFS finish advertise"
     end subroutine AdvertiseFields
