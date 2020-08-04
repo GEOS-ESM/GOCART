@@ -8,7 +8,7 @@ ecbuild_add_executable(
 ecbuild_add_executable(
         TARGET esmApp.x
         SOURCES esmApp.F90 esm.F90 atm.F90 ocn.F90
-        LIBS gftl-shared MAPL
+        LIBS gftl-shared MAPL MAPL.grid_comp
         INCLUDES ${esma_include}/MAPL
 )
 

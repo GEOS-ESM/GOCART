@@ -27,6 +27,9 @@ module ESM
 
     use NUOPC_Connector, only: cplSS => SetServices
 
+    use NUOPC_MAPLcapMod, &
+            NUOPC_CAP_SS => SetServices
+
     implicit none
 
     private
@@ -78,7 +81,7 @@ contains
         type(ESMF_Time)               :: stopTime
         type(ESMF_TimeInterval)       :: timeStep
         type(ESMF_Clock)              :: internalClock
-        type(ESMF_GridComp)           :: child
+        type(ESMF_GridComp)           :: child, test
         type(ESMF_CplComp)            :: connector
 
         rc = ESMF_SUCCESS
@@ -90,6 +93,9 @@ contains
         call NUOPC_DriverAddComp(driver, "ATM", atmSS, comp=child, rc=rc)
         VERIFY_NUOPC_(rc)
         call NUOPC_CompAttributeSet(child, name="Verbosity", value="low", rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        call NUOPC_DriverAddComp(driver, "test", NUOPC_CAP_SS, comp=child, rc=rc)
         VERIFY_NUOPC_(rc)
 
         ! SetServices for OCN
