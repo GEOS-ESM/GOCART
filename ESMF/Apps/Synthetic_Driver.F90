@@ -95,29 +95,31 @@ contains
         call ESMF_ConfigGetAttribute(config, n_reciever_pes, &
                 label="reciever_pets:", rc=rc)
         VERIFY_NUOPC_(rc)
-        call ESMF_ConfigGetAttribute(config, n_ufs_pes, &
-                label="ufs_pets:", rc=rc)
-        VERIFY_NUOPC_(rc)
+!        call ESMF_ConfigGetAttribute(config, n_ufs_pes, &
+!                label="ufs_pets:", rc=rc)
+!        VERIFY_NUOPC_(rc)
 
         print*,"Driver create pet lists"
-        allocate(provider_petlist(n_provider_pes), &
-                reciever_petlist(n_reciever_pes), &
-                ufs_petlist(n_ufs_pes))
+        allocate(provider_petlist(n_provider_pes))
+        allocate(reciever_petlist(n_reciever_pes))
+!        allocate(ufs_petlist(n_ufs_pes))
 
         if (seq) then
             _ASSERT((n_provider_pes == n_reciever_pes), "provider_pets must be equal to reciever_pets in sequential")
-            _ASSERT((n_provider_pes == n_ufs_pes), "provider_pets must be equal to ufs_pets in sequential")
+!            _ASSERT((n_provider_pes == n_ufs_pes), "provider_pets must be equal to ufs_pets in sequential")
             _ASSERT((n_provider_pes == npes), "provider_pets must be equal to number of pets in sequential")
 
             provider_petlist = [(i, i = 0, n_provider_pes - 1)]
             reciever_petlist = [(i, i = 0, n_reciever_pes - 1)]
-            ufs_petlist      = [(i, i = 0, n_ufs_pes - 1)]
+!            ufs_petlist      = [(i, i = 0, n_ufs_pes - 1)]
         else
-            _ASSERT(((n_provider_pes + n_reciever_pes + n_ufs_pes) == npes), "provider_pets + reciever_pets + ufs_pets must be equal to number of pets")
+!            _ASSERT(((n_provider_pes + n_reciever_pes + n_ufs_pes) == npes), "provider_pets + reciever_pets + ufs_pets must be equal to number of pets")
+            _ASSERT(((n_provider_pes + n_reciever_pes) == npes), "provider_pets + reciever_pets must be equal to number of pets")
 
             provider_petlist = [(i, i = 0, n_provider_pes - 1)]
-            reciever_petlist = [(i, i = n_provider_pes, n_provider_pes + n_reciever_pes - 1)]
-            ufs_petlist      = [(i, i = n_provider_pes + n_reciever_pes, npes - 1)]
+            reciever_petlist = [(i, i = n_provider_pes, npes - 1)]
+!            reciever_petlist = [(i, i = n_provider_pes, n_provider_pes + n_reciever_pes - 1)]
+!            ufs_petlist      = [(i, i = n_provider_pes + n_reciever_pes, npes - 1)]
 
             print*,"Conncurrent mode"
         end if
@@ -125,7 +127,7 @@ contains
         print*, "Sequential? :", seq
         print*, "Provider_petlist:", provider_petlist
         print*, "Reciever_petlist:", reciever_petlist
-        print*, "UFS_petlist:", ufs_petlist
+!        print*, "UFS_petlist:", ufs_petlist
 
         print*,"Driver add provider"
         call NUOPC_DriverAddComp(driver, "provider", wrapperSS, comp=provider, &
@@ -145,10 +147,10 @@ contains
                 rc_file="RECIEVER_CAP.rc", root_set_services=recieverSS, rc=rc)
         VERIFY_NUOPC_(rc)
 
-        print*,"Driver add ufs"
-        call NUOPC_DriverAddComp(driver, "ufs", ufsSS, comp=ufs, &
-                petlist=ufs_petlist, rc=rc)
-        VERIFY_NUOPC_(rc)
+!        print*,"Driver add ufs"
+!        call NUOPC_DriverAddComp(driver, "ufs", ufsSS, comp=ufs, &
+!                petlist=ufs_petlist, rc=rc)
+!        VERIFY_NUOPC_(rc)
 
         print*,"Driver connect compoinents"
         call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="reciever", &
@@ -157,9 +159,9 @@ contains
         ! call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="ufs", &
         !         compSetServicesRoutine=cplSS, comp=connector, rc=rc)
         ! VERIFY_NUOPC_(rc)
-        call NUOPC_DriverAddComp(driver, srcCompLabel="ufs", dstCompLabel="reciever", &
-                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
-        VERIFY_NUOPC_(rc)
+!        call NUOPC_DriverAddComp(driver, srcCompLabel="ufs", dstCompLabel="reciever", &
+!                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
+!        VERIFY_NUOPC_(rc)
 
         print*, "Driver finish Set Model Services"
 

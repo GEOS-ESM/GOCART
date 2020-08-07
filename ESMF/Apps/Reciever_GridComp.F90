@@ -35,12 +35,12 @@ contains
                 units='na', &
                 dims=MAPL_DimsHorzOnly, &
                 vlocation=MAPL_VLocationNone, __RC__)
-        call MAPL_AddImportSpec(gc, &
-                short_name='var2', &
-                long_name='var2', &
-                units='na', &
-                dims=MAPL_DimsHorzOnly, &
-                vlocation=MAPL_VLocationNone, __RC__)
+!        call MAPL_AddImportSpec(gc, &
+!                short_name='var2', &
+!                long_name='var2', &
+!                units='na', &
+!                dims=MAPL_DimsHorzOnly, &
+!                vlocation=MAPL_VLocationNone, __RC__)
 
         print*, "Reciever Call Generic Set Services"
         call MAPL_GenericSetServices(gc, __RC__)
