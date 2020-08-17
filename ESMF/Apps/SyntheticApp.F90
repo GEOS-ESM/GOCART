@@ -38,21 +38,29 @@ program SyntheticApp
 
     ! Create the earth system Component
     print*,"ESMF create ESM"
+    call ESMF_LogWrite("esmApp create ESM", ESMF_LOGMSG_INFO, rc=rc)
+    VERIFY_ESMF_(rc)
     esmComp = ESMF_GridCompCreate(name="esm", rc=rc)
     VERIFY_ESMF_(rc)
 
     ! SetServices for the earth system Component
     print*,"ESM Set Services"
+    call ESMF_LogWrite("esmApp ESM Set Services", ESMF_LOGMSG_INFO, rc=rc)
+    VERIFY_ESMF_(rc)
     call ESMF_GridCompSetServices(esmComp, driverSS, userRc=urc, rc=rc)
     VERIFY_ALL_ESMF_(rc, urc)
 
     ! Call Initialize for the earth system Component
     print*,"ESM Initialize"
+    call ESMF_LogWrite("esmApp ESM Initalize", ESMF_LOGMSG_INFO, rc=rc)
+    VERIFY_ESMF_(rc)
     call ESMF_GridCompInitialize(esmComp, userRc=urc, rc=rc)
     VERIFY_ALL_ESMF_(rc, urc)
 
     ! Call Run  for earth the system Component
     print*,"ESM Run"
+    call ESMF_LogWrite("esmApp ESM Run", ESMF_LOGMSG_INFO, rc=rc)
+    VERIFY_ESMF_(rc)
     call ESMF_GridCompRun(esmComp, userRc=urc, rc=rc)
     VERIFY_ALL_ESMF_(rc, urc)
 
@@ -67,11 +75,15 @@ program SyntheticApp
 
     ! Call Finalize for the earth system Component
     print*,"ESM Finalize"
+    call ESMF_LogWrite("esmApp ESM Finalize", ESMF_LOGMSG_INFO, rc=rc)
+    VERIFY_ESMF_(rc)
     call ESMF_GridCompFinalize(esmComp, userRc=urc, rc=rc)
     VERIFY_ALL_ESMF_(rc, urc)
 
     ! Destroy the earth system Component
     print*,"ESM Destroy"
+    call ESMF_LogWrite("esmApp ESM Destroy", ESMF_LOGMSG_INFO, rc=rc)
+    VERIFY_ESMF_(rc)
     call ESMF_GridCompDestroy(esmComp, rc=rc)
     VERIFY_ESMF_(rc)
 
