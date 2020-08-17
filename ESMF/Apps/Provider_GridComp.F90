@@ -22,13 +22,19 @@ contains
         call ESMF_GridCompGet(gc, name=comp_name, __RC__)
         Iam = trim(comp_name) //'::'// Iam
 
-        print*, "Provider start Set Services"
+        print*, "Provider start SetServices"
+        call ESMF_LogWrite("Provider start SetServices", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
-        print*, "Provider Entry Points"
+        print*, "Provider SetEntryPoints"
+        call ESMF_LogWrite("Provider SetEntryPoints", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_INITIALIZE, Initialize, __RC__)
         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, __RC__)
 
-        print*, "Provider set export"
+        print*, "Provider add exports"
+        call ESMF_LogWrite("Provider add exports", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call MAPL_AddExportSpec(GC,&
                 short_name='var1', &
                 long_name='var1' , &
@@ -39,7 +45,9 @@ contains
         print*, "Provider Call Generic Set Services"
         call MAPL_GenericSetServices(gc, __RC__)
 
-        print*, "Provider finish Set Services"
+        print*, "Provider finish SetServices"
+        call ESMF_LogWrite("Provider finish SetServices", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         _RETURN(_SUCCESS)
     end subroutine SetServices
 
@@ -57,16 +65,26 @@ contains
         Iam = trim(comp_name) //'::'// Iam
 
         print*, "Provider start Initialize"
+        call ESMF_LogWrite("Provider start Initialize", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
-        print*, "Provider MAPL_GridCreate"
+        print*, "Provider run MAPL_GridCreate"
+        call ESMF_LogWrite("Provider run MAPL_GridCreate", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call MAPL_GridCreate(gc, __RC__)
 
-        print*, "Provider Generic initialize"
+        print*, "Provider run GenericInitialize"
+        call ESMF_LogWrite("Provider run GenericInitialize", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call MAPL_GenericInitialize(gc, import, export, clock, __RC__)
-        print*, "Provider Force allocate"
+        print*, "Provider run ForceAllocation"
+        call ESMF_LogWrite("Provider run ForceAllocation", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ForceAllocation(export, __RC__)
 
         print*, "Provider finish Initialize"
+        call ESMF_LogWrite("Provider finish Initialize", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         _RETURN(_SUCCESS)
     end subroutine Initialize
 
@@ -146,6 +164,10 @@ contains
 
         __Iam__('ForceAllocation')
 
+        print*, "Provider start ForceAllocation"
+        call ESMF_LogWrite("Provider start ForceAllocation", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
+
         call ESMF_StateGet(state, itemCount=itemCount, __RC__)
         allocate(itemNameList(itemCount), stat=status)
         VERIFY_(status)
@@ -172,6 +194,10 @@ contains
                 end if
             end do
         end if
+
+        print*, "Provider finish ForceAllocation"
+        call ESMF_LogWrite("Provider finish ForceAllocation", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
         _RETURN(_SUCCESS)
     end subroutine ForceAllocation

@@ -29,35 +29,51 @@ contains
         integer, intent(out) :: rc
         type(ESMF_Config)    :: config
 
-        print*, "Driver start Set Services"
+        print*, "Driver start SetServices"
+        call ESMF_LogWrite("Driver start SetServices", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
         ! NUOPC_Driver registers the generic methods
-        print*,"Driver add Generic Set Services"
+        print*,"Driver add Generic SetServices"
+        call ESMF_LogWrite("Driver add Generic SetServices", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call NUOPC_CompDerive(driver, driverSS, rc=rc)
         VERIFY_NUOPC_(rc)
 
         ! attach specializing method(s)
-        print*,"Driver add Set Model Services"
+        print*,"Driver add SetModelServices"
+        call ESMF_LogWrite("Driver add SetModelServices", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call NUOPC_CompSpecialize(driver, specLabel=modelSS, &
                 specRoutine=SetModelServices, rc=rc)
         VERIFY_NUOPC_(rc)
 
         print*,"Driver add Set Run Sequence"
+        call ESMF_LogWrite("Driver add Set Run Sequence", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call NUOPC_CompSpecialize(driver, specLabel=runSS, &
                 specRoutine=SetRunSequence, rc=rc)
         VERIFY_NUOPC_(rc)
 
         print*,"Driver create config"
+        call ESMF_LogWrite("Driver create config", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         config = ESMF_ConfigCreate(rc=rc)
         VERIFY_NUOPC_(rc)
         print*,"Driver read config"
+        call ESMF_LogWrite("Driver read config", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_ConfigLoadFile(config, "NUOPC_run_config.txt", rc=rc)
         VERIFY_NUOPC_(rc)
         print*,"Driver add config"
+        call ESMF_LogWrite("Driver add config", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_GridCompSet(driver, config=config, rc=rc)
         VERIFY_NUOPC_(rc)
 
-        print*, "Driver finish Set Services"
+        print*, "Driver finish SetServices"
+        call ESMF_LogWrite("Driver finish SetServices", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
         _RETURN(_SUCCESS)
     end subroutine SetServices
@@ -76,18 +92,28 @@ contains
         integer, allocatable :: provider_petlist(:), reciever_petlist(:), ufs_petlist(:)
 
         print*, "Driver start Set Model Services"
+        call ESMF_LogWrite("Driver start SetModelServices", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
-        print*,"Driver set clock"
+        print*,"Driver run set_clock"
+        call ESMF_LogWrite("Driver run set_clock", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call set_clock(driver)
 
-        print*,"Driver read config"
+        print*,"Driver read the config"
+        call ESMF_LogWrite("Driver read the config", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_GridCompGet(driver, vm=vm, config=config, rc=rc)
         VERIFY_NUOPC_(rc)
         print*,"Driver read npes"
+        call ESMF_LogWrite("Driver read npes", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_VMGet(vm, petCount=npes, rc=rc)
         VERIFY_NUOPC_(rc)
 
-        print*,"Driver read from config"
+        print*,"Driver read values from config"
+        call ESMF_LogWrite("Driver values from config", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_ConfigGetAttribute(config, seq, label="sequential:", rc=rc)
         VERIFY_NUOPC_(rc)
         call ESMF_ConfigGetAttribute(config, n_provider_pes, &
@@ -101,6 +127,8 @@ contains
 !        VERIFY_NUOPC_(rc)
 
         print*,"Driver create pet lists"
+        call ESMF_LogWrite("Driver create pet lists", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         allocate(provider_petlist(n_provider_pes))
         ! allocate(reciever_petlist(n_reciever_pes))
 !        allocate(ufs_petlist(n_ufs_pes))
@@ -131,10 +159,14 @@ contains
 !        print*, "UFS_petlist:", ufs_petlist
 
         print*,"Driver add provider"
+        call ESMF_LogWrite("Driver add provider", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call NUOPC_DriverAddComp(driver, "provider", wrapperSS, comp=provider, &
                 petlist=provider_petlist, rc=rc)
         VERIFY_NUOPC_(rc)
         print*,"Driver wrap provider MAPL"
+        call ESMF_LogWrite("Driver wrap provider MAPL", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         ! call init_wrapper(wrapper_gc=provider, name="provider", &
         !         cap_rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
         ! VERIFY_NUOPC_(rc)
@@ -170,7 +202,9 @@ contains
 !                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
 !        VERIFY_NUOPC_(rc)
 
-        print*, "Driver finish Set Model Services"
+        print*, "Driver finish SetModelServices"
+        call ESMF_LogWrite("Driver finish SetModelServices", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
         _RETURN(_SUCCESS)
     end subroutine SetModelServices
@@ -186,22 +220,41 @@ contains
 
         integer :: start_date_and_time(2), end_date_and_time(2), dt, file_unit, yy, mm, dd, h, m, s, rc
 
+        print*, "Driver start set_clock"
+        call ESMF_LogWrite("Driver start set_clock", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
+
+        print*, "Driver read start time"
+        call ESMF_LogWrite("Driver read start time", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         ! Read the start time
         open(newunit = file_unit, file = "cap_restart", form = 'formatted', &
                 status = 'old', action = 'read')
         read(file_unit, *) start_date_and_time
         close(file_unit)
 
-        ! Set the start time
+        print*, "Driver unpack start time"
+        call ESMF_LogWrite("Driver unpack start time", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call UnpackDateTime(start_date_and_time, yy, mm, dd, h, m, s)
+        ! Set the start time
+        print*, "Driver set start time"
+        call ESMF_LogWrite("Driver set start time", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_TimeSet(startTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, &
                 calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
         VERIFY_NUOPC_(rc)
 
+        print*, "Driver read the config"
+        call ESMF_LogWrite("Driver read the config", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_GridCompGet(driver, config = config, rc = rc)
         VERIFY_NUOPC_(rc)
 
         ! Read the end time
+        print*, "Driver read end time"
+        call ESMF_LogWrite("Driver read end time", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_ConfigGetAttribute(config, end_date_and_time(1), &
                 label="end_date:", rc=rc)
         VERIFY_NUOPC_(rc)
@@ -209,26 +262,49 @@ contains
                 label="end_time:", rc=rc)
         VERIFY_NUOPC_(rc)
 
-        ! Set the end time
+        print*, "Driver unpack end time"
+        call ESMF_LogWrite("Driver unpack end time", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call UnpackDateTime(end_date_and_time, yy, mm, dd, h, m, s)
+        ! Set the end time
+        print*, "Driver set end time"
+        call ESMF_LogWrite("Driver set end time", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_TimeSet(stopTime, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, &
                 calkindflag=ESMF_CALKIND_GREGORIAN, rc=rc)
         VERIFY_NUOPC_(rc)
 
         ! Read the interpolation time interval
+        print*, "Driver read interpolation interval"
+        call ESMF_LogWrite("Driver read interpolation interval", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_ConfigGetAttribute(config, dt, label="interpolation_dt:", rc = rc)
         VERIFY_NUOPC_(rc)
 
         ! Set the time interval
+        print*, "Driver create time interval"
+        call ESMF_LogWrite("Driver create time interval", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_TimeIntervalSet(timeStep, s=dt, rc=rc)
         VERIFY_NUOPC_(rc)
+
+        print*, "Driver create the clock"
+        call ESMF_LogWrite("Driver create the clock", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         internalClock = ESMF_ClockCreate(name="Driver Clock", timeStep=timeStep, &
                 startTime=startTime, stopTime=stopTime, rc=rc)
         VERIFY_NUOPC_(rc)
 
         ! Set the driver clock
+        print*, "Driver set the clock"
+        call ESMF_LogWrite("Driver set the clock", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_GridCompSet(driver, clock=internalClock, rc=rc)
         VERIFY_NUOPC_(rc)
+
+        print*, "Driver finish set_clock"
+        call ESMF_LogWrite("Driver finish set_clock", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
     contains
         subroutine UnpackDateTime(DATETIME, YY, MM, DD, H, M, S)
             integer, intent(IN   ) :: DATETIME(:)
@@ -254,26 +330,38 @@ contains
         type(ESMF_Config)       :: config
         type(NUOPC_FreeFormat)  :: run_sequence_ff
 
-        print*, "Driver start Set Run Sequence"
+        print*, "Driver start SetRunSequence"
+        call ESMF_LogWrite("Driver start SetRunSequence", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
-        print*,"Driver read config"
+        print*,"Driver read the config"
+        call ESMF_LogWrite("Driver read the config", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call ESMF_GridCompGet(driver, config=config, rc=rc)
         VERIFY_NUOPC_(rc)
 
         print*,"Driver read run sequence"
+        call ESMF_LogWrite("Driver read run sequence", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         run_sequence_ff = NUOPC_FreeFormatCreate(config, label="run_sequence::", rc=rc)
         VERIFY_NUOPC_(rc)
 
         ! ingest FreeFormat run sequence
         print*,"Driver ingest run sequence"
+        call ESMF_LogWrite("Driver ingest run sequence", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call NUOPC_DriverIngestRunSequence(driver, run_sequence_ff, rc=rc)
         VERIFY_NUOPC_(rc)
 
         print*,"Driver destroy run sequence"
+        call ESMF_LogWrite("Driver destroy run sequence", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
         call NUOPC_FreeFormatDestroy(run_sequence_ff, rc=rc)
         VERIFY_NUOPC_(rc)
 
-        print*, "Driver finish Set Run Sequence"
+        print*, "Driver finish SetRunSequence"
+        call ESMF_LogWrite("Driver finish SetRunSequence", ESMF_LOGMSG_INFO, rc=rc)
+        VERIFY_ESMF_(rc)
 
         _RETURN(_SUCCESS)
     end subroutine SetRunSequence
