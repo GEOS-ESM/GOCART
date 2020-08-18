@@ -11,10 +11,9 @@ program AerosolMain
     implicit none
     include "mpif.h"
 
-    integer                      :: rank, file_unit, rc, urc
-    integer(kind=INT64)          :: t0, t1, count_rate
-    real                         :: elapsed_time
-    class(BaseProfiler), pointer :: t_p
+    integer             :: rank, file_unit, rc, urc
+    integer(kind=INT64) :: t0, t1, count_rate
+    real                :: elapsed_time
 
     type(ESMF_GridComp) :: driver_gridcomp
 
@@ -77,6 +76,4 @@ program AerosolMain
 
     ! Finalize ESMF
     call ESMF_Finalize()
-
-    call t_p%stop()
 end program AerosolMain
