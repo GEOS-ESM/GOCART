@@ -115,6 +115,9 @@ contains
 
         !!! Do run step
 
+        ZLE = ZLE + 1.0
+        print*, "The value ZLE is set to is:", minval(ZLE), maxval(ZLE)
+
         _RETURN(_SUCCESS)
     end subroutine Run
 
