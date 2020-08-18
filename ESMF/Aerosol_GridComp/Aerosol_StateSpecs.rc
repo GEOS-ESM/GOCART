@@ -7,7 +7,7 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
      NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
 #----------------------------------------------------------------------------------------
-inst_geop_interface | m2 s-2 | xyz | E | | inst_geop_interface
+#inst_geop_interface | m2 s-2 | xyz | E | | inst_geop_interface
 #DU_SRC     | 1      | xy   | N   |      | erod
 #FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
 #WET1       | 1      | xy   | N   |      | surface_soil_wetness
@@ -40,7 +40,7 @@ category: EXPORT
  NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
 #----------------------------------------------------------------------------------------
 ZLE | m | xyz | E | | Geopotential Height
-DUMASS     | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
+#DUMASS     | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
 #DUMASS25   | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
 #DUCONC     | kg m-3     | xyz | C  |            | Dust Mass Concentration                     __ENSEMBLE__
 #DUEXTCOEF  | m-1        | xyz | C  |            | Dust Extinction Coefficient [550 nm]        __ENSEMBLE__

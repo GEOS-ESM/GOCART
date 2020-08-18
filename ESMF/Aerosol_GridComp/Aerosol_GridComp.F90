@@ -77,6 +77,8 @@ contains
         VERIFY_(status)
         self => wrap%ptr
 
+        call MAPL_GridCreate(gc, __RC__)
+
         call MAPL_GenericInitialize(gc, import, export, clock, __RC__)
 
         ! Temporary measure
