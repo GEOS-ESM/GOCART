@@ -28,10 +28,6 @@ program AerosolMain
         call system_clock(t0)
     end if
 
-    t_p => get_global_time_profiler()
-    t_p = TimeProfiler('All', comm_world=MPI_COMM_WORLD)
-    call t_p%start()
-
     ! Initialize ESMF
     call ESMF_Initialize(LogKindFlag=ESMF_LOGKIND_MULTI, rc=rc)
     VERIFY_ESMF_(rc)
@@ -44,15 +40,15 @@ program AerosolMain
     VERIFY_ESMF_(rc)
 
     call ESMF_GridCompSetServices(driver_gridcomp, driverSS, userRc=urc, rc=rc)
-    VERIFY_NUOPC_(rc, urc)
+    VERIFY_ALL_ESMF_(rc, urc)
 
     ! Initialize the model
     call ESMF_GridCompInitialize(driver_gridcomp, userRc=urc, rc=rc)
-    VERIFY_NUOPC_(rc, urc)
+    VERIFY_ALL_ESMF_(rc, urc)
 
     ! Run the Model
     call ESMF_GridCompRun(driver_gridcomp, userRc=urc, rc=rc)
-    VERIFY_NUOPC_(rc, urc)
+    VERIFY_ALL_ESMF_(rc, urc)
 
     ! Get the run time
     if (rank == 0) then
@@ -66,7 +62,7 @@ program AerosolMain
 
     ! Finalize the model
     call ESMF_GridCompFinalize(driver_gridcomp, userRc=urc, rc=rc)
-    VERIFY_NUOPC_(rc, urc)
+    VERIFY_ALL_ESMF_(rc, urc)
 
     ! Destroy the model
     call ESMF_GridCompDestroy(driver_gridcomp, rc=rc)

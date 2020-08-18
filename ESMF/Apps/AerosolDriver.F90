@@ -1,3 +1,4 @@
+#include "MAPL_Generic.h"
 #include "NUOPC_ErrLog.h"
 
 module aerosol_driver
@@ -35,9 +36,9 @@ contains
                 specRoutine=SetModelServices, rc=rc)
         VERIFY_NUOPC_(rc)
 
-        call NUOPC_CompSpecialize(driver, specLabel=runSS, &
-                specRoutine=SetRunSequence, rc=rc)
-        VERIFY_NUOPC_(rc)
+!        call NUOPC_CompSpecialize(driver, specLabel=runSS, &
+!                specRoutine=SetRunSequence, rc=rc)
+!        VERIFY_NUOPC_(rc)
 
         ! Set the NUOPC configuration file
         config = ESMF_ConfigCreate(rc=rc)
@@ -74,11 +75,11 @@ contains
         petlist = [(i, i = 0, n_pes - 1)]
 
         ! Create the MAPL grid_comp
-        call NUOPC_DriverAddComp(driver, "agcm", wrapperSS, comp=comp, &
+        call NUOPC_DriverAddComp(driver, "aerosol", wrapperSS, comp=comp, &
                 petlist=petlist, rc=rc)
         VERIFY_NUOPC_(rc)
-        call init_wrapper(wrapper_gc=comp, name="agcm", &
-                cap_rc_file="AGCM_CAP.rc", root_set_services=aerosolSS, rc=rc)
+        call init_wrapper(wrapper_gc=comp, name="aerosol", &
+                cap_rc_file="AEROSOL_CAP.rc", root_set_services=aerosolSS, rc=rc)
         VERIFY_NUOPC_(rc)
 
         _RETURN(_SUCCESS)
@@ -153,12 +154,12 @@ contains
         end subroutine UnpackDateTime
 
     end subroutine set_clock
-
-    subroutine SetRunSequence(driver, rc)
-        type(ESMF_GridComp)  :: driver
-        integer, intent(out) :: rc
-
-        rc = ESMF_SUCCESS
-
-    end subroutine SetRunSequence
+!
+!    subroutine SetRunSequence(driver, rc)
+!        type(ESMF_GridComp)  :: driver
+!        integer, intent(out) :: rc
+!
+!        rc = ESMF_SUCCESS
+!
+!    end subroutine SetRunSequence
 end module aerosol_driver
