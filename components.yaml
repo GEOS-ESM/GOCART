@@ -31,4 +31,4 @@ GMAO_Shared:
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  branch: feature/wjamieso/NUOPC_MAPLcap
+  branch: feature/NUOPC_MAPLcap
