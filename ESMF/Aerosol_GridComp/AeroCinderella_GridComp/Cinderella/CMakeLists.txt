@@ -4,6 +4,7 @@ set (srcs
         LinearFields.F90
         ConvertUnits_private.F90
         ConvertUnits.F90
+        NOAA_TracersParser.F90
         ChemTracers_private.F90
         ChemTracers.F90
         MissingFields.F90
