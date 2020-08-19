@@ -10,8 +10,8 @@ module synthetic_driver
             runSS    => label_SetRunSequence
 
     use MAPL
-    use MAPL_NUOPCWrapperMod, only: wrapperSS => SetServices, init_wrapper
-    ! use NUOPC_MAPLcapMod, only: wrapperSS => SetServices, init_internal_wrapper
+    ! use MAPL_NUOPCWrapperMod, only: wrapperSS => SetServices, init_wrapper
+    use NUOPC_MAPLcapMod, only: wrapperSS => SetServices, init_internal_wrapper
     use NUOPC_Connector,  only: cplSS     => SetServices
 
     use Provider_GridCompMod, only: providerSS => SetServices
@@ -126,6 +126,9 @@ contains
 !                label="ufs_pets:", rc=rc)
 !        VERIFY_NUOPC_(rc)
 
+        ! call NUOPC_CompAttributeSet(driver, 'Diagnostic', 'max', rc=rc)
+        ! VERIFY_NUOPC_(rc)
+
         print*,"Driver create pet lists"
         call ESMF_LogWrite("Driver create pet lists", ESMF_LOGMSG_INFO, rc=rc)
         VERIFY_ESMF_(rc)
@@ -167,12 +170,18 @@ contains
         print*,"Driver wrap provider MAPL"
         call ESMF_LogWrite("Driver wrap provider MAPL", ESMF_LOGMSG_INFO, rc=rc)
         VERIFY_ESMF_(rc)
-        call init_wrapper(wrapper_gc=provider, name="provider", &
-                cap_rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
+
+        call NUOPC_CompAttributeSet(provider, 'Verbosity', 'high', rc=rc)
         VERIFY_NUOPC_(rc)
-        ! call init_internal_wrapper(gc=provider, name="provider", &
-        !         rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
+        call NUOPC_CompAttributeSet(provider, 'Diagnostic', 'max', rc=rc)
+        VERIFY_NUOPC_(rc)
+
+        ! call init_wrapper(wrapper_gc=provider, name="provider", &
+        !         cap_rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
         ! VERIFY_NUOPC_(rc)
+        call init_internal_wrapper(gc=provider, name="provider", &
+                rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
+        VERIFY_NUOPC_(rc)
 
         ! print*,"Driver add reciever"
         ! call NUOPC_DriverAddComp(driver, "reciever", wrapperSS, comp=reciever, &
