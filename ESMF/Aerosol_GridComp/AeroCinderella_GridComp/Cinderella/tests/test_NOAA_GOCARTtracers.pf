@@ -1,0 +1,34 @@
+#include "MAPL_Generic.h"
+
+module test_NOAA_GOCARTtracers
+   use, intrinsic :: iso_fortran_env, only: INT64, REAL32, REAL64
+
+   use NOAA_TracerMap_mod
+   use NOAA_GOCARTtracers_mod
+   use pFUnit
+   use MAPL
+   use ESMF
+   use ESMF_TestCase_mod
+   use ESMF_TestMethod_mod
+
+   implicit none
+
+contains
+   @test
+   subroutine test_parse_yaml()
+      type(GOCARTtracers) :: GOCART_tracers
+
+      @assert_that(GOCART_tracers%tracer_map%size(), is(equal_to(0_INT64)))
+      call GOCART_tracers%parse_yaml('GOCART_Tracers.yaml')
+      @assert_that(GOCART_tracers%tracer_map%size(), is(equal_to(28_INT64)))
+   end subroutine test_parse_yaml
+   @test
+   subroutine test_parse_yaml_2()
+      type(GOCARTtracers) :: GOCART_tracers
+
+      @assert_that(GOCART_tracers%tracer_map%size(), is(equal_to(0_INT64)))
+      call GOCART_tracers%parse_yaml('GOCART_Tracers.yaml')
+      @assert_that(GOCART_tracers%tracer_map%size(), is(equal_to(28_INT64)))
+   end subroutine test_parse_yaml_2
+
+end module test_NOAA_GOCARTtracers

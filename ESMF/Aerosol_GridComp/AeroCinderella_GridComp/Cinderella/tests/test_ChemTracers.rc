@@ -1,3 +1,5 @@
+NOAA_field_table: field_table
+
 NOAA_tracer_config: default
 
 default.inst_tracer_mass_frac:

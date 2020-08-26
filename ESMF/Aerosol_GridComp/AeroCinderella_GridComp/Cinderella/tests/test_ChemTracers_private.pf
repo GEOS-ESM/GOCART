@@ -5,7 +5,7 @@ module test_ChemTracers_private
 
     use ChemTracers_private_mod
     use gFTL_StringIntegerMap
-    use pFunit
+    use pFUnit
     use MAPL
     use ESMF
     use ESMF_TestCase_mod

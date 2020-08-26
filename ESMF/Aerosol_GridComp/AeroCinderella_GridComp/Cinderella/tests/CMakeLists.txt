@@ -4,6 +4,8 @@ set (TEST_SRCS
         test_LinearFields.pf
         test_ConvertUnits_private.pf
         test_ChemTracers_private.pf
+        test_NOAA_TracerMap.pf
+        test_NOAA_GOCARTtracers.pf
 )
 
 add_pfunit_ctest(Cinderella_private_tests
@@ -16,5 +18,7 @@ add_pfunit_ctest(Cinderella_private_tests
 
 add_dependencies(build-tests Cinderella_private_tests)
 
-configure_file(test_ChemTracers.rc test_ChemTracers.rc COPYONLY)
+configure_file(test_ChemTracers.rc  test_ChemTracers.rc  COPYONLY)
+configure_file(field_table          field_table          COPYONLY)
+configure_file(GOCART_Tracers.yaml  GOCART_Tracers.yaml  COPYONLY)
 configure_file(test_ConvertUnits.rc test_ConvertUnits.rc COPYONLY)
