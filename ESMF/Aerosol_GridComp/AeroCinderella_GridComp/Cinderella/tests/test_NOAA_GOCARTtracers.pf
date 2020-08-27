@@ -251,6 +251,8 @@ contains
       @assert_that(rc, is(equal_to(0)))
 
 !      @assert_that(trim(name), is(equal_to('inst_mass_tracers')))
+      @assert_that(trim(name) == 'inst_mass_tracers', is(true()))
+
       @assert_that(field_count == GOCART_tracers%size(), is(true()))
       do i=1, field_count
          call check_tracer_bundle(GOCART_tracers, bundle, field, f_array, t_array, i)
