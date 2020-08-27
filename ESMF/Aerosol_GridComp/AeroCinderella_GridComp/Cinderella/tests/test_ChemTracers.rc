@@ -1,4 +1,4 @@
-NOAA_field_table: field_table
+GOCART_tracer_config: GOCART_Tracers.yaml
 
 NOAA_tracer_config: default
 
