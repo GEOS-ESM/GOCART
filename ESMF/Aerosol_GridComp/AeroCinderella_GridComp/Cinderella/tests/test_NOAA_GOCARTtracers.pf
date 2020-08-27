@@ -15,6 +15,7 @@ module test_NOAA_GOCARTtracers
 
    integer,             parameter :: t_dim = 20
    integer(kind=INT64), parameter :: l_dim = 10
+   character(*),        parameter :: test_rc = "test_ChemTracers.rc"
 
 contains
    subroutine create_config(config, rc)
@@ -26,7 +27,7 @@ contains
       config = ESMF_ConfigCreate(rc=status)
       @assert_that(status, is(equal_to(0)))
 
-      call ESMF_ConfigLoadFile(config, "test_ChemTracers.rc", rc=status)
+      call ESMF_ConfigLoadFile(config, test_rc, rc=status)
       @assert_that(status, is(equal_to(0)))
 
       _RETURN(_SUCCESS)

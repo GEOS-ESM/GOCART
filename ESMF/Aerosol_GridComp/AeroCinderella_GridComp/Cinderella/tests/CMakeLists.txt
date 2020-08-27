@@ -3,7 +3,6 @@ add_definitions(-DUSE_MPI)
 set (TEST_SRCS
         test_LinearFields.pf
         test_ConvertUnits_private.pf
-        test_ChemTracers_private.pf
         test_NOAA_TracerMap.pf
         test_NOAA_GOCARTtracers.pf
 )

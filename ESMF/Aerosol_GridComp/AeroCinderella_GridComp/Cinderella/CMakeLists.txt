@@ -6,8 +6,6 @@ set (srcs
         ConvertUnits.F90
         NOAA_TracerMap.F90
         NOAA_GOCARTtracers.F90
-        ChemTracers_private.F90
-        ChemTracers.F90
         MissingFields.F90
         )
 
