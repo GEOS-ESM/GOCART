@@ -259,4 +259,12 @@ contains
          call check_tracer_bundle(GOCART_tracers, bundle, field, f_array, t_array, i)
       end do
    end subroutine test_create_tracer_bundle
+!
+!   @test
+!   subroutine test_reproducer()
+!      character(len=100) :: name
+!
+!      name = 'test'
+!      @assert_that(trim(name), is(equal_to(name)))
+!   end subroutine test_reproducer
 end module test_NOAA_GOCARTtracers

@@ -5,6 +5,7 @@ set (TEST_SRCS
         test_ConvertUnits_private.pf
         test_NOAA_TracerMap.pf
         test_NOAA_GOCARTtracers.pf
+        test_MissingFields.pf
 )
 
 add_pfunit_ctest(Cinderella_private_tests
