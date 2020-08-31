@@ -1,0 +1,37 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+# Biomass burning -- QFED-v2.x
+SU_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/CMIP/sfc/SU/cmip5.SO2_bioburn.x720_y361_t14.%y4.nc
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+SU_ANTHROL1 NA  N Y - none none sanl1 ExtData/CMIP/sfc/SU/cmip5.noship_SO2_src.sfc.x720_y361_t14.%y4.nc
+SU_ANTHROL2 NA  N Y - none none sanl2 /dev/null
+
+# Ship emissions
+SU_SHIPSO2 NA  N Y %y4-%m2-%d2t12:00:00 none none so2_ship ExtData/CMIP/sfc/SU/cmip5.ship_SO2_src.sfc.x720_y361_t14.%y4.nc
+SU_SHIPSO4 NA  N Y %y4-%m2-%d2t12:00:00 none none so4_ship ExtData/CMIP/sfc/SU/cmip5.ship_SO4_src.sfc.x720_y361_t14.%y4.nc
+
+# Aircraft fuel consumption
+SU_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none fuel ExtData/CMIP/L72/cmip5.aircraft_fuel.eta.x288_y181_t14.%y4.nc
+
+# DMS concentration
+SU_DMSO NA  Y Y %y4-%m2-%d2t12:00:00 none none conc ExtData/AeroCom/sfc/DMSclim_sfcconcentration.x360_y181_t12.2000.nc
+
+# H2O2, OH and NO3 mixing ratios
+SU_H2O2 NA     N Y %y4-%m2-%d2t12:00:00 none none h2o2 ExtData/PIESA/L72/A2_ACCMIP_gmic_MERRA_oh_h2o2_no3.x144_y91_z72_t14.%y4.nc
+SU_OH NA     N Y %y4-%m2-%d2t12:00:00 none none oh ExtData/PIESA/L72/A2_ACCMIP_gmic_MERRA_oh_h2o2_no3.x144_y91_z72_t14.%y4.nc
+SU_NO3 NA     N Y %y4-%m2-%d2t12:00:00 none none no3 ExtData/PIESA/L72/A2_ACCMIP_gmic_MERRA_oh_h2o2_no3.x144_y91_z72_t14.%y4.nc
+
+# Aviation emissions during the three phases of flight
+SU_AVIATION_LTO NA  N Y %y4-%m2-%d2t12:00:00 none none none /dev/null
+SU_AVIATION_CDS NA  N Y %y4-%m2-%d2t12:00:00 none none none /dev/null
+SU_AVIATION_CRS NA  N Y %y4-%m2-%d2t12:00:00 none none none /dev/null
+
+# Production of SO2 from OCS oxidation
+pSO2_OCS NA Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+SU_regionMask NA  N V - none none REGION_MASK ExtData/CMIP/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+%%

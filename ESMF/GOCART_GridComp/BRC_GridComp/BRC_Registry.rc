@@ -1,0 +1,50 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: BRC
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+<BRC::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |            |     | V |Item|Intervl|# Sub|          Long
+#  Name    |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  BRCMASS   | kg kg-1    | xyz | C |    |   |   |     | Brown Carbon Particulate Matter Mass Mixing Ratio             __ENSEMBLE__
+  BRCCONC   | kg m-3     | xyz | C |    |   |   |     | Brown Carbon Particulate Matter Mass Concentration            __ENSEMBLE__
+  BRCEXTCOEF| m-1        | xyz | C |    |   |   |     | Brown Carbon Particulate Matter Ext.   Coefficient [550 nm]   __ENSEMBLE__
+  BRCSCACOEF| m-1        | xyz | C |    |   |   |     | Brown Carbon Particulate Matter Scatt. Coefficient [550 nm]   __ENSEMBLE__
+# .........|............|.....|...|....|...|...|.....|..................................
+  BRCEM001  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Emission Bin 001              __ENSEMBLE__     
+  BRCEM002  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Emission Bin 002              __ENSEMBLE__    
+  BRCSD001  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Sedimentation Bin 001        __ENSEMBLE__    
+  BRCSD002  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Sedimentation Bin 002        __ENSEMBLE__    
+  BRCDP001  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Dry Deposition Bin 001        __ENSEMBLE__    
+  BRCDP002  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Dry Deposition Bin 002        __ENSEMBLE__    
+  BRCWT001  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Wet Deposition Bin 001        __ENSEMBLE__    
+  BRCWT002  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Wet Deposition Bin 002        __ENSEMBLE__    
+  BRCSV001  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Convective Scavenging Bin 001 __ENSEMBLE__    
+  BRCSV002  | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Convective Scavenging Bin 002 __ENSEMBLE__    
+  BRCHYPHIL | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Hydrophobic to Hydrophilic    __ENSEMBLE__  
+  BRCEMAN   | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Anthropogenic Emissions       __ENSEMBLE__
+  BRCEMBB   | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Biomass Burning Emissions     __ENSEMBLE__
+  BRCEMBF   | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Biofuel Emissions             __ENSEMBLE__
+  BRCEMBG   | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Biogenic Emissions            __ENSEMBLE__
+  BRCPSOA   | kg m-2 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter SOA Production                __ENSEMBLE__
+  BRCSMASS  | kg m-3     | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Surface Mass Concentration    __ENSEMBLE__ 
+  BRCCMASS  | kg m-2     | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Column Mass Density           __ENSEMBLE__ 
+  BRCEXTTAU |      1     | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Extinction AOT [550 nm]       __ENSEMBLE__
+  BRCSCATAU |      1     | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Scattering AOT [550 nm]       __ENSEMBLE__  
+  BRCANGSTR |      1     | xy  |   |    |   |   |     | Brown Carbon Particulate Matter Angstrom parameter [470-870 nm] __ENSEMBLE__
+  BRCFLUXU  | kg m-1 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter column u-wind mass flux       __ENSEMBLE__
+  BRCFLUXV  | kg m-1 s-1 | xy  |   |    |   |   |     | Brown Carbon Particulate Matter column v-wind mass flux       __ENSEMBLE__
+</BRC::ExportSpec>

@@ -1,0 +1,115 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: DU
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<DU::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ------------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short      |            |     | V |Item|Intervl| Sub |          Long
+#  Name       |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ------------|------------|-----|---|----|---|---|-----|---------------------------------
+  DUMASS      | kg kg-1    | xyz | C |    |   |   |     | Dust Mass Mixing Ratio                      __ENSEMBLE__
+  DUMASS25    | kg kg-1    | xyz | C |    |   |   |     | Dust Mass Mixing Ratio - PM 2.5             __ENSEMBLE__
+  DUCONC      | kg m-3     | xyz | C |    |   |   |     | Dust Mass Concentration                     __ENSEMBLE__
+  DUEXTCOEF   | m-1        | xyz | C |    |   |   |     | Dust Extinction Coefficient [550 nm]        __ENSEMBLE__
+  DUSCACOEF   | m-1        | xyz | C |    |   |   |     | Dust Scattering Coefficient [550 nm]        __ENSEMBLE__
+# ............|............|.....|...|....|...|...|.....|..................................
+  DUEM001     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 001                       __ENSEMBLE__
+  DUEM002     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 002                       __ENSEMBLE__
+  DUEM003     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 003                       __ENSEMBLE__
+  DUEM004     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 004                       __ENSEMBLE__
+  DUEM005     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 005                       __ENSEMBLE__
+  DUSD001     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 001                  __ENSEMBLE__
+  DUSD002     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 002                  __ENSEMBLE__
+  DUSD003     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 003                  __ENSEMBLE__
+  DUSD004     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 004                  __ENSEMBLE__
+  DUSD005     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 005                  __ENSEMBLE__
+  DUDP001     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 001                 __ENSEMBLE__
+  DUDP002     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 002                 __ENSEMBLE__
+  DUDP003     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 003                 __ENSEMBLE__
+  DUDP004     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 004                 __ENSEMBLE__
+  DUDP005     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 005                 __ENSEMBLE__
+  DUWT001     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 001                 __ENSEMBLE__
+  DUWT002     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 002                 __ENSEMBLE__
+  DUWT003     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 003                 __ENSEMBLE__
+  DUWT004     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 004                 __ENSEMBLE__
+  DUWT005     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 005                 __ENSEMBLE__
+  DUSV001     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 001          __ENSEMBLE__
+  DUSV002     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 002          __ENSEMBLE__
+  DUSV003     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 003          __ENSEMBLE__
+  DUSV004     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 004          __ENSEMBLE__
+  DUSV005     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 005          __ENSEMBLE__
+  DUSMASS     | kg m-3     | xy  |   |    |   |   |     | Dust Surface Mass Concentration             __ENSEMBLE__
+  DUCMASS     | kg m-2     | xy  |   |    |   |   |     | Dust Column Mass Density                    __ENSEMBLE__
+  DUEXTTAU    |    1       | xy  |   |    |   |   |     | Dust Extinction AOT [550 nm]                __ENSEMBLE__
+  DUSCATAU    |    1       | xy  |   |    |   |   |     | Dust Scattering AOT [550 nm]                __ENSEMBLE__
+  DUSMASS25   | kg m-3     | xy  |   |    |   |   |     | Dust Surface Mass Concentration - PM 2.5    __ENSEMBLE__
+  DUCMASS25   | kg m-2     | xy  |   |    |   |   |     | Dust Column Mass Density - PM 2.5           __ENSEMBLE__
+  DUEXTT25    |    1       | xy  |   |    |   |   |     | Dust Extinction AOT [550 nm] - PM 2.5       __ENSEMBLE__
+  DUSCAT25    |    1       | xy  |   |    |   |   |     | Dust Scattering AOT [550 nm] - PM 2.5       __ENSEMBLE__
+  DUAERIDX    |    1       | xy  |   |    |   |   |     | Dust TOMS UV Aerosol Index                  __ENSEMBLE__
+  DUFLUXU     | kg m-1 s-1 | xy  |   |    |   |   |     | Dust column u-wind mass flux                __ENSEMBLE__
+  DUFLUXV     | kg m-1 s-1 | xy  |   |    |   |   |     | Dust column v-wind mass flux                __ENSEMBLE__
+  DUEXTTFM    |    1       | xy  |   |    |   |   |     | Dust Extinction AOT [550 nm] - PM 1.0 um    __ENSEMBLE__
+  DUSCATFM    |    1       | xy  |   |    |   |   |     | Dust Scattering AOT [550 nm] - PM 1.0 um    __ENSEMBLE__
+  DUANGSTR    |    1       | xy  |   |    |   |   |     | Dust Angstrom parameter [470-870 nm]        __ENSEMBLE__
+# ------------|------------|-----|---|----|---|---|-----|---------------------------------
+  DUMASSash      | kg kg-1    | xyz | C |    |   |   |     | Dust Mass Mixing Ratio                      ash
+  DUMASS25ash    | kg kg-1    | xyz | C |    |   |   |     | Dust Mass Mixing Ratio - PM 2.5             ash
+  DUCONCash      | kg m-3     | xyz | C |    |   |   |     | Dust Mass Concentration                     ash
+  DUEXTCOEFash   | m-1        | xyz | C |    |   |   |     | Dust Extinction Coefficient [550 nm]        ash
+  DUSCACOEFash   | m-1        | xyz | C |    |   |   |     | Dust Scattering Coefficient [550 nm]        ash
+# ............|............|.....|...|....|...|...|.....|..................................
+  DUEM001ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 001                       ash
+  DUEM002ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 002                       ash
+  DUEM003ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 003                       ash
+  DUEM004ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 004                       ash
+  DUEM005ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Emission Bin 005                       ash
+  DUSD001ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 001                  ash
+  DUSD002ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 002                  ash
+  DUSD003ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 003                  ash
+  DUSD004ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 004                  ash
+  DUSD005ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Sedimentation Bin 005                  ash
+  DUDP001ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 001                 ash
+  DUDP002ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 002                 ash
+  DUDP003ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 003                 ash
+  DUDP004ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 004                 ash
+  DUDP005ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Dry Deposition Bin 005                 ash
+  DUWT001ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 001                 ash
+  DUWT002ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 002                 ash
+  DUWT003ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 003                 ash
+  DUWT004ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 004                 ash
+  DUWT005ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Wet Deposition Bin 005                 ash
+  DUSV001ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 001          ash
+  DUSV002ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 002          ash
+  DUSV003ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 003          ash
+  DUSV004ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 004          ash
+  DUSV005ash     | kg m-2 s-1 | xy  |   |    |   |   |     | Dust Convective Scavenging Bin 005          ash
+  DUSMASSash     | kg m-3     | xy  |   |    |   |   |     | Dust Surface Mass Concentration             ash
+  DUCMASSash     | kg m-2     | xy  |   |    |   |   |     | Dust Column Mass Density                    ash
+  DUEXTTAUash    |    1       | xy  |   |    |   |   |     | Dust Extinction AOT [550 nm]                ash
+  DUSCATAUash    |    1       | xy  |   |    |   |   |     | Dust Scattering AOT [550 nm]                ash
+  DUSMASS25ash   | kg m-3     | xy  |   |    |   |   |     | Dust Surface Mass Concentration - PM 2.5    ash
+  DUCMASS25ash   | kg m-2     | xy  |   |    |   |   |     | Dust Column Mass Density - PM 2.5           ash
+  DUEXTT25ash    |    1       | xy  |   |    |   |   |     | Dust Extinction AOT [550 nm] - PM 2.5       ash
+  DUSCAT25ash    |    1       | xy  |   |    |   |   |     | Dust Scattering AOT [550 nm] - PM 2.5       ash
+  DUAERIDXash    |    1       | xy  |   |    |   |   |     | Dust TOMS UV Aerosol Index                  ash
+  DUFLUXUash     | kg m-1 s-1 | xy  |   |    |   |   |     | Dust column u-wind mass flux                ash
+  DUFLUXVash     | kg m-1 s-1 | xy  |   |    |   |   |     | Dust column v-wind mass flux                ash
+  DUEXTTFMash    |    1       | xy  |   |    |   |   |     | Dust Extinction AOT [550 nm] - PM 1.0 um    ash
+  DUSCATFMash    |    1       | xy  |   |    |   |   |     | Dust Scattering AOT [550 nm] - PM 1.0 um    ash
+  DUANGSTRash    |    1       | xy  |   |    |   |   |     | Dust Angstrom parameter [470-870 nm]        ash
+# ------------|------------|-----|---|----|---|---|-----|---------------------------------
+</DU::ExportSpec>

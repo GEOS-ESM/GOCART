@@ -1,0 +1,49 @@
+#
+# FVPSAS Analysis resource file.
+#
+# !REVISION HISTORY:
+#
+# 14feb2010  da Silva  Adapted from GEOS-4 ana.rc.
+#
+#-----------------------------------------------------------------------------
+   
+#                          ------------------
+#                          Dynamic Parameters
+#                          ------------------
+
+ExpId: aXXXX
+
+Layout_Nx: 2
+Layout_Ny: 4
+
+IM_World: 72 #  1024
+JM_World: 46 #  512
+LM_World: 91
+
+nymd: 20080630
+nhms: 120000
+
+#                        -------------------
+#                         File Name Templates
+#                        -------------------
+
+aer_bkg_filename: /nobackup/1/ARCTAS/Y2008/M06/d5_arctas_02.inst3d_aer_v.20080630_1200z.nc
+aer_reff_filename: /nobackup/1/ARCTAS/Y2008/M06/d5_arctas_02.inst3d_ref_v.20080630_1200z.nc
+
+#                          -------------------
+#                            MIE PARAMETERS
+#                          -------------------
+
+# Common MODIS/MISR channels
+NUM_BANDS: 4
+    BANDS: 470.E-9  550.E-9 660.E-9   870.E-9
+
+DU_OPTICS:  ExtData/PIESA/x/optics_DU.v15_3.nc
+SS_OPTICS:  ExtData/PIESA/x/optics_SS.v3_3.nc
+SU_OPTICS:  ExtData/PIESA/x/optics_SU.v1_3.nc
+NI_OPTICS:  ExtData/PIESA/x/optics_NI.v2_5.nc
+OC_OPTICS:  ExtData/PIESA/x/optics_OC.v1_3.nc
+BRC_OPTICS: ExtData/PIESA/x/optics_BRC.v1_5.nc
+BC_OPTICS:  ExtData/PIESA/x/optics_BC.v1_3.nc
+
+#.

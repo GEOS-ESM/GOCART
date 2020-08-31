@@ -1,0 +1,40 @@
+#
+# !RESOURCE: GOCART2G_GridComp.rc --- GOCART2G resource file
+#
+#  DESCRIPTION:
+#  The GOCART2G Registry resource file is used to control basic
+#  properties of the GOCART2G Grid Components. Instances are
+#  defined here. Default is the data component.
+#
+#  Only the FIRST entry in the ACTIVE_INSTANCE_XX is given as
+#  the AERO_PROVIDER.
+#
+# !REVISION HISTORY:
+#
+#  11Oct2019  E.Sherman   GOCART2G resource file has been created
+#--------------------------------------------------------------------
+
+
+                        # &Label Active Constituents
+
+# Include the constituent in the simulation?
+# ----------------------------------------------------
+ACTIVE_INSTANCES_DU:  DU # DU.data
+PASSIVE_INSTANCES_DU:
+
+ACTIVE_INSTANCES_SS:   SS #  SS.data
+PASSIVE_INSTANCES_SS:
+
+ACTIVE_INSTANCES_SU:  
+PASSIVE_INSTANCES_SU:
+
+ACTIVE_INSTANCES_BC:  
+PASSIVE_INSTANCES_BC:
+
+ACTIVE_INSTANCES_OC:  
+PASSIVE_INSTANCES_OC:
+
+ACTIVE_INSTANCES_NI:  
+PASSIVE_INSTANCES_NI:
+
+

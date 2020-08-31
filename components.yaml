@@ -1,0 +1,34 @@
+cmake:
+  local: ./cmake@
+  remote: ../ESMA_cmake.git
+  tag: v3.0.6
+  develop: develop
+
+ecbuild:
+  local: ./cmake@/ecbuild@
+  remote: ../ecbuild.git
+  tag: geos/v1.0.5
+
+HEMCO:
+  local: ./ESMF/HEMCO_GridComp@
+  remote: ../HEMCO.git
+  tag: geos/v1.0.2
+
+NCEP_Shared:
+  local: ./ESMF/Shared/NCEP_Shared@
+  remote: ../NCEP_Shared.git
+  tag: v1.0.0
+  sparse: ./config/NCEP_Shared.sparse
+  develop: master
+
+GMAO_Shared:
+  local: ./ESMF/Shared/GMAO_Shared@
+  remote: ../GMAO_Shared.git
+  tag: v1.1.4
+  sparse: ./config/GMAO_Shared.sparse
+  develop: master
+
+MAPL:
+  local: ./ESMF/Shared/MAPL@
+  remote: ../MAPL.git
+  branch: NUOPC_MAPLcap

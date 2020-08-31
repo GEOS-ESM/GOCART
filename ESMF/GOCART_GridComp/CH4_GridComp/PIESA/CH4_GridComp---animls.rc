@@ -1,0 +1,34 @@
+#
+# Resource file for CH4 parameters. 
+#
+
+number_CH4_bins: 1
+
+# Indicate regions using a comma-delimited list of integers.
+# To activate all land boxes, use -1, or all or global (not case sensitive)
+# -------------------------------------------------------------------------
+CH4_regions_indices: -1
+
+# For all land boxes in a latitude range, set doZoneMasking to
+# 1 then specify BOTH the south and north limits in degrees.
+# WARNING: When set, zone masking OVERRIDES regions setting above!
+# ----------------------------------------------------------------
+doZoneMasking: 0
+LatitudeSouth: 45.0
+LatitudeNorth: 90.0
+
+# Apply methane tendency (loss) from CH4 + hv => 2H2O + CO (0 no, 1 yes)
+# ----------------------------------------------------------------------
+CH4_Feedback: 0
+
+# Apply water tendency (source) from photolysis of CH4 (0 no, 1 yes)
+# ------------------------------------------------------------------
+H2O_Feedback: 0
+
+# Largest solar zenith angle (degrees) allowed as daytime
+# -------------------------------------------------------
+solar_ZA_cutoff: 94.00
+
+# Run-time debug switch (0 off, 1 on)
+# -----------------------------------
+DEBUG: 0
