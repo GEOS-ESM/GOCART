@@ -1,13 +1,12 @@
 esma_set_this ()
 
 set (alldirs
+  GA_GridComp
   DU2G_GridComp
   SS2G_GridComp
-  SUng_GridComp
-  BCng_GridComp
-  BRCng_GridComp
-  OCng_GridComp
-  NIng_GridComp
+  CA2G_GridComp
+  NI2G_GridComp
+  SU2G_GridComp
   )
 
 set (srcs

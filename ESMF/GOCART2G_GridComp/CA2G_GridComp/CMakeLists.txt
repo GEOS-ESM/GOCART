@@ -5,7 +5,7 @@ esma_add_library (${this}
   DEPENDENCIES GA_GridComp Chem_Shared2G)
 target_include_directories (${this} PUBLIC ${INC_ESMF} ${INC_NETCDF})
 
-mapl_acg (${this}   SS2G_StateSpecs.rc 
+mapl_acg (${this}   CA2G_StateSpecs.rc 
           IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS 
           GET_POINTERS DECLARE_POINTERS)
 

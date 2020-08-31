@@ -71,7 +71,7 @@ category: INTERNAL
 #----------------------------------------------------------------------------------------
   NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
 #----------------------------------------------------------------------------------------
- DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | .true. | DYNAMICS:TURBULENCE:MOIST | Dust Mixing Ratio all bins
+ DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dust Mixing Ratio all bins
 
 
 
