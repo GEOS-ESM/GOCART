@@ -44,3 +44,5 @@ include_directories(${MPI_Fortran_INCLUDE_PATH})
 # Recursively build source tree
 add_subdirectory (ESMF)
 add_subdirectory (Process_Library)
+
+ecbuild_install_project (NAME GOCART)
