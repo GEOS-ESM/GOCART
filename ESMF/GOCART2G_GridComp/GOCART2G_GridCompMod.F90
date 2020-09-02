@@ -329,7 +329,6 @@ contains
     ! Attach the aerosol optics method
     call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, __RC__)
 
-
     RETURN_(ESMF_SUCCESS)
 
   contains
@@ -358,7 +357,6 @@ contains
            if (instances(i)%name(1:2) /= 'NI') then
               call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_ACI', child_state, __RC__)
               call ESMF_StateAdd (aero_ACI, [child_state], __RC__)
-if(mapl_am_I_root()) print*,'GOCART2G add_aero_states_ instance name = ',trim(instances(i)%name)              
               call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_DP', child_bundle, __RC__)
               call ESMF_FieldBundleGet (child_bundle, fieldCount=fieldCount, __RC__)
               allocate (fieldList(fieldCount), __STAT__)
