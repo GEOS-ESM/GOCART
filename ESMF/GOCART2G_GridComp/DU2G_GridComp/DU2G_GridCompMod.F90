@@ -578,7 +578,7 @@ contains
 
 !*****************************************************************************
 !   Begin... 
-if(mapl_am_i_root()) print*,'DU2G Run BEGIN'
+!if(mapl_am_i_root()) print*,'DU2G Run BEGIN'
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -1048,6 +1048,7 @@ real, allocatable, dimension(:,:)     :: dqa
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
 
