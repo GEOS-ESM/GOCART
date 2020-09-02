@@ -687,8 +687,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
 
 #include "NI2G_GetPointer___.h"
 
-if(mapl_am_i_root()) print*,'NI2G Run1 BEGIN sum(NH3) = ',sum(NH3)
-if(mapl_am_i_root()) print*,'NI2G Run1 BEGIN sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G Run1 BEGIN sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G Run1 BEGIN sum(NH4a) = ',sum(NH4a)
 
 !   Get my private internal state
 !   ------------------------------
@@ -805,7 +805,7 @@ integer :: i,j
 
 #include "NI2G_GetPointer___.h"
 
-if(mapl_am_i_root()) print*,trim(comp_name),'2G Run2 BEGIN'
+!if(mapl_am_i_root()) print*,trim(comp_name),'2G Run2 BEGIN'
 
 !   Get my private internal state
 !   ------------------------------
@@ -831,14 +831,14 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G Run2 BEGIN'
     if (alarm_is_ringing) then
        self%xhno3 = NITRATE_HNO3
        call ESMF_AlarmRingerOff(alarm, __RC__)
-if(mapl_am_i_root()) print*,'NI2G recycle alarm TRUE'
-if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
+!if(mapl_am_i_root()) print*,'NI2G recycle alarm TRUE'
+!if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
     end if
 
-if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN sum(NH3) = ',sum(NH3)
-if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN sum(NH4a) = ',sum(NH4a)
-if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN sum(hno3) = ',sum(nitrate_hno3)
-if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN before sum(self%xhno3) = ',sum(self%xhno3)
+!if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN sum(hno3) = ',sum(nitrate_hno3)
+!if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN before sum(self%xhno3) = ',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G sum(DU) = ',sum(DU)
 !if(mapl_am_i_root()) print*,'NI2G sum(SS) = ',sum(SS)
 
@@ -850,18 +850,18 @@ if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN before sum(self%xhno3) = ',sum(self
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
     if (associated(NIPNH3AQ)) NIPNH3AQ(:,:) = 0.
 
-if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH3) = ',sum(NH3)
 !if(mapl_am_i_root()) print*,'NI2G before thermo sum(NO3an1) = ',sum(NO3an1)
-if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH4a) = ',sum(NH4a)
-if(mapl_am_i_root()) print*,'NI2G before sum(SO4) = ',sum(SO4)
+!if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G before sum(SO4) = ',sum(SO4)
 
     call NIthermo (self%km, self%klid, self%cdt, chemgrav, delp, airdens, t, rh2, fMassHNO3, fMassAir, &
                    SO4, NH3, NO3an1, NH4a, self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, rc)
 
-if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH3) = ',sum(NH3)
-if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an1) = ',sum(NO3an1)
-if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH4a) = ',sum(NH4a)
-if(mapl_am_i_root()) print*,'NI2G after thermo sum(xhno3) = ',sum(self%xhno3)
+!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an1) = ',sum(NO3an1)
+!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G after thermo sum(xhno3) = ',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNO3AQ) = ',sum(NIPNO3AQ)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNH4AQ) = ',sum(NIPNH4AQ)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNH3AQ) = ',sum(NIPNH3AQ)
@@ -883,9 +883,9 @@ if(mapl_am_i_root()) print*,'NI2G after thermo sum(xhno3) = ',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G sum(HNO3SMASS) = ',sum(HNO3SMASS)
 !if(mapl_am_i_root()) print*,'NI2G sum(HNO3CMASS) = ',sum(HNO3CMASS)
 
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH3) = ',sum(NH3)
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH4a) = ',sum(NH4a)
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
 
 !if(mapl_am_i_root()) print*,'NI2G NH4a array = ',NH4a
 
@@ -900,8 +900,8 @@ if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
                                   1.e-6*self%radius(nNH4a), self%rhop(nNH4a), &
                                   NH4a, t, airdens, rh2, delp, zle, NH4SD, rc)
 
-if(mapl_am_i_root()) print*,'NI2G sum(NH4SD) = ',sum(NH4SD)
-if(mapl_am_i_root()) print*,'NI2G sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH4SD) = ',sum(NH4SD)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH4a) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G NH4a array = ',NH4a
 !if(mapl_am_i_root()) print*,'NI2G NH4SD array = ',NH4SD
 
@@ -970,8 +970,8 @@ if(mapl_am_i_root()) print*,'NI2G sum(NH4a) = ',sum(NH4a)
 
    NH3(:,:,self%km) = NH3(:,:,self%km) - dqa
    if( associated(NH3DP) ) NH3DP = dqa*delp(:,:,self%km)/chemgrav/self%cdt
-if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
-if(mapl_am_i_root()) print*,'NI2G sum(NH3DP) = ',sum(NH3DP)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH3DP) = ',sum(NH3DP)
 !if(mapl_am_i_root()) print*,'NI2G dqa array = ',dqa
 !if(mapl_am_i_root()) print"(g25.17)",'NI2G NH3 array = ',NH3
 
@@ -981,8 +981,8 @@ if(mapl_am_i_root()) print*,'NI2G sum(NH3DP) = ',sum(NH3DP)
    dqa = max(0.0, NH4a(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NH4a(:,:,self%km) = NH4a(:,:,self%km) - dqa
    if( associated(NH4DP) ) NH4DP = dqa*delp(:,:,self%km)/chemgrav/self%cdt
-if(mapl_am_i_root()) print*,'NI2G sum(NH4a) = ',sum(NH4a)
-if(mapl_am_i_root()) print*,'NI2G sum(NH4DP) = ',sum(NH4DP)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH4DP) = ',sum(NH4DP)
 
 !  NO3anx
    dqa = 0.
@@ -1017,8 +1017,8 @@ if(mapl_am_i_root()) print*,'NI2G sum(NH4DP) = ',sum(NH4DP)
                             KIN, chemGRAV, fwet, NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxoutWT, rc)
    if (associated(NH3WT)) NH3WT = fluxoutWT(:,:,1)
-if(mapl_am_i_root()) print*,'NI2G sum(NH3WT) = ',sum(NH3WT)
-if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH3WT) = ',sum(NH3WT)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
 
 !  NH4a
    fluxoutWT = 0.
@@ -1028,8 +1028,8 @@ if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
                            KIN, chemGRAV, fwet, NH4a, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxoutWT, rc)
    if (associated(NH4WT)) NH4WT = fluxoutWT(:,:,1)
-if(mapl_am_i_root()) print*,'NI2G sum(NH4WT) = ',sum(NH4WT)
-if(mapl_am_i_root()) print*,'NI2G sum(NH4) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH4WT) = ',sum(NH4WT)
+!if(mapl_am_i_root()) print*,'NI2G sum(NH4) = ',sum(NH4a)
 
    KIN = .true.
    fwet = 1.
@@ -1102,10 +1102,10 @@ if(mapl_am_i_root()) print*,'NI2G sum(NH4) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIMASS) = ',sum(NIMASS)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIFLUXU) = ',sum(NIFLUXU)
 
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NIANGSTR) = ',sum(NIANGSTR)
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH3) = ',sum(NH3)
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH4a) = ',sum(NH4a)
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(self%xhno3) = ',sum(self%xhno3)
+!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NIANGSTR) = ',sum(NIANGSTR)
+!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(self%xhno3) = ',sum(self%xhno3)
 
 !if(mapl_am_i_root()) print*,'NI2G Run2 END array NH3 = ',NH3
 !if(mapl_am_i_root()) print*,'NI2G Run2 END array NH4a = ',NH4a
@@ -1302,6 +1302,7 @@ if(mapl_am_i_root())print*,'NI2G Run_data END'
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
 
