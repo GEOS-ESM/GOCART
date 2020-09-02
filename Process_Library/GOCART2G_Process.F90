@@ -41,7 +41,7 @@
    public CAEmission
    public phobicTophilic
    public NIheterogenousChem
-   public CombineVolcEmiss
+!   public CombineVolcEmiss
    public SulfateDistributeEmissions
    public DMSemission
    public SUvolcanicEmissions
@@ -271,9 +271,9 @@ CONTAINS
    implicit NONE
 
 ! !INPUT PARAMETERS:
-   integer, intent(in)             :: km       ! total model levels
+   integer,            intent(in)  :: km       ! total model levels
    real, dimension(:), intent(in)  :: hghte    ! model level geopotential height [m]
-   real, intent(in)                :: z_bot, z_top ! base and top altitude respectively
+   real,               intent(in)  :: z_bot, z_top ! base and top altitude respectively
    real,               intent(in)  :: area     ! grid cell area [m^2]
    real,               intent(in)  :: emissions_point ![kg/kg]
 
@@ -386,12 +386,12 @@ CONTAINS
    real, intent(in)  :: radiusInp  ! particle radius [microns] 
    real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
-   real, pointer, dimension(:,:,:) :: tmpu  ! temperature [K]
-   real, pointer, dimension(:,:,:) ::rhoa   ! air density [kg/m^3]
-   real, pointer, dimension(:,:,:) ::rh     ! relative humidity [1]
-   real, pointer, dimension(:,:,:) ::hghte  ! geopotential height [m]
-   real, pointer, dimension(:,:,:) ::delp   ! pressure level thickness [Pa]   
-   logical, optional, intent(in)    :: correctionMaring
+   real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
+   real, pointer, dimension(:,:,:), intent(in)  :: rhoa   ! air density [kg/m^3]
+   real, pointer, dimension(:,:,:), intent(in)  :: rh     ! relative humidity [1]
+   real, pointer, dimension(:,:,:), intent(in)  :: hghte  ! geopotential height [m]
+   real, pointer, dimension(:,:,:), intent(in)  :: delp   ! pressure level thickness [Pa]   
+   logical, optional, intent(in)   :: correctionMaring
 
 
 ! !OUTPUT PARAMETERS:
@@ -1060,14 +1060,14 @@ qa_temp = qa
   implicit NONE
 
 ! !INPUT PARAMETERS:
-   integer, intent(in) :: km                    ! total model levels
-   real, pointer, dimension(:,:,:) :: tmpu      ! temperature [K]
-   real, pointer, dimension(:,:,:) :: rhoa      ! air density [kg/m^3]
-   real, pointer, dimension(:,:,:) :: hghte     ! top of layer geopotential height [m]
-   real, pointer, dimension(:,:)   :: oro       ! orography flag
-   real, pointer, dimension(:,:)   :: ustar     ! friction speed [m/sec]
-   real, pointer, dimension(:,:)   :: pblh      ! PBL height [m]
-   real, pointer, dimension(:,:)   :: shflux    ! sfc. sens. heat flux [W m-2]
+   integer, intent(in) :: km       ! total model levels
+   real, pointer, dimension(:,:,:), intent(in) :: tmpu    ! temperature [K]
+   real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density [kg/m^3]
+   real, pointer, dimension(:,:,:), intent(in) :: hghte   ! top of layer geopotential height [m]
+   real, pointer, dimension(:,:), intent(in)   :: oro     ! orography flag
+   real, pointer, dimension(:,:), intent(in)   :: ustar   ! friction speed [m/sec]
+   real, pointer, dimension(:,:), intent(in)   :: pblh    ! PBL height [m]
+   real, pointer, dimension(:,:), intent(in)   :: shflux  ! sfc. sens. heat flux [W m-2]
    real, intent(in)                :: von_karman ! Von Karman constant [unitless] 
    real, intent(in)                :: cpd       ! thermodynamic constant, specific heat of something? 
    real, intent(in)                :: grav      ! gravity [m/sec^2]
@@ -1312,13 +1312,13 @@ qa_temp = qa
    real, intent(in)    :: grav    ! gravity [m/sec^2]
    real, intent(in)    :: fwet
    real, dimension(:,:,:), intent(inout) :: aerosol  ! internal state aerosol [kg/kg]
-   real, pointer, dimension(:,:,:)  :: ple     ! pressure level thickness [Pa]
-   real, pointer, dimension(:,:,:)  :: tmpu    ! temperature [K]
-   real, pointer, dimension(:,:,:)  :: rhoa    ! moist air density [kg/m^3]
-   real, pointer, dimension(:,:,:)  :: pfllsan ! 3D flux of liquid nonconvective precipitation [kg/(m^2 sec)]
-   real, pointer, dimension(:,:,:)  :: pfilsan ! 3D flux of ice nonconvective precipitation [kg/(m^2 sec)]
-   real, pointer, dimension(:,:)    :: precc   ! surface convective rain flux [kg/(m^2 sec)]
-   real, pointer, dimension(:,:)    :: precl   ! Non-convective precipitation [kg/(m^2 sec)]
+   real, pointer, dimension(:,:,:), intent(in)  :: ple     ! pressure level thickness [Pa]
+   real, pointer, dimension(:,:,:), intent(in)  :: tmpu    ! temperature [K]
+   real, pointer, dimension(:,:,:), intent(in)  :: rhoa    ! moist air density [kg/m^3]
+   real, pointer, dimension(:,:,:), intent(in)  :: pfllsan ! 3D flux of liquid nonconvective precipitation [kg/(m^2 sec)]
+   real, pointer, dimension(:,:,:), intent(in)  :: pfilsan ! 3D flux of ice nonconvective precipitation [kg/(m^2 sec)]
+   real, pointer, dimension(:,:), intent(in)    :: precc   ! surface convective rain flux [kg/(m^2 sec)]
+   real, pointer, dimension(:,:), intent(in)    :: precl   ! Non-convective precipitation [kg/(m^2 sec)]
    real, pointer, dimension(:,:,:)  :: fluxout ! tracer loss flux [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
@@ -1803,8 +1803,8 @@ qa_temp = qa
    real, intent(in)                :: cdt   ! chemistry model time-step [sec]
    real, intent(in)                :: grav  ! gravity [m/sec^2]
    integer, intent(in)             :: nbins ! number of aerosol size bins
-   real, pointer, dimension(:,:,:) :: delp  ! pressure thickness [Pa]
-   real, pointer, dimension(:,:,:,:)  :: aero ! aerosol [kg/kg]
+   real, pointer, dimension(:,:,:), intent(in) :: delp  ! pressure thickness [Pa]
+   real, pointer, dimension(:,:,:,:), intent(inout)  :: aero ! aerosol [kg/kg]
 
 ! !OUTPUT PARAMETERS:
    integer, intent(out)             :: rc          ! Error return code:
@@ -1868,13 +1868,13 @@ qa_temp = qa
    real, dimension(:), intent(in)    :: channels
 !   real, pointer, dimension(:,:,:,:) :: aerosol     ! 
    real, dimension(:,:,:,:), intent(inout) :: aerosol     ! 
-   real :: grav
-   real, pointer, dimension(:,:,:) :: tmpu     ! temperature [K]
-   real, pointer, dimension(:,:,:) :: rhoa     ! air density [kg/m^3]
-   real, pointer, dimension(:,:,:) :: delp     ! pressure thickness [Pa]
-   real, pointer, dimension(:,:,:) :: rh       ! relative humidity [1] 
-   real, pointer, dimension(:,:,:) :: u        ! east-west wind [m/s]
-   real, pointer, dimension(:,:,:) :: v        ! north-south wind [m/s]
+   real, intent(in) :: grav
+   real, pointer, dimension(:,:,:), intent(in) :: tmpu  ! temperature [K]
+   real, pointer, dimension(:,:,:), intent(in) :: rhoa  ! air density [kg/m^3]
+   real, pointer, dimension(:,:,:), intent(in) :: delp  ! pressure thickness [Pa]
+   real, pointer, dimension(:,:,:), intent(in) :: rh    ! relative humidity [1] 
+   real, pointer, dimension(:,:,:), intent(in) :: u     ! east-west wind [m/s]
+   real, pointer, dimension(:,:,:), intent(in) :: v     ! north-south wind [m/s]
 
 
 ! !OUTPUT PARAMETERS:
@@ -2224,9 +2224,9 @@ qa_temp = qa
    real, dimension(:,:), intent(inout) :: deep_lakes_mask      
 
 ! !INPUT PARAMETERS:
-   real, pointer, dimension(:,:)   :: lats ! latitude [radians]
-   real, pointer, dimension(:,:)   :: lons ! longtitude [radians]
-   real                            :: radToDeg
+   real, pointer, dimension(:,:), intent(in)   :: lats ! latitude [radians]
+   real, pointer, dimension(:,:), intent(in)   :: lons ! longtitude [radians]
+   real, intent(in)                       :: radToDeg
           
 ! !OUTPUT PARAMETERS:
    integer, optional, intent(out) :: rc
@@ -2770,11 +2770,11 @@ qa_temp = qa
    real, intent(in)    :: ratPOM
    real, intent(in)    :: fTerpene
    real, dimension(:), intent(in)  :: aviation_layers ! Heights [m] of LTO, CDS and CRS aviation emissions layers
-   real, pointer, dimension(:,:)    :: pblh  ! PBL height [m]
-   real, pointer, dimension(:,:,:)  :: tmpu  ! temperature [K]
-   real, pointer, dimension(:,:,:)  :: rhoa  ! air density [kg m-3]
-   real, pointer, dimension(:,:,:)  :: rh    ! relative humidity [1]
-   real, pointer, dimension(:,:,:)  :: delp  ! pressure level thickness [Pa]
+   real, pointer, dimension(:,:), intent(in)    :: pblh  ! PBL height [m]
+   real, pointer, dimension(:,:,:), intent(in)  :: tmpu  ! temperature [K]
+   real, pointer, dimension(:,:,:), intent(in)  :: rhoa  ! air density [kg m-3]
+   real, pointer, dimension(:,:,:), intent(in)  :: rh    ! relative humidity [1]
+   real, pointer, dimension(:,:,:), intent(in)  :: delp  ! pressure level thickness [Pa]
    real, dimension(:,:), intent(in) :: aviation_cds_src ! Climb/Descent aircraft fuel emission [1]
    real, dimension(:,:), intent(in) :: aviation_crs_src ! Cruise aircraft fuel emission [1]
    real, dimension(:,:), intent(in) :: aviation_lto_src ! Landing/Take-off aircraft fuel emission [1]
@@ -2845,8 +2845,6 @@ qa_temp = qa
 !  Source function terms for SOA from Anthropogenic VOCs
    real :: srcSOAanthro = 0.0
 
-!print*,'TEST 1'
-
 !  Initialize local variables
 !  --------------------------
    i2 = size(rhoa,1)
@@ -2858,14 +2856,11 @@ qa_temp = qa
    allocate(factor(i2,j2), srcHydrophobic(i2,j2), srcHydrophilic(i2,j2), srcBiofuel(i2,j2), &
             srcBiomass(i2,j2), srcAnthro(i2,j2), srcBiogenic(i2,j2), f_bb_(i2,j2), exttau_bb_(i2,j2))
 
-!print*,'TEST 2'
 !  Emission factors scaling from source files to desired mass quantity
    eBiomass = ratPOM
    eBiofuel = ratPOM
    eTerpene = ratPOM * fTerpene
    eAnthro  = ratPOM
-
-!print*,'TEST 3'
 
 !  Zero diagnostic accumulators
      if(associated(OC_emis)) OC_emis = 0.0
@@ -2873,8 +2868,6 @@ qa_temp = qa
      if(associated(OC_emisBF)) OC_emisBF = 0.0
      if(associated(OC_emisBB)) OC_emisBB = 0.0
      if(associated(OC_emisBG)) OC_emisBG = 0.0
-
-!print*,'TEST 4'
 
 !  Distribute aircraft emissions from LTO, CDS and CRS layers
 !  ----------------------------------------------------------
@@ -2950,8 +2943,6 @@ qa_temp = qa
     end do
    end do
 
-!print*,'TEST 5'
-
 !   Limit biomass burning emissions
 !   -------------------------------
     allocate(qa_bb_(nbins,i1:i2,j1:j2,km))
@@ -3012,8 +3003,6 @@ K_LOOP_BB: do k = km, 1, -1
 
    end do K_LOOP_BB
 
-!print*,'TEST 6'
-
     nch   = mie_table%nch
 
 !   Get the wavelength indices
@@ -3049,8 +3038,6 @@ K_LOOP_BB: do k = km, 1, -1
 
    enddo  ! nbins
 
-!print*,'TEST 7'
-
    f_bb_ = 1.0
    cutoff_bb_exttau = (cdt / (24 * 3600.0)) * max_bb_exttau
 
@@ -3063,8 +3050,6 @@ K_LOOP_BB: do k = km, 1, -1
    enddo
 
    deallocate(qa_bb_)
-
-!print*,'TEST 8'
 
 !  Now update the tracer mixing ratios with the aerosol sources
 !  ------------------------------------------------------------
@@ -3140,8 +3125,6 @@ K_LOOP: do k = km, 1, -1
      end do ! i
     end do  ! j
 
-!print*,'TEST 9'
-
 !   Determine global max/min
 !   ------------------------
 !    call pmaxmin ( 'OC: Phobic ', srcHydrophobic, qmin, qmax, ijl, 1, 0. )
@@ -3165,8 +3148,6 @@ K_LOOP: do k = km, 1, -1
     aerosolPhilic(:,:,k) = aerosolPhilic(:,:,k) &
                              + factor * srcHydrophilic
 
-!print*,'TEST 10'
-
 !   Fill in diagnostics if requested
 !   --------------------------------
     if ( associated(OC_emis)) &
@@ -3187,8 +3168,6 @@ K_LOOP: do k = km, 1, -1
     if ( associated(OC_emisBG)) &
                     OC_emisBG  = OC_emisBG + srcBiogenic
    end do K_LOOP
-
-!print*,'TEST 11'
 
    rc = 0
    end subroutine CAEmission
@@ -3749,15 +3728,15 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:), intent(in) :: so4ship_src ! SO4 ship emissions [1]
    real, dimension(:,:,:), intent(in) :: aircraft_fuel_src ! aircraft fuel source [1]
 
-   real, pointer, dimension(:,:)    :: oro   ! orography flag
-   real, pointer, dimension(:,:)    :: u10m  ! 10-m u-wind component [m s-1]
-   real, pointer, dimension(:,:)    :: v10m  ! 10-m v-wind component [m s-1]
-   real, pointer, dimension(:,:,:)  :: hghte ! top of layer geopotential height [m]
-   real, pointer, dimension(:,:)    :: pblh
-   real, pointer, dimension(:,:,:)  :: tmpu  ! temperature [K]
-   real, pointer, dimension(:,:,:)  :: rhoa  ! Layer air density [kg/m^3]
-   real, pointer, dimension(:,:,:)  :: rh    ! relative humidity [1]
-   real, pointer, dimension(:,:,:)  :: delp  ! pressure thickness [Pa]
+   real, pointer, dimension(:,:), intent(in)    :: oro   ! orography flag
+   real, pointer, dimension(:,:), intent(in)    :: u10m  ! 10-m u-wind component [m s-1]
+   real, pointer, dimension(:,:), intent(in)    :: v10m  ! 10-m v-wind component [m s-1]
+   real, pointer, dimension(:,:,:), intent(in)  :: hghte ! top of layer geopotential height [m]
+   real, pointer, dimension(:,:), intent(in)    :: pblh
+   real, pointer, dimension(:,:,:), intent(in)  :: tmpu  ! temperature [K]
+   real, pointer, dimension(:,:,:), intent(in)  :: rhoa  ! Layer air density [kg/m^3]
+!   real, pointer, dimension(:,:,:), intent(in)  :: rh    ! relative humidity [1]
+   real, pointer, dimension(:,:,:), intent(in)  :: delp  ! pressure thickness [Pa]
    real, dimension(:), intent(in)  :: aviation_layers ! Heights [m] of LTO, CDS and CRS aviation emissions layers
    real, dimension(:,:), intent(in) :: aviation_cds_src ! Climb/Descent aircraft fuel emission [1]
    real, dimension(:,:), intent(in) :: aviation_crs_src ! Cruise aircraft fuel emission [1]
@@ -3814,8 +3793,6 @@ K_LOOP: do k = km, 1, -1
 !-------------------------------------------------------------------------
 !  Begin
 
-!print*,'TEST 1'
-
    i2 = size(rhoa,1)
    j2 = size(rhoa,2)
    allocate(hsurf(i1:i2,j1:j2))
@@ -3824,25 +3801,16 @@ K_LOOP: do k = km, 1, -1
    allocate(srcSO2(i2,j2), srcSO4(i2,j2), srcDMS(i2,j2), srcSO4anthro(i2,j2), &
             srcSO2anthro(i2,j2), srcSO2bioburn(i2,j2))
 
-!print*,'TEST 2'
-
 !  Initialize local variables
 !  --------------------------
    srcSO2 = 0.0
    srcSO4 = 0.0
    srcDMS = 0.0
- !  srcSO2volc = 0.0
- !  srcSO2volce = 0.0
- !  so2srcvolc  = 0.0
 
    if (associated(SU_emis)) SU_emis = 0.0
    if (associated(SU_SO4eman)) SU_SO4eman = 0.0
    if (associated(SU_SO2eman)) SU_SO2eman = 0.0
    if (associated(SU_SO2embb)) SU_SO2embb = 0.0
-!   if (associated(SU_SO2emvn)) SU_SO2emvn = 0.0
-!   if (associated(SU_SO2emve)) SU_SO2emve = 0.0
-
-!print*,'TEST 3'
 
 !  Distribute aircraft emissions from LTO, CDS and CRS layers
 !  ----------------------------------------------------------
@@ -3860,24 +3828,17 @@ K_LOOP: do k = km, 1, -1
    emis_aviation = 0.0
    srcAviation   = 0.0
 
-!print*,'aviation_lto_src = ', sum(aviation_lto_src)
-!print*,'TEST 4'
    call distribute_aviation_emissions(delp, rhoa, z_lto_bot, z_lto_top, aviation_lto_src, &
                                       emis_aviation, i1, i2, j1, j2, km, grav)
-!print*,'TEST A'
    srcAviation = srcAviation + emis_aviation
-!print*,'TEST B'
 
    call distribute_aviation_emissions(delp, rhoa, z_cds_bot, z_cds_top, aviation_cds_src, &
                                       emis_aviation, i1, i2, j1, j2, km, grav)
    srcAviation = srcAviation + emis_aviation
-!print*,'TEST B'
 
    call distribute_aviation_emissions(delp, rhoa, z_crs_bot, z_crs_top, aviation_crs_src, &
                                       emis_aviation, i1, i2, j1, j2, km, grav)
    srcAviation = srcAviation + emis_aviation
-
-!print*,'TEST 5'
 
 !  Find the pressure of the 100m, 500m, and PBLH altitudes
    allocate(ps, mold=pblh)
@@ -3886,8 +3847,6 @@ K_LOOP: do k = km, 1, -1
    allocate(p100, mold=pblh)
    allocate(p500, mold=pblh)
    allocate(pPblh, mold=pblh)
-
-!print*,'TEST 6'
 
    ps = 0.0
    do k = 1, km
@@ -3922,8 +3881,6 @@ K_LOOP: do k = km, 1, -1
      end do
     end do
    end do
-
-!print*,'TEST 7'
 
 !  Now update the tracer mixing ratios with the aerosol sources
    p0 = ps
@@ -3983,17 +3940,14 @@ K_LOOP: do k = km, 1, -1
 
      end do ! i
     end do  ! j
-!print*,'TEST 8'
 
     if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2
     if (associated(SU_emis)) SU_emis(:,:,nSO4) = SU_emis(:,:,nSO4) + srcSO4
     if (associated(SU_SO4eman)) SU_SO4eman = SU_SO4eman + srcSO4anthro
     if (associated(SU_SO2eman)) SU_SO2eman = SU_SO2eman + srcSO2anthro
     if (associated(SU_SO2embb)) SU_SO2embb = SU_SO2embb + srcSO2bioburn
-!print*,'TEST 9'
 
    end do ! k
-
 
   rc = 0
 
@@ -4013,11 +3967,11 @@ K_LOOP: do k = km, 1, -1
    integer, intent(in) :: km  ! number model layers, and number of species respectively
    real, intent(in)    :: cdt ! model time step [seconds]
    real, intent(in)    :: grav ! gravity [m sec-1]
-   real, pointer, dimension(:,:,:)  :: tmpu  ! temperature [K]
-   real, pointer, dimension(:,:)    :: u10m  ! 10-m u-wind component [m s-1]
-   real, pointer, dimension(:,:)    :: v10m  ! 10-m v-wind component [m s-1]
-   real, pointer, dimension(:,:)    :: oro   ! orography flag
-   real, pointer, dimension(:,:,:)  :: delp  ! pressure thickness [Pa]
+   real, pointer, dimension(:,:,:), intent(in)  :: tmpu  ! temperature [K]
+   real, pointer, dimension(:,:), intent(in)    :: u10m  ! 10-m u-wind component [m s-1]
+   real, pointer, dimension(:,:), intent(in)    :: v10m  ! 10-m v-wind component [m s-1]
+   real, pointer, dimension(:,:), intent(in)    :: oro   ! orography flag
+   real, pointer, dimension(:,:,:), intent(in)  :: delp  ! pressure thickness [Pa]
    real, dimension(:,:), intent(in) :: dmso_conc ! DMS source [1]
    integer, intent(in) :: ndms      ! index of DMS relative to other sulfate tracers
    real, intent(in)    :: fMassDMS  ! gram molecular weight of DMS
@@ -4662,14 +4616,14 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    real, intent(in)    :: airMolWght ! air molecular weight [kg]
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]  
    real, intent(in) :: fMassSO4, fMassSO2
-   real, pointer, dimension(:,:,:) :: h2o2_int
-   real, pointer, dimension(:,:,:) :: ple     ! level edge air pressure
-   real, pointer, dimension(:,:,:) :: rhoa    ! air density, [kg m-3]
-   real, pointer, dimension(:,:)   :: precc   ! total convective precip, [mm day-1]
-   real, pointer, dimension(:,:)   :: precl   ! total large-scale prec,  [mm day-1]
-   real, pointer, dimension(:,:,:) :: pfllsan ! 3D flux of liquid nonconvective precipitation [kg/(m^2 sec)] 
-   real, pointer, dimension(:,:,:) :: pfilsan ! 3D flux of ice nonconvective precipitation [kg/(m^2 sec)]
-   real, pointer, dimension(:,:,:) :: tmpu    ! temperature, [K]
+   real, dimension(:,:,:) :: h2o2_int
+   real, pointer, dimension(:,:,:), intent(in) :: ple     ! level edge air pressure
+   real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density, [kg m-3]
+   real, pointer, dimension(:,:), intent(in)   :: precc   ! total convective precip, [mm day-1]
+   real, pointer, dimension(:,:), intent(in)   :: precl   ! total large-scale prec,  [mm day-1]
+   real, pointer, dimension(:,:,:), intent(in) :: pfllsan ! 3D flux of liquid nonconvective precipitation [kg/(m^2 sec)] 
+   real, pointer, dimension(:,:,:), intent(in) :: pfilsan ! 3D flux of ice nonconvective precipitation [kg/(m^2 sec)]
+   real, pointer, dimension(:,:,:), intent(in) :: tmpu    ! temperature, [K]
    integer, intent(in) :: nDMS, nSO2, nSO4, nMSA !index position of sulfates
    real, dimension(:,:,:), intent(inout) :: DMS ! [kg/kg]
    real, dimension(:,:,:), intent(inout) :: SO2 ! [kg/kg]
@@ -5197,12 +5151,12 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    integer, intent(in) :: nSO4  ! index of SO4 relative to other internal variables
    type(Chem_Mie), intent(in) :: mie_table   ! mie table
    real, dimension(:), intent(in)  :: channels
-   real, pointer, dimension(:,:,:) :: tmpu    ! temperature [K]
-   real, pointer, dimension(:,:,:) :: rhoa    ! air density [kg/m^3]
-   real, pointer, dimension(:,:,:) :: delp    ! pressure thickness [Pa]
-   real, pointer, dimension(:,:,:) :: rh      ! relative humidity [1]
-   real, pointer, dimension(:,:,:) :: u       ! east-west wind [m s-1]
-   real, pointer, dimension(:,:,:) :: v       ! north-south wind [m s-1]
+   real, pointer, dimension(:,:,:), intent(in) :: tmpu    ! temperature [K]
+   real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density [kg/m^3]
+   real, pointer, dimension(:,:,:), intent(in) :: delp    ! pressure thickness [Pa]
+   real, pointer, dimension(:,:,:), intent(in) :: rh      ! relative humidity [1]
+   real, pointer, dimension(:,:,:), intent(in) :: u       ! east-west wind [m s-1]
+   real, pointer, dimension(:,:,:), intent(in) :: v       ! north-south wind [m s-1]
 
 ! !INOUTPUT PARAMETERS:
    real, dimension(:,:,:), intent(inout) :: DMS  ! dimethyl sulfide [kg/kg] 
@@ -5552,7 +5506,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
 ! !INOUTPUT PARAMETERS:
    real, dimension(:,:,:), intent(inout) :: xoh, xno3, xh2o2 ! OH, NO3, H2O2 respectievly [kg/kg]
-   real, pointer, dimension(:,:,:) :: h2o2_init ! private H2O2 that is saved and used to initialize [kg/kg]
+   real, dimension(:,:,:) :: h2o2_init ! private H2O2 that is saved and used to initialize [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout) :: SU_dep ! Sulfate Dry Deposition All Bins [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout)   :: SU_PSO2 ! SO2 Prod from DMS Oxidation [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout)   :: SU_PMSA ! MSA Prod from DMS Oxidation [kg m-2 s-1]
@@ -6782,7 +6736,7 @@ loop2: DO l = 1,nspecies_HL
    integer, intent(in) :: klid   ! index for pressure lid
    real, intent(in)    :: cdt   ! model time step [sec]
    real, intent(in)    :: grav  ! gravity [m/sec]
-   real, dimension(:,:,:)  :: delp  ! pressure thickness [Pa]
+   real, dimension(:,:,:), intent(in)  :: delp  ! pressure thickness [Pa]
    real, dimension(:,:,:), intent(in)  :: rhoa   ! Layer air density [kg m-3]
    real, dimension(:,:,:), intent(in)  :: tmpu   ! Layer temperature [K]
    real, dimension(:,:,:), intent(in)  :: rh     ! relative humidity [0-1]
