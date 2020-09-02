@@ -1102,6 +1102,11 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             SUEXTTAU, SUSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, rc)
 
+if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO2) = ',sum(SO2)
+if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO4) = ',sum(SO4)
+if(mapl_am_i_root()) print*,'SU2G Run2 E sum(DMS) = ',sum(DMS)
+if(mapl_am_i_root()) print*,'SU2G Run2 E sum(MSA) = ',sum(MSA)
+
     RETURN_(ESMF_SUCCESS)
 
   contains
@@ -1304,6 +1309,7 @@ if (mapl_am_I_root()) print*,trim(comp_name),' Run_data END'
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
 
