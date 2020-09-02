@@ -1,0 +1,136 @@
+schema_version: 2.0.0
+component: NI
+
+category: IMPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE          | DIMENSIONS|          Additional Metadata
+#----------------------------------------------------------------------------------------
+     NAME    | UNITS    | DIMS | VLOC | UNGRIDDED | LONG NAME
+#----------------------------------------------------------------------------------------
+ LWI         | 1        | xy   | N    |           | land-ocean-ice_mask
+ USTAR       | m s-1    | xy   | N    |           | surface_velocity_scale
+ ZPBL        | m        | xy   | N    |           | planetary_boundary_layer_height
+ SH          | w m-2    | xy   | N    |           | sensible_heat_flux_from_turbulence
+ Z0H         | m        | xy   | N    |           | surface_roughness_for_heat
+ CN_PRCP     |kg/m^2/s  | xy   | N    |           | surface_conv._rain_flux_needed_by_land
+ NCN_PRCP    |kg/m^2/s  | xy   | N    |           | Non-convective precipitation
+ AREA        | m^2      | xy   | N    |           | agrid_cell_area
+#........................................................................................
+ AIRDENS     | kg/m^3   | xyz  | C    |           | moist_air_density
+ DELP        | Pa       | xyz  | C    |           | pressure_thickness
+ T           | K        | xyz  | C    |           | air_temperature
+ RH2         | 1        | xyz  | C    |           | Rel_Hum_after_moist
+ ZLE         | m        | xyz  | E    |           | geopotential_height
+ PLE         | Pa       | xyz  | E    |           | air_pressure
+ PFL_LSAN    | kg/m2/s  | xyz  | E    |           | 3D_flux_of_liquid_nonconvective_precipitation
+ PFI_LSAN    | kg/m2/s  | xyz  | E    |           | 3D_flux_of_ice_nonconvective_precipitation
+ U           | m s-1    | xyz  | C    |           | eastward_wind
+ V           | m s-1    | xyz  | C    |           | northward_wind
+#.........................................................................................
+ EMI_NH3_AG   |kg m-2 s-1| xy  | N    |           | source species
+ EMI_NH3_BB   |kg m-2 s-1| xy  | N    |           | source species
+ EMI_NH3_EN   |kg m-2 s-1| xy  | N    |           | source species
+ EMI_NH3_IN   |kg m-2 s-1| xy  | N    |           | source species
+ EMI_NH3_OC   |kg m-2 s-1| xy  | N    |           | source species
+ EMI_NH3_RE   |kg m-2 s-1| xy  | N    |           | source species
+ EMI_NH3_TR   |kg m-2 s-1| xy  | N    |           | source species
+ NITRATE_HNO3 |kg m-2 s-1| xyz | C    |           | source species
+ DU           | kg kg-1  | xyz | C    | 5         | Dust Mixing Ratio all bins
+ SS           | kg kg-1  | xyz | C    | 5         | Sea Salt Mixing Ratio all bins
+ SO4          | kg kg-1  | xyz | C    |           | Sulfate
+
+category: EXPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE              | DIMENSIONS |          Additional Metadata
+#----------------------------------------------------------------------------------------
+ NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
+#----------------------------------------------------------------------------------------
+  NH3MASS   | kg/kg      | xyz | C   |           | Ammonia Mass Mixing Ratio 
+  NH4MASS   | kg/kg      | xyz | C   |           | Ammonium Aerosol Mass Mixing Ratio 
+  NIMASS    | kg/kg      | xyz | C   |           | Nitrate Mass Mixing Ratio 
+  NIMASS25  | kg/kg      | xyz | C   |           | Nitrate Mass Mixing Ratio [PM2.5] 
+  HNO3CONC  | kg m-3     | xyz | C   |           | Nitric Acid Mass Concentration 
+  NH3CONC   | kg m-3     | xyz | C   |           | Ammonia Mass Concentration 
+  NH4CONC   | kg m-3     | xyz | C   |           | Ammonium Mass Concentration 
+  NICONC    | kg m-3     | xyz | C   |           | Nitrate Mass Concentration 
+  NICONC25  | kg m-3     | xyz | C   |           | Nitrate Mass Concentration [PM2.5] 
+  NIEXTCOEF | m-1        | xyz | C   |           | Nitrate Extinction Coefficient [550 nm] 
+  NISCACOEF | m-1        | xyz | C   |           | Nitrate Scattering Coefficient [550 nm] 
+# ..........|............|.....|.....|...........|..................................
+  NIPNO3AQ  | kg m-2 s-1 | xy  | N   |           | Nitrate Production from Aqueous Chemistry  
+  NIPNH4AQ  | kg m-2 s-1 | xy  | N   |           | Ammonium Production from Aqueous Chemistry 
+  NIPNH3AQ  | kg m-2 s-1 | xy  | N   |           | Ammonia Change from Aqueous Chemistry 
+  NIHT      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Production from Het Chem All Bins
+  NISD      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Sedimentation All Bins 
+  NIDP      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Dry Deposition All Bins 
+  NIWT      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Wet Deposition All Bins 
+  NISV      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Convective Scavenging All Bins
+  NH3EM     | kg m-2 s-1 | xy  | N   |           | Ammonia Emission 
+  NH3DP     | kg m-2 s-1 | xy  | N   |           | Ammonia Dry Deposition 
+  NH3WT     | kg m-2 s-1 | xy  | N   |           | Ammonia Wet Deposition 
+  NH3SV     | kg m-2 s-1 | xy  | N   |           | Ammonia Convective Scavenging 
+  NH4SD     | kg m-2 s-1 | xy  | N   |           | Ammonium Settling 
+  NH4DP     | kg m-2 s-1 | xy  | N   |           | Ammonium Dry Deposition 
+  NH4WT     | kg m-2 s-1 | xy  | N   |           | Ammonium Wet Deposition 
+  NH4SV     | kg m-2 s-1 | xy  | N   |           | Ammonium Convective Scavenging  
+  HNO3SMASS | kg m-3     | xy  | N   |           | Nitric Acid Surface Mass Concentration 
+  NH3SMASS  | kg m-3     | xy  | N   |           | Ammonia Surface Mass Concentration 
+  NH4SMASS  | kg m-3     | xy  | N   |           | Ammonium Surface Mass Concentration 
+  NISMASS   | kg m-3     | xy  | N   |           | Nitrate Surface Mass Concentration 
+  NISMASS25 | kg m-3     | xy  | N   |           | Nitrate Surface Mass Concentration [PM2.5] 
+  HNO3CMASS | kg m-3     | xy  | N   |           | Nitric Acid Column Mass Density 
+  NH3CMASS  | kg m-3     | xy  | N   |           | Ammonia Column Mass Density
+  NH4CMASS  | kg m-3     | xy  | N   |           | Ammonium Column Mass Density 
+  NICMASS   | kg m-2     | xy  | N   |           | Nitrate Column Mass Density 
+  NICMASS25 | kg m-2     | xy  | N   |           | Nitrate Column Mass Density [PM2.5] 
+  NIEXTTFM  |      1     | xy  | N   |           | Nitrate Extinction AOT [550 nm] - PM 1.0 um 
+  NISCATFM  |      1     | xy  | N   |           | Nitrate Scattering AOT [550 nm] - PM 1.0 um 
+  NIEXTT25  |      1     | xy  | N   |           | Nitrate Extinction AOT [550 nm] - PM 2.5 um 
+  NISCAT25  |      1     | xy  | N   |           | Nitrate Scattering AOT [550 nm] - PM 2.5 um 
+  NIEXTTAU  |      1     | xy  | N   |           | Nitrate Extinction AOT [550 nm] 
+  NISCATAU  |      1     | xy  | N   |           | Nitrate Scattering AOT [550 nm] 
+  NIANGSTR  |      1     | xy  | N   |           | Nitrate Angstrom parameter [470-870 nm] 
+  NIFLUXU   | kg m-1 s-1 | xy  | N   |           | Nitrate column u-wind mass flux 
+  NIFLUXV   | kg m-1 s-1 | xy  | N   |           | Nitrate column v-wind mass flux 
+
+category: INTERNAL
+#----------------------------------------------------------------------------------------
+#  VARIABLE                | DIMENSION        |          Additional Metadata
+#----------------------------------------------------------------------------------------
+  NAME  | UNITS | DIMS | VLOC | RESTART         | ADD2EXPORT | FRIENDLYTO | LONG NAME
+#----------------------------------------------------------------------------------------
+ NH3    |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Ammonia (NH3, gas phase)
+ NH4a   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Ammonium ion (NH4+, aerosol phase)
+ NO3an1 |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 001
+ NO3an2 |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 002
+ NO3an3 |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 003
+
+
+#********************************************************
+#
+# Legend
+#
+#------------------------------------------------------------------
+# Column label | MAPL keyword/interpretation |  Default
+#--------------|---------------------------------------------------
+# NAME         | short_name                  |
+# UNITS        | units                       |
+# DIMS         | dims                        |
+# VLOC         | VLocation                   | MAPL_VLocationNone
+# LONG NAME    | long_name                   |
+# COND         | if (<logical-expr>) then    |  .FALSE.
+# NUM_SUBTILES | num_subtiles
+# ...
+#------------------------------------------------------------------
+#
+#--------------------------------------------
+# Entry alias  | Column | MAPL keyword/interpretation
+#--------------|-----------------------------
+# xyz          | DIMS   | MAPL_HorzVert
+# xy           | DIMS   | MAPL_HorzOnly
+# z            | DIMS   | MAPL_VertOnly  (plus ungridded)
+# C            | VLOC   | MAPL_VlocationCenter
+# E            | VLOC   | MAPL_VlocationEdge
+# N            | VLOC   | MAPL_VlocationNone
+#--------------------------------------------
+

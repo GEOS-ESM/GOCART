@@ -15,8 +15,8 @@ module SS2G_GridCompMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
-   use Chem_UtilMod
    use GOCART2G_Process       ! GOCART2G process library
+   use GA_GridCompMod
 
    implicit none
    private
@@ -30,8 +30,9 @@ module SS2G_GridCompMod
    PUBLIC  SetServices
 
 real, parameter ::  chemgrav   = 9.80616
+real, parameter ::  cpd    = 1004.16
 
-! !DESCRIPTION: This module implements GOCARTS' Sea Salt (SS) Gridded Component.
+! !DESCRIPTION: This module implements GOCART's Sea Salt (SS) Gridded Component.
 
 ! !REVISION HISTORY:
 ! 24Oct2019  E.Sherman  First attempt at refactoring.
@@ -41,24 +42,13 @@ real, parameter ::  chemgrav   = 9.80616
    integer, parameter         :: NHRES = 6  ! DEV NOTE!!! should this be allocatable, and not a parameter?
 
 !  !Sea Salt state
-   type SS2G_GridComp
-       type(Chem_Mie), dimension(2)    :: rad_MieTable, diag_MieTable
-       real, allocatable      :: radius(:)      ! particle effective radius [um]
+   type, extends(GA_GridComp) :: SS2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
-       real, allocatable      :: fscav(:)       ! scavenging efficiency
-       real, allocatable      :: molwght(:)     ! molecular weight
-       real, allocatable      :: rhop(:)        ! dry particle density
-       real, allocatable      :: fnum(:)        ! number of particles per kg mass
-       real                   :: maringFlag     ! maring settling velocity correction
-       integer                :: rhFlag         ! RH swelling of Seasalt (1 for Fitzgerald 1975; 2 for Gerber 1985)
-       integer                :: sstEmisFlag    ! Choice of SST correction to emissions: 0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
+       integer                :: sstEmisFlag    ! Choice of SST correction to emissions: 
+!                                                 0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
        logical                :: hoppelFlag     ! Apply the Hoppel correction to emissions (Fan and Toon, 2011)
        logical                :: weibullFlag    ! Apply the Weibull distribution to wind speed for emissions (Fan and Toon, 2011)
-       integer                :: nbins
-       integer                :: km             ! vertical grid dimension
-       real                   :: CDT            ! chemistry timestep (secs)
-       integer                :: instance       ! data or computational instance
        real, allocatable      :: deep_lakes_mask(:,:)
        integer                :: emission_scheme
        real                   :: emission_scale ! global scaling factor
@@ -94,24 +84,17 @@ contains
 
 !EOP
 !============================================================================
-!
 
 !   !Locals
     character (len=ESMF_MAXSTR)                 :: COMP_NAME
     type (ESMF_Config)                          :: cfg
     type (wrap_)                                :: wrap
     type (SS2G_GridComp), pointer               :: self
-    type (Chem_Mie)                             :: this
 
     character (len=ESMF_MAXSTR)                 :: field_name
-    character (len=ESMF_MAXSTR), allocatable    :: aerosol_names(:)
-
-    integer                                     :: n, i, nCols, nbins
+    integer                                     :: i
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
-
-    !development testing variables - to be deleted
-    real, dimension(:,:), pointer       :: ptr_test
 
     __Iam__('SetServices')
 
@@ -137,29 +120,20 @@ contains
        call ESMF_ConfigLoadFile (cfg, 'SS2G_GridComp_SS.rc', __RC__)
     end if
 
-!   Get nbins from cfg
-    call ESMF_ConfigGetAttribute (cfg, self%nbins, label='nbins:', __RC__)
-    nbins = self%nbins
+    ! process generic config items
+    call self%GA_GridComp%load_from_config( cfg, __RC__)
 
-!   Parse config file into private internal state
-!   ----------------------------------------------
-    allocate(self%radius(nbins), self%rlow(nbins), self%rup(nbins), self%fscav(nbins), &
-             self%molwght(nbins), self%fnum(nbins), self%rhop(nbins), __STAT__)
+    allocate(self%rlow(self%nbins), self%rup(self%nbins), __STAT__)
 
-    call ESMF_ConfigGetAttribute (cfg, self%radius,     label='particle_radius_microns:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%molwght,    label='molecular_weight:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rhop,       label='SS_density:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%fnum,       label='fnum:', __RC__)
+    ! process SS-specific items
+!    call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%sstEmisFlag, label='sstEmisFlag:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%weibullFlag,  label='weibullFlag:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%hoppelFlag, label='hoppelFlag:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rhFlag, label='rhFlag:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%emission_scheme, label='emission_scheme:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%emission_scale_res, label='emission_scale:', __RC__)
-
+    call ESMF_ConfigGetAttribute (cfg, self%rlow,  label='radius_lower:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%rup,  label='radius_upper:', __RC__)
 
 !   Is SS data driven?
 !   ------------------
@@ -169,21 +143,27 @@ contains
 !   ------------------------
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, __RC__)
-    if (data_driven /= .true.) then
+    if (data_driven .neqv. .true.) then
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
     end if
 
-!   INTERNAL STATE
-!   ---------------
-!   Default INTERNAL state values
-!   -----------------------------
     DEFVAL = 0.0
 
-#include "SS2G_Internal___.h"
-
-!   IMPORT STATE
-!   -------------
+!   Import and Internal states if data instance 
+!   -------------------------------------------
     if (data_driven) then
+
+   call MAPL_AddInternalSpec(gc,&
+         short_name='SS', &
+         long_name='Sea Salt Mixing Ratio all bins', &
+         units='kg kg-1', &
+         dims=MAPL_DimsHorzVert, &
+         vlocation=MAPL_VlocationCenter, &
+         restart=MAPL_RestartOptional, &
+         ungridded_dims=[self%nbins], &
+!         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+         add2export=.true., __RC__)
+
 
 !      Pressure at layer edges
 !      -----------------------
@@ -205,12 +185,12 @@ contains
           VLOCATION  = MAPL_VLocationCenter,                  &
           RESTART    = MAPL_RestartSkip,     __RC__)
 
-        do i = 1, nbins
+        do i = 1, self%nbins
             write(field_name, '(A, I0.3)') '', i
             call MAPL_AddImportSpec(GC,                                           &
               SHORT_NAME = 'climss'//trim(field_name),                            &
               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')',  &
-              UNITS      = 'kg kg-1',                                             &
+              UNITS      = 'kg kg-1 s-1',                                             &
               RESTART    = MAPL_RestartSkip,                                      &
               DIMS       = MAPL_DimsHorzVert,                                     &
               VLOCATION  = MAPL_VLocationCenter, __RC__)
@@ -219,7 +199,7 @@ contains
             call MAPL_AddImportSpec(GC,                                           &
               SHORT_NAME = 'climSSDP'//trim(field_name),                          &
               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')',  &
-              UNITS      = 'kg kg-1',                                             &
+              UNITS      = 'kg kg-1 s-1',                                             &
               DIMS       = MAPL_DimsHorzOnly,                                     &
               VLOCATION  = MAPL_VLocationCenter,                                  &
               RESTART    = MAPL_RestartSkip, __RC__)
@@ -227,8 +207,8 @@ contains
 !           ! wet deposition    
             call MAPL_AddImportSpec(GC,                                           &
                SHORT_NAME = 'climSSWT'//trim(field_name),                         &
-               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS      = 'kg kg-1',                                            &
+               LONG_NAME  = 'Sea Salt wet removal (bin '//trim(field_name)//')', &
+               UNITS      = 'kg kg-1 s-1',                                            &
                DIMS       = MAPL_DimsHorzOnly,                                    &
                VLOCATION  = MAPL_VLocationCenter,                                 &
                RESTART    = MAPL_RestartSkip, __RC__)
@@ -237,7 +217,7 @@ contains
             call MAPL_AddImportSpec(GC,                                           &
                SHORT_NAME = 'climSSSD'//trim(field_name),                         &
                LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS      = 'kg kg-1',                                            &
+               UNITS      = 'kg kg-1 s-1',                                            &
                DIMS       = MAPL_DimsHorzOnly,                                    &
                VLOCATION  = MAPL_VLocationCenter,                                 &
                RESTART    = MAPL_RestartSkip, __RC__)
@@ -246,7 +226,7 @@ contains
             call MAPL_AddImportSpec(GC,                                           &
                SHORT_NAME = 'climSSSV'//trim(field_name),                         &
                LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS      = 'kg kg-1',                                            &
+               UNITS      = 'kg kg-1 s-1',                                            &
                DIMS       = MAPL_DimsHorzOnly,                                    &
                VLOCATION  = MAPL_VLocationCenter,                                 &
                RESTART    = MAPL_RestartSkip, __RC__)
@@ -254,11 +234,12 @@ contains
     end if ! (data_driven)
 
 
-!   EXPORT STATE
-!   -------------
+!   Import, Export, Internal states for computational instance 
+!   ----------------------------------------------------------
     if (.not. data_driven) then
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
+#include "SS2G_Internal___.h"
     end if
 
 !   This state holds fields needed by radiation
@@ -342,25 +323,23 @@ contains
     type (SS2G_GridComp), pointer        :: self
 
     integer, allocatable                 :: mieTable_pointer(:)
-    integer                              :: i, j, nbins, nCols, dims(3), km
+    integer                              :: i, dims(3), km
     integer                              :: instance
     type (ESMF_Field)                    :: field, fld
-    character (len=ESMF_MAXSTR)          :: field_name, prefix
+    character (len=ESMF_MAXSTR)          :: prefix, bin_index
     real, pointer, dimension(:,:)        :: lats 
     real, pointer, dimension(:,:)        :: lons
-    real                                 :: dummylon
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-
+    real, pointer, dimension(:,:,:,:)    :: int_ptr
     logical                              :: data_driven
     integer                              :: NUM_BANDS
-
-real, pointer :: ssptr(:,:,:,:)
+    real, pointer, dimension(:,:,:)      :: ple
+    real, pointer, dimension(:,:)        :: area
 
     __Iam__('Initialize')
 
 !****************************************************************************
-
 !   Begin... 
 
 !   Get the target components name and set-up traceback handle.
@@ -430,6 +409,11 @@ real, pointer :: ssptr(:,:,:,:)
        prefix = ''
     end if
 
+!   Add attribute information for SS export. Used in NI hetergenous chemistry.
+    call ESMF_StateGet (export, 'SS', field, __RC__)
+    call ESMF_AttributeSet(field, NAME='radius', valueList=self%radius, itemCount=self%nbins, __RC__)
+    call ESMF_AttributeSet(field, NAME='fnum', valueList=self%fnum, itemCount=self%nbins, __RC__)
+
 !   Fill AERO State with sea salt fields
 !   ----------------------------------------
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
@@ -437,35 +421,53 @@ real, pointer :: ssptr(:,:,:,:)
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, 'SS', field, __RC__)
+    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
     fld = MAPL_FieldCreate (field, 'SS', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
     call MAPL_StateAdd (aero_aci, fld, __RC__)
 
-    ! ADD OTHER ATTRIBUTE, HENTRY COEFFICIENTS?
-    call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), __RC__)
+    if (.not. data_driven) then
+!      Set klid
+       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+       call findKlid (self%klid, self%plid, ple, __RC__)
+!      Set SS values to 0 where above klid
+       call MAPL_GetPointer (internal, int_ptr, 'SS', __RC__)
+       call setZeroKlid4d (self%km, self%klid, int_ptr)
+    end if
 
-!   Dry deposition
-!   ---------------
-    call append_to_bundle('SSDP', providerState, prefix, Bundle_DP, __RC__)
+    call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
-!   Wet deposition (Convective scavenging)
-!   --------------------------------------
-    call append_to_bundle('SSSV', providerState, prefix, Bundle_DP, __RC__)
-
-!   Wet deposition
-!   ---------------
-    call append_to_bundle('SSWT', providerState, prefix, Bundle_DP, __RC__)
-
-!   Gravitational Settling
-!   ----------------------
-    call append_to_bundle('SSSD', providerState, prefix, Bundle_DP, __RC__)
-
-!   Set AERO States' attributes
-!   ----------------------------
     if (data_driven) then
        instance = instanceData
+
+       do i = 1, self%nbins
+          write (bin_index, '(A, I0.3)') '', i
+!         Dry deposition
+          call append_to_bundle('SSDP'//trim(bin_index), providerState, prefix, Bundle_DP, __RC__)
+
+!         Wet deposition (Convective scavenging)
+          call append_to_bundle('SSSV'//trim(bin_index), providerState, prefix, Bundle_DP, __RC__)
+
+!         Wet deposition
+          call append_to_bundle('SSWT'//trim(bin_index), providerState, prefix, Bundle_DP, __RC__)
+
+!         Gravitational Settling
+          call append_to_bundle('SSSD'//trim(bin_index), providerState, prefix, Bundle_DP, __RC__)
+       end do
     else
        instance = instanceComputational
+
+!      Dry deposition
+       call append_to_bundle('SSDP', providerState, prefix, Bundle_DP, __RC__)
+
+!      Wet deposition (Convective scavenging)
+       call append_to_bundle('SSSV', providerState, prefix, Bundle_DP, __RC__)
+
+!      Wet deposition
+       call append_to_bundle('SSWT', providerState, prefix, Bundle_DP, __RC__)
+
+!      Gravitational Settling
+       call append_to_bundle('SSSD', providerState, prefix, Bundle_DP, __RC__)
     end if
 
     self%instance = instance
@@ -501,7 +503,8 @@ real, pointer :: ssptr(:,:,:,:)
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nch, label="n_channels:", __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%channels, label= "r_channels:", __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%channels, &
+                                  label= "aerosol_monochromatic_optics_wavelength:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
@@ -630,15 +633,12 @@ real, pointer :: ssptr(:,:,:,:)
 
     real, allocatable, dimension(:,:) :: fgridefficiency
     real, allocatable, dimension(:,:) :: fsstemis
-    real, allocatable, dimension(:,:) :: tskin_c
-    real, allocatable, dimension(:,:) :: fhoppel, vsettle
+    real, allocatable, dimension(:,:) :: fhoppel
     real, allocatable, dimension(:,:) :: memissions, nemissions, dqa
-
-    real    :: radius_wet, rhop_wet, diff_coef
 
     real(kind=DP), allocatable, dimension(:,:) :: gweibull
 
-    integer :: n, i, j 
+    integer :: n 
 
 #include "SS2G_DeclarePointer___.h"
 
@@ -724,6 +724,8 @@ real, pointer :: ssptr(:,:,:,:)
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
 
+    RETURN_(ESMF_SUCCESS)
+
   end subroutine Run1 
 
 !============================================================================
@@ -756,8 +758,6 @@ real, pointer :: ssptr(:,:,:,:)
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
     real                              :: fwet
     logical                           :: KIN
-
-real, parameter ::  cpd    = 1004.16
 
 
 #include "SS2G_DeclarePointer___.h"
@@ -793,12 +793,14 @@ real, parameter ::  cpd    = 1004.16
 
 !   Sea Salt Settling
 !   -----------------
-    call Chem_Settling2Gorig (self%km, self%rhFlag, SS, CHEMgrav, delp, &
-                              self%radius*1.e-6, self%rhop, self%cdt, t, airdens, &
-                              rh2, zle, SSSD, __RC__)
+    do n = 1, self%nbins
+       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, SS(:,:,:,n), CHEMgrav, delp, &
+                                 self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
+                                 rh2, zle, SSSD, __RC__)
+    end do
 
-!   Sea Salt Deposition
-!   -------------------
+!   Deposition
+!   -----------
     drydepositionfrequency = 0.
     call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
                        MAPL_KARMAN, cpd, chemGRAV, z0h, drydepositionfrequency, __RC__ )
@@ -817,24 +819,28 @@ real, parameter ::  cpd    = 1004.16
        end if
     end do
 
-!   Sea Salt Large-scale Wet Removal
-!   -------------------------------
+!   Large-scale Wet Removal
+!   ------------------------
     KIN = .TRUE.
     do n = 1, self%nbins
        fwet = 1.
-
-       call WetRemovalGOCART2G(self%km, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
+       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
                                KIN, chemGRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, rc)
     end do
 
-    call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%nbins, self%rlow, self%rup, &
-                           self%diag_MieTable(self%instance)%channels, SS, chemGRAV, t, airdens, &
-                           rh2, u, v, delp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSCATAU,     &
-                           SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
-                           SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
-                           SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, __RC__)
-
+!   Compute diagnostics
+!   -------------------
+    call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow,&
+                             self%rup, self%diag_MieTable(self%instance)%channels, SS, chemGRAV, t, airdens, &
+                             rh2, u, v, delp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSCATAU,     &
+                             SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
+                             SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
+                             SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, __RC__)
+ 
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+end do
 
     RETURN_(ESMF_SUCCESS)
 
@@ -862,13 +868,13 @@ real, parameter ::  cpd    = 1004.16
 !============================================================================
 ! Locals
     character (len=ESMF_MAXSTR)        :: COMP_NAME
-    type (MAPL_MetaComp), pointer      :: MAPL
-    type (ESMF_State)                  :: aero
+    type (wrap_)                       :: wrap
+    type (SS2G_GridComp), pointer      :: self
 
-    integer                            :: i, n
+    integer                            :: i
     character (len=ESMF_MAXSTR)        :: field_name
 
-    real, pointer, dimension(:,:,:)    :: ptr3d_int
+    real, pointer, dimension(:,:,:,:)  :: ptr4d_int
     real, pointer, dimension(:,:,:)    :: ptr3d_imp
 
     __Iam__('Run_data')
@@ -881,22 +887,22 @@ real, parameter ::  cpd    = 1004.16
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'//Iam
 
-if (mapl_am_I_root()) print*,trim(comp_name),' Run_data BEGIN'
-
-    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO', aero, __RC__)
-    call ESMF_AttributeGet (aero, name='aerosol_names', itemCount=n, __RC__)
+!   Get my private internal state
+!   ------------------------------
+    call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
 
 !   Update interal data pointers with ExtData
 !   -----------------------------------------
-    do i = 1, n
+    call MAPL_GetPointer (internal, NAME='SS', ptr=ptr4d_int, __RC__)
+
+    do i = 1, self%nbins
     write(field_name, '(A, I0.3)') 'ss', i
-        call MAPL_GetPointer (internal, NAME=trim(field_name), ptr=ptr3d_int, __RC__)
         call MAPL_GetPointer (import,  NAME='clim'//trim(field_name), ptr=ptr3d_imp, __RC__)
 
-        ptr3d_int = ptr3d_imp
+        ptr4d_int(:,:,:,i) = ptr3d_imp
     end do
-
-if (mapl_am_I_root()) print*,trim(comp_name),' Run_data END'
 
     RETURN_(ESMF_SUCCESS)
 
@@ -923,17 +929,15 @@ if (mapl_am_I_root()) print*,trim(comp_name),' Run_data END'
 
     character (len=ESMF_MAXSTR)                      :: fld_name, int_fld_name
     type(ESMF_Field)                                 :: fld
-    character (len=ESMF_MAXSTR)                      :: COMP_NAME
 
     real(kind=DP), dimension(:,:,:), allocatable     :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
     real, dimension(:,:,:), allocatable              :: x
     integer                                          :: instance
-    integer                                          :: n, nbins, dims(4)
+    integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band, offset
     integer, parameter                               :: n_bands = 1
-
-    integer :: i, j, k
+    integer ::  k
 
     __Iam__('SS2G::aerosol_optics')
 
@@ -1020,7 +1024,6 @@ if (mapl_am_I_root()) print*,trim(comp_name),' Run_data END'
 
   contains
 
-!    subroutine mie_(mie_table, aerosol_names, nb, offset, q, rh, bext_s, bssa_s, basym_s, rc)
     subroutine mie_(mie_table, nbins, nb, offset, q, rh, bext_s, bssa_s, basym_s, rc)
 
     implicit none
@@ -1061,8 +1064,6 @@ if (mapl_am_I_root()) print*,trim(comp_name),' Run_data END'
     end subroutine mie_
 
   end subroutine aerosol_optics
-
-
 
 end module SS2G_GridCompMod
 

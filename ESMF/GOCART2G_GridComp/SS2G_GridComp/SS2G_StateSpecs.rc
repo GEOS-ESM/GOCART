@@ -73,7 +73,7 @@ category: INTERNAL
 #----------------------------------------------------------------------------------------
   NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
 #----------------------------------------------------------------------------------------
- SS    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | .true. | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio all bins
+ SS    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio all bins
 
 
 #********************************************************

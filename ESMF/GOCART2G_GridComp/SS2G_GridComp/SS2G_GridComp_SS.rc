@@ -1,11 +1,12 @@
 #
-# Resource file Dust parameters.
+# Resource file Sea Salt parameters
 #
 
 aerosol_radBands_optics_file: ExtData/MERRA2/x/opticsBands_SS.v3_3.RRTMG.nc
 
 aerosol_monochromatic_optics_file: ExtData/AeroCom/x/optics_SS.v3_3.nc
-aerosol_monochromatic_optics_wavelength: 470 550 670 870 ! units: nm
+aerosol_monochromatic_optics_wavelength: 4.7e-7 5.5e-7 6.7e-7 8.7e-7 ! units: nm
+n_channels: 4
 
 particle_radius_microns: 0.079 0.316 1.119 2.818 7.772
 
@@ -13,17 +14,17 @@ radius_lower: 0.03 0.1 0.5 1.5 5.0
 
 radius_upper: 0.1 0.5 1.5 5.0 10.0
 
-SS_density: 2200. 2200. 2200. 2200. 2200.
+particle_density: 2200. 2200. 2200. 2200. 2200.
 
 # Scavenging efficiency per bin [km-1]
-fscav: 0.4  0.4  0.4  0.4  0.4   #
+fscav: 0.4  0.4  0.4  0.4  0.4 
 
 # Emissions methods and scaling
 emission_scheme: 3                                     # 1 for Gong 2003, 2 for ...
 emission_scale:  0.613 0.613 0.613 0.429 0.429 0.429   # a global scaling factor
 sstEmisFlag:     2                                     # Apply a correction to emissions based on SST (see code)
-hoppelFlag:      .true.                                     # Apply Hoppel correction (set non-zero, see Fan and Toon 2011)
-weibullFlag:     .true.                                     # Apply Weibull distribution (set non-zero, see Fan and Toon 2011)
+hoppelFlag:      .true.              # Apply Hoppel correction (set non-zero, see Fan and Toon 2011)
+weibullFlag:     .true.              # Apply Weibull distribution (set non-zero, see Fan and Toon 2011)
 
 # Method of apply relative humidity to particle radius
 rhFlag:          2       # RH swelling of Seasalt (1 for Fitzgerald 1975,
@@ -40,6 +41,6 @@ particle_radius_number: 0.066  0.176  0.885  2.061  6.901
 
 nbins: 5
 
-n_channels: 4
+pressure_lid_in_hPa: 0.01
 
-r_channels: 4.7e-7 5.5e-7 6.7e-7 8.7e-7
+
