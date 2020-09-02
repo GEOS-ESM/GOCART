@@ -1,0 +1,48 @@
+#
+# Resource file for (MPI) 3D Extinction Calculator
+#
+
+#                    ---------------------
+#                     Grid, Decomposition
+#                    ---------------------
+
+
+ExpId: a0000
+
+Layout_Nx: 2
+Layout_Ny: 4
+
+IM_World: 540# 540
+JM_World: 361# 361
+LM_World: 72
+
+nymd: 20080630
+nhms: 120000
+
+verbose: .TRUE.
+
+#                    -------------------
+#                    File Name Templates
+#                    -------------------
+
+aer_registry: Chem_AerRegistry.rc
+ext_registry: Chem_ExtRegistry.rc
+
+aer_filename: /nobackup/1/ARCTAS/Y2008/M06/d5_arctas_02.inst3d_aer_v.20080630_1200z.nc
+ext_filename: ext.nc4
+
+#                   -------------------
+#                      Mie Parameters
+#                   -------------------
+
+NUM_BANDS: 1
+BANDS: 532E-9
+
+DU_OPTICS:  ExtData/PIESA/x/optics_DU.v15_3.nc
+SS_OPTICS:  ExtData/PIESA/x/optics_SS.v3_3.nc
+SU_OPTICS:  ExtData/PIESA/x/optics_SU.v1_3.nc
+NI_OPTICS:  ExtData/PIESA/x/optics_NI.v2_5.nc
+OC_OPTICS:  ExtData/PIESA/x/optics_OC.v1_3.nc
+BRC_OPTICS: ExtData/PIESA/x/optics_BRC.v1_5.nc
+BC_OPTICS:  ExtData/PIESA/x/optics_BC.v1_3.nc
+

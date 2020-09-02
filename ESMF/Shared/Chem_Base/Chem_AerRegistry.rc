@@ -1,0 +1,310 @@
+#------------------------------------------------------------------------
+#BOP
+#
+# !RESOURCE: AeroChem_Registy --- AeroChem Registry
+# 
+# !HELP:
+#
+#  The Chemistry Registry resource file is used to control basic
+#  properties of the GOCART and StratChem Grid Components. 
+#  Specifically, it
+#
+#    - selects which constituents to simulate
+#    - selects the number of bins for each constituent
+#    - specifies variable names and units for each constituent
+#
+#  NOTE: The water vapor and ozone tracers are not really being used
+#        in GEOS-5. They are still kept for compatibility with GEOS-4.
+#
+#  IMPORTANT: This file should be the same as Chem_Registry.rc, except that
+#             only aerosols (DU, SS, SU, BC, OC) are turned ON.
+#
+# !REVISION HISTORY:
+#
+#  27May2005  da Silva  Added variable tables for SU/BC/OC.
+#  19dec2005  da Silva  Changed volume mixing ratio units to mol/mol
+#  10Feb2006  Hayashi   Added analysis update frequency
+#  27Jul2006  da Silva  No more analysis frequencies; added GMI/PChem (GEOS-5)
+#
+#-----------------------------------------------------------------------
+#EOP
+
+                    # &Label Active Constituents
+
+#
+#  IMPORTANT: This file should be the same as Chem_Registry.rc, except that
+#             only aerosols (DU, SS, SU, BC, OC) are turned ON.
+#
+
+# Whether to include the constituent in the simulation
+# ----------------------------------------------------
+doing_H2O: no   # water vapor (must always ON for fvGCM)
+doing_O3:  no   # ozone (must be always ON for fvGCM in DAS mode)
+doing_CO:  no   # &YesNo Include carbon monoxide?
+doing_CO2: no   # &YesNo Include carbon dioxide?
+doing_CFC: no   # CFCs
+doing_DU:  yes  # &YesNo Include mineral dust?
+doing_SS:  yes  # &YesNo Include sea salt?
+doing_SU:  yes  # &YesNo Include sulfates?
+doing_BC:  yes  # &YesNo Include black carbon?
+doing_OC:  yes  # &YesNo Include organic carbon?
+doing_SC:  no   # &YesNo Include stratospheric chemistry?
+doing_AC:  no   # auto chem
+doing_XX:  no   # generic tracer
+doing_PC:  no   # parameterized chemistry (GEOS-5)
+doing_GMI: no   # GMI chemistry (GEOS-5)
+doing_CARMA: no   # CARMA Service Component
+
+# You can select the number of bins (e.g., particle size)
+# for each of the constituents. Note nbins>1 may not be
+# supported by some constituents
+# ----------------------------------------------------
+nbins_H2O:  1   # water vapor
+nbins_O3:   3   # ozone
+nbins_CO:   1   # carbon monoxide
+nbins_CO2:  1   # carbon dioxide
+nbins_CFC:  2   # CFCs
+nbins_DU:   5   # mineral dust
+nbins_SS:   5   # sea salt
+nbins_SU:   4   # sulfates
+nbins_BC:   2   # black carbon
+nbins_OC:   2   # organic carbon
+nbins_SC:  34   # stratospheric chemistry
+nbins_AC:  35   # auto chem
+nbins_XX:  18   # generic tracer
+nbins_PC:   1   # parameterized chemistry (GEOS-5)
+nbins_GMI:  1   # GMI chemistry (GEOS-5)
+nbins_CARMA:  1   # CARMA Service Component
+
+# Units for each constituent
+# --------------------------
+units_H2O: kg/kg     # water vapor
+units_O3:  kg/kg     # ozone
+units_CO:  kg/kg     # carbon monoxide
+units_CO2: kg/kg     # carbon dioxide
+units_CFC: mol/mol   # CFCs
+units_DU:  kg/kg     # mineral dust
+units_SS:  kg/kg     # sea salt
+units_SU:  kg/kg     # sulfates
+units_BC:  kg/kg     # black carbon
+units_OC:  kg/kg     # organic carbon
+units_SC:  kg/kg     # stratospheric chemistry
+units_AC:  kg/kg     # auto chem
+units_XX:  kg/kg     # generic tracer
+units_PC:  kg/kg     # parameterized chemistry (GEOS-5)
+units_GMI: kg/kg     # GMI chemistry (GEOS-5)
+units_CARMA: kg/kg   # CARMA Service Component
+
+# Variable names to override defaults.  Optional.  Name and Units must 
+# be 1 token. Long names can be more than one token.
+# --------------------------------------------------------------------
+
+variable_table_O3::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+O3PARAM    mol/mol  Parameterized ozone
+OXSTRAT    mol/mol  Stratospheric odd oxygen
+OXTROP     mol/mol  Tropospheric ozone
+::
+
+variable_table_CO::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+CO         mol/mol  Global carbon monoxide
+CONOAMAN   mol/mol  North American anthropogenic CO
+COCEAMAN   mol/mol  Central American anthropogenic CO
+COWHBB     mol/mol  Western Hemisphere biomass burning CO
+COASIAAN   mol/mol  Asian anthropogenic CO
+COASNBB    mol/mol  Northern Asia biomass burning CO
+COASSBB    mol/mol  Southern Asia biomass burning CO
+COFDAN     mol/mol  Mexico City anthropogenic CO
+::
+
+variable_table_CO2::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+CO2        mol/mol  Carbon Dioxide
+CO2nam     mol/mol  North American Carbon Dioxide 
+CO2sam     mol/mol  South American Carbon Dioxide
+CO2afr     mol/mol  African 
+::
+
+variable_table_CFC::
+CFC12S    mol/mol   Stratospheric CFC-12 (CCl2F2)
+CFC12T    mol/mol   Tropospheric CFC-12 (CCl2F2)
+::
+variable_table_SU::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+DMS        kg/kg    Dimethylsulphide
+SO2        kg/kg    Sulphur dioxide
+SO4        kg/kg    Sulphate aerosol
+MSA        kg/kg    Methanesulphonic acid
+::
+
+variable_table_BC::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+BCphobic   kg/kg    Hydrophobic Black Carbon 
+BCphilic   kg/kg    Hydrophilic Black Carbon
+::
+
+variable_table_OC::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+OCphobic   kg/kg    Hydrophobic Organic Carbon (Particulate Matter)
+OCphilic   kg/kg    Hydrophilic Organic Carbon (Particulate Matter)
+::
+
+variable_table_SC::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+OXSTRAT    mol/mol  Stratospheric odd oxygen
+NOX        mol/mol  Odd nitrogen
+HNO3       mol/mol  Nitric acid
+N2O5       mol/mol  Dinitrogen pentoxide
+HO2NO2     mol/mol  Peroxynitric acid
+CLONO2     mol/mol  Chlorine nitrate
+CLX        mol/mol  Odd chlorine
+HCL        mol/mol  Hydrochloric acid
+HOCL       mol/mol  Hypochlorous acid
+H2O2       mol/mol  Hydrogen peroxide
+BRX        mol/mol  Odd bromine
+N2O        mol/mol  Nitrous oxide
+CL2        mol/mol  Molecular chlorine
+OCLO       mol/mol  Chlorine dioxide
+BRCL       mol/mol  Bromine chloride
+HBR        mol/mol  Hydrogen bromide
+BRONO2     mol/mol  Bromine nitrate
+CH4        mol/mol  Methane
+HOBR       mol/mol  Hypobromous acid
+CH3OOH     mol/mol  Methyl hydroperoxide
+CO         mol/mol  Carbon monoxide
+HNO3COND   mol/mol  Condensed nitric acid
+H2OCOND    mol/mol  Condensed water vapor in chemistry
+F11        mol/mol  CFC-11 (CCl3F)
+F12        mol/mol  CFC-12 (CCl2F2)
+F113       mol/mol  CFC-113 (CCl2FCClF2)
+HCFC       mol/mol  HCFC
+CCL4       mol/mol  Carbon tetrachloride
+CH3CCL3    mol/mol  Methyl chloroform
+CH3CL      mol/mol  Methyl chloride
+CH3BR      mol/mol  Methyl bromide
+H1301      mol/mol  Halon 1301 (CBrF3)
+H12_24     mol/mol  Halon 12_24
+Q4AGE      mol/mol  SSG for computing age-of-air
+::
+
+variable_table_AC::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+OXSTRAT    mol/mol  Stratospheric odd oxygen
+NOX        mol/mol  Odd nitrogen
+HNO3       mol/mol  Nitric acid
+N2O5       mol/mol  Dinitrogen pentoxide
+HO2NO2     mol/mol  Peroxynitric acid
+CLONO2     mol/mol  Chlorine nitrate
+CLX        mol/mol  Odd chlorine
+HCL        mol/mol  Hydrochloric acid
+HOCL       mol/mol  Hypochlorous acid
+H2O2       mol/mol  Hydrogen peroxide
+BRX        mol/mol  Odd bromine
+N2O        mol/mol  Nitrous oxide
+CL2        mol/mol  Molecular chlorine
+OCLO       mol/mol  Chlorine dioxide
+BRCL       mol/mol  Bromine chloride
+HBR        mol/mol  Hydrogen bromide
+BRONO2     mol/mol  Bromine nitrate
+CH4        mol/mol  Methane
+HOBR       mol/mol  Hypobromous acid
+CH3OOH     mol/mol  Methyl hydroperoxide
+CO         mol/mol  Carbon monoxide
+HNO3COND   mol/mol  Condensed nitric acid
+H2OCOND    mol/mol  Condensed water vapor in chemistry
+F11        mol/mol  CFC-11 (CCl3F)
+F12        mol/mol  CFC-12 (CCl2F2)
+F113       mol/mol  CFC-113 (CCl2FCClF2)
+HCFC       mol/mol  HCFC
+CCL4       mol/mol  Carbon tetrachloride
+CH3CCL3    mol/mol  Methyl chloroform
+CH3CL      mol/mol  Methyl chloride
+CH3BR      mol/mol  Methyl bromide
+H1301      mol/mol  Halon 1301 (CBrF3)
+H12_24     mol/mol  Halon 12_24
+::
+
+variable_table_XX::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+O3CHEM     mol/mol  Ozone from chemistry
+O3P        mol/mol  Atomic oxygen in the ground state
+O1D        mol/mol  Atomic oxygen in the first excited state
+N          mol/mol  Atomic nitrogen
+NO         mol/mol  Nitric oxide
+NO2        mol/mol  Nitrogen dioxide
+NO3        mol/mol  Nitrogen trioxide
+HATOMIC    mol/mol  Atomic hydrogen
+OH         mol/mol  Hydroxyl radical
+HO2        mol/mol  Hydroperoxyl radical
+CL         mol/mol  Atomic chlorine
+CLO        mol/mol  Chlorine monoxide
+BRO        mol/mol  Bromine monoxide
+BR         mol/mol  Atomic bromine
+CL2O2      mol/mol  Dichlorine peroxide
+CH2O       mol/mol  Formaldehyde
+CH3O2      mol/mol  Methyl peroxide
+RO3OX       none    Ozone-to-odd oxygen ratio
+::
+
+#........................................................................
+
+#               -------------------
+#               Not Implemented Yet
+#               -------------------
+
+# Whether to advect the constituent
+# ---------------------------------
+advect_H2O: yes  # water vapor 
+advect_O3:  yes  # ozone 
+advect_CO:  yes  # carbon monoxide
+advect_CO2: yes  # carbon dioxide
+advect_CFC: yes  # CFCs
+advect_DU:  yes  # mineral dust
+advect_SS:  yes  # sea salt
+advect_SU:  yes  # sulfates
+advect_BC:  yes  # black carbon
+advect_OC:  yes  # organic carbon
+advect_SC:  yes  # stratospheric chemistry
+advect_AC:  yes  # stratospheric chemistry
+advect_XX:  no   # generic tracer
+advect_PC:  yes  # parameterized chemistry (GEOS-5)
+advect_GMI: yes  # GMI chemistry (GEOS-5)
+advect_CARMA: yes  # CARMA Service Component
+
+# Whether to diffuse the constituent
+# ----------------------------------
+diffuse_H2O: yes  # water vapor 
+diffuse_O3:  yes  # ozone 
+diffuse_XX:  yes  # generic tracer
+diffuse_CO:  yes  # carbon monoxide
+diffuse_CO2: yes  # carbon dioxide
+diffuse_CFC: yes  # CFCs
+diffuse_DU:  yes  # mineral dust
+diffuse_SS:  yes  # sea salt
+diffuse_SU:  yes  # sulfates
+diffuse_BC:  yes  # black carbon
+diffuse_OC:  yes  # organic carbon
+diffuse_SC:  yes  # stratospheric chemistry
+diffuse_XX:  yes  # generic tracer
+diffuse_PC:  yes  # parameterized chemistry (GEOS-5)
+diffuse_GMI: yes  # GMI chemistry (GEOS-5)
+diffuse_CARMA: yes  # CARMA Service Component
