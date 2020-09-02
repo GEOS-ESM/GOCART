@@ -337,6 +337,8 @@ contains
     real, pointer, dimension(:,:,:)      :: ple
     real, pointer, dimension(:,:)        :: area
 
+integer :: n
+
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -434,6 +436,10 @@ contains
        call MAPL_GetPointer (internal, int_ptr, 'SS', __RC__)
        call setZeroKlid4d (self%km, self%klid, int_ptr)
     end if
+
+do i = 1, 5
+ if(mapl_am_i_root()) print*,'n = ', n,' : INIT SS2G sum(ss00n) = ',sum(int_ptr(:,:,:,i))
+end do
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
@@ -664,6 +670,10 @@ contains
 
 #include "SS2G_GetPointer___.h"
 
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+end do
+
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
@@ -720,6 +730,10 @@ contains
           SSEM(:,:,n) = memissions
        end if
     end do !n = 1
+
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+end do
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
@@ -781,6 +795,10 @@ contains
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=INTERNAL, __RC__)
 
 #include "SS2G_GetPointer___.h"
+
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+end do
 
 !   Get my private internal state
 !   ------------------------------
@@ -1019,6 +1037,7 @@ end do
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
 
