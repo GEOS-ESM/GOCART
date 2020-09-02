@@ -1017,6 +1017,30 @@ contains
                              conc=CACONC, extcoef=CAEXTCOEF, scacoef=CASCACOEF, angstrom=CAANGSTR, aerindx=CAAERIDX,&
                              __RC__)
 
+if (trim(comp_name) == 'CA.oc') then
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphobic) = ',sum(CAphobic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphilic) = ',sum(CAphilic)
+!  if(mapl_am_i_root()) print*,'CA2G Run2 E array OCphobic = ',CAphobic
+!  if(mapl_am_i_root()) print*,'CA2G Run2 E array OCphilic = ',CAphilic
+!if(mapl_am_i_root()) print*,'CA2G OC CASMASS = ',sum(CASMASS)
+!if(mapl_am_i_root()) print*,'CA2G OC CAMASS = ',sum(CAMASS)
+!if(mapl_am_i_root()) print*,'CA2G OC CAEXTTAU = ',sum(CAEXTTAU)
+!if(mapl_am_i_root()) print*,'CA2G OC CASCATAU = ',sum(CASCATAU)
+else if (trim(comp_name) == 'CA.bc') then
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BCphobic) = ',sum(CAphobic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BCphilic) = ',sum(CAphilic)
+!  if(mapl_am_i_root()) print*,'CA2G Run2 E array BCphobic = ',CAphobic
+!  if(mapl_am_i_root()) print*,'CA2G Run2 E array BCphilic = ',CAphilic
+!if(mapl_am_i_root()) print*,'CA2G BC CASMASS = ',sum(CASMASS)
+!if(mapl_am_i_root()) print*,'CA2G BC CAMASS = ',sum(CAMASS)
+!if(mapl_am_i_root()) print*,'CA2G BC CAEXTTAU = ',sum(CAEXTTAU)
+!if(mapl_am_i_root()) print*,'CA2G BC CASCATAU = ',sum(CASCATAU)
+else if (trim(comp_name) == 'CA.br') then
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphobic) = ',sum(CAphobic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphilic) = ',sum(CAphilic)
+end if
+
+
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2
@@ -1209,6 +1233,7 @@ contains
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
 
