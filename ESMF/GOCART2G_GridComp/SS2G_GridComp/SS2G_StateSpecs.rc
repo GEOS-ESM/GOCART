@@ -1,0 +1,106 @@
+schema_version: 2.0.0
+component: SS
+
+category: IMPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE          | DIMENSIONS|          Additional Metadata
+#----------------------------------------------------------------------------------------
+     NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
+#----------------------------------------------------------------------------------------
+ FROCEAN    | 1      | xy   | N   |      | fraction_of_ocean
+ FRACI      | 1      | xy   | N   |      | ice_covered_fraction_of_tile
+ LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
+ U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
+ V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
+ USTAR      | m s-1  | xy   | N   |      | surface_velocity_scale
+ TS         | K      | xy   | N   |      | surface skin temperature
+ DZ         | m      | xy   | N   |      | surface_layer_height
+ FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
+ AREA       | m^2    | xy   | N   |      | agrid_cell_area
+ ZPBL       | m      | xy   | N   |      | planetary_boundary_layer_height
+ SH         | w m-2  | xy   | N   |      | sensible_heat_flux_from_turbulence
+ Z0H        | m      | xy   | N   |      | surface_roughness_for_heat
+ CN_PRCP    |kg/m^2/s| xy   | N   |      | surface_conv._rain_flux_needed_by_land
+ NCN_PRCP   |kg/m^2/s| xy   | N   |      | Non-convective precipitation
+#........................................................................................
+ AIRDENS    | kg/m^3 | xyz  | C   |      | moist_air_density
+ DELP       | Pa     | xyz  | C   |      | pressure_thickness
+ T          | K      | xyz  | C   |      | air_temperature
+ RH2        | 1      | xyz  | C   |      | Rel_Hum_after_moist
+ ZLE        | m      | xyz  | E   |      | geopotential_height
+ PLE        | Pa     | xyz  | E   |      | air_pressure
+ PFL_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_liquid_nonconvective_precipitation
+ PFI_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_ice_nonconvective_precipitation
+ U          | m s-1  | xyz  | C   |      | eastward_wind
+ V          | m s-1  | xyz  | C   |      | northward_wind
+
+category: EXPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE              | DIMENSIONS |          Additional Metadata
+#----------------------------------------------------------------------------------------
+ NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
+#----------------------------------------------------------------------------------------
+ SSMASS    | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio                     __ENSEMBLE__
+ SSMASS25  | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio - PM 2.5            __ENSEMBLE__
+ SSCONC    | kg m-3     | xyz | C   |            | Sea Salt Mass Concentration                    __ENSEMBLE__
+ SSEXTCOEF | m-1        | xyz | C   |            | Sea Salt Extinction Coefficient [550 nm]       __ENSEMBLE__
+ SSSCACOEF | m-1        | xyz | C   |            | Sea Salt Scattering Coefficient [550 nm]       __ENSEMBLE__
+#..........|............|.....|.....|............|..................................
+ SSEM      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Emission All Bins                      __ENSEMBLE__
+ SSSD      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Sedimentation All Bins                 __ENSEMBLE__
+ SSDP      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Dry Deposition All Bins                __ENSEMBLE__
+ SSWT      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Wet Deposition All Bins                __ENSEMBLE__
+ SSSV      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Convective Scavenging All Bins         __ENSEMBLE__
+ SSSMASS   | kg m-3     | xy  | N   |            | Sea Salt Surface Mass Concentration            __ENSEMBLE__
+ SSCMASS   | kg m-2     | xy  | N   |            | Sea Salt Column Mass Density                   __ENSEMBLE__
+ SSEXTTAU  |    1       | xy  | N   |            | Sea Salt Extinction AOT [550 nm]               __ENSEMBLE__
+ SSSCATAU  |    1       | xy  | N   |            | Sea Salt Scattering AOT [550 nm]               __ENSEMBLE__
+ SSSMASS25 | kg m-3     | xy  | N   |            | Sea Salt Surface Mass Concentration - PM 2.5   __ENSEMBLE__
+ SSCMASS25 | kg m-2     | xy  | N   |            | Sea Salt Column Mass Density - PM 2.5          __ENSEMBLE__
+ SSEXTT25  |    1       | xy  | N   |            | Sea Salt Extinction AOT [550 nm] - PM 2.5      __ENSEMBLE__
+ SSSCAT25  |    1       | xy  | N   |            | Sea Salt Scattering AOT [550 nm] - PM 2.5      __ENSEMBLE__
+ SSAERIDX  |    1       | xy  | N   |            | Sea Salt TOMS UV Aerosol Index                 __ENSEMBLE__
+ SSEXTTFM  |    1       | xy  | N   |            | Sea Salt Extinction AOT [550 nm] - PM 1.0 um   __ENSEMBLE__
+ SSSCATFM  |    1       | xy  | N   |            | Sea Salt Scattering AOT [550 nm] - PM 1.0 um   __ENSEMBLE__
+ SSANGSTR  |    1       | xy  | N   |            | Sea Salt Angstrom parameter [470-870 nm]       __ENSEMBLE__
+ SSFLUXU   | kg m-1 s-1 | xy  | N   |            | Sea Salt column u-wind mass flux               __ENSEMBLE__
+ SSFLUXV   | kg m-1 s-1 | xy  | N   |            | Sea Salt column v-wind mass flux               __ENSEMBLE__
+
+
+category: INTERNAL
+#----------------------------------------------------------------------------------------
+#  VARIABLE                | DIMENSION        |          Additional Metadata
+#----------------------------------------------------------------------------------------
+  NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
+#----------------------------------------------------------------------------------------
+ SS    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio all bins
+
+
+#********************************************************
+#
+# Legend
+#
+#------------------------------------------------------------------
+# Column label | MAPL keyword/interpretation |  Default
+#--------------|---------------------------------------------------
+# NAME         | short_name                  |
+# UNITS        | units                       |
+# DIMS         | dims                        |
+# VLOC         | VLocation                   | MAPL_VLocationNone
+# LONG NAME    | long_name                   |
+# COND         | if (<logical-expr>) then    |  .FALSE.
+# NUM_SUBTILES | num_subtiles
+# ...
+#------------------------------------------------------------------
+#
+#--------------------------------------------
+# Entry alias  | Column | MAPL keyword/interpretation
+#--------------|-----------------------------
+# xyz          | DIMS   | MAPL_HorzVert
+# xy           | DIMS   | MAPL_HorzOnly
+# z            | DIMS   | MAPL_VertOnly  (plus ungridded)
+# C            | VLOC   | MAPL_VlocationCenter
+# E            | VLOC   | MAPL_VlocationEdge
+# N            | VLOC   | MAPL_VlocationNone
+#--------------------------------------------
+

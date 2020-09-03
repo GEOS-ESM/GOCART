@@ -1,0 +1,25 @@
+#
+# Chemistry Initialization Resource File
+#
+
+# CO
+# ----------------------------------------------------
+amp_CO: 1e18    # positive for total mass [kg]; negative for mmr
+lat0_CO:  0.   # latitude
+lon0_CO:   0.   # longitude
+z0_CO:     5.   # altitude  [km]
+rx_CO:  4000.   # axis E-W  [km]
+ry_CO:   500.   # axis N-S  [km]
+rz_CO:     2.   # axis in z [km]
+
+# DU
+# ----------------------------------------------------
+amp_DU: 0.    # positive for total mass [kg]; negative for mmr
+lat0_DU:  0.   # latitude
+lon0_DU:   0.   # longitude
+z0_DU:     5.   # altitude  [km]
+rx_DU:  4000.   # axis E-W  [km]
+ry_DU:   500.   # axis N-S  [km]
+rz_DU:     2.   # axis in z [km]
+
+

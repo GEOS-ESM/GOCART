@@ -1,0 +1,340 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: OC
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+<OC::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |            |     | V |Item|Intervl|# Sub|          Long
+#  Name    |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASS   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             __ENSEMBLE__
+  OCCONC   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            __ENSEMBLE__
+  OCEXTCOEF| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   __ENSEMBLE__
+  OCSCACOEF| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   __ENSEMBLE__
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              __ENSEMBLE__     
+  OCEM002  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              __ENSEMBLE__    
+  OCSD001  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001        __ENSEMBLE__    
+  OCSD002  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002        __ENSEMBLE__    
+  OCDP001  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        __ENSEMBLE__    
+  OCDP002  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        __ENSEMBLE__    
+  OCWT001  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        __ENSEMBLE__    
+  OCWT002  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        __ENSEMBLE__    
+  OCSV001  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 __ENSEMBLE__    
+  OCSV002  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 __ENSEMBLE__    
+  OCHYPHIL | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    __ENSEMBLE__  
+  OCEMAN   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       __ENSEMBLE__
+  OCEMBB   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     __ENSEMBLE__
+  OCEMBF   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             __ENSEMBLE__
+  OCEMBG   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            __ENSEMBLE__
+  OCPSOA   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                __ENSEMBLE__
+  OCSMASS  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    __ENSEMBLE__ 
+  OCCMASS  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           __ENSEMBLE__ 
+  OCEXTTAU |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       __ENSEMBLE__
+  OCSCATAU |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       __ENSEMBLE__  
+  OCANGSTR |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] __ENSEMBLE__
+  OCFLUXU  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       __ENSEMBLE__
+  OCFLUXV  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       __ENSEMBLE__
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbiob   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             biob
+  OCCONCbiob   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            biob
+  OCEXTCOEFbiob| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   biob
+  OCSCACOEFbiob| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   biob
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              biob     
+  OCEM002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              biob    
+  OCSD001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001        biob    
+  OCSD002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002        biob    
+  OCDP001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        biob    
+  OCDP002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        biob    
+  OCWT001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        biob    
+  OCWT002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        biob    
+  OCSV001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 biob    
+  OCSV002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 biob    
+  OCHYPHILbiob | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    biob  
+  OCEMANbiob   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       biob
+  OCEMBBbiob   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     biob
+  OCEMBFbiob   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             biob
+  OCEMBGbiob   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            biob
+  OCPSOAbiob   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                biob
+  OCSMASSbiob  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    biob 
+  OCCMASSbiob  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           biob 
+  OCEXTTAUbiob |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       biob
+  OCSCATAUbiob |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       biob  
+  OCANGSTRbiob |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] biob
+  OCFLUXUbiob  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       biob
+  OCFLUXVbiob  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       biob
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSanth   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             anth
+  OCCONCanth   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            anth
+  OCEXTCOEFanth| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   anth
+  OCSCACOEFanth| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   anth
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              anth     
+  OCEM002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              anth    
+  OCSD001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001        anth    
+  OCSD002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002        anth    
+  OCDP001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        anth    
+  OCDP002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        anth    
+  OCWT001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        anth    
+  OCWT002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        anth    
+  OCSV001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 anth    
+  OCSV002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 anth    
+  OCHYPHILanth | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    anth  
+  OCEMANanth   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       anth
+  OCEMBBanth   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     anth
+  OCEMBFanth   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             anth
+  OCEMBGanth   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            anth
+  OCPSOAanth   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                anth
+  OCSMASSanth  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    anth 
+  OCCMASSanth  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           anth 
+  OCEXTTAUanth |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       anth
+  OCSCATAUanth |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       anth  
+  OCANGSTRanth |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] anth
+  OCFLUXUanth  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       anth
+  OCFLUXVanth  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       anth
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbsun   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             bsun
+  OCCONCbsun   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            bsun
+  OCEXTCOEFbsun| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   bsun
+  OCSCACOEFbsun| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   bsun
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              bsun     
+  OCEM002bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              bsun    
+  OCSD001bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001         bsun    
+  OCSD002bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002         bsun    
+  OCDP001bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        bsun    
+  OCDP002bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        bsun    
+  OCWT001bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        bsun    
+  OCWT002bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        bsun    
+  OCSV001bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 bsun    
+  OCSV002bsun  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 bsun    
+  OCHYPHILbsun | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    bsun  
+  OCEMANbsun   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       bsun
+  OCEMBBbsun   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     bsun
+  OCEMBFbsun   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             bsun
+  OCEMBGbsun   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            bsun
+  OCPSOAbsun   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                bsun
+  OCSMASSbsun  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    bsun 
+  OCCMASSbsun  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           bsun 
+  OCEXTTAUbsun |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       bsun
+  OCSCATAUbsun |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       bsun  
+  OCANGSTRbsun |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] bsun
+  OCFLUXUbsun  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       bsun
+  OCFLUXVbsun  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       bsun
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbmon   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             bmon
+  OCCONCbmon   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            bmon
+  OCEXTCOEFbmon| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   bmon
+  OCSCACOEFbmon| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   bmon
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              bmon     
+  OCEM002bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              bmon    
+  OCSD001bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001         bmon    
+  OCSD002bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002         bmon    
+  OCDP001bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        bmon    
+  OCDP002bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        bmon    
+  OCWT001bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        bmon    
+  OCWT002bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        bmon    
+  OCSV001bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 bmon    
+  OCSV002bmon  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 bmon    
+  OCHYPHILbmon | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    bmon  
+  OCEMANbmon   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       bmon
+  OCEMBBbmon   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     bmon
+  OCEMBFbmon   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             bmon
+  OCEMBGbmon   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            bmon
+  OCPSOAbmon   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                bmon
+  OCSMASSbmon  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    bmon 
+  OCCMASSbmon  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           bmon 
+  OCEXTTAUbmon |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       bmon
+  OCSCATAUbmon |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       bmon  
+  OCANGSTRbmon |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] bmon
+  OCFLUXUbmon  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       bmon
+  OCFLUXVbmon  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       bmon
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbtue   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             btue
+  OCCONCbtue   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            btue
+  OCEXTCOEFbtue| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   btue
+  OCSCACOEFbtue| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   btue
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              btue     
+  OCEM002btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              btue    
+  OCSD001btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001         btue    
+  OCSD002btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002         btue    
+  OCDP001btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        btue    
+  OCDP002btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        btue    
+  OCWT001btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        btue    
+  OCWT002btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        btue    
+  OCSV001btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 btue    
+  OCSV002btue  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 btue    
+  OCHYPHILbtue | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    btue  
+  OCEMANbtue   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       btue
+  OCEMBBbtue   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     btue
+  OCEMBFbtue   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             btue
+  OCEMBGbtue   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            btue
+  OCPSOAbtue   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                btue
+  OCSMASSbtue  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    btue 
+  OCCMASSbtue  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           btue 
+  OCEXTTAUbtue |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       btue
+  OCSCATAUbtue |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       btue  
+  OCANGSTRbtue |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] btue
+  OCFLUXUbtue  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       btue
+  OCFLUXVbtue  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       btue
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbwed   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             bwed
+  OCCONCbwed   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            bwed
+  OCEXTCOEFbwed| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   bwed
+  OCSCACOEFbwed| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   bwed
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              bwed     
+  OCEM002bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              bwed    
+  OCSD001bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001         bwed    
+  OCSD002bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002         bwed    
+  OCDP001bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        bwed    
+  OCDP002bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        bwed    
+  OCWT001bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        bwed    
+  OCWT002bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        bwed    
+  OCSV001bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 bwed    
+  OCSV002bwed  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 bwed    
+  OCHYPHILbwed | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    bwed  
+  OCEMANbwed   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       bwed
+  OCEMBBbwed   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     bwed
+  OCEMBFbwed   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             bwed
+  OCEMBGbwed   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            bwed
+  OCPSOAbwed   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                bwed
+  OCSMASSbwed  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    bwed 
+  OCCMASSbwed  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           bwed 
+  OCEXTTAUbwed |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       bwed
+  OCSCATAUbwed |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       bwed  
+  OCANGSTRbwed |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] bwed
+  OCFLUXUbwed  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       bwed
+  OCFLUXVbwed  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       bwed
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbthu   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             bthu
+  OCCONCbthu   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            bthu
+  OCEXTCOEFbthu| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   bthu
+  OCSCACOEFbthu| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   bthu
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              bthu     
+  OCEM002bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              bthu    
+  OCSD001bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001         bthu    
+  OCSD002bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002         bthu    
+  OCDP001bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        bthu    
+  OCDP002bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        bthu    
+  OCWT001bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        bthu    
+  OCWT002bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        bthu    
+  OCSV001bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 bthu    
+  OCSV002bthu  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 bthu    
+  OCHYPHILbthu | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    bthu  
+  OCEMANbthu   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       bthu
+  OCEMBBbthu   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     bthu
+  OCEMBFbthu   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             bthu
+  OCEMBGbthu   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            bthu
+  OCPSOAbthu   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                bthu
+  OCSMASSbthu  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    bthu 
+  OCCMASSbthu  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           bthu 
+  OCEXTTAUbthu |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       bthu
+  OCSCATAUbthu |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       bthu  
+  OCANGSTRbthu |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] bthu
+  OCFLUXUbthu  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       bthu
+  OCFLUXVbthu  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       bthu
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbfri   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             bfri
+  OCCONCbfri   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            bfri
+  OCEXTCOEFbfri| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   bfri
+  OCSCACOEFbfri| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   bfri
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              bfri     
+  OCEM002bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              bfri    
+  OCSD001bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001         bfri    
+  OCSD002bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002         bfri    
+  OCDP001bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        bfri    
+  OCDP002bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        bfri    
+  OCWT001bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        bfri    
+  OCWT002bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        bfri    
+  OCSV001bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 bfri    
+  OCSV002bfri  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 bfri    
+  OCHYPHILbfri | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    bfri  
+  OCEMANbfri   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       bfri
+  OCEMBBbfri   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     bfri
+  OCEMBFbfri   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             bfri
+  OCEMBGbfri   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            bfri
+  OCPSOAbfri   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                bfri
+  OCSMASSbfri  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    bfri 
+  OCCMASSbfri  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           bfri 
+  OCEXTTAUbfri |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       bfri
+  OCSCATAUbfri |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       bfri  
+  OCANGSTRbfri |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] bfri
+  OCFLUXUbfri  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       bfri
+  OCFLUXVbfri  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       bfri
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbsat   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             bsat
+  OCCONCbsat   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            bsat
+  OCEXTCOEFbsat| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   bsat
+  OCSCACOEFbsat| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   bsat
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              bsat     
+  OCEM002bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              bsat    
+  OCSD001bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001         bsat    
+  OCSD002bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002         bsat    
+  OCDP001bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        bsat    
+  OCDP002bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        bsat    
+  OCWT001bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        bsat    
+  OCWT002bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        bsat    
+  OCSV001bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 bsat    
+  OCSV002bsat  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 bsat    
+  OCHYPHILbsat | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    bsat  
+  OCEMANbsat   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       bsat
+  OCEMBBbsat   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     bsat
+  OCEMBFbsat   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             bsat
+  OCEMBGbsat   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            bsat
+  OCPSOAbsat   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                bsat  
+  OCSMASSbsat  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    bsat 
+  OCCMASSbsat  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           bsat 
+  OCEXTTAUbsat |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       bsat
+  OCSCATAUbsat |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       bsat  
+  OCANGSTRbsat |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] bsat
+  OCFLUXUbsat  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       bsat
+  OCFLUXVbsat  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       bsat
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  OCMASSbbgl   | kg kg-1    | xyz | C |    |   |   |     | Organic Carbon Mass Mixing Ratio             bbgl
+  OCCONCbbgl   | kg m-3     | xyz | C |    |   |   |     | Organic Carbon Mass Concentration            bbgl
+  OCEXTCOEFbbgl| m-1        | xyz | C |    |   |   |     | Organic Carbon Ext.   Coefficient [550 nm]   bbgl
+  OCSCACOEFbbgl| m-1        | xyz | C |    |   |   |     | Organic Carbon Scatt. Coefficient [550 nm]   bbgl
+# .........|............|.....|...|....|...|...|.....|..................................
+  OCEM001bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 001              bbgl     
+  OCEM002bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Emission Bin 002              bbgl    
+  OCSD001bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 001         bbgl    
+  OCSD002bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Sedimentation Bin 002         bbgl    
+  OCDP001bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 001        bbgl    
+  OCDP002bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Dry Deposition Bin 002        bbgl    
+  OCWT001bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 001        bbgl    
+  OCWT002bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Wet Deposition Bin 002        bbgl    
+  OCSV001bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 001 bbgl    
+  OCSV002bbgl  | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Convective Scavenging Bin 002 bbgl    
+  OCHYPHILbbgl | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Hydrophobic to Hydrophilic    bbgl  
+  OCEMANbbgl   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Anthropogenic Emissions       bbgl
+  OCEMBBbbgl   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biomass Burning Emissions     bbgl
+  OCEMBFbbgl   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biofuel Emissions             bbgl
+  OCEMBGbbgl   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon Biogenic Emissions            bbgl
+  OCPSOAbbgl   | kg m-2 s-1 | xy  |   |    |   |   |     | Organic Carbon SOA Production                bbgl
+  OCSMASSbbgl  | kg m-3     | xy  |   |    |   |   |     | Organic Carbon Surface Mass Concentration    bbgl 
+  OCCMASSbbgl  | kg m-2     | xy  |   |    |   |   |     | Organic Carbon Column Mass Density           bbgl 
+  OCEXTTAUbbgl |      1     | xy  |   |    |   |   |     | Organic Carbon Extinction AOT [550 nm]       bbgl
+  OCSCATAUbbgl |      1     | xy  |   |    |   |   |     | Organic Carbon Scattering AOT [550 nm]       bbgl  
+  OCANGSTRbbgl |      1     | xy  |   |    |   |   |     | Organic Carbon Angstrom parameter [470-870 nm] bbgl
+  OCFLUXUbbgl  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column u-wind mass flux       bbgl
+  OCFLUXVbbgl  | kg m-1 s-1 | xy  |   |    |   |   |     | Organic Carbon column v-wind mass flux       bbgl
+</OC::ExportSpec>

@@ -1,0 +1,106 @@
+schema_version: 2.0.0
+component: DU
+
+category: IMPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE          | DIMENSIONS|          Additional Metadata
+#----------------------------------------------------------------------------------------
+     NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
+#----------------------------------------------------------------------------------------
+ DU_SRC     | 1      | xy   | N   |      | erod
+ FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
+ WET1       | 1      | xy   | N   |      | surface_soil_wetness
+ LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
+ U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
+ V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
+ AREA       | m^2    | xy   | N   |      | agrid_cell_area
+ USTAR      | m s-1  | xy   | N   |      | equivalent_neutral_10-meter_northward_wind
+ CN_PRCP    |kg/m^2/s| xy   | N   |      | surface_conv._rain_flux_needed_by_land
+ NCN_PRCP   |kg/m^2/s| xy   | N   |      | Non-convective precipitation
+ ZPBL       | m      | xy   | N   |      | planetary_boundary_layer_height
+ SH         | w m-2  | xy   | N   |      | sensible_heat_flux_from_turbulence
+ Z0H        | m      | xy   | N   |      | surface_roughness_for_heat
+#........................................................................................
+ AIRDENS    | kg/m^3 | xyz  | C   |      | moist_air_density
+ DELP       | Pa     | xyz  | C   |      | pressure_thickness
+ RH2        | 1      | xyz  | C   |      | Rel_Hum_after_moist
+ T          | K      | xyz  | C   |      | air_temperature
+ ZLE        | m      | xyz  | E   |      | geopotential_height
+ PLE        | Pa     | xyz  | E   |      | air_pressure
+ PFL_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_liquid_nonconvective_precipitation
+ PFI_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_ice_nonconvective_precipitation
+ U          | m s-1  | xyz  | C   |      | eastward_wind
+ V          | m s-1  | xyz  | C   |      | northward_wind
+
+category: EXPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE              | DIMENSIONS |          Additional Metadata
+#----------------------------------------------------------------------------------------
+ NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
+#----------------------------------------------------------------------------------------
+ DUMASS     | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
+ DUMASS25   | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
+ DUCONC     | kg m-3     | xyz | C  |            | Dust Mass Concentration                     __ENSEMBLE__
+ DUEXTCOEF  | m-1        | xyz | C  |            | Dust Extinction Coefficient [550 nm]        __ENSEMBLE__
+ DUSCACOEF  | m-1        | xyz | C  |            | Dust Scattering Coefficient [550 nm]        __ENSEMBLE__
+#........................................................................................
+ DUSMASS    | kg m-3     | xy  | N  |            | Dust Surface Mass Concentration             __ENSEMBLE__
+ DUCMASS    | kg m-2     | xy  | N  |            | Dust Column Mass Density                    __ENSEMBLE__
+ DUEXTTAU   |    1       | xy  | N  |            | Dust Extinction AOT [550 nm]                __ENSEMBLE__
+ DUSCATAU   |    1       | xy  | N  |            | Dust Scattering AOT [550 nm]                __ENSEMBLE__
+ DUSMASS25  | kg m-3     | xy  | N  |            | Dust Surface Mass Concentration - PM 2.5    __ENSEMBLE__
+ DUCMASS25  | kg m-2     | xy  | N  |            | Dust Column Mass Density - PM 2.5           __ENSEMBLE__
+ DUEXTT25   |    1       | xy  | N  |            | Dust Extinction AOT [550 nm] - PM 2.5       __ENSEMBLE__
+ DUSCAT25   |    1       | xy  | N  |            | Dust Scattering AOT [550 nm] - PM 2.5       __ENSEMBLE__
+ DUAERIDX   |    1       | xy  | N  |            | Dust TOMS UV Aerosol Index                  __ENSEMBLE__
+ DUFLUXU    | kg m-1 s-1 | xy  | N  |            | Dust column u-wind mass flux                __ENSEMBLE__
+ DUFLUXV    | kg m-1 s-1 | xy  | N  |            | Dust column v-wind mass flux                __ENSEMBLE__  
+ DUEXTTFM   |    1       | xy  | N  |            | Dust Extinction AOT [550 nm] - PM 1.0 um    __ENSEMBLE__  
+ DUSCATFM   |    1       | xy  | N  |            | Dust Scattering AOT [550 nm] - PM 1.0 um    __ENSEMBLE__  
+ DUANGSTR   |    1       | xy  | N  |            | Dust Angstrom parameter [470-870 nm]        __ENSEMBLE__
+ DUEM       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Emission All Bins                  __ENSEMBLE__
+ DUSD       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Sedimentation All Bins             __ENSEMBLE__
+ DUDP       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Dry Deposition All Bins            __ENSEMBLE__
+ DUWT       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Wet Deposition All Bins            __ENSEMBLE__
+ DUSV       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Convective Scavenging All Bins     __ENSEMBLE__
+
+
+category: INTERNAL
+#----------------------------------------------------------------------------------------
+#  VARIABLE                | DIMENSION        |          Additional Metadata
+#----------------------------------------------------------------------------------------
+  NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
+#----------------------------------------------------------------------------------------
+ DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dust Mixing Ratio all bins
+
+
+
+#********************************************************
+#
+# Legend
+#
+#------------------------------------------------------------------
+# Column label | MAPL keyword/interpretation |  Default
+#--------------|---------------------------------------------------
+# NAME         | short_name                  |
+# UNITS        | units                       |
+# DIMS         | dims                        |
+# VLOC         | VLocation                   | MAPL_VLocationNone
+# LONG NAME    | long_name                   |
+# COND         | if (<logical-expr>) then    |  .FALSE.
+# NUM_SUBTILES | num_subtiles
+# ...
+#------------------------------------------------------------------
+#
+#--------------------------------------------
+# Entry alias  | Column | MAPL keyword/interpretation
+#--------------|-----------------------------
+# xyz          | DIMS   | MAPL_HorzVert
+# xy           | DIMS   | MAPL_HorzOnly
+# z            | DIMS   | MAPL_VertOnly  (plus ungridded)
+# C            | VLOC   | MAPL_VlocationCenter
+# E            | VLOC   | MAPL_VlocationEdge
+# N            | VLOC   | MAPL_VlocationNone
+#--------------------------------------------
+
+

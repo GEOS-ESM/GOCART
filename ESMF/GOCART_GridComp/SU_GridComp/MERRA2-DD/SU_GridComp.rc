@@ -1,0 +1,19 @@
+#
+#  SU main resource file defining the particular instances.
+#
+#  For detailed description of the GloPac tags consult:
+#
+#  http://www.geos5.org/wiki/index.php?title=GEOS-5_Configuration_for_GloPac
+#
+# ------------------|-------|------------
+#       Region      | Tag   |   Masking
+# ------------------|-------|------------
+#  Boreal           | bbbo  | [45N, 90N]
+#  Non-Boreal       | bbnb  | [90S, 45N)
+#  Northern Asia    | ffru  | 9, 10
+#  Southern Asian   | ffas  |   4
+#  Europe           | ffeu  |   3
+#  North America    | ffna  |   1
+# ------------------|-------|------------
+
+SU_instances: full volc

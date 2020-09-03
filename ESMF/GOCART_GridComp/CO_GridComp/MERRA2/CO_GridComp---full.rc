@@ -1,0 +1,13 @@
+#
+# Resource file for CO parameters. 
+#
+
+# Run-time debug switch (0 off, 1 on)
+# -----------------------------------
+DEBUG: 0
+
+# Run-time switch on OH provider units
+# Permissable string is "mol/mol" or "mol mol-1"
+# else resorts to assuming "molecules cm-3"
+#------------------------------------------
+units_oh: 0

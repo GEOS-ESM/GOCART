@@ -1,0 +1,55 @@
+PrimaryExports%%
+# -------------|----------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |          |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        |   Units  | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|----------|-------|--------|----------------------|--------|--------|-------------|----------|
+# Biomass burning
+SU_BIOMASS      kgSO2/m2/s    N        Y     %y4-%m2-%d2t12:00:00     none    none    biomass          /discover/nobackup/mmanyin/CCM/EXT_DATA/SU/CCMI/CCMI_REF-C2.bioburn_SO2.x720_y361_t12.%y4.nc
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+SU_ANTHROL1     kgSO2/m2/s    N        Y     %y4-%m2-%d2t12:00:00     none    none    sanl1            /discover/nobackup/mmanyin/CCM/EXT_DATA/SU/CCMI/CCMI_REF-C2.nonenergy_anth_SO2.x720_y361_t12.%y4.nc
+SU_ANTHROL2     kgSO2/m2/s    N        Y     %y4-%m2-%d2t12:00:00     none    none    sanl2            /discover/nobackup/mmanyin/CCM/EXT_DATA/SU/CCMI/CCMI_REF-C2.energy_SO2.x720_y361_t12.%y4.nc
+
+# Ship emissions
+SU_SHIPSO2         NA         N        N     %y4-%m2-%d2t12:00:00     none    none    so2_ship         /dev/null
+SU_SHIPSO4         NA         N        N     %y4-%m2-%d2t12:00:00     none    none    so4_ship         /dev/null
+
+# Aircraft fuel consumption
+SU_AIRCRAFT     kgFUEL/m2/s   N        Y     %y4-%m2-%d2t12:00:00     none    none    fuel             /discover/nobackup/mmanyin/CCM/EXT_DATA/SU/AeroCom/AeroCom.aircraft_fuel.eta.x288_y181_z72_t12.%y4.nc
+
+# DMS concentration
+SU_DMSO            NA         Y        Y     %y4-%m2-%d2t12:00:00     none    none    conc             ExtData/AeroCom/sfc/DMSclim_sfcconcentration.x360_y181_t12.2000.nc
+
+# H2O2, OH and NO3 mixing ratios
+SU_H2O2            NA         N        N     %y4-%m2-%d2t12:00:00     none    none    h2o2             NOT_USING
+SU_OH              NA         N        N     %y4-%m2-%d2t12:00:00     none    none    oh               NOT_USING
+SU_NO3             NA         N        N     %y4-%m2-%d2t12:00:00     none    none    no3              NOT_USING
+
+# Aviation emissions during the three phases of flight
+SU_AVIATION_LTO    NA         N        Y     %y4-%m2-%d2t12:00:00     none    none    none             /dev/null
+SU_AVIATION_CDS    NA         N        Y     %y4-%m2-%d2t12:00:00     none    none    none             /dev/null
+SU_AVIATION_CRS    NA         N        Y     %y4-%m2-%d2t12:00:00     none    none    none             /dev/null
+
+#### Volcanic:
+
+SU_BIOMASSvolc  kgSO2/m2/s    Y        Y     %y4-%m2-%d2t12:00:00     none    none    biomass          /dev/null
+SU_ANTHROL1volc kgSO2/m2/s    Y        Y     %y4-%m2-%d2t12:00:00     none    none    sanl1            /dev/null
+SU_ANTHROL2volc kgSO2/m2/s    Y        Y     %y4-%m2-%d2t12:00:00     none    none    sanl2            /dev/null
+SU_SHIPSO2volc     NA         N        N     %y4-%m2-%d2t12:00:00     none    none    so2_ship         /dev/null
+SU_SHIPSO4volc     NA         N        N     %y4-%m2-%d2t12:00:00     none    none    so4_ship         /dev/null
+SU_AIRCRAFTvolc kgFUEL/m2/s   Y        Y     %y4-%m2-%d2t12:00:00     none    none    fuel             /dev/null
+SU_DMSOvolc        NA         Y        Y     %y4-%m2-%d2t12:00:00     none    none    conc             /dev/null
+SU_H2O2volc        NA         N        N     %y4-%m2-%d2t12:00:00     none    none    h2o2             NOT_USING
+SU_OHvolc          NA         N        N     %y4-%m2-%d2t12:00:00     none    none    oh               NOT_USING
+SU_NO3volc         NA         N        N     %y4-%m2-%d2t12:00:00     none    none    no3              NOT_USING
+SU_AVIATION_LTOvolc NA        N        Y     %y4-%m2-%d2t12:00:00     none    none    none             /dev/null
+SU_AVIATION_CDSvolc NA        N        Y     %y4-%m2-%d2t12:00:00     none    none    none             /dev/null
+SU_AVIATION_CRSvolc NA        N        Y     %y4-%m2-%d2t12:00:00     none    none    none             /dev/null
+
+# Production of SO2 from OCS oxidation
+pSO2_OCS NA Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+#### Masks:
+
+SU_regionMask      NA         N        V            -                 none    none    REGION_MASK      ExtData/AeroCom/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+%%

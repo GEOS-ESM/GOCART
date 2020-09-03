@@ -1,0 +1,32 @@
+GOCART_tracer_config: GOCART_Tracers.yaml
+
+NOAA_tracer_config: default
+
+default.inst_tracer_mass_frac:
+    QV        1
+    QL        2
+    rain      3
+    ice       4
+    snow      5
+    grapel    6
+    O3        7
+    SO2       8
+    SO4       9
+    DMS      10
+    MSA      11
+    BCPhobic 13
+    BCPhilic 14
+    OCPhobic 15
+    OCPhilic 16
+    DU001    17
+    DU002    18
+    DU003    19
+    DU004    20
+    DU005    21
+    SS001    22
+    SS002    23
+    SS003    24
+    SS004    25
+    SS005    26
+    CLDTT    28
+::

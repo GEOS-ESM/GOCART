@@ -1,0 +1,135 @@
+schema_version: 2.0.0
+component: CA
+
+category: IMPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE          | DIMENSIONS|          Additional Metadata
+#----------------------------------------------------------------------------------------
+     NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
+#----------------------------------------------------------------------------------------
+ FROCEAN    | 1      | xy   | N   |      | fraction_of_ocean
+ FRACI      | 1      | xy   | N   |      | ice_covered_fraction_of_tile
+ LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
+ U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
+ V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
+ USTAR      | m s-1  | xy   | N   |      | surface_velocity_scale
+# TS         | K      | xy   | N   |      | surface skin temperature
+# DZ         | m      | xy   | N   |      | surface_layer_height
+ FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
+ AREA       | m^2    | xy   | N   |      | agrid_cell_area
+ ZPBL       | m      | xy   | N   |      | planetary_boundary_layer_height
+ SH         | w m-2  | xy   | N   |      | sensible_heat_flux_from_turbulence
+ Z0H        | m      | xy   | N   |      | surface_roughness_for_heat
+ CN_PRCP    |kg/m^2/s| xy   | N   |      | surface_conv._rain_flux_needed_by_land
+ NCN_PRCP   |kg/m^2/s| xy   | N   |      | Non-convective precipitation
+#........................................................................................
+ AIRDENS    | kg/m^3 | xyz  | C   |      | moist_air_density
+ DELP       | Pa     | xyz  | C   |      | pressure_thickness
+ T          | K      | xyz  | C   |      | air_temperature
+ RH2        | 1      | xyz  | C   |      | Rel_Hum_after_moist
+ ZLE        | m      | xyz  | E   |      | geopotential_height
+ PLE        | Pa     | xyz  | E   |      | air_pressure
+ PFL_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_liquid_nonconvective_precipitation
+ PFI_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_ice_nonconvective_precipitation
+ U          | m s-1  | xyz  | C   |      | eastward_wind
+ V          | m s-1  | xyz  | C   |      | northward_wind
+ pSOA_ANTHRO_VOC | kg m-3 s-1 | xyz | C |   | SOA from Anthropogenic and biomass burning VOC
+ pSOA_BIOB_VOC   | kg m-3 s-1 | xyz | C |   | SOA from Anthropogenic and biomass burning VOC
+#........................................................................................
+ OC_BIOMASS  | 1      | xy   | N   |      | source species
+ OC_TERPENE  | 1      | xy   | N   |      | source species
+ OC_BIOFUEL  | 1      | xy   | N   |      | source species
+ OC_ANTEOC1  | 1      | xy   | N   |      | source species
+ OC_ANTEOC2  | 1      | xy   | N   |      | source species
+ OC_SHIP     | 1      | xy   | N   |      | source species
+ OC_AVIATION_LTO | 1  | xy   | N   |      | source species
+ OC_AVIATION_CDS | 1  | xy   | N   |      | source species
+ OC_AVIATION_CRS | 1  | xy   | N   |      | source species
+ BC_BIOMASS  | 1      | xy   | N   |      | source species
+ BC_BIOFUEL  | 1      | xy   | N   |      | source species
+ BC_ANTEBC1  | 1      | xy   | N   |      | source species
+ BC_ANTEBC2  | 1      | xy   | N   |      | source species
+ BC_SHIP     | 1      | xy   | N   |      | source species
+ BC_AVIATION_LTO | 1  | xy   | N   |      | source species
+ BC_AVIATION_CDS | 1  | xy   | N   |      | source species
+ BC_AVIATION_CRS | 1  | xy   | N   |      | source species
+ BRC_BIOMASS  | 1     | xy   | N   |      | source species
+ BRC_TERPENE  | 1     | xy   | N   |      | source species
+ BRC_BIOFUEL  | 1     | xy   | N   |      | source species
+ BRC_ANTEBRC1 | 1     | xy   | N   |      | source species
+ BRC_ANTEBRC2 | 1     | xy   | N   |      | source species
+ BRC_SHIP     | 1     | xy   | N   |      | source species
+ BRC_AVIATION_LTO | 1 | xy   | N   |      | source species
+ BRC_AVIATION_CDS | 1 | xy   | N   |      | source species
+ BRC_AVIATION_CRS | 1 | xy   | N   |      | source species
+
+category: EXPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE              | DIMENSIONS |          Additional Metadata
+#----------------------------------------------------------------------------------------
+ NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
+#----------------------------------------------------------------------------------------
+ CAMASS*    | kg kg-1    | xyz | C   |       | Carbonaceous Aerosol Mass Mixing Ratio                
+ CACONC*    | kg m-3     | xyz | C   |       | Carbonaceous Aerosol Mass Concentration               
+ CAEXTCOEF* | m-1        | xyz | C   |       | Carbonaceous Aerosol Extinction Coefficient [550 nm]  
+ CASCACOEF* | m-1        | xyz | C   |       | Carbonaceous Aerosol Scattering Coefficient [550 nm]  
+#...........|............|.....|.....|.......|............................................
+ CAEM*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Emission All Bins           
+ CASD*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Sedimentation All Bins      
+ CADP*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Dry Deposition All Bins     
+ CAWT*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Wet Deposition All Bins     
+ CASV*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Convective Scavenging All Bins      
+ CAEMAN*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Anthropogenic Emissions     
+ CAEMBB*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Biomass Burning Emissions     
+ CAEMBF*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Biofuel Emissions             
+ CAEMBG*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Biogenic Emissions            
+ CAHYPHIL*  | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Hydrophobic to Hydrophilic    
+ CAPSOA*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol SOA Production                
+ CASMASS*   | kg m-3     | xy  | N   |       | Carbonaceous Aerosol Surface Mass Concentration    
+ CACMASS*   | kg m-2     | xy  | N   |       | Carbonaceous Aerosol Column Mass Density           
+ CAEXTTAU*  |      1     | xy  | N   |       | Carbonaceous Aerosol Extinction AOT [550 nm]       
+ CASCATAU*  |      1     | xy  | N   |       | Carbonaceous Aerosol Scattering AOT [550 nm]       
+ CAANGSTR*  |      1     | xy  | N   |       | Carbonaceous Aerosol Angstrom parameter [470-870 nm] 
+ CAFLUXU*   | kg m-1 s-1 | xy  | N   |       | Carbonaceous Aerosol column u-wind mass flux       
+ CAFLUXV*   | kg m-1 s-1 | xy  | N   |       | Carbonaceous Aerosol column v-wind mass flux       
+ CAAERIDX*  |    1       | xy  | N   |       | Carbonaceous Aerosol TOMS UV Aerosol Index         
+
+
+
+category: INTERNAL
+#----------------------------------------------------------------------------------------
+#  VARIABLE                | DIMENSION        |          Additional Metadata
+#----------------------------------------------------------------------------------------
+  NAME    | UNITS | DIMS | VLOC | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
+#----------------------------------------------------------------------------------------
+ CAphobic |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio all bins
+ CAphilic |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio all bins
+
+#********************************************************
+#
+# Legend
+#
+#------------------------------------------------------------------
+# Column label | MAPL keyword/interpretation |  Default
+#--------------|---------------------------------------------------
+# NAME         | short_name                  |
+# UNITS        | units                       |
+# DIMS         | dims                        |
+# VLOC         | VLocation                   | MAPL_VLocationNone
+# LONG NAME    | long_name                   |
+# COND         | if (<logical-expr>) then    |  .FALSE.
+# NUM_SUBTILES | num_subtiles
+# ...
+#------------------------------------------------------------------
+#
+#--------------------------------------------
+# Entry alias  | Column | MAPL keyword/interpretation
+#--------------|-----------------------------
+# xyz          | DIMS   | MAPL_HorzVert
+# xy           | DIMS   | MAPL_HorzOnly
+# z            | DIMS   | MAPL_VertOnly  (plus ungridded)
+# C            | VLOC   | MAPL_VlocationCenter
+# E            | VLOC   | MAPL_VlocationEdge
+# N            | VLOC   | MAPL_VlocationNone
+#--------------------------------------------
+

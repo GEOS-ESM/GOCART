@@ -1,0 +1,20 @@
+#
+# AOD Registry Resource File
+#
+
+# First block specifies number and channels to compute AOD over
+# and the input filenames to use.  Be sure that n_channels >=
+# nbins_XX below, which specifies which to write to the bundle file.
+# ----------------------------------------------------
+n_channels: 1
+
+r_channels: 5.5e-7
+
+filename_optical_properties_DU:  ExtData/PIESA/x/optics_DU.v15_3.nc
+filename_optical_properties_SS:  ExtData/PIESA/x/optics_SS.v3_3.nc
+filename_optical_properties_OC:  ExtData/PIESA/x/optics_OC.v1_3.nc
+filename_optical_properties_BRC: ExtData/PIESA/x/optics_BRC.v1_5.nc
+filename_optical_properties_BC:  ExtData/PIESA/x/optics_BC.v1_3.nc
+filename_optical_properties_SU:  ExtData/PIESA/x/optics_SU.v1_3.nc
+filename_optical_properties_NI:  ExtData/PIESA/x/optics_NI.v2_5.nc
+

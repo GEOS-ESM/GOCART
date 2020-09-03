@@ -1,0 +1,153 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: CH4
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<CH4::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ------------|------------|-----|---|----|---|---|-----|---------------------------------
+#    Short    |            |     | V |Item|Intervl|# Sub|          Long
+#    Name     |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ------------|------------|-----|---|----|---|---|-----|---------------------------------
+  CH4EM       | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission __ENSEMBLE__
+  CH4EManimls | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission animals
+  CH4EMcoal   | kg m-2 s-1 | xy  |   |    |   |   |	| CH4 Emission coal
+  CH4EMleak   | kg m-2 s-1 | xy  |   |    |   |   |	| CH4 Emission leakage
+  CH4EMgasvnt | kg m-2 s-1 | xy  |   |    |   |   |	| CH4 Emission gas venting
+  CH4EMhydz   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission ocean HYDZ
+  CH4EMmsw    | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission municipal sewers
+  CH4EMsoilab | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission soil absorption
+  CH4EMtrmite | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission termites
+  CH4EMbogs   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission bogs
+  CH4EMburn   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission biomass burning
+  CH4EMricec  | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission rice cultivation
+  CH4EMswamps | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission swamps
+  CH4EMtundra | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission tundra
+  CH4EMbf     | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission biofuel
+  CH4EMtot    | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Emission total
+  CH4PD       | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production __ENSEMBLE__
+  CH4PDanimls | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production animals
+  CH4PDcoal   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production coal
+  CH4PDleak   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production leakage
+  CH4PDgasvnt | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production gas venting
+  CH4PDhydz   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production ocean HYDZ
+  CH4PDmsw    | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production municipal sewers
+  CH4PDsoilab | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production soil absorption
+  CH4PDtrmite | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production termites
+  CH4PDbogs   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production bogs
+  CH4PDburn   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production biomass burning
+  CH4PDricec  | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production rice cultivation
+  CH4PDswamps | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production swamps
+  CH4PDtundra | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production tundra
+  CH4PDbf     | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production biofuel
+  CH4PDtot    | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Production total
+  CH4LS       | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss __ENSEMBLE__
+  CH4LSanimls | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss animals
+  CH4LScoal   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss coal
+  CH4LSleak   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss leakage
+  CH4LSgasvnt | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss gas venting
+  CH4LShydz   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss ocean HYDZ
+  CH4LSmsw    | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss municipal sewers
+  CH4LSsoilab | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss soil absorption
+  CH4LStrmite | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss termites
+  CH4LSbogs   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss bogs
+  CH4LSburn   | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss biomass burning
+  CH4LSricec  | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss rice cultivation
+  CH4LSswamps | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss swamps
+  CH4LStundra | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss tundra
+  CH4LSbf     | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss biofuel
+  CH4LStot    | kg m-2 s-1 | xy  |   |    |   |   |     | CH4 Chemical Loss total
+  CH4SC       | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration __ENSEMBLE__
+  CH4SCanimls | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration animals
+  CH4SCcoal   | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration coal
+  CH4SCleak   | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration leakage
+  CH4SCgasvnt | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration gas venting
+  CH4SChydz   | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration ocean HYDZ
+  CH4SCmsw    | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration municipal sewers
+  CH4SCsoilab | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration soil absorption
+  CH4SCtrmite | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration termites
+  CH4SCbogs   | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration bogs
+  CH4SCburn   | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration biomass burning
+  CH4SCricec  | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration rice cultivation
+  CH4SCswamps | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration swamps
+  CH4SCtundra | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration tundra
+  CH4SCbf     | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration biofuel
+  CH4SCtot    | ppbv       | xy  |   |    |   |   |     | CH4 Surface Concentration total
+  CH4CL       | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden __ENSEMBLE__
+  CH4CLanimls | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden animals
+  CH4CLcoal   | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden coal
+  CH4CLleak   | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden leakage
+  CH4CLgasvnt | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden gas venting
+  CH4CLhydz   | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden ocean HYDZ
+  CH4CLmsw    | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden municipal sewers
+  CH4CLsoilab | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden soil absorption
+  CH4CLtrmite | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden termites
+  CH4CLbogs   | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden bogs
+  CH4CLburn   | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden biomass burning
+  CH4CLricec  | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden rice cultivation
+  CH4CLswamps | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden swamps
+  CH4CLtundra | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden tundra
+  CH4CLbf     | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden biofuel
+  CH4CLtot    | kg m-2     | xy  |   |    |   |   |     | CH4 Column Burden total
+  CH4JL	      | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss __ENSEMBLE__
+  CH4JLanimls | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss animals
+  CH4JLcoal   | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss coal
+  CH4JLleak   | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss leakage
+  CH4JLgasvnt | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss gas venting
+  CH4JLhydz   | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss ocean HYDZ
+  CH4JLmsw    | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss municipal sewers
+  CH4JLsoilab | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss soil absorption
+  CH4JLtrmite | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss termites
+  CH4JLbogs   | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss bogs
+  CH4JLburn   | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss biomass burning
+  CH4JLricec  | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss rice cultivation
+  CH4JLswamps | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss swamps
+  CH4JLtundra | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss tundra
+  CH4JLbf     | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss biofuel
+  CH4JLtot    | m-3 s-1    | xyz | C |    |   |   |	| CH4 Photolytic Loss total
+ CH4QP       | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis __ENSEMBLE__
+ CH4QPanimls | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis animals
+ CH4QPcoal   | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis coal
+ CH4QPleak   | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis leakage
+ CH4QPgasvnt | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis gas venting
+ CH4QPhydz   | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis ocean HYDZ
+ CH4QPmsw    | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis municipal sewers
+ CH4QPsoilab | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis soil absorption
+ CH4QPtrmite | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis termites
+ CH4QPbogs   | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis bogs
+ CH4QPburn   | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis biomass burning
+ CH4QPricec  | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis rice cultivation
+ CH4QPswamps | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis swamps
+ CH4QPtundra | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis tundra
+ CH4QPbf     | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis biofuel
+ CH4QPtot    | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis total
+ CH4DRY	      | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction __ENSEMBLE__
+ CH4DRYanimls | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_animals
+ CH4DRYcoal   | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_coal
+ CH4DRYleak   | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_leakage
+ CH4DRYgasvnt | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_gas_venting
+ CH4DRYhydz   | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_ocean_HYDZ
+ CH4DRYmsw    | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_municipal_sewers
+ CH4DRYsoilab | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_soil_absorption
+ CH4DRYtrmite | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_termites
+ CH4DRYbogs   | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_bogs
+ CH4DRYburn   | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_biomass_burning
+ CH4DRYricec  | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_rice_cultivation
+ CH4DRYswamps | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_swamps
+ CH4DRYtundra | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_tundra
+ CH4DRYbf     | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_biofuel
+ CH4DRYtot    | mol mol-1  | xyz | C |    |   |   |     | CH4_dry_air_mole_fraction_total
+# ------------|------------|-----|---|----|---|---|-----|---------------------------------
+</CH4::ExportSpec>
+
