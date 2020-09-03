@@ -1,0 +1,669 @@
+
+	   How to Create GEOS-5 GOCART/StratChem Restarts
+
+			   Arlindo da Silva
+		     NASA/GSFC, GMAO, Code 610.1
+		       Arlindo.daSilva@nasa.gov
+
+	      Last Update: Tue Jan 27 12:18:57 EST 2009
+
+Contents
+--------
+
+I. Manipulating GEOS-5 Chem Restarts with lats4d
+   EXAMPLE 1: Create a ctl for an existing GOCART restart 
+   EXAMPLE 2: Create a subset of a GOCART restart
+   EXAMPLE 3: Create a GOCART restart with a different horizontal resolution
+   EXAMPLE 4: Create a GOCART restart with additional variables
+   EXAMPLE 5: Dump statistics from a binary restart file
+   EXAMPLE 6: Change vertical resolution
+
+II. Generating GEOS-5 Restarts from GEOS-4 Chem Bundle files
+
+
+
+I. Manipulating GEOS-5 Chem Restarts with lats4d
+   ---------------------------------------------
+
+While the binary GEOS-5 restarts do not come with any describing metadata, a
+GrADS control file (ctl) can be created using the ctl_crst.x utility:
+ 
+     ctl_crst.x Chem_Registry.rc [rs_filename [res] ]
+ 
+where *Chem_Registry.rc* is the Chem Registry used in the run that produced
+the binary restart file *rs_fielname*. The optional parameter *res* specify
+the the resolution of the run, e.g., b72, c72, ..., where "72" is the number
+opf levels the the first letter is the horizontal resolution:
+
+  b - 2x2.5 deg
+  c - 1x1.25 deg
+  d - 0.5 x 2/3 deg
+  e - 0.25 x 1/3 deg
+  etc.
+
+The default is res = 'd72'. When the binary restart file name is omitted, only
+the lats4d sample line is written (see below).
+
+If you are not familiar with Lats4D, before proceeding you may want to read
+this:
+
+    http://opengrads.org/wiki/index.php?title=Lats4D
+
+EXAMPLE 1: Create a ctl for an existing GOCART restart
+......................................................
+
+% set g5home = /discover/nobackup/dao_ops/intermediate/d520_fp
+% ctl_crst.x $g5home/run/Chem_Registry.rc \
+             $g5home/recycle/d520_fp.gocart_internal_rst.20080814_03z.bin \
+             > old.ctl
+
+Here are the (abbreviated) contents of old.ctl:
+
+--- cut --- --- cut --- --- cut --- --- cut --- --- cut --- --- cut --- 
+DSET   /discover/nobackup/dao_ops/intermediate/d520_fp/recycle/d520_fp.gocart_internal_rst.20080814_03z.bin
+TITLE Chem Restart File
+UNDEF 1.0E20
+XDEF   540 LINEAR -180   0.666667
+YDEF   361 LINEAR  -90   0.500000
+ZDEF    72 LINEAR  1 1 
+TDEF 1 LINEAR  05feb1960 6hr
+VARS    32
+CO  0 72 Global carbon monoxide
+...
+OCphilicbbnb  0 72 Hydrophilic Organic Carbon (Non-Boreal Biomass Burning, Particulate Matter)
+ENDVARS 
+--- cut --- --- cut --- --- cut --- --- cut --- --- cut --- --- cut --- 
+
+You can open this file directly in GrADS and verify that it can correctly read
+the restart. 
+
+When the binary restart file name is omitted, a sample *lats4d* command line
+is written. This is useful for creating variable subsets with lats4d; see the
+next example.
+
+
+EXAMPLE 2: Create a subset of a GOCART restart
+..............................................
+
+Suppose you want to create a shorter GOCART restart with fewer variables from
+and existing restart. In this case run *ctl_crst.x* using the
+*Chem_Registry.rc* that contains the desired subset list of variables, e.g.,
+
+% ctl_crst ./Chem_Registry.rc 
+
+which produces
+
+lats4d.sh -i old.ctl -o new -format sequential -v -vars co co2 du001 du002 du003
+du004 du005 ss001 ss002 ss003 ss004 ss005 dms so2 so4 msa bcphobic bcphilic
+ocphobic ocphilic
+
+If *old.ctl* was produced as in EXAMPLE 1 then you just run the command above
+(the output file name was changed from new to new2):
+
+% lats4d.sh -i old.ctl -o new2 -format sequential -v\
+             -vars  CO CO2 \
+                 du001 du002 du003 du004 du005 \
+                 ss001 ss002 ss003 ss004 ss005 \
+                 dms so2 so4 msa \
+                 bcphobic bcphilic ocphobic ocphilic
+
+which will produce the new (Fortran sequential) binary file *new2.bin*. You can
+examine the contents of this file by first creating a ctl for it:
+
+% ctl_crst.x ./Chem_Registry.rc new2.bin > new2.ctl
+
+
+EXAMPLE 3: Create a GOCART restart with a different horizontal resolution
+.........................................................................
+
+Suppose you want to create a shorter GOCART restart with fewer variables from
+and existing restart and also with a different horizontal resolution. In this
+case run *ctl_crst.x* using the *Chem_Registry.rc* that contains the desired
+list of variables, e.g.,
+
+% ctl_crst ./Chem_Registry.rc 
+
+which produces
+
+lats4d.sh -i old.ctl -o new -format sequential -v -vars CO CO2 du001 du002
+du003 du004 du005 ss001 ss002 ss003 ss004 ss005 DMS SO2 SO4 MSA BCphobic
+BCphilic OCphobic OCphilic
+
+You can use the following Lats4D options to produce the output file at a
+different resolution:
+
+        -geos0.25    1/4 by 1/3 degrees
+        -geos0.5     1/2 by 2/3 degrees
+        -geos1x125   1 by 1 1/4 degrees
+        -geos1x1     1 x 1      degree  (GEOS-3)
+        -geos4x5     4 x 5      degrees
+        -geos2x25    2 x 2 1/2  degrees
+
+All the GEOS grids are global, [90S,90N], [180W,180E). For each of these
+options there are variants "a" for box- averaging and "s" for bessel
+interpolation. The default is linear interpolation. For example, use
+-geos4x5 for linear interpolation, -geos4x5a for box-averaging and
+-geos4x5s for bessel interpolation.
+
+
+If *old.ctl* was produced as in EXAMPLE 1 then you just add the interpolation
+option, e.g.,
+
+% lats4d.sh -i old.ctl -o new3 -format sequential -v\
+            -geos2x25 -vars  CO CO2 \
+                 du001 du002 du003 du004 du005 \
+                 ss001 ss002 ss003 ss004 ss005 \
+                 DMS SO2 SO4 MSA \
+                 BCphobic BCphilic OCphobic OCphilic
+
+which will produce the new (Fortran sequential) binary file *new3.bin*. You can
+examine the contents of this file by first creating a ctl for it:
+
+% ctl_crst.x ./Chem_Registry.rc new3.bin > new3.ctl
+
+IMPORTANT: It has been reported that lats4d may run out of memory and give
+segmentation fault in re() when regriding to 1/4 x 1/3 degree resolutions. One
+solution has been to use lats4d with a x86_64 build of GrADS and have plenty
+of memory.
+
+
+EXAMPLE 4: Create a GOCART restart with additional variables
+............................................................
+
+If you have a modified *Chem_Registry.rc* file which puts additional variables
+into the GOCART restart, then you may want to convert an existing GOCART into
+one which is consistent with the new *Chem_Registry.rc* by adding zeros as
+placeholders for the new variables.
+
+Let's start with the new2.bin file from Example 2 above. Suppose the modified
+*Chem_Registry.rc* adds five variables, COBBAE, COBBNA, COBBLA, COBBAF, COBBGL,
+after the CO variable, and two new variables, CFC12S and CFC12T, after the MSA
+variable. Use the following procedures to convert new2.bin.
+
+First create three subsets of new2.bin based on the locations for the new
+variables.
+
+% lats4d.sh -i new2.ctl -vars co -o subfile1 -format sequential
+% lats4d.sh -i new2.ctl -vars co2 du001 du002 du003 du004 du005 \
+             ss001 ss002 ss003 ss004 ss005 dms so2 so4 msa \
+            -o subfile2 -format sequential
+% lats4d.sh -i new2.ctl -vars bcphobic bcphilic ocphobic ocphilic \
+            -o subfile3 -format sequential
+
+The outputs from these commands are subfile1.bin, subfile2.bin, and
+subfile3.bin.
+
+Now create a record of zeros to use as a placeholder for the new variables. Note
+that it is not important which old variable is used in this command since all
+the values are multiplied by zero.
+
+% lats4d.sh -i new2.ctl -vars co -o zeros -func '0*@' -format sequential
+
+The output from this command is zeros.bin.
+
+Finally, use the *cat* command to create the new GOCART:
+
+% cat zeros.bin zeros.bin > zeros2.bin
+% cat zeros.bin zeros.bin zeros.bin zeros.bin zeros.bin > zeros5.bin
+
+% cat subfile1.bin zeros5.bin subfile2.bin zeros2.bin subfile3.bin  > new4.bin
+
+You can create a ctl file for new4.bin using the modified *Chem_Registry.rc*
+mentioned at the beginning of this example:
+
+% ctl_crst.x ./Chem_Registry.rc new4.bin > new4.ctl
+
+To check that the old variables from new2.bin were transferred correctly, it is
+a good idea to dump and compare the statistics from both new2.bin and new4.bin
+(see EXAMPLE 5).
+
+
+EXAMPLE 5: Dump statistics from a binary restart file
+.....................................................
+
+Use lats4d.sh and the ctl file (e.g. new.ctl) to dump statistics from a binary
+file.
+
+% lats4d.sh -i new.ctl -format stats
+
+
+EXAMPLE 6: Change vertical resolution
+.....................................
+
+Lats4D cannot really change the vertical resolution. Your best option is to
+use the GFIO_remap.x utility in this case. This utility however, can only
+handle COARDS compliant files in either NetCDF-3, HDF-4 or even NetCDF-4/HDF-5
+(provided it has been compiled with the correct library.)
+
+The first step is to use Lats4D to create a COARDS compliante file. For the
+case in the previous example, simply omit the "-format sequential" option:
+
+% lats4d.sh -i old.ctl -o new72 -v \
+            -geos2x25 -vars  CO CO2 \
+                 du001 du002 du003 du004 du005 \
+                 ss001 ss002 ss003 ss004 ss005 \
+                 DMS SO2 SO4 MSA \
+                 BCphobic BCphilic OCphobic OCphilic
+
+This will create file "new72.nc". Next, use GFIO_remap.x to change the number
+of vertical layers:
+
+% setenv G5BIN $HOME/GEOSgcm/Linux/bin
+% $G5BIN/GFIO_remap.x -nlev 91 -o new91.nc new72.nc
+
+Finally, use lats4d again to convert this file to binary
+
+% lats4d.sh -i new91.nc -o new91 -format sequential -v \
+            -geos2x25 -vars  CO CO2 \
+                 du001 du002 du003 du004 du005 \
+                 ss001 ss002 ss003 ss004 ss005 \
+                 DMS SO2 SO4 MSA \
+                 BCphobic BCphilic OCphobic OCphilic
+
+You could also have used GFIO_remap.x for the horizontal interpolation; type
+GFIO_remap.x without arguments for a list of command line options.
+
+
+
+II. Generating GEOS-5 Restarts from GEOS-4 Chem Bundles
+    ---------------------------------------------------
+
+These notes explain how to produce GOCART/StratChem Internal Restart
+files for GEOS-5, based on GEOS Chem Bundle files (either c_rst or
+chem.eta files).
+
+1) Required utilities:
+
+   - GFIO_remap.x (provided in GMAO_Shared/GMAO_hermes)
+
+     Purpose: used to convert the GEOS-4 fields to the necessaty
+              GEOS-5 vertical/horizontal resolution 
+
+   - Chem_BundleToG5rs.x (provided in GMAO_Shared/Chem_Base)
+
+     Purpose: used to convert the GEOS-4 Chem Bundle (a HDF-4 file)
+              to the GEOS-5 (GrADS) binary format. At this point the
+              Chem Bundle should be exactly at the same resolution as
+              required by GEOS-5 (including 72 levels), although the
+              input file could have more variables than necesary.
+              The longitudinal swap (from [0,360) to [-180,180) is
+              performed by this utility.
+
+2) Required "resource" files:
+
+   Prepare the resource file "Chem_Registry.rc" in a way consistent
+   with the way it will be used in GEOS-5. Pay particular attention to
+   the number of bins (nbins_?? resources), as GEOS-4 may have been
+   run with 8 CO tracers but you only need 1 global CO tracer, for
+   example. You should activate only those variables to be included in
+   the GEOS-5 binary restart file (excluding "pchem"/GMI which do not
+   have GEOS-4 heritage.) Notice that,
+
+   - if producing "gocart_internal_restart", set to "yes" all tracers
+     from doing_CO through doing_OC, inclusive. All other tracers
+     should be set to "no".
+   - if producing "stratchem_internal_restart", set to "yes" tracers
+     doing_SC and doing_XX, all others to "no".
+
+3) Notes about dates
+
+   The GEOS-5 binary restarts to not include dates, therefore you are
+   free to use restarts from any data you choose. It is recommended
+   that you at least match the day/month/time as to provide restarts
+   that are climatologically realistic.
+
+4) Which GEOS-4 experiments to use
+
+   Because usually GEOS-5 will run with CO2, you need to use runs that
+   had CO, CO2 and aerosols. For example, the First Look systems used
+   for CRAVE; the AVE_Houston/INTEX-B did not include CO2.  As of this
+   writing, the CRAVE files can be found at NCCS in the following directory:
+
+       /output/dao_ops/GEOS-4_CRAVE/a_flk_04C/rs
+ 
+   Spin-up runs can be found here:
+
+       /output/dasilva/a_flk_04C/rs
+
+   Always take a look in the contents of the file to make sure the
+   fields are spun up. For example, in GrADS do this
+
+   ga-> d ave((du001+du002+du003+du004+du005)*delp,z=1,z=55)
+
+   to make sure you have a well established dust plume.
+
+3) Example 1: creating a 2x2.5 GEOS-5 "gocart_internal_restart" from a
+   GEOS-4 chem restart file for 21 December 1992.
+
+   a) Locate a GEOS-4 chem restart for this date. In this case we have
+
+              a_flk_04C.rst.chem.20051221_18z.bin
+
+      available from
+
+              /output/dasilva/a_flk_04C/rs/Y2005/M12
+
+      (don't be fooled by the .bin extension - this is a HDF-4 file!)
+
+   b) Use the "SAMPLE FILE 1" below for Chem_Registry.rc (or modify
+      current Chem_Registry.rc file if there were structural changes.
+
+   c) Copy files to a scratch location:
+
+% setenv CRAVE /output/dasilva/a_flk_04C
+% cp $CRAVE/rs/Y2005/M12/a_flk_04C.rst.chem.20051221_18z.bin $TMPDIR
+% (place Chem_Registry.rc in $TMPDIR as well)
+
+   d) Remap to 2x2.5 horizontal/72 layer resolution in 2 steps:
+
+% setenv G5BIN $HOME/GEOSgcm/Linux/bin
+% $G5BIN/GFIO_remap.x -res b -o b55.hdf  a_flk_04C.rst.chem.20051221_18z.bin
+% $G5BIN/GFIO_remap.x -nlev 72 -o b72.hdf b55.hdf
+
+   Hint: Typer GFIO_remap.x without arguments for a list of command
+   line options.
+
+   e) Convert to remaped GEOS-4 file to GEOS-5 binary format:
+
+% $G5BIN/Chem_BundleToG5rs.x b72.hdf gocart_internal_restart 20051221 180000
+
+   The last 2 parameters are the date/time of the INPUT GEOS-4 file;
+   the GEOS-5 output file will have no date inside.
+
+   That is it! The gocart_internal_restart is ready for use in a
+   GEOS-5 2x2.5 run.
+
+
+3) EXAMPLE 2: creating a 0.5x2/3 degree GEOS-5 "gocart_internal_restart" from a
+   GEOS-4 chem restart file for 21 December 1992.
+
+   a) through c) same as in EXAMPLE 1
+
+   d) Remap to 0.5x2/3 horizontal/72 layer resolution in 2 steps:
+
+% $G5BIN/GFIO_remap.x -res d -o d55.hdf  a_flk_04C.rst.chem.20051221_18z.bin
+% $G5BIN/GFIO_remap.x -nlev 72 -o d72.hdf d55.hdf
+
+   e) Convert to remaped GEOS-4 file to GEOS-5 binary format:
+
+% $G5BIN/Chem_BundleToG5rs.x d72.hdf gocart_internal_restart 20051221 180000
+
+............................................................................
+
+-------------------------------
+SAMPLE FILE 1: Chem_Registry.rc
+-------------------------------
+
+--- cut --- --- cut --- --- cut --- --- cut --- --- cut --- --- cut --- 
+#
+# Chemistry Registry Resource File
+#
+# !REVISION HISTORY:
+#
+#  27May2005  da Silva  Added variable tables for SU/BC/OC.
+#  19dec2005  da Silva  Changed volume mixing ratio units to mol/mol
+#  10Feb2006  Hayashi   Added analysis update frequency
+#  27Jul2006  da Silva  No more analysis frequencies; added GMI/PChem (GEOS-5)
+#
+#-----------------------------------------------------------------------
+
+# Whether to include the constituent in the simulation
+# ----------------------------------------------------
+doing_H2O: no   # water vapor (must always ON for fvGCM)
+doing_O3:  no   # ozone (must be always ON for fvGCM in DAS mode)
+doing_CO:  yes  # carbon monoxide
+doing_CO2: yes  # carbon dioxide
+doing_DU:  yes  # mineral dust
+doing_SS:  yes  # sea salt
+doing_SU:  yes  # sulfates
+doing_BC:  yes  # black carbon
+doing_OC:  yes  # organic carbon
+doing_SC:  no   # stratospheric chemistry
+doing_AC:  no   # auto chem
+doing_XX:  no   # generic tracer
+doing_PC:  no   # parameterized chemistry (GEOS-5)
+doing_GMI: no   # GMI chemistry (GEOS-5)
+
+# You can select the number of bins (e.g., particle size)
+# for each of the constituents. Note nbins>1 may not be
+# supported by some constituents
+# ----------------------------------------------------
+nbins_H2O: 1    # water vapor
+nbins_O3:  3    # ozone
+nbins_CO:  1    # carbon monoxide
+nbins_CO2: 1    # carbon dioxide
+nbins_DU:  5    # mineral dust
+nbins_SS:  5    # sea salt
+nbins_SU:  4    # sulfates
+nbins_BC:  2    # black carbon
+nbins_OC:  2    # organic carbon
+nbins_SC:  34   # stratospheric chemistry
+nbins_AC:  35   # auto chem
+nbins_XX:  18   # generic tracer
+nbins_PC:   1   # parameterized chemistry (GEOS-5)
+nbins_GMI:  1   # GMI chemistry (GEOS-5)
+
+# Units for each constituent
+# --------------------------
+units_H2O: kg/kg     # water vapor
+units_O3:  kg/kg     # ozone
+units_CO:  kg/kg     # carbon monoxide
+units_CO2: kg/kg     # carbon dioxide
+units_DU:  kg/kg     # mineral dust
+units_SS:  kg/kg     # sea salt
+units_SU:  kg/kg     # sulfates
+units_BC:  kg/kg     # black carbon
+units_OC:  kg/kg     # organic carbon
+units_SC:  kg/kg     # stratospheric chemistry
+units_AC:  kg/kg     # auto chem
+units_XX:  kg/kg     # generic tracer
+units_PC:  kg/kg     # parameterized chemistry (GEOS-5)
+units_GMI: kg/kg     # GMI chemistry (GEOS-5)
+
+# Variable names to override defaults.  Optional.  Name and Units must 
+# be 1 token. Long names can be more than one token.
+# --------------------------------------------------------------------
+
+variable_table_O3::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+O3PARAM    mol/mol  Parameterized ozone
+OXSTRAT    mol/mol  Stratospheric odd oxygen
+OXTROP     mol/mol  Tropospheric ozone
+::
+
+variable_table_CO::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+CO         mol/mol  Global carbon monoxide
+CONOAMAN   mol/mol  North American anthropogenic CO
+COCEAMAN   mol/mol  Central American anthropogenic CO
+COWHBB     mol/mol  Western Hemisphere biomass burning CO
+COASIAAN   mol/mol  Asian anthropogenic CO
+COASNBB    mol/mol  Northern Asia biomass burning CO
+COASSBB    mol/mol  Southern Asia biomass burning CO
+COFDAN     mol/mol  Mexico City anthropogenic CO
+::
+
+variable_table_CO2::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+CO2        mol/mol  Carbon Dioxide
+CO2nam     mol/mol  North American Carbon Dioxide 
+CO2sam     mol/mol  South American Carbon Dioxide
+CO2afr     mol/mol  African 
+::
+
+variable_table_SU::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+DMS        kg/kg    Dimethylsulphide
+SO2        kg/kg    Sulphur dioxide
+SO4        kg/kg    Sulphate aerosol
+MSA        kg/kg    Methanesulphonic acid
+::
+
+variable_table_BC::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+BCphobic   kg/kg    Hydrophobic Black Carbon 
+BCphilic   kg/kg    Hydrophilic Black Carbon
+::
+
+variable_table_OC::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+OCphobic   kg/kg    Hydrophobic Organic Carbon (Particulate Matter)
+OCphilic   kg/kg    Hydrophilic Organic Carbon (Particulate Matter)
+::
+
+variable_table_SC::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+OXSTRAT    mol/mol  Stratospheric odd oxygen
+NOX        mol/mol  Odd nitrogen
+HNO3       mol/mol  Nitric acid
+N2O5       mol/mol  Dinitrogen pentoxide
+HO2NO2     mol/mol  Peroxynitric acid
+CLONO2     mol/mol  Chlorine nitrate
+CLX        mol/mol  Odd chlorine
+HCL        mol/mol  Hydrochloric acid
+HOCL       mol/mol  Hypochlorous acid
+H2O2       mol/mol  Hydrogen peroxide
+BRX        mol/mol  Odd bromine
+N2O        mol/mol  Nitrous oxide
+CL2        mol/mol  Molecular chlorine
+OCLO       mol/mol  Chlorine dioxide
+BRCL       mol/mol  Bromine chloride
+HBR        mol/mol  Hydrogen bromide
+BRONO2     mol/mol  Bromine nitrate
+CH4        mol/mol  Methane
+HOBR       mol/mol  Hypobromous acid
+CH3OOH     mol/mol  Methyl hydroperoxide
+CO         mol/mol  Carbon monoxide
+HNO3COND   mol/mol  Condensed nitric acid
+H2OCOND    mol/mol  Condensed water vapor in chemistry
+F11        mol/mol  CFC-11 (CCl3F)
+F12        mol/mol  CFC-12 (CCl2F2)
+F113       mol/mol  CFC-113 (CCl2FCClF2)
+HCFC       mol/mol  HCFC
+CCL4       mol/mol  Carbon tetrachloride
+CH3CCL3    mol/mol  Methyl chloroform
+CH3CL      mol/mol  Methyl chloride
+CH3BR      mol/mol  Methyl bromide
+H1301      mol/mol  Halon 1301 (CBrF3)
+H12_24     mol/mol  Halon 12_24
+Q4AGE      mol/mol  SSG for computing age-of-air
+::
+
+variable_table_AC::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+OXSTRAT    mol/mol  Stratospheric odd oxygen
+NOX        mol/mol  Odd nitrogen
+HNO3       mol/mol  Nitric acid
+N2O5       mol/mol  Dinitrogen pentoxide
+HO2NO2     mol/mol  Peroxynitric acid
+CLONO2     mol/mol  Chlorine nitrate
+CLX        mol/mol  Odd chlorine
+HCL        mol/mol  Hydrochloric acid
+HOCL       mol/mol  Hypochlorous acid
+H2O2       mol/mol  Hydrogen peroxide
+BRX        mol/mol  Odd bromine
+N2O        mol/mol  Nitrous oxide
+CL2        mol/mol  Molecular chlorine
+OCLO       mol/mol  Chlorine dioxide
+BRCL       mol/mol  Bromine chloride
+HBR        mol/mol  Hydrogen bromide
+BRONO2     mol/mol  Bromine nitrate
+CH4        mol/mol  Methane
+HOBR       mol/mol  Hypobromous acid
+CH3OOH     mol/mol  Methyl hydroperoxide
+CO         mol/mol  Carbon monoxide
+HNO3COND   mol/mol  Condensed nitric acid
+H2OCOND    mol/mol  Condensed water vapor in chemistry
+F11        mol/mol  CFC-11 (CCl3F)
+F12        mol/mol  CFC-12 (CCl2F2)
+F113       mol/mol  CFC-113 (CCl2FCClF2)
+HCFC       mol/mol  HCFC
+CCL4       mol/mol  Carbon tetrachloride
+CH3CCL3    mol/mol  Methyl chloroform
+CH3CL      mol/mol  Methyl chloride
+CH3BR      mol/mol  Methyl bromide
+H1301      mol/mol  Halon 1301 (CBrF3)
+H12_24     mol/mol  Halon 12_24
+::
+
+variable_table_XX::
+
+# Name     Units    Long Name
+# -----    ------   --------------------------------
+O3CHEM     mol/mol  Ozone from chemistry
+O3P        mol/mol  Atomic oxygen in the ground state
+O1D        mol/mol  Atomic oxygen in the first excited state
+N          mol/mol  Atomic nitrogen
+NO         mol/mol  Nitric oxide
+NO2        mol/mol  Nitrogen dioxide
+NO3        mol/mol  Nitrogen trioxide
+HATOMIC    mol/mol  Atomic hydrogen
+OH         mol/mol  Hydroxyl radical
+HO2        mol/mol  Hydroperoxyl radical
+CL         mol/mol  Atomic chlorine
+CLO        mol/mol  Chlorine monoxide
+BRO        mol/mol  Bromine monoxide
+BR         mol/mol  Atomic bromine
+CL2O2      mol/mol  Dichlorine peroxide
+CH2O       mol/mol  Formaldehyde
+CH3O2      mol/mol  Methyl peroxide
+RO3OX       none    Ozone-to-odd oxygen ratio
+::
+
+#........................................................................
+
+#               -------------------
+#               Not Implemented Yet
+#               -------------------
+
+# Whether to advect the constituent
+# ---------------------------------
+advect_H2O: yes  # water vapor 
+advect_O3:  yes  # ozone 
+advect_CO:  yes  # carbon monoxide
+advect_CO2: yes  # carbon dioxide
+advect_DU:  yes  # mineral dust
+advect_SS:  yes  # sea salt
+advect_SU:  yes  # sulfates
+advect_BC:  yes  # black carbon
+advect_OC:  yes  # organic carbon
+advect_SC:  yes  # stratospheric chemistry
+advect_AC:  yes  # stratospheric chemistry
+advect_XX:  no   # generic tracer
+advect_PC:  yes  # parameterized chemistry (GEOS-5)
+advect_GMI: yes  # GMI chemistry (GEOS-5)
+
+# Whether to diffuse the constituent
+# ----------------------------------
+diffuse_H2O: yes  # water vapor 
+diffuse_O3:  yes  # ozone 
+diffuse_XX:  yes  # generic tracer
+diffuse_CO:  yes  # carbon monoxide
+diffuse_CO2: yes  # carbon dioxide
+diffuse_DU:  yes  # mineral dust
+diffuse_SS:  yes  # sea salt
+diffuse_SU:  yes  # sulfates
+diffuse_BC:  yes  # black carbon
+diffuse_OC:  yes  # organic carbon
+diffuse_SC:  yes  # stratospheric chemistry
+diffuse_XX:  yes  # generic tracer
+diffuse_PC:  yes  # parameterized chemistry (GEOS-5)
+diffuse_GMI: yes  # GMI chemistry (GEOS-5)
+
+--- cut --- --- cut --- --- cut --- --- cut --- --- cut --- --- cut --- 

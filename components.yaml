@@ -12,7 +12,7 @@ ecbuild:
 HEMCO:
   local: ./ESMF/HEMCO_GridComp@
   remote: ../HEMCO.git
-  tag: geos/v1.0.2
+  branch: bugfix/GOCART_Build_error
 
 NCEP_Shared:
   local: ./ESMF/Shared/NCEP_Shared@
