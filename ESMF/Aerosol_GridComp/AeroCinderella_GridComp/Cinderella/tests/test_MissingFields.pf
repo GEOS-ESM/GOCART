@@ -1,0 +1,194 @@
+#include "MAPL_Generic.h"
+
+module test_MissingFields
+   use, intrinsic :: iso_fortran_env, only: INT64, REAL32, REAL64
+
+   use MissingFields_mod
+   use pFUnit
+   use MAPL
+   use ESMF
+   use ESMF_TestCase_mod
+   use ESMF_TestMethod_mod
+
+   implicit none
+
+   integer, parameter :: x_dim = 2
+   integer, parameter :: y_dim = 3
+   integer, parameter :: z_dim = 4
+contains
+   @test
+   subroutine test_get_AIRDENS_real32()
+      real(kind=REAL32) :: PLE(x_dim,y_dim,z_dim)
+      real(kind=REAL32) :: T(x_dim,y_dim,z_dim)
+      real(kind=REAL32) :: AIRDENS(x_dim,y_dim,z_dim)
+
+      real(kind=REAL32) :: PLE_val, T_val
+      integer           :: i, j, k
+
+      PLE_val = 0.0
+      T_val   = 0.0
+
+      do i=1, x_dim
+         do j=1, y_dim
+            do k=1, z_dim
+               PLE_val = PLE_val + 1.0
+               T_val   = T_val + 10.0
+
+               PLE(i, j, k) = PLE_val
+               T(i, j, k) = T_val
+            end do
+         end do
+      end do
+      @assert_that(PLE_val, is(equal_to(1.0*x_dim*y_dim*z_dim)))
+      @assert_that(T_val,   is(equal_to(10.0*x_dim*y_dim*z_dim)))
+
+      call get_AIRDENS(PLE, T, AIRDENS)
+
+      do i=1, x_dim
+         do j=1, y_dim
+            do k=1, z_dim
+               @assert_that(AIRDENS(i,j,k), is(equal_to(PLE(i,j,k)/(MAPL_RDRY*T(i,j,k)))))
+            end do
+         end do
+      end do
+   end subroutine test_get_AIRDENS_real32
+
+   @test
+   subroutine test_get_AIRDENS_real64()
+      real(kind=REAL64) :: PLE(x_dim,y_dim,z_dim)
+      real(kind=REAL64) :: T(x_dim,y_dim,z_dim)
+      real(kind=REAL64) :: AIRDENS(x_dim,y_dim,z_dim)
+
+      real(kind=REAL64) :: PLE_val, T_val
+      integer           :: i, j, k
+
+      PLE_val = 0.d0
+      T_val   = 0.d0
+
+      do i=1, x_dim
+         do j=1, y_dim
+            do k=1, z_dim
+               PLE_val = PLE_val + 1.d0
+               T_val   = T_val + 10.d0
+
+               PLE(i, j, k) = PLE_val
+               T(i, j, k) = T_val
+            end do
+         end do
+      end do
+      @assert_that(PLE_val, is(equal_to(1.d0*x_dim*y_dim*z_dim)))
+      @assert_that(T_val,   is(equal_to(10.d0*x_dim*y_dim*z_dim)))
+
+      call get_AIRDENS(PLE, T, AIRDENS)
+
+      do i=1, x_dim
+         do j=1, y_dim
+            do k=1, z_dim
+               @assert_that(AIRDENS(i,j,k), is(equal_to(PLE(i,j,k)/(MAPL_RDRY*T(i,j,k)))))
+            end do
+         end do
+      end do
+   end subroutine test_get_AIRDENS_real64
+
+   @test
+   subroutine test_get_DELP_real32()
+      real(kind=REAL32) :: PRESS(x_dim,y_dim,z_dim)
+      real(kind=REAL32) :: DELP(x_dim,y_dim,z_dim-1)
+
+      real(kind=REAL32) :: PRESS_val
+      integer           :: i, j, k
+
+      PRESS_val = 0.0
+
+      do i=1, x_dim
+         do j=1, y_dim
+            do k=1, z_dim
+               PRESS_val = PRESS_val + i + j + k
+               PRESS(i,j,k) = PRESS_val
+            end do
+         end do
+      end do
+      @assert_that(PRESS_VAL, is(equal_to(x_dim*y_dim*z_dim*(x_dim + y_dim + z_dim + 3.0)/2.0)))
+
+      call get_DELP(PRESS, DELP)
+      do k=1, z_dim-1
+         @assert_that(DELP(:,:,k), is(equal_to(PRESS(:,:,k+1) - PRESS(:,:,k))))
+      end do
+   end subroutine test_get_DELP_real32
+
+   @test
+   subroutine test_get_DELP_real64()
+      real(kind=REAL64) :: PRESS(x_dim,y_dim,z_dim)
+      real(kind=REAL64) :: DELP(x_dim,y_dim,z_dim-1)
+
+      real(kind=REAL64) :: PRESS_val
+      integer           :: i, j, k
+
+      PRESS_val = 0.d0
+
+      do i=1, x_dim
+         do j=1, y_dim
+            do k=1, z_dim
+               PRESS_val = PRESS_val + i + j + k
+               PRESS(i,j,k) = PRESS_val
+            end do
+         end do
+      end do
+      @assert_that(PRESS_VAL, is(equal_to(x_dim*y_dim*z_dim*(x_dim + y_dim + z_dim + 3.d0)/2.d0)))
+
+      call get_DELP(PRESS, DELP)
+      do k=1, z_dim-1
+         @assert_that(DELP(:,:,k), is(equal_to(PRESS(:,:,k+1) - PRESS(:,:,k))))
+      end do
+   end subroutine test_get_DELP_real64
+
+   @test
+   subroutine test_get_ZLE_real32()
+      real(kind=REAL32) :: inst_geop_interface(x_dim,y_dim,z_dim)
+      real(kind=REAL32) :: ZLE(x_dim,y_dim,z_dim)
+
+      real(kind=REAL32) :: inst_geop_interface_val
+      integer           :: i, j, k
+
+      inst_geop_interface_val = 0.0
+
+      do i=1, x_dim
+         do j=1, y_dim
+            do k=1, z_dim
+               inst_geop_interface_val = inst_geop_interface_val + 1.0
+
+               inst_geop_interface(i, j, k) = inst_geop_interface_val
+            end do
+         end do
+      end do
+      @assert_that(inst_geop_interface_val, is(equal_to(1.0*x_dim*y_dim*z_dim)))
+
+      call get_ZLE(inst_geop_interface, ZLE)
+      @assert_that(ZLE, is(equal_to(inst_geop_interface/MAPL_GRAV)))
+   end subroutine test_get_ZLE_real32
+
+   @test
+   subroutine test_get_ZLE_real64()
+      real(kind=REAL64) :: inst_geop_interface(x_dim,y_dim,z_dim)
+      real(kind=REAL64) :: ZLE(x_dim,y_dim,z_dim)
+
+      real(kind=REAL64) :: inst_geop_interface_val
+      integer           :: i, j, k
+
+      inst_geop_interface_val = 0.d0
+
+      do i=1, x_dim
+         do j=1, y_dim
+            do k=1, z_dim
+               inst_geop_interface_val = inst_geop_interface_val + 1.d0
+
+               inst_geop_interface(i, j, k) = inst_geop_interface_val
+            end do
+         end do
+      end do
+      @assert_that(inst_geop_interface_val, is(equal_to(1.d0*x_dim*y_dim*z_dim)))
+
+      call get_ZLE(inst_geop_interface, ZLE)
+      @assert_that(ZLE, is(equal_to(inst_geop_interface/MAPL_GRAV)))
+   end subroutine test_get_ZLE_real64
+end module test_MissingFields

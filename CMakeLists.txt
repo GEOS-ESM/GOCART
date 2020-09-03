@@ -27,10 +27,12 @@ set (DOING_GEOS5 YES)
 set (ACG_FLAGS -v)
 set (FV_PRECISION R4R8)
 
-list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake@")
-include (esma)
+if (NOT COMMAND esma)
+    list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake@")
+    include (esma)
+endif()
 
-ecbuild_declare_project()
+    ecbuild_declare_project()
 
 # This is a KLUDGE to emulate paths used in GEOSgcm so that GOCART Legacy code generation works
 file (MAKE_DIRECTORY ${esma_include}/GEOSchem_GridComp)
@@ -43,3 +45,6 @@ include_directories(${MPI_Fortran_INCLUDE_PATH})
 
 # Recursively build source tree
 add_subdirectory (ESMF)
+add_subdirectory (Process_Library)
+
+ecbuild_install_project (NAME GOCART)

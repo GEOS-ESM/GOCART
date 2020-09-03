@@ -296,7 +296,7 @@ CONTAINS
                     * sqrt(1.+6.e-7/(soil_density*grav*diameter**2.5)) &
            / sqrt(1.928*(1331.*(100.*diameter)**1.56+0.38)**0.092 - 1.)
 
-
+!if(mapl_am_i_root())print*,'DustEmissionGOCART u_thresh0 = ', u_thresh0
 
 !  Spatially dependent part of calculation
 !  ---------------------------------------
@@ -324,6 +324,9 @@ CONTAINS
 !       Emission of dust [kg m-2 s-1]
         emissions(i,j) = &
             (1.-fraclake(i,j)) * w10m**2. * (w10m-u_thresh)
+
+!if(mapl_am_i_root())print*,'DustEmissionGOCART u_thresh = ', u_thresh
+!if(mapl_am_i_root())print*,'DustEmissionGOCART w10m     = ', w10m
 
        endif
       endif

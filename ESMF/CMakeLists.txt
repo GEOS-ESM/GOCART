@@ -1,11 +1,12 @@
-#add_subdirectory(Shared)
-#add_subdirectory(Aerosol_GridComp)
-#add_subdirectory(GOCART_GridComp)
-#add_subdirectory(NUOPC)
+set (HEMCO_EXTERNAL_CONFIG TRUE)
+set (MAPL_ESMF TRUE)
+set (BUILD_GEOS_INTERFACE TRUE)
 
 esma_add_subdirectories(
+        Apps
         Shared
         Aerosol_GridComp
         GOCART_GridComp
-#        HEMCO_GridComp
+        GOCART2G_GridComp
+        # HEMCO_GridComp
 )

@@ -28,6 +28,8 @@
 
    use m_mpout
 
+!   use pflogger
+
    implicit none
 
 ! !PUBLIC TYPES:
@@ -194,6 +196,8 @@ CONTAINS
    call DryDepositionGOCART( i1, i2, j1, j2, km, &
                              tmpu, rhoa, hghte, oro, ustar, &
                              pblh, shflux, z0h, drydepositionfrequency, rc )
+
+if(mapl_am_i_root()) print*,'SU sum(drydepositionfrequency) = ',sum(drydepositionfrequency)
 
 !  Now call the chemistry packages...
 !  ----------------------------------
@@ -951,6 +955,7 @@ CONTAINS
     if (nymd_last == nymd_current .and. (.not. using_GMI_H2O2)) then
      xh2o2 = h2o2_clim
      nymd_last = nymd_current
+if(mapl_am_i_root()) print*,'SU nymd_oxidants == nymd_current'
     end if 
 
 
@@ -1221,8 +1226,13 @@ CONTAINS
 
 ! Update emissions/production if necessary (daily)
 !  -----------------------------------------------
+if(mapl_am_i_root()) print*,'SU nymd_last = ', nymd_last
+if(mapl_am_i_root()) print*,'SU nymd_current = ', nymd_current
+
    UpdateEmiss: if(nymd_last .ne. nymd_current) then
     nymd_last = nymd_current
+
+if(mapl_am_i_root()) print*,'SU inside UpdateEmiss'
 
 !   Biomass Burning -- select on known inventories
 !   ----------------------------------------------
@@ -1260,8 +1270,6 @@ CONTAINS
     call MAPL_GetPointer(impChem,ptr2d,'SU_AVIATION_CRS'//iNAME,rc=status)
     VERIFY_(STATUS)
     aviation_crs_src = ptr2d
-
-
 
 !   As a safety check, where values are undefined set to 0
     where(1.01*so2biomass_src(i1:i2,j1:j2)  > undefval)     so2biomass_src(i1:i2,j1:j2) = 0.
@@ -1396,6 +1404,8 @@ CONTAINS
   if ( diurnal_bb ) then
        call Chem_BiomassDiurnal ( so2biomass_src, so2biomass_src_,   &
                                   lonRad*radToDeg, latRad*radToDeg, nhms_current, cdt )      
+if(mapl_am_i_root()) print*,'SU inside sum(so2biomass_src) = ',sum(so2biomass_src)
+if(mapl_am_i_root()) print*,'SU inside sum(so2biomass_src_) = ',sum(so2biomass_src_)
   end if
 
 !  Apply NEI emissions over North America if so desired
@@ -1566,6 +1576,8 @@ CONTAINS
    real :: deltaSO2v, so2volcano
    integer :: ijl, ijkl
 
+real :: deltaSO2v_sum
+
 !  Handle masking of volcanic sources
     logical :: doingMasking
     INTEGER, ALLOCATABLE :: regionNumbers(:),flag(:)
@@ -1584,6 +1596,8 @@ CONTAINS
    real :: qmin, qmax
 #endif
 
+!class (logger), pointer :: lgr
+!lgr => logging%get_logger('volcanic_emissions')
 
    _UNUSED_DUMMY(nymd)
 
@@ -1822,15 +1836,17 @@ CONTAINS
 !     Loop over all volcanoes in the database
       do it = 1, nvolc
 
+deltaSO2v_sum = 0.
+
          i = iVolc(it)
          j = jVolc(it)
          
 !        Skip this volcano?
 !        ------------------
          if ( i<1 .OR. j<1 ) cycle ! volcano not in sub-domain
-         if(doingMasking) then
-            if( mask(i,j) == 0 ) cycle
-         end if
+!         if(doingMasking) then
+!            if( mask(i,j) == 0 ) cycle
+!         end if
 
 !        Check time against time range of eruption
 !        -----------------------------------------
@@ -1906,11 +1922,17 @@ CONTAINS
             z0(i,j) = z1
             so2(i,j,k) = so2(i,j,k) + deltaSO2v*cdt*grav/delp(i,j,k)
 
+deltaSO2v_sum = deltaSO2v_sum + deltaSO2v
+
       end do ! k
+!call lgr%debug('legacy emissions at %g0 %g0 : %g25.17', vLat(it), vLon(it), deltaSO2v_sum)
 
    enddo     ! it
 
    endif
+
+
+!if(mapl_am_i_root()) print*,'SU deltaSO2v_sum = ',deltaSO2v_sum
 
 !  Diagnostics -- this is really the point defined volcanos
    if(associated(SU_SO2emve%data2d)) then
@@ -1918,6 +1940,7 @@ CONTAINS
    endif
    if(associated(SU_SO2emvn%data2d)) then
       SU_SO2emvn%data2d = srcSO2volc
+if(mapl_am_i_root()) print*,'SU inside sum(SO2EMVN) = ',sum(SU_SO2emvn%data2d)
    endif
    if( associated(SU_emis(nSO2)%data2d) ) &
                   SU_emis(nSO2)%data2d =  SU_emis(nSO2)%data2d + srcSO2volc + srcSO2volce

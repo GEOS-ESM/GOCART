@@ -2,7 +2,7 @@
 # !RESOURCE: GOCART2G_GridComp.rc --- GOCART2G resource file
 #
 #  DESCRIPTION:
-#  The GOCART2G Registry resource file is used to control basic
+#  The GOCART2G resource file is used to control basic
 #  properties of the GOCART2G Grid Components. Instances are
 #  defined here. Default is the data component.
 #
@@ -28,13 +28,10 @@ PASSIVE_INSTANCES_SS:
 ACTIVE_INSTANCES_SU:  
 PASSIVE_INSTANCES_SU:
 
-ACTIVE_INSTANCES_BC:  
-PASSIVE_INSTANCES_BC:
+ACTIVE_INSTANCES_CA:  CA.oc CA.bc #CA.oc.data CA.bc.datac 
+PASSIVE_INSTANCES_CA:
 
-ACTIVE_INSTANCES_OC:  
-PASSIVE_INSTANCES_OC:
-
-ACTIVE_INSTANCES_NI:  
+ACTIVE_INSTANCES_NI:  NI  #NI.data 
 PASSIVE_INSTANCES_NI:
 
 

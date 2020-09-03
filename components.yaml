@@ -12,23 +12,23 @@ ecbuild:
 HEMCO:
   local: ./ESMF/HEMCO_GridComp@
   remote: ../HEMCO.git
-  tag: GEOS_12.8
+  branch: bugfix/GOCART_Build_error
 
 NCEP_Shared:
   local: ./ESMF/Shared/NCEP_Shared@
   remote: ../NCEP_Shared.git
   tag: v1.0.0
   sparse: ./config/NCEP_Shared.sparse
-  develop: master
+  develop: main
 
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
-  tag: v1.1.4
+  tag: v1.1.8
   sparse: ./config/GMAO_Shared.sparse
-  develop: master
+  develop: main
 
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  branch: develop
+  branch: NUOPC_MAPLcap

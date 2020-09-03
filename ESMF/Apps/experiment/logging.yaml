@@ -1,0 +1,108 @@
+schema_version: 1
+
+locks:
+   mpi:
+      class: MpiLock
+      comm:  MPI_COMM_WORLD
+
+formatters:
+   basic:
+      class: Formatter
+      format:  '%(name)a~: %(level_name)a~: %(message)a'
+   mpi:
+      class: MpiFormatter
+      format:  '%(mpi_rank)i4.4~: %(name)~: %(level_name)a~: %(message)a'
+      comm: MPI_COMM_WORLD
+   column:
+      class: Formatter
+      format: '(%(i)i3.3,%(j)i3.3): %(level_name)'
+
+handlers:
+   console:
+      class: streamhandler
+      formatter: basic
+      unit: OUTPUT_UNIT
+      level: WARNING
+      
+      
+   warnings:
+      class:  FileHandler
+      filename: warnings_and_errors.log
+      lock: mpi
+      level: WARNING
+      formatter: basic
+
+   errors:
+      class:  StreamHandler
+      formatter: basic
+      unit: ERROR_UNIT
+      level: ERROR
+
+   mpi_shared:
+      class: FileHandler
+      filename: allPEs.log
+      formatter: mpi
+      comm: MPI_COMM_WORLD
+      lock: mpi
+      rank_keyword: rank
+      level: DEBUG
+
+   uwshcu_shared:
+      class: FileHandler
+      filename: uwshcu.log
+      formatter: mpi
+      comm: MPI_COMM_WORLD
+      lock: mpi
+      rank_keyword: rank
+      level: DEBUG
+
+   mpi_debug:
+      class: MpiFileHandler
+      formatter: basic
+      filename:  debug_%(rank)i3.3~.log
+      comm: MPI_COMM_WORLD      
+      rank_prefix: rank
+      level: DEBUG
+
+root:
+   parallel: true
+   handlers: [warnings,errors]
+   level: WARNING
+
+loggers:
+
+   parallel:
+      parallel: true
+      handlers: [mpi_debug,mpi_shared]
+      lock: mpi
+      propagate: false
+      level: DEBUG
+
+   CAP.GCM.AGCM.PHYSICS:
+       parallel: true
+       handlers: [mpi_shared]
+       lock: mpi
+       level: WARNING
+       root_level: INFO
+       
+   MAPL:
+       parallel: true
+       handlers: [mpi_shared]
+       lock: mpi
+#       propagate: false
+       level: INFO
+       root_level: DEBUG
+       
+   uwshcu:
+       handlers: [uwshcu_shared]
+       lock: mpi
+       propagate: false
+       level: DEBUG
+       root_level: DEBUG
+
+
+   errors:
+       handlers: [errors]
+       parallel: true
+       lock: mpi
+       level: ERROR

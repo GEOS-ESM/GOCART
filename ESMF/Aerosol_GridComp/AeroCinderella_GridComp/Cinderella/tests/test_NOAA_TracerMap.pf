@@ -1,0 +1,401 @@
+#include "MAPL_Generic.h"
+
+module test_NOAA_TracerMap
+    use, intrinsic :: iso_fortran_env, only: INT64, REAL32, REAL64
+
+    use NOAA_TracerMap_mod
+    use pFUnit
+    use MAPL
+    use ESMF
+    use ESMF_TestCase_mod
+    use ESMF_TestMethod_mod
+
+    implicit none
+
+    interface create_mass_tracers
+        module procedure create_mass_tracers_real32
+        module procedure create_mass_tracers_real64
+    end interface create_mass_tracers
+
+    interface check_tracer
+        module procedure check_tracer_real32
+        module procedure check_tracer_real64
+    end interface check_tracer
+
+    integer, parameter :: t_dim = 28
+
+    character(len=*), parameter :: filename = 'field_table'
+
+    character(len=*), parameter :: test_tracer_line = ' "TRACER", "atmos_mod", "sphum"'
+    character(len=*), parameter :: test_tracer_with_quotes = ', "sphum"'
+    character(len=*), parameter :: test_tracer_without_first_quote = 'sphum"'
+    character(len=*), parameter :: test_tracer_without_second_quote = 'sphum'
+
+    character(len=*), parameter :: test_false_line_0 = '           "longname",     "specific humidity"'
+    character(len=*), parameter :: test_false_line_1 = '           "units",        "kg/kg"'
+    character(len=*), parameter :: test_false_line_2 = '       "profile_type", "fixed", "surface_value=1.e30" /'
+    character(len=*), parameter :: test_false_line_3 = '# specific humidity for moist runs'
+contains
+    function str(x)
+        character(:), allocatable :: str
+        integer, intent(in) :: x
+
+        character(32) :: buffer
+
+        write(buffer,'(g0)') x
+        str = trim(buffer)
+    end function str
+
+    subroutine create_mass_tracers_real32(tracer_map, field, f_array, t_array, rc)
+        type(TracerMap),                                    intent(out) :: tracer_map
+        type(ESMF_Field),                                   intent(out) :: field
+        real(kind=REAL32), allocatable, dimension(:,:,:,:), intent(out) :: f_array,t_array
+        integer, optional,                                  intent(out) :: rc
+
+        type(ESMF_Grid)     :: grid
+        type(ESMF_DistGrid) :: dist_grid
+
+        real(kind=REAL32)     :: f_array_val
+        integer, dimension(3) :: fa_shape
+        integer               :: x_dim, y_dim, z_dim, i, j, k, l, status, field_rank
+
+        x_dim = 4
+        y_dim = 3
+        z_dim = 2
+
+        dist_grid = ESMF_DistGridCreate(minIndex=[1,1,1], maxIndex=[x_dim,y_dim,z_dim], &
+              regDecomp=[1,1,1], rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        grid = ESMF_GridCreate(distgrid=dist_grid, name="grid", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGetFieldBounds(grid=grid, localDe=0, &
+              staggerloc=ESMF_STAGGERLOC_CENTER, totalCount=fa_shape, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(fa_shape(1), is(equal_to(x_dim)))
+        @assert_that(fa_shape(2), is(equal_to(y_dim)))
+        @assert_that(fa_shape(3), is(equal_to(z_dim)))
+
+        allocate(f_array(fa_shape(1),fa_shape(2),fa_shape(3), t_dim))
+        allocate(t_array(fa_shape(1),fa_shape(2),fa_shape(3), t_dim))
+
+        f_array_val = 1.0
+        do i=1, fa_shape(1)
+            do j=1, fa_shape(2)
+                do k=1, fa_shape(3)
+                    do l=1, t_dim
+                        f_array(i,j,k,l) = f_array_val
+                        f_array_val = f_array_val + 1.0
+                    end do
+                end do
+            end do
+        end do
+
+        @assert_that(f_array_val, is(equal_to(fa_shape(1)*fa_shape(2)*fa_shape(3)*t_dim + 1.0)))
+        t_array = f_array
+        @assertEqual(f_array, t_array)
+
+        field = ESMF_FieldCreate(grid, f_array, ESMF_INDEX_DELOCAL, &
+              ungriddedLBound=[1], ungriddedUbound=[t_dim], rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, rank=field_rank, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_rank, is(equal_to(4)))
+
+        do i=1, t_dim
+            call tracer_map%insert("tracer"//str(i), i)
+        end do
+
+        _RETURN(_SUCCESS)
+    end subroutine create_mass_tracers_real32
+
+    subroutine create_mass_tracers_real64(tracer_map, field, f_array, t_array, rc)
+        type(TracerMap),                                    intent(out) :: tracer_map
+        type(ESMF_Field),                                   intent(out) :: field
+        real(kind=REAL64), allocatable, dimension(:,:,:,:), intent(out) :: f_array,t_array
+        integer, optional,                                  intent(out) :: rc
+
+        type(ESMF_Grid)     :: grid
+        type(ESMF_DistGrid) :: dist_grid
+
+        real(kind=REAL64)     :: f_array_val
+        integer, dimension(3) :: fa_shape
+        integer               :: x_dim, y_dim, z_dim, i, j, k, l, status, field_rank
+
+        x_dim = 4
+        y_dim = 3
+        z_dim = 2
+
+        dist_grid = ESMF_DistGridCreate(minIndex=[1,1,1], maxIndex=[x_dim,y_dim,z_dim], &
+              regDecomp=[1,1,1], rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        grid = ESMF_GridCreate(distgrid=dist_grid, name="grid", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGetFieldBounds(grid=grid, localDe=0, &
+              staggerloc=ESMF_STAGGERLOC_CENTER, totalCount=fa_shape, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(fa_shape(1), is(equal_to(x_dim)))
+        @assert_that(fa_shape(2), is(equal_to(y_dim)))
+        @assert_that(fa_shape(3), is(equal_to(z_dim)))
+
+        allocate(f_array(fa_shape(1),fa_shape(2),fa_shape(3), t_dim))
+        allocate(t_array(fa_shape(1),fa_shape(2),fa_shape(3), t_dim))
+
+        f_array_val = 1.d0
+        do i=1, fa_shape(1)
+            do j=1, fa_shape(2)
+                do k=1, fa_shape(3)
+                    do l=1, t_dim
+                        f_array(i,j,k,l) = f_array_val
+                        f_array_val = f_array_val + 1.d0
+                    end do
+                end do
+            end do
+        end do
+
+        @assert_that(f_array_val, is(equal_to(fa_shape(1)*fa_shape(2)*fa_shape(3)*t_dim + 1.d0)))
+        t_array = f_array
+        @assertEqual(f_array, t_array)
+
+        field = ESMF_FieldCreate(grid, f_array, ESMF_INDEX_DELOCAL, &
+              ungriddedLBound=[1], ungriddedUbound=[t_dim], rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, rank=field_rank, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_rank, is(equal_to(4)))
+
+        do i=1, t_dim
+            call tracer_map%insert("tracer"//str(i), i)
+        end do
+
+        _RETURN(_SUCCESS)
+    end subroutine create_mass_tracers_real64
+
+    subroutine check_tracer_real32(field, tracer, tracer_name, f_array, t_array, idx)
+        type(ESMF_Field),                      intent(in) :: field, tracer
+        character(*),                          intent(in) :: tracer_name
+        real(kind=REAL32), dimension(:,:,:,:), intent(in) :: f_array, t_array
+        integer,                               intent(in) :: idx
+
+        type(ESMF_Grid)            :: field_grid, tracer_grid
+        real(kind=REAL32), pointer :: tracer_array(:,:,:)
+        character(len=ESMF_MaxStr) :: name
+        integer                    :: status
+
+        call ESMF_FieldGet(field, grid=field_grid, rc=status)
+        @assert_that(status, is(equal_to(0)))
+        call ESMF_FieldGet(tracer, grid=tracer_grid, name=name, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_grid == tracer_grid, is(true()))
+        @assert_that(tracer_name, is(equal_to(trim(name))))
+
+        call ESMF_FieldGet(tracer, localDE=0, farrayPtr=tracer_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(tracer_array, is(equal_to(f_array(:,:,:,idx))))
+        @assert_that(tracer_array, is(equal_to(t_array(:,:,:,idx))))
+    end subroutine check_tracer_real32
+
+    subroutine check_tracer_real64(field, tracer, tracer_name, f_array, t_array, idx)
+        type(ESMF_Field),                      intent(in) :: field, tracer
+        character(*),                          intent(in) :: tracer_name
+        real(kind=REAL64), dimension(:,:,:,:), intent(in) :: f_array, t_array
+        integer,                               intent(in) :: idx
+
+        type(ESMF_Grid)            :: field_grid, tracer_grid
+        real(kind=REAL64), pointer :: tracer_array(:,:,:)
+        character(len=ESMF_MaxStr) :: name
+        integer                    :: status
+
+        call ESMF_FieldGet(field, grid=field_grid, rc=status)
+        @assert_that(status, is(equal_to(0)))
+        call ESMF_FieldGet(tracer, grid=tracer_grid, name=name, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_grid == tracer_grid, is(true()))
+        @assert_that(tracer_name, is(equal_to(trim(name))))
+
+        call ESMF_FieldGet(tracer, localDE=0, farrayPtr=tracer_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(tracer_array, is(equal_to(f_array(:,:,:,idx))))
+        @assert_that(tracer_array, is(equal_to(t_array(:,:,:,idx))))
+    end subroutine check_tracer_real64
+
+    @test
+    subroutine test_read_tracer_name()
+        type(TracerMap) :: tracer_map
+
+        @assert_that(tracer_map%read_tracer_name(test_tracer_line), is(equal_to(test_tracer_with_quotes)))
+    end subroutine test_read_tracer_name
+
+    @test
+    subroutine test_remove_first_quote()
+        type(TracerMap) :: tracer_map
+
+        @assert_that(tracer_map%remove_first_quote(test_tracer_with_quotes), is(equal_to(test_tracer_without_first_quote)))
+
+        @assert_that(tracer_map%remove_first_quote(tracer_map%read_tracer_name(test_tracer_line)), is(equal_to(test_tracer_without_first_quote)))
+    end subroutine test_remove_first_quote
+
+    @test
+    subroutine test_remove_second_quote()
+        type(TracerMap) :: tracer_map
+
+        @assert_that(tracer_map%remove_second_quote(test_tracer_without_first_quote), is(equal_to(test_tracer_without_second_quote)))
+
+        @assert_that(tracer_map%remove_second_quote(tracer_map%remove_first_quote(tracer_map%read_tracer_name(test_tracer_line))), is(equal_to(test_tracer_without_second_quote)))
+    end subroutine test_remove_second_quote
+
+    @test
+    subroutine test_read_field_table_line()
+        type(TracerMap) :: tracer_map
+        integer         :: tracer_index
+
+        tracer_index = 1
+        call tracer_map%read_field_table_line(test_tracer_line, tracer_index)
+        @assert_that(tracer_index, is(equal_to(2)))
+        @assert_that(tracer_map%size(), is(equal_to(1_INT64)))
+        @assert_that(tracer_map%count(test_tracer_without_second_quote) > 0, is(true()))
+        @assert_that(tracer_map%at(test_tracer_without_second_quote), is(equal_to(2)))
+
+        call tracer_map%read_field_table_line(test_false_line_0, tracer_index)
+        @assert_that(tracer_index, is(equal_to(2)))
+        @assert_that(tracer_map%size(), is(equal_to(1_INT64)))
+
+        call tracer_map%read_field_table_line(test_false_line_1, tracer_index)
+        @assert_that(tracer_index, is(equal_to(2)))
+        @assert_that(tracer_map%size(), is(equal_to(1_INT64)))
+
+        call tracer_map%read_field_table_line(test_false_line_2, tracer_index)
+        @assert_that(tracer_index, is(equal_to(2)))
+        @assert_that(tracer_map%size(), is(equal_to(1_INT64)))
+
+        call tracer_map%read_field_table_line(test_false_line_3, tracer_index)
+        @assert_that(tracer_index, is(equal_to(2)))
+        @assert_that(tracer_map%size(), is(equal_to(1_INT64)))
+    end subroutine test_read_field_table_line
+
+    @test
+    subroutine test_read_field_table()
+        type(TracerMap) :: tracer_map
+        integer         :: rc
+
+        call tracer_map%read_field_table(filename)
+        @assert_that(tracer_map%size(), is(equal_to(28_INT64)))
+
+        @assert_that(tracer_map%count('sphum')   > 0, is(true()))
+        @assert_that(tracer_map%count('liq_wat') > 0, is(true()))
+        @assert_that(tracer_map%count('rainwat') > 0, is(true()))
+        @assert_that(tracer_map%count('ice_wat') > 0, is(true()))
+        @assert_that(tracer_map%count('snowwat') > 0, is(true()))
+        @assert_that(tracer_map%count('graupel') > 0, is(true()))
+        @assert_that(tracer_map%count('o3mr')    > 0, is(true()))
+        @assert_that(tracer_map%count('so2')     > 0, is(true()))
+        @assert_that(tracer_map%count('sulf')    > 0, is(true()))
+        @assert_that(tracer_map%count('DMS')     > 0, is(true()))
+        @assert_that(tracer_map%count('msa')     > 0, is(true()))
+        @assert_that(tracer_map%count('pp25')    > 0, is(true()))
+        @assert_that(tracer_map%count('bc1')     > 0, is(true()))
+        @assert_that(tracer_map%count('bc2')     > 0, is(true()))
+        @assert_that(tracer_map%count('oc1')     > 0, is(true()))
+        @assert_that(tracer_map%count('oc2')     > 0, is(true()))
+        @assert_that(tracer_map%count('dust1')   > 0, is(true()))
+        @assert_that(tracer_map%count('dust2')   > 0, is(true()))
+        @assert_that(tracer_map%count('dust3')   > 0, is(true()))
+        @assert_that(tracer_map%count('dust4')   > 0, is(true()))
+        @assert_that(tracer_map%count('dust5')   > 0, is(true()))
+        @assert_that(tracer_map%count('seas1')   > 0, is(true()))
+        @assert_that(tracer_map%count('seas2')   > 0, is(true()))
+        @assert_that(tracer_map%count('seas3')   > 0, is(true()))
+        @assert_that(tracer_map%count('seas4')   > 0, is(true()))
+        @assert_that(tracer_map%count('seas5')   > 0, is(true()))
+        @assert_that(tracer_map%count('pp10')    > 0, is(true()))
+        @assert_that(tracer_map%count('cld_amt') > 0, is(true()))
+
+        @assert_that(tracer_map%at('sphum'),   is(equal_to( 1)))
+        @assert_that(tracer_map%at('liq_wat'), is(equal_to( 2)))
+        @assert_that(tracer_map%at('rainwat'), is(equal_to( 3)))
+        @assert_that(tracer_map%at('ice_wat'), is(equal_to( 4)))
+        @assert_that(tracer_map%at('snowwat'), is(equal_to( 5)))
+        @assert_that(tracer_map%at('graupel'), is(equal_to( 6)))
+        @assert_that(tracer_map%at('o3mr'),    is(equal_to( 7)))
+        @assert_that(tracer_map%at('so2'),     is(equal_to( 8)))
+        @assert_that(tracer_map%at('sulf'),    is(equal_to( 9)))
+        @assert_that(tracer_map%at('DMS'),     is(equal_to(10)))
+        @assert_that(tracer_map%at('msa'),     is(equal_to(11)))
+        @assert_that(tracer_map%at('pp25'),    is(equal_to(12)))
+        @assert_that(tracer_map%at('bc1'),     is(equal_to(13)))
+        @assert_that(tracer_map%at('bc2'),     is(equal_to(14)))
+        @assert_that(tracer_map%at('oc1'),     is(equal_to(15)))
+        @assert_that(tracer_map%at('oc2'),     is(equal_to(16)))
+        @assert_that(tracer_map%at('dust1'),   is(equal_to(17)))
+        @assert_that(tracer_map%at('dust2'),   is(equal_to(18)))
+        @assert_that(tracer_map%at('dust3'),   is(equal_to(19)))
+        @assert_that(tracer_map%at('dust4'),   is(equal_to(20)))
+        @assert_that(tracer_map%at('dust5'),   is(equal_to(21)))
+        @assert_that(tracer_map%at('seas1'),   is(equal_to(22)))
+        @assert_that(tracer_map%at('seas2'),   is(equal_to(23)))
+        @assert_that(tracer_map%at('seas3'),   is(equal_to(24)))
+        @assert_that(tracer_map%at('seas4'),   is(equal_to(25)))
+        @assert_that(tracer_map%at('seas5'),   is(equal_to(26)))
+        @assert_that(tracer_map%at('pp10'),    is(equal_to(27)))
+        @assert_that(tracer_map%at('cld_amt'), is(equal_to(28)))
+    end subroutine test_read_field_table
+
+    @test
+    subroutine test_create_tracer_real32()
+        type(TracerMap)                                    :: tracer_map
+        type(ESMF_Field)                                   :: field, tracer
+        real(kind=REAL32), allocatable, dimension(:,:,:,:) :: f_array, t_array
+
+        character(:), allocatable :: name
+        integer                   :: i, rc
+
+        call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
+        @assert_that(rc, is(equal_to(0)))
+
+        do i=1, t_dim
+            name = 'tracer'//str(i)
+            @assert_that(tracer_map%count(name) > 0, is(true()))
+            @assert_that(tracer_map%at(name), is(equal_to(i)))
+
+            call tracer_map%create_tracer(field, name, tracer, rc)
+            @assert_that(rc, is(equal_to(0)))
+            call check_tracer(field, tracer, name, f_array, t_array, i)
+        end do
+    end subroutine test_create_tracer_real32
+
+    @test
+    subroutine test_create_tracer_real64()
+        type(TracerMap)                                    :: tracer_map
+        type(ESMF_Field)                                   :: field, tracer
+        real(kind=REAL64), allocatable, dimension(:,:,:,:) :: f_array, t_array
+
+        character(:), allocatable :: name
+        integer                   :: i, rc
+
+        call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
+        @assert_that(rc, is(equal_to(0)))
+
+        do i=1, t_dim
+            name = 'tracer'//str(i)
+            @assert_that(tracer_map%count(name) > 0, is(true()))
+            @assert_that(tracer_map%at(name), is(equal_to(i)))
+
+            call tracer_map%create_tracer(field, name, tracer, rc)
+            @assert_that(rc, is(equal_to(0)))
+            call check_tracer(field, tracer, name, f_array, t_array, i)
+        end do
+    end subroutine test_create_tracer_real64
+end module test_NOAA_TracerMap

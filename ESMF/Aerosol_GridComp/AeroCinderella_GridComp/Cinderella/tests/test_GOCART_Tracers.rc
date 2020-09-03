@@ -1,3 +1,5 @@
+GOCART_tracer_config: GOCART_Tracers.yaml
+
 NOAA_tracer_config: default
 
 default.inst_tracer_mass_frac:
