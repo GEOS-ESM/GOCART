@@ -23,8 +23,8 @@ fscav: 0.4  0.4  0.4  0.4  0.4
 emission_scheme: 3                                     # 1 for Gong 2003, 2 for ...
 emission_scale:  0.613 0.613 0.613 0.429 0.429 0.429   # a global scaling factor
 sstEmisFlag:     2                                     # Apply a correction to emissions based on SST (see code)
-hoppelFlag:      .true.              # Apply Hoppel correction (set non-zero, see Fan and Toon 2011)
-weibullFlag:     .true.              # Apply Weibull distribution (set non-zero, see Fan and Toon 2011)
+hoppelFlag:      .false.              # Apply Hoppel correction (set non-zero, see Fan and Toon 2011)
+weibullFlag:     .false.              # Apply Weibull distribution (set non-zero, see Fan and Toon 2011)
 
 # Method of apply relative humidity to particle radius
 rhFlag:          2       # RH swelling of Seasalt (1 for Fitzgerald 1975,
