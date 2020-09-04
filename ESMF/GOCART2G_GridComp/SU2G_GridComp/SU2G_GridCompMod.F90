@@ -413,7 +413,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     real, pointer, dimension(:,:,:)      :: ple
-    real, pointer, dimension(:,:)        :: area
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
@@ -537,8 +536,10 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
        call get_HenrysLawCts('SO2',Vect_Hcts(1),Vect_Hcts(2),Vect_Hcts(3),Vect_Hcts(4),__RC__)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, __RC__)
 
-       call ESMF_StateGet (internal, 'MSA', field, __RC__)
-       call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(4), __RC__)
+       call ESMF_StateGet (internal, 'MSA', field, rc=status)
+       if (status == 0) then
+          call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(4), __RC__)
+       end if
     end if
 
 !   Fill AERO State with SO4
@@ -763,6 +764,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     real, dimension(:,:,:), allocatable :: emissions_point
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
 
+    real, pointer, dimension(:,:,:) :: dummyMSA => null() ! This is so the model can run without MSA enabled
+
 #include "SU2G_DeclarePointer___.h"
 
    __Iam__('Run1')
@@ -787,6 +790,9 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 #include "SU2G_GetPointer___.h"
 
+    call MAPL_GetPointer(internal, dummyMSA, 'MSA', rc=status)
+
+
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
@@ -808,7 +814,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
        DMS = tiny(1.) ! avoid division by zero
        SO2 = tiny(1.) ! avoid division by zero
        SO4 = tiny(1.) ! avoid division by zero
-       MSA = tiny(1.) ! avoid division by zero
+       if ( associated(dummyMSA)) dummyMSA = tiny(1.) ! avoid division by zero
        if ( MAPL_AM_I_ROOT() ) then
           print *, '<> SU '//cdow//' tracer being set to zero on ', nymd, nhms
        end if
@@ -991,6 +997,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     real, dimension(:,:,:), allocatable ::  xoh, xno3, xh2o2
 
     real, dimension(:,:), allocatable :: drydepositionf
+    real, pointer, dimension(:,:,:) :: dummyMSA => null() ! this is so the model can run without MSA enabled
+    
 
 #include "SU2G_DeclarePointer___.h"
 
@@ -1016,7 +1024,9 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                          LATS = LATS, __RC__ )
 
 #include "SU2G_GetPointer___.h"
-
+    
+    call MAPL_GetPointer(internal, dummyMSA, 'MSA', rc=status)
+    
 !   Extract nymd(yyyymmdd) from clock
 !   ---------------------------------
     call ESMF_ClockGet (clock, currTime=time, __RC__)
@@ -1075,7 +1085,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             airmw, nAvogadro, cpd, chemgrav, &
                             fMassMSA, fMassDMS, fMassSO2, fMassSO4, &
                             nymd, nhms, lons, lats, &
-                            dms, so2, so4, msa, &
+                            dms, so2, so4, dummyMSA, &
                             nDMS, nSO2, nSO4, nMSA, &
                             xoh, xno3, xh2o2, self%h2o2_init, &
                             delp, t, fcld, airdens, zle, &
@@ -1088,13 +1098,13 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, chemgrav, airMW, &
                           delp, fMassSO4, fMassSO2, &
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
-                          nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, MSA, &
+                          nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, rc )
 
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             chemgrav, MAPL_pi, nSO4, self%diag_MieTable(self%instance), &
                             self%diag_MieTable(self%instance)%channels, &
-                            t, airdens, delp, rh2, u, v, DMS, SO2, SO4, MSA, &
+                            t, airdens, delp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &
                             MSASMASS, MSACMASS, &
                             SO2SMASS, SO2CMASS, &
@@ -1105,7 +1115,9 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO2) = ',sum(SO2)
 if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO4) = ',sum(SO4)
 if(mapl_am_i_root()) print*,'SU2G Run2 E sum(DMS) = ',sum(DMS)
-if(mapl_am_i_root()) print*,'SU2G Run2 E sum(MSA) = ',sum(MSA)
+if (associated(dummyMSA)) then
+   if(mapl_am_i_root()) print*,'SU2G Run2 E sum(MSA) = ',sum(dummyMSA)
+end if
 
     RETURN_(ESMF_SUCCESS)
 
