@@ -41,7 +41,6 @@
    public CAEmission
    public phobicTophilic
    public NIheterogenousChem
-!   public CombineVolcEmiss
    public SulfateDistributeEmissions
    public DMSemission
    public SUvolcanicEmissions
@@ -288,6 +287,7 @@ CONTAINS
 ! !REVISION HISTORY:
 ! ??? A. Darmenov
 ! ??? P. Colarco
+! ??2020 E.Sherman - ported to process library
 !
 ! !Locals
    integer :: k
@@ -353,13 +353,7 @@ CONTAINS
     end if
 
 !   distribute emissions in the vertical
-    point_column_emissions(:) = (w_ / sum(w_)) * emissions_point
-!    point_column_emissions(:) = ((w_ / sum(w_)) * emissions_point) / area
-
-!print*,'point_column_emissions = ',point_column_emissions
-!print*,'emissions_point = ',emissions_point
-!print*,'w_/sum(w_) = ',w_/sum(w_)
-!print*,'area = ',area
+    point_column_emissions(:) = ((w_ / sum(w_)) * emissions_point) / area
 
     rc = 0
 
@@ -411,7 +405,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !
-! 11Feb2020 E.Sherman - First attempt at refactor
+! 11Feb2020 E.Sherman - First attempt at port/refactor
 !
 
 !  !Local
@@ -440,7 +434,6 @@ CONTAINS
    real :: rcm
    real :: diff_coef                 ! Brownian diffusion coefficient [m2 s-1]
    real(kind=DP)  :: dt_settle, gravDP
-!   real, allocatable, dimension(:,:)   :: hsurf
    real, pointer, dimension(:,:)   :: hsurf
 
    real, dimension(:,:,:), allocatable  :: vsettle   ! fall speed [m s-1]
@@ -474,7 +467,6 @@ CONTAINS
    allocate(cmass_before(i2,j2), cmass_after(i2,j2), qdel(i2,j2), d_p(i2,j2), &
             dpm1(i2,j2), qsrc(i2,j2))
 
-!#if 0
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
 !  -----------------------------------------------------------------
    dk = lbound(hghte,3) - 1  ! This is either 0 or 1
@@ -487,17 +479,8 @@ CONTAINS
    enddo
    dzd = dz
 
-!print*,'CHEM_SETTLING TEST A'
+   qa(:,:,:) = int_qa(:,:,:)
 
-!  Loop over the number of dust bins
-!   do n = 1, nbins
-
-!    qa = w_c%qa(nbeg+n-1)%data3d
-!    qa(:,:,:) = int_qa(:,:,:,n)
-     qa(:,:,:) = int_qa(:,:,:)
-
-!    radius = radiusInp(n)
-!    rhop = rhopInp(n)
     radius = radiusInp
     rhop = rhopInp
 
@@ -509,13 +492,12 @@ CONTAINS
     cmass_before(:,:) = 0.d0
     cmass_after(:,:) = 0.d0
 
-!   If radius le 0 then get out of loop
+!   If radius le 0 then get out
     if(radius .le. 0.) then
        rc = 100
        return
     end if
 
-!    do k = 1, km
     do k = klid, km
        do j = j1, j2
           do i = i1, i2
@@ -585,8 +567,6 @@ CONTAINS
        end do !do j
     end do !do k
 
-!print*,'CHEM_SETTLING TEST2'
-
     if(present(correctionMaring)) then
        if ((correctionMaring) .and. (radiusInp .le. (0.5*diameterMaring))) then
           vsettle = max(1.0e-9, vsettle - v_upwardMaring)
@@ -596,26 +576,16 @@ CONTAINS
     vsd = vsettle
 
     if(present(vsettleOut)) then
-!       vsettleOut(n)%data3d = vsettle
-!       vsettleOut(:,:,:,n) = vsettle
        vsettleOut = vsettle
     endif
 
 !   Determine global min time to cross grid cell
     qmin = minval(dz/vsettle)
-
-!    call pmaxmin ( 'Chem_Settling: dt', dz(i1:i2,j1:j2,1:km)/vsettle(i1:i2,j1:j2,1:km), &
-!                                        qmin, qmax, ijl, km, 0. )
- 
     minTime = min(minTime,qmin)
 
 !   Now, how many iterations do we need to do?
     if ( minTime < 0 ) then
-         nSubSteps = 0
-!REVISIT THIS!!!
-!----------------------
-!         call mpout_log(myname,'no Settling because minTime = ', minTime ) 
-!---------------------
+       nSubSteps = 0
     else if(minTime .ge. cdt) then
        nSubSteps = 1
        dt_settle = cdt
@@ -624,17 +594,10 @@ CONTAINS
        dt_settle = cdt/nSubSteps
     endif
 
-!print*,'CHEM_SETTLING TEST3'
-
-qa_temp = qa
-
 !   Loop over sub-timestep
     do iit = 1, nSubSteps
 
 !      Try a simple forward Euler scheme
-!       qdel = qa(i1:i2,j1:j2,1)*dt_settle*vsd(i1:i2,j1:j2,1)/dzd(i1:i2,j1:j2,1)
-!       qa(i1:i2,j1:j2,1) = qa(i1:i2,j1:j2,1) - qdel
-
        qdel = qa(i1:i2,j1:j2,klid)*dt_settle*vsd(i1:i2,j1:j2,klid)/dzd(i1:i2,j1:j2,klid)
        qa(i1:i2,j1:j2,klid) = qa(i1:i2,j1:j2,klid) - qdel
 
@@ -646,27 +609,7 @@ qa_temp = qa
           qdel = qa(i1:i2,j1:j2,k)*dt_settle*vsd(i1:i2,j1:j2,k)/dzd(i1:i2,j1:j2,k)
           qa(i1:i2,j1:j2,k) = qa(i1:i2,j1:j2,k) - qdel + qsrc
        enddo
-
-!commented out in original Chem_Settling
-!!     An alternative accumulator approach to computing the outgoing flux
-!!     if( associated(fluxout(n)%data2d) ) then
-!!        fluxout(n)%data2d = fluxout(n)%data2d + qdel * pdog/grav / dt_settle
-!!     endif
-
     end do  ! iit
-
-!if (sum(qa_temp) < sum(qa)) then
-!   print*,'qa_temp = ',sum(qa_temp), ' : qa = ', sum(qa)
-!end if
-
-!   Find the column dry mass after sedimentation and thus the loss flux
-!    do k = 1, km
-!       do j = j1, j2
-!          do i = i1, i2
-!             cmass_after(i,j) = cmass_after(i,j) + qa(i,j,k)/ gravDP * delp(i,j,k)
-!          enddo
-!       enddo
-!    enddo
 
     cmass_after = sum(qa / gravDP * delp,3)
 
@@ -674,16 +617,10 @@ qa_temp = qa
        fluxout(:,:,bin) = (cmass_before - cmass_after)/cdt
     endif
 
-!    fluxout = (cmass_before - cmass_after)/cdt
-
-!    w_c%qa(nbeg+n-1)%data3d = qa
-!    int_qa(:,:,:,n) = qa
     int_qa = qa
-!   end do   ! n
 
    rc=0
 
-!#endif
    end subroutine Chem_Settling2Gorig
 
 !=========================================================================================
@@ -693,8 +630,6 @@ qa_temp = qa
 ! !IROUTINE:  Chem_CalcVsettle2G - Calculate the aerosol settling velocity
 !
 ! !INTERFACE:
-!
-
    subroutine Chem_CalcVsettle2Gorig ( radius, rhop, rhoa, tmpu, grav, &
                                       diff_coef, vsettle )
 
@@ -823,7 +758,6 @@ qa_temp = qa
 ! !REVISION HISTORY:
 !
 ! 17Aug2020 E.Sherman - Ported and modified from Chem_SettlingMod.F90
-!
 
 ! !Local Variables
    real,    parameter     :: rhow = 1000.  ! Density of water [kg m-3]
@@ -901,10 +835,9 @@ qa_temp = qa
     cmass_before(:,:) = 0.d0
     cmass_after(:,:) = 0.d0
 
-!   If radius le 0 then get out of loop
+!   If radius le 0 then get out
     if(radius .le. 0.) return
 
-!    do k = 1, km
     do k = klid, km
      do j = j1, j2
       do i = i1, i2
@@ -961,8 +894,6 @@ qa_temp = qa
        endif
 
 !      Calculate the settling velocity
-!       call Chem_CalcVsettle(radius, rhop, rhoa(i,j,k), &
-!                        tmpu(i,j,k), diff_coef, vsettle(i,j,k))
        call Chem_CalcVsettle2Gorig(radius, rhop, rhoa(i,j,k), tmpu(i,j,k), &
                                    grav, diff_coef, vsettle(i,j,k))
       end do
@@ -978,13 +909,10 @@ qa_temp = qa
     vsd = vsettle
 
     if(present(vsettleOut)) then
-!     if(associated(vsettleOut)) vsettleOut = vsettle
        vsettleOut = vsettle
     endif
 
 !   Determine global min time to cross grid cell
-!    call pmaxmin ( 'Chem_Settling: dt', dz(i1:i2,j1:j2,1:km)/vsettle(i1:i2,j1:j2,1:km), &
-!                                        qmin, qmax, ijl, km, 0. )
     qmin = minval(dz/vsettle)
     minTime = min(minTime,qmin)
 
@@ -1006,8 +934,6 @@ qa_temp = qa
 !     Try a simple forward Euler scheme
      qdel = qa(i1:i2,j1:j2,klid)*dt_settle*vsd(i1:i2,j1:j2,klid)/dzd(i1:i2,j1:j2,klid)
      qa(i1:i2,j1:j2,klid) = qa(i1:i2,j1:j2,klid) - qdel
-!     qdel = qa(i1:i2,j1:j2,1)*dt_settle*vsd(i1:i2,j1:j2,1)/dzd(i1:i2,j1:j2,1)
-!     qa(i1:i2,j1:j2,1) = qa(i1:i2,j1:j2,1) - qdel
 
      do k = klid+1, km
       dp   = delp(i1:i2,j1:j2,k)
@@ -1020,7 +946,6 @@ qa_temp = qa
     end do  ! iit
 
 !   Find the column dry mass after sedimentation and thus the loss flux
-!    do k = 1, km
     do k = klid, km
      do j = j1, j2
       do i = i1, i2
@@ -1034,8 +959,6 @@ qa_temp = qa
         = (cmass_before(i1:i2,j1:j2) - cmass_after(i1:i2,j1:j2))/cdt
     endif
 
-
-!    w_c%qa(ibin)%data3d = qa
     int_qa = qa
 
     rc = 0
@@ -1050,13 +973,11 @@ qa_temp = qa
 !
 ! !INTERFACE:
 !
-
    subroutine DryDeposition ( km, tmpu, rhoa, hghte, oro, ustar, pblh, shflux, & 
                               von_karman, cpd, grav, z0h, drydepf, rc, &
                               radius, rhop, u10m, v10m, fraclake, gwettop )
 
 ! !USES:
-
   implicit NONE
 
 ! !INPUT PARAMETERS:
@@ -1086,7 +1007,6 @@ qa_temp = qa
    real, pointer, dimension(:,:), optional   :: v10m      ! 10-m v-wind component [m/sec]
    real, pointer, dimension(:,:), optional   :: fraclake  ! fraction covered by water [1]
    real, pointer, dimension(:,:), optional   :: gwettop   ! fraction soil moisture [1]
-
 
 
 ! !DESCRIPTION: Calculates the deposition velocity for aerosols in the lowest
@@ -1141,7 +1061,7 @@ qa_temp = qa
    call ObukhovLength2G( i1, i2, j1, j2, von_karman, cpd, grav, &
                         tmpu(:,:,km), rhoa(:,:,km), shflux, ustar, &
                         obk )
-!print*,'DU sum(obk) = ',sum(obk)
+
 !  Aerodynamic Resistance
 !  psi_h and Ra are equations 2, 4-5 of Walcek et al. 1986 Atmospheric Environment
 !  ----------------------------
@@ -1219,18 +1139,12 @@ qa_temp = qa
 !     Set a minimum value of deposition velocity
       vdep(i,j) = max(vdep(i,j),1.e-4)
 
-!print*,'DU sum(vdep) = ',sum(vdep)
-!print*,'DU sum(dz) = ',sum(dz)
-
 !     Save the dry deposition frequency for the chemical removal terms
 !     in units of s-1
       drydepf(i,j) = max(0.,vdep(i,j) / dz(i,j))
 
     end do  ! i
    end do   ! j
-
-!print*,'DU sum(drydepf) = ', sum(drydepf)
-
 
    rc = 0
 
@@ -1278,7 +1192,6 @@ qa_temp = qa
 !  Cp = 1000 J kg-1 K-1   specific heat of air at constant pressure
 !  If OBK < 0 the air is unstable; if OBK > 0 the air is stable
 !  For sensible heat flux of zero OBK goes to infinity (set to 1.e5)
-
 
    obk = 1.e5
    where(abs(shflux) > 1.e-32) &
@@ -1338,8 +1251,6 @@ qa_temp = qa
    integer, parameter :: DP=kind(1.0d0)
    integer  ::  i, j, k, n, LH, kk, ios, nbins
    integer  :: i1=1, i2, j1=1, j2, dims(3)
-!   real :: pdog(i1:i2,j1:j2,km)      ! air mass factor dp/g [kg m-2]
-!   real :: delz(i1:i2,j1:j2,km)      ! box height  dp/g/rhoa [m]
    real, allocatable, dimension(:,:,:) :: pdog   ! air mass factor dp/g [kg m-2]
    real, allocatable, dimension(:,:,:) :: delz   ! box height  dp/g/rhoa [m]
    real :: pls, pcv, pac             ! ls, cv, tot precip [mm day-1]
@@ -1350,7 +1261,6 @@ qa_temp = qa
    real, allocatable :: fd(:,:)      ! flux across layers [kg m-2]
    real, allocatable :: dpfli(:,:,:)  ! vertical gradient of LS ice+rain precip flux 
    real, allocatable :: DC(:)        ! scavenge change in mass mixing ratio
-!   real :: c_h2o(i1:i2,j1:j2,km), cldliq(i1:i2,j1:j2,km), cldice(i1:i2,j1:j2,km)
    real, allocatable, dimension(:,:,:) :: c_h2o, cldliq, cldice
 
 !  Rain parameters from Liu et al.
@@ -1425,7 +1335,6 @@ qa_temp = qa
         stop
       endif
    endif
-
 
 !  Snow scavenging flag
    snow_scavenging = .true.
@@ -1846,8 +1755,6 @@ qa_temp = qa
 ! !IROUTINE:  Aero_Compute_Diags - Calculate aerosol diagnostics
 !
 ! !INTERFACE:
-!
-
    subroutine Aero_Compute_Diags (mie_table, km, klid, nbegin, nbins, rlow, rup, channels, &
                                   aerosol, grav, tmpu, rhoa, rh, u, v, delp, &
                                   sfcmass, colmass, mass, exttau, scatau, &
@@ -1899,7 +1806,7 @@ qa_temp = qa
    real, optional, pointer, dimension(:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
    real, optional, pointer, dimension(:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
    real, optional, pointer, dimension(:,:), intent(inout)   :: angstrom  ! 470-870 nm Angstrom parameter
-   integer, optional, intent(out)             :: rc        ! Error return code:
+   integer, optional, intent(out)   :: rc        ! Error return code:
                                                  !  0 - all is well
                                                  !  1 - 
 
@@ -2082,8 +1989,6 @@ qa_temp = qa
 
       if( present(extcoef) .and. associated(extcoef)) extcoef(i1:i2,j1:j2,1:km) = 0.
       if( present(scacoef) .and. associated(scacoef)) scacoef(i1:i2,j1:j2,1:km) = 0.
-
-!print*,'TEST 11'
 
       do n = nbegin, nbins
 
@@ -2539,7 +2444,7 @@ qa_temp = qa
       w        => ustar
 
      case default
-      print *, 'SeasaltEmission missing algorithm method'
+      print *, 'GOCART2G_Process.F90 - SeasaltEmission - missing algorithm method'
       rc = 1
       return
 
@@ -2685,8 +2590,8 @@ qa_temp = qa
 ! !INPUT PARAMETERS:
    real, intent(in)     :: radius    ! dry radius [m]
    real, intent(in)     :: rhop      ! dry density [kg m-3]
-   integer, intent(in)   :: rhFlag      ! 1 (Fitzgerald, 1975)
-                                        ! 2 (Gerber, 1985)
+   integer, intent(in)  :: rhFlag    ! 1 (Fitzgerald, 1975)
+                                     ! 2 (Gerber, 1985)
    real, dimension(:,:), intent(in)  :: rh    ! relative humidity [0-1]
    real, dimension(:,:), intent(in)  :: dz    ! surface layer height [m]
    real, dimension(:,:), intent(in)  :: ustar ! surface velocity scale [m s-1]
@@ -2979,18 +2884,6 @@ K_LOOP_BB: do k = km, 1, -1
      end do ! i
     end do  ! j
 
-! REPLACE PMAXPMIN WITH SOMETIHNG?????
-!   Determine global max/min
-!   ------------------------
-!    call pmaxmin ( 'OC: Phobic ', srcHydrophobic, qmin, qmax, ijl, 1, 0. )
-!    maxAll = abs(qmax) + abs(qmin)
-!    call pmaxmin ( 'OC: Philic ', srcHydrophilic, qmin, qmax, ijl, 1, 0. )
-!    maxAll = max ( maxAll, abs(qmax) + abs(qmin) )
-
-!   If emissions are zero at this level (globally), we are done
-!   -----------------------------------------------------------
-!    if ( maxAll .eq. 0.0 ) exit K_LOOP_BB
-
 
 !   Update concentrations at this layer
 !   The "1" element is hydrophobic 
@@ -3055,8 +2948,6 @@ K_LOOP_BB: do k = km, 1, -1
 !  ------------------------------------------------------------
    p0 = ps
 K_LOOP: do k = km, 1, -1
-
-!!!    print *, 'OC_Emissions: getting emissions for layer ', k
 
 !   First determine emissions for this layer
 !   ----------------------------------------
@@ -3124,17 +3015,6 @@ K_LOOP: do k = km, 1, -1
 
      end do ! i
     end do  ! j
-
-!   Determine global max/min
-!   ------------------------
-!    call pmaxmin ( 'OC: Phobic ', srcHydrophobic, qmin, qmax, ijl, 1, 0. )
-!    maxAll = abs(qmax) + abs(qmin)
-!    call pmaxmin ( 'OC: Philic ', srcHydrophilic, qmin, qmax, ijl, 1, 0. )
-!    maxAll = max ( maxAll, abs(qmax) + abs(qmin) )
-
-!   If emissions are zero at this level (globally), we are done
-!   -----------------------------------------------------------
-!    if ( maxAll .eq. 0.0 ) exit K_LOOP
 
 !   Update concentrations at this layer
 !   The "1" element is hydrophobic 
@@ -3619,74 +3499,6 @@ K_LOOP: do k = km, 1, -1
    end function sktrs_sslt
 
 !==================================================================================
-
-  subroutine CombineVolcEmiss (nVolcE, vLatE, vLonE, vElevE, vCloudE, vSO2E, &
-                               nVolcC, vLatC, vLonC, vElevC, vCloudC, vSO2C, &
-                               nVolc, vLat, vLon, vElev, vCloud, vSO2, vStart, vEnd, rc)
-!   !USES:
-    implicit NONE
-
-!   !INPUT PARAMETERS:
-    integer, intent(inout)         :: nVolcE
-    real, pointer, dimension(:), intent(inout) :: vLatE, vLonE, &
-                                      vSO2E, vElevE, vCloudE
-
-    integer, intent(inout)        :: nVolcC
-    real, pointer, dimension(:), intent(inout) :: vLatC, vLonC, &
-                                      vSO2C, vElevC, vCloudC
-
-    integer, intent(inout) :: nVolc
-    real, pointer, dimension(:), intent(inout) :: vLat, vLon, &
-                                       vSO2, vElev, vCloud
-    integer, pointer, dimension(:), intent(inout) :: vStart, vEnd
-
-
-!   !OUTPUT PARAMETERS:
-    integer, optional, intent(out) :: rc   ! Error return code:
-
-!   !DESCRIPTION: ! Combines volcanic emissions comes from the data tables
-!                   and upates internal private state of Sulfate gridded component.
-
-!   !Local Variables
-    integer :: i
-
-
-!*****************************************************************************
-!   Begin...
-    nVolc = nVolcE + nVolcC
-
-    allocate(vLat(nvolc), vLon(nvolc), &
-             vSO2(nvolc), vElev(nvolc), &
-             vCloud(nvolc))
-
-    if(nVolc > 0) then
-       if(nVolcE > 0) then
-          do i = 1, nVolcE
-             vLat(i) = vLatE(i)
-             vLon(i) = vLonE(i)
-             vElev(i) = vElevE(i)
-             vCloud(i) = vCloudE(i)
-             vSO2(i) = vSO2E(i)
-          end do
-       end if
-       if(nVolcC > 0) then
-          do i = 1, nVolcC
-             vLat(i+nVolcE) = vLatC(i)
-             vLon(i+nVolcE) = vLonC(i)
-             vElev(i+nVolcE) = vElevC(i)
-             vCloud(i+nVolcE) = vCloudC(i)
-             vSO2(i+nVolcE) = vSO2C(i)
-          end do
-       end if
-       vStart = 000000
-       vEnd = 240000
-    end if
- 
-    rc = 0
-
-  end subroutine CombineVolcEmiss
-
-!==================================================================================
 !BOP
 ! !IROUTINE: SulfateDistributeEmissions
 
@@ -3735,7 +3547,6 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:), intent(in)    :: pblh
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu  ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in)  :: rhoa  ! Layer air density [kg/m^3]
-!   real, pointer, dimension(:,:,:), intent(in)  :: rh    ! relative humidity [1]
    real, pointer, dimension(:,:,:), intent(in)  :: delp  ! pressure thickness [Pa]
    real, dimension(:), intent(in)  :: aviation_layers ! Heights [m] of LTO, CDS and CRS aviation emissions layers
    real, dimension(:,:), intent(in) :: aviation_cds_src ! Climb/Descent aircraft fuel emission [1]
@@ -4159,9 +3970,6 @@ K_LOOP: do k = km, 1, -1
 !        Skip this volcano?
 !        ------------------
          if ( i<1 .OR. j<1 ) cycle ! volcano not in sub-domain
-!         if(doingMasking) then
-!            if( mask(i,j) == 0 ) cycle
-!         end if
 
 !        Check time against time range of eruption
 !        -----------------------------------------
@@ -4234,34 +4042,7 @@ K_LOOP: do k = km, 1, -1
   end if
 
 
-#if 0
-    allocate(emissions_point, mold=SO2)
-    emissions_point = 0.0
-    call updatePointwiseEmissions (km, vElev, vCloud, vSO2, nVolc, &
-                                   vStart, vEnd, hghte, &
-                                   area, iPoint, jPoint, nhms, emissions_point, rc)
-
-    SO2 = SO2 + cdt * grav / delp * emissions_point
-#endif
-
-    rc = 0
-!print*,'sum(emissions_point) = ',sum(emissions_point)
-
-#if 0
-block
-   use pflogger
-   class (logger), pointer :: lgr
-   lgr => logging%get_logger('volcanic_emissions')
-
-   do it = 1, nVolc
-      i = iPoint(it)
-      j = jPoint(it)
-      if (i<1 .or. j<1) cycle ! volcano not in sub-domain
-      if(nhms < vStart(it) .or. nhms >= vEnd(it)) cycle
-     call lgr%debug('emissions at %g0 %g0 : %g25.17', vLat(it), vLon(it), sum(emissions_point(i,j,:)))
-   end do
-end block
-#endif
+  rc = 0
 
   end subroutine SUvolcanicEmissions
 
@@ -4628,7 +4409,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    real, dimension(:,:,:), intent(inout) :: DMS ! [kg/kg]
    real, dimension(:,:,:), intent(inout) :: SO2 ! [kg/kg]
    real, dimension(:,:,:), intent(inout) :: SO4 ! [kg/kg]
-   real, dimension(:,:,:), intent(inout) :: MSA ! [kg/kg]
+   real, pointer, dimension(:,:,:), intent(inout) :: MSA ! [kg/kg]
 
 ! !OUTPUT PARAMETERS:
    real, pointer, dimension(:,:,:),intent(inout) :: fluxout
@@ -4688,6 +4469,8 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    real, parameter :: XL_cv = 2.0e-3
    real, parameter :: one = 1.0, zero = 0.0
 
+   integer :: nbins_ = 0 ! nbins needs to be redefined in case MSA is not being computed
+
 !  Conversion of SO2 mmr to SO2 vmr (since H2O2 is carried around like
 !  a volume mixing ratio)
    real*8 :: fmr, SO2Soluble
@@ -4715,6 +4498,13 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
    dims = shape(rhoa)
    i2 = dims(1); j2 = dims(2)
+
+!  check if doing MSA and define nbins_ accordingly
+!   if (associated(MSA)) then 
+!      nbins_ = nbins
+!   else
+!      nbins_ = nbins - 1
+!   end if
 
    do n = 1, nbins
     if( associated(fluxout)) fluxout(:,:,n) = 0.0
@@ -4759,7 +4549,6 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !    Find the highest model layer experiencing rainout.  Assumes no
 !    scavenging if T < 258 K
      LH = 0
-!     do k = 1, km
      do k = klid, km
       if(dpfli(i,j,k) .gt. 0. .and. tmpu(i,j,k) .gt. 258.) then
        LH = k
@@ -4798,7 +4587,9 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        DC(nDMS) = 0.
        DC(nSO2) = SO2Soluble * F * (1.-exp(-BT))
        DC(nSO4) = SO4(i,j,k) * F * (1.-exp(-BT))
-       DC(nMSA) = MSA(i,j,k) * F * (1.-exp(-BT))
+       if (associated(MSA)) then
+          DC(nMSA) = MSA(i,j,k) * F * (1.-exp(-BT))
+       endif
 
 !      Adjust H2O2 concentration in cloudy portion of cell
        if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
@@ -4817,7 +4608,9 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        call updateAerosol(DMS(i,j,k), DC(nDMS)) 
        call updateAerosol(SO2(i,j,k), DC(nSO2)) 
        call updateAerosol(SO4(i,j,k), DC(nSO4)) 
-       call updateAerosol(MSA(i,j,k), DC(nMSA)) 
+       if (associated(MSA)) then
+          call updateAerosol(MSA(i,j,k), DC(nMSA)) 
+       end if
 
 !      Flux down:  unit is kg m-2
 !      Formulated in terms of production in the layer.  In the revaporation step
@@ -4873,8 +4666,9 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        DC(nDMS) = 0.
        DC(nSO2) = SO2Soluble * F * (1.-exp(-BT))
        DC(nSO4) = SO4(i,j,k) * F * (1.-exp(-BT))
-       DC(nMSA) = MSA(i,j,k) * F * (1.-exp(-BT))
-
+       if (associated(MSA)) then
+          DC(nMSA) = MSA(i,j,k) * F * (1.-exp(-BT))
+       end if
 
 !       Adjust H2O2 concentration in cloudy portion of cell
         if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
@@ -4893,7 +4687,9 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        call updateAerosol(DMS(i,j,k), DC(nDMS))
        call updateAerosol(SO2(i,j,k), DC(nSO2))
        call updateAerosol(SO4(i,j,k), DC(nSO4))
-       call updateAerosol(MSA(i,j,k), DC(nMSA))
+       if (associated(MSA)) then
+          call updateAerosol(MSA(i,j,k), DC(nMSA))
+       end if
 
         do n = 1, nbins
          if( associated(fluxout) ) then
@@ -4924,9 +4720,13 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        DC(nDMS) = 0.
        DC(nSO2) = SO2Soluble * F * (1.-exp(-BT))
        DC(nSO4) = SO4(i,j,k) * F * (1.-exp(-BT))
-       DC(nMSA) = MSA(i,j,k) * F * (1.-exp(-BT))
+       if (associated(MSA)) then
+          DC(nMSA) = MSA(i,j,k) * F * (1.-exp(-BT))
+       end if
        DC(nSO4) = 0.
-       DC(nMSA) = 0.
+       if (associated(MSA)) then
+          DC(nMSA) = 0.
+       end if
 
 !      Adjust H2O2 concentration in cloudy portion of cell
        if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
@@ -4943,7 +4743,9 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        call updateAerosol(DMS(i,j,k), DC(nDMS))
        call updateAerosol(SO2(i,j,k), DC(nSO2))
        call updateAerosol(SO4(i,j,k), DC(nSO4))
-       call updateAerosol(MSA(i,j,k), DC(nMSA))
+       if (associated(MSA)) then
+          call updateAerosol(MSA(i,j,k), DC(nMSA))
+       end if
 
 !      Flux down:  unit is kg m-2
 !      Formulated in terms of production in the layer.  In the revaporation step
@@ -5002,7 +4804,9 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !        DC(nSO4) = w_c%qa(n1+nSO4-1)%data3d(i,j,k) * F * (1.-exp(-BT))
 !        DC(nMSA) = w_c%qa(n1+nMSA-1)%data3d(i,j,k) * F * (1.-exp(-BT))
         DC(nSO4) = 0.
-        DC(nMSA) = 0.
+        if (associated(MSA)) then
+           DC(nMSA) = 0.
+        end if
 
 !       Adjust H2O2 concentration in cloudy portion of cell
         if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
@@ -5019,7 +4823,9 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        call updateAerosol(DMS(i,j,k), DC(nDMS))
        call updateAerosol(SO2(i,j,k), DC(nSO2))
        call updateAerosol(SO4(i,j,k), DC(nSO4))
-       call updateAerosol(MSA(i,j,k), DC(nMSA))
+       if (associated(MSA)) then
+          call updateAerosol(MSA(i,j,k), DC(nMSA))
+       end if
 
         do n = 1, nbins
          if( associated(fluxout) ) then
@@ -5058,12 +4864,17 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
           DC(nDMS) = 0.
           DC(nSO2) = Fd(k-1,nSO2) / pdog(i,j,k) * A
           DC(nSO4) = Fd(k-1,nSO4) / pdog(i,j,k) * A
-          DC(nMSA) = Fd(k-1,nMSA) / pdog(i,j,k) * A
+          if (associated(MSA)) then
+             DC(nMSA) = Fd(k-1,nMSA) / pdog(i,j,k) * A
+          end if
+  
           do n = 1, nbins
            if (DC(n).lt.0.) DC(n) = 0.
           end do
 
-          MSA(i,j,k) = MSA(i,j,k) + DC(nMSA)
+          if (associated(MSA)) then
+             MSA(i,j,k) = MSA(i,j,k) + DC(nMSA)
+          end if
 !         SO2 gets added to SO4, but remember to remove the SO2 from FD!
           SO4(i,j,k) = SO4(i,j,k) + DC(nSO4) + DC(nSO2)*fMassSO4/fMassSO2
           if( associated(pso4wet_colflux)) &
@@ -5086,9 +4897,10 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
           Fd(k,nSO2) = Fd(k,nSO2) - DC(nSO2)*pdog(i,j,k)
           SO4 = max(SO4,tiny(1.0))
           Fd(k,nSO4) = Fd(k,nSO4) - DC(nSO4)*pdog(i,j,k)
-          MSA = max(MSA,tiny(1.0))
-          Fd(k,nMSA) = Fd(k,nMSA) - DC(nMSA)*pdog(i,j,k)
-
+          if (associated(MSA)) then
+             MSA = max(MSA,tiny(1.0))
+             Fd(k,nMSA) = Fd(k,nMSA) - DC(nMSA)*pdog(i,j,k)
+          end if
         endif
        endif                                   ! if -moistq < 0
       endif
@@ -5162,7 +4974,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    real, dimension(:,:,:), intent(inout) :: DMS  ! dimethyl sulfide [kg/kg] 
    real, dimension(:,:,:), intent(inout) :: SO2  ! sulfer dioxide [kg/kg]
    real, dimension(:,:,:), intent(inout) :: SO4  ! sulfate aerosol [kg/kg]
-   real, dimension(:,:,:), intent(inout) :: MSA  ! methanesulphonic acid [kg/kg]
+   real, pointer, dimension(:,:,:), intent(inout)  :: MSA  ! methanesulphonic acid [kg/kg]
    real, pointer, dimension(:,:),   intent(inout)  :: dmssfcmass ! sfc mass concentration [kg/m3]
    real, pointer, dimension(:,:),   intent(inout)  :: dmscolmass ! col mass density [kg/m2]
    real, pointer, dimension(:,:),   intent(inout)  :: msasfcmass ! sfc mass concentration [kg/m3]
@@ -5259,7 +5071,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
       dmssfcmass(i1:i2,j1:j2) &
        =   DMS(i1:i2,j1:j2,km)*rhoa(i1:i2,j1:j2,km)
    endif
-   if( associated(msasfcmass) ) then
+   if( associated(msasfcmass) .and. associated(MSA)) then
       msasfcmass(i1:i2,j1:j2) = 0.
       msasfcmass(i1:i2,j1:j2) &
        =   MSA(i1:i2,j1:j2,km)*rhoa(i1:i2,j1:j2,km)
@@ -5294,7 +5106,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
           + DMS(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
       enddo
    endif
-   if( associated(msacolmass) ) then
+   if( associated(msacolmass) .and. associated(MSA)) then
       msacolmass(i1:i2,j1:j2) = 0.
       do k = klid, km
        msacolmass(i1:i2,j1:j2) &
@@ -5386,7 +5198,6 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
    endif
 
-
 !  Calculate the 470-870 Angstrom parameter
    if( associated(angstrom) .and. do_angstrom ) then
 
@@ -5452,7 +5263,6 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !BOP
 ! !IROUTINE: SulfateChemDriver
 
-!#if 0
    subroutine SulfateChemDriver (km, klid, cdt, PI, radToDeg, von_karman, &
                                  airMolWght, nAvogadro, cpd, grav, &
                                  fMassMSA, fMassDMS, fMassSO2, fMassSO4, &
@@ -5466,7 +5276,6 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
                                  SU_PSO4, SU_PSO4g, SU_PSO4aq, &     ! 2d diagnostics
                                  pso2, pmsa, pso4, pso4g, pso4aq, drydepositionfrequency, & ! 3d diagnostics
                                  rc)
-
 
 
 ! !USES:
@@ -5491,7 +5300,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    real, dimension(:,:,:), intent(inout) :: dms  ! dimethyl sulfide [kg/kg] 
    real, dimension(:,:,:), intent(inout) :: so2  ! sulfer dioxide [kg/kg]
    real, dimension(:,:,:), intent(inout) :: so4  ! sulfate aerosol [kg/kg]
-   real, dimension(:,:,:), intent(inout) :: msa  ! methanesulphonic acid [kg/kg]
+   real, pointer, dimension(:,:,:), intent(inout) :: msa  ! methanesulphonic acid [kg/kg]
    integer, intent(in) :: nDMS, nSO2, nSO4, nMSA ! index position of sulfates
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]  
    real, pointer, dimension(:,:,:), intent(in) :: tmpu   ! temperature [K]
@@ -5553,10 +5362,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    real, dimension(:,:), allocatable :: cossza, sza
    integer :: k, jday, i2, j2
    real, dimension(:,:,:), allocatable :: pSO2_DMS, pMSA_DMS, pSO4g_SO2, pSO4aq_SO2
-!   real, dimension(:,:), allocatable :: drydepositionfrequency
    real    :: xhour
-
-
 
 
 !EOP
@@ -5602,9 +5408,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
    call szangle (jday, xhour, lonRad, latRad, PI, radToDeg, sza, cossza, i2, j2)
 !  Reset the dry deposition fluxes & frequencies
-!   do n = 1, nbins
-      if( associated(su_dep) ) su_dep = 0.0
-!   end do
+   if( associated(su_dep) ) su_dep = 0.0
 
    call DryDeposition ( km, tmpu, rhoa, hghte, oro, ustar, pblh, shflux, &
                         von_karman, cpd, grav, z0h, drydepositionfrequency, rc )
@@ -5612,7 +5416,6 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
 !  Now call the chemistry packages...
 !  ----------------------------------
-
 !  DMS source and oxidation to SO2 and MSA
    call SulfateChemDriver_DMS (km, klid, cdt, airMolWght, nAvogadro, cpd,&
                                fMassMSA, fMassDMS, fMassSO2, &
@@ -5671,9 +5474,11 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
                                rc)
 
 !  MSA source and loss
-   call SulfateChemDriver_MSA (km, klid, cdt, grav, msa, nMSA, delp, &
-                               drydepositionfrequency, pMSA_DMS, SU_dep, &
-                               rc)
+   if( associated(msa)) then
+      call SulfateChemDriver_MSA (km, klid, cdt, grav, msa, nMSA, delp, &
+                                  drydepositionfrequency, pMSA_DMS, SU_dep, &
+                                  rc)
+   end if
 
 !  Save the h2o2 value after chemistry
    h2o2_init = xh2o2
@@ -5681,8 +5486,6 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    rc = 0
 
    end subroutine SulfateChemDriver
-
-!#endif
 
 !==================================================================================
 !BOP
@@ -5754,7 +5557,6 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !  Based on Ginoux
 !
 !  03Aug2020 E.Sherman - ported to process library
-
 
 ! !Local Variables
    integer :: i, j, k, i1=1, j1=1, i2, j2
@@ -5918,11 +5720,8 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !  (catalyzed by trace metal).
 !
 ! !REVISION HISTORY:
-!
+!  06Nov2003, Colarco - Based on Ginoux!
 !  15Jul2010, Colarco - modularized
-!  06Nov2003, Colarco
-!  Based on Ginoux
-!
 !  03Aug2020 E.Sherman - ported to process library
 
 
@@ -8575,8 +8374,6 @@ loop2: DO l = 1,nspecies_HL
 ! !ROUTINE:  Chem_BiomassDiurnal - Applies diurnal cycle to biomass emissions.
 !
 ! !INTERFACE:
-!
-
      subroutine Chem_BiomassDiurnal ( Eout, Ein, lons, lats, nhms, cdt)
 
 ! !USES:
