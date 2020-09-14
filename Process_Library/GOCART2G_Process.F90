@@ -2392,7 +2392,8 @@ qa_temp = qa
 
  DOUBLE PRECISION function igamma(A, X)
 !----------------------------------------------------------------------- 
-! incomplete Gamma function
+! incomplete (upper) Gamma function
+! \int_x^\infty t^{A-1}\exp(-t) dt
 !----------------------------------------------------------------------- 
  IMPLICIT NONE
  double precision, intent(in) ::        A
