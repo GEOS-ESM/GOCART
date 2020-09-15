@@ -18,6 +18,4 @@ esma_add_subdirectories (
         MAPL
         NCEP_Shared
         GMAO_Shared
-        Chem_Shared
-        Chem_Base
 )
