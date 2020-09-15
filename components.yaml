@@ -14,13 +14,6 @@ HEMCO:
   remote: ../HEMCO.git
   branch: GEOS/develop
 
-NCEP_Shared:
-  local: ./ESMF/Shared/NCEP_Shared@
-  remote: ../NCEP_Shared.git
-  tag: v1.0.0
-  sparse: ./config/NCEP_Shared.sparse
-  develop: main
-
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git

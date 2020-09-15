@@ -16,6 +16,5 @@ endif()
 
 esma_add_subdirectories (
         MAPL
-        NCEP_Shared
         GMAO_Shared
 )
