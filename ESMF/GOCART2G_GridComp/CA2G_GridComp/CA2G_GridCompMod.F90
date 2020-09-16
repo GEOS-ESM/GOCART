@@ -17,7 +17,7 @@ module CA2G_GridCompMod
 
    use GOCART2G_Process       ! GOCART2G process library
    use GA_GridCompMod
-   use m_StrTemplate          ! string templates
+   use MAPL_StringTemplate
 
    implicit none
    private
@@ -827,7 +827,7 @@ contains
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
     if(self%doing_point_emissions) then
-       call StrTemplate (fname, self%point_emissions_srcfilen, xid='unknown', &
+       call fill_grads_template (fname, self%point_emissions_srcfilen, experiment_id='unknown', &
                          nymd=nymd, nhms=120000 )
        call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                  self%pBase, self%pTop, self%pEmis, self%pStart, &

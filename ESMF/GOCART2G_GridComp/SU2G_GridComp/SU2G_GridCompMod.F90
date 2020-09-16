@@ -17,7 +17,7 @@ module SU2G_GridCompMod
 
    use GOCART2G_Process       ! GOCART2G process library
    use GA_GridCompMod
-   use m_StrTemplate          ! string templates
+   use MAPL_StringTemplate
 
    implicit none
    private
@@ -848,7 +848,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 !      Get pointwise SO2 and altitude of volcanoes from a daily file data base
        if(index(self%volcano_srcfilen,'volcanic_') /= 0) then
-          call StrTemplate (fname, self%volcano_srcfilen, xid='unknown', &
+          call fill_grads_template (fname, self%volcano_srcfilen, experiment_id='unknown', &
                             nymd=nymd, nhms=120000 )
           call ReadPointEmissions (nymd, fname, self%nVolc, self%vLat, self%vLon, &
                                    self%vElev, self%vCloud, self%vSO2, self%vStart, &
@@ -915,7 +915,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
     if(self%doing_point_emissions) then
-       call StrTemplate (fname, self%point_emissions_srcfilen, xid='unknown', &
+       call fill_grads_template (fname, self%point_emissions_srcfilen, experiment_id='unknown', &
                          nymd=nymd, nhms=120000 )
        call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                  self%pBase, self%pTop, self%pEmis, self%pStart, &
