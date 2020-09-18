@@ -1,0 +1,23 @@
+# This is a comment.
+# Each line is a file pattern followed by one or more owners.
+# Order is important; the last matching pattern takes the most
+# precedence.
+
+# Everything in GEOSgcm should be owned by the GCM Gatekeepers
+* @GEOS-ESM/aerosol-team
+
+# The CMake Team should know/approve these
+/.github/    @GEOS-ESM/cmake-team
+/.circleci/  @GEOS-ESM/cmake-team
+/.codebuild/ @GEOS-ESM/cmake-team
+
+# NOAA Extras are Tom and William for now
+/CCPP/                  @tclune @WilliamJamieson
+/ESMF/Aerosol_GridComp/ @tclune @WilliamJamieson
+/ESMF/NUOPC/            @tclune @WilliamJamieson
+
+# The GEOS CMake Team should be notified about and approve config changes
+/config/       @GEOS-ESM/cmake-team
+
+# The GEOS CMake Team is the CODEOWNER for the CMakeLists.txt files in this repository
+CMakeLists.txt @GEOS-ESM/cmake-team
