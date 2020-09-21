@@ -1,13 +1,14 @@
 module test_GOCART2G_Process
    use pfunit
+   use GOCART2G_Process
+
+   implicit none
 
 contains
    @test
    subroutine test_test()
-      @assert_that(.true., is(false()))
-   end subroutine test_test
+      @assert_that(1, is(equal_to(1)))
 
-   subroutine test_test2()
-      @assert_that(true, is(true()))
-   end subroutine test_test2
+      @assert_that(.true., is(true()))
+   end subroutine test_test
 end module test_GOCART2G_Process
