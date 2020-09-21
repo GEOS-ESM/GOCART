@@ -1,0 +1,13 @@
+module test_GOCART2G_Process
+   use pfunit
+
+contains
+   @test
+   subroutine test_test()
+      @assert_that(.true., is(false()))
+   end subroutine test_test
+
+   subroutine test_test2()
+      @assert_that(true, is(true()))
+   end subroutine test_test2
+end module test_GOCART2G_Process

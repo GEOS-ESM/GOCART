@@ -5,12 +5,12 @@ set (srcs
   GOCART2G_Process.F90
   )
 
-esma_add_library(${this} 
-  SRCS ${srcs} 
-  # DEPENDENCIES GMAO_mpeu
+esma_add_library(${this}
+  SRCS ${srcs}
   )
 
 target_include_directories (${this} PUBLIC ${INC_ESMF} ${INC_NETCDF})
 
-#include_directories (${esma_include}/${this})
-
+if (PFUNIT_FOUND)
+    add_subdirectory(tests EXCLUDE_FROM_ALL)
+endif ()
