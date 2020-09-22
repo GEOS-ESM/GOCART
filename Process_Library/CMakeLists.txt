@@ -4,7 +4,7 @@ set (srcs
   Chem_MieTableMod2G.F90
   GOCART2G_Process.F90
   EmissionReaderMod.F90
-  DustEmissionsMod.F90
+  DustEmissionGOCART.F90
   )
 
 esma_add_library(${this}

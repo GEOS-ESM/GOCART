@@ -1,6 +1,6 @@
-module test_DustEmissions
+module test_DustEmissionGOCART
    use pfunit
-   use DustEmissionsMod
+   use DustEmissionGOCART
 
    implicit none
 
@@ -285,4 +285,4 @@ contains
       @assert_that(emissions(1,1), is(relatively_near(emissions_old(1,1), tol)))
       @assert_that(emissions(1,1), is(relatively_near(true_val, tol)))
    end subroutine test_DustEmissionGOCART2G
-end module test_DustEmissions
+end module test_DustEmissionGOCART

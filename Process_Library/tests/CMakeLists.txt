@@ -2,7 +2,7 @@ add_definitions(-DUSE_MPI)
 
 set (TEST_SRCS
     test_GOCART2G_Process.pf
-    test_DustEmissions.pf
+    test_DustEmissionGOCART.pf
     )
 
 set(SRCS

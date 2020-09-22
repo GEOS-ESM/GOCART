@@ -6,7 +6,7 @@
 #define __RETURN__(x) if (present(rc)) rc=x; return
 #define __ASSERT__(expr) if(.not. (expr)) then; if (present(rc)) rc=-1; return; endif
 
-module DustEmissionsMod
+module DustEmissionGOCART
    implicit none
    private
 
@@ -132,4 +132,4 @@ contains
 
       rc = 0
    end subroutine DustEmissionGOCART2G
-end module DustEmissionsMod
+end module DustEmissionGOCART
