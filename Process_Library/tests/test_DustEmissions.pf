@@ -1,0 +1,288 @@
+module test_DustEmissions
+   use pfunit
+   use DustEmissionsMod
+
+   implicit none
+
+   real, parameter :: tol = 1.e-6
+contains
+   @test
+   subroutine test_u_threshold()
+
+      real, parameter :: expected1 = 0.350419670
+      real, parameter :: expected2 = 0.251533687
+      real, parameter :: expected3 = 0.344197303
+
+      @assert_that(u_threshold(1.e-5, 9.8), is(relatively_near(expected1, tol)))
+      @assert_that(u_threshold(1.e-4, 9.8), is(relatively_near(expected2, tol)))
+      @assert_that(u_threshold(1.e-5, 5.0), is(relatively_near(expected3, tol)))
+   end subroutine test_u_threshold
+
+   @test
+   subroutine test_bin_emissions()
+      real :: u_thresh0
+      real :: oro(1,1)
+      real :: u10m(1,1)
+      real :: v10m(1,1)
+      real :: gwettop(1,1)
+      real :: fraclake(1,1)
+
+      real :: emissions(1,1)
+      real :: bin_emissions_result(1,1)
+
+      ! There are 3 if statements in order:
+      !     1. A LAND check (oro(i,j) /= LAND)           -> cycle loop
+      !        oro = OCEAN for    cycle
+      !        oro = LAND  for no cycle
+      !     2. A soil wetness check (gwettop(i,j) < 0.5) -> continue calculation
+      !        gwettop = 1 for no calculation
+      !        gwettop = 0 for    calculation
+      !     3. A wind speed check (w10m2 > u_thresh**2)  -> continue calculation
+      !        (u10m and v10m = 0) and u_thresh0 > 0 for no calculation
+      !        (u10m or  v10m > 0) and u_thresh0 = 0 for    calculation
+      !
+      ! To test all relevant cases we need to test the following True/False on these statements:
+      !     1. (T, -, -) - produces 0
+      !     2. (F, F, -) - produces 0
+      !     3. (F, T, F) - produces 0
+      !     4. (F, T, F) - produces an actual result
+      !        Multiple tests for inner arithmetic
+
+      ! Case 1 (T, -, -)
+         emissions = 0.0   ! Expected result
+         oro       = OCEAN ! Necessary to exercise first if statement
+
+         ! Arbitrary values
+         gwettop   = 1.0
+         u_thresh0 = 1.0
+         u10m      = 0.0
+         v10m      = 0.0
+         fraclake  = 0.0
+
+         @assert_that(bin_emissions(u_thresh0, oro, u10m, v10m, gwettop, fraclake), is(equal_to(emissions)))
+
+      ! Case 2 (F, F, -)
+         emissions = 0.0  ! Expected result
+         oro       = LAND ! Necessary to avoid cycle
+         gwettop   = 1.0  ! For second if to be false
+
+         ! Arbitrary values
+         u_thresh0 = 1.0
+         u10m      = 0.0
+         v10m      = 0.0
+         fraclake  = 0.0
+
+         @assert_that(bin_emissions(u_thresh0, oro, u10m, v10m, gwettop, fraclake), is(equal_to(emissions)))
+
+      ! Case 3 (F, T, F)
+         emissions = 0.0    ! Expected result
+         oro       = LAND   ! Necessary to avoid cycle
+         gwettop   = 0.0    ! For second if to be true
+         u_thresh0 = 1000.0 ! For third  if to be false
+         u10m      = 0.0    ! For third  if to be false
+         v10m      = 0.0    ! For third  if to be false
+
+         ! Arbitrary values
+         fraclake  = 0.0
+
+         @assert_that(bin_emissions(u_thresh0, oro, u10m, v10m, gwettop, fraclake), is(equal_to(emissions)))
+
+      ! Case 4 (F, T, T) --- NONZERO result
+         oro       = LAND ! Necessary to avoid cycle
+         gwettop   = 0.0  ! For second if to be true
+         u_thresh0 = 0.0  ! For third  if to be false
+
+         ! Arbitrary values 1
+         emissions = 0.282842726e10 ! Expected result
+         u10m      = 1000.0         ! Large value for third  if to be false
+         v10m      = 1000.0         ! Large value for third  if to be false
+         fraclake  = 0.0
+
+         bin_emissions_result = bin_emissions(u_thresh0, oro, u10m, v10m, gwettop, fraclake)
+         @assert_that(bin_emissions_result(1,1), is(relatively_near(emissions(1,1), tol)))
+
+         ! Arbitrary values 2
+         emissions = 0.141421363e10 ! Expected result
+         u10m      = 1000.0         ! Large value for third  if to be false
+         v10m      = 1000.0         ! Large value for third  if to be false
+         fraclake  = 0.5
+
+         bin_emissions_result = bin_emissions(u_thresh0, oro, u10m, v10m, gwettop, fraclake)
+         @assert_that(bin_emissions_result(1,1), is(relatively_near(emissions(1,1), tol)))
+
+         ! Arbitrary values 3
+         emissions = 0.800000000e10 ! Expected result
+         u10m      = 2000.0         ! Large value for third  if to be false
+         v10m      = 0.0            ! Large value for third  if to be false
+         fraclake  = 0.0
+
+         bin_emissions_result = bin_emissions(u_thresh0, oro, u10m, v10m, gwettop, fraclake)
+         @assert_that(bin_emissions_result(1,1), is(relatively_near(emissions(1,1), tol)))
+
+         ! Arbitrary values 4
+         emissions = 0.800000000e10 ! Expected result
+         u10m      = 0.0            ! Large value for third  if to be false
+         v10m      = 2000.0         ! Large value for third  if to be false
+         fraclake  = 0.0
+
+         bin_emissions_result = bin_emissions(u_thresh0, oro, u10m, v10m, gwettop, fraclake)
+         @assert_that(bin_emissions_result(1,1), is(relatively_near(emissions(1,1), tol)))
+   end subroutine test_bin_emissions
+
+
+   subroutine DustEmissionGOCART2G_old(radius, fraclake, gwettop, oro, u10m, &
+                                       v10m, Ch_DU, du_src, grav, &
+                                       emissions, rc )
+
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   real, intent(in) :: radius(:)       ! particle radius [m]
+   real, pointer, dimension(:,:), intent(in) :: fraclake ! fraction of lake [1]
+   real, pointer, dimension(:,:), intent(in) :: gwettop  ! surface soil wetness [1]
+   real, pointer, dimension(:,:), intent(in) :: oro      ! land-ocean-ice mask [1]
+   real, pointer, dimension(:,:), intent(in) :: u10m     ! 10-meter eastward wind [m/sec]
+   real, pointer, dimension(:,:), intent(in) :: v10m     ! 10-meter northward wind [m/sec]
+   real, pointer, dimension(:,:), intent(in) :: du_src   ! dust emissions [(sec^2 m^5)/kg]
+   real, intent(in) :: Ch_DU   ! dust emission tuning coefficient [kg/(sec^2 m^5)]
+   real, intent(in) :: grav    ! gravity [m/sec^2]
+
+! !OUTPUT PARAMETERS:
+   real, pointer, intent(inout)  :: emissions(:,:)    ! Local emission [kg/(m^2 sec)]
+   integer, intent(out) :: rc  ! Error return code:
+
+
+! !DESCRIPTION: Computes the dust emissions for one time step
+!
+! !REVISION HISTORY:
+!
+! 11Feb2020 E.Sherman - First attempt at refactor
+!
+
+! !Local Variables
+   integer         ::  i, j, n
+   real, parameter ::  air_dens = 1.25  ! Air density = 1.25 kg m-3
+   real, parameter ::  soil_density  = 2650.  ! km m-3
+   real            ::  diameter         ! dust effective diameter [m]
+   real            ::  u_thresh0
+   real            ::  u_thresh
+   real            ::  w10m
+   integer         ::  i1, i2, j1, j2, nbins
+   integer         ::  dims(2)
+   real, allocatable ::  emissions_(:,:)
+
+!EOP
+!-------------------------------------------------------------------------
+!  Begin
+
+!  Initialize local variables
+!  --------------------------
+   emissions(:,:) = 0.
+   rc = 824
+
+!  Get dimensions
+!  ---------------
+   nbins = size(radius)
+   dims = shape(u10m)
+   i1 = 1; j1 = 1
+   i2 = dims(1); j2 = dims(2)
+
+   allocate(emissions_(i2,j2))
+
+!  Calculate the threshold velocity of wind erosion [m/s] for each radius
+!  for a dry soil, as in Marticorena et al. [1997].
+!  The parameterization includes the air density which is assumed 
+!  = 1.25 kg m-3 to speed the calculation.  The error in air density is
+!  small compared to errors in other parameters.
+
+!print*,'DustEmiss shape(emissions) = ',shape(emissions)
+
+   do n = 1, nbins
+      diameter = 2. * radius(n)
+
+      u_thresh0 = 0.13 * sqrt(soil_density*grav*diameter/air_dens) &
+                       * sqrt(1.+6.e-7/(soil_density*grav*diameter**2.5)) &
+              / sqrt(1.928*(1331.*(100.*diameter)**1.56+0.38)**0.092 - 1.)
+
+      emissions_(:,:) = 0.
+
+!     Spatially dependent part of calculation
+!     ---------------------------------------
+      do j = j1, j2
+         do i = i1, i2
+            if ( oro(i,j) /= LAND ) cycle ! only over LAND gridpoints
+
+            w10m = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
+!           Modify the threshold depending on soil moisture as in Ginoux et al. [2001]
+            if(gwettop(i,j) .lt. 0.5) then
+               u_thresh = amax1(0.,u_thresh0* &
+               (1.2+0.2*alog10(max(1.e-3,gwettop(i,j)))))
+
+               if(w10m .gt. u_thresh) then     
+!                 Emission of dust [kg m-2 s-1]
+                  emissions_(i,j) = (1.-fraclake(i,j)) * w10m**2. * (w10m-u_thresh)
+               endif
+            endif !(gwettop(i,j) .lt. 0.5)
+         end do ! i
+      end do ! j
+      emissions = emissions + (Ch_DU * du_src * emissions_)
+    end do ! n
+ 
+   rc=0
+
+   end subroutine DustEmissionGOCART2G_old
+
+   @test
+   subroutine test_DustEmissionGOCART2G()
+      real          :: radius(1)
+      real, pointer :: fraclake(:,:)
+      real, pointer :: gwettop(:,:)
+      real, pointer :: oro(:,:)
+      real, pointer :: u10m(:,:)
+      real, pointer :: v10m(:,:)
+      real, pointer :: du_src(:,:)
+      real          :: Ch_DU
+      real          :: grav
+      real, pointer :: emissions(:,:)
+      integer       :: rc
+      real, pointer :: emissions_old(:,:)
+      integer       :: rc_old
+
+      real :: true_val
+
+      allocate(fraclake(1,1))
+      allocate(gwettop(1,1))
+      allocate(oro(1,1))
+      allocate(u10m(1,1))
+      allocate(v10m(1,1))
+      allocate(du_src(1,1))
+      allocate(emissions(1,1))
+      allocate(emissions_old(1,1))
+
+      radius   = 1.e-5
+      fraclake = 0.5
+      gwettop  = 0.1
+      oro      = LAND
+      u10m     = 10.0
+      v10m     = 10.0
+      du_src   = 1.0
+      Ch_DU    = 1.0
+      grav     = 9.0
+
+      emissions = 1.0
+      emissions_old = 1.0
+
+      call DustEmissionGOCART2G_old(radius, fraclake, gwettop, oro, &
+         u10m, v10m, Ch_DU, du_src, grav, emissions_old, rc_old)
+      @assert_that(rc_old, is(equal_to(0)))
+
+      call DustEmissionGOCART2G(radius, fraclake, gwettop, oro, &
+         u10m, v10m, Ch_DU, du_src, grav, emissions, rc)
+      @assert_that(rc, is(equal_to(0)))
+
+      true_val = 1379.27454
+      @assert_that(emissions(1,1), is(relatively_near(emissions_old(1,1), tol)))
+      @assert_that(emissions(1,1), is(relatively_near(true_val, tol)))
+   end subroutine test_DustEmissionGOCART2G
+end module test_DustEmissions
