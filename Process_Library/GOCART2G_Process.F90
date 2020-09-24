@@ -118,7 +118,7 @@ CONTAINS
 
 ! !OUTPUT PARAMETERS:
    real, pointer, intent(inout)  :: emissions(:,:)    ! Local emission [kg/(m^2 sec)]
-   integer, intent(out) :: rc  ! Error return code:
+   integer, optional, intent(out) :: rc  ! Error return code:
 
 
 ! !DESCRIPTION: Computes the dust emissions for one time step
@@ -139,6 +139,7 @@ CONTAINS
    integer         ::  i1, i2, j1, j2, nbins
    integer         ::  dims(2)
    real, allocatable ::  emissions_(:,:)
+   integer         :: status
 
 !EOP
 !-------------------------------------------------------------------------
@@ -147,7 +148,7 @@ CONTAINS
 !  Initialize local variables
 !  --------------------------
    emissions(:,:) = 0.
-   rc = 824
+   status = 824
 
 !  Get dimensions
 !  ---------------
@@ -197,7 +198,9 @@ CONTAINS
       emissions = emissions + (Ch_DU * du_src * emissions_)
     end do ! n
  
-   rc=0
+   status = 0
+
+   __RETURN__(status)
 
    end subroutine DustEmissionGOCART2G
 
@@ -231,6 +234,7 @@ CONTAINS
     real, dimension(km)              :: point_column_emissions
     integer                          :: n, i, j
     real, dimension(:), allocatable  :: pEmis_
+    integer                          :: status
 
 !   Description: Returns 3D array of pointwise emissions.
 !
@@ -250,12 +254,12 @@ CONTAINS
 
         call DistributePointEmission(km, hghte(i,j,:), pBase(n), &
                                      pTop(n), pEmis_(n), area(i,j), &
-                                     point_column_emissions, rc)
+                                     point_column_emissions, rc=status)
 
         emissions_point(i,j,:) =  point_column_emissions
         end do
-   rc = 0
 
+      __RETURN__(status)
   end subroutine updatePointwiseEmissions
 
 !==================================================================================
@@ -361,8 +365,8 @@ CONTAINS
 !print*,'w_/sum(w_) = ',w_/sum(w_)
 !print*,'area = ',area
 
-    rc = 0
 
+      __RETURN__(__SUCCESS__)
     end subroutine DistributePointEmission
 !==================================================================================
 
@@ -448,6 +452,8 @@ CONTAINS
    real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after, qdel, &
         d_p, dpm1, qsrc
 
+   integer :: status
+
 
 !EOP
 !-------------------------------------------------------------------------
@@ -511,7 +517,7 @@ CONTAINS
 
 !   If radius le 0 then get out of loop
     if(radius .le. 0.) then
-       rc = 100
+       status = 100
        return
     end if
 
@@ -681,8 +687,7 @@ qa_temp = qa
     int_qa = qa
 !   end do   ! n
 
-   rc=0
-
+      __RETURN__(status)
 !#endif
    end subroutine Chem_Settling2Gorig
 
