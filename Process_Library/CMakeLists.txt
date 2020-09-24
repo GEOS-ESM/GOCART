@@ -5,6 +5,7 @@ set (srcs
   GOCART2G_Process.F90
   EmissionReaderMod.F90
   DustEmissionGOCART.F90
+  PointEmissionGOCART.F90
   )
 
 esma_add_library(${this}

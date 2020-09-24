@@ -17,6 +17,7 @@
    use Chem_MieTableMod2G
    use EmissionReaderMod
    use DustEmissionGOCART
+   ! use PointEmissionGOCART
    use, intrinsic :: iso_fortran_env, only: IOSTAT_END
 
    implicit none

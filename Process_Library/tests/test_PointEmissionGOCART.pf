@@ -1,0 +1,77 @@
+module test_PointEmissionGOCART
+   use funit
+   use PointEmissionGOCART
+
+   implicit none
+contains
+   @test
+   subroutine test_find_dz()
+      integer, parameter :: km = 5
+      real               :: dz(km)
+      real               :: hghte(km)
+
+      integer :: k
+      real    :: exact
+
+      do k = 1, km
+         hghte(k) = ((km - k + 1) * 10.0)**2
+      end do
+
+      dz = find_dz(km, hghte)
+
+      do k = 1, km
+         exact = 100.0*(2*km - 2*k + 1)
+         @assert_that(dz(k), is(equal_to(exact)))
+      end do
+   end subroutine test_find_dz
+
+   @test
+   subroutine test_find_level()
+      integer, parameter :: km = 5
+      real               :: dz(km)
+      real               :: z(km)
+
+      integer :: k
+
+      do k = 1, km
+         z(k) = ((km - k + 1) * 10.0)**2
+      end do
+
+      @assert_that(find_level(km, z,    0.0), is(equal_to(5)))
+      @assert_that(find_level(km, z,  100.0), is(equal_to(5)))
+      @assert_that(find_level(km, z,  200.0), is(equal_to(4)))
+      @assert_that(find_level(km, z,  300.0), is(equal_to(4)))
+      @assert_that(find_level(km, z,  400.0), is(equal_to(4)))
+      @assert_that(find_level(km, z,  500.0), is(equal_to(3)))
+      @assert_that(find_level(km, z,  700.0), is(equal_to(3)))
+      @assert_that(find_level(km, z,  900.0), is(equal_to(3)))
+      @assert_that(find_level(km, z, 1000.0), is(equal_to(2)))
+      @assert_that(find_level(km, z, 1200.0), is(equal_to(2)))
+      @assert_that(find_level(km, z, 1400.0), is(equal_to(2)))
+      @assert_that(find_level(km, z, 1600.0), is(equal_to(2)))
+      @assert_that(find_level(km, z, 2000.0), is(equal_to(1)))
+      @assert_that(find_level(km, z, 2500.0), is(equal_to(1)))
+      @assert_that(find_level(km, z, 3000.0), is(equal_to(1)))
+      @assert_that(find_level(km, z, 4000.0), is(equal_to(1)))
+   end subroutine test_find_level
+
+   @test
+   subroutine test_find_wieghts()
+      integer, parameter :: km        = 3
+      integer, parameter :: k_bot     = 3
+      integer, parameter :: k_top     = 1
+      real,    parameter :: z_bot     = 100.0
+      real,    parameter :: z_top     = 500.0
+      real,    parameter :: z(km)     = [100.0, 200.0, 300.0]
+      real,    parameter :: dz(km)    = [10.0, 1000.0, 3.14]
+      real,    parameter :: exact(km) = [410.0, 1000.0, 200.0]
+
+      real :: w(km)
+
+      w = 0.0
+
+      call find_wieghts(k_bot, k_top, z_bot, z_top, z, dz, w)
+
+      @assert_that(w, is(equal_to(exact)))
+   end subroutine test_find_wieghts
+end module test_PointEmissionGOCART

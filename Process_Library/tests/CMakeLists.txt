@@ -3,11 +3,11 @@ add_definitions(-DUSE_MPI)
 set (TEST_SRCS
     test_GOCART2G_Process.pf
     test_DustEmissionGOCART.pf
+    test_PointEmissionGOCART.pf
     )
 
 set(SRCS
     )
-
 
 add_pfunit_ctest(Process_Library_tests.x
     TEST_SOURCES ${TEST_SRCS}
