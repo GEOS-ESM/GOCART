@@ -56,7 +56,7 @@ contains
    end subroutine test_find_level
 
    @test
-   subroutine test_find_wieghts()
+   subroutine test_find_wieghts_inequal()
       integer, parameter :: km        = 3
       integer, parameter :: k_bot     = 3
       integer, parameter :: k_top     = 1
@@ -70,8 +70,72 @@ contains
 
       w = 0.0
 
-      call find_wieghts(k_bot, k_top, z_bot, z_top, z, dz, w)
+      call find_wieghts_inequal(k_bot, k_top, z_bot, z_top, z, dz, w)
 
       @assert_that(w, is(equal_to(exact)))
-   end subroutine test_find_wieghts
+   end subroutine test_find_wieghts_inequal
+
+   @test
+   subroutine test_find_wieghts_equal()
+      integer, parameter :: km    = 3
+      integer, parameter :: k_bot = 2
+
+      real :: z_bot
+      real :: z_top
+      real :: w(km)
+      real :: exact(km)
+
+      z_bot = 10.0
+      z_top = z_bot
+      w     = 0.0
+      exact = [0.0, tiny(0.), 0.0]
+
+      call find_wieghts_equal(k_bot, z_bot, z_top, w)
+      @assert_that(w, is(equal_to(exact)))
+
+      z_bot = 10.0
+      z_top = 30.0
+      w     = 0.0
+      exact = [0.0, 20.0, 0.0]
+
+      call find_wieghts_equal(k_bot, z_bot, z_top, w)
+      @assert_that(w, is(equal_to(exact)))
+   end subroutine test_find_wieghts_equal
+
+   @test
+   subroutine test_find_wieghts()
+      integer, parameter :: km = 3
+
+      real :: hghte(km)
+      real :: z_bot
+      real :: z_top
+
+      real    :: exact(km)
+      real    :: w(km)
+      integer :: rc
+
+      hghte = [30.0, 20.0, 10.0]
+      z_bot = 20.0
+      z_top = 20.0
+      exact = [0.0, tiny(0.), 0.0]
+      call find_wieghts(km, hghte, z_bot, z_top, w, rc)
+      @assert_that(rc, is(equal_to(0)))
+      @assert_that(w, is(equal_to(exact)))
+
+      hghte = [900.0, 400.0, 100.0]
+      z_bot = 400.0
+      z_top = 900.0
+      exact = [500.0, 0.0, 0.0]
+      call find_wieghts(km, hghte, z_bot, z_top, w, rc)
+      @assert_that(rc, is(equal_to(0)))
+      @assert_that(w, is(equal_to(exact)))
+
+      hghte = [900.0, 400.0, 100.0]
+      z_bot = 900.0
+      z_top = 400.0
+      exact = [0.0, 0.0, 0.0]
+      call find_wieghts(km, hghte, z_bot, z_top, w, rc)
+      @assert_that(rc, is(equal_to(1)))
+      @assert_that(w, is(equal_to(exact)))
+   end subroutine  test_find_wieghts
 end module test_PointEmissionGOCART

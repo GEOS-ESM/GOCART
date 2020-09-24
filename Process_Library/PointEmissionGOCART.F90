@@ -7,6 +7,8 @@ module PointEmissionGOCART
 
    public find_dz
    public find_level
+   public find_wieghts_inequal
+   public find_wieghts_equal
    public find_wieghts
 contains
    function find_dz(km, hghte) result(dz)
@@ -36,7 +38,7 @@ contains
       end do
    end function find_level
 
-   subroutine find_wieghts(k_bot, k_top, z_bot, z_top, z, dz, w)
+   subroutine find_wieghts_inequal(k_bot, k_top, z_bot, z_top, z, dz, w)
       integer, intent(in) :: k_bot
       integer, intent(in) :: k_top
       real,    intent(in) :: z_bot
@@ -61,6 +63,53 @@ contains
             end if
          end if
       end do
+   end subroutine find_wieghts_inequal
+
+   subroutine find_wieghts_equal(k_bot, z_bot, z_top, w)
+      integer, intent(in) :: k_bot
+      real,    intent(in) :: z_bot
+      real,    intent(in) :: z_top
+
+      real,    intent(inout) :: w(:)
+
+      if (z_top == z_bot) then ! for non-explosive volcanic emissions
+         w(k_bot) = tiny(0.)
+      else
+         w(k_bot) = z_top - z_bot
+      end if
+   end subroutine find_wieghts_equal
+
+   subroutine find_wieghts(km, hghte, z_bot, z_top, w, rc)
+      integer, intent(in)  :: km           ! total model levels
+      real,    intent(in)  :: hghte(:)     ! model level geopotential height [m]
+      real,    intent(in)  :: z_bot, z_top ! base and top altitude respectively
+      real,    intent(out) :: w(:)
+      integer, intent(out) :: rc
+
+      integer :: k_bot, k_top
+      real    :: z(km), dz(km)
+
+      z(1:km) = hghte(1:km)
+
+      k_bot = find_level(km, z, z_bot)
+      k_top = find_level(km, z, z_top)
+
+      !   find the weights
+      w = 0
+
+      if (k_bot == k_top) then
+         call find_wieghts_equal(k_bot, z_bot, z_top, w)
+      else
+         dz = find_dz(km, hghte)
+         call find_wieghts_inequal(k_bot, k_top, z_bot, z_top, z, dz, w)
+      end if
+
+      !  Logical consistency check
+      if (k_top > k_bot) then
+         rc = 1
+      else
+         rc = 0
+      end if
    end subroutine find_wieghts
 
    subroutine DistributePointEmission(km, hghte, z_bot, z_top, &
@@ -89,40 +138,19 @@ contains
       ! ??? P. Colarco
       !
       ! !Locals
-      integer :: k_bot, k_top
-      real, dimension(km) :: z, dz, w_ !dz units = meters
+
+      integer :: status
+      real, dimension(km) :: w_ !dz units = meters
 
       !EOP
       !-------------------------------------------------------------------------
       ! Begin
 
-      z(1:km) = hghte(1:km)
-
-      k_bot = find_level(km, z, z_bot)
-      k_top = find_level(km, z, z_top)
-
-      !   find the weights
-      w_ = 0
-
-      if (k_bot == k_top) then
-         if (z_top == z_bot) then ! for non-explosive volcanic emissions
-            w_(k_bot) = tiny(0.)
-         else
-            w_(k_bot) = z_top - z_bot
-         end if
-      else
-         dz = find_dz(km, hghte)
-         call find_wieghts(k_bot, k_top, z_bot, z_top, z, dz, w_)
-      end if
+      call find_wieghts(km, hghte, z_bot, z_top, w_, status)
 
       point_column_emissions(:) = (w_ / sum(w_)) * emissions_point
 
-      !  Logical consistency check
-      if (k_top > k_bot) then
-         rc = 1
-      else
-         rc = 0
-      end if
+      if (present(rc)) rc = status
    end subroutine DistributePointEmission
 
   subroutine updatePointwiseEmissions (km, pBase, pTop, pEmis, nPts, pStart, &
