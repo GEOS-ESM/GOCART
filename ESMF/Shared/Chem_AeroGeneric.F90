@@ -78,6 +78,8 @@ contains
        field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
        if (trim(field_name) == 'PLE') then
           call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationEdge, typekind=typekind, hw=0, __RC__)
+       else if (trim(field_name) == 'FRLAND') then
+          call MAPL_FieldAllocCommit(field, dims=MAPL_DimsHorzOnly, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
        else
           call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
        end if
@@ -132,12 +134,17 @@ contains
 
 !   !ARGUMENTS:
     character (len=*),           intent(in   )   :: varName, prefix
-    type (ESMF_State),           intent(in   )   :: providerState
+    type (ESMF_State),           intent(inout)   :: providerState
     type (ESMF_FieldBundle),     intent(inout)   :: bundle
     integer,                     intent(  out)   :: rc  ! return code
 
 !   !Local
-    type (ESMF_Field)                              :: field
+    type (ESMF_Field)     :: field, field2D
+    type (ESMF_Grid)      :: grid
+    integer               :: dimCount, i
+    real, pointer         :: orig_ptr(:,:,:)
+    real, pointer         :: ptr2d(:,:)
+    character(len=ESMF_MAXSTR)  :: bin_index, varNameNew
 
 !   Description: Adds deposition variables to deposition bundle
 
@@ -147,7 +154,66 @@ contains
 !   ---------------
     call ESMF_StateGet (providerState, trim(prefix)//trim(varName), field, __RC__)
     call MAPL_AllocateCoupling (field, __RC__)
-    call MAPL_FieldBundleAdd (bundle, field, __RC__)
+    call ESMF_FieldGet (field, dimCount=dimCount, __RC__)
+
+    if (dimCount == 2) then ! this handles data instances
+       call MAPL_FieldBundleAdd (bundle, field, __RC__) 
+
+    else if (dimCount == 3) then ! this handles computational instances
+       call ESMF_FieldGet (field, grid=grid, __RC__)
+       call MAPL_GetPointer (providerState, orig_ptr, trim(prefix)//trim(varName), __RC__)
+
+       if ((index(trim(varname), 'DU') > 0) .or. (index(trim(varname), 'SS') > 0)) then
+          do i = 1, size(orig_ptr, 3)
+             write (bin_index,'(A, I0.3)') '', i
+             ptr2d => orig_ptr(:,:,i)
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
+                                        name=trim(varName)//trim(bin_index) , __RC__)
+             call MAPL_AllocateCoupling (field2D, __RC__)
+             call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
+if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varName)//trim(bin_index)
+          end do
+       end if
+
+       if (index(trim(varname), 'SU') > 0) then ! only use SO4, which is the 3rd index
+          ptr2d => orig_ptr(:,:,3)
+          field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
+                                     name=trim(varName)//'003' , __RC__)
+          call MAPL_AllocateCoupling (field2D, __RC__)
+          call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
+if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varName)//'003'
+       end if
+
+       if (index(trim(varname), 'CA.oc') > 0) then
+          do i = 1, size(orig_ptr, 3)
+             write (bin_index,'(A, I0.3)') '', i
+             ptr2d => orig_ptr(:,:,i)
+             varNameNew = 'OC'//trim(varName(3:4))
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
+                                        name=trim(varNameNew)//trim(bin_index) , __RC__)
+             call MAPL_AllocateCoupling (field2D, __RC__)
+             call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
+if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varNameNew)//trim(bin_index)
+          end do
+       end if
+
+       if (index(trim(varname), 'CA.bc') > 0) then
+          do i = 1, size(orig_ptr, 3)
+             write (bin_index,'(A, I0.3)') '', i
+             ptr2d => orig_ptr(:,:,i)
+             varNameNew = 'BC'//trim(varName(3:4))
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
+                                        name=trim(varNameNew)//trim(bin_index) , __RC__)
+             call MAPL_AllocateCoupling (field2D, __RC__)
+             call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
+if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varNameNew)//trim(bin_index)
+          end do
+       end if
+
+    else if (dimCount > 3) then
+       if(mapl_am_i_root()) print*,'Chem_AeroGenric::append_to_bundle does not currently support fields greater than 3 dimensions'
+       VERIFY_(824)       
+    end if
 
     RETURN_(ESMF_SUCCESS)
 

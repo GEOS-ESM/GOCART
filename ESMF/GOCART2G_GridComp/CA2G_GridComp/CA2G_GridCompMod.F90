@@ -370,7 +370,6 @@ contains
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
     real, pointer, dimension(:,:,:)      :: ple
-    real, pointer, dimension(:,:)        :: area
     logical                              :: data_driven
     integer                              :: NUM_BANDS
 
@@ -467,7 +466,7 @@ contains
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), __RC__)
     fld = MAPL_FieldCreate (field, 'CAphobic', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-    call MAPL_StateAdd (aero_aci, fld, __RC__)
+!    call MAPL_StateAdd (aero_aci, fld, __RC__)
 
     self%klid = 1 ! temporary value
 !   Set internal CAphobic values to 0 where above klid
@@ -1015,7 +1014,7 @@ contains
                              tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, sfcmass=CASMASS, colmass=CACMASS, &
                              mass=CAMASS, exttau=CAEXTTAU, scatau=CASCATAU, fluxu=CAFLUXU, fluxv=CAFLUXV, &
                              conc=CACONC, extcoef=CAEXTCOEF, scacoef=CASCACOEF, angstrom=CAANGSTR, aerindx=CAAERIDX,&
-                             __RC__)
+                             NO3nFlag=.false., __RC__)
 
 if (trim(comp_name) == 'CA.oc') then
   if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphobic) = ',sum(CAphobic)

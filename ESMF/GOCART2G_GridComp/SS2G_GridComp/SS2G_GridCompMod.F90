@@ -45,6 +45,7 @@ real, parameter ::  cpd    = 1004.16
    type, extends(GA_GridComp) :: SS2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
+       real, allocatable      :: rmed(:)        ! number median radius [um]
        integer                :: sstEmisFlag    ! Choice of SST correction to emissions: 
 !                                                 0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
        logical                :: hoppelFlag     ! Apply the Hoppel correction to emissions (Fan and Toon, 2011)
@@ -123,7 +124,7 @@ contains
     ! process generic config items
     call self%GA_GridComp%load_from_config( cfg, __RC__)
 
-    allocate(self%rlow(self%nbins), self%rup(self%nbins), __STAT__)
+    allocate(self%rlow(self%nbins), self%rup(self%nbins), self%rmed(self%nbins), __STAT__)
 
     ! process SS-specific items
 !    call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)
@@ -132,8 +133,9 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%hoppelFlag, label='hoppelFlag:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%emission_scheme, label='emission_scheme:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%emission_scale_res, label='emission_scale:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rlow,  label='radius_lower:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rup,  label='radius_upper:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%rlow, label='radius_lower:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%rup, label='radius_upper:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%rmed, label='particle_radius_number:', __RC__)
 
 !   Is SS data driven?
 !   ------------------
@@ -335,9 +337,6 @@ contains
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     real, pointer, dimension(:,:,:)      :: ple
-    real, pointer, dimension(:,:)        :: area
-
-integer :: n
 
     __Iam__('Initialize')
 
@@ -413,7 +412,7 @@ integer :: n
 
 !   Add attribute information for SS export. Used in NI hetergenous chemistry.
     call ESMF_StateGet (export, 'SS', field, __RC__)
-    call ESMF_AttributeSet(field, NAME='radius', valueList=self%radius, itemCount=self%nbins, __RC__)
+    call ESMF_AttributeSet(field, NAME='radius', valueList=self%rmed, itemCount=self%nbins, __RC__)
     call ESMF_AttributeSet(field, NAME='fnum', valueList=self%fnum, itemCount=self%nbins, __RC__)
 
 !   Fill AERO State with sea salt fields
@@ -438,7 +437,7 @@ integer :: n
     end if
 
 do i = 1, 5
- if(mapl_am_i_root()) print*,'n = ', n,' : INIT SS2G sum(ss00n) = ',sum(int_ptr(:,:,:,i))
+ if(mapl_am_i_root()) print*,'n = ', i,' : INIT SS2G sum(ss00n) = ',sum(int_ptr(:,:,:,i))
 end do
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
@@ -670,9 +669,9 @@ end do
 
 #include "SS2G_GetPointer___.h"
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-end do
+!do n=1,5
+!   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+!end do
 
 !   Get my private internal state
 !   ------------------------------
@@ -731,9 +730,9 @@ end do
        end if
     end do !n = 1
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-end do
+!do n=1,5
+!   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+!end do
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
@@ -854,7 +853,7 @@ end do
                              rh2, u, v, delp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSCATAU,     &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
-                             SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, __RC__)
+                             SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
  
 do n=1,5
    if(mapl_am_i_root()) print*,'n = ', n,' : Run2 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))

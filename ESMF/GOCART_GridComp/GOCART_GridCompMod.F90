@@ -3439,6 +3439,8 @@ subroutine aerosol_activation_properties(state, rc)
   call ESMF_AttributeGet(state, name='cldmicro', value=cld_micro, __RC__)
   call ESMF_AttributeGet(state, name='ccn_tuning', value=ccn_tuning, __RC__)
 
+if(mapl_am_i_root()) print*,'GOCART cld_micro = ', cld_micro
+
 ! Aerosol mass mixing ratios
 ! --------------------------
   mode_ = trim(mode)

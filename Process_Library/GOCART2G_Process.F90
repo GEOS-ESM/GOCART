@@ -47,7 +47,7 @@
    public SulfateUpdateOxidants
    public SU_Wet_Removal
    public SU_Compute_Diags
-   public SulfateChemDriver
+!   public SulfateChemDriver
    public get_HenrysLawCts
    public NIthermo
    public Chem_UtilResVal 
@@ -56,6 +56,10 @@
    public Chem_BiomassDiurnal
    public ReadPointEmissions
    public EmissionReader
+
+public szangle
+public idaynum
+
 
    real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
    integer, parameter     :: DP = kind(1.0d0)
@@ -106,17 +110,19 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
    real, intent(in) :: radius(:)       ! particle radius [m]
-   real, pointer, dimension(:,:), intent(in) :: fraclake ! fraction of lake [1]
-   real, pointer, dimension(:,:), intent(in) :: gwettop  ! surface soil wetness [1]
-   real, pointer, dimension(:,:), intent(in) :: oro      ! land-ocean-ice mask [1]
-   real, pointer, dimension(:,:), intent(in) :: u10m     ! 10-meter eastward wind [m/sec]
-   real, pointer, dimension(:,:), intent(in) :: v10m     ! 10-meter northward wind [m/sec]
-   real, pointer, dimension(:,:), intent(in) :: du_src   ! dust emissions [(sec^2 m^5)/kg]
+   real, dimension(:,:), intent(in) :: fraclake ! fraction of lake [1]
+   real, dimension(:,:), intent(in) :: gwettop  ! surface soil wetness [1]
+   real, dimension(:,:), intent(in) :: oro      ! land-ocean-ice mask [1]
+   real, dimension(:,:), intent(in) :: u10m     ! 10-meter eastward wind [m/sec]
+   real, dimension(:,:), intent(in) :: v10m     ! 10-meter northward wind [m/sec]
+   real, dimension(:,:), intent(in) :: du_src   ! dust emissions [(sec^2 m^5)/kg]
    real, intent(in) :: Ch_DU   ! dust emission tuning coefficient [kg/(sec^2 m^5)]
    real, intent(in) :: grav    ! gravity [m/sec^2]
 
 ! !OUTPUT PARAMETERS:
-   real, pointer, intent(inout)  :: emissions(:,:)    ! Local emission [kg/(m^2 sec)]
+!   real, pointer, intent(inout)  :: emissions(:,:)    ! Local emission [kg/(m^2 sec)]
+   real, intent(inout)  :: emissions(:,:,:)    ! Local emission [kg/(m^2 sec)]
+
    integer, intent(out) :: rc  ! Error return code:
 
 
@@ -137,7 +143,7 @@ CONTAINS
    real            ::  w10m
    integer         ::  i1, i2, j1, j2, nbins
    integer         ::  dims(2)
-   real, allocatable ::  emissions_(:,:)
+!   real, allocatable ::  emissions_(:,:)
 
 !EOP
 !-------------------------------------------------------------------------
@@ -145,7 +151,7 @@ CONTAINS
 
 !  Initialize local variables
 !  --------------------------
-   emissions(:,:) = 0.
+   emissions(:,:,:) = 0.
    rc = 824
 
 !  Get dimensions
@@ -155,7 +161,7 @@ CONTAINS
    i1 = 1; j1 = 1
    i2 = dims(1); j2 = dims(2)
 
-   allocate(emissions_(i2,j2))
+!   allocate(emissions_(i2,j2))
 
 !  Calculate the threshold velocity of wind erosion [m/s] for each radius
 !  for a dry soil, as in Marticorena et al. [1997].
@@ -172,7 +178,7 @@ CONTAINS
                        * sqrt(1.+6.e-7/(soil_density*grav*diameter**2.5)) &
               / sqrt(1.928*(1331.*(100.*diameter)**1.56+0.38)**0.092 - 1.)
 
-      emissions_(:,:) = 0.
+!      emissions_(:,:) = 0.
 
 !     Spatially dependent part of calculation
 !     ---------------------------------------
@@ -188,12 +194,12 @@ CONTAINS
 
                if(w10m .gt. u_thresh) then     
 !                 Emission of dust [kg m-2 s-1]
-                  emissions_(i,j) = (1.-fraclake(i,j)) * w10m**2. * (w10m-u_thresh)
+                  emissions(i,j,n) = (1.-fraclake(i,j)) * w10m**2. * (w10m-u_thresh)
                endif
             endif !(gwettop(i,j) .lt. 0.5)
          end do ! i
       end do ! j
-      emissions = emissions + (Ch_DU * du_src * emissions_)
+      emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
     end do ! n
  
    rc=0
@@ -1702,7 +1708,8 @@ CONTAINS
   implicit NONE
 
 ! !INPUT PARAMETERS:
-   real, pointer, dimension(:,:)     :: emissions_surface
+!   real, pointer, dimension(:,:)     :: emissions_surface
+   real, dimension(:,:,:), intent(in)     :: emissions_surface
    real, dimension(:,:,:,:), intent(inout) :: emissions
    real, dimension(:,:,:), intent(in) :: emissions_point
 
@@ -1735,7 +1742,7 @@ CONTAINS
     rc = 0
 
     do n = 1, nbins
-       emissions(:,:,km,n) = emissions_surface * sfrac(n)
+       emissions(:,:,km,n) = emissions_surface(:,:,n) * sfrac(n)
        if (nPts > 0) then
           kmin = 1
           emissions(:,:,:,n) = emissions(:,:,:,n) + emissions_point * sfrac(n)
@@ -1760,7 +1767,7 @@ CONTAINS
                                   sfcmass, colmass, mass, exttau, scatau, &
                                   sfcmass25, colmass25, mass25, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, &
-                                  exttaufm, scataufm, angstrom, aerindx, rc )
+                                  exttaufm, scataufm, angstrom, aerindx, NO3nFlag, rc )
 
 ! !USES:
 
@@ -1782,7 +1789,7 @@ CONTAINS
    real, pointer, dimension(:,:,:), intent(in) :: rh    ! relative humidity [1] 
    real, pointer, dimension(:,:,:), intent(in) :: u     ! east-west wind [m/s]
    real, pointer, dimension(:,:,:), intent(in) :: v     ! north-south wind [m/s]
-
+   logical, optional, intent(in)               :: NO3nFlag
 
 ! !OUTPUT PARAMETERS:
 !  Total mass
@@ -1824,20 +1831,27 @@ CONTAINS
    integer :: i1 =1, i2, j1=1, j2
    real :: ilam550, ilam470, ilam870
    real :: tau, ssa
-   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
-   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
+!   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
+!   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
+   real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
+   real, dimension(:), allocatable :: fPM25  ! fraction of bin with particles diameter < 2.5 um
    logical :: do_angstrom
    real, dimension(:,:), allocatable :: tau470, tau870
+   logical   :: NO3nFlag_ = .false. !local version of the input
 
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...
- 
+
+   if( present(NO3nFlag) .and. (NO3nFlag ==.true.)) NO3nFlag_ = .true.
+
 !  Initialize local variables
 !  --------------------------
    nch = size(channels)
    i2 = size(rhoa,1)
    j2 = size(rhoa,2)
+   allocate(fPMfm(nbins))
+   allocate(fPM25(nbins))
 
 !  Get the wavelength indices
 !  --------------------------
@@ -1974,12 +1988,16 @@ CONTAINS
 
 !  Calculate the extinction and/or scattering AOD
    if( (present(exttau) .and. associated(exttau)) .or. &
-       (present(scatau) .and. associated(scatau)) ) then
+       (present(scatau) .and. associated(scatau)) .or. &
+       (present(exttau25) .and. associated(exttau25)) .or. &
+       (present(exttaufm) .and. associated(exttaufm)) .or. &
+       (present(scatau25) .and. associated(scatau25)) .or. &
+       (present(scataufm) .and. associated(scataufm)) .or. &
+       (present(extcoef) .and. associated(extcoef)) .or. &
+       (present(scacoef) .and. associated(scacoef)) ) then
 
-!      if( associated(exttau)) exttau(i1:i2,j1:j2) = 0.
-!      if( associated(scatau)) scatau(i1:i2,j1:j2) = 0.
-      exttau = 0.
-      scatau = 0.
+      if( present(exttau) .and. associated(exttau)) exttau(i1:i2,j1:j2) = 0.
+      if( present(scatau) .and. associated(scatau)) scatau(i1:i2,j1:j2) = 0.
 
       if( present(exttau25) .and. associated(exttau25)) exttau25(i1:i2,j1:j2) = 0.
       if( present(scatau25) .and. associated(scatau25)) scatau25(i1:i2,j1:j2) = 0.
@@ -2012,16 +2030,38 @@ CONTAINS
 
 !         Integrate in the vertical
           if( present(exttau) .and. associated(exttau) ) exttau(i,j) = exttau(i,j) + tau
-          if( present(exttaufm) .and. associated(exttaufm)) &
-                         exttaufm(i,j) = exttaufm(i,j) + tau*fPMfm(n)
-          if( present(exttau25) .and. associated(exttau25)) &
-                         exttau25(i,j) = exttau25(i,j) + tau*fPM25(n)
+          if( present(exttaufm) .and. associated(exttaufm)) then
+             if( present(NO3nFlag) .and. (NO3nFlag==.true.)) then
+                exttaufm(i,j) = exttaufm(i,j) + tau
+             else
+                exttaufm(i,j) = exttaufm(i,j) + tau * fPMfm(n)
+             end if
+          end if
+
+          if( present(exttau25) .and. associated(exttau25)) then
+             if( present(NO3nFlag) .and. (NO3nFlag==.true.)) then
+                exttau25(i,j) = exttau25(i,j) + tau
+             else
+                exttau25(i,j) = exttau25(i,j) + tau * fPM25(n)
+             end if
+          end if
 
           if( present(scatau) .and. associated(scatau) ) scatau(i,j) = scatau(i,j) + tau*ssa
-          if( present(scataufm) .and. associated(scataufm) ) &
-                         scataufm(i,j) = scataufm(i,j) + tau*ssa*fPMfm(n)
-          if( present(scatau25) .and. associated(scatau25) ) &
-                         scatau25(i,j) = scatau25(i,j) + tau*ssa*fPM25(n)
+          if( present(scataufm) .and. associated(scataufm) ) then
+             if( present(NO3nFlag) .and. (NO3nFlag==.true.)) then
+                scataufm(i,j) = scataufm(i,j) + tau * ssa
+             else
+                scataufm(i,j) = scataufm(i,j) + tau * ssa * fPMfm(n)
+             end if
+          end if
+
+          if( present(scatau25) .and. associated(scatau25) ) then
+             if( present(NO3nFlag) .and. (NO3nFlag==.true.)) then
+                scatau25(i,j) = scatau25(i,j) + tau * ssa
+             else
+                scatau25(i,j) = scatau25(i,j) + tau * ssa * fPM25(n)
+             end if
+          end if
 
          enddo
         enddo
@@ -3281,7 +3321,7 @@ K_LOOP: do k = km, 1, -1
          do n = 1, nbinsDU
             sad = 0.01*4.*PI*rmedDU(n)**2.*fnumDU(n) * &
                   rhoa(i,j,k) * DU(i,j,k,n)       ! surface area density cm2 cm-3
-            rad = 100.*rmedDU(n)                        ! radius cm
+            rad = 100.*rmedDU(n)                  ! radius cm
 
             if (sad > 0.) then
                if(n == 1) &
@@ -3407,16 +3447,21 @@ K_LOOP: do k = km, 1, -1
 !   real(kind=DP), optional  :: gammaInp ! optional uptake coefficient (e.g., 0.2 for SS, else calculated)
 
 ! !Local Variables
-   real(kind=DP), parameter   :: GAMMA_HNO3 = 1.0e-3
+   real(kind=DP), parameter   :: GAMMA_HNO3 = 1.0d-3
    real(kind=DP) :: dfkg
    real(kind=DP) :: avgvel
    real(kind=DP) :: gamma
+
+   real(kind=DP) :: pi_dp, rgas_dp
+   real, parameter :: fmassHNO3_hno3 = 63.013
 
 !EOP
 !------------------------------------------------------------------------------------
 !  Begin..
       sktrs_hno3 = 0.d0
       gamma      = 3.d-5
+      pi_dp = pi
+      rgas_dp = rgas
 
 !      Following uptake coefficients of Liu et al.(2007)
        if (frh >= 0.1d0 .and. frh < 0.3d0 )  gamma = gamma_hno3 * (0.03d0 + 0.08d0  * (frh - 0.1d0))
@@ -3427,10 +3472,10 @@ K_LOOP: do k = km, 1, -1
        if (frh >= 0.8d0 )                    gamma = gamma_hno3 * 2.0d0
 
 !     calculate gas phase diffusion coefficient (cm2/s)
-      dfkg = 9.45D17 / ad * ( tk * (3.472D-2 + 1.D0/fmassHNO3) )**0.5d0
+      dfkg = 9.45D17 / ad * ( tk * (3.472D-2 + 1.D0/fmassHNO3_hno3) )**0.5d0
 
 !     calculate mean molecular speed (cm/s)
-      avgvel = 100.0d0 * (8.0d0 * rgas * tk * 1000.0d0 / (pi * fmassHNO3))**0.5d0
+      avgvel = 100.0d0 * (8.0d0 * rgas_dp * tk * 1000.0d0 / (pi_dp * fmassHNO3_hno3))**0.5d0
 
 !     calculate rate coefficient
       sktrs_hno3 = sad * ( 4.0d0 / ( gamma * avgvel )+ radA / dfkg )**(-1.0d0)
@@ -3480,18 +3525,22 @@ K_LOOP: do k = km, 1, -1
    real(kind=DP), parameter   :: GAMMA_SSLT = 0.1d0
    real(kind=DP) :: dfkg
    real(kind=DP) :: avgvel
+   real(kind=DP) :: pi_dp, rgas_dp
+   real, parameter :: fmassHNO3_sslt = 63.013
 
 !EOP
 !------------------------------------------------------------------------------------
 !  Begin..
 !  Initialize
    sktrs_sslt = 0.d0
+   pi_dp = pi
+   rgas_dp = rgas
 
 !  calculate gas phase diffusion coefficient (cm2/s)
-   dfkg = 9.45D17 / ad * ( tk * (3.472D-2 + 1.D0/fmassHNO3) )**0.5d0
+   dfkg = 9.45D17 / ad * ( tk * (3.472D-2 + 1.D0/fmassHNO3_sslt) )**0.5d0
 
 !  calculate mean molecular speed (cm/s)
-   avgvel = 100.0d0 * (8.0d0 * rgas * tk * 1000.0d0 / (pi * fmassHNO3))**0.5d0
+   avgvel = 100.0d0 * (8.0d0 * rgas_dp * tk * 1000.0d0 / (pi_dp * fmassHNO3_sslt))**0.5d0
 
 !  calculate rate coefficient
    sktrs_sslt = sad * ( 4.0d0 / ( GAMMA_SSLT * avgvel )+ radA / dfkg )**(-1.0d0)
@@ -3511,7 +3560,7 @@ K_LOOP: do k = km, 1, -1
                                           aircraft_fuel_src, &
                                           so2, so4, &
                                           oro, u10m, v10m, hghte, pblh, &
-                                          tmpu, rhoa, delp, &
+                                          tmpu, rhoa, delp, nVolc, &
                                           SU_emis, SU_SO4eman, SU_SO2eman, SU_SO2embb, &
 !                                          maskString, gridMask, &
                                           aviation_layers,   &
@@ -3548,6 +3597,7 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu  ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in)  :: rhoa  ! Layer air density [kg/m^3]
    real, pointer, dimension(:,:,:), intent(in)  :: delp  ! pressure thickness [Pa]
+   integer, intent(in) :: nVolc     ! number of volcanic emissions
    real, dimension(:), intent(in)  :: aviation_layers ! Heights [m] of LTO, CDS and CRS aviation emissions layers
    real, dimension(:,:), intent(in) :: aviation_cds_src ! Climb/Descent aircraft fuel emission [1]
    real, dimension(:,:), intent(in) :: aviation_crs_src ! Cruise aircraft fuel emission [1]
@@ -3618,7 +3668,8 @@ K_LOOP: do k = km, 1, -1
    srcSO4 = 0.0
    srcDMS = 0.0
 
-   if (associated(SU_emis)) SU_emis = 0.0
+   if ((nVolc <= 0) .and. associated(SU_emis)) SU_emis = 0.0 !SU_emis is usually set to zero in SUvolcanicEmissions. 
+!                                               !If there are no volcanic emissions, we need to set it to zero here.
    if (associated(SU_SO4eman)) SU_SO4eman = 0.0
    if (associated(SU_SO2eman)) SU_SO2eman = 0.0
    if (associated(SU_SO2embb)) SU_SO2embb = 0.0
@@ -3790,7 +3841,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !INOUT PARAMETERS:
    real, dimension(:,:,:), intent(inout)  :: dms ! dms [kg kg-1]
-   real, pointer, dimension(:,:,:)  :: SU_emis   ! SU emissions, kg/m2/s
+   real, pointer, dimension(:,:,:), intent(inout)  :: SU_emis   ! SU emissions, kg/m2/s
 
 ! !OUTPUT PARAMETERS:
    integer, optional, intent(out)   :: rc    ! Error return code:
@@ -3834,6 +3885,7 @@ K_LOOP: do k = km, 1, -1
     j2 = size(tmpu,2)
 
     allocate(srcDMS(i2,j2))
+    srcDMS = 0.
 
     k = km
     sCO2 = 600.
@@ -3877,7 +3929,7 @@ K_LOOP: do k = km, 1, -1
 !                                   airdens, delp, area, vLat, vLon, rc)
 
    subroutine SUvolcanicEmissions (nVolc, vStart, vEnd, vSO2, vElev, vCloud, iPoint, &
-                                   jPoint, nhms, SO2EMVN, SO2EMVE, SO2, km, cdt, grav,&
+                                   jPoint, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SU_emis, km, cdt, grav,&
                                    hghte, delp, area, vLat, vLon, rc)
 ! !USES:
    implicit NONE
@@ -3890,6 +3942,7 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:), intent(in)    :: vCloud ! top elevation of emissions [m]
    integer, dimension(:), intent(in) :: iPoint, jPoint ! sub-domain locations of volcanos
    integer, intent(in) :: nhms ! current model time [sec]
+   integer, intent(in) :: nSO2   ! index of SO2 relative to other sulfate tracers
    integer, intent(in) :: km   ! number of model levels
    real, intent(in)    :: cdt  ! model time step [sec]
    real, pointer, dimension(:,:,:) :: hghte     ! top of layer geopotential height [m]
@@ -3903,6 +3956,7 @@ K_LOOP: do k = km, 1, -1
   real, pointer, dimension(:,:), intent(inout) :: SO2EMVN ! non-explosive volcanic emissions [kg m-2 s-1]
   real, pointer, dimension(:,:), intent(inout) :: SO2EMVE ! explosive volcanic emissions [kg m-2 s-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SO2 ! SO2 [kg kg-1]
+  real, pointer, dimension(:,:,:), intent(inout) :: SU_emis      ! SU emissions, kg/m2/s
   real, dimension(:), intent(inout) ::  vElev ! bottom elevation of emissions [m]
 
 ! !OUTPUT PARAMETERS:
@@ -3915,7 +3969,6 @@ K_LOOP: do k = km, 1, -1
 !
 ! 22July2020 E.Sherman
 !
-
 ! !Local Variables
    integer  ::  i, j, it
    real, dimension(:,:,:), allocatable  :: emissions_point
@@ -3924,10 +3977,26 @@ K_LOOP: do k = km, 1, -1
    real :: hup, hlow, dzvolc, dz, z1, k
    real :: deltaSO2v
    real, dimension(:,:), allocatable :: z0
+   real, allocatable, dimension(:,:) :: srcSO2volc
+   real, allocatable, dimension(:,:) :: srcSO2volce
 
 !EOP
 !-------------------------------------------------------------------------
 !  Begin
+
+   if (nVolc > 0) then
+
+   allocate(srcSO2volc, mold=area)
+   allocate(srcSO2volce, mold=area)
+   srcSO2volc = 0.
+   srcSO2volce = 0.
+
+   if (associated(SU_emis)) SU_emis = 0.0
+   if (associated(SO2EMVN)) SO2EMVN = 0.
+   if (associated(SO2EMVE)) SO2EMVE = 0.
+
+   allocate(z0, mold=area)
+   z0 = hghte(:,:,km)
 
     do it = 1, nVolc
        so2volcano = 0.
@@ -3945,6 +4014,8 @@ K_LOOP: do k = km, 1, -1
           so2volcano = vSO2(it) / area(i,j)     ! to kg SO2/sec/m2
           so2volcano = max(so2volcano,tiny(so2volcano))
        endif
+
+#if 0
        if (vElev(it) == vCloud(it)) then
           if(associated(SO2EMVN)) SO2EMVN(i,j) = SO2EMVN(i,j) + so2volcano
 !      Database provides altitude of top of volcano cone (vElev) and altitude
@@ -3956,33 +4027,34 @@ K_LOOP: do k = km, 1, -1
           if(associated(SO2EMVE)) SO2EMVE(i,j) = SO2EMVE(i,j) + so2volcano
        end if
     end do
+#endif
 
 !     Loop over all volcanoes in the database
-   allocate(z0, mold=area)
-   z0 = hghte(:,:,km)
+!   allocate(z0, mold=area)
+!   z0 = hghte(:,:,km)
 
-   if(nvolc > 0) then
-      do it = 1, nvolc
+!   if(nvolc > 0) then
+!      do it = 1, nvolc
 
-         i = iPoint(it)
-         j = jPoint(it)
+!         i = iPoint(it)
+!         j = jPoint(it)
 
 !        Skip this volcano?
 !        ------------------
-         if ( i<1 .OR. j<1 ) cycle ! volcano not in sub-domain
+!         if ( i<1 .OR. j<1 ) cycle ! volcano not in sub-domain
 
 !        Check time against time range of eruption
 !        -----------------------------------------
-         if(nhms < vStart(it) .or. nhms >= vEnd(it)) cycle
+!         if(nhms < vStart(it) .or. nhms >= vEnd(it)) cycle
 
-         so2volcano = 0.
+!         so2volcano = 0.
 
 !        Emissions per volcano
 !        -------------------------------------------------------------------------------
-         if(area(i,j) .gt. 1.) then
-            so2volcano = vSO2(it) /area(i,j)     ! to kg SO2/sec/m2
-            so2volcano = max(so2volcano,tiny(so2volcano))
-         endif
+!         if(area(i,j) .gt. 1.) then
+!            so2volcano = vSO2(it) /area(i,j)     ! to kg SO2/sec/m2
+!            so2volcano = max(so2volcano,tiny(so2volcano))
+!         endif
 
 !        Distribute in the vertical
 !        Database provides altitude of top of volcano cone (vElev) and altitude
@@ -3994,6 +4066,14 @@ K_LOOP: do k = km, 1, -1
          hlow = vElev(it)
          if (hup .ne. hlow) then
             hlow = hup - (hup-hlow)/3.
+         endif
+
+!        Diagnostic - sum of volcanos
+!        ----------------------------
+         if (hup .eq. hlow) then
+            srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
+         else
+            srcSO2volce(i,j) = srcSO2volce(i,j) + so2volcano
          endif
 
          dzvolc = hup-hlow
@@ -4039,8 +4119,11 @@ K_LOOP: do k = km, 1, -1
 
       end do ! k
    enddo     ! it
-  end if
+  end if ! nVolc > 0
 
+  if (associated(SO2EMVN)) SO2EMVN = SO2EMVN + srcSO2volc
+  if (associated(SO2EMVE)) SO2EMVE = SO2EMVE + srcSO2volce
+  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc + srcSO2volce
 
   rc = 0
 
@@ -4937,7 +5020,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
 !==================================================================================
 !BOP
-! !IROUTINE: DustEmissionGOCART2G
+! !IROUTINE: SU_Compute_Diags
 
    subroutine SU_Compute_Diags ( km, klid, rmed, sigma, rhop, grav, pi, nSO4, mie_table, channels, &
                                  tmpu, rhoa, delp, rh, u, v, &

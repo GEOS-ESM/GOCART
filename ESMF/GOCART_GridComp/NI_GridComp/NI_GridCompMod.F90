@@ -1336,7 +1336,6 @@ RUN_ALARM: if (gcNI%run_alarm) then
 !  ---------------------------------------
    hsurf => hghte(i1:i2,j1:j2,km) ! Recall: GEOS-5 has edges with k in [0,km]
     
-
 !  Nitrate Chemistry
 !  -----------------
    if(associated(NI_pno3aq%data2d)) NI_pno3aq%data2d(:,:) = 0.
@@ -1530,7 +1529,6 @@ RUN_ALARM: if (gcNI%run_alarm) then
          =   HNO3_colmass%data2d(i1:i2,j1:j2) + gcNI%xhno3(i1:i2,j1:j2,k)*w_c%delp(i1:i2,j1:j2,k)/grav
       end do
    endif
-
 
 !  NI Settling
 !  -----------
