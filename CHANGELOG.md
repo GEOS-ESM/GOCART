@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+
+- Switched StrTemplate from using the one provided by `GMAO_MPEU` to one provided by `MAPL`
 ### Fixed
 ### Removed
 ### Added
