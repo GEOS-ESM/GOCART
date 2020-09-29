@@ -15,7 +15,7 @@
 ! !USES:
 !  Only instrinsic fortran types and functions are allowed.
    use Chem_MieTableMod2G
-   use EmissionReaderMod
+   ! use EmissionReaderMod
    use DustEmissionGOCART
    ! use PointEmissionGOCART
    use, intrinsic :: iso_fortran_env, only: IOSTAT_END
@@ -61,6 +61,21 @@
    public ReadPointEmissions
 
    integer, parameter     :: DP = kind(1.0d0)
+
+   type :: EmissionReader
+      private
+      integer, allocatable :: unit
+   contains
+      procedure :: open
+      procedure :: close
+      procedure :: rewind => rewind_reader
+      procedure :: is_end_marker
+      procedure :: read_table
+      procedure :: next_line
+      procedure :: count_words
+      procedure :: scan_to_label
+      procedure :: get_dims
+   end type EmissionReader
 
    type KeywordEnforcer
    end type KeywordEnforcer
