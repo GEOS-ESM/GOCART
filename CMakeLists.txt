@@ -4,7 +4,7 @@ cmake_policy (SET CMP0054 NEW)
 
 project (
         GOCART
-        VERSION 0.9.0
+        VERSION 0.9.1
         LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
