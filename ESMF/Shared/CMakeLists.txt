@@ -8,13 +8,18 @@ esma_add_library(${this}
   SRCS ${srcs} 
   DEPENDENCIES MAPL)
 
-target_include_directories (${this} PUBLIC ${INC_ESMF} ${INC_NETCDF})
-
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/@GSW )
     set (gsw_ECBUILD_SYSTEM_INCLUDED TRUE)
 endif()
 
-esma_add_subdirectories (
-        MAPL
-        GMAO_Shared
-)
+if ( IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/MAPL@ )
+  esma_add_subdirectories (
+    MAPL
+    )
+endif ()
+
+if ( IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/GMAO_Shared@ )
+  esma_add_subdirectories (
+    GMAO_Shared
+    )
+endif ()

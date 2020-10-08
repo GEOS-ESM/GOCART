@@ -7,10 +7,5 @@ set (srcs
 
 esma_add_library(${this} 
   SRCS ${srcs} 
-  # DEPENDENCIES GMAO_mpeu
+  DEPENDENCIES esmf NetCDF::NetCDF_Fortran
   )
-
-target_include_directories (${this} PUBLIC ${INC_ESMF} ${INC_NETCDF})
-
-#include_directories (${esma_include}/${this})
-
