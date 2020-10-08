@@ -21,6 +21,9 @@ if (NOT CMAKE_BUILD_TYPE)
             "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif ()
 
+# Set build options
+option (BUILD_UFS "Build GOCART component for UFS" OFF)
+
 set (DOING_GEOS5 YES)
 
 # Should find a better place for this - used in Chem component
