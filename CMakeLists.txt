@@ -30,6 +30,14 @@ set (DOING_GEOS5 YES)
 set (ACG_FLAGS -v)
 set (FV_PRECISION R4R8)
 
+# Ensure we build as 32-bit
+message ("Force 32-bit build for GOCART")
+if (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+  string (REPLACE "-real-size 64" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+elseif (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+  string (REPLACE "-fdefault-real-8" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+endif()
+
 if (NOT COMMAND esma)
     list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake@")
     include (esma)
