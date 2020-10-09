@@ -43,7 +43,7 @@ if (NOT NetCDF_Fortran_FOUND)
 endif ()
 add_definitions(-DHAS_NETCDF3)
 
-if (NOT esmf_FOUND)
+if (NOT ESMF_FOUND)
   find_package (ESMF REQUIRED)
 endif ()
 
