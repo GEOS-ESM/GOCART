@@ -8,14 +8,9 @@ category: IMPORT
      NAME    | UNITS  | DIMS | VLOC | LONG NAME
 #----------------------------------------------------------------------------------------
  FROCEAN    | 1      | xy   | N    | fraction_of_ocean
-# FRACI      | 1      | xy   | N    | ice_covered_fraction_of_tile
  LWI        | 1      | xy   | N   | land-ocean-ice_mask
  U10M       | m s-1  | xy   | N   | 10-meter_eastward_wind
  V10M       | m s-1  | xy   | N   | 10-meter_northward_wind
-# USTAR      | m s-1  | xy   | N   | surface_velocity_scale
-# TS         | K      | xy   | N   | surface skin temperature
-# DZ         | m      | xy   | N   | surface_layer_height
-# FRLAKE     | 1      | xy   | N   | fraction_of_lake
  AREA       | m^2    | xy   | N   | agrid_cell_area
  ZPBL       | m      | xy   | N   | planetary_boundary_layer_height
  USTAR      | m s-1  | xy   | N   | surface velocity scale

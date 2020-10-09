@@ -67,7 +67,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE              | DIMENSIONS |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
+ NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
  CAMASS*    | kg kg-1    | xyz | C   |       | Carbonaceous Aerosol Mass Mixing Ratio                
  CACONC*    | kg m-3     | xyz | C   |       | Carbonaceous Aerosol Mass Concentration               

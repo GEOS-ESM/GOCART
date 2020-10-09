@@ -36,7 +36,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE              | DIMENSIONS |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
+ NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
  DUMASS     | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio
  DUMASS25   | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio

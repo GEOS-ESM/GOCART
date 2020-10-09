@@ -47,7 +47,7 @@
    public SulfateUpdateOxidants
    public SU_Wet_Removal
    public SU_Compute_Diags
-!   public SulfateChemDriver
+   public SulfateChemDriver
    public get_HenrysLawCts
    public NIthermo
    public Chem_UtilResVal 
@@ -56,9 +56,6 @@
    public Chem_BiomassDiurnal
    public ReadPointEmissions
    public EmissionReader
-
-public szangle
-public idaynum
 
 
    real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
@@ -151,7 +148,7 @@ CONTAINS
 
 !  Initialize local variables
 !  --------------------------
-   emissions(:,:,:) = 0.
+!   emissions(:,:,:) = 0.
    rc = 824
 
 !  Get dimensions
@@ -199,7 +196,7 @@ CONTAINS
             endif !(gwettop(i,j) .lt. 0.5)
          end do ! i
       end do ! j
-      emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
+!      emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
     end do ! n
  
    rc=0
@@ -444,9 +441,8 @@ CONTAINS
 
    real, dimension(:,:,:), allocatable  :: vsettle   ! fall speed [m s-1]
    real(kind=DP), dimension(:,:,:), allocatable   :: dzd, vsd, qa, qa_temp
-   real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after, qdel, &
-        d_p, dpm1, qsrc
-
+   real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after
+   real(kind=DP) :: qdel, qsrc, d_p, dpm1
 
 !EOP
 !-------------------------------------------------------------------------
@@ -470,8 +466,7 @@ CONTAINS
 !  ---------------
    allocate(dz, mold=rhoa); 
    allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km))
-   allocate(cmass_before(i2,j2), cmass_after(i2,j2), qdel(i2,j2), d_p(i2,j2), &
-            dpm1(i2,j2), qsrc(i2,j2))
+   allocate(cmass_before(i2,j2), cmass_after(i2,j2))
 
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
 !  -----------------------------------------------------------------
@@ -487,137 +482,140 @@ CONTAINS
 
    qa(:,:,:) = int_qa(:,:,:)
 
-    radius = radiusInp
-    rhop = rhopInp
+   radius = radiusInp
+   rhop = rhopInp
 
-!   Reset a (large) minimum time to cross a grid cell in settling
-    minTime = cdt
+   if(associated(fluxout)) fluxout(:,:,bin) = 0.0
+   cmass_before(:,:) = 0.d0
+   cmass_after(:,:) = 0.d0
 
-    if(associated(fluxout)) fluxout(:,:,bin) = 0.0
-!    fluxout = 0.0
-    cmass_before(:,:) = 0.d0
-    cmass_after(:,:) = 0.d0
+!  If radius le 0 then get out
+   if(radius .le. 0.) then
+      rc = 100
+      return
+   end if
 
-!   If radius le 0 then get out
-    if(radius .le. 0.) then
-       rc = 100
-       return
-    end if
+   do k = klid, km
+      do j = j1, j2
+         do i = i1, i2
+!           Find the column dry mass before sedimentation
+            cmass_before(i,j) = cmass_before(i,j) + qa(i,j,k)/gravDP * delp(i,j,k)
 
-    do k = klid, km
-       do j = j1, j2
-          do i = i1, i2
-!            Find the column dry mass before sedimentation
-             cmass_before(i,j) = cmass_before(i,j) + qa(i,j,k)/gravDP * delp(i,j,k)
+!           Adjust the particle size for relative humidity effects
+            sat = max(rh(i,j,k),tiny(1.0)) ! to avoid zero FPE
 
-!            Adjust the particle size for relative humidity effects
-             sat = max(rh(i,j,k),tiny(1.0)) ! to avoid zero FPE
-
-!            Fitzgerald
-             select case(flag)
-             case(1)
+!           Fitzgerald
+            select case(flag)
+            case(1)
                if (sat >= 0.80) then 
-!             if(flag .eq. 1 .and. sat .ge. 0.80) then
-!            parameterization blows up for RH > 0.995, so set that as max
-!            rh needs to be scaled 0 - 1
-                sat = min(0.995,sat)
-!               Calculate the alpha and beta parameters for the wet particle
-!               relative to amonium sulfate
-                beta = exp( (0.00077*sat) / (1.009-sat) )
-                if(sat .le. 0.97) then
-                   theta = 1.058
-                else
-                   theta = 1.058 - (0.0155*(sat-0.97)) /(1.02-sat**1.4)
-                endif
-                alpha1 = 1.2*exp( (0.066*sat) / (theta-sat) )
-                f1 = 10.2 - 23.7*sat + 14.5*sat**2.
-                f2 = -6.7 + 15.5*sat - 9.2*sat**2.
-                alpharat = 1. - f1*(1.-epsilon) - f2*(1.-epsilon**2.)
-                alpha = alphaNaCl * (alpha1*alpharat)
-!               radius is the radius of the wet particle
-                radius = alpha * radiusInp**beta
-                rrat = (radiusInp/radius)**3.
-                rhop = rrat*rhopInp + (1.-rrat)*rhow
+!              if(flag .eq. 1 .and. sat .ge. 0.80) then
+!              parameterization blows up for RH > 0.995, so set that as max
+!              rh needs to be scaled 0 - 1
+                  sat = min(0.995,sat)
+!                 Calculate the alpha and beta parameters for the wet particle
+!                 relative to amonium sulfate
+                  beta = exp( (0.00077*sat) / (1.009-sat) )
+                  if(sat .le. 0.97) then
+                     theta = 1.058
+                  else
+                     theta = 1.058 - (0.0155*(sat-0.97)) /(1.02-sat**1.4)
+                  endif
+                  alpha1 = 1.2*exp( (0.066*sat) / (theta-sat) )
+                  f1 = 10.2 - 23.7*sat + 14.5*sat**2.
+                  f2 = -6.7 + 15.5*sat - 9.2*sat**2.
+                  alpharat = 1. - f1*(1.-epsilon) - f2*(1.-epsilon**2.)
+                  alpha = alphaNaCl * (alpha1*alpharat)
+!                 radius is the radius of the wet particle
+                  radius = alpha * radiusInp**beta
+                  rrat = (radiusInp/radius)**3.
+                  rhop = rrat*rhopInp + (1.-rrat)*rhow
                end if
-              case(2)
-!             elseif(flag .eq. 2) then   ! Gerber
-                sat = min(0.995,sat)
-                rcm = radiusInp*100.
-                radius = 0.01 * (c1*rcm**c2 / (c3*rcm**c4-alog10(sat)) &
-                                 + rcm**3.)**(1./3.)
-                rrat = (radiusInp/radius)**3.
-                rhop = rrat*rhopInp + (1.-rrat)*rhow
-              case(3)
-!             elseif(flag .eq. 3) then
-!               Gerber parameterization for Ammonium Sulfate
-                sat = min(0.995,sat)
-                rcm = radiusInp*100.
-                radius = 0.01 * (SU_c1*rcm**SU_c2 / (SU_c3*rcm**SU_c4-alog10(sat)) &
-                                 + rcm**3.)**(1./3.)
-                rrat = (radiusInp/radius)**3.
-                rhop = rrat*rhopInp + (1.-rrat)*rhow
-              case(4)
-!             elseif(flag .eq. 4) then
-!               Petters and Kreidenweis (ACP2007) parameterization
-                sat = min(0.99,sat)
-                radius = (radiusInp**3 * (1+1.19*sat/(1-sat)))**(1./3.)
-                rrat = (radiusInp/radius)**3
-                rhop = rrat*rhopInp + (1.-rrat)*rhow
-!             endif
-              end select
+            case(2)
+               sat = min(0.995,sat)
+               rcm = radiusInp*100.
+               radius = 0.01 * (c1*rcm**c2 / (c3*rcm**c4-alog10(sat)) &
+                                + rcm**3.)**(1./3.)
+               rrat = (radiusInp/radius)**3.
+               rhop = rrat*rhopInp + (1.-rrat)*rhow
+            case(3)
+!              Gerber parameterization for Ammonium Sulfate
+               sat = min(0.995,sat)
+               rcm = radiusInp*100.
+               radius = 0.01 * (SU_c1*rcm**SU_c2 / (SU_c3*rcm**SU_c4-alog10(sat)) &
+                                + rcm**3.)**(1./3.)
+               rrat = (radiusInp/radius)**3.
+               rhop = rrat*rhopInp + (1.-rrat)*rhow
+            case(4)
+!              Petters and Kreidenweis (ACP2007) parameterization
+               sat = min(0.99,sat)
+               radius = (radiusInp**3 * (1+1.19*sat/(1-sat)))**(1./3.)
+               rrat = (radiusInp/radius)**3
+               rhop = rrat*rhopInp + (1.-rrat)*rhow
+            end select
 
 !            Calculate the settling velocity
              call Chem_CalcVsettle2Gorig(radius, rhop, rhoa(i,j,k), tmpu(i,j,k), &
                                      grav, diff_coef, vsettle(i,j,k))
-          end do !do i
-       end do !do j
-    end do !do k
+         end do !do i
+      end do !do j
+   end do !do k
 
-    if(present(correctionMaring)) then
-       if ((correctionMaring) .and. (radiusInp .le. (0.5*diameterMaring))) then
-          vsettle = max(1.0e-9, vsettle - v_upwardMaring)
-       endif
-    endif
+   if(present(correctionMaring)) then
+      if ((correctionMaring) .and. (radiusInp .le. (0.5*diameterMaring))) then
+         vsettle = max(1.0e-9, vsettle - v_upwardMaring)
+      endif
+   endif
 
-    vsd = vsettle
+   vsd = vsettle
 
-    if(present(vsettleOut)) then
-       vsettleOut = vsettle
-    endif
-
-!   Determine global min time to cross grid cell
-    qmin = minval(dz/vsettle)
-    minTime = min(minTime,qmin)
-
-!   Now, how many iterations do we need to do?
-    if ( minTime < 0 ) then
-       nSubSteps = 0
-    else if(minTime .ge. cdt) then
-       nSubSteps = 1
-       dt_settle = cdt
-    else
-       nSubSteps = cdt/minTime+1
-       dt_settle = cdt/nSubSteps
-    endif
+   if(present(vsettleOut)) then
+      vsettleOut = vsettle
+   endif
 
 !   Loop over sub-timestep
-    do iit = 1, nSubSteps
+    do j = j1, j2
+       do i = i1, i2
+      !   Determine global min time to cross grid cell
+          qmin = minval(dz(i,j,:)/vsettle(i,j,:))
+          minTime = min(cdt,qmin)
+      !   Now, how many iterations do we need to do?
+          if ( minTime < 0 ) then
+             nSubSteps = 0
+          else if(minTime .ge. cdt) then
+             nSubSteps = 1
+             dt_settle = cdt
+          else
+             nSubSteps = cdt/minTime+1
+             dt_settle = cdt/nSubSteps
+          endif
 
-!      Try a simple forward Euler scheme
-       qdel = qa(i1:i2,j1:j2,klid)*dt_settle*vsd(i1:i2,j1:j2,klid)/dzd(i1:i2,j1:j2,klid)
-       qa(i1:i2,j1:j2,klid) = qa(i1:i2,j1:j2,klid) - qdel
+          do iit = 1, nSubSteps
+!          Try a simple forward Euler scheme
+           qdel = qa(i,j,klid)*dt_settle*vsd(i,j,klid)/dzd(i,j,klid)
+           qa(i,j,klid) = qa(i,j,klid) - qdel
 
-!       do k = 2, km
-       do k = klid+1, km
-          d_p   = delp(i1:i2,j1:j2,k)
-          dpm1 = delp(i1:i2,j1:j2,k-1)
-          qsrc = qdel * dpm1 / d_p
-          qdel = qa(i1:i2,j1:j2,k)*dt_settle*vsd(i1:i2,j1:j2,k)/dzd(i1:i2,j1:j2,k)
-          qa(i1:i2,j1:j2,k) = qa(i1:i2,j1:j2,k) - qdel + qsrc
-       enddo
-    end do  ! iit
+!             do k = 2, km
+             do k = klid+1, km
+               d_p  = delp(i,j,k)
+               dpm1 = delp(i,j,k-1)
+               qsrc = qdel * dpm1 / d_p
+               qdel = qa(i,j,k)*dt_settle*vsd(i,j,k)/dzd(i,j,k)
+               qa(i,j,k) = qa(i,j,k) - qdel + qsrc
+            end do
+         end do  !itt
+      end do 
+    end do  
 
-    cmass_after = sum(qa / gravDP * delp,3)
+!    cmass_after = sum(qa / gravDP * delp,3)
+
+!   Find the column dry mass after sedimentation and thus the loss flux
+    do k = klid, km
+     do j = j1, j2
+      do i = i1, i2
+       cmass_after(i,j) = cmass_after(i,j) + qa(i,j,k)/ gravDP * delp(i,j,k)
+      enddo
+     enddo
+    enddo
 
     if( associated(fluxout) ) then
        fluxout(:,:,bin) = (cmass_before - cmass_after)/cdt
@@ -671,7 +669,6 @@ CONTAINS
 !
 
 ! !Local Variables
-   integer, parameter :: DP=kind(1.0d0)
    real(kind=DP) :: rmu                   ! Dynamic viscosity [kg m-1 s-1]
    real(kind=DP) :: vt                    ! Thermal velocity of air molecule [m s-1]
    real(kind=DP) :: rmfp                  ! Air molecule mean free path [m]
@@ -1781,7 +1778,7 @@ CONTAINS
    real, optional, dimension(:), intent(in)    :: rup    ! bin radii - upper bounds
    real, dimension(:), intent(in)    :: channels
 !   real, pointer, dimension(:,:,:,:) :: aerosol     ! 
-   real, dimension(:,:,:,:), intent(inout) :: aerosol     ! 
+   real, dimension(:,:,:,:), intent(in) :: aerosol     ! 
    real, intent(in) :: grav
    real, pointer, dimension(:,:,:), intent(in) :: tmpu  ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in) :: rhoa  ! air density [kg/m^3]
@@ -3392,7 +3389,7 @@ K_LOOP: do k = km, 1, -1
    endif
 !  Calculate the HNO3 surface mass concentration
    if( associated(HNO3_sfcmass) ) then
-      HNO3_sfcmass(i1:i2,j1:j2) = xhno3(i1:i2,j1:j2,km) * fMassHNO3 / AIRMW * rhoa(i1:i2,j1:j2,km)
+      HNO3_sfcmass(i1:i2,j1:j2) = xhno3(i1:i2,j1:j2,km) * fMassHNO3 / fMassAir * rhoa(i1:i2,j1:j2,km)
    endif
 !  Calculate the HNO3 column loading
    if( associated(HNO3_colmass) ) then
@@ -5472,8 +5469,8 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    if( associated(su_pSO2) )  su_pSO2   = 0.
    if( associated(su_pMSA) )  su_pMSA   = 0.
    if( associated(su_pSO4) )  su_pSO4   = 0.
-   if( associated(su_pSO4) )  su_pSO4g  = 0.
-   if( associated(su_pSO4) )  su_pSO4aq = 0.
+   if( associated(su_pSO4g) )  su_pSO4g  = 0.
+   if( associated(su_pSO4aq) )  su_pSO4aq = 0.
    if( associated(pSO2) )     pSO2   = 0.
    if( associated(pMSA) )     pMSA   = 0.
    if( associated(pSO4) )     pSO4   = 0.

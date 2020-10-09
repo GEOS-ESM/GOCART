@@ -43,7 +43,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE              | DIMENSIONS |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
+ NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
   NH3MASS   | kg/kg      | xyz | C   |           | Ammonia Mass Mixing Ratio 
   NH4MASS   | kg/kg      | xyz | C   |           | Ammonium Aerosol Mass Mixing Ratio 
