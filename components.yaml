@@ -12,20 +12,14 @@ ecbuild:
 HEMCO:
   local: ./ESMF/HEMCO_GridComp@
   remote: ../HEMCO.git
-  tag: geos/v1.0.2
-
-NCEP_Shared:
-  local: ./ESMF/Shared/NCEP_Shared@
-  remote: ../NCEP_Shared.git
-  tag: v1.0.0
-  sparse: ./config/NCEP_Shared.sparse
-  develop: master
+  branch: GEOS/develop
 
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
+  tag: v1.1.8
   sparse: ./config/GMAO_Shared.sparse
-  branch: feature/wjamieson/GOCARTrefactor
+  develop: main
 
 MAPL:
   local: ./ESMF/Shared/MAPL@

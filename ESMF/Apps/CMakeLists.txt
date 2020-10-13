@@ -6,13 +6,6 @@ ecbuild_add_executable(
 )
 
 ecbuild_add_executable(
-        TARGET esmApp.x
-        SOURCES esmApp.F90 esm.F90 atm.F90 ocn.F90
-        LIBS gftl-shared MAPL MAPL.NUOPC
-        INCLUDES ${esma_include}/MAPL
-)
-
-ecbuild_add_executable(
         TARGET AerosolApp.x
         SOURCES AerosolMain.F90 AerosolDriver.F90
         LIBS gftl-shared MAPL MAPL.NUOPC Aerosol_GridComp

@@ -8,7 +8,7 @@ set (TEST_SRCS
         test_MissingFields.pf
 )
 
-add_pfunit_ctest(Cinderella_private_tests
+add_pfunit_ctest(Cinderella_private_tests.x
         TEST_SOURCES ${TEST_SRCS}
         LINK_LIBRARIES MAPL MAPL.pfio base_extras MAPL_pFUnit Cinderella
         EXTRA_INITIALIZE Initialize
@@ -16,7 +16,7 @@ add_pfunit_ctest(Cinderella_private_tests
         MAX_PES 6
         )
 
-add_dependencies(build-tests Cinderella_private_tests)
+add_dependencies(build-tests Cinderella_private_tests.x)
 
 configure_file(test_GOCART_Tracers.rc test_GOCART_Tracers.rc COPYONLY)
 configure_file(field_table            field_table            COPYONLY)

@@ -3,10 +3,9 @@ set (MAPL_ESMF TRUE)
 set (BUILD_GEOS_INTERFACE TRUE)
 
 esma_add_subdirectories(
-        # Apps
+        Apps
         Shared
-        # Aerosol_GridComp
-        # GOCART_GridComp
+        Aerosol_GridComp
         GOCART2G_GridComp
-#        HEMCO_GridComp
+        HEMCO_GridComp
 )

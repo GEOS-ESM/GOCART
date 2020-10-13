@@ -256,8 +256,8 @@ CONTAINS
 
         emissions_point(i,j,:) =  point_column_emissions
         end do
-   rc = 0
 
+      __RETURN__(__SUCCESS__)
   end subroutine updatePointwiseEmissions
 
 !==================================================================================
@@ -360,6 +360,7 @@ CONTAINS
 
     rc = 0
 
+      __RETURN__(__SUCCESS__)
     end subroutine DistributePointEmission
 !==================================================================================
 
@@ -623,7 +624,7 @@ CONTAINS
 
     int_qa = qa
 
-   rc=0
+   __RETURN__(__SUCCESS__)
 
    end subroutine Chem_Settling2Gorig
 
@@ -964,8 +965,7 @@ CONTAINS
 
     int_qa = qa
 
-    rc = 0
-
+      __RETURN__(__SUCCESS__)
    end subroutine Chem_SettlingSimpleOrig
 
 
@@ -2102,8 +2102,7 @@ CONTAINS
          log(470./870.)
    endif
 
-   rc = 0
-
+   __RETURN__(__SUCCESS__)
    end subroutine Aero_Compute_Diags
 !====================================================================
 
@@ -2181,8 +2180,6 @@ CONTAINS
 !-------------------------------------------------------------------------
 !  Begin...
 
-   rc = 0
-
    deep_lakes_mask = 1.0
    do j = 1, ubound(lons, 2)
       do i = 1, ubound(lons, 1)
@@ -2202,6 +2199,7 @@ CONTAINS
       end do
    end do
 
+   __RETURN__(__SUCCESS__)
    end subroutine deepLakesMask
 
 !========================================================================================
@@ -2232,8 +2230,6 @@ CONTAINS
 !-------------------------------------------------------------------------
 !  Begin...
   
-   rc = 0
-
    fsstemis = 1.0
 
    if (sstemisFlag == 1) then          ! SST correction folowing Jaegle et al. 2011
@@ -2262,6 +2258,7 @@ CONTAINS
       deallocate( tskin_c )
    end if
 
+   __RETURN__(__SUCCESS__)
    end subroutine jeagleSSTcorrection
 
 !=====================================================================================
@@ -2328,13 +2325,15 @@ CONTAINS
 
    deallocate(wm)
 
+   __RETURN__(__SUCCESS__)
    end subroutine weibullDistribution
 
 !=====================================================================================
 
  DOUBLE PRECISION function igamma(A, X)
 !----------------------------------------------------------------------- 
-! incomplete Gamma function
+! incomplete (upper) Gamma function
+! \int_x^\infty t^{A-1}\exp(-t) dt
 !----------------------------------------------------------------------- 
  IMPLICIT NONE
  double precision, intent(in) ::        A
@@ -3086,7 +3085,7 @@ K_LOOP: do k = km, 1, -1
                     OC_emisBG  = OC_emisBG + srcBiogenic
    end do K_LOOP
 
-   rc = 0
+   __RETURN__(__SUCCESS__)
    end subroutine CAEmission
 
    subroutine distribute_aviation_emissions(delp, rhoa, z_bot, z_top, emissions_layer, emissions, i1, i2, j1, j2, km, grav)
@@ -3218,9 +3217,7 @@ K_LOOP: do k = km, 1, -1
     end do
    end do
 
-   rc = 0
-
-
+   __RETURN__(__SUCCESS__)
   end subroutine phobicTophilic
 
 !============================================================================
@@ -3294,7 +3291,6 @@ K_LOOP: do k = km, 1, -1
 !  salt tracers.  This code is not at the moment generalized as it
 !  seems very wedded to the traditional GOCART arrangement (5 dust,
 !  5 sea salt) and the particulars of the nitrate aerosol arrangement.
-   rc = 0
 
    if(associated(NI_phet)) NI_phet = 0.
 
@@ -3400,6 +3396,7 @@ K_LOOP: do k = km, 1, -1
       end do
    endif
 
+   __RETURN__(__SUCCESS__)
    end subroutine NIheterogenousChem
 
 !============================================================================
@@ -3808,8 +3805,7 @@ K_LOOP: do k = km, 1, -1
 
    end do ! k
 
-  rc = 0
-
+   __RETURN__(__SUCCESS__)
   end subroutine SulfateDistributeEmissions
 
 !==================================================================================
@@ -3914,6 +3910,7 @@ K_LOOP: do k = km, 1, -1
     if( associated(SU_emis )) SU_emis(:,:,ndms) = srcDMS
 
 
+      __RETURN__(__SUCCESS__)
    end subroutine DMSemission
 
 
@@ -4311,8 +4308,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        end where
     end do
 
-    rc = 0
-
+    __RETURN__(__SUCCESS__)
    end subroutine SulfateUpdateOxidants
 
 !==================================================================================
@@ -4999,6 +4995,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    deallocate(fd,DC,dpfli,stat=ios)
 
 
+   __RETURN__(__SUCCESS__)
    contains
      subroutine updateAerosol (aerosol, DC)
 
@@ -5335,8 +5332,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
        endif
    endif
 
-   rc = 0
-
+   __RETURN__(__SUCCESS__)
    end subroutine SU_Compute_Diags
 
 !==================================================================================
@@ -5443,6 +5439,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    integer :: k, jday, i2, j2
    real, dimension(:,:,:), allocatable :: pSO2_DMS, pMSA_DMS, pSO4g_SO2, pSO4aq_SO2
    real    :: xhour
+   integer :: status
 
 
 !EOP
@@ -5491,7 +5488,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    if( associated(su_dep) ) su_dep = 0.0
 
    call DryDeposition ( km, tmpu, rhoa, hghte, oro, ustar, pblh, shflux, &
-                        von_karman, cpd, grav, z0h, drydepositionfrequency, rc )
+                        von_karman, cpd, grav, z0h, drydepositionfrequency, __RC__)
 
 
 !  Now call the chemistry packages...
@@ -5502,7 +5499,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
                                dms, nDMS, xoh, xno3, &
                                cossza, tmpu, rhoa, &
                                pSO2_DMS, pMSA_DMS, SU_dep, &
-                               rc)
+                               __RC__)
 
    if( associated(pSO2) )  pSO2 = pSO2_DMS
    if( associated(su_pSO2)) then
@@ -5524,7 +5521,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
                                so2, nSO2, xoh, xh2o2, &
                                tmpu, rhoa, delp, oro, cloud, drydepositionfrequency, &
                                pSO2_DMS, pSO4g_SO2, pSO4aq_SO2, SU_dep, &
-                               rc)
+                               __RC__)
 
    if( associated(pSO4g) )  pSO4g = pSO4g_SO2
    if( associated(su_pSO4g)) then
@@ -5551,7 +5548,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !  SO4 source and loss
    call SulfateChemDriver_SO4 (km, klid, cdt, grav, so4, nSO4, delp, &
                                drydepositionfrequency, pSO4g_SO2, pSO4aq_SO2, SU_dep, &
-                               rc)
+                               __RC__)
 
 !  MSA source and loss
    if( associated(msa)) then
@@ -5563,8 +5560,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !  Save the h2o2 value after chemistry
    h2o2_init = xh2o2
 
-   rc = 0
-
+   __RETURN__(__SUCCESS__)
    end subroutine SulfateChemDriver
 
 !==================================================================================
@@ -5730,8 +5726,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    end do   ! k
 
 
-   rc = 0
-
+   __RETURN__(__SUCCESS__)
    end subroutine SulfateChemDriver_DMS
 
 
@@ -5929,8 +5924,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
    if( associated(SU_dep) ) SU_dep(:,:,nSO2) = fout
 
-   rc = 0
-
+   __RETURN__(__SUCCESS__)
    end subroutine SulfateChemDriver_SO2
 
 !==================================================================================
@@ -6032,8 +6026,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
    if( associated(SU_dep) ) SU_dep(:,:,nSO4) = fout
 
-   rc = 0
-
+   __RETURN__(__SUCCESS__)
    end subroutine SulfateChemDriver_SO4
 
 !==================================================================================
@@ -6128,9 +6121,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 
    if( associated(SU_dep) ) SU_dep(:,:,nMSA) = fout
 
-   rc = 0
-
-
+   __RETURN__(__SUCCESS__)
    end subroutine SulfateChemDriver_MSA
 
 !==================================================================================
@@ -6594,8 +6585,7 @@ loop2: DO l = 1,nspecies_HL
           c4  = notfound
        ENDIF
 
-   rc = 0
-
+       __RETURN__(__SUCCESS__)
    end subroutine get_HenrysLawCts
 
 !==================================================================================
@@ -6705,8 +6695,7 @@ loop2: DO l = 1,nspecies_HL
     enddo
    enddo
 
-   rc = 0
-
+   __RETURN__(__SUCCESS__)
    end subroutine NIthermo
 
 !==================================================================================
@@ -8728,6 +8717,7 @@ loop2: DO l = 1,nspecies_HL
       close(this%unit, __IOSTAT__)
       deallocate(this%unit)
 
+      __RETURN__(__SUCCESS__)
    end subroutine close
 
 
@@ -8834,6 +8824,7 @@ loop2: DO l = 1,nspecies_HL
 
       end associate
 
+      __RETURN__(__SUCCESS__)
    end function read_table
 
    function next_line(this, eof, rc) result(line)
