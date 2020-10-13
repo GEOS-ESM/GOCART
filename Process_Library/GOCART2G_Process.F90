@@ -1840,7 +1840,7 @@ CONTAINS
 !-------------------------------------------------------------------------
 !  Begin...
 
-   if( present(NO3nFlag) .and. (NO3nFlag ==.true.)) NO3nFlag_ = .true.
+   if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) NO3nFlag_ = .true.
 
 !  Initialize local variables
 !  --------------------------
@@ -2028,7 +2028,7 @@ CONTAINS
 !         Integrate in the vertical
           if( present(exttau) .and. associated(exttau) ) exttau(i,j) = exttau(i,j) + tau
           if( present(exttaufm) .and. associated(exttaufm)) then
-             if( present(NO3nFlag) .and. (NO3nFlag==.true.)) then
+             if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
                 exttaufm(i,j) = exttaufm(i,j) + tau
              else
                 exttaufm(i,j) = exttaufm(i,j) + tau * fPMfm(n)
@@ -2036,7 +2036,7 @@ CONTAINS
           end if
 
           if( present(exttau25) .and. associated(exttau25)) then
-             if( present(NO3nFlag) .and. (NO3nFlag==.true.)) then
+             if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
                 exttau25(i,j) = exttau25(i,j) + tau
              else
                 exttau25(i,j) = exttau25(i,j) + tau * fPM25(n)
@@ -2045,7 +2045,7 @@ CONTAINS
 
           if( present(scatau) .and. associated(scatau) ) scatau(i,j) = scatau(i,j) + tau*ssa
           if( present(scataufm) .and. associated(scataufm) ) then
-             if( present(NO3nFlag) .and. (NO3nFlag==.true.)) then
+             if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
                 scataufm(i,j) = scataufm(i,j) + tau * ssa
              else
                 scataufm(i,j) = scataufm(i,j) + tau * ssa * fPMfm(n)
@@ -2053,7 +2053,7 @@ CONTAINS
           end if
 
           if( present(scatau25) .and. associated(scatau25) ) then
-             if( present(NO3nFlag) .and. (NO3nFlag==.true.)) then
+             if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
                 scatau25(i,j) = scatau25(i,j) + tau * ssa
              else
                 scatau25(i,j) = scatau25(i,j) + tau * ssa * fPM25(n)

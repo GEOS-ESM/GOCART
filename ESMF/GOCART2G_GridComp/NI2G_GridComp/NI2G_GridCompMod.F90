@@ -133,7 +133,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices BEGIN'
 !   ------------------------
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, __RC__)
-    if (data_driven /= .true.) then
+    if (data_driven .neqv. .true.) then
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
     end if
 
