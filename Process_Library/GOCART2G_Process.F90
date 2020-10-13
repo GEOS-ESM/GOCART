@@ -234,6 +234,8 @@ CONTAINS
     integer                          :: n, i, j
     real, dimension(:), allocatable  :: pEmis_
 
+    integer :: status
+
 !   Description: Returns 3D array of pointwise emissions.
 !
 !   Revision History:
@@ -252,7 +254,7 @@ CONTAINS
 
         call DistributePointEmission(km, hghte(i,j,:), pBase(n), &
                                      pTop(n), pEmis_(n), area(i,j), &
-                                     point_column_emissions, rc)
+                                     point_column_emissions, __RC__)
 
         emissions_point(i,j,:) =  point_column_emissions
         end do
@@ -358,8 +360,6 @@ CONTAINS
 !   distribute emissions in the vertical
     point_column_emissions(:) = ((w_ / sum(w_)) * emissions_point) / area
 
-    rc = 0
-
       __RETURN__(__SUCCESS__)
     end subroutine DistributePointEmission
 !==================================================================================
@@ -445,6 +445,8 @@ CONTAINS
    real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after
    real(kind=DP) :: qdel, qsrc, d_p, dpm1
 
+   integer :: status
+
 !EOP
 !-------------------------------------------------------------------------
 
@@ -492,8 +494,8 @@ CONTAINS
 
 !  If radius le 0 then get out
    if(radius .le. 0.) then
-      rc = 100
-      return
+      status = 100
+      __RETURN__(STATUS)
    end if
 
    do k = klid, km
@@ -4119,8 +4121,7 @@ K_LOOP: do k = km, 1, -1
   if (associated(SO2EMVE)) SO2EMVE = SO2EMVE + srcSO2volce
   if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc + srcSO2volce
 
-  rc = 0
-
+  __RETURN__(__SUCCESS__)
   end subroutine SUvolcanicEmissions
 
 !==================================================================================
@@ -5554,7 +5555,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
    if( associated(msa)) then
       call SulfateChemDriver_MSA (km, klid, cdt, grav, msa, nMSA, delp, &
                                   drydepositionfrequency, pMSA_DMS, SU_dep, &
-                                  rc)
+                                  __RC__)
    end if
 
 !  Save the h2o2 value after chemistry
