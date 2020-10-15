@@ -16,7 +16,8 @@ add_pfunit_ctest(Cinderella_private_tests.x
         MAX_PES 6
         )
 
-add_dependencies(build-tests Cinderella_private_tests.x)
+add_dependencies(build-tests base_extras Cinderella_private_tests.x)
+target_link_libraries (base_extras PUBLIC ${ESMF_LIBRARIES} Cinderella MAPL_pFUnit)
 
 configure_file(test_GOCART_Tracers.rc test_GOCART_Tracers.rc COPYONLY)
 configure_file(field_table            field_table            COPYONLY)
