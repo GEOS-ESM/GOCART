@@ -114,14 +114,17 @@ contains
         print*,"Driver read values from config"
         call ESMF_LogWrite("Driver values from config", ESMF_LOGMSG_INFO, rc=rc)
         VERIFY_ESMF_(rc)
+        print*,"Driver read mode"
         call ESMF_ConfigGetAttribute(config, seq, label="sequential:", rc=rc)
         VERIFY_NUOPC_(rc)
+        print*,"Driver read n providers"
         call ESMF_ConfigGetAttribute(config, n_provider_pes, &
                 label="provider_pets:", rc=rc)
         VERIFY_NUOPC_(rc)
-        ! call ESMF_ConfigGetAttribute(config, n_reciever_pes, &
-        !         label="reciever_pets:", rc=rc)
-        ! VERIFY_NUOPC_(rc)
+        print*,"Driver read n recievers"
+        call ESMF_ConfigGetAttribute(config, n_reciever_pes, &
+                label="reciever_pets:", rc=rc)
+        VERIFY_NUOPC_(rc)
 !        call ESMF_ConfigGetAttribute(config, n_ufs_pes, &
 !                label="ufs_pets:", rc=rc)
 !        VERIFY_NUOPC_(rc)
@@ -133,23 +136,23 @@ contains
         call ESMF_LogWrite("Driver create pet lists", ESMF_LOGMSG_INFO, rc=rc)
         VERIFY_ESMF_(rc)
         allocate(provider_petlist(n_provider_pes))
-        ! allocate(reciever_petlist(n_reciever_pes))
+        allocate(reciever_petlist(n_reciever_pes))
 !        allocate(ufs_petlist(n_ufs_pes))
 
         if (seq) then
-            ! _ASSERT((n_provider_pes == n_reciever_pes), "provider_pets must be equal to reciever_pets in sequential")
+            _ASSERT((n_provider_pes == n_reciever_pes), "provider_pets must be equal to reciever_pets in sequential")
 !            _ASSERT((n_provider_pes == n_ufs_pes), "provider_pets must be equal to ufs_pets in sequential")
-            _ASSERT((n_provider_pes == npes), "provider_pets must be equal to number of pets in sequential")
+            ! _ASSERT((n_provider_pes == npes), "provider_pets must be equal to number of pets in sequential")
 
             provider_petlist = [(i, i = 0, n_provider_pes - 1)]
-            ! reciever_petlist = [(i, i = 0, n_reciever_pes - 1)]
+            reciever_petlist = [(i, i = 0, n_reciever_pes - 1)]
 !            ufs_petlist      = [(i, i = 0, n_ufs_pes - 1)]
         else
 !            _ASSERT(((n_provider_pes + n_reciever_pes + n_ufs_pes) == npes), "provider_pets + reciever_pets + ufs_pets must be equal to number of pets")
-            ! _ASSERT(((n_provider_pes + n_reciever_pes) == npes), "provider_pets + reciever_pets must be equal to number of pets")
+            _ASSERT(((n_provider_pes + n_reciever_pes) == npes), "provider_pets + reciever_pets must be equal to number of pets")
 
             provider_petlist = [(i, i = 0, n_provider_pes - 1)]
-            ! reciever_petlist = [(i, i = n_provider_pes, npes - 1)]
+            reciever_petlist = [(i, i = n_provider_pes, npes - 1)]
 !            reciever_petlist = [(i, i = n_provider_pes, n_provider_pes + n_reciever_pes - 1)]
 !            ufs_petlist      = [(i, i = n_provider_pes + n_reciever_pes, npes - 1)]
 
