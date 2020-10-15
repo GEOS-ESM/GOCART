@@ -10,8 +10,8 @@ module synthetic_driver
             runSS    => label_SetRunSequence
 
     use MAPL
-    ! use MAPL_NUOPCWrapperMod, only: wrapperSS => SetServices, init_wrapper
-    use NUOPC_MAPLcapMod, only: wrapperSS => SetServices, init_internal_wrapper
+    use MAPL_NUOPCWrapperMod, only: wrapperSS => SetServices, init_wrapper
+    ! use NUOPC_MAPLcapMod, only: wrapperSS => SetServices, init_internal_wrapper
     use NUOPC_Connector,  only: cplSS     => SetServices
 
     use Provider_GridCompMod, only: providerSS => SetServices
@@ -176,21 +176,22 @@ contains
         call NUOPC_CompAttributeSet(provider, 'Diagnostic', 'max', rc=rc)
         VERIFY_NUOPC_(rc)
 
-        ! call init_wrapper(wrapper_gc=provider, name="provider", &
-        !         cap_rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
+        call init_wrapper(wrapper_gc=provider, name="provider", &
+                cap_rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
+        VERIFY_NUOPC_(rc)
+        ! call init_internal_wrapper(gc=provider, name="provider", &
+        !         rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
         ! VERIFY_NUOPC_(rc)
-        call init_internal_wrapper(gc=provider, name="provider", &
-                rc_file="PROVIDER_CAP.rc", root_set_services=providerSS, rc=rc)
+
+        print*,"Driver add reciever"
+        call NUOPC_DriverAddComp(driver, "reciever", wrapperSS, comp=reciever, &
+                petlist=reciever_petlist, rc=rc)
         VERIFY_NUOPC_(rc)
 
-        ! print*,"Driver add reciever"
-        ! call NUOPC_DriverAddComp(driver, "reciever", wrapperSS, comp=reciever, &
-        !         petlist=reciever_petlist, rc=rc)
-        ! VERIFY_NUOPC_(rc)
-        ! print*,"Driver wrap reciever MAPL"
-        ! ! call init_wrapper(wrapper_gc=reciever, name="reciever", &
-        ! !         cap_rc_file="RECIEVER_CAP.rc", root_set_services=recieverSS, rc=rc)
-        ! ! VERIFY_NUOPC_(rc)
+        print*,"Driver wrap reciever MAPL"
+        call init_wrapper(wrapper_gc=reciever, name="reciever", &
+                cap_rc_file="RECIEVER_CAP.rc", root_set_services=recieverSS, rc=rc)
+        VERIFY_NUOPC_(rc)
         ! call init_internal_wrapper(gc=reciever, name="reciever", &
         !         rc_file="RECIEVER_CAP.rc", root_set_services=recieverSS, rc=rc)
         ! VERIFY_NUOPC_(rc)
@@ -200,10 +201,10 @@ contains
 !                petlist=ufs_petlist, rc=rc)
 !        VERIFY_NUOPC_(rc)
 
-        ! print*,"Driver connect compoinents"
-        ! call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="reciever", &
-        !         compSetServicesRoutine=cplSS, comp=connector, rc=rc)
-        ! VERIFY_NUOPC_(rc)
+        print*,"Driver connect compoinents"
+        call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="reciever", &
+                compSetServicesRoutine=cplSS, comp=connector, rc=rc)
+        VERIFY_NUOPC_(rc)
         ! call NUOPC_DriverAddComp(driver, srcCompLabel="provider", dstCompLabel="ufs", &
         !         compSetServicesRoutine=cplSS, comp=connector, rc=rc)
         ! VERIFY_NUOPC_(rc)
