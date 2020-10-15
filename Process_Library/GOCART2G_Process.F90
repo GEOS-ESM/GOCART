@@ -1402,7 +1402,7 @@ CONTAINS
 !       next level, where a fraction could be re-evaporated to gas phase
 !       if Qls is less then 0 in that level.
 !-----------------------------------------------------------------------------
-      if (qls(k) .gt. 0.) then
+      if (qls(k) .gt. tiny(0.)) then
        F  = F0_ls / (1. + F0_ls*B0_ls*XL_ls/(qls(k)*cdt/Td_ls))
        k_rain  = B0_ls/F0_ls +1./(F0_ls*XL_ls/qls(k))
        if ( kin ) then     ! Aerosols
@@ -4651,7 +4651,7 @@ real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !       next level, where a fraction could be re-evaporated to gas phase
 !       if Qls is less then 0 in that level.
 !-----------------------------------------------------------------------------
-      if (qls(k) .gt. 0.) then
+      if (qls(k) .gt. tiny(0.)) then
        F  = F0_ls / (1. + F0_ls*B0_ls*XL_ls/(qls(k)*cdt/Td_ls))
        B  = B0_ls/F0_ls +1./(F0_ls*XL_ls/qls(k))
        BT = B * Td_ls
