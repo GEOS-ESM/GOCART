@@ -1,0 +1,17 @@
+    NX: 1
+    NY: 1
+# Atmospheric Model Configuration Parameters
+# ------------------------------------------
+IOSERVER_NODES: 0
+
+      DYCORE: NONE
+      AGCM.NX: 1
+      AGCM.NY: 1
+      AGCM.GRID_TYPE: LatLon
+      AGCM.GRIDNAME: PE180x91-DE
+      AGCM.IM_WORLD: 180
+      AGCM.JM_WORLD: 91
+      AGCM.DATELINE: 'DC'
+      AGCM.POLE: 'PC'
+      AGCM.LM: 72
+
