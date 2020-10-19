@@ -4,6 +4,8 @@ module Aerosol_GridComp_mod
     use ESMF
     use MAPL
 
+    use GOCART2G_GridCompMod, only : GOCART2G_SetServices => SetServices
+
     implicit none
     private
 
@@ -27,6 +29,7 @@ contains
         type(Aerosol_GridCompState_Wrapper)  :: wrap
         type(Aerosol_GridCompState), pointer :: self
 
+        integer :: gocart
         character(len=ESMF_MAXSTR) :: comp_name
 
         __Iam__('SetServices')
@@ -42,6 +45,9 @@ contains
 
         call ESMF_UserCompSetInternalState(gc, internal_name, wrap, status)
         VERIFY_(status)
+
+        ! add children
+        gocart = MAPL_AddChild(gc, name='GOCART2G', ss=GOCART2G_SetServices, __RC__)
 
         ! declare imports and exports based on StateSpecs.rc tables
 #include "Aerosol_Internal___.h"
@@ -66,6 +72,8 @@ contains
         type(Aerosol_GridCompState), pointer :: self
         type(MAPL_MetaComp),         pointer :: MAPL
 
+        logical :: gridIsPresent
+
         __Iam__('Initialize')
 
         call ESMF_GridCompGet(gc, name=comp_name, __RC__)
@@ -77,14 +85,20 @@ contains
         VERIFY_(status)
         self => wrap%ptr
 
-        call MAPL_GridCreate(gc, __RC__)
+        call ESMF_GridCompGet(gc, gridIsPresent=gridIsPresent, __RC__)
+
+        if (.not.gridIsPresent) then
+          call MAPL_GridCreate(gc, __RC__)
+        end if
 
         call MAPL_GenericInitialize(gc, import, export, clock, __RC__)
 
         ! Temporary measure
+        call ForceAllocation(import, __RC__)
         call ForceAllocation(export, __RC__)
 
         _RETURN(_SUCCESS)
+
     end subroutine Initialize
 
     subroutine Run(gc, import, export, clock, rc)
@@ -94,10 +108,17 @@ contains
         type(ESMF_Clock),    intent(inout) :: clock
         integer, optional,   intent(  out) :: rc
 
+        integer :: urc
+        integer :: item, gcCount
+        integer :: phase, runPhaseCount
         character(len=ESMF_MAXSTR) :: comp_name
+        character(len=ESMF_MAXSTR) :: itemName
 
+        type(ESMF_GridComp), pointer :: gcs(:)
+        type(ESMF_State),    pointer :: gim(:)
+        type(ESMF_State),    pointer :: gex(:)
         type(ESMF_State)             :: internal
-        type(MAPL_MetaComp), pointer :: MAPL
+        type(MAPL_MetaComp), pointer :: MAPL, maplObj
 
         ! declare pointers to Aerosol_StateSpecs table entries
 #include "Aerosol_DeclarePointer___.h"
@@ -107,18 +128,42 @@ contains
         call ESMF_GridCompGet(gc, name=comp_name, __RC__)
         Iam = trim(comp_name) //'::'// Iam
 
+        ! get info from MAPL
         call MAPL_GetObjectFromGc(gc, MAPL, __RC__)
-        call MAPL_Get(mapl, internal_ESMF_State=internal, __RC__)
+        nullify(gcs, gim, gex)
+        call MAPL_Get(mapl, gcs=gcs, gim=gim, gex=gex, internal_ESMF_State=internal, __RC__)
 
         ! Get/set field information from MAPL for fields in Aerosol_StateSpecs table entries
 #include "Aerosol_GetPointer___.h"
 
         !!! Do run step
 
-        ZLE = ZLE + 1.0
-        print*, "The value ZLE is set to is:", minval(ZLE), maxval(ZLE)
+        ! Run children
+        gcCount = 0
+        if (associated(gcs)) gcCount = size(gcs)
+
+        do item = 1, gcCount
+          call ESMF_GridCompGet(gcs(item), name=itemName, __RC__)
+          call MAPL_GetObjectFromGC(gcs(item), maplObj, __RC__)
+          call MAPL_Get(maplObj, NumRunPhases=runPhaseCount, __RC__)
+          do phase = 1, runPhaseCount
+            call MAPL_TimerOn(mapl, trim(itemName))
+            call ESMF_GridCompRun(gcs(item), &
+                    importState = gim(item), &
+                    exportState = gex(item), &
+                          clock = clock,     &
+                          phase = phase,     &
+                         userRc = urc,       &
+                                  __RC__)
+            _ASSERT(urc==ESMF_SUCCESS,'Failed to run child component')
+            print*, "AERO: Run: "//trim(itemName)//" - phase:",phase ; flush 6
+            call ESMF_StatePrint(gim(item), nestedFlag=.true., __RC__)
+            call MAPL_TimerOff(mapl, trim(itemName))
+          end do
+        end do
 
         _RETURN(_SUCCESS)
+
     end subroutine Run
 
     subroutine ForceAllocation(state, rc)

@@ -5,6 +5,7 @@ set (BUILD_GEOS_INTERFACE TRUE)
 
 if (BUILD_UFS)
   esma_add_subdirectories(
+    Aerosol_GridComp
     GOCART2G_GridComp
     Shared
     UFS
