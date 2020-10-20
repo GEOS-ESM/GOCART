@@ -7,7 +7,7 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
      NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
 #----------------------------------------------------------------------------------------
- DU_SRC     | 1      | xy   | N   |      | erod
+ DU_SRC     | 1      | xy   | N   |      | erod - dust emissions
  FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
  WET1       | 1      | xy   | N   |      | surface_soil_wetness
  LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
@@ -58,11 +58,11 @@ category: EXPORT
  DUEXTTFM   |    1       | xy  | N  |            | Dust Extinction AOT [550 nm] - PM 1.0 um  
  DUSCATFM   |    1       | xy  | N  |            | Dust Scattering AOT [550 nm] - PM 1.0 um  
  DUANGSTR   |    1       | xy  | N  |            | Dust Angstrom parameter [470-870 nm]
- DUEM       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Emission All Bins
- DUSD       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Sedimentation All Bins
- DUDP       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Dry Deposition All Bins
- DUWT       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Wet Deposition All Bins
- DUSV       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Convective Scavenging All Bins
+ DUEM       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Emission (Bin %d)
+ DUSD       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Sedimentation (Bin %d)
+ DUDP       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Dry Deposition (Bin %d)
+ DUWT       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Wet Deposition (Bin %d)
+ DUSV       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Convective Scavenging (Bin %d)
 
 
 category: INTERNAL
@@ -71,7 +71,7 @@ category: INTERNAL
 #----------------------------------------------------------------------------------------
   NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
 #----------------------------------------------------------------------------------------
- DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dust Mixing Ratio all bins
+ DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dust Mixing Ratio (Bin %d)
 
 
 

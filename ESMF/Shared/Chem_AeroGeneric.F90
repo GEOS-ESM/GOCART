@@ -171,7 +171,6 @@ contains
                                         name=trim(varName)//trim(bin_index) , __RC__)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
-if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varName)//trim(bin_index)
           end do
        end if
 
@@ -181,7 +180,6 @@ if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varName)//trim(b
                                      name=trim(varName)//'003' , __RC__)
           call MAPL_AllocateCoupling (field2D, __RC__)
           call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
-if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varName)//'003'
        end if
 
        if (index(trim(varname), 'CA.oc') > 0) then
@@ -193,7 +191,6 @@ if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varName)//'003'
                                         name=trim(varNameNew)//trim(bin_index) , __RC__)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
-if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varNameNew)//trim(bin_index)
           end do
        end if
 
@@ -206,7 +203,6 @@ if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varNameNew)//tri
                                         name=trim(varNameNew)//trim(bin_index) , __RC__)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
-if(mapl_am_i_root()) print*,'append_to_bundle varname = ', trim(varNameNew)//trim(bin_index)
           end do
        end if
 

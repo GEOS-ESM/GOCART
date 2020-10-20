@@ -807,8 +807,8 @@ integer :: i,j
     if (alarm_is_ringing) then
        self%xhno3 = NITRATE_HNO3
        call ESMF_AlarmRingerOff(alarm, __RC__)
-!if(mapl_am_i_root()) print*,'NI2G recycle alarm TRUE'
-!if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
+if(mapl_am_i_root()) print*,'NI2G recycle alarm TRUE'
+if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
     end if
 
 !if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN sum(NH3) = ',sum(NH3)
@@ -865,12 +865,12 @@ integer :: i,j
 !if(mapl_am_i_root()) print*,'NI2G sum(HNO3SMASS) = ',sum(HNO3SMASS)
 !if(mapl_am_i_root()) print*,'NI2G sum(HNO3CMASS) = ',sum(HNO3CMASS)
 
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH3) = ',sum(NH3)
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH4a) = ',sum(NH4a)
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an1) = ',sum(NO3an1)
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an2) = ',sum(NO3an2)
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an3) = ',sum(NO3an3)
-if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH3) = ',sum(NH3)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an1) = ',sum(NO3an1)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an2) = ',sum(NO3an2)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an3) = ',sum(NO3an3)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
 
 !if(mapl_am_i_root()) print*,'NI2G NH4a array = ',NH4a
 
@@ -920,7 +920,7 @@ if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
                                   NO3an3, t, airdens, rh2, delp, zle, fluxout, rc)
     if (associated(NISD)) NISD(:,:,3) = fluxout
 !if(mapl_am_i_root()) print*,'NI2G sum(NISD(:,:,3)) = ',sum(NISD(:,:,3))
-if(mapl_am_i_root()) print*,'NI2G ChemSet sum(NO3an3) = ',sum(NO3an3)
+!if(mapl_am_i_root()) print*,'NI2G ChemSet sum(NO3an3) = ',sum(NO3an3)
 
 
 !if(mapl_am_i_root()) print*,'NI2G after chemset sum(NH3) = ',sum(NH3)
@@ -988,7 +988,7 @@ if(mapl_am_i_root()) print*,'NI2G ChemSet sum(NO3an3) = ',sum(NO3an3)
    dqa = max(0.0, NO3an3(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NO3an3(:,:,self%km) = NO3an3(:,:,self%km) - dqa
    if( associated(NIDP) ) NIDP(:,:,3) = dqa*delp(:,:,self%km)/chemgrav/self%cdt
-if(mapl_am_i_root()) print*,'NI2G DryDep sum(NO3an3) = ',sum(NO3an3)
+!if(mapl_am_i_root()) print*,'NI2G DryDep sum(NO3an3) = ',sum(NO3an3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIDP(:,:,3)) = ',sum(NIDP(:,:,3))
 
 !  NI Large-scale Wet Removal
@@ -1035,7 +1035,7 @@ if(mapl_am_i_root()) print*,'NI2G DryDep sum(NO3an3) = ',sum(NO3an3)
                            KIN, chemGRAV, fwet, NO3an3, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, rc)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIWT(:,:,3)) = ',sum(NIWT(:,:,3))
-if(mapl_am_i_root()) print*,'NI2G WetRemoval sum(NO3an3) = ',sum(NO3an3)
+!if(mapl_am_i_root()) print*,'NI2G WetRemoval sum(NO3an3) = ',sum(NO3an3)
 
 !  Compute desired output diagnostics
 !  ----------------------------------
@@ -1091,18 +1091,17 @@ if(mapl_am_i_root()) print*,'NI2G WetRemoval sum(NO3an3) = ',sum(NO3an3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIFLUXU) = ',sum(NIFLUXU)
 
 !if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NIANGSTR) = ',sum(NIANGSTR)
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH3) = ',sum(NH3)
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH4a) = ',sum(NH4a)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH3) = ',sum(NH3)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH4a) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G Run2 END sum(self%xhno3) = ',sum(self%xhno3)
 
 !if(mapl_am_i_root()) print*,'NI2G Run2 END array NH3 = ',NH3
 !if(mapl_am_i_root()) print*,'NI2G Run2 END array NH4a = ',NH4a
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an1) = ',sum(NO3an1)
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an2) = ',sum(NO3an2)
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an3) = ',sum(NO3an3)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an1) = ',sum(NO3an1)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an2) = ',sum(NO3an2)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an3) = ',sum(NO3an3)
 
 
-if(mapl_am_i_root()) print*,trim(comp_name),'2G Run2 END'
 
     RETURN_(ESMF_SUCCESS)
   

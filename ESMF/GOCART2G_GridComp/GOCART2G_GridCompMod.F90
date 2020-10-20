@@ -157,7 +157,7 @@ contains
 !   aerosols and aerosol optics
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                       &
-       short_name = 'AERO2G_RAD',                         &
+       short_name = 'AERO_RAD',                         &
        long_name  = 'aerosol_mass_mixing_ratios_ng',  &
        units      = 'kg kg-1',                        &
        dims       = MAPL_DimsHorzVert,                &
@@ -168,7 +168,7 @@ contains
 !   aerosols
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                       &
-       short_name = 'AERO2G_ACI',                     &
+       short_name = 'AERO_ACI',                     &
        long_name  = 'aerosol_cloud_interaction_ng',   &
        units      = 'kg kg-1',                        &
        dims       = MAPL_DimsHorzVert,                &
@@ -177,11 +177,9 @@ contains
 
 !   This bundle is needed by surface for snow albedo modification
 !   by aerosol settling and deposition
-!   ~~~DEVELOPERS NOTE~~~ Change to StateItem when possible
-!                         This will require refactoring Radiation
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                       &
-       short_name = 'AERO2G_DP',                      &
+       short_name = 'AERO_DP',                      &
        long_name  = 'aerosol_deposition_ng',          &
        units      = 'kg m-2 s-1',                     &
        dims       = MAPL_DimsHorzOnly,                &
@@ -304,11 +302,11 @@ contains
     call MAPL_Get (MAPL, gcs=gcs, gex=gex, __RC__ )
 
 
-!   Fill AERO2G_RAD, AERO2G_ACI, and AERO2G_DP with the children's states
-!   ------------------------------------------------------------
-    call ESMF_StateGet (export, 'AERO2G_RAD' , aero     , __RC__)
-    call ESMF_StateGet (export, 'AERO2G_ACI' , aero_aci , __RC__)
-    call ESMF_StateGet (export, 'AERO2G_DP'  , aero_dp  , __RC__)
+!   Fill AERO_RAD, AERO_ACI, and AERO_DP with the children's states
+!   ---------------------------------------------------------------
+    call ESMF_StateGet (export, 'AERO_RAD' , aero     , __RC__)
+    call ESMF_StateGet (export, 'AERO_ACI' , aero_aci , __RC__)
+    call ESMF_StateGet (export, 'AERO_DP'  , aero_dp  , __RC__)
 
 
 !   Add children's AERO states to GOCART2G's AERO states
@@ -334,6 +332,10 @@ contains
 !   Attach the aerosol optics method
     call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, __RC__)
 
+    ! This attribute indicates if the aerosol optics method is implemented or not. 
+    ! Radiation will not call the aerosol optics method unless this attribute is 
+    ! explicitly set to true.
+    call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., __RC__)
 
 !   Begin AERO_ACI
 !   --------------

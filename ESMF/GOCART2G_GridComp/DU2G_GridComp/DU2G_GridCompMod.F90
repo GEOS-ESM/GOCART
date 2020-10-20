@@ -766,7 +766,7 @@ real, allocatable, dimension(:,:)     :: dqa, du005
 
 !   Update aerosol state
 !   --------------------
-#if 0
+!#if 0
     call UpdateAerosolState (emissions, emissions_surface, emissions_point, &
                              self%sfrac, self%nPts, self%km, self%CDT, chemGRAV, &
                              self%nbins, delp, DU, rc)
@@ -774,16 +774,16 @@ real, allocatable, dimension(:,:)     :: dqa, du005
     if (associated(DUEM)) then
        DUEM = sum(emissions, dim=3)
     end if
-#endif
-do n = 1, 5
-  dqa = 0.0
-  dqa = self%Ch_DU * self%sfrac(n) * du_src * emissions_surface(:,:,n) * self%cdt * chemgrav / delp(:,:,self%km)
-  DU(:,:,self%km,n) = DU(:,:,self%km,n) + dqa
+!#endif
+!do n = 1, 5
+!  dqa = 0.0
+!  dqa = self%Ch_DU * self%sfrac(n) * du_src * emissions_surface(:,:,n) * self%cdt * chemgrav / delp(:,:,self%km)
+!  DU(:,:,self%km,n) = DU(:,:,self%km,n) + dqa
  
-  if(associated(DUEM)) then
-    DUEM(:,:,n) = self%Ch_DU * self%sfrac(n) * du_src * emissions_surface(:,:,n)
-  end if
-end do
+!  if(associated(DUEM)) then
+!    DUEM(:,:,n) = self%Ch_DU * self%sfrac(n) * du_src * emissions_surface(:,:,n)
+!  end if
+!end do
 
 !do n=1,5
 !   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 E DU2G sum(du00n) = ',sum(DU(:,:,:,n))
@@ -879,7 +879,7 @@ real, allocatable, dimension(:,:) :: du005
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
 
-if(mapl_am_i_root()) print*,'DU2G Run2 before ChemSet DU(:,:,5) = ',sum(DU(:,:,:,5))
+!if(mapl_am_i_root()) print*,'DU2G Run2 before ChemSet DU(:,:,5) = ',sum(DU(:,:,:,5))
 
 !   Dust Settling
 !   -------------
@@ -889,9 +889,9 @@ if(mapl_am_i_root()) print*,'DU2G Run2 before ChemSet DU(:,:,5) = ',sum(DU(:,:,:
                                  rh2, zle, DUSD, correctionMaring=self%maringFlag, __RC__)
     end do
 
-do n = 1,5 
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 ChemSet DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
+!do n = 1,5 
+!   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 ChemSet DU2G sum(du00n) = ',sum(DU(:,:,:,n))
+!end do
 !if(mapl_am_i_root()) print*,'DU2G Run2 ChemSet DU(:,:,5) = ',sum(DU(:,:,:,5))
 
 !call MAPL_GridGet ( grid, globalCellCountPerDim=DIMS, RC=STATUS)
@@ -918,10 +918,6 @@ end do
     end if
    end do
 
-!do n=1,5
-!   if(mapl_am_i_root()) print*,'n = ', n,' : Run DryDep sum(du00n) = ',sum(DU(:,:,:,n))
-!end do
-if(mapl_am_i_root()) print*,'DU2G Run2 DryDep DU(:,:,5) = ',sum(DU(:,:,:,5))
 
 !  Dust Large-scale Wet Removal
 !  ----------------------------
@@ -933,10 +929,10 @@ if(mapl_am_i_root()) print*,'DU2G Run2 DryDep DU(:,:,5) = ',sum(DU(:,:,:,5))
                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
    end do
 
-!do n=1,5
-!   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 E DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-!end do
-if(mapl_am_i_root()) print*,'DU2G Run2 WetRemoval DU(:,:,5) = ',sum(DU(:,:,:,5))
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 E DU2G sum(du00n) = ',sum(DU(:,:,:,n))
+end do
+!if(mapl_am_i_root()) print*,'DU2G Run2 WetRemoval DU(:,:,5) = ',sum(DU(:,:,:,5))
 
    call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
                             self%rup, self%diag_MieTable(self%instance)%channels, DU, chemGRAV, t, airdens, &
@@ -945,7 +941,7 @@ if(mapl_am_i_root()) print*,'DU2G Run2 WetRemoval DU(:,:,5) = ',sum(DU(:,:,:,5))
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
                             DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
 
-if(mapl_am_i_root()) print*,'DU2G Run2 E DU(:,:,5) = ',sum(DU(:,:,:,5))
+!if(mapl_am_i_root()) print*,'DU2G Run2 E DU(:,:,5) = ',sum(DU(:,:,:,5))
 
     RETURN_(ESMF_SUCCESS)
 

@@ -795,9 +795,9 @@ end do
 
 #include "SS2G_GetPointer___.h"
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-end do
+!do n=1,5
+!   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+!end do
 
 !   Get my private internal state
 !   ------------------------------
