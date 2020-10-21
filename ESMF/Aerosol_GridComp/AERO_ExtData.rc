@@ -1,0 +1,37 @@
+
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+
+# SS Temporary imports
+FROCEAN             '1'                  Y        N               0              0.0      1.0     FROCEAN    /dev/null:1.0
+FRACI               '1'                  Y        N               0              0.0      1.0     FRACI      /dev/null:1.0
+LWI                 '1'                  Y        N               0              0.0      1.0     LWI        /dev/null:1.0
+U10M                'm s-1'              Y        N               0              0.0      1.0     U10M       /dev/null:1.0
+V10M                'm s-1'              Y        N               0              0.0      1.0     V10M       /dev/null:1.0
+USTAR               'm s-1'              Y        N               0              0.0      1.0     USTAR      /dev/null:1.0
+TS                  'K'                  Y        N               0              0.0      1.0     TS         /dev/null:1.0
+DZ                  'm'                  Y        N               0              0.0      1.0     DZ         /dev/null:1.0
+FRLAKE              '1'                  Y        N               0              0.0      1.0     FRLAKE     /dev/null:1.0
+AREA                'm^2'                Y        N               0              0.0      1.0     AREA       /dev/null:1.0
+ZPBL                'm'                  Y        N               0              0.0      1.0     ZPBL       /dev/null:1.0
+SH                  'w m-2'              Y        N               0              0.0      1.0     SH         /dev/null:1.0
+Z0H                 'm'                  Y        N               0              0.0      1.0     Z0H        /dev/null:1.0
+CN_PRCP             'kg/m^2/s'           Y        N               0              0.0      1.0     CN_PRCP    /dev/null:1.0
+NCN_PRCP            'kg/m^2/s'           Y        N               0              0.0      1.0     NCN_PRCP   /dev/null:1.0
+
+AIRDENS             'kg/m^2/s'           Y        N               0              0.0      1.0     AIRDENS    /dev/null:1.0
+DELP                'Pa'                 Y        N               0              0.0      1.0     DELP       /dev/null:1.0
+T                   'k'                  Y        N               0              0.0      1.0     T          /dev/null:1.0
+RH2                 '1'                  Y        N               0              0.0      1.0     RH2        /dev/null:1.0
+ZLE                 'm'                  Y        N               0              0.0      1.0     ZLE        /dev/null:1.0
+PLE                 'Pa'                 Y        N               0              0.0      1.0     PLE        /dev/null:1.0
+PFL_LSAN            'kg/m2/s'            Y        N               0              0.0      1.0     PFL_LSAN   /dev/null:1.0
+PFI_LSAN            'kg/m2/s'            Y        N               0              0.0      1.0     PFI_LSAN   /dev/null:1.0
+U                   'm s-1'              Y        N               0              0.0      1.0     U          /dev/null:1.0
+V                   'm s-1'              Y        N               0              0.0      1.0     V          /dev/null:1.0
+
+%%
+
