@@ -25,7 +25,7 @@ module NI2G_GridCompMod
    integer, parameter :: instanceData          = 2
 
    real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
-   real, parameter :: fMassHNO3 = 63., fMassNO3 = 62., fMassAir = 29.
+   real, parameter :: fMassHNO3 = 63., fMassNO3 = 62.
    integer, parameter :: nNH3 = 1
    integer, parameter :: nNH4a = 2
    integer, parameter :: nNO3an1 = 3
@@ -35,7 +35,6 @@ module NI2G_GridCompMod
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
 
-real, parameter ::  chemgrav   = 9.80616
 real, parameter ::  cpd    = 1004.16
 integer, parameter     :: DP = kind(1.0d0)
 
@@ -322,8 +321,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
 !   -----------------------------------------------------------
     call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
-
-if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
 
 !   Get my internal MAPL_Generic state
 !   ----------------------------------- 
@@ -651,8 +648,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
     call ESMF_GridCompGet (GC, grid=grid, NAME=comp_name, __RC__)
     Iam = trim(comp_name) //'::'// Iam
 
-!if(mapl_am_i_root()) print*,trim(comp_name),'2G Run1 BEGIN'
-
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
@@ -662,9 +657,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
 #include "NI2G_GetPointer___.h"
-
-!if(mapl_am_i_root()) print*,'NI2G Run1 BEGIN sum(NH3) = ',sum(NH3)
-!if(mapl_am_i_root()) print*,'NI2G Run1 BEGIN sum(NH4a) = ',sum(NH4a)
 
 !   Get my private internal state
 !   ------------------------------
@@ -688,19 +680,19 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
     end if
 
     if (associated(EMI_NH3_BB)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_BB
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_BB
     if (associated(EMI_NH3_AG)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_AG
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_AG
     if (associated(EMI_NH3_EN)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_EN
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_EN
     if (associated(EMI_NH3_IN)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_IN
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_IN
     if (associated(EMI_NH3_RE)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_RE
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_RE
     if (associated(EMI_NH3_TR)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_TR
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_TR
     if (associated(EMI_NH3_OC)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_OC
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_OC
 
 
 !if(mapl_am_i_root()) print*,'NI2G sum(DU)',sum(DU)
@@ -749,15 +741,12 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
     real, pointer, dimension(:,:,:)   :: fluxoutWT
     real, allocatable, dimension(:,:,:,:) :: aerosol
 
-!    character(len=15)                 :: ind
-
     type (ESMF_ALARM)               :: alarm
     logical                         :: alarm_is_ringing
 
     integer :: rhFlag
 
 integer :: i,j
-!real :: rmedDU(5), rmedSS(5), fnumDU(5), fnumSS(5)
 
 #include "NI2G_DeclarePointer___.h"
 
@@ -781,8 +770,6 @@ integer :: i,j
 
 #include "NI2G_GetPointer___.h"
 
-!if(mapl_am_i_root()) print*,trim(comp_name),'2G Run2 BEGIN'
-
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'NI2G_GridComp', wrap, STATUS)
@@ -800,7 +787,6 @@ integer :: i,j
     if (self%first) then
        self%xhno3 = MAPL_UNDEF
        self%first = .false.
-!if(mapl_am_i_root()) print*,'NI2G TEST1'
     end if
 
 !   Recycle HNO3 every 3 hours
@@ -831,7 +817,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH4a) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G before sum(SO4) = ',sum(SO4)
 
-    call NIthermo (self%km, self%klid, self%cdt, chemgrav, delp, airdens, t, rh2, fMassHNO3, fMassAir, &
+    call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, t, rh2, fMassHNO3, MAPL_AIRMW, &
                    SO4, NH3, NO3an1, NH4a, self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, rc)
 
 !if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH3) = ',sum(NH3)
@@ -851,8 +837,8 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 
     call NIheterogenousChem (NIHT, self%xhno3, MAPL_AVOGAD, MAPL_AIRMW, MAPL_PI, MAPL_RUNIV/1000., &
                              airdens, t, rh2, delp, DU, SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
-                             self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, self%cdt, chemgrav, fMassHNO3, &
-                             fMassNO3, fmassair, NO3an1, NO3an2, NO3an3, HNO3CONC, HNO3SMASS, &
+                             self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, self%cdt, MAPL_GRAV, fMassHNO3, &
+                             fMassNO3, NO3an1, NO3an2, NO3an3, HNO3CONC, HNO3SMASS, &
                              HNO3CMASS, rc)
 
 !if(mapl_am_i_root()) print*,'NI2G sum(NIHT(:,:,1)) = ',sum(NIHT(:,:,1))
@@ -881,7 +867,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 
 !   Ammonium - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhflag, chemgrav, self%cdt, &
+    call Chem_SettlingSimpleOrig (self%km, self%klid, rhflag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNH4a), self%rhop(nNH4a), &
                                   NH4a, t, airdens, rh2, delp, zle, NH4SD, rc)
 
@@ -895,7 +881,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 !  Nitrate bin 1 - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
     fluxout = 0.
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, chemgrav, self%cdt, &
+    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an1), self%rhop(nNO3an1), &
                                   NO3an1, t, airdens, rh2, delp, zle, fluxout, rc)
     if (associated(NISD)) NISD(:,:,1) = fluxout
@@ -905,7 +891,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 !  Nitrate bin 2 - settles like sea salt (rhflag = 2)
     rhflag = 2
     fluxout = 0.
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, chemgrav, self%cdt, &
+    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an2), self%rhop(nNO3an2), &
                                   NO3an2, t, airdens, rh2, delp, zle, fluxout, rc)
     if (associated(NISD)) NISD(:,:,2) = fluxout
@@ -915,7 +901,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 !  Nitrate bin 1 - settles like dust (rhflag = 0)
     rhflag = 0
     fluxout = 0.
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, chemgrav, self%cdt, &
+    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an3), self%rhop(nNO3an3), &
                                   NO3an3, t, airdens, rh2, delp, zle, fluxout, rc)
     if (associated(NISD)) NISD(:,:,3) = fluxout
@@ -930,7 +916,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 !  -----------
     drydepositionfrequency = 0.
     call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
-                       MAPL_KARMAN, cpd, chemGRAV, z0h, drydepositionfrequency, __RC__ )
+                       MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, __RC__ )
 !if(mapl_am_i_root()) print"(g25.17)",'NI2G drydep = ',drydepositionfrequency
 !if(mapl_am_i_root()) print*,'NI2G NH3 array = ',NH3
 !if(mapl_am_i_root()) print*,'NI2G lwi array = ',lwi
@@ -954,7 +940,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    end do
 
    NH3(:,:,self%km) = NH3(:,:,self%km) - dqa
-   if( associated(NH3DP) ) NH3DP = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NH3DP) ) NH3DP = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3DP) = ',sum(NH3DP)
 !if(mapl_am_i_root()) print*,'NI2G dqa array = ',dqa
@@ -965,7 +951,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    dqa = 0.
    dqa = max(0.0, NH4a(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NH4a(:,:,self%km) = NH4a(:,:,self%km) - dqa
-   if( associated(NH4DP) ) NH4DP = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NH4DP) ) NH4DP = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4a) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4DP) = ',sum(NH4DP)
 
@@ -973,21 +959,21 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    dqa = 0.
    dqa = max(0.0, NO3an1(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NO3an1(:,:,self%km) = NO3an1(:,:,self%km) - dqa
-   if( associated(NIDP) ) NIDP(:,:,1) = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NIDP) ) NIDP(:,:,1) = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G sum(NO3an1) = ',sum(NO3an1)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIDP(:,:,1)) = ',sum(NIDP(:,:,1))
 
    dqa = 0.
    dqa = max(0.0, NO3an2(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NO3an2(:,:,self%km) = NO3an2(:,:,self%km) - dqa
-   if( associated(NIDP) ) NIDP(:,:,2) = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NIDP) ) NIDP(:,:,2) = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G sum(NO3an2) = ',sum(NO3an2)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIDP(:,:,2)) = ',sum(NIDP(:,:,2))
 
    dqa = 0.
    dqa = max(0.0, NO3an3(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NO3an3(:,:,self%km) = NO3an3(:,:,self%km) - dqa
-   if( associated(NIDP) ) NIDP(:,:,3) = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NIDP) ) NIDP(:,:,3) = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G DryDep sum(NO3an3) = ',sum(NO3an3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIDP(:,:,3)) = ',sum(NIDP(:,:,3))
 
@@ -999,7 +985,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    KIN = .false.
    fwet = 1.
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
-                            KIN, chemGRAV, fwet, NH3, ple, t, airdens, &
+                            KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxoutWT, rc)
    if (associated(NH3WT)) NH3WT = fluxoutWT(:,:,1)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3WT) = ',sum(NH3WT)
@@ -1010,7 +996,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    KIN = .true.
    fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH4a', &
-                           KIN, chemGRAV, fwet, NH4a, ple, t, airdens, &
+                           KIN, MAPL_GRAV, fwet, NH4a, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxoutWT, rc)
    if (associated(NH4WT)) NH4WT = fluxoutWT(:,:,1)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4WT) = ',sum(NH4WT)
@@ -1019,20 +1005,20 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    KIN = .true.
    fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'nitrate', &
-                           KIN, chemGRAV, fwet, NO3an1, ple, t, airdens, &
+                           KIN, MAPL_GRAV, fwet, NO3an1, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, rc)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIWT(:,:,1)) = ',sum(NIWT(:,:,1))
    KIN = .true.
    fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, 'nitrate', &
-                           KIN, chemGRAV, fwet, NO3an2, ple, t, airdens, &
+                           KIN, MAPL_GRAV, fwet, NO3an2, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, rc)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIWT(:,:,2)) = ',sum(NIWT(:,:,2))
 
    KIN = .true.
    fwet = 0.3
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 3, self%cdt, 'nitrate', &
-                           KIN, chemGRAV, fwet, NO3an3, ple, t, airdens, &
+                           KIN, MAPL_GRAV, fwet, NO3an3, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, rc)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIWT(:,:,3)) = ',sum(NIWT(:,:,3))
 !if(mapl_am_i_root()) print*,'NI2G WetRemoval sum(NO3an3) = ',sum(NO3an3)
@@ -1044,7 +1030,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    aerosol(:,:,:,1) = NH4a
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
-                            aerosol=aerosol, grav=chemgrav, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
+                            aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NH4SMASS, colmass=NH4CMASS, mass=NH4MASS, conc=NH4CONC, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4SMASS) = ',sum(NH4SMASS) 
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4CMASS) = ',sum(NH4CMASS)
@@ -1054,7 +1040,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    aerosol(:,:,:,1) = NH3
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
-                            aerosol=aerosol, grav=chemgrav, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
+                            aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NH3SMASS, colmass=NH3CMASS, mass=NH3MASS, conc=NH3CONC, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3SMASS) = ',sum(NH3SMASS)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3CMASS) = ',sum(NH3CMASS)
@@ -1064,7 +1050,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    aerosol(:,:,:,1) = NO3an1
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
-                            aerosol=aerosol, grav=chemgrav, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
+                            aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NISMASS25, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, &
                             exttau25=NIEXTT25, scatau25=NISCAT25, exttaufm=NIEXTTFM, scataufm=NISCATFM, &
                             NO3nFlag=.true., __RC__)
@@ -1079,7 +1065,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    aerosol(:,:,:,3) = NO3an3
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=3, channels=self%diag_MieTable(self%instance)%channels, &
-                            aerosol=aerosol, grav=chemgrav, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
+                            aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NISMASS, colmass=NICMASS, mass=NIMASS, conc=NICONC, &
                             exttau=NIEXTTAU, scatau=NISCATAU, &
                             fluxu=NIFLUXU, fluxv=NIFLUXV, extcoef=NIEXTCOEF, scacoef=NISCACOEF, &

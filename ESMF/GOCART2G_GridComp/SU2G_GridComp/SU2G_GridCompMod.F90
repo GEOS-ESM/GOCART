@@ -31,12 +31,9 @@ module SU2G_GridCompMod
    real, parameter :: fMassSulfur = 32., fMassSO2 = 64., fMassSO4 = 96., &
                       fMassDMS = 62., fMassMSA = 96.
 
-   real, parameter ::  airmw  = 28.97   ! molecular weight of air
    real, parameter :: nAvogadro  = 6.022e23 ! molecules per mole of air 
 
    real, parameter ::  cpd    = 1004.16
-   real, parameter ::  undefval  = 1.e15   ! missing value
-   real, parameter ::  chemgrav   = 9.80616
 
 !  relative position of sulfate tracers
    integer, parameter :: nDMS = 1, &
@@ -828,10 +825,10 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     so4ship_src = SU_SHIPSO4
 
 !   As a safety check, where value is undefined set to 0
-    where(1.01*so2anthro_l1_src > undefval)  so2anthro_l1_src = 0.
-    where(1.01*so2anthro_l2_src > undefval)  so2anthro_l2_src = 0.
-    where(1.01*so2ship_src > undefval)       so2ship_src = 0.
-    where(1.01*so4ship_src > undefval)       so4ship_src = 0.
+    where(1.01*so2anthro_l1_src > MAPL_UNDEF)  so2anthro_l1_src = 0.
+    where(1.01*so2anthro_l2_src > MAPL_UNDEF)  so2anthro_l2_src = 0.
+    where(1.01*so2ship_src > MAPL_UNDEF)       so2ship_src = 0.
+    where(1.01*so4ship_src > MAPL_UNDEF)       so4ship_src = 0.
 
     aircraft_fuel_src = SU_AIRCRAFT
     so2biomass_src = SU_BIOMASS
@@ -841,12 +838,12 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     aviation_crs_src = SU_AVIATION_CRS
 
 !   As a safety check, where value is undefined set to 0
-    where(1.01*so2biomass_src > undefval)    so2biomass_src = 0.
-    where(1.01*dmso_conc > undefval)         dmso_conc = 0.
-    where(1.01*aircraft_fuel_src > undefval) aircraft_fuel_src = 0.
-    where(1.01*aviation_lto_src > undefval ) aviation_lto_src = 0.
-    where(1.01*aviation_cds_src > undefval ) aviation_cds_src = 0.
-    where(1.01*aviation_crs_src > undefval ) aviation_crs_src = 0.
+    where(1.01*so2biomass_src > MAPL_UNDEF)    so2biomass_src = 0.
+    where(1.01*dmso_conc > MAPL_UNDEF)         dmso_conc = 0.
+    where(1.01*aircraft_fuel_src > MAPL_UNDEF) aircraft_fuel_src = 0.
+    where(1.01*aviation_lto_src > MAPL_UNDEF ) aviation_lto_src = 0.
+    where(1.01*aviation_cds_src > MAPL_UNDEF ) aviation_cds_src = 0.
+    where(1.01*aviation_crs_src > MAPL_UNDEF ) aviation_crs_src = 0.
 
 !   Update emissions/production if necessary (daily)
 !   -----------------------------------------------
@@ -884,7 +881,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
        call SUvolcanicEmissions (self%nVolc, self%vStart, self%vEnd, self%vSO2, self%vElev, &
                                  self%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SUEM, &
-                                 self%km, self%cdt, chemgrav, zle, delp, area, self%vLat, self%vLon, __RC__)
+                                 self%km, self%cdt, MAPL_GRAV, zle, delp, area, self%vLat, self%vLon, __RC__)
     end if
 
 !   Apply diurnal cycle if so desired
@@ -898,7 +895,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 !   Apply sulfate emissions
 !   -----------------------
-    call SulfateDistributeEmissions ( self%km, self%nbins, self%cdt, chemgrav, nymd, nhms, &
+    call SulfateDistributeEmissions ( self%km, self%nbins, self%cdt, MAPL_GRAV, nymd, nhms, &
                                       fMassSO4, fMassSO2, self%fSO4anth, self%eAircraftFuel, &
                                       nSO2, nSO4, &
                                       so2anthro_l1_src, so2anthro_l2_src, &
@@ -915,7 +912,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                                       aviation_crs_src, rc) 
 
     if (associated(dms)) then 
-       call DMSemission (self%km, self%cdt, chemgrav, t, u10m, v10m, lwi, delp, &
+       call DMSemission (self%km, self%cdt, MAPL_GRAV, t, u10m, v10m, lwi, delp, &
                          fMassDMS, SU_DMSO, dms, SUEM, nDMS, rc)
     end if
 
@@ -1068,9 +1065,9 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !if(mapl_am_i_root()) print*,'SU2G Run2 sum(self%h2o2_init) = ',sum(self%h2o2_init)
 !if(mapl_am_i_root()) print*,'SU2G Run2 sum(xoh) = ',sum(xoh)
 
-    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, &
-                                airdens, self%km, self%cdt, &
-                                self%nymd_oxidants, undefval, &
+    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+                                self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
+                                MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 oh, no3, h2o2, &
                                 xoh, xno3, xh2o2, self%recycle_h2o2, rc)
 
@@ -1084,14 +1081,14 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
 
-       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, CHEMgrav, delp, &
+       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, MAPL_GRAV, delp, &
                                  self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
                                  rh2, zle, SUSD, rc=rc)
     end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
-    call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_karman, &
-                            airmw, nAvogadro, cpd, chemgrav, &
+    call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
+                            MAPL_AIRMW, MAPL_AVOGAD/1000., cpd, MAPL_GRAV, &
                             fMassMSA, fMassDMS, fMassSO2, fMassSO4, &
                             nymd, nhms, lons, lats, &
                             dms, so2, so4, dummyMSA, &
@@ -1111,7 +1108,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !if(mapl_am_i_root()) print*,'SU2G Run2 sum(SUPSO4g) = ',sum(SUPSO4g)
 
     KIN = .true.
-    call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, chemgrav, airMW, &
+    call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
                           delp, fMassSO4, fMassSO2, &
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
@@ -1121,7 +1118,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(self%h2o2_init) = ',sum(self%h2o2_init)
 
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
-                            chemgrav, MAPL_pi, nSO4, self%diag_MieTable(self%instance), &
+                            MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
                             self%diag_MieTable(self%instance)%channels, &
                             t, airdens, delp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &

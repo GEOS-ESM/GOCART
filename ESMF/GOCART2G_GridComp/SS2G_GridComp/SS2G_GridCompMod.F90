@@ -29,7 +29,6 @@ module SS2G_GridCompMod
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
 
-real, parameter ::  chemgrav   = 9.80616
 real, parameter ::  cpd    = 1004.16
 
 ! !DESCRIPTION: This module implements GOCART's Sea Salt (SS) Gridded Component.
@@ -39,7 +38,7 @@ real, parameter ::  cpd    = 1004.16
 
 !EOP
 !===========================================================================
-   integer, parameter         :: NHRES = 6  ! DEV NOTE!!! should this be allocatable, and not a parameter?
+   integer, parameter         :: NHRES = 6
 
 !  !Sea Salt state
    type, extends(GA_GridComp) :: SS2G_GridComp
@@ -436,10 +435,6 @@ contains
        call setZeroKlid4d (self%km, self%klid, int_ptr)
     end if
 
-do i = 1, 5
- if(mapl_am_i_root()) print*,'n = ', i,' : INIT SS2G sum(ss00n) = ',sum(int_ptr(:,:,:,i))
-end do
-
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
     if (data_driven) then
@@ -652,8 +647,6 @@ end do
 !*****************************************************************************
 !   Begin... 
 
-!if(mapl_am_i_root()) print*,'SS2G Run1 BEGIN'
-
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
@@ -668,10 +661,6 @@ end do
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
 #include "SS2G_GetPointer___.h"
-
-!do n=1,5
-!   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-!end do
 
 !   Get my private internal state
 !   ------------------------------
@@ -711,28 +700,24 @@ end do
        dqa = 0.
 
        call SeasaltEmission (self%rlow(n), self%rup(n), self%emission_scheme, u10m, &
-                             v10m, ustar, memissions, nemissions, __RC__ )
+                             v10m, ustar, MAPL_PI, memissions, nemissions, __RC__ )
 
-!   For the Hoppel correction need to compute the wet radius and settling velocity
-!   in the surface
+!      For the Hoppel correction need to compute the wet radius and settling velocity
+!      in the surface
        if (self%hoppelFlag) then
           call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
                                  dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
-                                 chemGRAV, MAPL_KARMAN, fhoppel, __RC__)
+                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
        end if
  
        memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
-       dqa = memissions * self%cdt * chemgrav / delp(:,:,self%km)
+       dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
        SS(:,:,self%km,n) = SS(:,:,self%km,n) + dqa
 
        if (associated(SSEM)) then
           SSEM(:,:,n) = memissions
        end if
     end do !n = 1
-
-!do n=1,5
-!   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-!end do
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
@@ -795,10 +780,6 @@ end do
 
 #include "SS2G_GetPointer___.h"
 
-!do n=1,5
-!   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-!end do
-
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
@@ -811,7 +792,7 @@ end do
 !   Sea Salt Settling
 !   -----------------
     do n = 1, self%nbins
-       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, SS(:,:,:,n), CHEMgrav, delp, &
+       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, SS(:,:,:,n), MAPL_GRAV, delp, &
                                  self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
                                  rh2, zle, SSSD, __RC__)
     end do
@@ -820,7 +801,7 @@ end do
 !   -----------
     drydepositionfrequency = 0.
     call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
-                       MAPL_KARMAN, cpd, chemGRAV, z0h, drydepositionfrequency, __RC__ )
+                       MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, __RC__ )
 
     ! increase deposition velocity over land
     where (abs(lwi - LAND) < 0.5)
@@ -832,7 +813,7 @@ end do
        dqa = max(0.0, SS(:,:,self%km,n)*(1.-exp(-drydepositionfrequency*self%cdt)))
        SS(:,:,self%km,n) = SS(:,:,self%km,n) - dqa
        if (associated(SSDP)) then
-          SSDP(:,:,n) = dqa * delp(:,:,self%km) / chemGRAV / self%cdt
+          SSDP(:,:,n) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
        end if
     end do
 
@@ -842,14 +823,14 @@ end do
     do n = 1, self%nbins
        fwet = 1.
        call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                               KIN, chemGRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
+                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, rc)
     end do
 
 !   Compute diagnostics
 !   -------------------
     call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow,&
-                             self%rup, self%diag_MieTable(self%instance)%channels, SS, chemGRAV, t, airdens, &
+                             self%rup, self%diag_MieTable(self%instance)%channels, SS, MAPL_GRAV, t, airdens, &
                              rh2, u, v, delp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSCATAU,     &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &

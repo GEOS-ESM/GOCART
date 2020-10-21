@@ -196,7 +196,7 @@ CONTAINS
             endif !(gwettop(i,j) .lt. 0.5)
          end do ! i
       end do ! j
-!      emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
+      emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
     end do ! n
  
    rc=0
@@ -2382,7 +2382,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-   subroutine SeasaltEmission ( rLow, rUp, method, u10m, v10m, ustar, &
+   subroutine SeasaltEmission ( rLow, rUp, method, u10m, v10m, ustar, pi, &
                                 memissions, nemissions, rc )
 
 ! !DESCRIPTION: Calculates the seasalt mass emission flux every timestep.
@@ -2405,6 +2405,7 @@ CONTAINS
    real, intent(in)             :: v10m(:,:)   ! 10-m northward wind [m s-1]
    real, target, intent(in)     :: ustar(:,:)  ! friction velocity [m s-1]
    integer, intent(in)          :: method      ! Algorithm to use
+   real, intent(in)             :: pi          ! pi constant
 
 ! !INOUTPUT PARAMETERS:
    real, dimension(:,:), intent(inout) :: memissions      ! Mass Emissions Flux [kg m-2 s-1]
@@ -2425,7 +2426,7 @@ CONTAINS
 ! !CONSTANTS
    real, parameter    :: r80fac = 1.65     ! ratio of radius(RH=0.8)/radius(RH=0.) [Gerber]
    real, parameter    :: rhop = 2200.      ! dry seasalt density [kg m-3]
-   real, parameter    :: pi = 3.1415       ! ratio of circumference to diameter of circle
+!   real, parameter    :: pi = 3.1415       ! ratio of circumference to diameter of circle
    integer, parameter :: nr = 10                    ! Number of (linear) sub-size bins
 
    character(len=*), parameter :: myname = 'SeasaltEmission'
@@ -3230,7 +3231,7 @@ K_LOOP: do k = km, 1, -1
 ! !INTERFACE:
    subroutine NIheterogenousChem (NI_phet, xhno3, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
                                   DU, SS, rmedDU, rmedSS, fnumDU, fnumSS, nbinsDU, nbinsSS, &
-                                  km, klid, cdt, grav, fMassHNO3, fMassNO3, fmassair, nNO3an1, nNO3an2, & 
+                                  km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2, & 
                                   nNO3an3, HNO3_conc, HNO3_sfcmass, HNO3_colmass, rc)
 
 
@@ -3262,7 +3263,6 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)                    :: grav           ! gravity (m/sec)
    real, intent(in)                    :: fMassHNO3      ! gram molecular weight
    real, intent(in)                    :: fMassNO3       ! gram molecular weight
-   real, intent(in)                    :: fMassair       ! gram molecular weight
 
 
 ! !INOUTPUT PARAMETERS:
@@ -3357,10 +3357,8 @@ K_LOOP: do k = km, 1, -1
 
 !     Compute the nitric acid loss (but don't actually update)
       if( (kan1+kan2+kan3) > 0.) then
-!       deltahno3 = xhno3(i,j,k) * fMassHNO3 / AIRMW * (1.-exp(-(kan1+kan2+kan3)*cdt))
-!       xhno3(i,j,k) = xhno3(i,j,k) - deltahno3 * AIRMW / fMassHNO3
-       deltahno3 = xhno3(i,j,k) * fMassHNO3 / fmassair * (1.-exp(-(kan1+kan2+kan3)*cdt))
-       xhno3(i,j,k) = xhno3(i,j,k) - deltahno3 * fmassair / fMassHNO3
+       deltahno3 = xhno3(i,j,k) * fMassHNO3 / AIRMW * (1.-exp(-(kan1+kan2+kan3)*cdt))
+       xhno3(i,j,k) = xhno3(i,j,k) - deltahno3 * AIRMW / fMassHNO3
        nNO3an1(i,j,k) = &
          nNO3an1(i,j,k) + kan1/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
        nNO3an2(i,j,k) = &
@@ -3387,7 +3385,7 @@ K_LOOP: do k = km, 1, -1
    endif
 !  Calculate the HNO3 surface mass concentration
    if( associated(HNO3_sfcmass) ) then
-      HNO3_sfcmass(i1:i2,j1:j2) = xhno3(i1:i2,j1:j2,km) * fMassHNO3 / fMassAir * rhoa(i1:i2,j1:j2,km)
+      HNO3_sfcmass(i1:i2,j1:j2) = xhno3(i1:i2,j1:j2,km) * fMassHNO3 / AIRMW * rhoa(i1:i2,j1:j2,km)
    endif
 !  Calculate the HNO3 column loading
    if( associated(HNO3_colmass) ) then
@@ -4011,47 +4009,6 @@ K_LOOP: do k = km, 1, -1
           so2volcano = max(so2volcano,tiny(so2volcano))
        endif
 
-#if 0
-       if (vElev(it) == vCloud(it)) then
-          if(associated(SO2EMVN)) SO2EMVN(i,j) = SO2EMVN(i,j) + so2volcano
-!      Database provides altitude of top of volcano cone (vElev) and altitude
-!      of plume top (vCloud).  If vCloud != vElev then distribute emissions
-!      in top 1/3 of column extending from vElev to vCloud (case of explosive
-!      eruption), else put emissions in grid cell containing vElev (degassing)
-       else if (vElev(it) /= vCloud(it)) then
-          vElev(it) = vCloud(it) - (vCloud(it) - vElev(it)) / 3
-          if(associated(SO2EMVE)) SO2EMVE(i,j) = SO2EMVE(i,j) + so2volcano
-       end if
-    end do
-#endif
-
-!     Loop over all volcanoes in the database
-!   allocate(z0, mold=area)
-!   z0 = hghte(:,:,km)
-
-!   if(nvolc > 0) then
-!      do it = 1, nvolc
-
-!         i = iPoint(it)
-!         j = jPoint(it)
-
-!        Skip this volcano?
-!        ------------------
-!         if ( i<1 .OR. j<1 ) cycle ! volcano not in sub-domain
-
-!        Check time against time range of eruption
-!        -----------------------------------------
-!         if(nhms < vStart(it) .or. nhms >= vEnd(it)) cycle
-
-!         so2volcano = 0.
-
-!        Emissions per volcano
-!        -------------------------------------------------------------------------------
-!         if(area(i,j) .gt. 1.) then
-!            so2volcano = vSO2(it) /area(i,j)     ! to kg SO2/sec/m2
-!            so2volcano = max(so2volcano,tiny(so2volcano))
-!         endif
-
 !        Distribute in the vertical
 !        Database provides altitude of top of volcano cone (vElev) and altitude
 !        of plume top (vCloud).  If vCloud != vElev then distribute emissions
@@ -4128,25 +4085,15 @@ K_LOOP: do k = km, 1, -1
 !BOP
 ! !IROUTINE: SulfateUpdateOxidants
 
-!   subroutine SulfateUpdateOxidants (using_GMI_OH, using_GMI_NO3, using_GMI_H2O2, &
-!                                     nymd_current, nhms_current, lonRad, latRad, &
-!                                     rhoa, km, cdt, &
-!                                     nymd_last, undefval, &
-!                                     oh_clim, no3_clim, h2o2_clim, &
-!                                     xoh, xno3, xh2o2, recycle_h2o2, rc)
-
    subroutine SulfateUpdateOxidants (nymd_current, nhms_current, lonRad, latRad, &
-                                     rhoa, km, cdt, &
-                                     nymd_last, undefval, &
+                                     rhoa, km, cdt, nymd_last, &
+                                     undefval, radToDeg, nAvogadro, pi, airMolWght, &
                                      oh_clim, no3_clim, h2o2_clim, &
                                      xoh, xno3, xh2o2, recycle_h2o2, rc)
 ! !USES:
    implicit NONE
 
 ! !INPUT PARAMETERS:
-!   logical, intent(in)    :: using_GMI_OH, & ! are these oxidants coming from GMI?
-!                             using_GMI_NO3, &
-!                             using_GMI_H2O2
    integer, intent(in)    :: nymd_current, &   ! current model NYMD
                              nhms_current      ! current model NHMS
    real, dimension(:,:), intent(in)   :: lonRad, latRad ! model grid lon and lat
@@ -4155,6 +4102,10 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)       :: cdt        ! chemistry model time-step
    integer, intent(inout) :: nymd_last  ! NYMD of last emission update
    real, intent(in)       :: undefval   ! value for undefined values
+   real, intent(in)       :: radToDeg   ! radian to degrees conversion
+   real, intent(in)       :: nAvogadro  ! Avogadro's number [molecules per mole of air]
+   real, intent(in)       :: pi         ! pi constant
+   real, intent(in)       :: airMolWght ! air molecular weight [kg/Kmole]
    real, pointer, dimension(:,:,:) :: oh_clim, &   ! climatological OH
                                       no3_clim, &  ! climatological NO3
                                       h2o2_clim  ! climatological H2O2
@@ -4191,10 +4142,10 @@ K_LOOP: do k = km, 1, -1
 ! REPLACE WITH MAPL!!!!!
 !**************************
 !data pi / 3.1415926 /
-real, parameter :: radToDeg = 57.2957795
-real, parameter :: nAvogadro  = 6.022e23 ! molecules per mole of air
-real, parameter :: pi = 3.1415926, rearth = 6.37e6
-real, parameter :: airMolWght = 28.97 ! molecular weight of air
+!real, parameter :: radToDeg = 57.2957795
+!real, parameter :: nAvogadro  = 6.022e23 ! molecules per mole of air
+!real, parameter :: pi = 3.1415926
+!real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !*************************
 
 

@@ -28,8 +28,6 @@ module CA2G_GridCompMod
 ! !PUBLIC MEMBER FUNCTIONS:
    public  SetServices
 
-real, parameter ::  chemgrav   = 9.80616
-real, parameter ::  undefval  = 1.e15   ! missing value
 
 ! !DESCRIPTION: This module implements GOCART2G's Carbonaceous Aerosol (CA) Gridded Component.
 
@@ -792,15 +790,15 @@ contains
     end if
 
 !   As a safety check, where value is undefined set to 0
-    where(1.01*biomass_src > undefval) biomass_src = 0.
-    where(1.01*terpene_src > undefval) terpene_src = 0.
-    where(1.01*biofuel_src > undefval) biofuel_src = 0.
-    where(1.01*eocant1_src > undefval) eocant1_src = 0.
-    where(1.01*eocant2_src > undefval) eocant2_src = 0.
-    where(1.01*oc_ship_src > undefval) oc_ship_src = 0.
-    where(1.01*aviation_lto_src > undefval) aviation_lto_src = 0.
-    where(1.01*aviation_cds_src > undefval) aviation_cds_src = 0.
-    where(1.01*aviation_crs_src > undefval) aviation_crs_src = 0.
+    where(1.01*biomass_src > MAPL_UNDEF) biomass_src = 0.
+    where(1.01*terpene_src > MAPL_UNDEF) terpene_src = 0.
+    where(1.01*biofuel_src > MAPL_UNDEF) biofuel_src = 0.
+    where(1.01*eocant1_src > MAPL_UNDEF) eocant1_src = 0.
+    where(1.01*eocant2_src > MAPL_UNDEF) eocant2_src = 0.
+    where(1.01*oc_ship_src > MAPL_UNDEF) oc_ship_src = 0.
+    where(1.01*aviation_lto_src > MAPL_UNDEF) aviation_lto_src = 0.
+    where(1.01*aviation_cds_src > MAPL_UNDEF) aviation_cds_src = 0.
+    where(1.01*aviation_crs_src > MAPL_UNDEF) aviation_crs_src = 0.
 
 !   Save this in case we need to apply diurnal cycle
 !   ------------------------------------------------
@@ -817,7 +815,7 @@ contains
                                  nhms, self%cdt)
     end if
 
-    call CAEmission (self%diag_MieTable(self%instance), self%km, self%nbins, self%cdt, chemgrav, GCsuffix, self%ratPOM, &
+    call CAEmission (self%diag_MieTable(self%instance), self%km, self%nbins, self%cdt, MAPL_GRAV, GCsuffix, self%ratPOM, &
                      self%fTerpene, aviation_lto_src, aviation_cds_src, aviation_crs_src, self%fHydrophobic, &
                      zpbl, t, airdens, rh2, CAphilic, CAphobic, delp, self%aviation_layers, biomass_src, &
                      terpene_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
@@ -851,8 +849,8 @@ contains
                                        self%pStart, self%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
 
-       CAphobic = CAphobic + self%fHydrophobic * self%cdt * chemgrav / delp * emissions_point
-       CAphilic = CAphilic + (1-self%fHydrophobic) * self%cdt * chemgrav / delp * emissions_point
+       CAphobic = CAphobic + self%fHydrophobic * self%cdt * MAPL_GRAV / delp * emissions_point
+       CAphilic = CAphilic + (1-self%fHydrophobic) * self%cdt * MAPL_GRAV / delp * emissions_point
     end if
 
     RETURN_(ESMF_SUCCESS)
@@ -939,27 +937,26 @@ contains
 !   -------------------------------------------
     if (trim(comp_name) == 'CA.oc') then
        pSOA_VOC = pSOA_ANTHRO_VOC
-       where (1.01 * pSOA_VOC > undefval) pSOA_VOC = 0.0
+       where (1.01 * pSOA_VOC > MAPL_UNDEF) pSOA_VOC = 0.0
 
        CAphilic = CAphilic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
-          CAPSOA = CAPSOA+sum(self%cdt*pSOA_VOC*delp/airdens/chemgrav, 3)
+          CAPSOA = CAPSOA+sum(self%cdt*pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
 
     if (trim(comp_name) == 'CA.br') then
        pSOA_VOC = pSOA_BIOB_VOC 
-       where (1.01 * pSOA_VOC > undefval) pSOA_VOC = 0.0
+       where (1.01 * pSOA_VOC > MAPL_UNDEF) pSOA_VOC = 0.0
 
        CAphilic = CAphilic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
-          CAPSOA = sum(self%cdt*pSOA_VOC*delp/airdens/chemgrav, 3)
+          CAPSOA = sum(self%cdt*pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
-
 
 !   Ad Hoc transfer of hydrophobic to hydrophilic aerosols
 !   Following Chin's parameterization, the rate constant is
 !   k = 4.63e-6 s-1 (.4 day-1; e-folding time = 2.5 days)
-    call phobicTophilic (CAphobic, CAphilic, CAHYPHIL, self%km, self%cdt, chemgrav, delp, __RC__)
+    call phobicTophilic (CAphobic, CAphilic, CAHYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
 
 !   CA Settling
 !   -----------
@@ -967,7 +964,7 @@ contains
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
 
-       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, CHEMgrav, delp, &
+       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, MAPL_GRAV, delp, &
                                  self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
                                  rh2, zle, CASD, __RC__)
     end do
@@ -979,7 +976,7 @@ contains
 
     drydepositionfrequency = 0.
     call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
-                       MAPL_KARMAN, cpd, chemGRAV, z0h, drydepositionfrequency, __RC__ )
+                       MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, __RC__ )
 
     do n = 1, self%nbins
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
@@ -988,7 +985,7 @@ contains
        dqa = max(0.0, int_ptr(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
        int_ptr(:,:,self%km) = int_ptr(:,:,self%km) - dqa
        if (associated(CADP)) then
-          CADP(:,:,n) = dqa * delp(:,:,self%km) / chemGRAV / self%cdt
+          CADP(:,:,n) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
        end if
     end do
 
@@ -1000,7 +997,7 @@ contains
 !   Hydrophilic mode (second tracer) is removed
     fwet = 1.
     call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
-                             KIN, chemGRAV, fwet, CAphilic, ple, t, airdens, &
+                             KIN, MAPL_GRAV, fwet, CAphilic, ple, t, airdens, &
                              pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, CAWT, rc)
 
 !   Compute diagnostics
@@ -1010,7 +1007,7 @@ contains
     int_arr(:,:,:,2) = CAphilic
 
     call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, nbins=2, &
-                             channels=self%diag_MieTable(self%instance)%channels, aerosol=int_arr, grav=chemgrav, &
+                             channels=self%diag_MieTable(self%instance)%channels, aerosol=int_arr, grav=MAPL_GRAV, &
                              tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, sfcmass=CASMASS, colmass=CACMASS, &
                              mass=CAMASS, exttau=CAEXTTAU, scatau=CASCATAU, fluxu=CAFLUXU, fluxv=CAFLUXV, &
                              conc=CACONC, extcoef=CAEXTCOEF, scacoef=CASCACOEF, angstrom=CAANGSTR, aerindx=CAAERIDX,&
