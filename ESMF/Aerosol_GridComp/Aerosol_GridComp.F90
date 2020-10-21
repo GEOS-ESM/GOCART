@@ -20,6 +20,7 @@ module Aerosol_GridComp_mod
     end type Aerosol_GridCompState_Wrapper
 
     character(*), parameter :: internal_name = "Aerosol_GridCompState"
+    character(*), parameter :: num_bands    = 'NUM_BANDS:'
 
 contains
     subroutine SetServices(gc, rc)
@@ -80,6 +81,8 @@ contains
         Iam = trim(comp_name) //'::'// Iam
 
         call MAPL_GetObjectFromgc(gc, MAPL, __RC__)
+
+        call get_NumBands(gc, __RC__)
 
         call ESMF_UserCompGetInternalState(gc, internal_name, wrap, status)
         VERIFY_(status)
@@ -208,4 +211,38 @@ contains
 
         _RETURN(_SUCCESS)
     end subroutine ForceAllocation
+
+    subroutine get_NumBands(gc, rc)
+       type(ESMF_GridComp), intent(inout) :: gc
+       integer, optional,   intent(  out) :: rc
+
+       type(MAPL_MetaComp), pointer :: MAPL
+       type(ESMF_Config)            :: cfg
+       type(ESMF_Grid)              :: grid
+       logical                      :: is_present_in_grid, is_present_in_config
+       integer                      :: n_bands
+       integer                      :: status
+
+       call MAPL_GetObjectFromGc(gc, MAPL, __RC__)
+       call MAPL_Get(MAPL, cf=cfg, __RC__)
+
+       call ESMF_GridCompGet(gc, grid=grid, __RC__)
+       call ESMF_AttributeGet(grid, name=num_bands, isPresent=is_present_in_grid, __RC__)
+
+       if (is_present_in_grid) then
+          call ESMF_AttributeGet(grid, value=n_bands, name=num_bands, __RC__)
+          call MAPL_ConfigSetAttribute(cfg, n_bands, label=num_bands, __RC__)
+
+       else
+          call ESMF_ConfigFindLabel(cfg, label=num_bands, isPresent=is_present_in_config, __RC__)
+          if (is_present_in_config) then
+             print*, "WARNING: falling back on MAPL NUM_BANDS"
+          else
+             _ASSERT(0==1, "NUM_BANDS must be an attribute of grid or defined in config file of Aerosol_GridComp")
+          end if
+       end if
+
+
+       _RETURN(_SUCCESS)
+    end subroutine get_NumBands
 end module Aerosol_GridComp_mod
