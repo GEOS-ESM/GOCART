@@ -1,0 +1,7 @@
+    NX: 1
+    NY: 1
+# Atmospheric Model Configuration Parameters
+# ------------------------------------------
+IOSERVER_NODES: 0
+
+DYCORE: NONE
