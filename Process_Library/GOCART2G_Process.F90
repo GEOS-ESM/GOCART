@@ -196,7 +196,7 @@ CONTAINS
             endif !(gwettop(i,j) .lt. 0.5)
          end do ! i
       end do ! j
-!      emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
+      emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
     end do ! n
  
    rc=0
