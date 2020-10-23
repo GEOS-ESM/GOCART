@@ -11,8 +11,6 @@ set (TEST_SRCS
 add_pfunit_ctest(Cinderella_private_tests.x
         TEST_SOURCES ${TEST_SRCS}
         LINK_LIBRARIES MAPL MAPL.pfio base_extras MAPL_pFUnit Cinderella
-        EXTRA_INITIALIZE Initialize
-        EXTRA_USE MAPL_pFUnit_Initialize
         MAX_PES 6
         )
 
