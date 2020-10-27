@@ -334,6 +334,7 @@ contains
     real, pointer, dimension(:,:,:,:)    :: int_ptr
     logical                              :: data_driven
     integer                              :: NUM_BANDS
+    logical                              :: bands_are_present
     real, pointer, dimension(:,:,:)      :: ple
     real, pointer, dimension(:,:)        :: area
 
@@ -489,8 +490,16 @@ end do
     allocate (self%rad_MieTable(instance)%channels(NUM_BANDS), __STAT__ )
     self%rad_MieTable(instance)%nch = NUM_BANDS
 
-    call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
-                                 count=self%rad_MieTable(instance)%nch, __RC__)
+    call ESMF_ConfigFindLabel(cfg, label="BANDS:", isPresent=bands_are_present, __RC__)
+
+    if (bands_are_present) then
+       call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
+                                    count=self%rad_MieTable(instance)%nch, __RC__)
+    else
+       do i = 1, NUM_BANDS
+          self%rad_MieTable(instance)%channels(i) = i
+       end do
+    endif
 
     allocate (self%rad_MieTable(instance)%mie_aerosol, __STAT__)
     self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, __RC__)
