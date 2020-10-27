@@ -487,19 +487,14 @@ end do
                                   label="aerosol_radBands_optics_file:", __RC__ )
 
     allocate (self%rad_MieTable(instance)%channels(NUM_BANDS), __STAT__ )
+    self%rad_MieTable(instance)%nch = NUM_BANDS
 
     call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
-                                 count=self%rad_MieTable(instance)%nch, rc=status)
-
-    if (rc /= 0) then
-       do i = 1, NUM_BANDS
-          self%rad_MieTable(instance)%channels(i) = i
-       end do
-    end if
+                                 count=self%rad_MieTable(instance)%nch, __RC__)
 
     allocate (self%rad_MieTable(instance)%mie_aerosol, __STAT__)
-    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, rc)
-    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, rc)
+    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, __RC__)
+    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, __RC__)
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
