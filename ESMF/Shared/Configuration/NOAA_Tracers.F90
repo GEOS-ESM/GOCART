@@ -182,7 +182,7 @@ contains
       integer :: tracer_size(4)
       integer :: idx, status
 
-      idx =this%tracer_map%at(entry_name)
+      idx = this%tracer_map%at(entry_name)
 
       ! check tracer index
       tracer_size = shape(field_array)
@@ -285,7 +285,7 @@ contains
       integer :: tracer_size(4)
       integer :: idx, status
 
-      idx =this%tracer_map%at(entry_name)
+      idx = this%tracer_map%at(entry_name)
 
       ! check tracer index
       tracer_size = shape(field_array)
