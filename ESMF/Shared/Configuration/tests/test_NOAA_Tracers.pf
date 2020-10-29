@@ -3,12 +3,13 @@
 module test_NOAA_Tracers
    use, intrinsic :: iso_fortran_env, only: INT64, REAL32, REAL64
 
+   use NOAA_TracerEntry
    use NOAA_TracerMap
    use pFUnit
    use MAPL
    use ESMF
-   use ESMF_TestCase_mod
-   use ESMF_TestMethod_mod
+   use yaFyaml
+   use gFTL_StringVector
 
    implicit none
 
@@ -24,6 +25,17 @@ module test_NOAA_Tracers
 
    integer, parameter :: t_dim = 28
 
+   character(len=*), parameter :: test_yaml = 'NOAA_config.yaml'
+   character(len=*), parameter :: test_tracer_entry1 = 'test_tracer_entry1'
+   character(len=*), parameter :: test_tracer_entry2 = 'test_tracer_entry2'
+   character(len=*), parameter :: inst_mass_tracers1 = 'inst_mass_tracers1'
+   character(len=*), parameter :: inst_mass_tracers2 = 'inst_mass_tracers2'
+   character(len=*), parameter :: entry_names(5) = ['seas1', &
+                                                    'seas2', &
+                                                    'seas3', &
+                                                    'seas4', &
+                                                    'seas5']
+
    character(len=*), parameter :: filename = 'field_table'
 
    character(len=*), parameter :: test_tracer_line = ' "TRACER", "atmos_mod", "sphum"'
@@ -36,6 +48,68 @@ module test_NOAA_Tracers
    character(len=*), parameter :: test_false_line_2 = '       "profile_type", "fixed", "surface_value=1.e30" /'
    character(len=*), parameter :: test_false_line_3 = '# specific humidity for moist runs'
 contains
+   @test
+   subroutine test_read_tracer_entry_config()
+      type(TracerEntry) :: tracer_entry1
+      type(TracerEntry) :: tracer_entry2
+
+      type(Parser)                :: p
+      type(FileStream)            :: file_stream
+      type(Configuration)         :: main_config, config, test_config
+      type(ConfigurationIterator) :: iter
+
+      integer                    :: idx
+      type(StringVectorIterator) :: vector_iter
+
+      character(:), pointer :: key
+
+      p           = Parser('core')
+      file_stream = FileStream(test_yaml)
+      main_config = p%load(file_stream)
+
+      iter = main_config%begin()
+      do while(iter /= main_config%end())
+         key => iter%key()
+
+         select case(key)
+         case (test_tracer_entry1)
+            config = iter%value()
+            call tracer_entry1%read_tracer_entry_config(config)
+         case (test_tracer_entry2)
+            config = iter%value()
+            call tracer_entry2%read_tracer_entry_config(config)
+         end select
+
+         call iter%next()
+      end do
+
+      call file_stream%close()
+
+      @assert_that(tracer_entry1%name, is(equal_to(inst_mass_tracers1)))
+      @assert_that(tracer_entry1%entries%size(), is(equal_to(5_INT64)))
+      idx = 1
+      vector_iter = tracer_entry1%entries%begin()
+      do while(vector_iter /= tracer_entry1%entries%end())
+         @assert_that(vector_iter%get(), is(equal_to(entry_names(idx))))
+
+         idx = idx + 1
+         call vector_iter%next()
+      end do
+      @assert_that(idx, is(equal_to(6)))
+
+      @assert_that(tracer_entry2%name, is(equal_to(inst_mass_tracers2)))
+      @assert_that(tracer_entry2%entries%size(), is(equal_to(1_INT64)))
+      idx = 1
+      vector_iter = tracer_entry2%entries%begin()
+      do while(vector_iter /= tracer_entry2%entries%end())
+         @assert_that(vector_iter%get(), is(equal_to(entry_names(idx))))
+
+         idx = idx + 1
+         call vector_iter%next()
+      end do
+      @assert_that(idx, is(equal_to(2)))
+   end subroutine test_read_tracer_entry_config
+
    function str(x)
       character(:), allocatable :: str
       integer, intent(in) :: x

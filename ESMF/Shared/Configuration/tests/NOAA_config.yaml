@@ -7,6 +7,14 @@ test_read_config:
   test2:
     name: 'test2'
 
+test_tracer_entry1:
+  name: 'inst_mass_tracers1'
+  entries: [seas1, seas2, seas3, seas4, seas5]
+
+test_tracer_entry2:
+  name: 'inst_mass_tracers2'
+  entries: seas1
+
 NOAA_imports:
   import1:
     SharePolicyField: 'share'

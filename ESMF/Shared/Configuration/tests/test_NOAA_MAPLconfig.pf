@@ -201,7 +201,7 @@ contains
    @test
    subroutine test_read_config()
       type(NOAA_MAPLconfig) :: MAPL_config
-      type(FieldConfig)     :: field_config
+      type(FieldConfig)      :: field_config
 
       call MAPL_config%read_config(test_yaml)
 

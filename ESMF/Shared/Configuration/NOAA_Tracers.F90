@@ -36,7 +36,6 @@ contains
          entry_name = iter%get()
          call this%entries%push_back(entry_name)
 
-         print*, "here"
          call iter%next()
       end do
    end subroutine read_tracer_entries
