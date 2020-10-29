@@ -3,6 +3,7 @@ add_definitions(-DUSE_MPI)
 set (TEST_SRCS
         test_NOAA_TracerMap.pf
         test_NOAA_GOCARTtracers.pf
+        test_NOAA_MAPLconfig.pf
 )
 
 add_library (configuration_extras
@@ -26,3 +27,4 @@ set_tests_properties(Configuration_tests.x PROPERTIES LABELS "Configuration")
 configure_file(test_GOCART_Tracers.rc test_GOCART_Tracers.rc COPYONLY)
 configure_file(field_table            field_table            COPYONLY)
 configure_file(GOCART_Tracers.yaml    GOCART_Tracers.yaml    COPYONLY)
+configure_file(NOAA_Config.yaml       NOAA_Config.yaml       COPYONLY)
