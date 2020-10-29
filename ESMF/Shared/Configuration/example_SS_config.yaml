@@ -1,0 +1,23 @@
+NOAA_imports:
+  SS:
+    policies:
+      TransferOfferGeomObject: 'can provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    convert2MAPL: 1
+    tracer:
+      name: 'inst_mass_tracers'
+      entries: [seas1, seas2, seas3, seas4, seas5]
+    state: 'export'
+  FROCEAN:
+    standard_name: tba2
+    policies:
+      TransferOfferGeomObject: 'can provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    convert2MAPL: 1
+    state: 'import'
+
+tracers:
+  inst_mass_tracers:
+    field_table: 'field_table'

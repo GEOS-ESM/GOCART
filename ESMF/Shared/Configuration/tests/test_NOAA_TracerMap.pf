@@ -3,7 +3,7 @@
 module test_NOAA_TracerMap
    use, intrinsic :: iso_fortran_env, only: INT64, REAL32, REAL64
 
-   use NOAA_TracerMap_mod
+   use NOAA_TracerMap
    use pFUnit
    use MAPL
    use ESMF
@@ -353,49 +353,49 @@ contains
       @assert_that(tracer_map%tracer_map%at('cld_amt'), is(equal_to(28)))
    end subroutine test_read_field_table
 
-   @test
-   subroutine test_create_tracer_real32()
-   type(TracerMap)                                    :: tracer_map
-   type(ESMF_Field)                                   :: field, tracer
-   real(kind=REAL32), allocatable, dimension(:,:,:,:) :: f_array, t_array
+   ! @test
+   ! subroutine test_create_tracer_real32_3D()
+   ! type(TracerMap)                                    :: tracer_map
+   ! type(ESMF_Field)                                   :: field, tracer
+   ! real(kind=REAL32), allocatable, dimension(:,:,:,:) :: f_array, t_array
 
-   character(:), allocatable :: name
-   integer                   :: i, rc
+   ! character(:), allocatable :: name
+   ! integer                   :: i, rc
 
-   call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
-   @assert_that(rc, is(equal_to(0)))
+   ! call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
+   ! @assert_that(rc, is(equal_to(0)))
 
-   do i=1, t_dim
-   name = 'tracer'//str(i)
-   @assert_that(tracer_map%tracer_map%count(name) > 0, is(true()))
-   @assert_that(tracer_map%tracer_map%at(name), is(equal_to(i)))
+   ! do i=1, t_dim
+   ! name = 'tracer'//str(i)
+   ! @assert_that(tracer_map%tracer_map%count(name) > 0, is(true()))
+   ! @assert_that(tracer_map%tracer_map%at(name), is(equal_to(i)))
 
-   call tracer_map%create_tracer(field, name, tracer, rc)
-   @assert_that(rc, is(equal_to(0)))
-   call check_tracer(field, tracer, name, f_array, t_array, i)
-   end do
-   end subroutine test_create_tracer_real32
+   ! call tracer_map%create_tracer_3D(field, name, tracer, rc)
+   ! @assert_that(rc, is(equal_to(0)))
+   ! call check_tracer(field, tracer, name, f_array, t_array, i)
+   ! end do
+   ! end subroutine test_create_tracer_real32_3D
 
-   @test
-   subroutine test_create_tracer_real64()
-   type(TracerMap)                                    :: tracer_map
-   type(ESMF_Field)                                   :: field, tracer
-   real(kind=REAL64), allocatable, dimension(:,:,:,:) :: f_array, t_array
+   ! @test
+   ! subroutine test_create_tracer_real64_3D()
+   ! type(TracerMap)                                    :: tracer_map
+   ! type(ESMF_Field)                                   :: field, tracer
+   ! real(kind=REAL64), allocatable, dimension(:,:,:,:) :: f_array, t_array
 
-   character(:), allocatable :: name
-   integer                   :: i, rc
+   ! character(:), allocatable :: name
+   ! integer                   :: i, rc
 
-   call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
-   @assert_that(rc, is(equal_to(0)))
+   ! call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
+   ! @assert_that(rc, is(equal_to(0)))
 
-   do i=1, t_dim
-   name = 'tracer'//str(i)
-   @assert_that(tracer_map%tracer_map%count(name) > 0, is(true()))
-   @assert_that(tracer_map%tracer_map%at(name), is(equal_to(i)))
+   ! do i=1, t_dim
+   ! name = 'tracer'//str(i)
+   ! @assert_that(tracer_map%tracer_map%count(name) > 0, is(true()))
+   ! @assert_that(tracer_map%tracer_map%at(name), is(equal_to(i)))
 
-   call tracer_map%create_tracer(field, name, tracer, rc)
-   @assert_that(rc, is(equal_to(0)))
-   call check_tracer(field, tracer, name, f_array, t_array, i)
-   end do
-   end subroutine test_create_tracer_real64
+   ! call tracer_map%create_tracer_3D(field, name, tracer, rc)
+   ! @assert_that(rc, is(equal_to(0)))
+   ! call check_tracer(field, tracer, name, f_array, t_array, i)
+   ! end do
+   ! end subroutine test_create_tracer_real64_3D
 end module test_NOAA_TracerMap

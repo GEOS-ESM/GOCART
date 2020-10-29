@@ -7,7 +7,7 @@ module NOAA_GOCARTtracers_mod
    use MAPL
    use yaFyaml
    use gFTL_StringVector
-   use NOAA_TracerMap_mod
+   use NOAA_TracerMap
 
    implicit none
    private
@@ -25,7 +25,7 @@ module NOAA_GOCARTtracers_mod
       procedure :: parse_yaml
       procedure :: initialize
 
-      procedure :: create_tracer_bundle
+      ! procedure :: create_tracer_bundle
    end type GOCARTtracers
 contains
    subroutine read_filename_from_config(config, filename, rc)
@@ -95,29 +95,29 @@ contains
       call this%parse_yaml(filename)
    end subroutine initialize
 
-   subroutine create_tracer_bundle(this, field, bundle, rc)
-      class(GOCARTtracers),   intent(inout) :: this
-      type(ESMF_Field),       intent(in   ) :: field
-      type(ESMF_FieldBundle), intent(  out) :: bundle
-      integer, optional,      intent(  out) :: rc
+   ! subroutine create_tracer_bundle(this, field, bundle, rc)
+   !    class(GOCARTtracers),   intent(inout) :: this
+   !    type(ESMF_Field),       intent(in   ) :: field
+   !    type(ESMF_FieldBundle), intent(  out) :: bundle
+   !    integer, optional,      intent(  out) :: rc
 
-      type(ESMF_Field), allocatable :: tracers(:)
-      type(StringVectorIterator)    :: iter
-      integer                       :: status, i
+   !    type(ESMF_Field), allocatable :: tracers(:)
+   !    type(StringVectorIterator)    :: iter
+   !    integer                       :: status, i
 
-      allocate(tracers(this%GOCART_tracers%size()))
+   !    allocate(tracers(this%GOCART_tracers%size()))
 
-      i    = 1
-      iter = this%GOCART_tracers%begin()
-      do while(iter /= this%GOCART_tracers%end())
-         call this%tracer_map%create_tracer(field, iter%get(), tracers(i), __RC__)
+   !    i    = 1
+   !    iter = this%GOCART_tracers%begin()
+   !    do while(iter /= this%GOCART_tracers%end())
+   !       call this%tracer_map%create_tracer_3D(field, iter%get(), tracers(i), __RC__)
 
-         i = i + 1
-         call iter%next()
-      end do
+   !       i = i + 1
+   !       call iter%next()
+   !    end do
 
-      bundle = ESMF_FieldBundleCreate(fieldList=tracers, name=bundle_label, __RC__)
+   !    bundle = ESMF_FieldBundleCreate(fieldList=tracers, name=bundle_label, __RC__)
 
-      _RETURN(_SUCCESS)
-   end subroutine create_tracer_bundle
+   !    _RETURN(_SUCCESS)
+   ! end subroutine create_tracer_bundle
 end module NOAA_GOCARTtracers_mod
