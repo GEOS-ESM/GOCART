@@ -1,6 +1,6 @@
 #include "MAPL_Generic.h"
 
-module test_NOAA_TracerMap
+module test_NOAA_Tracers
    use, intrinsic :: iso_fortran_env, only: INT64, REAL32, REAL64
 
    use NOAA_TracerMap
@@ -398,4 +398,4 @@ contains
    ! call check_tracer(field, tracer, name, f_array, t_array, i)
    ! end do
    ! end subroutine test_create_tracer_real64_3D
-end module test_NOAA_TracerMap
+end module test_NOAA_Tracers

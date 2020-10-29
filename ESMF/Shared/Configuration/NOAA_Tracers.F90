@@ -1,6 +1,6 @@
 #include "MAPL_Generic.h"
 
-module NOAA_TracerEntryMod
+module NOAA_TracerEntry
    use ESMF
    use MAPL
 
@@ -65,7 +65,7 @@ contains
          call iter%next()
       end do
    end subroutine read_tracer_entry_config
-end module NOAA_TracerEntryMod
+end module NOAA_TracerEntry
 
 module NOAA_TracerMap
    use, intrinsic :: iso_fortran_env, only: REAL32, REAL64
@@ -75,7 +75,7 @@ module NOAA_TracerMap
    use gFTL_StringIntegerMap
    use gFTL_StringVector
 
-   use NOAA_TracerEntryMod
+   use NOAA_TracerEntry
 
    implicit none
    private
@@ -421,7 +421,7 @@ module NOAA_TracersMod
    use MAPL
    use yaFyaml
 
-   use NOAA_TracerEntryMod
+   use NOAA_TracerEntry
    use NOAA_TracerMap
    use NOAA_TracersMap
 

@@ -1,7 +1,7 @@
 add_definitions(-DUSE_MPI)
 
 set (TEST_SRCS
-        test_NOAA_TracerMap.pf
+        test_NOAA_Tracers.pf
         test_NOAA_GOCARTtracers.pf
         test_NOAA_MAPLconfig.pf
 )
@@ -15,7 +15,7 @@ add_pfunit_ctest(Configuration_tests.x
         LINK_LIBRARIES MAPL MAPL.pfio configuration_extras MAPL_pFUnit Cinderella
         EXTRA_INITIALIZE Initialize
         EXTRA_USE MAPL_pFUnit_Initialize
-        MAX_PES 6
+        MAX_PES 4
         )
 
 
