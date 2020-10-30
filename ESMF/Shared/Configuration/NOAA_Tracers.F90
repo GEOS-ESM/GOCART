@@ -450,18 +450,21 @@ module NOAA_TracersMod
    implicit none
    private
 
+   public :: NOAA_Tracers
+
    character(*),  parameter :: field_table = 'field_table'
 
    type :: NOAA_Tracers
       type(TracersMap) :: tracer_map
 
    contains
-      procedure :: read_tracer_config
+      procedure :: add_tracer_config
+      procedure :: read_tracers_config
       procedure :: create_tracer
    end type NOAA_Tracers
 
 contains
-   subroutine read_tracer_config(this, name, config)
+   subroutine add_tracer_config(this, name, config)
       class(NOAA_Tracers), intent(inout) :: this
       character(*),        intent(in   ) :: name
       type(Configuration), intent(inout) :: config
@@ -483,9 +486,27 @@ contains
 
          call this%tracer_map%insert(name, tracer_map)
 
-      call iter%next()
+         call iter%next()
       end do
-   end subroutine read_tracer_config
+   end subroutine add_tracer_config
+
+   subroutine read_tracers_config(this, config)
+      class(NOAA_Tracers), intent(inout) :: this
+      type(Configuration), intent(inout) :: config
+
+      type(ConfigurationIterator) :: iter
+      type(Configuration)         :: sub_config
+      character(:), pointer       :: name
+
+      iter = config%begin()
+      do while(iter /= config%end())
+         name       => iter%key()
+         sub_config =  iter%value()
+         call this%add_tracer_config(name, sub_config)
+
+         call iter%next()
+      end do
+   end subroutine read_tracers_config
 
    subroutine create_tracer(this, field, name, entries, tracer, rc)
       class(NOAA_Tracers),  intent(inout) :: this

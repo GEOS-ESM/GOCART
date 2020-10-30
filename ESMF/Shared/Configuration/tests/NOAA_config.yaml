@@ -15,6 +15,12 @@ test_tracer_entry2:
   name: 'inst_mass_tracers2'
   entries: seas1
 
+test_tracers:
+  inst_mass_tracers1:
+    field_table: 'field_table'
+  inst_mass_tracers2:
+    field_table: 'field_table'
+
 NOAA_imports:
   import1:
     SharePolicyField: 'share'
