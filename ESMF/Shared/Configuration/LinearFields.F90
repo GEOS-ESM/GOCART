@@ -603,7 +603,6 @@ contains
         integer, optional,          intent(  out) :: rc
 
         real(kind=REAL32), pointer :: array(:,:)
-        real(kind=REAL32), pointer :: reverse_array(:,:)
         integer                    :: lower(2), upper(2)
         integer                    :: status
 
@@ -614,14 +613,12 @@ contains
 
         select case (reverse_dimension)
         case (1)
-           reverse_array => array(upper(1):lower(1):-1, :)
+           array = array(upper(1):lower(1):-1, :)
         case (2)
-           reverse_array => array(:, upper(2):lower(2):-1)
+           array = array(:, upper(2):lower(2):-1)
         case default
             _FAIL("Dimension out of range")
         end select
-
-        array => reverse_array
 
         _RETURN(_SUCCESS)
     end subroutine reverse_real32_2D_field
@@ -632,7 +629,6 @@ contains
         integer, optional,          intent(  out) :: rc
 
         real(kind=REAL32), pointer :: array(:,:,:)
-        real(kind=REAL32), pointer :: reverse_array(:,:,:)
         integer                    :: lower(3), upper(3)
         integer                    :: status
 
@@ -643,16 +639,14 @@ contains
 
         select case (reverse_dimension)
         case (1)
-           reverse_array => array(upper(1):lower(1):-1, :, :)
+           array = array(upper(1):lower(1):-1, :, :)
         case (2)
-           reverse_array => array(:, upper(2):lower(2):-1, :)
+           array = array(:, upper(2):lower(2):-1, :)
         case (3)
-           reverse_array => array(:, :, upper(3):lower(3):-1)
+           array = array(:, :, upper(3):lower(3):-1)
         case default
             _FAIL("Dimension out of range")
         end select
-
-        array => reverse_array
 
         _RETURN(_SUCCESS)
     end subroutine reverse_real32_3D_field
@@ -663,7 +657,6 @@ contains
         integer, optional,          intent(  out) :: rc
 
         real(kind=REAL32), pointer :: array(:,:,:,:)
-        real(kind=REAL32), pointer :: reverse_array(:,:,:,:)
         integer                    :: lower(4), upper(4)
         integer                    :: status
 
@@ -674,18 +667,16 @@ contains
 
         select case (reverse_dimension)
         case (1)
-           reverse_array => array(upper(1):lower(1):-1, :, :, :)
+           array = array(upper(1):lower(1):-1, :, :, :)
         case (2)
-           reverse_array => array(:, upper(2):lower(2):-1, :, :)
+           array = array(:, upper(2):lower(2):-1, :, :)
         case (3)
-           reverse_array => array(:, :, upper(3):lower(3):-1, :)
+           array = array(:, :, upper(3):lower(3):-1, :)
         case (4)
-           reverse_array => array(:, :, :, upper(4):lower(4):-1)
+           array = array(:, :, :, upper(4):lower(4):-1)
         case default
             _FAIL("Dimension out of range")
         end select
-
-        array => reverse_array
 
         _RETURN(_SUCCESS)
     end subroutine reverse_real32_4D_field
@@ -696,7 +687,6 @@ contains
         integer, optional,          intent(  out) :: rc
 
         real(kind=REAL64), pointer :: array(:,:)
-        real(kind=REAL64), pointer :: reverse_array(:,:)
         integer                    :: lower(2), upper(2)
         integer                    :: status
 
@@ -707,14 +697,12 @@ contains
 
         select case (reverse_dimension)
         case (1)
-           reverse_array => array(upper(1):lower(1):-1, :)
+           array = array(upper(1):lower(1):-1, :)
         case (2)
-           reverse_array => array(:, upper(2):lower(2):-1)
+           array = array(:, upper(2):lower(2):-1)
         case default
             _FAIL("Dimension out of range")
         end select
-
-        array => reverse_array
 
         _RETURN(_SUCCESS)
     end subroutine reverse_real64_2D_field
@@ -725,7 +713,6 @@ contains
         integer, optional,          intent(  out) :: rc
 
         real(kind=REAL64), pointer :: array(:,:,:)
-        real(kind=REAL64), pointer :: reverse_array(:,:,:)
         integer                    :: lower(3), upper(3)
         integer                    :: status
 
@@ -736,16 +723,14 @@ contains
 
         select case (reverse_dimension)
         case (1)
-           reverse_array => array(upper(1):lower(1):-1, :, :)
+           array = array(upper(1):lower(1):-1, :, :)
         case (2)
-           reverse_array => array(:, upper(2):lower(2):-1, :)
+           array = array(:, upper(2):lower(2):-1, :)
         case (3)
-           reverse_array => array(:, :, upper(3):lower(3):-1)
+           array = array(:, :, upper(3):lower(3):-1)
         case default
             _FAIL("Dimension out of range")
         end select
-
-        array => reverse_array
 
         _RETURN(_SUCCESS)
     end subroutine reverse_real64_3D_field
@@ -756,7 +741,6 @@ contains
         integer, optional,          intent(  out) :: rc
 
         real(kind=REAL64), pointer :: array(:,:,:,:)
-        real(kind=REAL64), pointer :: reverse_array(:,:,:,:)
         integer                    :: lower(4), upper(4)
         integer                    :: status
 
@@ -767,18 +751,16 @@ contains
 
         select case (reverse_dimension)
         case (1)
-           reverse_array => array(upper(1):lower(1):-1, :, :, :)
+           array = array(upper(1):lower(1):-1, :, :, :)
         case (2)
-           reverse_array => array(:, upper(2):lower(2):-1, :, :)
+           array = array(:, upper(2):lower(2):-1, :, :)
         case (3)
-           reverse_array => array(:, :, upper(3):lower(3):-1, :)
+           array = array(:, :, upper(3):lower(3):-1, :)
         case (4)
-           reverse_array => array(:, :, :, upper(4):lower(4):-1)
+           array = array(:, :, :, upper(4):lower(4):-1)
         case default
             _FAIL("Dimension out of range")
         end select
-
-        array => reverse_array
 
         _RETURN(_SUCCESS)
     end subroutine reverse_real64_4D_field

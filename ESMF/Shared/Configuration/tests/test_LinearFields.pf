@@ -704,4 +704,190 @@ contains
         @assert_that(array, is(equal_to(f_array)))
         @assert_that(array, is(equal_to(t_array+shift_factor)))
     end subroutine test_shift_real64_3D_field_real64
+
+    @test
+    subroutine test_reverse_real32_2D_field()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL32)              :: shift_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL32), pointer :: array(:,:)
+
+        integer :: lower(2), upper(2)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        lower = lbound(t_array)
+        upper = ubound(t_array)
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call reverse_field(field, 1, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(upper(1):lower(1):-1, :)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+
+        call reverse_field(field, 2, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(:, upper(2):lower(2):-1)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+    end subroutine test_reverse_real32_2D_field
+
+    @test
+    subroutine test_reverse_real32_3D_field()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL32)              :: shift_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL32), pointer :: array(:,:,:)
+
+        integer :: lower(3), upper(3)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        lower = lbound(t_array)
+        upper = ubound(t_array)
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call reverse_field(field, 1, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(upper(1):lower(1):-1, :, :)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+
+        call reverse_field(field, 2, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(:, upper(2):lower(2):-1, :)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+
+        call reverse_field(field, 3, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(:, :, upper(3):lower(3):-1)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+    end subroutine test_reverse_real32_3D_field
+
+    @test
+    subroutine test_reverse_real64_2D_field()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL64)              :: shift_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL64), pointer :: array(:,:)
+
+        integer :: lower(2), upper(2)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        lower = lbound(t_array)
+        upper = ubound(t_array)
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call reverse_field(field, 1, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(upper(1):lower(1):-1, :)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+
+        call reverse_field(field, 2, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(:, upper(2):lower(2):-1)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+    end subroutine test_reverse_real64_2D_field
+
+    @test
+    subroutine test_reverse_real64_3D_field()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL64)              :: shift_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL64), pointer :: array(:,:,:)
+
+        integer :: lower(3), upper(3)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        lower = lbound(t_array)
+        upper = ubound(t_array)
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call reverse_field(field, 1, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(upper(1):lower(1):-1, :, :)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+
+        call reverse_field(field, 2, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(:, upper(2):lower(2):-1, :)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+
+        call reverse_field(field, 3, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array,   is(equal_to(f_array)))
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        t_array = t_array(:, :, upper(3):lower(3):-1)
+        @assert_that(f_array, is(equal_to(t_array)))
+        @assert_that(array,   is(equal_to(t_array)))
+    end subroutine test_reverse_real64_3D_field
 end module test_LinearFields
