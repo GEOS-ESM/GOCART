@@ -2,9 +2,10 @@ module Test_NOAA_MAPLconfig
    use, intrinsic :: iso_fortran_env, only: INT64
 
    use pfunit
-   use NOAA_MAPLfieldConfig
-   use NOAA_MAPLfieldConfigMap
-   use NOAA_MAPLconfigMod
+   use NOAA_MAPLpolicies
+   ! use NOAA_MAPLfieldConfig
+   ! use NOAA_MAPLfieldConfigMap
+   ! use NOAA_MAPLconfigMod
    use yaFyaml
    use ESMF
 
@@ -14,110 +15,63 @@ module Test_NOAA_MAPLconfig
 
 contains
    @test
-   subroutine test_set_doNotAllocate()
-      type(FieldConfig) :: field_config
-
-      ! False
-      field_config%TransferOfferGeomObject = 'will provide'
-      field_config%SharePolicyField        = 'share'
-      call field_config%set_doNotAllocate()
-      @assert_that(field_config%doNotAllocate, is(false()))
-      ! False
-      field_config%TransferOfferGeomObject = 'can provide'
-      field_config%SharePolicyField        = 'share'
-      call field_config%set_doNotAllocate()
-      @assert_that(field_config%doNotAllocate, is(false()))
-      ! False
-      field_config%TransferOfferGeomObject = 'will provide'
-      field_config%SharePolicyField        = 'not share'
-      call field_config%set_doNotAllocate()
-      @assert_that(field_config%doNotAllocate, is(false()))
-      ! False
-      field_config%TransferOfferGeomObject = 'can provide'
-      field_config%SharePolicyField        = 'not share'
-      call field_config%set_doNotAllocate()
-      @assert_that(field_config%doNotAllocate, is(false()))
-      ! False
-      field_config%TransferOfferGeomObject = 'cannot provide'
-      field_config%SharePolicyField        = 'not share'
-      call field_config%set_doNotAllocate()
-      @assert_that(field_config%doNotAllocate, is(false()))
-      ! True
-      field_config%TransferOfferGeomObject = 'cannot provide'
-      field_config%SharePolicyField        = 'share'
-      call field_config%set_doNotAllocate()
-      @assert_that(field_config%doNotAllocate, is(true()))
-   end subroutine test_set_doNotAllocate
-
-   @test
-   subroutine test_fill_defaults()
-      type(FieldConfig) :: field_config1
-      type(FieldConfig) :: field_config2
-      type(FieldConfig) :: field_config3
-
-      field_config1%short_name = 'test'
-      call field_config1%fill_defaults()
-      @assert_that(field_config1%short_name,              is(equal_to('test')))
-      @assert_that(field_config1%standard_name,           is(equal_to('test')))
-      @assert_that(field_config1%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config1%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config1%SharePolicyGeomObject,   is(equal_to('not share')))
-      @assert_that(field_config1%doNotAllocate,           is(false()))
-
-      field_config2%short_name              = 'test'
-      field_config2%standard_name           = 'nuopc'
-      field_config2%TransferOfferGeomObject = 'can provide'
-      field_config2%SharePolicyField        = 'share'
-      field_config2%SharePolicyGeomObject   = 'not share'
-      call field_config2%fill_defaults()
-      @assert_that(field_config2%short_name,              is(equal_to('test')))
-      @assert_that(field_config2%standard_name,           is(equal_to('nuopc')))
-      @assert_that(field_config2%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config2%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config2%SharePolicyGeomObject,   is(equal_to('not share')))
-      @assert_that(field_config1%doNotAllocate,           is(false()))
-
-      field_config3%short_name       = 'test'
-      field_config3%SharePolicyField = 'share'
-      call field_config3%fill_defaults()
-      @assert_that(field_config3%short_name,              is(equal_to('test')))
-      @assert_that(field_config3%standard_name,           is(equal_to('test')))
-      @assert_that(field_config3%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config3%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config3%SharePolicyGeomObject,   is(equal_to('share')))
-      @assert_that(field_config1%doNotAllocate,           is(false()))
-   end subroutine test_fill_defaults
-
-   @test
-   subroutine test_read_field_config()
-      type(FieldConfigMap) :: field_config_map
-      type(FieldConfig)    :: field_config
+   subroutine test_read_policies_config()
+      type(PoliciesConfig) :: policies_config1
+      type(PoliciesConfig) :: policies_config2
+      type(PoliciesConfig) :: policies_config3
+      type(PoliciesConfig) :: policies_config4
+      type(PoliciesConfig) :: policies_config5
+      type(PoliciesConfig) :: policies_config6
+      type(PoliciesConfig) :: policies_config7
+      type(PoliciesConfig) :: policies_config8
 
       type(Parser)                :: p
       type(FileStream)            :: file_stream
       type(Configuration)         :: main_config, config, test_config
-      type(ConfigurationIterator) :: main_iter,   iter
-
-      character(:), pointer :: key, name
+      type(ConfigurationIterator) :: main_iter, iter
+      character(:), pointer       :: key, test_name
 
       p           = Parser('core')
       file_stream = FileStream(test_yaml)
       main_config = p%load(file_stream)
 
       main_iter = main_config%begin()
-      do while (main_iter /= main_config%end())
+      do while(main_iter /= main_config%end())
          key => main_iter%key()
 
          select case(key)
-         case ('test_read_config')
+         case ('test_policies')
             config = main_iter%value()
+            iter   = config%begin()
+            do while(iter /= config%end())
+               test_name => iter%key()
 
-            iter  = config%begin()
-            do while (iter /= config%end())
-               name => iter%key()
-
-               test_config = iter%value()
-               call field_config_map%insert(name, create_field_config(name, test_config))
+               select case(test_name)
+               case ('test1')
+                  test_config = iter%value()
+                  call policies_config1%read_policies_config(test_config)
+               case ('test2')
+                  test_config = iter%value()
+                  call policies_config2%read_policies_config(test_config)
+               case ('test3')
+                  test_config = iter%value()
+                  call policies_config3%read_policies_config(test_config)
+               case ('test4')
+                  test_config = iter%value()
+                  call policies_config4%read_policies_config(test_config)
+               case ('test5')
+                  test_config = iter%value()
+                  call policies_config5%read_policies_config(test_config)
+               case ('test6')
+                  test_config = iter%value()
+                  call policies_config6%read_policies_config(test_config)
+               case ('test7')
+                  test_config = iter%value()
+                  call policies_config7%read_policies_config(test_config)
+               case ('test8')
+                  test_config = iter%value()
+                  call policies_config8%read_policies_config(test_config)
+               end select
 
                call iter%next()
             end do
@@ -128,277 +82,350 @@ contains
 
       call file_stream%close()
 
-      @assert_that(field_config_map%size(), is(equal_to(2_INT64)))
+      @assert_that(policies_config1%TransferOfferGeomObject, is(equal_to('will provide')))
+      @assert_that(policies_config1%SharePolicyField,        is(equal_to('not share')))
+      @assert_that(policies_config1%SharePolicyGeomObject,   is(equal_to('not share')))
 
-      @assert_that(field_config_map%count('test1'), is(equal_to(1_INT64)))
-      field_config =  field_config_map%at('test1')
-      @assert_that(field_config%short_name,              is(equal_to('test1')))
-      @assert_that(field_config%standard_name,           is(equal_to('nuopc_name')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+      @assert_that(policies_config2%TransferOfferGeomObject, is(equal_to('foo1')))
+      @assert_that(policies_config2%SharePolicyField,        is(equal_to('not share')))
+      @assert_that(policies_config2%SharePolicyGeomObject,   is(equal_to('not share')))
 
-      @assert_that(field_config_map%count('test2'), is(equal_to(1_INT64)))
-      field_config =  field_config_map%at('test2')
-      @assert_that(field_config%short_name,              is(equal_to('test2')))
-      @assert_that(field_config%standard_name,           is(equal_to('test2')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
-   end subroutine test_read_field_config
+      @assert_that(policies_config3%TransferOfferGeomObject, is(equal_to('will provide')))
+      @assert_that(policies_config3%SharePolicyField,        is(equal_to('foo1')))
+      @assert_that(policies_config3%SharePolicyGeomObject,   is(equal_to('foo1')))
 
-   @test
-   subroutine test_read_from_config()
-      type(NOAA_MAPLconfig) :: MAPL_config
-      type(FieldConfigMap)  :: field_config_map
-      type(FieldConfig)     :: field_config
+      @assert_that(policies_config4%TransferOfferGeomObject, is(equal_to('will provide')))
+      @assert_that(policies_config4%SharePolicyField,        is(equal_to('not share')))
+      @assert_that(policies_config4%SharePolicyGeomObject,   is(equal_to('foo1')))
 
-      type(Parser)                :: p
-      type(FileStream)            :: file_stream
-      type(Configuration)         :: main_config, config, test_config
-      type(ConfigurationIterator) :: main_iter,   iter
+      @assert_that(policies_config5%TransferOfferGeomObject, is(equal_to('foo1')))
+      @assert_that(policies_config5%SharePolicyField,        is(equal_to('foo2')))
+      @assert_that(policies_config5%SharePolicyGeomObject,   is(equal_to('foo2')))
 
-      character(:), pointer :: key, name
+      @assert_that(policies_config6%TransferOfferGeomObject, is(equal_to('foo1')))
+      @assert_that(policies_config6%SharePolicyField,        is(equal_to('not share')))
+      @assert_that(policies_config6%SharePolicyGeomObject,   is(equal_to('foo2')))
 
-      p           = Parser('core')
-      file_stream = FileStream(test_yaml)
-      main_config = p%load(file_stream)
+      @assert_that(policies_config7%TransferOfferGeomObject, is(equal_to('will provide')))
+      @assert_that(policies_config7%SharePolicyField,        is(equal_to('foo1')))
+      @assert_that(policies_config7%SharePolicyGeomObject,   is(equal_to('foo2')))
 
-      main_iter = main_config%begin()
-      do while (main_iter /= main_config%end())
-         key => main_iter%key()
+      @assert_that(policies_config8%TransferOfferGeomObject, is(equal_to('foo1')))
+      @assert_that(policies_config8%SharePolicyField,        is(equal_to('foo2')))
+      @assert_that(policies_config8%SharePolicyGeomObject,   is(equal_to('foo3')))
+   end subroutine test_read_policies_config
 
-         select case(key)
-         case ('test_read_config')
-            config = main_iter%value()
-            field_config_map = MAPL_config%read_from_config(config)
-         end select
+   ! @test
+   ! subroutine test_read_field_config()
+   !    type(FieldConfigMap) :: field_config_map
+   !    type(FieldConfig)    :: field_config
 
-         call main_iter%next()
-      end do
+   !    type(Parser)                :: p
+   !    type(FileStream)            :: file_stream
+   !    type(Configuration)         :: main_config, config, test_config
+   !    type(ConfigurationIterator) :: main_iter,   iter
 
-      call file_stream%close()
+   !    character(:), pointer :: key, name
 
-      @assert_that(field_config_map%size(), is(equal_to(2_INT64)))
+   !    p           = Parser('core')
+   !    file_stream = FileStream(test_yaml)
+   !    main_config = p%load(file_stream)
 
-      @assert_that(field_config_map%count('test1'), is(equal_to(1_INT64)))
-      field_config =  field_config_map%at('test1')
-      @assert_that(field_config%short_name,              is(equal_to('test1')))
-      @assert_that(field_config%standard_name,           is(equal_to('nuopc_name')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    main_iter = main_config%begin()
+   !    do while (main_iter /= main_config%end())
+   !       key => main_iter%key()
 
-      @assert_that(field_config_map%count('test2'), is(equal_to(1_INT64)))
-      field_config =  field_config_map%at('test2')
-      @assert_that(field_config%short_name,              is(equal_to('test2')))
-      @assert_that(field_config%standard_name,           is(equal_to('test2')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
-   end subroutine test_read_from_config
+   !       select case(key)
+   !       case ('test_read_config')
+   !          config = main_iter%value()
 
-   @test
-   subroutine test_read_config()
-      type(NOAA_MAPLconfig) :: MAPL_config
-      type(FieldConfig)      :: field_config
+   !          iter  = config%begin()
+   !          do while (iter /= config%end())
+   !             name => iter%key()
 
-      call MAPL_config%read_config(test_yaml)
+   !             test_config = iter%value()
+   !             call field_config_map%insert(name, create_field_config(name, test_config))
 
-      @assert_that(MAPL_config%imports%size(), is(equal_to(12_INT64)))
+   !             call iter%next()
+   !          end do
+   !       end select
 
-      @assert_that(MAPL_config%imports%count('import1'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import1')
-      @assert_that(field_config%short_name,              is(equal_to('import1')))
-      @assert_that(field_config%standard_name,           is(equal_to('import1')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !       call main_iter%next()
+   !    end do
 
-      @assert_that(MAPL_config%imports%count('import2'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import2')
-      @assert_that(field_config%short_name,              is(equal_to('import2')))
-      @assert_that(field_config%standard_name,           is(equal_to('import2')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !    call file_stream%close()
 
-      @assert_that(MAPL_config%imports%count('import3'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import3')
-      @assert_that(field_config%short_name,              is(equal_to('import3')))
-      @assert_that(field_config%standard_name,           is(equal_to('import3')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    @assert_that(field_config_map%size(), is(equal_to(2_INT64)))
 
-      @assert_that(MAPL_config%imports%count('import4'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import4')
-      @assert_that(field_config%short_name,              is(equal_to('import4')))
-      @assert_that(field_config%standard_name,           is(equal_to('import4')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !    @assert_that(field_config_map%count('test1'), is(equal_to(1_INT64)))
+   !    field_config =  field_config_map%at('test1')
+   !    @assert_that(field_config%short_name,              is(equal_to('test1')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('nuopc_name')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
 
-      @assert_that(MAPL_config%imports%count('import5'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import5')
-      @assert_that(field_config%short_name,              is(equal_to('import5')))
-      @assert_that(field_config%standard_name,           is(equal_to('import5')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    @assert_that(field_config_map%count('test2'), is(equal_to(1_INT64)))
+   !    field_config =  field_config_map%at('test2')
+   !    @assert_that(field_config%short_name,              is(equal_to('test2')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('test2')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   ! end subroutine test_read_field_config
 
-      @assert_that(MAPL_config%imports%count('import6'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import6')
-      @assert_that(field_config%short_name,              is(equal_to('import6')))
-      @assert_that(field_config%standard_name,           is(equal_to('import6')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   ! @test
+   ! subroutine test_read_from_config()
+   !    type(NOAA_MAPLconfig) :: MAPL_config
+   !    type(FieldConfigMap)  :: field_config_map
+   !    type(FieldConfig)     :: field_config
 
-      @assert_that(MAPL_config%imports%count('import7'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import7')
-      @assert_that(field_config%short_name,              is(equal_to('import7')))
-      @assert_that(field_config%standard_name,           is(equal_to('import7')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    type(Parser)                :: p
+   !    type(FileStream)            :: file_stream
+   !    type(Configuration)         :: main_config, config, test_config
+   !    type(ConfigurationIterator) :: main_iter,   iter
 
-      @assert_that(MAPL_config%imports%count('import8'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import8')
-      @assert_that(field_config%short_name,              is(equal_to('import8')))
-      @assert_that(field_config%standard_name,           is(equal_to('import8')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !    character(:), pointer :: key, name
 
-      @assert_that(MAPL_config%imports%count('import9'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import9')
-      @assert_that(field_config%short_name,              is(equal_to('import9')))
-      @assert_that(field_config%standard_name,           is(equal_to('import9')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    p           = Parser('core')
+   !    file_stream = FileStream(test_yaml)
+   !    main_config = p%load(file_stream)
 
-      @assert_that(MAPL_config%imports%count('import10'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import10')
-      @assert_that(field_config%short_name,              is(equal_to('import10')))
-      @assert_that(field_config%standard_name,           is(equal_to('import10')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !    main_iter = main_config%begin()
+   !    do while (main_iter /= main_config%end())
+   !       key => main_iter%key()
 
-      @assert_that(MAPL_config%imports%count('import11'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import11')
-      @assert_that(field_config%short_name,              is(equal_to('import11')))
-      @assert_that(field_config%standard_name,           is(equal_to('import11')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !       select case(key)
+   !       case ('test_read_config')
+   !          config = main_iter%value()
+   !          field_config_map = MAPL_config%read_from_config(config)
+   !       end select
 
-      @assert_that(MAPL_config%imports%count('import12'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%imports%at('import12')
-      @assert_that(field_config%short_name,              is(equal_to('import12')))
-      @assert_that(field_config%standard_name,           is(equal_to('import12')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !       call main_iter%next()
+   !    end do
 
-      @assert_that(MAPL_config%exports%size(), is(equal_to(12_INT64)))
+   !    call file_stream%close()
 
-      @assert_that(MAPL_config%exports%count('export1'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export1')
-      @assert_that(field_config%short_name,              is(equal_to('export1')))
-      @assert_that(field_config%standard_name,           is(equal_to('export1')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    @assert_that(field_config_map%size(), is(equal_to(2_INT64)))
 
-      @assert_that(MAPL_config%exports%count('export2'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export2')
-      @assert_that(field_config%short_name,              is(equal_to('export2')))
-      @assert_that(field_config%standard_name,           is(equal_to('export2')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !    @assert_that(field_config_map%count('test1'), is(equal_to(1_INT64)))
+   !    field_config =  field_config_map%at('test1')
+   !    @assert_that(field_config%short_name,              is(equal_to('test1')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('nuopc_name')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
 
-      @assert_that(MAPL_config%exports%count('export3'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export3')
-      @assert_that(field_config%short_name,              is(equal_to('export3')))
-      @assert_that(field_config%standard_name,           is(equal_to('export3')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    @assert_that(field_config_map%count('test2'), is(equal_to(1_INT64)))
+   !    field_config =  field_config_map%at('test2')
+   !    @assert_that(field_config%short_name,              is(equal_to('test2')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('test2')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   ! end subroutine test_read_from_config
 
-      @assert_that(MAPL_config%exports%count('export4'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export4')
-      @assert_that(field_config%short_name,              is(equal_to('export4')))
-      @assert_that(field_config%standard_name,           is(equal_to('export4')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   ! @test
+   ! subroutine test_read_config()
+   !    type(NOAA_MAPLconfig) :: MAPL_config
+   !    type(FieldConfig)      :: field_config
 
-      @assert_that(MAPL_config%exports%count('export5'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export5')
-      @assert_that(field_config%short_name,              is(equal_to('export5')))
-      @assert_that(field_config%standard_name,           is(equal_to('export5')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    call MAPL_config%read_config(test_yaml)
 
-      @assert_that(MAPL_config%exports%count('export6'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export6')
-      @assert_that(field_config%short_name,              is(equal_to('export6')))
-      @assert_that(field_config%standard_name,           is(equal_to('export6')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !    @assert_that(MAPL_config%imports%size(), is(equal_to(12_INT64)))
 
-      @assert_that(MAPL_config%exports%count('export7'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export7')
-      @assert_that(field_config%short_name,              is(equal_to('export7')))
-      @assert_that(field_config%standard_name,           is(equal_to('export7')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    @assert_that(MAPL_config%imports%count('import1'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import1')
+   !    @assert_that(field_config%short_name,              is(equal_to('import1')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import1')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
 
-      @assert_that(MAPL_config%exports%count('export8'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export8')
-      @assert_that(field_config%short_name,              is(equal_to('export8')))
-      @assert_that(field_config%standard_name,           is(equal_to('export8')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !    @assert_that(MAPL_config%imports%count('import2'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import2')
+   !    @assert_that(field_config%short_name,              is(equal_to('import2')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import2')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
 
-      @assert_that(MAPL_config%exports%count('export9'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export9')
-      @assert_that(field_config%short_name,              is(equal_to('export9')))
-      @assert_that(field_config%standard_name,           is(equal_to('export9')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    @assert_that(MAPL_config%imports%count('import3'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import3')
+   !    @assert_that(field_config%short_name,              is(equal_to('import3')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import3')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
 
-      @assert_that(MAPL_config%exports%count('export10'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export10')
-      @assert_that(field_config%short_name,              is(equal_to('export10')))
-      @assert_that(field_config%standard_name,           is(equal_to('export10')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   !    @assert_that(MAPL_config%imports%count('import4'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import4')
+   !    @assert_that(field_config%short_name,              is(equal_to('import4')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import4')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
 
-      @assert_that(MAPL_config%exports%count('export11'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export11')
-      @assert_that(field_config%short_name,              is(equal_to('export11')))
-      @assert_that(field_config%standard_name,           is(equal_to('export11')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+   !    @assert_that(MAPL_config%imports%count('import5'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import5')
+   !    @assert_that(field_config%short_name,              is(equal_to('import5')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import5')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
 
-      @assert_that(MAPL_config%exports%count('export12'), is(equal_to(1_INT64)))
-      field_config =  MAPL_config%exports%at('export12')
-      @assert_that(field_config%short_name,              is(equal_to('export12')))
-      @assert_that(field_config%standard_name,           is(equal_to('export12')))
-      @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
-      @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-      @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
-   end subroutine test_read_config
+   !    @assert_that(MAPL_config%imports%count('import6'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import6')
+   !    @assert_that(field_config%short_name,              is(equal_to('import6')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import6')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%imports%count('import7'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import7')
+   !    @assert_that(field_config%short_name,              is(equal_to('import7')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import7')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%imports%count('import8'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import8')
+   !    @assert_that(field_config%short_name,              is(equal_to('import8')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import8')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%imports%count('import9'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import9')
+   !    @assert_that(field_config%short_name,              is(equal_to('import9')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import9')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%imports%count('import10'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import10')
+   !    @assert_that(field_config%short_name,              is(equal_to('import10')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import10')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%imports%count('import11'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import11')
+   !    @assert_that(field_config%short_name,              is(equal_to('import11')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import11')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%imports%count('import12'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%imports%at('import12')
+   !    @assert_that(field_config%short_name,              is(equal_to('import12')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('import12')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%exports%size(), is(equal_to(12_INT64)))
+
+   !    @assert_that(MAPL_config%exports%count('export1'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export1')
+   !    @assert_that(field_config%short_name,              is(equal_to('export1')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export1')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%exports%count('export2'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export2')
+   !    @assert_that(field_config%short_name,              is(equal_to('export2')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export2')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%exports%count('export3'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export3')
+   !    @assert_that(field_config%short_name,              is(equal_to('export3')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export3')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%exports%count('export4'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export4')
+   !    @assert_that(field_config%short_name,              is(equal_to('export4')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export4')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%exports%count('export5'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export5')
+   !    @assert_that(field_config%short_name,              is(equal_to('export5')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export5')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%exports%count('export6'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export6')
+   !    @assert_that(field_config%short_name,              is(equal_to('export6')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export6')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%exports%count('export7'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export7')
+   !    @assert_that(field_config%short_name,              is(equal_to('export7')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export7')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%exports%count('export8'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export8')
+   !    @assert_that(field_config%short_name,              is(equal_to('export8')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export8')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%exports%count('export9'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export9')
+   !    @assert_that(field_config%short_name,              is(equal_to('export9')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export9')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%exports%count('export10'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export10')
+   !    @assert_that(field_config%short_name,              is(equal_to('export10')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export10')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+
+   !    @assert_that(MAPL_config%exports%count('export11'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export11')
+   !    @assert_that(field_config%short_name,              is(equal_to('export11')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export11')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+
+   !    @assert_that(MAPL_config%exports%count('export12'), is(equal_to(1_INT64)))
+   !    field_config =  MAPL_config%exports%at('export12')
+   !    @assert_that(field_config%short_name,              is(equal_to('export12')))
+   !    @assert_that(field_config%standard_name,           is(equal_to('export12')))
+   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('cannot provide')))
+   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
+   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
+   ! end subroutine test_read_config
 end module Test_NOAA_MAPLconfig

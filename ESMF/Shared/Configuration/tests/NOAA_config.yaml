@@ -21,6 +21,29 @@ test_tracers:
   inst_mass_tracers2:
     field_table: 'field_table'
 
+test_policies:
+  test1:
+    default: 'default'
+  test2:
+    TransferOfferGeomObject: 'foo1'
+  test3:
+    SharePolicyField:        'foo1'
+  test4:
+    SharePolicyGeomObject:   'foo1'
+  test5:
+    TransferOfferGeomObject: 'foo1'
+    SharePolicyField:        'foo2'
+  test6:
+    TransferOfferGeomObject: 'foo1'
+    SharePolicyGeomObject:   'foo2'
+  test7:
+    SharePolicyField:        'foo1'
+    SharePolicyGeomObject:   'foo2'
+  test8:
+    TransferOfferGeomObject: 'foo1'
+    SharePolicyField:        'foo2'
+    SharePolicyGeomObject:   'foo3'
+
 NOAA_imports:
   import1:
     SharePolicyField: 'share'

@@ -1,109 +1,77 @@
 #include "MAPL_Generic.h"
 #include "NUOPC_ErrLog.h"
 
-module NOAA_MAPLfieldConfig
+module NOAA_MAPLpolicies
    use ESMF
    use NUOPC
-   use MAPL_Mod
+   use MAPL
    use yaFyaml
 
    implicit none
    private
 
-   public FieldConfig
-   public create_field_config
+   public :: PoliciesConfig
 
-   character(*), parameter :: standard_name           = 'standard_name'
-   character(*), parameter :: units                   = 'units'
    character(*), parameter :: TransferOfferGeomObject = 'TransferOfferGeomObject'
    character(*), parameter :: SharePolicyField        = 'SharePolicyField'
    character(*), parameter :: SharePolicyGeomObject   = 'SharePolicyGeomObject'
 
-   character(*), parameter :: default_units                   = '1'
    character(*), parameter :: default_TransferOfferGeomObject = 'will provide'
    character(*), parameter :: default_SharePolicyField        = 'not share'
 
-   character(*), parameter :: cannot_provide = 'cannot provide'
-   character(*), parameter :: share          = 'share'
-
-   type :: FieldConfig
-      character(:), allocatable :: short_name
-      character(:), allocatable :: standard_name
-      character(:), allocatable :: units
+   type :: PoliciesConfig
       character(:), allocatable :: TransferOfferGeomObject
       character(:), allocatable :: SharePolicyField
       character(:), allocatable :: SharePolicyGeomObject
-      logical                   :: doNotAllocate
    contains
-      procedure :: add_to_field_dictionary
-      procedure :: add_name_to_field_dictionary
-      procedure :: create_synonyms
-      procedure :: advertise_to_state
-      procedure :: set_doNotAllocate
       procedure :: fill_defaults
-      procedure :: read_field_config
-   end type FieldConfig
-
+      procedure :: read_policies_config
+      procedure :: advertise_to_state
+   end type PoliciesConfig
 contains
-   subroutine add_name_to_field_dictionary(this, name, rc)
-      class(FieldConfig), intent(inout) :: this
-      character(*),       intent(in   ) :: name
-      integer, optional,  intent(  out) :: rc
+   subroutine fill_defaults(this)
+      class(PoliciesConfig), intent(inout) :: this
 
-      logical :: has_entry
-      integer :: status
+      if (.not. allocated(this%TransferOfferGeomObject)) this%TransferOfferGeomObject = default_TransferOfferGeomObject
+      if (.not. allocated(this%SharePolicyField))        this%SharePolicyField        = default_SharePolicyField
+      if (.not. allocated(this%SharePolicyGeomObject))   this%SharePolicyGeomObject   = this%SharePolicyField
+   end subroutine fill_defaults
 
-      has_entry = NUOPC_FieldDictionaryHasEntry(standardName=name, rc=status)
-      VERIFY_NUOPC_(status)
+   subroutine read_policies_config(this, config)
+      class(PoliciesConfig), intent(inout) :: this
+      type(Configuration),   intent(in   ) :: config
 
-      if (.not. has_entry) then
-         call NUOPC_FieldDictionaryAddEntry(standardName=name, canonicalUnits=units, rc=status)
-         VERIFY_NUOPC_(status)
-      end if
+      type(ConfigurationIterator) :: iter
+      character(:), pointer       :: key
 
-      _RETURN(_SUCCESS)
-   end subroutine add_name_to_field_dictionary
+      iter = config%begin()
+      do while(iter /= config%end())
+         key => iter%key()
 
-   subroutine create_synonyms(this, rc)
-      class(FieldConfig), intent(inout) :: this
-      integer, optional,  intent(  out) :: rc
+         select case(key)
+         case(TransferOfferGeomObject)
+            this%TransferOfferGeomObject = iter%value()
+         case(SharePolicyField)
+            this%SharePolicyField        = iter%value()
+         case(SharePolicyGeomObject)
+            this%SharePolicyGeomObject   = iter%value()
+         end select
 
-      logical :: are_synonymns
-      integer :: status
+         call iter%next()
+      end do
 
-      are_synonymns = NUOPC_FieldDictionaryMatchSyno(standardName1=this%short_name, &
-         standardName2=this%standard_name, rc=status)
-      VERIFY_NUOPC_(status)
+      call this%fill_defaults()
+   end subroutine read_policies_config
 
-      if (.not. are_synonymns) then
-         call NUOPC_FieldDictionarySetSyno([this%short_name, this%standard_name], rc=status)
-         VERIFY_NUOPC_(status)
-      end if
-
-      _RETURN(_SUCCESS)
-   end subroutine create_synonyms
-
-   subroutine add_to_field_dictionary(this, rc)
-      class(FieldConfig), intent(inout) :: this
-      integer, optional,  intent(  out) :: rc
+   subroutine advertise_to_state(this, state, name, rc)
+      class(PoliciesConfig), intent(inout) :: this
+      type(ESMF_State),      intent(inout) :: state
+      character(*),          intent(in   ) :: name
+      integer, optional,     intent(  out) :: rc
 
       integer :: status
 
-      call this%add_name_to_field_dictionary(this%short_name, __RC__)
-      call this%add_name_to_field_dictionary(this%standard_name, __RC__)
-      call this%create_synonyms(__RC__)
-
-      _RETURN(_SUCCESS)
-   end subroutine add_to_field_dictionary
-
-   subroutine advertise_to_state(this, state, rc)
-      class(FieldConfig), intent(inout) :: this
-      type(ESMF_State),   intent(inout) :: state
-      integer, optional,  intent(  out) :: rc
-
-      integer :: status
-
-      call NUOPC_Advertise(state, standardName=this%short_name, &
+      call NUOPC_Advertise(state, standardName=name, &
          TransferOfferGeomObject=this%TransferOfferGeomObject, &
          SharePolicyField=this%SharePolicyField, &
          SharePolicyGeomObject=this%SharePolicyGeomObject, &
@@ -112,231 +80,366 @@ contains
 
       _RETURN(_SUCCESS)
    end subroutine advertise_to_state
+end module NOAA_MAPLpolicies
 
-   subroutine set_doNotAllocate(this)
-      class(FieldConfig), intent(inout) :: this
+! module NOAA_MAPLoptions
+!    use, intrinsic :: iso_fortran_env, only: REAL32, REAL64
+!    use ESMF
+!    use NUOPC
+!    use MAPL
+!    use yaFyaml
 
-      if ((this%TransferOfferGeomObject == cannot_provide) .and. (this%SharePolicyField == share)) then
-         this%doNotAllocate = .true.
-      else
-         this%doNotAllocate = .false.
-      end if
-   end subroutine set_doNotAllocate
+!    implicit none
+!    private
 
-   subroutine fill_defaults(this)
-      class(FieldConfig), intent(inout) :: this
+!    public :: OptionsConfig
 
-      if (.not. allocated(this%standard_name))           this%standard_name           = this%short_name
-      if (.not. allocated(this%units))                   this%units                   = default_units
-      if (.not. allocated(this%TransferOfferGeomObject)) this%TransferOfferGeomObject = default_TransferOfferGeomObject
-      if (.not. allocated(this%SharePolicyField))        this%SharePolicyField        = default_SharePolicyField
-      if (.not. allocated(this%SharePolicyGeomObject))   this%SharePolicyGeomObject   = this%SharePolicyField
+!    type :: OptionsConfig
+!       character(:), allocatable :: state
 
-      call this%set_doNotAllocate()
-   end subroutine fill_defaults
+!       logical :: reverse_levels
+!       logical :: reverse_mask
 
-   subroutine read_field_config(this, short_name, config)
-      class(FieldConfig),  intent(inout) :: this
-      character(*),        intent(in   ) :: short_name
-      type(Configuration), intent(inout) :: config
+!       real(kind=REAL64) :: convert2MAPL
+!    end type OptionsConfig
+! end module NOAA_MAPLoptions
 
-      type(ConfigurationIterator) :: iter
-      character(:), pointer       :: key
+! module NOAA_MAPLfieldConfig
+!    use ESMF
+!    use NUOPC
+!    use MAPL
+!    use yaFyaml
 
-      this%short_name = short_name
+!    implicit none
+!    private
 
-      iter = config%begin()
-      do while (iter /= config%end())
-         key => iter%key()
+!    public FieldConfig
+!    public create_field_config
 
-         select case(key)
-         case(standard_name)
-            this%standard_name = iter%value()
-         case(units)
-            this%units = iter%value()
-         case(TransferOfferGeomObject)
-            this%TransferOfferGeomObject = iter%value()
-         case(SharePolicyField)
-            this%SharePolicyField = iter%value()
-         case(SharePolicyGeomObject)
-            this%SharePolicyGeomObject = iter%value()
-         end select
+!    character(*), parameter :: standard_name           = 'standard_name'
+!    character(*), parameter :: units                   = 'units'
+!    character(*), parameter :: TransferOfferGeomObject = 'TransferOfferGeomObject'
+!    character(*), parameter :: SharePolicyField        = 'SharePolicyField'
+!    character(*), parameter :: SharePolicyGeomObject   = 'SharePolicyGeomObject'
 
-         call iter%next()
-      end do
+!    character(*), parameter :: default_units                   = '1'
+!    character(*), parameter :: default_TransferOfferGeomObject = 'will provide'
+!    character(*), parameter :: default_SharePolicyField        = 'not share'
 
-      call this%fill_defaults()
-   end subroutine read_field_config
+!    character(*), parameter :: cannot_provide = 'cannot provide'
+!    character(*), parameter :: share          = 'share'
 
-   function create_field_config(name, config) result(field_config)
-      type(FieldConfig) :: field_config
-      character(*),        intent(in   ) :: name
-      type(Configuration), intent(inout) :: config
+!    type :: FieldConfig
+!       character(:), allocatable :: short_name
+!       character(:), allocatable :: standard_name
+!       character(:), allocatable :: units
+!       character(:), allocatable :: TransferOfferGeomObject
+!       character(:), allocatable :: SharePolicyField
+!       character(:), allocatable :: SharePolicyGeomObject
+!       logical                   :: doNotAllocate
+!    contains
+!       procedure :: add_to_field_dictionary
+!       procedure :: add_name_to_field_dictionary
+!       procedure :: create_synonyms
+!       procedure :: advertise_to_state
+!       procedure :: set_doNotAllocate
+!       procedure :: fill_defaults
+!       procedure :: read_field_config
+!    end type FieldConfig
 
-      call field_config%read_field_config(name, config)
-   end function create_field_config
-end module NOAA_MAPLfieldConfig
+! contains
+!    subroutine add_name_to_field_dictionary(this, name, rc)
+!       class(FieldConfig), intent(inout) :: this
+!       character(*),       intent(in   ) :: name
+!       integer, optional,  intent(  out) :: rc
 
-module NOAA_MAPLfieldConfigMap
-   use NOAA_MAPLfieldConfig
+!       logical :: has_entry
+!       integer :: status
 
-#include "types/key_deferredLengthString.inc"
-#define _value type(FieldConfig)
+!       has_entry = NUOPC_FieldDictionaryHasEntry(standardName=name, rc=status)
+!       VERIFY_NUOPC_(status)
 
-#define _map FieldConfigMap
-#define _iterator FieldConfigMapIterator
-#define _alt
-#include "templates/map.inc"
-end module NOAA_MAPLfieldConfigMap
+!       if (.not. has_entry) then
+!          call NUOPC_FieldDictionaryAddEntry(standardName=name, canonicalUnits=units, rc=status)
+!          VERIFY_NUOPC_(status)
+!       end if
 
-module NOAA_MAPLconfigMod
-   use ESMF
-   use MAPL_Mod
-   use yaFyaml
+!       _RETURN(_SUCCESS)
+!    end subroutine add_name_to_field_dictionary
 
-   use NOAA_MAPLfieldConfig
-   use NOAA_MAPLfieldConfigMap
+!    subroutine create_synonyms(this, rc)
+!       class(FieldConfig), intent(inout) :: this
+!       integer, optional,  intent(  out) :: rc
 
-   implicit none
-   private
+!       logical :: are_synonymns
+!       integer :: status
 
-   public NOAA_MAPLconfig
+!       are_synonymns = NUOPC_FieldDictionaryMatchSyno(standardName1=this%short_name, &
+!          standardName2=this%standard_name, rc=status)
+!       VERIFY_NUOPC_(status)
 
-   character(*), parameter :: NOAA_imports = 'NOAA_imports'
-   character(*), parameter :: NOAA_exports = 'NOAA_exports'
+!       if (.not. are_synonymns) then
+!          call NUOPC_FieldDictionarySetSyno([this%short_name, this%standard_name], rc=status)
+!          VERIFY_NUOPC_(status)
+!       end if
 
-   type :: NOAA_MAPLconfig
-      type(FieldConfigMap) :: imports
-      type(FieldConfigMap) :: exports
-   contains
-      procedure, nopass :: read_from_config
-      procedure         :: read_config
-      procedure, nopass :: advertise_map
-      procedure         :: advertise
-      procedure, nopass :: add_map_to_field_dictionary
-      procedure         :: add_to_field_dictionary
-   end type NOAA_MAPLconfig
+!       _RETURN(_SUCCESS)
+!    end subroutine create_synonyms
 
-contains
-   subroutine add_map_to_field_dictionary(field_config_map, rc)
-      type(FieldConfigMap), intent(inout) :: field_config_map
-      integer, optional,    intent(  out) :: rc
+!    subroutine add_to_field_dictionary(this, rc)
+!       class(FieldConfig), intent(inout) :: this
+!       integer, optional,  intent(  out) :: rc
 
-      type(FieldConfigMapIterator) :: iter
-      type(FieldConfig)            :: field_config
+!       integer :: status
 
-      integer :: status
+!       call this%add_name_to_field_dictionary(this%short_name, __RC__)
+!       call this%add_name_to_field_dictionary(this%standard_name, __RC__)
+!       call this%create_synonyms(__RC__)
 
-      iter = field_config_map%begin()
-      do while(iter /= field_config_map%end())
-         field_config = iter%value()
+!       _RETURN(_SUCCESS)
+!    end subroutine add_to_field_dictionary
 
-         call field_config%add_to_field_dictionary(__RC__)
+!    subroutine advertise_to_state(this, state, rc)
+!       class(FieldConfig), intent(inout) :: this
+!       type(ESMF_State),   intent(inout) :: state
+!       integer, optional,  intent(  out) :: rc
 
-         call iter%next()
-      end do
+!       integer :: status
 
-      _RETURN(_SUCCESS)
-   end subroutine add_map_to_field_dictionary
+!       call NUOPC_Advertise(state, standardName=this%short_name, &
+!          TransferOfferGeomObject=this%TransferOfferGeomObject, &
+!          SharePolicyField=this%SharePolicyField, &
+!          SharePolicyGeomObject=this%SharePolicyGeomObject, &
+!          rc=status)
+!       VERIFY_NUOPC_(status)
 
-   subroutine add_to_field_dictionary(this, rc)
-      class(NOAA_MAPLconfig), intent(inout) :: this
-      integer, optional,      intent(  out) :: rc
+!       _RETURN(_SUCCESS)
+!    end subroutine advertise_to_state
 
-      integer :: status
+!    subroutine set_doNotAllocate(this)
+!       class(FieldConfig), intent(inout) :: this
 
-      call this%add_map_to_field_dictionary(this%imports, __RC__)
-      call this%add_map_to_field_dictionary(this%exports, __RC__)
+!       if ((this%TransferOfferGeomObject == cannot_provide) .and. (this%SharePolicyField == share)) then
+!          this%doNotAllocate = .true.
+!       else
+!          this%doNotAllocate = .false.
+!       end if
+!    end subroutine set_doNotAllocate
 
-      _RETURN(_SUCCESS)
-   end subroutine add_to_field_dictionary
+!    subroutine fill_defaults(this)
+!       class(FieldConfig), intent(inout) :: this
 
-   subroutine advertise_map(field_config_map, state, rc)
-      class(FieldConfigMap), intent(inout) :: field_config_map
-      type(ESMF_State),      intent(inout) :: state
-      integer, optional,     intent(  out) :: rc
+!       if (.not. allocated(this%standard_name))           this%standard_name           = this%short_name
+!       if (.not. allocated(this%units))                   this%units                   = default_units
+!       if (.not. allocated(this%TransferOfferGeomObject)) this%TransferOfferGeomObject = default_TransferOfferGeomObject
+!       if (.not. allocated(this%SharePolicyField))        this%SharePolicyField        = default_SharePolicyField
+!       if (.not. allocated(this%SharePolicyGeomObject))   this%SharePolicyGeomObject   = this%SharePolicyField
 
-      type(FieldConfigMapIterator) :: iter
-      type(FieldConfig)            :: field_config
+!       call this%set_doNotAllocate()
+!    end subroutine fill_defaults
 
-      integer :: status
+!    subroutine read_field_config(this, short_name, config)
+!       class(FieldConfig),  intent(inout) :: this
+!       character(*),        intent(in   ) :: short_name
+!       type(Configuration), intent(inout) :: config
 
-      iter = field_config_map%begin()
-      do while(iter /= field_config_map%end())
-         field_config = iter%value()
+!       type(ConfigurationIterator) :: iter
+!       character(:), pointer       :: key
 
-         call field_config%advertise_to_state(state, __RC__)
+!       this%short_name = short_name
 
-         call iter%next()
-      end do
+!       iter = config%begin()
+!       do while (iter /= config%end())
+!          key => iter%key()
 
-      _RETURN(_SUCCESS)
-   end subroutine advertise_map
+!          select case(key)
+!          case(standard_name)
+!             this%standard_name = iter%value()
+!          case(units)
+!             this%units = iter%value()
+!          case(TransferOfferGeomObject)
+!             this%TransferOfferGeomObject = iter%value()
+!          case(SharePolicyField)
+!             this%SharePolicyField = iter%value()
+!          case(SharePolicyGeomObject)
+!             this%SharePolicyGeomObject = iter%value()
+!          end select
 
-   subroutine advertise(this, import_state, export_state, rc)
-      class(NOAA_MAPLconfig), intent(inout) :: this
-      type(ESMF_State),       intent(inout) :: import_state
-      type(ESMF_State),       intent(inout) :: export_state
-      integer, optional,      intent(  out) :: rc
+!          call iter%next()
+!       end do
 
-      integer :: status
+!       call this%fill_defaults()
+!    end subroutine read_field_config
 
-      call this%advertise_map(this%imports, import_state, __RC__)
-      call this%advertise_map(this%exports, export_state, __RC__)
+!    function create_field_config(name, config) result(field_config)
+!       type(FieldConfig) :: field_config
+!       character(*),        intent(in   ) :: name
+!       type(Configuration), intent(inout) :: config
 
-      _RETURN(_SUCCESS)
-   end subroutine advertise
+!       call field_config%read_field_config(name, config)
+!    end function create_field_config
+! end module NOAA_MAPLfieldConfig
 
-   function read_from_config(config) result(field_config_map)
-      type(FieldConfigMap)               :: field_config_map
-      type(Configuration), intent(inout) :: config
+! module NOAA_MAPLfieldConfigMap
+!    use NOAA_MAPLfieldConfig
 
-      type(Configuration)         :: sub_config
-      type(ConfigurationIterator) :: iter
+! #include "types/key_deferredLengthString.inc"
+! #define _value type(FieldConfig)
 
-      character(:), pointer :: name
+! #define _map FieldConfigMap
+! #define _iterator FieldConfigMapIterator
+! #define _alt
+! #include "templates/map.inc"
+! end module NOAA_MAPLfieldConfigMap
 
-      iter = config%begin()
-      do while(iter /= config%end())
-         name       => iter%key()
-         sub_config =  iter%value()
+! module NOAA_MAPLconfigMod
+!    use ESMF
+!    use MAPL_Mod
+!    use yaFyaml
 
-         call field_config_map%insert(name, create_field_config(name, sub_config))
-         call iter%next()
-      end do
-   end function read_from_config
+!    use NOAA_MAPLfieldConfig
+!    use NOAA_MAPLfieldConfigMap
 
-   subroutine read_config(this, filename)
-      class(NOAA_MAPLconfig), intent(inout) :: this
-      character(*),            intent(in   ) :: filename
+!    implicit none
+!    private
 
-      type(Parser)                :: p
-      type(FileStream)            :: file_stream
-      type(Configuration)         :: config, sub_config
-      type(ConfigurationIterator) :: iter
+!    public NOAA_MAPLconfig
 
-      character(:), pointer :: key
+!    character(*), parameter :: NOAA_imports = 'NOAA_imports'
+!    character(*), parameter :: NOAA_exports = 'NOAA_exports'
 
-      p           = Parser('core')
-      file_stream = FileStream(filename)
-      config      = p%load(file_stream)
+!    type :: NOAA_MAPLconfig
+!       type(FieldConfigMap) :: imports
+!       type(FieldConfigMap) :: exports
+!    contains
+!       procedure, nopass :: read_from_config
+!       procedure         :: read_config
+!       procedure, nopass :: advertise_map
+!       procedure         :: advertise
+!       procedure, nopass :: add_map_to_field_dictionary
+!       procedure         :: add_to_field_dictionary
+!    end type NOAA_MAPLconfig
 
-      iter = config%begin()
-      do while (iter /= config%end())
-         key => iter%key()
+! contains
+!    subroutine add_map_to_field_dictionary(field_config_map, rc)
+!       type(FieldConfigMap), intent(inout) :: field_config_map
+!       integer, optional,    intent(  out) :: rc
 
-         select case(key)
-         case (NOAA_imports)
-            sub_config = iter%value()
-            this%imports = this%read_from_config(sub_config)
-         case (NOAA_exports)
-            sub_config = iter%value()
-            this%exports= this%read_from_config(sub_config)
-         end select
+!       type(FieldConfigMapIterator) :: iter
+!       type(FieldConfig)            :: field_config
 
-         call iter%next()
-      end do
+!       integer :: status
 
-      call file_stream%close()
-   end subroutine read_config
-end module NOAA_MAPLconfigMod
+!       iter = field_config_map%begin()
+!       do while(iter /= field_config_map%end())
+!          field_config = iter%value()
+
+!          call field_config%add_to_field_dictionary(__RC__)
+
+!          call iter%next()
+!       end do
+
+!       _RETURN(_SUCCESS)
+!    end subroutine add_map_to_field_dictionary
+
+!    subroutine add_to_field_dictionary(this, rc)
+!       class(NOAA_MAPLconfig), intent(inout) :: this
+!       integer, optional,      intent(  out) :: rc
+
+!       integer :: status
+
+!       call this%add_map_to_field_dictionary(this%imports, __RC__)
+!       call this%add_map_to_field_dictionary(this%exports, __RC__)
+
+!       _RETURN(_SUCCESS)
+!    end subroutine add_to_field_dictionary
+
+!    subroutine advertise_map(field_config_map, state, rc)
+!       class(FieldConfigMap), intent(inout) :: field_config_map
+!       type(ESMF_State),      intent(inout) :: state
+!       integer, optional,     intent(  out) :: rc
+
+!       type(FieldConfigMapIterator) :: iter
+!       type(FieldConfig)            :: field_config
+
+!       integer :: status
+
+!       iter = field_config_map%begin()
+!       do while(iter /= field_config_map%end())
+!          field_config = iter%value()
+
+!          call field_config%advertise_to_state(state, __RC__)
+
+!          call iter%next()
+!       end do
+
+!       _RETURN(_SUCCESS)
+!    end subroutine advertise_map
+
+!    subroutine advertise(this, import_state, export_state, rc)
+!       class(NOAA_MAPLconfig), intent(inout) :: this
+!       type(ESMF_State),       intent(inout) :: import_state
+!       type(ESMF_State),       intent(inout) :: export_state
+!       integer, optional,      intent(  out) :: rc
+
+!       integer :: status
+
+!       call this%advertise_map(this%imports, import_state, __RC__)
+!       call this%advertise_map(this%exports, export_state, __RC__)
+
+!       _RETURN(_SUCCESS)
+!    end subroutine advertise
+
+!    function read_from_config(config) result(field_config_map)
+!       type(FieldConfigMap)               :: field_config_map
+!       type(Configuration), intent(inout) :: config
+
+!       type(Configuration)         :: sub_config
+!       type(ConfigurationIterator) :: iter
+
+!       character(:), pointer :: name
+
+!       iter = config%begin()
+!       do while(iter /= config%end())
+!          name       => iter%key()
+!          sub_config =  iter%value()
+
+!          call field_config_map%insert(name, create_field_config(name, sub_config))
+!          call iter%next()
+!       end do
+!    end function read_from_config
+
+!    subroutine read_config(this, filename)
+!       class(NOAA_MAPLconfig), intent(inout) :: this
+!       character(*),            intent(in   ) :: filename
+
+!       type(Parser)                :: p
+!       type(FileStream)            :: file_stream
+!       type(Configuration)         :: config, sub_config
+!       type(ConfigurationIterator) :: iter
+
+!       character(:), pointer :: key
+
+!       p           = Parser('core')
+!       file_stream = FileStream(filename)
+!       config      = p%load(file_stream)
+
+!       iter = config%begin()
+!       do while (iter /= config%end())
+!          key => iter%key()
+
+!          select case(key)
+!          case (NOAA_imports)
+!             sub_config = iter%value()
+!             this%imports = this%read_from_config(sub_config)
+!          case (NOAA_exports)
+!             sub_config = iter%value()
+!             this%exports= this%read_from_config(sub_config)
+!          end select
+
+!          call iter%next()
+!       end do
+
+!       call file_stream%close()
+!    end subroutine read_config
+! end module NOAA_MAPLconfigMod
