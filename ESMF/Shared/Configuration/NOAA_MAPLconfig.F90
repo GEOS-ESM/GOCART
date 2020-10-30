@@ -89,6 +89,8 @@ module NOAA_MAPLoptions
    use MAPL
    use yaFyaml
 
+   use LinearFields
+
    implicit none
    private
 
@@ -99,20 +101,28 @@ module NOAA_MAPLoptions
    character(*), parameter :: reverseMask     = 'reverseMask'
    character(*), parameter :: convert2MAPL    = 'convert2MAPL'
 
-   logical,           parameter :: default_reverseLevels = .false.
+   integer,           parameter :: default_reverseLevels = 0
    logical,           parameter :: default_reverseMask   = .false.
    real(kind=REAL32), parameter :: default_convert2MAPL  = 1.0_REAL32
 
    type :: OptionsConfig
       character(:), allocatable :: state
 
-      logical, allocatable :: reverseLevels
+      integer, allocatable :: reverseLevels
       logical, allocatable :: reverseMask
 
       real(kind=REAL32), allocatable :: convert2MAPL
    contains
       procedure :: fill_defaults
       procedure :: read_options_config
+
+      procedure :: reverse_levels
+      procedure :: reverse_mask
+      procedure :: convert_to_MAPL
+      procedure :: convert_from_MAPL
+
+      procedure :: to_MAPL
+      procedure :: from_MAPL
    end type OptionsConfig
 contains
    subroutine fill_defaults(this, default_state)
@@ -133,6 +143,7 @@ contains
       type(ConfigurationIterator) :: iter
       character(:), pointer       :: key
 
+      integer           :: integer_tmp
       logical           :: logical_tmp
       real(kind=REAL32) :: real_tmp
 
@@ -144,8 +155,8 @@ contains
          case(ESMF_yaml_state)
             this%state         = iter%value()
          case(reverseLevels)
-            logical_tmp        = iter%value()
-            this%reverseLevels = logical_tmp
+            integer_tmp        = iter%value()
+            this%reverseLevels = integer_tmp
          case(reverseMask)
             logical_tmp        = iter%value()
             this%reverseMask   = logical_tmp
@@ -159,6 +170,91 @@ contains
 
       call this%fill_defaults(default_state)
    end subroutine read_options_config
+
+   subroutine reverse_levels(this, field, rc)
+      class(OptionsConfig), intent(inout) :: this
+      type(ESMF_Field),     intent(in   ) :: field
+      integer, optional,    intent(  out) :: rc
+
+      integer :: status
+
+      if (this%reverseLevels > 0) then
+         call reverse_field(field, this%reverseLevels, __RC__)
+      end if
+
+      _RETURN(_SUCCESS)
+   end subroutine reverse_levels
+
+   subroutine reverse_mask(this, field, rc)
+      class(OptionsConfig), intent(inout) :: this
+      type(ESMF_Field),     intent(in   ) :: field
+      integer, optional,    intent(  out) :: rc
+
+      integer :: status
+
+      if (this%reverseMask) then
+         call shift_field(field, -1.0_REAL64, __RC__)
+         call scale_field(field, -1.0_REAL64, __RC__)
+      end if
+
+      _RETURN(_SUCCESS)
+   end subroutine reverse_mask
+
+   subroutine convert_to_MAPL(this, field, rc)
+      class(OptionsConfig), intent(inout) :: this
+      type(ESMF_Field),     intent(in   ) :: field
+      integer, optional,    intent(  out) :: rc
+
+      integer :: status
+
+      if (this%convert2MAPL /= 1.0_REAL32) then
+         call scale_field(field, this%convert2MAPL, __RC__)
+      end if
+
+      _RETURN(_SUCCESS)
+   end subroutine convert_to_MAPL
+
+   subroutine convert_from_MAPL(this, field, rc)
+      class(OptionsConfig), intent(inout) :: this
+      type(ESMF_Field),     intent(in   ) :: field
+      integer, optional,    intent(  out) :: rc
+
+      integer :: status
+
+      if (this%convert2MAPL /= 1.0_REAL32) then
+         call scale_field(field, (1.0_REAL32 / this%convert2MAPL), __RC__)
+      end if
+
+      _RETURN(_SUCCESS)
+   end subroutine convert_from_MAPL
+
+   subroutine to_MAPL(this, field, rc)
+      class(OptionsConfig), intent(inout) :: this
+      type(ESMF_Field),     intent(in   ) :: field
+      integer, optional,    intent(  out) :: rc
+
+      integer :: status
+
+      call this%reverse_levels( field, __RC__)
+      call this%reverse_mask(   field, __RC__)
+      call this%convert_to_MAPL(field, __RC__)
+
+      _RETURN(_SUCCESS)
+   end subroutine to_MAPL
+
+   subroutine from_MAPL(this, field, rc)
+      class(OptionsConfig), intent(inout) :: this
+      type(ESMF_Field),     intent(in   ) :: field
+      integer, optional,    intent(  out) :: rc
+
+      integer :: status
+
+      call this%reverse_levels( field, __RC__)
+      call this%reverse_mask(   field, __RC__)
+      call this%convert_from_MAPL(field, __RC__)
+
+      _RETURN(_SUCCESS)
+   end subroutine from_MAPL
 end module NOAA_MAPLoptions
 
 ! module NOAA_MAPLfieldConfig

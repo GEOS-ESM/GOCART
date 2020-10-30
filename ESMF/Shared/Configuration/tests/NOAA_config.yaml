@@ -50,14 +50,14 @@ test_options:
   test2:
     ESMF_State:    'export'
   test3:
-    reverseLevels: True
+    reverseLevels: 1
   test4:
     reverseMask:   True
   test5:
     convert2MAPL:  3.14
   test6:
     ESMF_State:    'export'
-    reverseLevels: True
+    reverseLevels: 1
   test7:
     ESMF_State:    'export'
     reverseMask:   True
@@ -65,17 +65,17 @@ test_options:
     ESMF_State:    'export'
     convert2MAPL:  3.14
   test9:
-    reverseLevels: True
+    reverseLevels: 1
     reverseMask:   True
   test10:
-    reverseLevels: True
+    reverseLevels: 1
     convert2MAPL:  3.14
   test11:
     reverseMask:   True
     convert2MAPL:  3.14
   test12:
     ESMF_State:    'export'
-    reverseLevels: True
+    reverseLevels: 1
     reverseMask:   True
   test13:
     ESMF_State:    'export'
@@ -83,15 +83,15 @@ test_options:
     convert2MAPL:  3.14
   test14:
     ESMF_State:    'export'
-    reverseLevels: True
+    reverseLevels: 1
     convert2MAPL:  3.14
   test15:
-    reverseLevels: True
+    reverseLevels: 1
     reverseMask:   True
     convert2MAPL:  3.14
   test16:
     ESMF_State:    'export'
-    reverseLevels: True
+    reverseLevels: 1
     reverseMask:   True
     convert2MAPL:  3.14
 
