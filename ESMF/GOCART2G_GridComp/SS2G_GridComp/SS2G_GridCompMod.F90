@@ -437,9 +437,6 @@ contains
        call setZeroKlid4d (self%km, self%klid, int_ptr)
     end if
 
-do i = 1, 5
- if(mapl_am_i_root()) print*,'n = ', i,' : INIT SS2G sum(ss00n) = ',sum(int_ptr(:,:,:,i))
-end do
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
