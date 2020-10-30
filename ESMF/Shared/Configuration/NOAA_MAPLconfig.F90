@@ -285,6 +285,11 @@ module NOAA_MAPLfield
       type(TracerEntry),    allocatable :: tracer_entry
    contains
       procedure :: fill_defaults
+      procedure :: read_field_config
+
+      procedure :: add_to_field_dictionary
+      procedure :: add_name_to_field_dictionary
+      procedure :: create_synonyms
    end type FieldConfig
 contains
    subroutine fill_defaults(this, default_state)
@@ -355,6 +360,61 @@ contains
 
       call this%fill_defaults(default_state)
    end subroutine read_field_config
+
+   subroutine add_name_to_field_dictionary(this, name, rc)
+      class(FieldConfig), intent(inout) :: this
+      character(*),       intent(in   ) :: name
+      integer, optional,  intent(  out) :: rc
+
+      logical :: has_entry
+      integer :: status
+
+      has_entry = NUOPC_FieldDictionaryHasEntry(standardName=name, rc=status)
+      VERIFY_NUOPC_(status)
+
+      if (.not. has_entry) then
+         call NUOPC_FieldDictionaryAddEntry(standardName=name, canonicalUnits=this%units, rc=status)
+         VERIFY_NUOPC_(status)
+      end if
+
+      _RETURN(_SUCCESS)
+   end subroutine add_name_to_field_dictionary
+
+   subroutine create_synonyms(this, rc)
+      class(FieldConfig), intent(inout) :: this
+      integer, optional,  intent(  out) :: rc
+
+      logical :: are_synonymns
+      integer :: status
+
+      if (this%MAPL_name == this%standardName) then
+         are_synonymns = .true.
+      else
+         are_synonymns = NUOPC_FieldDictionaryMatchSyno(standardName1=this%MAPL_name, &
+            standardName2=this%standardName, rc=status)
+         VERIFY_NUOPC_(status)
+      end if
+
+      if (.not. are_synonymns) then
+         call NUOPC_FieldDictionarySetSyno([this%MAPL_name, this%standardName], rc=status)
+         VERIFY_NUOPC_(status)
+      end if
+
+      _RETURN(_SUCCESS)
+   end subroutine create_synonyms
+
+   subroutine add_to_field_dictionary(this, rc)
+      class(FieldConfig), intent(inout) :: this
+      integer, optional,  intent(  out) :: rc
+
+      integer :: status
+
+      call this%add_name_to_field_dictionary(this%MAPL_name, __RC__)
+      call this%add_name_to_field_dictionary(this%standardName, __RC__)
+      call this%create_synonyms(__RC__)
+
+      _RETURN(_SUCCESS)
+   end subroutine add_to_field_dictionary
 end module NOAA_MAPLfield
 
 ! module NOAA_MAPLfieldConfig
