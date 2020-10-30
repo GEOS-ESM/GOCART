@@ -1,0 +1,707 @@
+#include "MAPL_Generic.h"
+
+module test_LinearFields
+    use, intrinsic :: iso_fortran_env, only: REAL32, REAL64
+
+    use LinearFields
+    use pFunit
+    use MAPL
+    use ESMF
+
+    implicit none
+
+    interface create_ESMF_Field
+        module procedure create_ESMF_real32_2DField
+        module procedure create_ESMF_real32_3DField
+        module procedure create_ESMF_real64_2DField
+        module procedure create_ESMF_real64_3DField
+    end interface create_ESMF_Field
+contains
+    subroutine create_ESMF_real32_2DField(field, f_array, t_array, rc)
+        type(ESMF_Field),               intent(out) :: field
+        real(kind=REAL32), allocatable, intent(out) :: f_array(:,:), t_array(:,:)
+        integer, optional,              intent(out) :: rc
+
+        type(ESMF_Grid)     :: grid
+        type(ESMF_DistGrid) :: distgrid
+        type(ESMF_Array)    :: array
+        integer             :: fa_shape(2)
+        real(kind=REAL32)   :: f_array_val
+        integer             :: status, x_dim, y_dim, i, j, field_rank
+
+        x_dim = 4
+        y_dim = 3
+
+        grid = ESMF_GridCreateNoPeriDim(minIndex=[1,1], maxIndex=[x_dim,y_dim], &
+                regDecomp=[1,1], name="grid", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGet(grid, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                distgrid=distgrid, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGetFieldBounds(grid=grid, localDe=0, &
+                staggerloc=ESMF_STAGGERLOC_CENTER, totalCount=fa_shape, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(fa_shape(1), is(equal_to(x_dim)))
+        @assert_that(fa_shape(2), is(equal_to(y_dim)))
+
+        allocate(f_array(fa_shape(1), fa_shape(2)))
+        allocate(t_array(fa_shape(1), fa_shape(2)))
+        f_array_val = 1.0
+        do i=1, fa_shape(1)
+            do j=1, fa_shape(2)
+                f_array(i,j) = f_array_val
+                f_array_val = f_array_val + 1.0
+            end do
+        end do
+        t_array = f_array
+
+        @assert_that(f_array_val, is(equal_to(fa_shape(1)*fa_shape(2) + 1.0)))
+
+        array = ESMF_ArrayCreate(distgrid, f_array, &
+                indexflag=ESMF_INDEX_DELOCAL, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        field = ESMF_FieldCreate(grid=grid, array=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, rank=field_rank, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_rank, is(equal_to(2)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_ESMF_real32_2DField
+
+    subroutine create_ESMF_real32_3DField(field, f_array, t_array, rc)
+        type(ESMF_Field),               intent(out) :: field
+        real(kind=REAL32), allocatable, intent(out) :: f_array(:,:,:), t_array(:,:,:)
+        integer, optional,              intent(out) :: rc
+
+        type(ESMF_Grid)     :: grid
+        type(ESMF_DistGrid) :: distgrid
+        type(ESMF_Array)    :: array
+        integer             :: fa_shape(3)
+        real(kind=REAL32)   :: f_array_val
+        integer             :: status, x_dim, y_dim, z_dim, i, j, k, field_rank
+
+        x_dim = 4
+        y_dim = 3
+        z_dim = 2
+
+        grid = ESMF_GridCreateNoPeriDim(minIndex=[1,1,1], maxIndex=[x_dim,y_dim,z_dim], &
+                regDecomp=[1,1,1], name="grid", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGet(grid, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                distgrid=distgrid, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGetFieldBounds(grid=grid, localDe=0, &
+                staggerloc=ESMF_STAGGERLOC_CENTER, totalCount=fa_shape, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(fa_shape(1), is(equal_to(x_dim)))
+        @assert_that(fa_shape(2), is(equal_to(y_dim)))
+        @assert_that(fa_shape(3), is(equal_to(z_dim)))
+
+        allocate(f_array(fa_shape(1), fa_shape(2), fa_shape(3)))
+        allocate(t_array(fa_shape(1), fa_shape(2), fa_shape(3)))
+        f_array_val = 1.0
+        do i=1, fa_shape(1)
+            do j=1, fa_shape(2)
+                do k=1, fa_shape(3)
+                    f_array(i,j,k) = f_array_val
+                    f_array_val = f_array_val + 1.0
+                end do
+            end do
+        end do
+        t_array = f_array
+
+        @assert_that(f_array_val, is(equal_to(fa_shape(1)*fa_shape(2)*fa_shape(3) + 1.0)))
+
+        array = ESMF_ArrayCreate(distgrid, f_array, &
+                indexflag=ESMF_INDEX_DELOCAL, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        field = ESMF_FieldCreate(grid=grid, array=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, rank=field_rank, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_rank, is(equal_to(3)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_ESMF_real32_3DField
+
+    subroutine create_ESMF_real64_2DField(field, f_array, t_array, rc)
+        type(ESMF_Field),               intent(out) :: field
+        real(kind=REAL64), allocatable, intent(out) :: f_array(:,:), t_array(:,:)
+        integer, optional,              intent(out) :: rc
+
+        type(ESMF_Grid)     :: grid
+        type(ESMF_DistGrid) :: distgrid
+        type(ESMF_Array)    :: array
+        integer             :: fa_shape(2)
+        real(kind=REAL64)   :: f_array_val
+        integer             :: status, x_dim, y_dim, i, j, field_rank
+
+        x_dim = 4
+        y_dim = 3
+
+        grid = ESMF_GridCreateNoPeriDim(minIndex=[1,1], maxIndex=[x_dim,y_dim], &
+                regDecomp=[1,1], name="grid", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGet(grid, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                distgrid=distgrid, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGetFieldBounds(grid=grid, localDe=0, &
+                staggerloc=ESMF_STAGGERLOC_CENTER, totalCount=fa_shape, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(fa_shape(1), is(equal_to(x_dim)))
+        @assert_that(fa_shape(2), is(equal_to(y_dim)))
+
+        allocate(f_array(fa_shape(1), fa_shape(2)))
+        allocate(t_array(fa_shape(1), fa_shape(2)))
+        f_array_val = 1.d0
+        do i=1, fa_shape(1)
+            do j=1, fa_shape(2)
+                f_array(i,j) = f_array_val
+                f_array_val = f_array_val + 1.d0
+            end do
+        end do
+        t_array = f_array
+
+        @assert_that(f_array_val, is(equal_to(fa_shape(1)*fa_shape(2) + 1.d0)))
+
+        array = ESMF_ArrayCreate(distgrid, f_array, &
+                indexflag=ESMF_INDEX_DELOCAL, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        field = ESMF_FieldCreate(grid=grid, array=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, rank=field_rank, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_rank, is(equal_to(2)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_ESMF_real64_2DField
+
+    subroutine create_ESMF_real64_3DField(field, f_array, t_array, rc)
+        type(ESMF_Field),               intent(out) :: field
+        real(kind=REAL64), allocatable, intent(out) :: f_array(:,:,:), t_array(:,:,:)
+        integer, optional,              intent(out) :: rc
+
+        type(ESMF_Grid)     :: grid
+        type(ESMF_DistGrid) :: distgrid
+        type(ESMF_Array)    :: array
+        integer             :: fa_shape(3)
+        real(kind=REAL64)   :: f_array_val
+        integer             :: status, x_dim, y_dim, z_dim, i, j, k, field_rank
+
+        x_dim = 4
+        y_dim = 3
+        z_dim = 2
+
+        grid = ESMF_GridCreateNoPeriDim(minIndex=[1,1,1], maxIndex=[x_dim,y_dim,z_dim], &
+                regDecomp=[1,1,1], name="grid", rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGet(grid, staggerloc=ESMF_STAGGERLOC_CENTER, &
+                distgrid=distgrid, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_GridGetFieldBounds(grid=grid, localDe=0, &
+                staggerloc=ESMF_STAGGERLOC_CENTER, totalCount=fa_shape, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(fa_shape(1), is(equal_to(x_dim)))
+        @assert_that(fa_shape(2), is(equal_to(y_dim)))
+        @assert_that(fa_shape(3), is(equal_to(z_dim)))
+
+        allocate(f_array(fa_shape(1), fa_shape(2), fa_shape(3)))
+        allocate(t_array(fa_shape(1), fa_shape(2), fa_shape(3)))
+        f_array_val = 1.d0
+        do i=1, fa_shape(1)
+            do j=1, fa_shape(2)
+                do k=1, fa_shape(3)
+                    f_array(i,j,k) = f_array_val
+                    f_array_val = f_array_val + 1.d0
+                end do
+            end do
+        end do
+        t_array = f_array
+
+        @assert_that(f_array_val, is(equal_to(fa_shape(1)*fa_shape(2)*fa_shape(3) + 1.d0)))
+
+        array = ESMF_ArrayCreate(distgrid, f_array, &
+                indexflag=ESMF_INDEX_DELOCAL, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        field = ESMF_FieldCreate(grid=grid, array=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, rank=field_rank, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(field_rank, is(equal_to(3)))
+
+        _RETURN(_SUCCESS)
+    end subroutine create_ESMF_real64_3DField
+
+    @test
+    subroutine test_scale_real32_2D_field_real32()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL32)              :: scale_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL32),pointer :: array(:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call scale_field(field, scale_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array*scale_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array*scale_factor)))
+    end subroutine test_scale_real32_2D_field_real32
+
+    @test
+    subroutine test_scale_real32_2D_field_real64()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL64)              :: scale_factor = 3.d0
+        integer                        :: status
+
+        real(kind=REAL32),pointer :: array(:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call scale_field(field, scale_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array*3.0)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array*3.0)))
+    end subroutine test_scale_real32_2D_field_real64
+
+    @test
+    subroutine test_scale_real32_3D_field_real32()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL32)              :: scale_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL32),pointer :: array(:,:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call scale_field(field, scale_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array*scale_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array*scale_factor)))
+    end subroutine test_scale_real32_3D_field_real32
+
+    @test
+    subroutine test_scale_real32_3D_field_real64()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL64)              :: scale_factor = 3.d0
+        integer                        :: status
+
+        real(kind=REAL32),pointer :: array(:,:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call scale_field(field, scale_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array*3.0)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array*3.0)))
+    end subroutine test_scale_real32_3D_field_real64
+
+    @test
+    subroutine test_scale_real64_2D_field_real32()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL32)              :: scale_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL64),pointer :: array(:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call scale_field(field, scale_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array*scale_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array*scale_factor)))
+    end subroutine test_scale_real64_2D_field_real32
+
+    @test
+    subroutine test_scale_real64_2D_field_real64()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL64)              :: scale_factor = 3.d0
+        integer                        :: status
+
+        real(kind=REAL64),pointer :: array(:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call scale_field(field, scale_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array*scale_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array*scale_factor)))
+    end subroutine test_scale_real64_2D_field_real64
+
+    @test
+    subroutine test_scale_real64_3D_field_real32()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL32)              :: scale_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL64),pointer :: array(:,:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call scale_field(field, scale_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array*scale_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array*scale_factor)))
+    end subroutine test_scale_real64_3D_field_real32
+
+    @test
+    subroutine test_scale_real64_3D_field_real64()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL64)              :: scale_factor = 3.d0
+        integer                        :: status
+
+        real(kind=REAL64),pointer :: array(:,:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call scale_field(field, scale_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array*scale_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array*scale_factor)))
+    end subroutine test_scale_real64_3D_field_real64
+
+    @test
+    subroutine test_shift_real32_2D_field_real32()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL32)              :: shift_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL32),pointer :: array(:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call shift_field(field, shift_factor)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array+shift_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array+shift_factor)))
+    end subroutine test_shift_real32_2D_field_real32
+
+    @test
+    subroutine test_shift_real32_2D_field_real64()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL64)              :: shift_factor = 3.d0
+        integer                        :: status
+
+        real(kind=REAL32),pointer :: array(:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call shift_field(field, shift_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array+3.0)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array+3.0)))
+    end subroutine test_shift_real32_2D_field_real64
+
+    @test
+    subroutine test_shift_real32_3D_field_real32()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL32)              :: shift_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL32),pointer :: array(:,:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call shift_field(field, shift_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array+shift_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array+shift_factor)))
+    end subroutine test_shift_real32_3D_field_real32
+
+    @test
+    subroutine test_shift_real32_3D_field_real64()
+        type(ESMF_Field)               :: field
+        real(kind=REAL32), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL64)              :: shift_factor = 3.d0
+        integer                        :: status
+
+        real(kind=REAL32),pointer :: array(:,:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call shift_field(field, shift_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array+3.0)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array+3.0)))
+    end subroutine test_shift_real32_3D_field_real64
+
+    @test
+    subroutine test_shift_real64_2D_field_real32()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL32)              :: shift_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL64),pointer :: array(:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call shift_field(field, shift_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array+shift_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array+shift_factor)))
+    end subroutine test_shift_real64_2D_field_real32
+
+    @test
+    subroutine test_shift_real64_2D_field_real64()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:), t_array(:,:)
+        real(kind=REAL64)              :: shift_factor = 3.d0
+        integer                        :: status
+
+        real(kind=REAL64),pointer :: array(:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call shift_field(field, shift_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array+shift_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array+shift_factor)))
+    end subroutine test_shift_real64_2D_field_real64
+
+    @test
+    subroutine test_shift_real64_3D_field_real32()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL32)              :: shift_factor = 3.0
+        integer                        :: status
+
+        real(kind=REAL64),pointer :: array(:,:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call shift_field(field, shift_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array+shift_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array+shift_factor)))
+    end subroutine test_shift_real64_3D_field_real32
+
+    @test
+    subroutine test_shift_real64_3D_field_real64()
+        type(ESMF_Field)               :: field
+        real(kind=REAL64), allocatable :: f_array(:,:,:), t_array(:,:,:)
+        real(kind=REAL64)              :: shift_factor = 3.d0
+        integer                        :: status
+
+        real(kind=REAL64),pointer :: array(:,:,:)
+
+        call create_ESMF_Field(field, f_array, t_array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        call ESMF_FieldGet(field, localDE=0, farrayPtr=array, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(array, is(equal_to(t_array)))
+        @assert_that(array, is(equal_to(f_array)))
+
+        call shift_field(field, shift_factor, rc=status)
+        @assert_that(status, is(equal_to(0)))
+
+        @assert_that(f_array, is(not(equal_to(t_array))))
+        @assert_that(f_array, is(equal_to(t_array+shift_factor)))
+
+        @assert_that(array, is(equal_to(f_array)))
+        @assert_that(array, is(equal_to(t_array+shift_factor)))
+    end subroutine test_shift_real64_3D_field_real64
+end module test_LinearFields

@@ -1,6 +1,7 @@
 esma_set_this()
 
 set (srcs
+        LinearFields.F90
         NOAA_Tracers.F90
         NOAA_MAPLconfig.F90
         NOAA_GOCARTtracers.F90

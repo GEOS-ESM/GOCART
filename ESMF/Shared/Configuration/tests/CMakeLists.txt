@@ -1,6 +1,7 @@
 add_definitions(-DUSE_MPI)
 
 set (TEST_SRCS
+        test_LinearFields.pf
         test_NOAA_Tracers.pf
         test_NOAA_GOCARTtracers.pf
         test_NOAA_MAPLconfig.pf
