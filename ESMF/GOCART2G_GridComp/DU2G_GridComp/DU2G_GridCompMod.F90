@@ -340,6 +340,7 @@ contains
     real, pointer, dimension(:,:,:)      :: ple
     logical                              :: data_driven
     integer                              :: NUM_BANDS
+    logical                              :: bands_are_present
 
     __Iam__('Initialize')
 
@@ -416,7 +417,6 @@ contains
     call ESMF_StateGet (export, 'DU', field, __RC__)
     call ESMF_AttributeSet(field, NAME='radius', valueList=self%radius, itemCount=self%nbins, __RC__)
     call ESMF_AttributeSet(field, NAME='fnum', valueList=self%fnum, itemCount=self%nbins, __RC__)
-!    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
 
 !   Add attribute information to internal state varaibles
 !   -----------------------------------------------------
@@ -486,19 +486,22 @@ contains
                                   label="aerosol_radBands_optics_file:", __RC__ )
 
     allocate (self%rad_MieTable(instance)%channels(NUM_BANDS), __STAT__ )
+    self%rad_MieTable(instance)%nch = NUM_BANDS
 
-    call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
-                                 count=self%rad_MieTable(instance)%nch, rc=status)
+    call ESMF_ConfigFindLabel(cfg, label="BANDS:", isPresent=bands_are_present, __RC__)
 
-    if (rc /= 0) then
+    if (bands_are_present) then
+       call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
+                                    count=self%rad_MieTable(instance)%nch, __RC__)
+    else
        do i = 1, NUM_BANDS
           self%rad_MieTable(instance)%channels(i) = i
        end do
-    end if
+    endif
 
     allocate (self%rad_MieTable(instance)%mie_aerosol, __STAT__)
-    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, rc)
-    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, rc)
+    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, __RC__)
+    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, __RC__)
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
@@ -737,7 +740,6 @@ contains
 
 !   Update aerosol state
 !   --------------------
-!#if 0
     call UpdateAerosolState (emissions, emissions_surface, emissions_point, &
                              self%sfrac, self%nPts, self%km, self%CDT, MAPL_GRAV, &
                              self%nbins, delp, DU, rc)
@@ -745,27 +747,6 @@ contains
     if (associated(DUEM)) then
        DUEM = sum(emissions, dim=3)
     end if
-!#endif
-!do n = 1, 5
-!  dqa = 0.0
-!  dqa = self%Ch_DU * self%sfrac(n) * du_src * emissions_surface(:,:,n) * self%cdt * chemgrav / delp(:,:,self%km)
-!  DU(:,:,self%km,n) = DU(:,:,self%km,n) + dqa
- 
-!  if(associated(DUEM)) then
-!    DUEM(:,:,n) = self%Ch_DU * self%sfrac(n) * du_src * emissions_surface(:,:,n)
-!  end if
-!end do
-
-!do n=1,5
-!   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 E DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-!end do
-!do k=1,self%km
-!  if(mapl_am_i_root()) write(*,"(A,i3.3,1x,g0)")'DU2G Run1 E DU(:,:,5) = ',k,DU(:,:,k,5)
-!  if(mapl_am_i_root()) print*,'DU2G Run1 du005 = ',k,DU(:,:,k,5)
-!end do
-!if(mapl_am_i_root()) print*,'DU2G Run1 sum(du005) = ',sum(DU(:,:,:,5))
-!if(mapl_am_i_root()) print*,'DU2G Run1 du005 = ',DU(:,:,:,5)
-
 
 !   Clean up
 !   --------
@@ -822,7 +803,6 @@ contains
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
-
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
