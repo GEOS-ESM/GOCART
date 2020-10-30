@@ -82,27 +82,84 @@ contains
    end subroutine advertise_to_state
 end module NOAA_MAPLpolicies
 
-! module NOAA_MAPLoptions
-!    use, intrinsic :: iso_fortran_env, only: REAL32, REAL64
-!    use ESMF
-!    use NUOPC
-!    use MAPL
-!    use yaFyaml
+module NOAA_MAPLoptions
+   use, intrinsic :: iso_fortran_env, only: REAL32, REAL64
+   use ESMF
+   use NUOPC
+   use MAPL
+   use yaFyaml
 
-!    implicit none
-!    private
+   implicit none
+   private
 
-!    public :: OptionsConfig
+   public :: OptionsConfig
 
-!    type :: OptionsConfig
-!       character(:), allocatable :: state
+   character(*), parameter :: ESMF_yaml_state = 'ESMF_State'
+   character(*), parameter :: reverseLevels   = 'reverseLevels'
+   character(*), parameter :: reverseMask     = 'reverseMask'
+   character(*), parameter :: convert2MAPL    = 'convert2MAPL'
 
-!       logical :: reverse_levels
-!       logical :: reverse_mask
+   logical,           parameter :: default_reverseLevels = .false.
+   logical,           parameter :: default_reverseMask   = .false.
+   real(kind=REAL32), parameter :: default_convert2MAPL  = 1.0_REAL32
 
-!       real(kind=REAL64) :: convert2MAPL
-!    end type OptionsConfig
-! end module NOAA_MAPLoptions
+   type :: OptionsConfig
+      character(:), allocatable :: state
+
+      logical, allocatable :: reverseLevels
+      logical, allocatable :: reverseMask
+
+      real(kind=REAL32), allocatable :: convert2MAPL
+   contains
+      procedure :: fill_defaults
+      procedure :: read_options_config
+   end type OptionsConfig
+contains
+   subroutine fill_defaults(this, default_state)
+      class(OptionsConfig), intent(inout) :: this
+      character(*),         intent(in   ) :: default_state
+
+      if (.not. allocated(this%state))         this%state         = default_state
+      if (.not. allocated(this%reverseLevels)) this%reverseLevels = default_reverseLevels
+      if (.not. allocated(this%reverseMask))   this%reverseMask   = default_reverseMask
+      if (.not. allocated(this%convert2MAPL))  this%convert2MAPL  = default_convert2MAPL
+   end subroutine fill_defaults
+
+   subroutine read_options_config(this, config, default_state)
+      class(OptionsConfig), intent(inout) :: this
+      type(Configuration),  intent(in   ) :: config
+      character(*),         intent(in   ) :: default_state
+
+      type(ConfigurationIterator) :: iter
+      character(:), pointer       :: key
+
+      logical           :: logical_tmp
+      real(kind=REAL32) :: real_tmp
+
+      iter = config%begin()
+      do while(iter /= config%end())
+         key => iter%key()
+
+         select case(key)
+         case(ESMF_yaml_state)
+            this%state         = iter%value()
+         case(reverseLevels)
+            logical_tmp        = iter%value()
+            this%reverseLevels = logical_tmp
+         case(reverseMask)
+            logical_tmp        = iter%value()
+            this%reverseMask   = logical_tmp
+         case(convert2MAPL)
+            real_tmp           = iter%value()
+            this%convert2MAPL  = real_tmp
+         end select
+
+         call iter%next()
+      end do
+
+      call this%fill_defaults(default_state)
+   end subroutine read_options_config
+end module NOAA_MAPLoptions
 
 ! module NOAA_MAPLfieldConfig
 !    use ESMF

@@ -1,8 +1,9 @@
 module Test_NOAA_MAPLconfig
-   use, intrinsic :: iso_fortran_env, only: INT64
+   use, intrinsic :: iso_fortran_env, only: INT64, REAL32, REAL64
 
-   use pfunit
+   use pFUnit
    use NOAA_MAPLpolicies
+   use NOAA_MAPLoptions
    ! use NOAA_MAPLfieldConfig
    ! use NOAA_MAPLfieldConfigMap
    ! use NOAA_MAPLconfigMod
@@ -115,64 +116,195 @@ contains
       @assert_that(policies_config8%SharePolicyGeomObject,   is(equal_to('foo3')))
    end subroutine test_read_policies_config
 
-   ! @test
-   ! subroutine test_read_field_config()
-   !    type(FieldConfigMap) :: field_config_map
-   !    type(FieldConfig)    :: field_config
+   @test
+   subroutine test_dummy()
+      type(OptionsConfig) :: options_config
 
-   !    type(Parser)                :: p
-   !    type(FileStream)            :: file_stream
-   !    type(Configuration)         :: main_config, config, test_config
-   !    type(ConfigurationIterator) :: main_iter,   iter
+      @assert_that(allocated(options_config%reverseLevels), is(false()))
+      options_config%reverseLevels = .false.
+      @assert_that(allocated(options_config%reverseLevels), is(true()))
+   end subroutine test_dummy
 
-   !    character(:), pointer :: key, name
+   @test
+   subroutine test_read_options_config()
+      type(OptionsConfig) :: options_config1
+      type(OptionsConfig) :: options_config2
+      type(OptionsConfig) :: options_config3
+      type(OptionsConfig) :: options_config4
+      type(OptionsConfig) :: options_config5
+      type(OptionsConfig) :: options_config6
+      type(OptionsConfig) :: options_config7
+      type(OptionsConfig) :: options_config8
+      type(OptionsConfig) :: options_config9
+      type(OptionsConfig) :: options_config10
+      type(OptionsConfig) :: options_config11
+      type(OptionsConfig) :: options_config12
+      type(OptionsConfig) :: options_config13
+      type(OptionsConfig) :: options_config14
+      type(OptionsConfig) :: options_config15
+      type(OptionsConfig) :: options_config16
 
-   !    p           = Parser('core')
-   !    file_stream = FileStream(test_yaml)
-   !    main_config = p%load(file_stream)
+      type(Parser)                :: p
+      type(FileStream)            :: file_stream
+      type(Configuration)         :: main_config, config, test_config
+      type(ConfigurationIterator) :: main_iter, iter
+      character(:), pointer       :: key, test_name
 
-   !    main_iter = main_config%begin()
-   !    do while (main_iter /= main_config%end())
-   !       key => main_iter%key()
+      p           = Parser('core')
+      file_stream = FileStream(test_yaml)
+      main_config = p%load(file_stream)
 
-   !       select case(key)
-   !       case ('test_read_config')
-   !          config = main_iter%value()
+      main_iter = main_config%begin()
+      do while(main_iter /= main_config%end())
+         key => main_iter%key()
 
-   !          iter  = config%begin()
-   !          do while (iter /= config%end())
-   !             name => iter%key()
+         select case(key)
+         case ('test_options')
+            config = main_iter%value()
+            iter   = config%begin()
+            do while(iter /= config%end())
+               test_name => iter%key()
 
-   !             test_config = iter%value()
-   !             call field_config_map%insert(name, create_field_config(name, test_config))
+               select case(test_name)
+               case ('test1')
+                  test_config = iter%value()
+                  call options_config1%read_options_config(test_config, 'test')
+               case ('test2')
+                  test_config = iter%value()
+                  call options_config2%read_options_config(test_config, 'test')
+               case ('test3')
+                  test_config = iter%value()
+                  call options_config3%read_options_config(test_config, 'test')
+               case ('test4')
+                  test_config = iter%value()
+                  call options_config4%read_options_config(test_config, 'test')
+               case ('test5')
+                  test_config = iter%value()
+                  call options_config5%read_options_config(test_config, 'test')
+               case ('test6')
+                  test_config = iter%value()
+                  call options_config6%read_options_config(test_config, 'test')
+               case ('test7')
+                  test_config = iter%value()
+                  call options_config7%read_options_config(test_config, 'test')
+               case ('test8')
+                  test_config = iter%value()
+                  call options_config8%read_options_config(test_config, 'test')
+               case ('test9')
+                  test_config = iter%value()
+                  call options_config9%read_options_config(test_config, 'test')
+               case ('test10')
+                  test_config = iter%value()
+                  call options_config10%read_options_config(test_config, 'test')
+               case ('test11')
+                  test_config = iter%value()
+                  call options_config11%read_options_config(test_config, 'test')
+               case ('test12')
+                  test_config = iter%value()
+                  call options_config12%read_options_config(test_config, 'test')
+               case ('test13')
+                  test_config = iter%value()
+                  call options_config13%read_options_config(test_config, 'test')
+               case ('test14')
+                  test_config = iter%value()
+                  call options_config14%read_options_config(test_config, 'test')
+               case ('test15')
+                  test_config = iter%value()
+                  call options_config15%read_options_config(test_config, 'test')
+               case ('test16')
+                  test_config = iter%value()
+                  call options_config16%read_options_config(test_config, 'test')
+               end select
 
-   !             call iter%next()
-   !          end do
-   !       end select
+               call iter%next()
+            end do
+         end select
 
-   !       call main_iter%next()
-   !    end do
+         call main_iter%next()
+      end do
 
-   !    call file_stream%close()
+      call file_stream%close()
 
-   !    @assert_that(field_config_map%size(), is(equal_to(2_INT64)))
+      @assert_that(options_config1%state,         is(equal_to('test')))
+      @assert_that(options_config1%reverseLevels, is(false()))
+      @assert_that(options_config1%reverseMask,   is(false()))
+      @assert_that(options_config1%convert2MAPL,  is(equal_to(1.0_REAL32)))
 
-   !    @assert_that(field_config_map%count('test1'), is(equal_to(1_INT64)))
-   !    field_config =  field_config_map%at('test1')
-   !    @assert_that(field_config%short_name,              is(equal_to('test1')))
-   !    @assert_that(field_config%standard_name,           is(equal_to('nuopc_name')))
-   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('can provide')))
-   !    @assert_that(field_config%SharePolicyField,        is(equal_to('share')))
-   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('share')))
+      @assert_that(options_config2%state,         is(equal_to('export')))
+      @assert_that(options_config2%reverseLevels, is(false()))
+      @assert_that(options_config2%reverseMask,   is(false()))
+      @assert_that(options_config2%convert2MAPL,  is(equal_to(1.0_REAL32)))
 
-   !    @assert_that(field_config_map%count('test2'), is(equal_to(1_INT64)))
-   !    field_config =  field_config_map%at('test2')
-   !    @assert_that(field_config%short_name,              is(equal_to('test2')))
-   !    @assert_that(field_config%standard_name,           is(equal_to('test2')))
-   !    @assert_that(field_config%TransferOfferGeomObject, is(equal_to('will provide')))
-   !    @assert_that(field_config%SharePolicyField,        is(equal_to('not share')))
-   !    @assert_that(field_config%SharePolicyGeomObject,   is(equal_to('not share')))
-   ! end subroutine test_read_field_config
+      @assert_that(options_config3%state,         is(equal_to('test')))
+      @assert_that(options_config3%reverseLevels, is(true()))
+      @assert_that(options_config3%reverseMask,   is(false()))
+      @assert_that(options_config3%convert2MAPL,  is(equal_to(1.0_REAL32)))
+
+      @assert_that(options_config4%state,         is(equal_to('test')))
+      @assert_that(options_config4%reverseLevels, is(false()))
+      @assert_that(options_config4%reverseMask,   is(true()))
+      @assert_that(options_config4%convert2MAPL,  is(equal_to(1.0_REAL32)))
+
+      @assert_that(options_config5%state,         is(equal_to('test')))
+      @assert_that(options_config5%reverseLevels, is(false()))
+      @assert_that(options_config5%reverseMask,   is(false()))
+      @assert_that(options_config5%convert2MAPL,  is(equal_to(3.14)))
+
+      @assert_that(options_config6%state,         is(equal_to('export')))
+      @assert_that(options_config6%reverseLevels, is(true()))
+      @assert_that(options_config6%reverseMask,   is(false()))
+      @assert_that(options_config6%convert2MAPL,  is(equal_to(1.0_REAL32)))
+
+      @assert_that(options_config7%state,         is(equal_to('export')))
+      @assert_that(options_config7%reverseLevels, is(false()))
+      @assert_that(options_config7%reverseMask,   is(true()))
+      @assert_that(options_config7%convert2MAPL,  is(equal_to(1.0_REAL32)))
+
+      @assert_that(options_config8%state,         is(equal_to('export')))
+      @assert_that(options_config8%reverseLevels, is(false()))
+      @assert_that(options_config8%reverseMask,   is(false()))
+      @assert_that(options_config8%convert2MAPL,  is(equal_to(3.14)))
+
+      @assert_that(options_config9%state,         is(equal_to('test')))
+      @assert_that(options_config9%reverseLevels, is(true()))
+      @assert_that(options_config9%reverseMask,   is(true()))
+      @assert_that(options_config9%convert2MAPL,  is(equal_to(1.0_REAL32)))
+
+      @assert_that(options_config10%state,         is(equal_to('test')))
+      @assert_that(options_config10%reverseLevels, is(true()))
+      @assert_that(options_config10%reverseMask,   is(false()))
+      @assert_that(options_config10%convert2MAPL,  is(equal_to(3.14)))
+
+      @assert_that(options_config11%state,         is(equal_to('test')))
+      @assert_that(options_config11%reverseLevels, is(false()))
+      @assert_that(options_config11%reverseMask,   is(true()))
+      @assert_that(options_config11%convert2MAPL,  is(equal_to(3.14)))
+
+      @assert_that(options_config12%state,         is(equal_to('export')))
+      @assert_that(options_config12%reverseLevels, is(true()))
+      @assert_that(options_config12%reverseMask,   is(true()))
+      @assert_that(options_config12%convert2MAPL,  is(equal_to(1.0_REAL32)))
+
+      @assert_that(options_config13%state,         is(equal_to('export')))
+      @assert_that(options_config13%reverseLevels, is(false()))
+      @assert_that(options_config13%reverseMask,   is(true()))
+      @assert_that(options_config13%convert2MAPL,  is(equal_to(3.14)))
+
+      @assert_that(options_config14%state,         is(equal_to('export')))
+      @assert_that(options_config14%reverseLevels, is(true()))
+      @assert_that(options_config14%reverseMask,   is(false()))
+      @assert_that(options_config14%convert2MAPL,  is(equal_to(3.14)))
+
+      @assert_that(options_config15%state,         is(equal_to('test')))
+      @assert_that(options_config15%reverseLevels, is(true()))
+      @assert_that(options_config15%reverseMask,   is(true()))
+      @assert_that(options_config15%convert2MAPL,  is(equal_to(3.14)))
+
+      @assert_that(options_config16%state,         is(equal_to('export')))
+      @assert_that(options_config16%reverseLevels, is(true()))
+      @assert_that(options_config16%reverseMask,   is(true()))
+      @assert_that(options_config16%convert2MAPL,  is(equal_to(3.14)))
+   end subroutine test_read_options_config
 
    ! @test
    ! subroutine test_read_from_config()

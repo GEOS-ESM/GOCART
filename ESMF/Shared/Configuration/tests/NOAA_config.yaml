@@ -23,7 +23,7 @@ test_tracers:
 
 test_policies:
   test1:
-    default: 'default'
+    default:                 'default'
   test2:
     TransferOfferGeomObject: 'foo1'
   test3:
@@ -43,6 +43,58 @@ test_policies:
     TransferOfferGeomObject: 'foo1'
     SharePolicyField:        'foo2'
     SharePolicyGeomObject:   'foo3'
+
+test_options:
+  test1:
+    default:       'default'
+  test2:
+    ESMF_State:    'export'
+  test3:
+    reverseLevels: True
+  test4:
+    reverseMask:   True
+  test5:
+    convert2MAPL:  3.14
+  test6:
+    ESMF_State:    'export'
+    reverseLevels: True
+  test7:
+    ESMF_State:    'export'
+    reverseMask:   True
+  test8:
+    ESMF_State:    'export'
+    convert2MAPL:  3.14
+  test9:
+    reverseLevels: True
+    reverseMask:   True
+  test10:
+    reverseLevels: True
+    convert2MAPL:  3.14
+  test11:
+    reverseMask:   True
+    convert2MAPL:  3.14
+  test12:
+    ESMF_State:    'export'
+    reverseLevels: True
+    reverseMask:   True
+  test13:
+    ESMF_State:    'export'
+    reverseMask:   True
+    convert2MAPL:  3.14
+  test14:
+    ESMF_State:    'export'
+    reverseLevels: True
+    convert2MAPL:  3.14
+  test15:
+    reverseLevels: True
+    reverseMask:   True
+    convert2MAPL:  3.14
+  test16:
+    ESMF_State:    'export'
+    reverseLevels: True
+    reverseMask:   True
+    convert2MAPL:  3.14
+
 
 NOAA_imports:
   import1:
