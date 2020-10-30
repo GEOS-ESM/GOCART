@@ -9,8 +9,9 @@ module LinearFields
     implicit none
     private
 
-    public scale_field
-    public shift_field
+    public :: scale_field
+    public :: shift_field
+    public :: reverse_field
 
     type, abstract :: MAPL_Field
         private
@@ -23,6 +24,8 @@ module LinearFields
         procedure(i_shift_real32), deferred :: shift_real32
         procedure(i_shift_real64), deferred :: shift_real64
         generic                             :: shift => shift_real32, shift_real64
+
+        procedure(i_reverse), deferred :: reverse
     end type MAPL_Field
 
     type, extends(MAPL_Field) :: MAPL_Real32_2DField
@@ -32,6 +35,8 @@ module LinearFields
 
         procedure :: shift_real32 => shift_real32_2D_field_real32
         procedure :: shift_real64 => shift_real32_2D_field_real64
+
+        procedure :: reverse => reverse_real32_2D_field
     end type MAPL_Real32_2DField
 
     type, extends(MAPL_Field) :: MAPL_Real32_3DField
@@ -41,6 +46,8 @@ module LinearFields
 
         procedure :: shift_real32 => shift_real32_3D_field_real32
         procedure :: shift_real64 => shift_real32_3D_field_real64
+
+        procedure :: reverse => reverse_real32_3D_field
     end type MAPL_Real32_3DField
 
     type, extends(MAPL_Field) :: MAPL_Real32_4DField
@@ -50,6 +57,8 @@ module LinearFields
 
         procedure :: shift_real32 => shift_real32_4D_field_real32
         procedure :: shift_real64 => shift_real32_4D_field_real64
+
+        procedure :: reverse => reverse_real32_4D_field
     end type MAPL_Real32_4DField
 
     type, extends(MAPL_Field) :: MAPL_Real64_2DField
@@ -59,6 +68,8 @@ module LinearFields
 
         procedure :: shift_real32 => shift_real64_2D_field_real32
         procedure :: shift_real64 => shift_real64_2D_field_real64
+
+        procedure :: reverse => reverse_real64_2D_field
     end type MAPL_Real64_2DField
 
     type, extends(MAPL_Field) :: MAPL_Real64_3DField
@@ -68,6 +79,8 @@ module LinearFields
 
         procedure :: shift_real32 => shift_real64_3D_field_real32
         procedure :: shift_real64 => shift_real64_3D_field_real64
+
+        procedure :: reverse => reverse_real64_3D_field
     end type MAPL_Real64_3DField
 
     type, extends(MAPL_Field) :: MAPL_Real64_4DField
@@ -77,6 +90,8 @@ module LinearFields
 
         procedure :: shift_real32 => shift_real64_4D_field_real32
         procedure :: shift_real64 => shift_real64_4D_field_real64
+
+        procedure :: reverse => reverse_real64_4D_field
     end type MAPL_Real64_4DField
 
     abstract interface
@@ -111,6 +126,13 @@ module LinearFields
             real(kind=REAL64), intent(in   ) :: shift_factor
             integer, optional, intent(  out) :: rc
         end subroutine i_shift_real64
+
+        subroutine i_reverse(this, reverse_dimension, rc)
+            import MAPL_Field
+            class(MAPL_Field), intent(inout) :: this
+            integer,           intent(in   ) :: reverse_dimension
+            integer, optional, intent(  out) :: rc
+        end subroutine i_reverse
     end interface
 
     interface scale_field
@@ -559,4 +581,205 @@ contains
 
         _RETURN(_SUCCESS)
     end subroutine shift_real64_4D_field_real64
+
+    subroutine reverse_field(field, reverse_dimension, rc)
+        type(ESMF_Field), intent(in   ) :: field
+        integer,          intent(in   ) :: reverse_dimension
+        integer, optional,intent(  out) :: rc
+
+        class(MAPL_Field), allocatable :: wrapper
+        integer                        :: status
+
+        call wrap_field(field, wrapper, __RC__)
+
+        call wrapper%reverse(reverse_dimension, __RC__)
+
+        _RETURN(_SUCCESS)
+    end subroutine reverse_field
+
+    subroutine reverse_real32_2D_field(this, reverse_dimension, rc)
+        class(MAPL_Real32_2DField), intent(inout) :: this
+        integer,                    intent(in   ) :: reverse_dimension
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:)
+        real(kind=REAL32), pointer :: reverse_array(:,:)
+        integer                    :: lower(2), upper(2)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+
+        lower = lbound(array)
+        upper = ubound(array)
+
+        select case (reverse_dimension)
+        case (1)
+           reverse_array => array(upper(1):lower(1):-1, :)
+        case (2)
+           reverse_array => array(:, upper(2):lower(2):-1)
+        case default
+            _FAIL("Dimension out of range")
+        end select
+
+        array => reverse_array
+
+        _RETURN(_SUCCESS)
+    end subroutine reverse_real32_2D_field
+
+    subroutine reverse_real32_3D_field(this, reverse_dimension, rc)
+        class(MAPL_Real32_3DField), intent(inout) :: this
+        integer,                    intent(in   ) :: reverse_dimension
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:)
+        real(kind=REAL32), pointer :: reverse_array(:,:,:)
+        integer                    :: lower(3), upper(3)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+
+        lower = lbound(array)
+        upper = ubound(array)
+
+        select case (reverse_dimension)
+        case (1)
+           reverse_array => array(upper(1):lower(1):-1, :, :)
+        case (2)
+           reverse_array => array(:, upper(2):lower(2):-1, :)
+        case (3)
+           reverse_array => array(:, :, upper(3):lower(3):-1)
+        case default
+            _FAIL("Dimension out of range")
+        end select
+
+        array => reverse_array
+
+        _RETURN(_SUCCESS)
+    end subroutine reverse_real32_3D_field
+
+    subroutine reverse_real32_4D_field(this, reverse_dimension, rc)
+        class(MAPL_Real32_4DField), intent(inout) :: this
+        integer,                    intent(in   ) :: reverse_dimension
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:,:)
+        real(kind=REAL32), pointer :: reverse_array(:,:,:,:)
+        integer                    :: lower(4), upper(4)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+
+        lower = lbound(array)
+        upper = ubound(array)
+
+        select case (reverse_dimension)
+        case (1)
+           reverse_array => array(upper(1):lower(1):-1, :, :, :)
+        case (2)
+           reverse_array => array(:, upper(2):lower(2):-1, :, :)
+        case (3)
+           reverse_array => array(:, :, upper(3):lower(3):-1, :)
+        case (4)
+           reverse_array => array(:, :, :, upper(4):lower(4):-1)
+        case default
+            _FAIL("Dimension out of range")
+        end select
+
+        array => reverse_array
+
+        _RETURN(_SUCCESS)
+    end subroutine reverse_real32_4D_field
+
+    subroutine reverse_real64_2D_field(this, reverse_dimension, rc)
+        class(MAPL_Real64_2DField), intent(inout) :: this
+        integer,                    intent(in   ) :: reverse_dimension
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:)
+        real(kind=REAL64), pointer :: reverse_array(:,:)
+        integer                    :: lower(2), upper(2)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+
+        lower = lbound(array)
+        upper = ubound(array)
+
+        select case (reverse_dimension)
+        case (1)
+           reverse_array => array(upper(1):lower(1):-1, :)
+        case (2)
+           reverse_array => array(:, upper(2):lower(2):-1)
+        case default
+            _FAIL("Dimension out of range")
+        end select
+
+        array => reverse_array
+
+        _RETURN(_SUCCESS)
+    end subroutine reverse_real64_2D_field
+
+    subroutine reverse_real64_3D_field(this, reverse_dimension, rc)
+        class(MAPL_Real64_3DField), intent(inout) :: this
+        integer,                    intent(in   ) :: reverse_dimension
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:)
+        real(kind=REAL64), pointer :: reverse_array(:,:,:)
+        integer                    :: lower(3), upper(3)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+
+        lower = lbound(array)
+        upper = ubound(array)
+
+        select case (reverse_dimension)
+        case (1)
+           reverse_array => array(upper(1):lower(1):-1, :, :)
+        case (2)
+           reverse_array => array(:, upper(2):lower(2):-1, :)
+        case (3)
+           reverse_array => array(:, :, upper(3):lower(3):-1)
+        case default
+            _FAIL("Dimension out of range")
+        end select
+
+        array => reverse_array
+
+        _RETURN(_SUCCESS)
+    end subroutine reverse_real64_3D_field
+
+    subroutine reverse_real64_4D_field(this, reverse_dimension, rc)
+        class(MAPL_Real64_4DField), intent(inout) :: this
+        integer,                    intent(in   ) :: reverse_dimension
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:,:)
+        real(kind=REAL64), pointer :: reverse_array(:,:,:,:)
+        integer                    :: lower(4), upper(4)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+
+        lower = lbound(array)
+        upper = ubound(array)
+
+        select case (reverse_dimension)
+        case (1)
+           reverse_array => array(upper(1):lower(1):-1, :, :, :)
+        case (2)
+           reverse_array => array(:, upper(2):lower(2):-1, :, :)
+        case (3)
+           reverse_array => array(:, :, upper(3):lower(3):-1, :)
+        case (4)
+           reverse_array => array(:, :, :, upper(4):lower(4):-1)
+        case default
+            _FAIL("Dimension out of range")
+        end select
+
+        array => reverse_array
+
+        _RETURN(_SUCCESS)
+    end subroutine reverse_real64_4D_field
 end module LinearFields
