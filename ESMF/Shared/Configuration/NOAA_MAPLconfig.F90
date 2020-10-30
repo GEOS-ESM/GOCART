@@ -248,6 +248,115 @@ contains
    end subroutine from_MAPL
 end module NOAA_MAPLoptions
 
+module NOAA_MAPLfield
+   use, intrinsic :: iso_fortran_env, only: REAL32, REAL64
+   use ESMF
+   use NUOPC
+   use MAPL
+   use yaFyaml
+
+   use NOAA_TracerEntry
+   use NOAA_MAPLpolicies
+   use NOAA_MAPLoptions
+
+   implicit none
+   private
+
+   public :: FieldConfig
+
+   character(*), parameter :: standardName = 'standardName'
+   character(*), parameter :: units        = 'units'
+   character(*), parameter :: state_yaml   = 'state'
+
+   character(*), parameter :: policies     = 'policies'
+   character(*), parameter :: options      = 'options'
+   character(*), parameter :: tracer       = 'tracer'
+
+   character(*), parameter :: default_units = '1'
+
+   type :: FieldConfig
+      character(:), allocatable :: MAPL_name
+      character(:), allocatable :: units
+      character(:), allocatable :: standardName
+      character(:), allocatable :: state
+
+      type(PoliciesConfig), allocatable :: policies_config
+      type(OptionsConfig),  allocatable :: options_config
+      type(TracerEntry),    allocatable :: tracer_entry
+   contains
+      procedure :: fill_defaults
+   end type FieldConfig
+contains
+   subroutine fill_defaults(this, default_state)
+      class(FieldConfig), intent(inout) :: this
+      character(*),       intent(in   ) :: default_state
+
+      type(PoliciesConfig) :: policies_config
+      type(OptionsConfig)  :: options_config
+
+      if (.not. allocated(this%standardName)) this%standardName = this%MAPL_name
+      if (.not. allocated(this%units))        this%units        = default_units
+      if (.not. allocated(this%state))        this%state        = default_state
+
+      if (.not. allocated(this%policies_config)) then
+         call policies_config%fill_defaults()
+         this%policies_config = policies_config
+      end if
+
+      if (.not. allocated(this%options_config)) then
+         call options_config%fill_defaults()
+         this%options_config = options_config
+      end if
+   end subroutine fill_defaults
+
+   subroutine read_field_config(this, MAPL_name, config, default_state)
+      class(FieldConfig),  intent(inout) :: this
+      character(*),        intent(in   ) :: MAPL_name
+      type(Configuration), intent(in   ) :: config
+      character(*),        intent(in   ) :: default_state
+
+      type(PoliciesConfig) :: policies_config
+      type(OptionsConfig)  :: options_config
+      type(TracerEntry)    :: tracer_entry
+
+      type(Configuration)         :: sub_config
+      type(ConfigurationIterator) :: iter
+      character(:), pointer       :: key
+
+      this%MAPL_name = MAPL_name
+
+      iter = config%begin()
+      do while(iter /= config%end())
+         key => iter%key()
+
+         select case(key)
+         case (standardName)
+            this%standardName = iter%value()
+         case (units)
+            this%units        = iter%value()
+         case (state_yaml)
+            this%state        = iter%value()
+         case (policies)
+            sub_config = iter%value()
+            call policies_config%read_policies_config(sub_config)
+            this%policies_config = policies_config
+         case (options)
+            sub_config = iter%value()
+            call options_config%read_options_config(sub_config)
+            this%options_config = options_config
+         case (tracer)
+            sub_config = iter%value()
+            call tracer_entry%read_tracer_entry_config(sub_config)
+            this%tracer_entry = tracer_entry
+         end select
+
+         call iter%next()
+      end do
+
+      call this%fill_defaults(default_state)
+   end subroutine read_field_config
+end module NOAA_MAPLfield
+
 ! module NOAA_MAPLfieldConfig
 !    use ESMF
 !    use NUOPC
