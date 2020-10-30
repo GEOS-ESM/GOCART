@@ -14,14 +14,19 @@ module test_NOAA_Tracers
    implicit none
 
    interface create_mass_tracers
-   module procedure create_mass_tracers_real32
-   module procedure create_mass_tracers_real64
+      module procedure create_mass_tracers_real32
+      module procedure create_mass_tracers_real64
    end interface create_mass_tracers
 
-   interface check_tracer
-   module procedure check_tracer_real32
-   module procedure check_tracer_real64
-   end interface check_tracer
+   interface check_tracer_3D
+      module procedure check_tracer_real32_3D
+      module procedure check_tracer_real64_3D
+   end interface check_tracer_3D
+
+   interface check_tracer_4D
+      module procedure check_tracer_real32_4D
+      module procedure check_tracer_real64_4D
+   end interface check_tracer_4D
 
    integer, parameter :: t_dim = 28
 
@@ -254,7 +259,7 @@ contains
       _RETURN(_SUCCESS)
    end subroutine create_mass_tracers_real64
 
-   subroutine check_tracer_real32(field, tracer, tracer_name, f_array, t_array, idx)
+   subroutine check_tracer_real32_3D(field, tracer, tracer_name, f_array, t_array, idx)
       type(ESMF_Field),                      intent(in) :: field, tracer
       character(*),                          intent(in) :: tracer_name
       real(kind=REAL32), dimension(:,:,:,:), intent(in) :: f_array, t_array
@@ -278,9 +283,40 @@ contains
 
       @assert_that(tracer_array, is(equal_to(f_array(:,:,:,idx))))
       @assert_that(tracer_array, is(equal_to(t_array(:,:,:,idx))))
-   end subroutine check_tracer_real32
+   end subroutine check_tracer_real32_3D
 
-   subroutine check_tracer_real64(field, tracer, tracer_name, f_array, t_array, idx)
+   subroutine check_tracer_real32_4D(field, tracer, tracer_name, f_array, t_array, start_idx, end_idx)
+      type(ESMF_Field),                      intent(in) :: field, tracer
+      character(*),                          intent(in) :: tracer_name
+      real(kind=REAL32), dimension(:,:,:,:), intent(in) :: f_array, t_array
+      integer,                               intent(in) :: start_idx, end_idx
+
+      type(ESMF_Grid)            :: field_grid, tracer_grid
+      real(kind=REAL32), pointer :: tracer_array(:,:,:,:)
+      character(len=ESMF_MaxStr) :: name
+      integer                    :: idx, jdx, status
+
+      call ESMF_FieldGet(field, grid=field_grid, rc=status)
+      @assert_that(status, is(equal_to(0)))
+      call ESMF_FieldGet(tracer, grid=tracer_grid, name=name, rc=status)
+      @assert_that(status, is(equal_to(0)))
+
+      @assert_that(field_grid == tracer_grid, is(true()))
+      @assert_that(tracer_name, is(equal_to(trim(name))))
+
+      call ESMF_FieldGet(tracer, localDE=0, farrayPtr=tracer_array, rc=status)
+      @assert_that(status, is(equal_to(0)))
+
+      jdx = 1
+      do idx = start_idx, end_idx
+         @assert_that(tracer_array(:,:,:,jdx), is(equal_to(f_array(:,:,:,idx))))
+         @assert_that(tracer_array(:,:,:,jdx), is(equal_to(t_array(:,:,:,idx))))
+
+         jdx = jdx + 1
+      end do
+   end subroutine check_tracer_real32_4D
+
+   subroutine check_tracer_real64_3D(field, tracer, tracer_name, f_array, t_array, idx)
       type(ESMF_Field),                      intent(in) :: field, tracer
       character(*),                          intent(in) :: tracer_name
       real(kind=REAL64), dimension(:,:,:,:), intent(in) :: f_array, t_array
@@ -304,7 +340,38 @@ contains
 
       @assert_that(tracer_array, is(equal_to(f_array(:,:,:,idx))))
       @assert_that(tracer_array, is(equal_to(t_array(:,:,:,idx))))
-   end subroutine check_tracer_real64
+   end subroutine check_tracer_real64_3D
+
+   subroutine check_tracer_real64_4D(field, tracer, tracer_name, f_array, t_array, start_idx, end_idx)
+      type(ESMF_Field),                      intent(in) :: field, tracer
+      character(*),                          intent(in) :: tracer_name
+      real(kind=REAL64), dimension(:,:,:,:), intent(in) :: f_array, t_array
+      integer,                               intent(in) :: start_idx, end_idx
+
+      type(ESMF_Grid)            :: field_grid, tracer_grid
+      real(kind=REAL64), pointer :: tracer_array(:,:,:,:)
+      character(len=ESMF_MaxStr) :: name
+      integer                    :: idx, jdx, status
+
+      call ESMF_FieldGet(field, grid=field_grid, rc=status)
+      @assert_that(status, is(equal_to(0)))
+      call ESMF_FieldGet(tracer, grid=tracer_grid, name=name, rc=status)
+      @assert_that(status, is(equal_to(0)))
+
+      @assert_that(field_grid == tracer_grid, is(true()))
+      @assert_that(tracer_name, is(equal_to(trim(name))))
+
+      call ESMF_FieldGet(tracer, localDE=0, farrayPtr=tracer_array, rc=status)
+      @assert_that(status, is(equal_to(0)))
+
+      jdx = 1
+      do idx = start_idx, end_idx
+         @assert_that(tracer_array(:,:,:,jdx), is(equal_to(f_array(:,:,:,idx))))
+         @assert_that(tracer_array(:,:,:,jdx), is(equal_to(t_array(:,:,:,idx))))
+
+         jdx = jdx + 1
+      end do
+   end subroutine check_tracer_real64_4D
 
    @test
    subroutine test_read_tracer_name()
@@ -460,7 +527,7 @@ contains
 
          call tracer_map%create_tracer(field, name, tracer_entry, tracer, rc)
          @assert_that(rc, is(equal_to(0)))
-         call check_tracer(field, tracer, name, f_array, t_array, i)
+         call check_tracer_3D(field, tracer, name, f_array, t_array, i)
       end do
    end subroutine test_create_tracer_real32_3D
 
@@ -486,7 +553,111 @@ contains
 
          call tracer_map%create_tracer(field, name, tracer_entry, tracer, rc)
          @assert_that(rc, is(equal_to(0)))
-         call check_tracer(field, tracer, name, f_array, t_array, i)
+         call check_tracer_3D(field, tracer, name, f_array, t_array, i)
       end do
    end subroutine test_create_tracer_real64_3D
+
+   subroutine create_tracer_entry_4D(start_idx, end_idx, tracer_entry)
+      integer,           intent(in   ) :: start_idx
+      integer,           intent(in   ) :: end_idx
+      type(TracerEntry), intent(  out) :: tracer_entry
+
+      integer                   :: i
+      character(:), allocatable :: entry_name
+
+      tracer_entry%name = 'test'
+
+      do i = start_idx, end_idx
+         entry_name = 'tracer'//str(i)
+         call tracer_entry%entries%push_back(entry_name)
+      end do
+   end subroutine create_tracer_entry_4D
+
+   @test
+   subroutine test_create_tracer_real32_4D()
+      type(TracerMap)                                    :: tracer_map
+      type(TracerEntry)                                  :: tracer_entry
+      type(ESMF_Field)                                   :: field, tracer
+      real(kind=REAL32), allocatable, dimension(:,:,:,:) :: f_array, t_array
+
+      type(StringVectorIterator) :: iter
+      character(:), allocatable  :: name, entry_name
+      integer                    :: i, j, k, idx, rc
+
+      call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
+      @assert_that(rc, is(equal_to(0)))
+
+      k = 1
+      do i = 1, t_dim
+         do j = i, t_dim
+            if (i == j) cycle
+
+            name = 'test'//str(k)
+
+            call create_tracer_entry_4D(i, j, tracer_entry)
+
+            idx  = i
+            iter = tracer_entry%entries%begin()
+            do while(iter /= tracer_entry%entries%end())
+               entry_name = iter%get()
+
+               @assert_that(tracer_map%tracer_map%count(entry_name) > 0, is(true()))
+               @assert_that(tracer_map%tracer_map%at(entry_name), is(equal_to(idx)))
+
+               idx = idx + 1
+               call iter%next()
+            end do
+
+            call tracer_map%create_tracer(field, name, tracer_entry, tracer, rc)
+            @assert_that(rc, is(equal_to(0)))
+            call check_tracer_4D(field, tracer, name, f_array, t_array, i, j)
+
+            k = k + 1
+         end do
+      end do
+   end subroutine test_create_tracer_real32_4D
+
+   @test
+   subroutine test_create_tracer_real64_4D()
+      type(TracerMap)                                    :: tracer_map
+      type(TracerEntry)                                  :: tracer_entry
+      type(ESMF_Field)                                   :: field, tracer
+      real(kind=REAL64), allocatable, dimension(:,:,:,:) :: f_array, t_array
+
+      type(StringVectorIterator) :: iter
+      character(:), allocatable  :: name, entry_name
+      integer                    :: i, j, k, idx, rc
+
+      call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
+      @assert_that(rc, is(equal_to(0)))
+
+      k = 1
+      do i = 1, t_dim
+         do j = i, t_dim
+            if (i == j) cycle
+
+            name = 'test'//str(k)
+
+            call create_tracer_entry_4D(i, j, tracer_entry)
+
+            idx  = i
+            iter = tracer_entry%entries%begin()
+            do while(iter /= tracer_entry%entries%end())
+               entry_name = iter%get()
+
+               @assert_that(tracer_map%tracer_map%count(entry_name) > 0, is(true()))
+               @assert_that(tracer_map%tracer_map%at(entry_name), is(equal_to(idx)))
+
+               idx = idx + 1
+               call iter%next()
+            end do
+
+            call tracer_map%create_tracer(field, name, tracer_entry, tracer, rc)
+            @assert_that(rc, is(equal_to(0)))
+            call check_tracer_4D(field, tracer, name, f_array, t_array, i, j)
+
+            k = k + 1
+         end do
+      end do
+   end subroutine test_create_tracer_real64_4D
 end module test_NOAA_Tracers

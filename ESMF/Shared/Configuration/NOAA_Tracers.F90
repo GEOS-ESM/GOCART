@@ -91,6 +91,8 @@ module NOAA_TracerMap
       procedure :: read_field_table_line
       procedure :: read_field_table
 
+      procedure :: get_index_bounds
+
       procedure :: get_tracer_array_real32
       procedure :: create_tracer_real32_3D
       procedure :: create_tracer_real32_4D
@@ -172,11 +174,46 @@ contains
       close(unit=file_unit)
    end subroutine read_field_table
 
+   subroutine get_index_bounds(this, tracer_entry, idx, start_idx, end_idx, rc)
+      class(TracerMap),  intent(inout) :: this
+      type(TracerEntry),   intent(in   ) :: tracer_entry
+      integer,             intent(  out) :: idx
+      integer,             intent(  out) :: start_idx
+      integer,             intent(  out) :: end_idx
+      integer, optional,   intent(  out) :: rc
+
+      type(StringVectorIterator) :: iter
+      integer, allocatable       :: vector(:)
+      integer                    :: jdx, status
+
+      allocate(vector(tracer_entry%entries%size()))
+
+      idx  = 0
+      iter = tracer_entry%entries%begin()
+      do while(iter /= tracer_entry%entries%end())
+         idx = idx + 1
+         vector(idx) = this%tracer_map%at(iter%get())
+
+         do jdx = 1, idx - 1
+            _ASSERT(vector(jdx) /= vector(idx), "Tracer bins must be unique")
+         end do
+
+         call iter%next()
+      end do
+
+      start_idx = minval(vector)
+      end_idx   = maxval(vector)
+
+      _ASSERT((end_idx - start_idx + 1) == idx, "Tracer bins must be in contiguous blocks")
+
+      _RETURN(_SUCCESS)
+   end subroutine get_index_bounds
+
    subroutine get_tracer_array_real32(this, field_array, entry_name, tracer_array, rc)
       class(TracerMap),           intent(inout) :: this
       real(kind=REAL32), pointer, intent(in   ) :: field_array(:,:,:,:)
       character(*),               intent(in   ) :: entry_name
-      real(kind=REAL32), pointer, intent(  out) :: tracer_array(:,:,:)
+      real(kind=REAL32), pointer, intent(inout) :: tracer_array(:,:,:)
       integer, optional,          intent(  out) :: rc
 
       integer :: tracer_size(4)
@@ -229,25 +266,18 @@ contains
 
       type(ESMF_Grid)            :: grid
       real(kind=REAL32), pointer :: field_array(:,:,:,:)
-      real(kind=REAL32), pointer :: tracer_array(:,:,:)
-      real(kind=REAL32), pointer :: tracer_4D_array(:,:,:,:)
-      integer                    :: idx, status
+      real(kind=REAL32), pointer :: tracer_array(:,:,:,:)
+      integer                    :: idx, start_idx, end_idx, status
 
       call ESMF_FieldGet(field,  grid=grid, __RC__)
       call ESMF_FieldGet(field,  localDE=0, farrayPtr=field_array, __RC__)
 
-      idx  = 1
-      iter = entries%entries%begin()
+      call this%get_index_bounds(entries, idx, start_idx, end_idx, __RC__)
 
-      do while(iter /= entries%entries%end())
-         tracer_array => tracer_4D_array(:,:,:,idx)
-         call this%get_tracer_array_real32(field_array, iter%get(), tracer_array, __RC__)
+      tracer_array => field_array(:,:,:,start_idx:end_idx)
 
-         idx = idx + 1
-         call iter%next()
-      end do
-
-      tracer = ESMF_FieldCreate(grid, tracer_4D_array, name=name, __RC__)
+      tracer = ESMF_FieldCreate(grid, tracer_array, ESMF_INDEX_DELOCAL, &
+         ungriddedLBound=[1], ungriddedUbound=[idx], name=name, __RC__)
 
       _RETURN(_SUCCESS)
    end subroutine create_tracer_real32_4D
@@ -332,25 +362,18 @@ contains
 
       type(ESMF_Grid)            :: grid
       real(kind=REAL64), pointer :: field_array(:,:,:,:)
-      real(kind=REAL64), pointer :: tracer_array(:,:,:)
-      real(kind=REAL64), pointer :: tracer_4D_array(:,:,:,:)
-      integer                    :: idx, status
+      real(kind=REAL64), pointer :: tracer_array(:,:,:,:)
+      integer                    :: idx, start_idx, end_idx, status
 
       call ESMF_FieldGet(field,  grid=grid, __RC__)
       call ESMF_FieldGet(field,  localDE=0, farrayPtr=field_array, __RC__)
 
-      idx  = 1
-      iter = entries%entries%begin()
+      call this%get_index_bounds(entries, idx, start_idx, end_idx, __RC__)
 
-      do while(iter /= entries%entries%end())
-         tracer_array => tracer_4D_array(:,:,:,idx)
-         call this%get_tracer_array_real64(field_array, iter%get(), tracer_array, __RC__)
+      tracer_array => field_array(:,:,:,start_idx:end_idx)
 
-         idx = idx + 1
-         call iter%next()
-      end do
-
-      tracer = ESMF_FieldCreate(grid, tracer_4D_array, name=name, __RC__)
+      tracer = ESMF_FieldCreate(grid, tracer_array, ESMF_INDEX_DELOCAL, &
+         ungriddedLBound=[1], ungriddedUbound=[idx], name=name, __RC__)
 
       _RETURN(_SUCCESS)
    end subroutine create_tracer_real64_4D
