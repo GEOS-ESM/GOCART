@@ -43,6 +43,15 @@ module LinearFields
         procedure :: shift_real64 => shift_real32_3D_field_real64
     end type MAPL_Real32_3DField
 
+    type, extends(MAPL_Field) :: MAPL_Real32_4DField
+    contains
+        procedure :: scale_real32 => scale_real32_4D_field_real32
+        procedure :: scale_real64 => scale_real32_4D_field_real64
+
+        procedure :: shift_real32 => shift_real32_4D_field_real32
+        procedure :: shift_real64 => shift_real32_4D_field_real64
+    end type MAPL_Real32_4DField
+
     type, extends(MAPL_Field) :: MAPL_Real64_2DField
     contains
         procedure :: scale_real32 => scale_real64_2D_field_real32
@@ -60,6 +69,15 @@ module LinearFields
         procedure :: shift_real32 => shift_real64_3D_field_real32
         procedure :: shift_real64 => shift_real64_3D_field_real64
     end type MAPL_Real64_3DField
+
+    type, extends(MAPL_Field) :: MAPL_Real64_4DField
+    contains
+        procedure :: scale_real32 => scale_real64_4D_field_real32
+        procedure :: scale_real64 => scale_real64_4D_field_real64
+
+        procedure :: shift_real32 => shift_real64_4D_field_real32
+        procedure :: shift_real64 => shift_real64_4D_field_real64
+    end type MAPL_Real64_4DField
 
     abstract interface
         subroutine i_scale_real32(this, scale_factor, rc)
@@ -121,6 +139,8 @@ contains
                 wrapper = MAPL_Real32_2DField(field)
             case (3)
                 wrapper = MAPL_Real32_3DField(field)
+            case (4)
+                wrapper = MAPL_Real32_4DField(field)
             case default
                 _FAIL("Unsupported ESMF_Field Rank")
             end select
@@ -130,6 +150,8 @@ contains
                 wrapper = MAPL_Real64_2DField(field)
             case (3)
                 wrapper = MAPL_Real64_3DField(field)
+            case (4)
+                wrapper = MAPL_Real64_4DField(field)
             case default
                 _FAIL("Unsupported ESMF_Field Rank")
             end select
@@ -227,6 +249,34 @@ contains
         _RETURN(_SUCCESS)
     end subroutine scale_real32_3D_field_real64
 
+    subroutine scale_real32_4D_field_real32(this, scale_factor, rc)
+        class(MAPL_Real32_4DField), intent(inout) :: this
+        real(kind=REAL32),          intent(in   ) :: scale_factor
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        array = array*scale_factor
+
+        _RETURN(_SUCCESS)
+    end subroutine scale_real32_4D_field_real32
+
+    subroutine scale_real32_4D_field_real64(this, scale_factor, rc)
+        class(MAPL_Real32_4DField), intent(inout) :: this
+        real(kind=REAL64),          intent(in   ) :: scale_factor
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        array = array*scale_factor
+
+        _RETURN(_SUCCESS)
+    end subroutine scale_real32_4D_field_real64
+
     subroutine scale_real64_2D_field_real32(this, scale_factor, rc)
         class(MAPL_Real64_2DField), intent(inout) :: this
         real(kind=REAL32),          intent(in   ) :: scale_factor
@@ -282,6 +332,34 @@ contains
 
         _RETURN(_SUCCESS)
     end subroutine scale_real64_3D_field_real64
+
+    subroutine scale_real64_4D_field_real32(this, scale_factor, rc)
+        class(MAPL_Real64_4DField), intent(inout) :: this
+        real(kind=REAL32),          intent(in   ) :: scale_factor
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        array = array*scale_factor
+
+        _RETURN(_SUCCESS)
+    end subroutine scale_real64_4D_field_real32
+
+    subroutine scale_real64_4D_field_real64(this, scale_factor, rc)
+        class(MAPL_Real64_4DField), intent(inout) :: this
+        real(kind=REAL64),          intent(in   ) :: scale_factor
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        array = array*scale_factor
+
+        _RETURN(_SUCCESS)
+    end subroutine scale_real64_4D_field_real64
 
     subroutine shift_field_real32(field, shift_factor, rc)
         type(ESMF_Field),  intent(in   ) :: field
@@ -370,6 +448,34 @@ contains
         _RETURN(_SUCCESS)
     end subroutine shift_real32_3D_field_real64
 
+    subroutine shift_real32_4D_field_real32(this, shift_factor, rc)
+        class(MAPL_Real32_4DField), intent(inout) :: this
+        real(kind=REAL32),          intent(in   ) :: shift_factor
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        array = array+shift_factor
+
+        _RETURN(_SUCCESS)
+    end subroutine shift_real32_4D_field_real32
+
+    subroutine shift_real32_4D_field_real64(this, shift_factor, rc)
+        class(MAPL_Real32_4DField), intent(inout) :: this
+        real(kind=REAL64),          intent(in   ) :: shift_factor
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        array = array+shift_factor
+
+        _RETURN(_SUCCESS)
+    end subroutine shift_real32_4D_field_real64
+
     subroutine shift_real64_2D_field_real32(this, shift_factor, rc)
         class(MAPL_Real64_2DField), intent(inout) :: this
         real(kind=REAL32),          intent(in   ) :: shift_factor
@@ -425,4 +531,32 @@ contains
 
         _RETURN(_SUCCESS)
     end subroutine shift_real64_3D_field_real64
+
+    subroutine shift_real64_4D_field_real32(this, shift_factor, rc)
+        class(MAPL_Real64_4DField), intent(inout) :: this
+        real(kind=REAL32),          intent(in   ) :: shift_factor
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        array = array+shift_factor
+
+        _RETURN(_SUCCESS)
+    end subroutine shift_real64_4D_field_real32
+
+    subroutine shift_real64_4D_field_real64(this, shift_factor, rc)
+        class(MAPL_Real64_4DField), intent(inout) :: this
+        real(kind=REAL64),          intent(in   ) :: shift_factor
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        array = array+shift_factor
+
+        _RETURN(_SUCCESS)
+    end subroutine shift_real64_4D_field_real64
 end module LinearFields
