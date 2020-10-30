@@ -1,9 +1,9 @@
 imports:
   SS:
     standard_name: tba1
+    state: 'export'
     options:
       convert2MAPL: 1
-      state: 'export'
     policies:
       TransferOfferGeomObject: 'can provide'
       SharePolicyField:        'share'
@@ -13,9 +13,9 @@ imports:
       entries: [seas1, seas2, seas3, seas4, seas5]
   FROCEAN:
     standard_name: tba2
+    state: 'import'
     options:
       convert2MAPL: 1
-      state: 'import'
     policies:
       TransferOfferGeomObject: 'can provide'
       SharePolicyField:        'share'

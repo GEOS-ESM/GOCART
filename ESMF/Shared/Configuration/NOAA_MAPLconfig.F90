@@ -96,7 +96,6 @@ module NOAA_MAPLoptions
 
    public :: OptionsConfig
 
-   character(*), parameter :: ESMF_yaml_state = 'ESMF_State'
    character(*), parameter :: reverseLevels   = 'reverseLevels'
    character(*), parameter :: reverseMask     = 'reverseMask'
    character(*), parameter :: convert2MAPL    = 'convert2MAPL'
@@ -106,11 +105,8 @@ module NOAA_MAPLoptions
    real(kind=REAL32), parameter :: default_convert2MAPL  = 1.0_REAL32
 
    type :: OptionsConfig
-      character(:), allocatable :: state
-
-      integer, allocatable :: reverseLevels
-      logical, allocatable :: reverseMask
-
+      integer,           allocatable :: reverseLevels
+      logical,           allocatable :: reverseMask
       real(kind=REAL32), allocatable :: convert2MAPL
    contains
       procedure :: fill_defaults
@@ -125,20 +121,17 @@ module NOAA_MAPLoptions
       procedure :: from_MAPL
    end type OptionsConfig
 contains
-   subroutine fill_defaults(this, default_state)
+   subroutine fill_defaults(this)
       class(OptionsConfig), intent(inout) :: this
-      character(*),         intent(in   ) :: default_state
 
-      if (.not. allocated(this%state))         this%state         = default_state
       if (.not. allocated(this%reverseLevels)) this%reverseLevels = default_reverseLevels
       if (.not. allocated(this%reverseMask))   this%reverseMask   = default_reverseMask
       if (.not. allocated(this%convert2MAPL))  this%convert2MAPL  = default_convert2MAPL
    end subroutine fill_defaults
 
-   subroutine read_options_config(this, config, default_state)
+   subroutine read_options_config(this, config)
       class(OptionsConfig), intent(inout) :: this
       type(Configuration),  intent(in   ) :: config
-      character(*),         intent(in   ) :: default_state
 
       type(ConfigurationIterator) :: iter
       character(:), pointer       :: key
@@ -152,8 +145,6 @@ contains
          key => iter%key()
 
          select case(key)
-         case(ESMF_yaml_state)
-            this%state         = iter%value()
          case(reverseLevels)
             integer_tmp        = iter%value()
             this%reverseLevels = integer_tmp
@@ -168,7 +159,7 @@ contains
          call iter%next()
       end do
 
-      call this%fill_defaults(default_state)
+      call this%fill_defaults()
    end subroutine read_options_config
 
    subroutine reverse_levels(this, field, rc)

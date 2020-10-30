@@ -126,14 +126,6 @@ contains
       type(OptionsConfig) :: options_config6
       type(OptionsConfig) :: options_config7
       type(OptionsConfig) :: options_config8
-      type(OptionsConfig) :: options_config9
-      type(OptionsConfig) :: options_config10
-      type(OptionsConfig) :: options_config11
-      type(OptionsConfig) :: options_config12
-      type(OptionsConfig) :: options_config13
-      type(OptionsConfig) :: options_config14
-      type(OptionsConfig) :: options_config15
-      type(OptionsConfig) :: options_config16
 
       type(Parser)                :: p
       type(FileStream)            :: file_stream
@@ -159,52 +151,28 @@ contains
                select case(test_name)
                case ('test1')
                   test_config = iter%value()
-                  call options_config1%read_options_config(test_config, 'test')
+                  call options_config1%read_options_config(test_config)
                case ('test2')
                   test_config = iter%value()
-                  call options_config2%read_options_config(test_config, 'test')
+                  call options_config2%read_options_config(test_config)
                case ('test3')
                   test_config = iter%value()
-                  call options_config3%read_options_config(test_config, 'test')
+                  call options_config3%read_options_config(test_config)
                case ('test4')
                   test_config = iter%value()
-                  call options_config4%read_options_config(test_config, 'test')
+                  call options_config4%read_options_config(test_config)
                case ('test5')
                   test_config = iter%value()
-                  call options_config5%read_options_config(test_config, 'test')
+                  call options_config5%read_options_config(test_config)
                case ('test6')
                   test_config = iter%value()
-                  call options_config6%read_options_config(test_config, 'test')
+                  call options_config6%read_options_config(test_config)
                case ('test7')
                   test_config = iter%value()
-                  call options_config7%read_options_config(test_config, 'test')
+                  call options_config7%read_options_config(test_config)
                case ('test8')
                   test_config = iter%value()
-                  call options_config8%read_options_config(test_config, 'test')
-               case ('test9')
-                  test_config = iter%value()
-                  call options_config9%read_options_config(test_config, 'test')
-               case ('test10')
-                  test_config = iter%value()
-                  call options_config10%read_options_config(test_config, 'test')
-               case ('test11')
-                  test_config = iter%value()
-                  call options_config11%read_options_config(test_config, 'test')
-               case ('test12')
-                  test_config = iter%value()
-                  call options_config12%read_options_config(test_config, 'test')
-               case ('test13')
-                  test_config = iter%value()
-                  call options_config13%read_options_config(test_config, 'test')
-               case ('test14')
-                  test_config = iter%value()
-                  call options_config14%read_options_config(test_config, 'test')
-               case ('test15')
-                  test_config = iter%value()
-                  call options_config15%read_options_config(test_config, 'test')
-               case ('test16')
-                  test_config = iter%value()
-                  call options_config16%read_options_config(test_config, 'test')
+                  call options_config8%read_options_config(test_config)
                end select
 
                call iter%next()
@@ -216,85 +184,38 @@ contains
 
       call file_stream%close()
 
-      @assert_that(options_config1%state,         is(equal_to('test')))
       @assert_that(options_config1%reverseLevels, is(equal_to(0)))
       @assert_that(options_config1%reverseMask,   is(false()))
       @assert_that(options_config1%convert2MAPL,  is(equal_to(1.0_REAL32)))
 
-      @assert_that(options_config2%state,         is(equal_to('export')))
-      @assert_that(options_config2%reverseLevels, is(equal_to(0)))
+      @assert_that(options_config2%reverseLevels, is(equal_to(1)))
       @assert_that(options_config2%reverseMask,   is(false()))
       @assert_that(options_config2%convert2MAPL,  is(equal_to(1.0_REAL32)))
 
-      @assert_that(options_config3%state,         is(equal_to('test')))
-      @assert_that(options_config3%reverseLevels, is(equal_to(1)))
-      @assert_that(options_config3%reverseMask,   is(false()))
+      @assert_that(options_config3%reverseLevels, is(equal_to(0)))
+      @assert_that(options_config3%reverseMask,   is(true()))
       @assert_that(options_config3%convert2MAPL,  is(equal_to(1.0_REAL32)))
 
-      @assert_that(options_config4%state,         is(equal_to('test')))
       @assert_that(options_config4%reverseLevels, is(equal_to(0)))
-      @assert_that(options_config4%reverseMask,   is(true()))
-      @assert_that(options_config4%convert2MAPL,  is(equal_to(1.0_REAL32)))
+      @assert_that(options_config4%reverseMask,   is(false()))
+      @assert_that(options_config4%convert2MAPL,  is(equal_to(3.14)))
 
-      @assert_that(options_config5%state,         is(equal_to('test')))
-      @assert_that(options_config5%reverseLevels, is(equal_to(0)))
-      @assert_that(options_config5%reverseMask,   is(false()))
-      @assert_that(options_config5%convert2MAPL,  is(equal_to(3.14)))
+      @assert_that(options_config5%reverseLevels, is(equal_to(1)))
+      @assert_that(options_config5%reverseMask,   is(true()))
+      @assert_that(options_config5%convert2MAPL,  is(equal_to(1.0_REAL32)))
 
-      @assert_that(options_config6%state,         is(equal_to('export')))
       @assert_that(options_config6%reverseLevels, is(equal_to(1)))
       @assert_that(options_config6%reverseMask,   is(false()))
-      @assert_that(options_config6%convert2MAPL,  is(equal_to(1.0_REAL32)))
+      @assert_that(options_config6%convert2MAPL,  is(equal_to(3.14)))
 
-      @assert_that(options_config7%state,         is(equal_to('export')))
       @assert_that(options_config7%reverseLevels, is(equal_to(0)))
       @assert_that(options_config7%reverseMask,   is(true()))
-      @assert_that(options_config7%convert2MAPL,  is(equal_to(1.0_REAL32)))
+      @assert_that(options_config7%convert2MAPL,  is(equal_to(3.14)))
 
-      @assert_that(options_config8%state,         is(equal_to('export')))
-      @assert_that(options_config8%reverseLevels, is(equal_to(0)))
-      @assert_that(options_config8%reverseMask,   is(false()))
+      @assert_that(options_config8%reverseLevels, is(equal_to(1)))
+      @assert_that(options_config8%reverseMask,   is(true()))
       @assert_that(options_config8%convert2MAPL,  is(equal_to(3.14)))
 
-      @assert_that(options_config9%state,         is(equal_to('test')))
-      @assert_that(options_config9%reverseLevels, is(equal_to(1)))
-      @assert_that(options_config9%reverseMask,   is(true()))
-      @assert_that(options_config9%convert2MAPL,  is(equal_to(1.0_REAL32)))
-
-      @assert_that(options_config10%state,         is(equal_to('test')))
-      @assert_that(options_config10%reverseLevels, is(equal_to(1)))
-      @assert_that(options_config10%reverseMask,   is(false()))
-      @assert_that(options_config10%convert2MAPL,  is(equal_to(3.14)))
-
-      @assert_that(options_config11%state,         is(equal_to('test')))
-      @assert_that(options_config11%reverseLevels, is(equal_to(0)))
-      @assert_that(options_config11%reverseMask,   is(true()))
-      @assert_that(options_config11%convert2MAPL,  is(equal_to(3.14)))
-
-      @assert_that(options_config12%state,         is(equal_to('export')))
-      @assert_that(options_config12%reverseLevels, is(equal_to(1)))
-      @assert_that(options_config12%reverseMask,   is(true()))
-      @assert_that(options_config12%convert2MAPL,  is(equal_to(1.0_REAL32)))
-
-      @assert_that(options_config13%state,         is(equal_to('export')))
-      @assert_that(options_config13%reverseLevels, is(equal_to(0)))
-      @assert_that(options_config13%reverseMask,   is(true()))
-      @assert_that(options_config13%convert2MAPL,  is(equal_to(3.14)))
-
-      @assert_that(options_config14%state,         is(equal_to('export')))
-      @assert_that(options_config14%reverseLevels, is(equal_to(1)))
-      @assert_that(options_config14%reverseMask,   is(false()))
-      @assert_that(options_config14%convert2MAPL,  is(equal_to(3.14)))
-
-      @assert_that(options_config15%state,         is(equal_to('test')))
-      @assert_that(options_config15%reverseLevels, is(equal_to(1)))
-      @assert_that(options_config15%reverseMask,   is(true()))
-      @assert_that(options_config15%convert2MAPL,  is(equal_to(3.14)))
-
-      @assert_that(options_config16%state,         is(equal_to('export')))
-      @assert_that(options_config16%reverseLevels, is(equal_to(1)))
-      @assert_that(options_config16%reverseMask,   is(true()))
-      @assert_that(options_config16%convert2MAPL,  is(equal_to(3.14)))
    end subroutine test_read_options_config
 
    ! @test
