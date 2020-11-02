@@ -12,6 +12,7 @@ module LinearFields
     public :: scale_field
     public :: shift_field
     public :: reverse_field
+    public :: copy_field
 
     type, abstract :: MAPL_Field
         private
@@ -26,6 +27,9 @@ module LinearFields
         generic                             :: shift => shift_real32, shift_real64
 
         procedure(i_reverse), deferred :: reverse
+
+        procedure(i_copy_field), deferred :: copy_real32
+        procedure(i_copy_field), deferred :: copy_real64
     end type MAPL_Field
 
     type, extends(MAPL_Field) :: MAPL_Real32_2DField
@@ -37,6 +41,9 @@ module LinearFields
         procedure :: shift_real64 => shift_real32_2D_field_real64
 
         procedure :: reverse => reverse_real32_2D_field
+
+        procedure :: copy_real32 => copy_real32_2D_field_real32
+        procedure :: copy_real64 => copy_real32_2D_field_real64
     end type MAPL_Real32_2DField
 
     type, extends(MAPL_Field) :: MAPL_Real32_3DField
@@ -48,6 +55,9 @@ module LinearFields
         procedure :: shift_real64 => shift_real32_3D_field_real64
 
         procedure :: reverse => reverse_real32_3D_field
+
+        procedure :: copy_real32 => copy_real32_3D_field_real32
+        procedure :: copy_real64 => copy_real32_3D_field_real64
     end type MAPL_Real32_3DField
 
     type, extends(MAPL_Field) :: MAPL_Real32_4DField
@@ -59,6 +69,9 @@ module LinearFields
         procedure :: shift_real64 => shift_real32_4D_field_real64
 
         procedure :: reverse => reverse_real32_4D_field
+
+        procedure :: copy_real32 => copy_real32_4D_field_real32
+        procedure :: copy_real64 => copy_real32_4D_field_real64
     end type MAPL_Real32_4DField
 
     type, extends(MAPL_Field) :: MAPL_Real64_2DField
@@ -70,6 +83,9 @@ module LinearFields
         procedure :: shift_real64 => shift_real64_2D_field_real64
 
         procedure :: reverse => reverse_real64_2D_field
+
+        procedure :: copy_real32 => copy_real64_2D_field_real32
+        procedure :: copy_real64 => copy_real64_2D_field_real64
     end type MAPL_Real64_2DField
 
     type, extends(MAPL_Field) :: MAPL_Real64_3DField
@@ -81,6 +97,9 @@ module LinearFields
         procedure :: shift_real64 => shift_real64_3D_field_real64
 
         procedure :: reverse => reverse_real64_3D_field
+
+        procedure :: copy_real32 => copy_real64_3D_field_real32
+        procedure :: copy_real64 => copy_real64_3D_field_real64
     end type MAPL_Real64_3DField
 
     type, extends(MAPL_Field) :: MAPL_Real64_4DField
@@ -92,6 +111,9 @@ module LinearFields
         procedure :: shift_real64 => shift_real64_4D_field_real64
 
         procedure :: reverse => reverse_real64_4D_field
+
+        procedure :: copy_real32 => copy_real64_4D_field_real32
+        procedure :: copy_real64 => copy_real64_4D_field_real64
     end type MAPL_Real64_4DField
 
     abstract interface
@@ -133,6 +155,14 @@ module LinearFields
             integer,           intent(in   ) :: reverse_dimension
             integer, optional, intent(  out) :: rc
         end subroutine i_reverse
+
+        subroutine i_copy_field(this, field, rc)
+            use ESMF
+            import MAPL_Field
+            class(MAPL_Field), intent(inout) :: this
+            type(ESMF_Field),  intent(inout) :: field
+            integer, optional, intent(  out) :: rc
+        end subroutine i_copy_field
     end interface
 
     interface scale_field
@@ -764,4 +794,234 @@ contains
 
         _RETURN(_SUCCESS)
     end subroutine reverse_real64_4D_field
+
+    subroutine copy_real32_2D_field_real32(this, field, rc)
+        class(MAPL_Real32_2DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:)
+        real(kind=REAL32), pointer :: target_array(:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real32_2D_field_real32
+
+    subroutine copy_real32_2D_field_real64(this, field, rc)
+        class(MAPL_Real32_2DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:)
+        real(kind=REAL64), pointer :: target_array(:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real32_2D_field_real64
+
+    subroutine copy_real32_3D_field_real32(this, field, rc)
+        class(MAPL_Real32_3DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:)
+        real(kind=REAL32), pointer :: target_array(:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real32_3D_field_real32
+
+    subroutine copy_real32_3D_field_real64(this, field, rc)
+        class(MAPL_Real32_3DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:)
+        real(kind=REAL64), pointer :: target_array(:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real32_3D_field_real64
+
+    subroutine copy_real32_4D_field_real32(this, field, rc)
+        class(MAPL_Real32_4DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:,:)
+        real(kind=REAL32), pointer :: target_array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real32_4D_field_real32
+
+    subroutine copy_real32_4D_field_real64(this, field, rc)
+        class(MAPL_Real32_4DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL32), pointer :: array(:,:,:,:)
+        real(kind=REAL64), pointer :: target_array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real32_4D_field_real64
+
+    subroutine copy_real64_2D_field_real32(this, field, rc)
+        class(MAPL_Real64_2DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:)
+        real(kind=REAL32), pointer :: target_array(:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real64_2D_field_real32
+
+    subroutine copy_real64_2D_field_real64(this, field, rc)
+        class(MAPL_Real64_2DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:)
+        real(kind=REAL64), pointer :: target_array(:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real64_2D_field_real64
+
+    subroutine copy_real64_3D_field_real32(this, field, rc)
+        class(MAPL_Real64_3DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:)
+        real(kind=REAL32), pointer :: target_array(:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real64_3D_field_real32
+
+    subroutine copy_real64_3D_field_real64(this, field, rc)
+        class(MAPL_Real64_3DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:)
+        real(kind=REAL64), pointer :: target_array(:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real64_3D_field_real64
+
+    subroutine copy_real64_4D_field_real32(this, field, rc)
+        class(MAPL_Real64_4DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:,:)
+        real(kind=REAL32), pointer :: target_array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real64_4D_field_real32
+
+    subroutine copy_real64_4D_field_real64(this, field, rc)
+        class(MAPL_Real64_4DField), intent(inout) :: this
+        type(ESMF_Field),           intent(inout) :: field
+        integer, optional,          intent(  out) :: rc
+
+        real(kind=REAL64), pointer :: array(:,:,:,:)
+        real(kind=REAL64), pointer :: target_array(:,:,:,:)
+        integer                    :: status
+
+        call ESMF_FieldGet(this%field, localDE=0, farrayPtr=array, __RC__)
+        call ESMF_FieldGet(field,      localDE=0, farrayPtr=target_array, __RC__)
+
+        target_array = array
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_real64_4D_field_real64
+
+    subroutine copy_field(origin_field, target_field, rc)
+        type(ESMF_Field),               intent(in   ) :: origin_field
+        type(ESMF_Field),               intent(inout) :: target_field
+        integer, optional,              intent(  out) :: rc
+
+        class(MAPL_Field), allocatable :: wrapper
+        type(ESMF_TypeKind_Flag)       :: typekind
+        integer                        :: status, origin_field_rank, target_field_rank
+
+        call wrap_field(origin_field, wrapper, __RC__)
+
+        call ESMF_FieldGet(origin_field, rank=origin_field_rank, __RC__)
+        call ESMF_FieldGet(target_field, rank=target_field_rank, typekind=typekind, __RC__)
+        _ASSERT(origin_field_rank==target_field_rank, "Both fields must be of the same rank")
+
+        if (typekind == ESMF_TYPEKIND_R4) then
+           call wrapper%copy_real32(target_field, __RC__)
+        elseif (typekind == ESMF_TYPEKIND_R8) then
+           call wrapper%copy_real64(target_field, __RC__)
+        else
+            _FAIL("Unsupported ESMF_TYPEKIND")
+        end if
+
+        _RETURN(_SUCCESS)
+    end subroutine copy_field
 end module LinearFields

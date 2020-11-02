@@ -266,7 +266,9 @@ module NOAA_MAPLfield
 
    character(*), parameter :: standardName = 'standardName'
    character(*), parameter :: units        = 'units'
-   character(*), parameter :: state_yaml   = 'state'
+
+   character(*), parameter :: MAPL_state  = 'MAPL_state'
+   character(*), parameter :: NUOPC_state = 'NUOPC_state'
 
    character(*), parameter :: policies     = 'policies'
    character(*), parameter :: options      = 'options'
@@ -278,11 +280,16 @@ module NOAA_MAPLfield
       character(:), allocatable :: MAPL_name
       character(:), allocatable :: units
       character(:), allocatable :: standardName
-      character(:), allocatable :: state
+
+      character(:), allocatable :: MAPL_state
+      character(:), allocatable :: NUOPC_state
 
       type(PoliciesConfig), allocatable :: policies_config
       type(OptionsConfig),  allocatable :: options_config
       type(TracerEntry),    allocatable :: tracer_entry
+
+      type(ESMF_Field), pointer :: MAPL_field  => null()
+      type(ESMF_Field), pointer :: NUOPC_field => null()
    contains
       procedure :: fill_defaults
       procedure :: read_field_config
@@ -290,18 +297,25 @@ module NOAA_MAPLfield
       procedure :: add_to_field_dictionary
       procedure :: add_name_to_field_dictionary
       procedure :: create_synonyms
+
+      procedure :: initialize_fields
+      procedure :: initialize_MAPL_field
+      procedure :: initialize_NUOPC_field
    end type FieldConfig
 contains
    subroutine fill_defaults(this, default_state)
       class(FieldConfig), intent(inout) :: this
       character(*),       intent(in   ) :: default_state
 
+      character(:), allocatable :: name
+
       type(PoliciesConfig) :: policies_config
       type(OptionsConfig)  :: options_config
 
-      if (.not. allocated(this%standardName)) this%standardName = this%MAPL_name
-      if (.not. allocated(this%units))        this%units        = default_units
-      if (.not. allocated(this%state))        this%state        = default_state
+      if (.not. allocated(this%units)) this%units = default_units
+
+      if (.not. allocated(this%MAPL_state))  this%MAPL_state  = default_state
+      if (.not. allocated(this%NUOPC_state)) this%NUOPC_state = default_state
 
       if (.not. allocated(this%policies_config)) then
          call policies_config%fill_defaults()
@@ -312,6 +326,14 @@ contains
          call options_config%fill_defaults()
          this%options_config = options_config
       end if
+
+      if (allocated(this%tracer_entry)) then
+         name = this%tracer_entry%name
+      else
+         name = this%MAPL_name
+      end if
+
+      if (.not. allocated(this%standardName)) this%standardName = name
    end subroutine fill_defaults
 
    subroutine read_field_config(this, MAPL_name, config, default_state)
@@ -339,8 +361,10 @@ contains
             this%standardName = iter%value()
          case (units)
             this%units        = iter%value()
-         case (state_yaml)
-            this%state        = iter%value()
+         case (MAPL_State)
+            this%MAPL_state   = iter%value()
+         case (NUOPC_State)
+            this%NUOPC_state  = iter%value()
          case (policies)
             sub_config = iter%value()
             call policies_config%read_policies_config(sub_config)
@@ -415,6 +439,66 @@ contains
 
       _RETURN(_SUCCESS)
    end subroutine add_to_field_dictionary
+
+   subroutine initialize_MAPL_field(this, import_state, export_state, rc)
+      class(FieldConfig), intent(inout) :: this
+      type(ESMF_State),   intent(inout) :: import_state
+      type(ESMF_State),   intent(inout) :: export_state
+      integer, optional,  intent(  out) :: rc
+
+      type(ESMF_Field), pointer :: field
+      integer                   :: status
+
+      select case(this%MAPL_state)
+      case ('import')
+         call ESMF_StateGet(import_state, itemName=this%MAPL_name, field=field, __RC__)
+      case ('export')
+         call ESMF_StateGet(export_state, itemName=this%MAPL_name, field=field, __RC__)
+      case default
+         _FAIL('Invalid MAPL_state given')
+      end select
+
+      this%MAPL_field => field
+
+      _RETURN(_SUCCESS)
+   end subroutine initialize_MAPL_field
+
+   subroutine initialize_NUOPC_field(this, import_state, export_state, rc)
+      class(FieldConfig), intent(inout) :: this
+      type(ESMF_State),   intent(inout) :: import_state
+      type(ESMF_State),   intent(inout) :: export_state
+      integer, optional,  intent(  out) :: rc
+
+      type(ESMF_Field), pointer :: field
+      integer                   :: status
+
+      select case(this%NUOPC_state)
+      case ('import')
+         call ESMF_StateGet(import_state, itemName=this%standardName, field=field, __RC__)
+      case ('export')
+         call ESMF_StateGet(export_state, itemName=this%standardName, field=field, __RC__)
+      case default
+         _FAIL('Invalid NUOPC_state given')
+      end select
+
+      this%NUOPC_field => field
+
+      _RETURN(_SUCCESS)
+   end subroutine initialize_NUOPC_field
+
+   subroutine initialize_fields(this, import_state, export_state, rc)
+      class(FieldConfig), intent(inout) :: this
+      type(ESMF_State),   intent(inout) :: import_state
+      type(ESMF_State),   intent(inout) :: export_state
+      integer, optional,  intent(  out) :: rc
+
+      integer :: status
+
+      call this%initialize_MAPL_field( import_state, export_state, __RC__)
+      call this%initialize_NUOPC_field(import_state, export_state, __RC__)
+
+      _RETURN(_SUCCESS)
+   end subroutine initialize_fields
 end module NOAA_MAPLfield
 
 ! module NOAA_MAPLfieldConfig
