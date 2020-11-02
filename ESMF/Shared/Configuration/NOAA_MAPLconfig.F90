@@ -265,6 +265,7 @@ module NOAA_MAPLfield
    private
 
    public :: FieldConfig
+   public :: create_FieldConfig
 
    character(*), parameter :: standardName = 'standardName'
    character(*), parameter :: units        = 'units'
@@ -308,6 +309,15 @@ module NOAA_MAPLfield
       procedure :: initialize_NUOPC_field
    end type FieldConfig
 contains
+   function create_FieldConfig(MAPL_name, config, default_state) result(field_config)
+      type(FieldConfig)                  :: field_config
+      character(*),        intent(in   ) :: MAPL_name
+      type(Configuration), intent(in   ) :: config
+      character(*),        intent(in   ) :: default_state
+
+      call field_config%read_field_config(MAPL_name, config, default_state)
+   end function create_FieldConfig
+
    subroutine fill_defaults(this, default_state)
       class(FieldConfig), intent(inout) :: this
       character(*),       intent(in   ) :: default_state
@@ -547,6 +557,127 @@ module NOAA_MAPLfieldMap
 #define _alt
 #include "templates/map.inc"
 end module NOAA_MAPLfieldMap
+
+module NOAA_MAPLconfigMod
+   use ESMF
+   use MAPL
+   use yaFyaml
+
+   use NOAA_MAPLfield
+   use NOAA_MAPLfieldMap
+   use NOAA_TracersMod
+
+   implicit none
+   private
+
+   public :: NOAA_MAPLconfig
+   public :: create_NOAA_MAPLconfig
+
+   character(*), parameter :: imports = 'imports'
+   character(*), parameter :: exports = 'exports'
+   character(*), parameter :: tracers = 'tracers'
+
+   type :: NOAA_MAPLconfig
+      type(FieldConfigMap) :: imports
+      type(FieldConfigMap) :: exports
+      type(NOAA_Tracers)   :: tracers
+
+   contains
+      procedure :: read_field_map_config
+      procedure :: read_config
+   end type NOAA_MAPLconfig
+contains
+   function create_NOAA_MAPLconfig(filename, rc) result(NOAA_MAPL_config)
+      type(NOAA_MAPLconfig) :: NOAA_MAPL_config
+      character(*),      intent(in   ) :: filename
+      integer, optional, intent(  out) :: rc
+
+      integer :: status
+
+      type(Parser)                :: p
+      type(FileStream)            :: file_stream
+      type(Configuration)         :: config
+
+      p           = Parser('core')
+      file_stream = FileStream(filename)
+      config      = p%load(file_stream)
+
+      call NOAA_MAPL_config%read_config(config, __RC__)
+
+      call file_stream%close()
+
+      _RETURN(_SUCCESS)
+   end function
+
+   subroutine read_field_map_config(this, config, default_state, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      type(Configuration),    intent(in   ) :: config
+      character(*),           intent(in   ) :: default_state
+      integer, optional,      intent(  out) :: rc
+
+      type(Configuration)         :: sub_config
+      type(ConfigurationIterator) :: iter
+      character(:), pointer       :: MAPL_name
+
+      type(FieldConfig) :: field_config
+      integer           :: status
+
+      iter = config%begin()
+      do while(iter /= config%end())
+         MAPL_name  => iter%key()
+         sub_config =  iter%value()
+
+         field_config = create_FieldConfig(MAPL_name, sub_config, default_state)
+
+         select case(default_state)
+         case ('import')
+            call this%imports%insert(MAPL_name, field_config)
+         case ('export')
+            call this%exports%insert(MAPL_name, field_config)
+         case default
+            _FAIL('Invalid default_state given')
+         end select
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine read_field_map_config
+
+   subroutine read_config(this, config, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      type(Configuration),    intent(in   ) :: config
+      integer, optional,      intent(  out) :: rc
+
+      type(Configuration)         :: sub_config
+      type(ConfigurationIterator) :: iter
+      character(:), pointer       :: key
+
+      integer :: status
+
+      iter = config%begin()
+      do while(iter /= config%end())
+         key => iter%key()
+
+         select case(key)
+         case (imports)
+            sub_config = iter%value()
+            call this%read_field_map_config(sub_config, 'import', __RC__)
+         case (exports)
+            sub_config = iter%value()
+            call this%read_field_map_config(sub_config, 'export', __RC__)
+         case (tracers)
+            sub_config = iter%value()
+            call this%tracers%read_tracers_config(sub_config)
+         end select
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine read_config
+end module NOAA_MAPLconfigMod
+
 
 ! module NOAA_MAPLconfigMod
 !    use ESMF
