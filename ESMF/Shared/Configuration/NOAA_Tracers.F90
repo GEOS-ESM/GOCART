@@ -299,7 +299,7 @@ contains
       else if (entries%entries%size() > 1) then
          call this%create_tracer_real32_4D(field, name, entries, tracer, __RC__)
       else
-         _ASSERT(1 == 2, "No tracer entries found")
+         _FAIL("No tracer entries found")
       end if
 
       _RETURN(_SUCCESS)
@@ -395,7 +395,7 @@ contains
       else if (entries%entries%size() > 1) then
          call this%create_tracer_real64_4D(field, name, entries, tracer, __RC__)
       else
-         _ASSERT(1 == 2, "No tracer entries found")
+         _FAIL("No tracer entries found")
       end if
 
       _RETURN(_SUCCESS)
