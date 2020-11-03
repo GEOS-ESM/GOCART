@@ -301,15 +301,13 @@ module NOAA_MAPLfield
       procedure :: add_name_to_field_dictionary
       procedure :: create_synonyms
 
-      ! Convert, cast, recast...
-      procedure :: copy_NUOPC_to_MAPL
-      procedure :: copy_MAPL_to_NUOPC
+      procedure :: recast_to_MAPL
+      procedure :: recast_to_NUOPC
 
       procedure :: advertise_as_MAPL
       procedure :: advertise_as_NUOPC
 
-      ! Remove fields
-      procedure :: initialize_fields
+      procedure :: initialize
       procedure :: initialize_MAPL_field
       procedure :: initialize_NUOPC_field
    end type FieldConfig
@@ -460,7 +458,7 @@ contains
       _RETURN(_SUCCESS)
    end subroutine add_to_field_dictionary
 
-   subroutine copy_NUOPC_to_MAPL(this, rc)
+   subroutine recast_to_MAPL(this, rc)
       class(FieldConfig), intent(inout) :: this
       integer, optional,  intent(  out) :: rc
 
@@ -470,9 +468,9 @@ contains
       call this%options_config%to_MAPL(this%MAPL_field, __RC__)
 
       _RETURN(_SUCCESS)
-   end subroutine copy_NUOPC_to_MAPL
+   end subroutine recast_to_MAPL
 
-   subroutine copy_MAPL_to_NUOPC(this, rc)
+   subroutine recast_to_NUOPC(this, rc)
       class(FieldConfig), intent(inout) :: this
       integer, optional,  intent(  out) :: rc
 
@@ -482,7 +480,7 @@ contains
       call this%options_config%from_MAPL(this%NUOPC_field, __RC__)
 
       _RETURN(_SUCCESS)
-   end subroutine copy_MAPL_to_NUOPC
+   end subroutine recast_to_NUOPC
 
    subroutine advertise_as_MAPL(this, state, rc)
       class(FieldConfig), intent(inout) :: this
@@ -561,7 +559,7 @@ contains
       _RETURN(_SUCCESS)
    end subroutine initialize_NUOPC_field
 
-   subroutine initialize_fields(this, import_state, export_state, tracers, rc)
+   subroutine initialize(this, import_state, export_state, tracers, rc)
       class(FieldConfig), intent(inout) :: this
       type(ESMF_State),   intent(inout) :: import_state
       type(ESMF_State),   intent(inout) :: export_state
@@ -574,7 +572,7 @@ contains
       call this%initialize_NUOPC_field(import_state, export_state, tracers, __RC__)
 
       _RETURN(_SUCCESS)
-   end subroutine initialize_fields
+   end subroutine initialize
 end module NOAA_MAPLfield
 
 module NOAA_MAPLfieldMap
@@ -621,13 +619,13 @@ module NOAA_MAPLconfigMod
       procedure :: advertise_as_MAPL
       procedure :: advertise_as_NUOPC
 
-      procedure :: initialize_fields
+      procedure :: initialize
 
-      procedure :: copy_imports_NUOPC_to_MAPL
-      procedure :: copy_imports_MAPL_to_NUOPC
+      procedure :: recast_imports_to_MAPL
+      procedure :: recast_imports_to_NUOPC
 
-      procedure :: copy_exports_NUOPC_to_MAPL
-      procedure :: copy_exports_MAPL_to_NUOPC
+      procedure :: recast_exports_to_MAPL
+      procedure :: recast_exports_to_NUOPC
    end type NOAA_MAPLconfig
 contains
    function create_NOAA_MAPLconfig(config_filename, field_table_filename, rc) result(NOAA_MAPL_config)
@@ -804,7 +802,7 @@ contains
       _RETURN(_SUCCESS)
    end subroutine advertise_as_NUOPC
 
-   subroutine initialize_fields(this, import_state, export_state, rc)
+   subroutine initialize(this, import_state, export_state, rc)
       class(NOAA_MAPLconfig), intent(inout) :: this
       type(ESMF_state),       intent(inout) :: import_state
       type(ESMF_state),       intent(inout) :: export_state
@@ -817,7 +815,7 @@ contains
       iter = this%imports%begin()
       do while(iter /= this%imports%end())
          field_config = iter%value()
-         call field_config%initialize_fields(import_state, export_state, this%tracers, __RC__)
+         call field_config%initialize(import_state, export_state, this%tracers, __RC__)
 
          call iter%next()
       end do
@@ -825,15 +823,15 @@ contains
       iter = this%exports%begin()
       do while(iter /= this%exports%end())
          field_config = iter%value()
-         call field_config%initialize_fields(import_state, export_state, this%tracers, __RC__)
+         call field_config%initialize(import_state, export_state, this%tracers, __RC__)
 
          call iter%next()
       end do
 
       _RETURN(_SUCCESS)
-   end subroutine initialize_fields
+   end subroutine initialize
 
-   subroutine copy_imports_NUOPC_to_MAPL(this, rc)
+   subroutine recast_imports_to_MAPL(this, rc)
       class(NOAA_MAPLconfig), intent(inout) :: this
       integer, optional,      intent(  out) :: rc
 
@@ -844,15 +842,15 @@ contains
       iter = this%imports%begin()
       do while(iter /= this%imports%end())
          field_config = iter%value()
-         call field_config%copy_NUOPC_to_MAPL(__RC__)
+         call field_config%recast_to_MAPL(__RC__)
 
          call iter%next()
       end do
 
       _RETURN(_SUCCESS)
-   end subroutine copy_imports_NUOPC_to_MAPL
+   end subroutine recast_imports_to_MAPL
 
-   subroutine copy_exports_NUOPC_to_MAPL(this, rc)
+   subroutine recast_exports_to_MAPL(this, rc)
       class(NOAA_MAPLconfig), intent(inout) :: this
       integer, optional,      intent(  out) :: rc
 
@@ -863,15 +861,15 @@ contains
       iter = this%exports%begin()
       do while(iter /= this%exports%end())
          field_config = iter%value()
-         call field_config%copy_NUOPC_to_MAPL(__RC__)
+         call field_config%recast_to_MAPL(__RC__)
 
          call iter%next()
       end do
 
       _RETURN(_SUCCESS)
-   end subroutine copy_exports_NUOPC_to_MAPL
+   end subroutine recast_exports_to_MAPL
 
-   subroutine copy_imports_MAPL_to_NUOPC(this, rc)
+   subroutine recast_imports_to_NUOPC(this, rc)
       class(NOAA_MAPLconfig), intent(inout) :: this
       integer, optional,      intent(  out) :: rc
 
@@ -882,15 +880,15 @@ contains
       iter = this%imports%begin()
       do while(iter /= this%imports%end())
          field_config = iter%value()
-         call field_config%copy_MAPL_to_NUOPC(__RC__)
+         call field_config%recast_to_NUOPC(__RC__)
 
          call iter%next()
       end do
 
       _RETURN(_SUCCESS)
-   end subroutine copy_imports_MAPL_to_NUOPC
+   end subroutine recast_imports_to_NUOPC
 
-   subroutine copy_exports_MAPL_to_NUOPC(this, rc)
+   subroutine recast_exports_to_NUOPC(this, rc)
       class(NOAA_MAPLconfig), intent(inout) :: this
       integer, optional,      intent(  out) :: rc
 
@@ -901,11 +899,11 @@ contains
       iter = this%exports%begin()
       do while(iter /= this%exports%end())
          field_config = iter%value()
-         call field_config%copy_MAPL_to_NUOPC(__RC__)
+         call field_config%recast_to_NUOPC(__RC__)
 
          call iter%next()
       end do
 
       _RETURN(_SUCCESS)
-   end subroutine copy_exports_MAPL_to_NUOPC
+   end subroutine recast_exports_to_NUOPC
 end module NOAA_MAPLconfigMod
