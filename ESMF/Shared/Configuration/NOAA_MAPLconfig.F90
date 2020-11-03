@@ -267,8 +267,9 @@ module NOAA_MAPLfield
    public :: FieldConfig
    public :: create_FieldConfig
 
-   character(*), parameter :: standardName = 'standardName'
-   character(*), parameter :: units        = 'units'
+   character(*), parameter :: standardName   = 'standardName'
+   character(*), parameter :: units          = 'units'
+   character(*), parameter :: component_name = 'component_name'
 
    character(*), parameter :: MAPL_state  = 'MAPL_state'
    character(*), parameter :: NUOPC_state = 'NUOPC_state'
@@ -283,6 +284,7 @@ module NOAA_MAPLfield
       character(:), allocatable :: MAPL_name
       character(:), allocatable :: units
       character(:), allocatable :: standardName
+      character(:), allocatable :: component_name
 
       character(:), allocatable :: MAPL_state
       character(:), allocatable :: NUOPC_state
@@ -310,6 +312,8 @@ module NOAA_MAPLfield
       procedure :: initialize
       procedure :: initialize_MAPL_field
       procedure :: initialize_NUOPC_field
+
+      procedure :: create_cap_entry
    end type FieldConfig
 contains
    function create_FieldConfig(MAPL_name, config, default_state) result(field_config)
@@ -376,13 +380,15 @@ contains
 
          select case(key)
          case (standardName)
-            this%standardName = iter%value()
+            this%standardName   = iter%value()
          case (units)
-            this%units        = iter%value()
+            this%units          = iter%value()
+         case (component_name)
+            this%component_name = iter%value()
          case (MAPL_State)
-            this%MAPL_state   = iter%value()
+            this%MAPL_state     = iter%value()
          case (NUOPC_State)
-            this%NUOPC_state  = iter%value()
+            this%NUOPC_state    = iter%value()
          case (policies)
             sub_config = iter%value()
             call policies_config%read_policies_config(sub_config)
@@ -573,6 +579,17 @@ contains
 
       _RETURN(_SUCCESS)
    end subroutine initialize
+
+   function create_cap_entry(this) result(cap_entry)
+      character(:), allocatable         :: cap_entry
+      class(FieldConfig), intent(inout) :: this
+
+      if (allocated(this%component_name)) then
+         cap_entry = this%MAPL_name//","//this%component_name
+      else
+         cap_entry = this%MAPL_name
+      end if
+   end function create_cap_entry
 end module NOAA_MAPLfield
 
 module NOAA_MAPLfieldMap
@@ -591,6 +608,7 @@ module NOAA_MAPLconfigMod
    use ESMF
    use MAPL
    use yaFyaml
+   use gFTL_StringVector
 
    use NOAA_MAPLfield
    use NOAA_MAPLfieldMap
@@ -626,6 +644,9 @@ module NOAA_MAPLconfigMod
 
       procedure :: recast_exports_to_MAPL
       procedure :: recast_exports_to_NUOPC
+
+      procedure :: create_cap_imports
+      procedure :: create_cap_exports
    end type NOAA_MAPLconfig
 contains
    function create_NOAA_MAPLconfig(config_filename, field_table_filename, rc) result(NOAA_MAPL_config)
@@ -906,4 +927,38 @@ contains
 
       _RETURN(_SUCCESS)
    end subroutine recast_exports_to_NUOPC
+
+   function create_cap_imports(this) result(cap_imports)
+      type(StringVector)                 :: cap_imports
+      class(NOAA_MAPLconfig), intent(in) :: this
+
+      type(FieldConfigMapIterator) :: iter
+      character(:), pointer        :: key
+
+      iter = this%imports%begin()
+      do while(iter /= this%imports%end())
+         key => iter%key()
+         call cap_imports%push_back(key)
+
+         call iter%next()
+      end do
+   end function create_cap_imports
+
+   function create_cap_exports(this) result(cap_exports)
+      type(StringVector)                 :: cap_exports
+      class(NOAA_MAPLconfig), intent(in) :: this
+
+      type(FIeldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      character(:), allocatable    :: cap_export
+
+      iter = this%exports%begin()
+      do while(iter /= this%exports%end())
+         field_config = iter%value()
+         cap_export = field_config%create_cap_entry()
+         call cap_exports%push_back(cap_export)
+
+         call iter%next()
+      end do
+   end function create_cap_exports
 end module NOAA_MAPLconfigMod
