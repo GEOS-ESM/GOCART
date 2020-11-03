@@ -1,0 +1,158 @@
+imports:
+  FROCEAN:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  LWI:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  U10M:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  V10M:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  USTAR:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  TS:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  DZ:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  FRLAKE:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  AREA:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  ZPBL:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  SH:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  Z0H:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  CN_PRCP:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  NCN_PRCP:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  AIRDENS:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  DELP:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  T:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  RH2:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  ZLE:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  PLE:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  PFL_LSAN:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  PFI_LSAN:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  U:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  V:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    standardName: tba
+  SS:
+    policies:
+      TransferOfferGeomObject: 'cannot provide'
+      SharePolicyField:        'share'
+      SharePolicyGeomObject:   'share'
+    tracer:
+      name: 'inst_mass_tracers'
+      entries: ['seas1', 'seas2', 'seas3', 'seas4', 'seas5']
+    MAPL_state: 'export'
+
+exports:
+  # TBD
+
