@@ -301,12 +301,14 @@ module NOAA_MAPLfield
       procedure :: add_name_to_field_dictionary
       procedure :: create_synonyms
 
+      ! Convert, cast, recast...
       procedure :: copy_NUOPC_to_MAPL
       procedure :: copy_MAPL_to_NUOPC
 
       procedure :: advertise_as_MAPL
       procedure :: advertise_as_NUOPC
 
+      ! Remove fields
       procedure :: initialize_fields
       procedure :: initialize_MAPL_field
       procedure :: initialize_NUOPC_field
@@ -610,6 +612,8 @@ module NOAA_MAPLconfigMod
       type(FieldConfigMap) :: imports
       type(FieldConfigMap) :: exports
       type(NOAA_Tracers)   :: tracers
+
+      character(:), allocatable :: tracer_configuration_name
 
    contains
       procedure :: read_field_map_config

@@ -3,7 +3,7 @@ imports:
     standard_name: tba1
     state: 'export'
     options:
-      convert2MAPL: 1
+      convert2MAPL: 1.0
     policies:
       TransferOfferGeomObject: 'can provide'
       SharePolicyField:        'share'
@@ -11,11 +11,12 @@ imports:
     tracer:
       name: 'inst_mass_tracers'
       entries: [seas1, seas2, seas3, seas4, seas5]
+
   FROCEAN:
     standard_name: tba2
     state: 'import'
     options:
-      convert2MAPL: 1
+      convert2MAPL: 1.0
     policies:
       TransferOfferGeomObject: 'can provide'
       SharePolicyField:        'share'
@@ -24,3 +25,8 @@ imports:
 tracers:
   inst_mass_tracers:
     field_table: 'field_table'
+
+
+  configuration_name:
+    field_name: 'inst_mass_tracers'
+    field_table_filename: 'field_table'
