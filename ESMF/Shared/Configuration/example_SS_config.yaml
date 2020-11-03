@@ -1,16 +1,36 @@
 imports:
+  # Keys are MAPL names
   SS:
-    standard_name: tba1
-    state: 'export'
-    options:
-      convert2MAPL: 1.0
-    policies:
-      TransferOfferGeomObject: 'can provide'
-      SharePolicyField:        'share'
-      SharePolicyGeomObject:   'share'
-    tracer:
-      name: 'inst_mass_tracers'
-      entries: [seas1, seas2, seas3, seas4, seas5]
+    policies: # optional, reverts to object defaults
+      # these are the NUOPC advertise options
+      TransferOfferGeomObject: 'can provide' # optional, default: 'will provide'
+      SharePolicyField:        'share'       # optional, default: 'not share'
+      SharePolicyGeomObject:   'share'       # optional, default: to same as SharePolicyField
+
+    options: # optional, reverts to object defaults
+      reverseLevels: 4    # optional, default: '0'
+                          # reverses the field in the dimension indicated (0 being no reverse)
+      reverseMask:   true # optional, default: false
+                          # reverse the 0/1 definition of a 0-1 mask/fraction field
+      convert2MAPL:  3.14 # optional, default: `1.0`
+                          # conversion factor from NUOPC units to MAPL units
+
+    tracer: # optional, if not present field is assumed to not be a tracer
+      name: 'inst_mass_tracers' # name of the import field for tracers
+      entries: [seas1, seas2, seas3, seas4, seas5] # list or single entry containing names in field table
+                                                   # note that multiple entries must form contiguous block in field table
+
+    standardName:   tba1   # optional, reverts to MAPL_name or tracer name (if present)
+                           # this is supposed to be the NUOPC name
+    units:          'kg'   # optional, default: '1'
+                           # used to register in the NUOPC field dictionary (if used)
+    component_name: 'SS2G' # name of the MAPL component this originates from
+                           # only required for fields coming from MAPL export states
+
+    MAPL_state: 'export'   # optional, default: to import for imports, export for export
+    NUOPC_state: 'export'  # optional, default: to import for imports, export for export
+                           # note this is the state where we look for the field when
+                           # performing actions
 
   FROCEAN:
     standard_name: tba2
@@ -22,11 +42,5 @@ imports:
       SharePolicyField:        'share'
       SharePolicyGeomObject:   'share'
 
-tracers:
-  inst_mass_tracers:
-    field_table: 'field_table'
-
-
-  configuration_name:
-    field_name: 'inst_mass_tracers'
-    field_table_filename: 'field_table'
+exports:
+  # same construction as for imports
