@@ -304,6 +304,9 @@ module NOAA_MAPLfield
       procedure :: copy_NUOPC_to_MAPL
       procedure :: copy_MAPL_to_NUOPC
 
+      procedure :: advertise_as_MAPL
+      procedure :: advertise_as_NUOPC
+
       procedure :: initialize_fields
       procedure :: initialize_MAPL_field
       procedure :: initialize_NUOPC_field
@@ -462,6 +465,7 @@ contains
       integer :: status
 
       call copy_field(this%NUOPC_field, this%MAPL_field, __RC__)
+      call this%options_config%to_MAPL(this%MAPL_field, __RC__)
 
       _RETURN(_SUCCESS)
    end subroutine copy_NUOPC_to_MAPL
@@ -473,9 +477,34 @@ contains
       integer :: status
 
       call copy_field(this%MAPL_field, this%NUOPC_field, __RC__)
+      call this%options_config%from_MAPL(this%NUOPC_field, __RC__)
 
       _RETURN(_SUCCESS)
    end subroutine copy_MAPL_to_NUOPC
+
+   subroutine advertise_as_MAPL(this, state, rc)
+      class(FieldConfig), intent(inout) :: this
+      type(ESMF_State),   intent(inout) :: state
+      integer, optional,  intent(  out) :: rc
+
+      integer :: status
+
+      call this%policies_config%advertise_to_state(state, this%MAPL_name, __RC__)
+
+      _RETURN(_SUCCESS)
+   end subroutine advertise_as_MAPL
+
+   subroutine advertise_as_NUOPC(this, state, rc)
+      class(FieldConfig), intent(inout) :: this
+      type(ESMF_State),   intent(inout) :: state
+      integer, optional,  intent(  out) :: rc
+
+      integer :: status
+
+      call this%policies_config%advertise_to_state(state, this%standardName, __RC__)
+
+      _RETURN(_SUCCESS)
+   end subroutine advertise_as_NUOPC
 
    subroutine initialize_MAPL_field(this, import_state, export_state, rc)
       class(FieldConfig), intent(inout) :: this
@@ -585,6 +614,19 @@ module NOAA_MAPLconfigMod
    contains
       procedure :: read_field_map_config
       procedure :: read_config
+
+      procedure :: add_to_field_dictionary
+
+      procedure :: advertise_as_MAPL
+      procedure :: advertise_as_NUOPC
+
+      procedure :: initialize_fields
+
+      procedure :: copy_imports_NUOPC_to_MAPL
+      procedure :: copy_imports_MAPL_to_NUOPC
+
+      procedure :: copy_exports_NUOPC_to_MAPL
+      procedure :: copy_exports_MAPL_to_NUOPC
    end type NOAA_MAPLconfig
 contains
    function create_NOAA_MAPLconfig(filename, rc) result(NOAA_MAPL_config)
@@ -676,157 +718,194 @@ contains
 
       _RETURN(_SUCCESS)
    end subroutine read_config
+
+   subroutine add_to_field_dictionary(this, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      integer, optional,      intent(  out) :: rc
+
+      type(FieldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      integer                      :: status
+
+      iter = this%imports%begin()
+      do while(iter /= this%imports%end())
+         field_config = iter%value()
+         call field_config%add_to_field_dictionary(__RC__)
+
+         call iter%next()
+      end do
+
+      iter = this%exports%begin()
+      do while(iter /= this%exports%end())
+         field_config = iter%value()
+         call field_config%add_to_field_dictionary(__RC__)
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine add_to_field_dictionary
+
+   subroutine advertise_as_MAPL(this, import_state, export_state, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      type(ESMF_state),       intent(inout) :: import_state
+      type(ESMF_state),       intent(inout) :: export_state
+      integer, optional,      intent(  out) :: rc
+
+      type(FieldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      integer                      :: status
+
+      iter = this%imports%begin()
+      do while(iter /= this%imports%end())
+         field_config = iter%value()
+         call field_config%advertise_as_MAPL(import_state, __RC__)
+
+         call iter%next()
+      end do
+
+      iter = this%exports%begin()
+      do while(iter /= this%exports%end())
+         field_config = iter%value()
+         call field_config%advertise_as_MAPL(export_state, __RC__)
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine advertise_as_MAPL
+
+   subroutine advertise_as_NUOPC(this, import_state, export_state, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      type(ESMF_state),       intent(inout) :: import_state
+      type(ESMF_state),       intent(inout) :: export_state
+      integer, optional,      intent(  out) :: rc
+
+      type(FieldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      integer                      :: status
+
+      iter = this%imports%begin()
+      do while(iter /= this%imports%end())
+         field_config = iter%value()
+         call field_config%advertise_as_MAPL(import_state, __RC__)
+
+         call iter%next()
+      end do
+
+      iter = this%exports%begin()
+      do while(iter /= this%exports%end())
+         field_config = iter%value()
+         call field_config%advertise_as_MAPL(export_state, __RC__)
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine advertise_as_NUOPC
+
+   subroutine initialize_fields(this, import_state, export_state, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      type(ESMF_state),       intent(inout) :: import_state
+      type(ESMF_state),       intent(inout) :: export_state
+      integer, optional,      intent(  out) :: rc
+
+      type(FieldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      integer                      :: status
+
+      iter = this%imports%begin()
+      do while(iter /= this%imports%end())
+         field_config = iter%value()
+         call field_config%initialize_fields(import_state, export_state, this%tracers, __RC__)
+
+         call iter%next()
+      end do
+
+      iter = this%exports%begin()
+      do while(iter /= this%exports%end())
+         field_config = iter%value()
+         call field_config%initialize_fields(import_state, export_state, this%tracers, __RC__)
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine initialize_fields
+
+   subroutine copy_imports_NUOPC_to_MAPL(this, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      integer, optional,      intent(  out) :: rc
+
+      type(FieldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      integer                      :: status
+
+      iter = this%imports%begin()
+      do while(iter /= this%imports%end())
+         field_config = iter%value()
+         call field_config%copy_NUOPC_to_MAPL(__RC__)
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine copy_imports_NUOPC_to_MAPL
+
+   subroutine copy_exports_NUOPC_to_MAPL(this, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      integer, optional,      intent(  out) :: rc
+
+      type(FieldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      integer                      :: status
+
+      iter = this%exports%begin()
+      do while(iter /= this%exports%end())
+         field_config = iter%value()
+         call field_config%copy_NUOPC_to_MAPL(__RC__)
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine copy_exports_NUOPC_to_MAPL
+
+   subroutine copy_imports_MAPL_to_NUOPC(this, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      integer, optional,      intent(  out) :: rc
+
+      type(FieldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      integer                      :: status
+
+      iter = this%imports%begin()
+      do while(iter /= this%imports%end())
+         field_config = iter%value()
+         call field_config%copy_MAPL_to_NUOPC(__RC__)
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine copy_imports_MAPL_to_NUOPC
+
+   subroutine copy_exports_MAPL_to_NUOPC(this, rc)
+      class(NOAA_MAPLconfig), intent(inout) :: this
+      integer, optional,      intent(  out) :: rc
+
+      type(FieldConfig)            :: field_config
+      type(FieldConfigMapIterator) :: iter
+      integer                      :: status
+
+      iter = this%exports%begin()
+      do while(iter /= this%exports%end())
+         field_config = iter%value()
+         call field_config%copy_MAPL_to_NUOPC(__RC__)
+
+         call iter%next()
+      end do
+
+      _RETURN(_SUCCESS)
+   end subroutine copy_exports_MAPL_to_NUOPC
 end module NOAA_MAPLconfigMod
-
-
-! module NOAA_MAPLconfigMod
-!    use ESMF
-!    use MAPL_Mod
-!    use yaFyaml
-
-!    use NOAA_MAPLfieldConfig
-!    use NOAA_MAPLfieldConfigMap
-
-!    implicit none
-!    private
-
-!    public NOAA_MAPLconfig
-
-!    character(*), parameter :: NOAA_imports = 'NOAA_imports'
-!    character(*), parameter :: NOAA_exports = 'NOAA_exports'
-
-!    type :: NOAA_MAPLconfig
-!       type(FieldConfigMap) :: imports
-!       type(FieldConfigMap) :: exports
-!    contains
-!       procedure, nopass :: read_from_config
-!       procedure         :: read_config
-!       procedure, nopass :: advertise_map
-!       procedure         :: advertise
-!       procedure, nopass :: add_map_to_field_dictionary
-!       procedure         :: add_to_field_dictionary
-!    end type NOAA_MAPLconfig
-
-! contains
-!    subroutine add_map_to_field_dictionary(field_config_map, rc)
-!       type(FieldConfigMap), intent(inout) :: field_config_map
-!       integer, optional,    intent(  out) :: rc
-
-!       type(FieldConfigMapIterator) :: iter
-!       type(FieldConfig)            :: field_config
-
-!       integer :: status
-
-!       iter = field_config_map%begin()
-!       do while(iter /= field_config_map%end())
-!          field_config = iter%value()
-
-!          call field_config%add_to_field_dictionary(__RC__)
-
-!          call iter%next()
-!       end do
-
-!       _RETURN(_SUCCESS)
-!    end subroutine add_map_to_field_dictionary
-
-!    subroutine add_to_field_dictionary(this, rc)
-!       class(NOAA_MAPLconfig), intent(inout) :: this
-!       integer, optional,      intent(  out) :: rc
-
-!       integer :: status
-
-!       call this%add_map_to_field_dictionary(this%imports, __RC__)
-!       call this%add_map_to_field_dictionary(this%exports, __RC__)
-
-!       _RETURN(_SUCCESS)
-!    end subroutine add_to_field_dictionary
-
-!    subroutine advertise_map(field_config_map, state, rc)
-!       class(FieldConfigMap), intent(inout) :: field_config_map
-!       type(ESMF_State),      intent(inout) :: state
-!       integer, optional,     intent(  out) :: rc
-
-!       type(FieldConfigMapIterator) :: iter
-!       type(FieldConfig)            :: field_config
-
-!       integer :: status
-
-!       iter = field_config_map%begin()
-!       do while(iter /= field_config_map%end())
-!          field_config = iter%value()
-
-!          call field_config%advertise_to_state(state, __RC__)
-
-!          call iter%next()
-!       end do
-
-!       _RETURN(_SUCCESS)
-!    end subroutine advertise_map
-
-!    subroutine advertise(this, import_state, export_state, rc)
-!       class(NOAA_MAPLconfig), intent(inout) :: this
-!       type(ESMF_State),       intent(inout) :: import_state
-!       type(ESMF_State),       intent(inout) :: export_state
-!       integer, optional,      intent(  out) :: rc
-
-!       integer :: status
-
-!       call this%advertise_map(this%imports, import_state, __RC__)
-!       call this%advertise_map(this%exports, export_state, __RC__)
-
-!       _RETURN(_SUCCESS)
-!    end subroutine advertise
-
-!    function read_from_config(config) result(field_config_map)
-!       type(FieldConfigMap)               :: field_config_map
-!       type(Configuration), intent(inout) :: config
-
-!       type(Configuration)         :: sub_config
-!       type(ConfigurationIterator) :: iter
-
-!       character(:), pointer :: name
-
-!       iter = config%begin()
-!       do while(iter /= config%end())
-!          name       => iter%key()
-!          sub_config =  iter%value()
-
-!          call field_config_map%insert(name, create_field_config(name, sub_config))
-!          call iter%next()
-!       end do
-!    end function read_from_config
-
-!    subroutine read_config(this, filename)
-!       class(NOAA_MAPLconfig), intent(inout) :: this
-!       character(*),            intent(in   ) :: filename
-
-!       type(Parser)                :: p
-!       type(FileStream)            :: file_stream
-!       type(Configuration)         :: config, sub_config
-!       type(ConfigurationIterator) :: iter
-
-!       character(:), pointer :: key
-
-!       p           = Parser('core')
-!       file_stream = FileStream(filename)
-!       config      = p%load(file_stream)
-
-!       iter = config%begin()
-!       do while (iter /= config%end())
-!          key => iter%key()
-
-!          select case(key)
-!          case (NOAA_imports)
-!             sub_config = iter%value()
-!             this%imports = this%read_from_config(sub_config)
-!          case (NOAA_exports)
-!             sub_config = iter%value()
-!             this%exports= this%read_from_config(sub_config)
-!          end select
-
-!          call iter%next()
-!       end do
-
-!       call file_stream%close()
-!    end subroutine read_config
-! end module NOAA_MAPLconfigMod
