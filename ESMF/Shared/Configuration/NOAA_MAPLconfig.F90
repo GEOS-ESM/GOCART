@@ -255,6 +255,7 @@ module NOAA_MAPLfield
    use MAPL
    use yaFyaml
    use LinearFields
+   use gFTL_StringVector
 
    use NOAA_TracerEntry
    use NOAA_TracerMap
@@ -313,7 +314,7 @@ module NOAA_MAPLfield
       procedure :: initialize_MAPL_field
       procedure :: initialize_NUOPC_field
 
-      procedure :: create_cap_entry
+      procedure :: add_to_cap_fields
    end type FieldConfig
 contains
    function create_FieldConfig(MAPL_name, config, default_state) result(field_config)
@@ -580,16 +581,18 @@ contains
       _RETURN(_SUCCESS)
    end subroutine initialize
 
-   function create_cap_entry(this) result(cap_entry)
-      character(:), allocatable         :: cap_entry
-      class(FieldConfig), intent(inout) :: this
+   subroutine add_to_cap_fields(this, cap_imports, cap_exports)
+      class(FieldConfig), intent(in   ) :: this
+      type(StringVector), intent(inout) :: cap_imports
+      type(StringVector), intent(inout) :: cap_exports
+
 
       if (allocated(this%component_name)) then
-         cap_entry = this%MAPL_name//","//this%component_name
+         call cap_exports%push_back(this%MAPL_name//","//this%component_name)
       else
-         cap_entry = this%MAPL_name
+         call cap_imports%push_back(this%MAPL_name)
       end if
-   end function create_cap_entry
+   end subroutine add_to_cap_fields
 end module NOAA_MAPLfield
 
 module NOAA_MAPLfieldMap
@@ -645,8 +648,7 @@ module NOAA_MAPLconfigMod
       procedure :: recast_exports_to_MAPL
       procedure :: recast_exports_to_NUOPC
 
-      procedure :: create_cap_imports
-      procedure :: create_cap_exports
+      procedure :: create_cap_fields
    end type NOAA_MAPLconfig
 contains
    function create_NOAA_MAPLconfig(config_filename, field_table_filename, rc) result(NOAA_MAPL_config)
@@ -928,37 +930,28 @@ contains
       _RETURN(_SUCCESS)
    end subroutine recast_exports_to_NUOPC
 
-   function create_cap_imports(this) result(cap_imports)
-      type(StringVector)                 :: cap_imports
-      class(NOAA_MAPLconfig), intent(in) :: this
+   subroutine create_cap_fields(this, cap_imports, cap_exports)
+      class(NOAA_MAPLconfig), intent(in   ) :: this
+      type(StringVector),     intent(  out) :: cap_imports
+      type(StringVector),     intent(  out) :: cap_exports
 
+      type(FieldConfig)            :: field_config
       type(FieldConfigMapIterator) :: iter
-      character(:), pointer        :: key
 
       iter = this%imports%begin()
       do while(iter /= this%imports%end())
-         key => iter%key()
-         call cap_imports%push_back(key)
+         field_config = iter%value()
+         call field_config%add_to_cap_fields(cap_imports, cap_exports)
 
          call iter%next()
       end do
-   end function create_cap_imports
-
-   function create_cap_exports(this) result(cap_exports)
-      type(StringVector)                 :: cap_exports
-      class(NOAA_MAPLconfig), intent(in) :: this
-
-      type(FIeldConfig)            :: field_config
-      type(FieldConfigMapIterator) :: iter
-      character(:), allocatable    :: cap_export
 
       iter = this%exports%begin()
       do while(iter /= this%exports%end())
          field_config = iter%value()
-         cap_export = field_config%create_cap_entry()
-         call cap_exports%push_back(cap_export)
+         call field_config%add_to_cap_fields(cap_imports, cap_exports)
 
          call iter%next()
       end do
-   end function create_cap_exports
+   end subroutine create_cap_fields
 end module NOAA_MAPLconfigMod
