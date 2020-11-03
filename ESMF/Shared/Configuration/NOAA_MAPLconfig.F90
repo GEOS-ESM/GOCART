@@ -257,9 +257,9 @@ module NOAA_MAPLfield
    use LinearFields
 
    use NOAA_TracerEntry
+   use NOAA_TracerMap
    use NOAA_MAPLpolicies
    use NOAA_MAPLoptions
-   use NOAA_TracersMod
 
    implicit none
    private
@@ -535,7 +535,7 @@ contains
       class(FieldConfig), intent(inout) :: this
       type(ESMF_State),   intent(inout) :: import_state
       type(ESMF_State),   intent(inout) :: export_state
-      type(NOAA_Tracers), intent(inout) :: tracers
+      type(TracerMap),    intent(inout) :: tracers
       integer, optional,  intent(  out) :: rc
 
       type(ESMF_Field), pointer :: field
@@ -565,7 +565,7 @@ contains
       class(FieldConfig), intent(inout) :: this
       type(ESMF_State),   intent(inout) :: import_state
       type(ESMF_State),   intent(inout) :: export_state
-      type(NOAA_Tracers), intent(inout) :: tracers
+      type(TracerMap),    intent(inout) :: tracers
       integer, optional,  intent(  out) :: rc
 
       integer :: status
@@ -596,7 +596,7 @@ module NOAA_MAPLconfigMod
 
    use NOAA_MAPLfield
    use NOAA_MAPLfieldMap
-   use NOAA_TracersMod
+   use NOAA_TracerMap
 
    implicit none
    private
@@ -606,15 +606,12 @@ module NOAA_MAPLconfigMod
 
    character(*), parameter :: imports = 'imports'
    character(*), parameter :: exports = 'exports'
-   character(*), parameter :: tracers = 'tracers'
 
    type :: NOAA_MAPLconfig
       type(FieldConfigMap) :: imports
       type(FieldConfigMap) :: exports
-      type(NOAA_Tracers)   :: tracers
 
-      character(:), allocatable :: tracer_configuration_name
-
+      type(TracerMap)      :: tracers
    contains
       procedure :: read_field_map_config
       procedure :: read_config
@@ -633,9 +630,10 @@ module NOAA_MAPLconfigMod
       procedure :: copy_exports_MAPL_to_NUOPC
    end type NOAA_MAPLconfig
 contains
-   function create_NOAA_MAPLconfig(filename, rc) result(NOAA_MAPL_config)
+   function create_NOAA_MAPLconfig(config_filename, field_table_filename, rc) result(NOAA_MAPL_config)
       type(NOAA_MAPLconfig) :: NOAA_MAPL_config
-      character(*),      intent(in   ) :: filename
+      character(*),      intent(in   ) :: config_filename
+      character(*),      intent(in   ) :: field_table_filename
       integer, optional, intent(  out) :: rc
 
       integer :: status
@@ -645,10 +643,11 @@ contains
       type(Configuration)         :: config
 
       p           = Parser('core')
-      file_stream = FileStream(filename)
+      file_stream = FileStream(config_filename)
       config      = p%load(file_stream)
 
       call NOAA_MAPL_config%read_config(config, __RC__)
+      call NOAA_MAPL_config%tracers%read_field_table(field_table_filename)
 
       call file_stream%close()
 
@@ -712,9 +711,6 @@ contains
          case (exports)
             sub_config = iter%value()
             call this%read_field_map_config(sub_config, 'export', __RC__)
-         case (tracers)
-            sub_config = iter%value()
-            call this%tracers%read_tracers_config(sub_config)
          end select
 
          call iter%next()

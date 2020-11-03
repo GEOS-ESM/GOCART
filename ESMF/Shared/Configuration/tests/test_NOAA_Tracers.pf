@@ -5,8 +5,6 @@ module test_NOAA_Tracers
 
    use NOAA_TracerEntry
    use NOAA_TracerMap
-   use NOAA_TracersMap
-   use NOAA_TracersMod
    use pFUnit
    use MAPL
    use ESMF
@@ -662,68 +660,4 @@ contains
          end do
       end do
    end subroutine test_create_tracer_real64_4D
-
-   @test
-   subroutine test_read_tracers_config()
-      type(NOAA_Tracers) :: tracers_map
-
-      type(Parser)                :: p
-      type(FileStream)            :: file_stream
-      type(Configuration)         :: main_config, config
-      character(:), pointer       :: key
-      type(ConfigurationIterator) :: iter
-
-      type(TracerMap) :: tracer_map
-
-      p           = Parser('core')
-      file_stream = FileStream(test_yaml)
-      main_config = p%load(file_stream)
-
-      iter = main_config%begin()
-      do while(iter /= main_config%end())
-         key => iter%key()
-
-         select case(key)
-         case ('test_tracers')
-            config =  iter%value()
-            call tracers_map%read_tracers_config(config)
-         end select
-
-         call iter%next()
-      end do
-
-      call file_stream%close()
-
-      @assert_that(tracers_map%tracer_map%size(), is(equal_to(2_INT64)))
-
-      @assert_that(tracers_map%tracer_map%count(inst_mass_tracers1) > 0, is(true()))
-      tracer_map = tracers_map%tracer_map%at(inst_mass_tracers1)
-      @assert_that(tracer_map%tracer_map%size(), is(equal_to(28_INT64)))
-
-      @assert_that(tracers_map%tracer_map%count(inst_mass_tracers2) > 0, is(true()))
-      tracer_map = tracers_map%tracer_map%at(inst_mass_tracers2)
-      @assert_that(tracer_map%tracer_map%size(), is(equal_to(28_INT64)))
-   end subroutine test_read_tracers_config
-
-   @test
-   subroutine test_create_tracer()
-      type(NOAA_Tracers) :: tracers_map
-
-      type(TracerMap)                                    :: tracer_map
-      type(TracerEntry)                                  :: tracer_entry
-      type(ESMF_Field)                                   :: field, tracer
-      real(kind=REAL64), allocatable, dimension(:,:,:,:) :: f_array, t_array
-      character(:), allocatable                          :: name, entry_name
-      integer                                            :: rc
-
-      call create_mass_tracers(tracer_map, field, f_array, t_array, rc)
-      @assert_that(rc, is(equal_to(0)))
-      call create_tracer_entry_3D(1, entry_name, tracer_entry)
-      call tracers_map%tracer_map%insert(tracer_entry%name, tracer_map)
-
-      name = 'test'
-      call tracers_map%create_tracer(field, name, tracer_entry, tracer, rc)
-      @assert_that(rc, is(equal_to(0)))
-      call check_tracer_3D(field, tracer, name, f_array, t_array, 1)
-   end subroutine test_create_tracer
 end module test_NOAA_Tracers

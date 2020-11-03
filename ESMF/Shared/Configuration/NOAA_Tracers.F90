@@ -426,105 +426,105 @@ contains
    end subroutine create_tracer
 end module NOAA_TracerMap
 
-module NOAA_TracersMap
-   use NOAA_TracerMap
+! module NOAA_TracersMap
+!    use NOAA_TracerMap
 
-#include "types/key_deferredLengthString.inc"
-#define _value type(TracerMap)
+! #include "types/key_deferredLengthString.inc"
+! #define _value type(TracerMap)
 
-#define _map TracersMap
-#define _iterator TracersMapIterator
-#define _alt
-#include "templates/map.inc"
-end module NOAA_TracersMap
+! #define _map TracersMap
+! #define _iterator TracersMapIterator
+! #define _alt
+! #include "templates/map.inc"
+! end module NOAA_TracersMap
 
-module NOAA_TracersMod
-   use ESMF
-   use MAPL
-   use yaFyaml
+! module NOAA_TracersMod
+!    use ESMF
+!    use MAPL
+!    use yaFyaml
 
-   use NOAA_TracerEntry
-   use NOAA_TracerMap
-   use NOAA_TracersMap
+!    use NOAA_TracerEntry
+!    use NOAA_TracerMap
+!    use NOAA_TracersMap
 
-   implicit none
-   private
+!    implicit none
+!    private
 
-   public :: NOAA_Tracers
+!    public :: NOAA_Tracers
 
-   character(*),  parameter :: field_table = 'field_table'
+!    character(*),  parameter :: field_table = 'field_table'
 
-   type :: NOAA_Tracers
-      type(TracersMap) :: tracer_map
+!    type :: NOAA_Tracers
+!       type(TracersMap) :: tracer_map
 
-   contains
-      procedure :: add_tracer_config
-      procedure :: read_tracers_config
-      procedure :: create_tracer
-   end type NOAA_Tracers
+!    contains
+!       procedure :: add_tracer_config
+!       procedure :: read_tracers_config
+!       procedure :: create_tracer
+!    end type NOAA_Tracers
 
-contains
-   subroutine add_tracer_config(this, name, config)
-      class(NOAA_Tracers), intent(inout) :: this
-      character(*),        intent(in   ) :: name
-      type(Configuration), intent(inout) :: config
+! contains
+!    subroutine add_tracer_config(this, name, config)
+!       class(NOAA_Tracers), intent(inout) :: this
+!       character(*),        intent(in   ) :: name
+!       type(Configuration), intent(inout) :: config
 
-      type(ConfigurationIterator) :: iter
-      character(:), pointer       :: key
-      type(TracerMap)             :: tracer_map
-      character(:), allocatable   :: filename
+!       type(ConfigurationIterator) :: iter
+!       character(:), pointer       :: key
+!       type(TracerMap)             :: tracer_map
+!       character(:), allocatable   :: filename
 
-      iter = config%begin()
-      do while(iter /= config%end())
-         key => iter%key()
+!       iter = config%begin()
+!       do while(iter /= config%end())
+!          key => iter%key()
 
-         select case(key)
-         case (field_table)
-            filename = iter%value()
-            call tracer_map%read_field_table(filename)
-         end select
+!          select case(key)
+!          case (field_table)
+!             filename = iter%value()
+!             call tracer_map%read_field_table(filename)
+!          end select
 
-         call this%tracer_map%insert(name, tracer_map)
+!          call this%tracer_map%insert(name, tracer_map)
 
-         call iter%next()
-      end do
-   end subroutine add_tracer_config
+!          call iter%next()
+!       end do
+!    end subroutine add_tracer_config
 
-   subroutine read_tracers_config(this, config)
-      class(NOAA_Tracers), intent(inout) :: this
-      type(Configuration), intent(inout) :: config
+!    subroutine read_tracers_config(this, config)
+!       class(NOAA_Tracers), intent(inout) :: this
+!       type(Configuration), intent(inout) :: config
 
-      type(ConfigurationIterator) :: iter
-      type(Configuration)         :: sub_config
-      character(:), pointer       :: name
+!       type(ConfigurationIterator) :: iter
+!       type(Configuration)         :: sub_config
+!       character(:), pointer       :: name
 
-      iter = config%begin()
-      do while(iter /= config%end())
-         name       => iter%key()
-         sub_config =  iter%value()
-         call this%add_tracer_config(name, sub_config)
+!       iter = config%begin()
+!       do while(iter /= config%end())
+!          name       => iter%key()
+!          sub_config =  iter%value()
+!          call this%add_tracer_config(name, sub_config)
 
-         call iter%next()
-      end do
-   end subroutine read_tracers_config
+!          call iter%next()
+!       end do
+!    end subroutine read_tracers_config
 
-   subroutine create_tracer(this, field, name, entries, tracer, rc)
-      class(NOAA_Tracers),  intent(inout) :: this
-      type(ESMF_Field),  intent(in   ) :: field
-      character(*),      intent(in   ) :: name
-      type(TracerEntry), intent(in   ) :: entries
-      type(ESMF_Field),  intent(  out) :: tracer
-      integer, optional, intent(  out) :: rc
+!    subroutine create_tracer(this, field, name, entries, tracer, rc)
+!       class(NOAA_Tracers),  intent(inout) :: this
+!       type(ESMF_Field),  intent(in   ) :: field
+!       character(*),      intent(in   ) :: name
+!       type(TracerEntry), intent(in   ) :: entries
+!       type(ESMF_Field),  intent(  out) :: tracer
+!       integer, optional, intent(  out) :: rc
 
-      type(TracerMap)           :: tracer_map
-      character(:), allocatable :: tracers_name
-      integer                   :: status
+!       type(TracerMap)           :: tracer_map
+!       character(:), allocatable :: tracers_name
+!       integer                   :: status
 
-      tracers_name = entries%name
-      tracer_map   = this%tracer_map%at(tracers_name)
+!       tracers_name = entries%name
+!       tracer_map   = this%tracer_map%at(tracers_name)
 
-      call tracer_map%create_tracer(field, name, entries, tracer, __RC__)
+!       call tracer_map%create_tracer(field, name, entries, tracer, __RC__)
 
-      _RETURN(_SUCCESS)
-   end subroutine create_tracer
-end module NOAA_TracersMod
+!       _RETURN(_SUCCESS)
+!    end subroutine create_tracer
+! end module NOAA_TracersMod
