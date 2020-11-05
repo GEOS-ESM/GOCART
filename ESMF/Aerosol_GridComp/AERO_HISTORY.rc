@@ -4,6 +4,8 @@ EXPDSC: test
 EXPSRC: Jason-3_1
 
 COLLECTIONS:
+    'gocart2g_2d'
+    'gocart2g_3d'
 ::
 
 ##################################################
@@ -615,6 +617,31 @@ PC360x181-DC.LM: 72
 #
 #
 #### GOCART
+
+  gocart2g_2d.format:     'CFIO',
+  gocart2g_2d.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  gocart2g_2d.archive:    '%c/Y%y4',
+  gocart2g_2d.mode:       'time-averaged',
+  gocart2g_2d.frequency:  240000,
+  gocart2g_2d.ref_time:   210000,
+  gocart2g_2d.grid_label: PC360x181-DC
+  gocart2g_2d.fields:    'SSSMASS'     , 'SS'      ,
+                         'SSCMASS'     , 'SS'      ,
+                         'SSEXTTAU'    , 'SS'      ,
+                         'SSSCATAU'    , 'SS'      ,
+                         'SSSMASS25'   , 'SS'      ,
+                         'SSCMASS25'   , 'SS'      ,
+                         'SSEXTT25'    , 'SS'      ,
+                         'SSSCAT25'    , 'SS'      ,
+                         'SSEXTTFM'    , 'SS'      ,
+                         'SSSCATFM'    , 'SS'      ,
+                         'SSANGSTR'    , 'SS'      ,
+                         'SSFLUXU'     , 'SS'      ,
+                         'SSFLUXV'     , 'SS'      ,
+                           ::
+  
+
+
   tavg2d_aer_x.format:     'CFIO',
   tavg2d_aer_x.template:   '%y4%m2%d2_%h2%n2z.nc4',
   tavg2d_aer_x.archive:    '%c/Y%y4',
@@ -829,6 +856,30 @@ PC360x181-DC.LM: 72
                                'DBCDT'       , 'MOIST'       ,  'BCSV'    ,
                                'DSUDT'       , 'MOIST'       ,  'SUSV'    ,
                                ::
+
+ gocart2g_3d.format:     'CFIO' ,  
+ gocart2g_3d.template:   '%y4%m2%d2_%h2%n2z.nc4',   
+ gocart2g_3d.archive:    '%c/Y%y4',
+ gocart2g_3d.frequency:  240000,
+ gocart2g_3d.ref_time:   210000,
+ gocart2g_3d.grid_label: PC360x181-DC
+ gocart2g_3d.mode:       'time-averaged',
+ gocart2g_3d.vscale:     100.0,    
+ gocart2g_3d.vunit:      'hPa',    
+ gocart2g_3d.vvars:      'log(PLE)' , 'DYN'          ,
+ gocart2g_3d.levels:     1000 975 950 925 900 850 800 750 700 650 600 550 500 450 400 350 300 250 200 150 100 70 50 30 20 10,
+ gocart2g_3d.fields:    'SSMASS'     , 'SS'       ,
+                        'SSMASS25'   , 'SS'       ,
+                        'SSCONC'     , 'SS'       ,
+                        'SSEXTCOEF'  , 'SS'       ,
+                        'SSSCACOEF'  , 'SS'       ,
+                        'SSEM'        , 'SS'      ,
+                        'SSSD'        , 'SS'      ,
+                        'SSDP'        , 'SS'      ,
+                        'SSWT'        , 'SS'      ,
+                        'SSSV'        , 'SS'      ,
+                            ::
+ 
 
  tavg3d_aer_p.format:     'CFIO' ,  
  tavg3d_aer_p.template:   '%y4%m2%d2_%h2%n2z.nc4',   
