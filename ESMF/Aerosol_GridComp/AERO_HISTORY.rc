@@ -624,7 +624,7 @@ PC360x181-DC.LM: 72
   gocart2g_2d.mode:       'time-averaged',
   gocart2g_2d.frequency:  240000,
   gocart2g_2d.ref_time:   210000,
-  gocart2g_2d.grid_label: PC360x181-DC
+#  gocart2g_2d.grid_label: PC360x181-DC
   gocart2g_2d.fields:    'SSSMASS'     , 'SS'      ,
                          'SSCMASS'     , 'SS'      ,
                          'SSEXTTAU'    , 'SS'      ,
@@ -862,7 +862,7 @@ PC360x181-DC.LM: 72
  gocart2g_3d.archive:    '%c/Y%y4',
  gocart2g_3d.frequency:  240000,
  gocart2g_3d.ref_time:   210000,
- gocart2g_3d.grid_label: PC360x181-DC
+ # gocart2g_3d.grid_label: PC360x181-DC
  gocart2g_3d.mode:       'time-averaged',
  gocart2g_3d.vscale:     100.0,    
  gocart2g_3d.vunit:      'hPa',    
