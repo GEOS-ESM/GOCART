@@ -24,7 +24,7 @@ module Aerosol_Cap
   implicit none
 
   ! -- import fields
-  integer, parameter :: importFieldCount = 26
+  integer, parameter :: importFieldCount = 22
   character(len=*), dimension(importFieldCount), parameter :: &
     importFieldNames = (/ &
       "inst_pres_interface                  ", &
@@ -34,45 +34,28 @@ module Aerosol_Cap
       "inst_temp_levels                     ", &
       "inst_zonal_wind_levels               ", &
       "inst_merid_wind_levels               ", &
-      "inst_omega_levels                    ", &
       "inst_tracer_mass_frac                ", &
-      "soil_type                            ", &
       "inst_pbl_height                      ", &
       "surface_cell_area                    ", &
       "inst_convective_rainfall_amount      ", &
-      "inst_exchange_coefficient_heat_levels", &
-      "inst_spec_humid_conv_tendency_levels ", &
-      "inst_friction_velocity               ", &
       "inst_rainfall_amount                 ", &
-      "inst_soil_moisture_content           ", &
-      "inst_down_sw_flx                     ", &
+      "inst_zonal_wind_height10m            ", &
+      "inst_merid_wind_height10m            ", &
+      "inst_friction_velocity               ", &
       "inst_land_sea_mask                   ", &
       "inst_temp_height_surface             ", &
-      "inst_up_sensi_heat_flx               ", &
-      "inst_lwe_snow_thickness              ", &
-      "vegetation_type                      ", &
-      "inst_vegetation_area_frac            ", &
-      "inst_surface_roughness               "  &
+      "inst_sensi_heat_flx                  ", &
+      "inst_surface_roughness               ", &
+      "ice_fraction                         ", &
+      "lake_fraction                        ", &
+      "ocean_fraction                       "  &
     /)
   ! -- export fields
-  integer, parameter :: exportFieldCount = 5
+  integer, parameter :: exportFieldCount = 1
   character(len=*), dimension(exportFieldCount), parameter :: &
     exportFieldNames = (/ &
-      "inst_tracer_mass_frac                ", &
-      "inst_tracer_up_surface_flx           ", &
-      "inst_tracer_down_surface_flx         ", &
-      "inst_tracer_clmn_mass_dens           ", &
-      "inst_tracer_anth_biom_flx            "  &
+      "inst_tracer_mass_frac                "  &
     /)
-
-  ! -- MAPL field map
-  integer, parameter :: importMapSize = 3
-  character(len=*), dimension(importMapSize, 2), parameter :: &
-    importFieldMap = reshape((/ &
-      "inst_temp_levels                     ", "T                                    ", &
-      "inst_zonal_wind_levels               ", "U                                    ", &
-      "inst_merid_wind_levels               ", "V                                    "  &
-      /), (/importMapSize, 2/))
 
   type Aerosol_InternalState_T
     type(MAPL_Cap), pointer :: maplCap
@@ -122,7 +105,7 @@ contains
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
-    
+
     call NUOPC_CompSpecialize(model, specLabel=model_label_Advance, &
       specRoutine=ModelAdvance, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -137,7 +120,7 @@ contains
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
- 
+
   end subroutine SetServices
 
   subroutine ModelInitializeP0(model, importState, exportState, clock, rc)
@@ -185,7 +168,7 @@ contains
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
-   
+
   end subroutine ModelInitializeP0
 
   subroutine ModelInitializeP1(model, importState, exportState, clock, rc)
@@ -233,6 +216,8 @@ contains
     integer          :: localPet, petCount, activePetCount
     integer          :: maplComm, modelComm
     integer          :: status
+    integer          :: lb(2), ub(2)
+    integer          :: item, nlev, rank
     integer, dimension(:), allocatable :: petList, recvBuffer
     type(ESMF_Clock) :: clock
     type(ESMF_Field), pointer :: fieldList(:)
@@ -243,11 +228,6 @@ contains
     type(Aerosol_InternalState_T) :: is
     type(MAPL_Cap), pointer :: this
     type(MAPL_CapOptions) :: maplCapOptions
-
-
-    integer :: item
-    integer                   :: counts(ESMF_MAXDIM)
-    real(ESMF_KIND_R8), pointer :: r8d2(:,:)
 
     ! begin
     rc = ESMF_SUCCESS
@@ -271,15 +251,30 @@ contains
       return  ! bail out
 
     ! select PETs carrying data payloads from imported fields
-    localDeCount = 1
+    nlev = 1
     if (associated(fieldList)) then
-      if (size(fieldList) > 0) then
-        call ESMF_FieldGet(fieldList(1), grid=grid, localDeCount=localDeCount, rc=rc)
+      do item = 1, size(fieldList)
+        call ESMF_FieldGet(fieldList(item), rank=rank, localDeCount=localDeCount, rc=rc)
         if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
           line=__LINE__,  &
           file=__FILE__)) &
           return  ! bail out
-      end if
+        if (localDeCount /= 1) then
+          call ESMF_LogSetError(ESMF_RC_INTNRL_BAD, msg="localDeCount must be 1", &
+            line=__LINE__,  &
+            file=__FILE__,  &
+            rcToReturn=rc)
+        end if
+        if (rank == 4) then
+          call ESMF_FieldGet(fieldList(item), grid=grid, &
+            ungriddedLBound=lb, ungriddedUBound=ub, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__,  &
+            file=__FILE__)) &
+            return  ! bail out
+          nlev = ub(1) - lb(1) + 1
+        end if
+      end do
       deallocate(fieldList, stat=stat)
       if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
         msg="Unable to deallocate internal memory", &
@@ -333,14 +328,18 @@ contains
     this => is % maplCap
 
     call this % nuopc_fill_mapl_comm(_RC)
-    print *,'maplCap: n_members, npes_member, npes = ',maplCapOptions % npes_model, &
-      maplCapOptions % n_members ; flush 6
 
     call this % initialize_cap_gc(this % get_mapl_comm())
 
     call this % cap_gc % set_services(_RC)
 
     ! add public API to MAPL_CapGridCompMod to set grid and clock?
+    call ESMF_AttributeSet(grid, name='GRID_LM', value=nlev, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
+
     call this % cap_gc % set(grid=grid, _RC)
 
     call this % cap_gc % initialize(_RC)
@@ -360,7 +359,7 @@ contains
       line=__LINE__, &
       file=__FILE__)) &
       return  ! bail out
-   
+
   end subroutine ModelDataInitialize
 
   subroutine ModelAdvance(model, rc)
@@ -432,24 +431,22 @@ contains
 
     ! advance MAPL component
     if (associated(is % maplCap)) then
-      ! set imports
-!     do item = 1, importMapSize
-      do item = 1, 0
-        call is % maplCap % cap_gc % get_field_from_state(trim(importFieldMap(item,2)), &
-          'Cap_Imports', ESMF_STATEINTENT_IMPORT, ofield, _RC)
-        call ESMF_StateGet(importState, trim(importFieldMap(item,1)), ifield, rc=rc)
-        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__, &
-          file=__FILE__)) &
-          return  ! bail out
-        call ESMF_FieldCopy(ofield, ifield, rc=rc)
-        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__, &
-          file=__FILE__)) &
-          return  ! bail out
-      end do
+      ! -- import
+      call AerosolStateUpdate(model, is % maplCap, "import", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
+
+      ! -- run cap
       call is % maplCap % cap_gc % run(_RC)
-      ! get exports
+
+      ! -- export tarcers
+      call AerosolStateUpdate(model, is % maplCap, "export", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
     end if
 
     ! print field diagnostics
@@ -459,14 +456,17 @@ contains
         line=__LINE__, &
         file=__FILE__)) &
         return  ! bail out
+      call MAPLFieldDiagnostics(model, is % maplCap % cap_gc % import_state, "import", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
+      call MAPLFieldDiagnostics(model, is % maplCap % cap_gc % export_state, "export", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
     end if
-
-   ! temporarily reroute tracers (no update)
-   call AerosolTracerReroute(model, rc=rc)
-   if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-     line=__LINE__, &
-     file=__FILE__)) &
-     return  ! bail out
 
   end subroutine ModelAdvance
 

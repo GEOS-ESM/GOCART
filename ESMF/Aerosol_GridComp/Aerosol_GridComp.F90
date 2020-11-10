@@ -159,8 +159,6 @@ contains
                          userRc = urc,       &
                                   __RC__)
             _ASSERT(urc==ESMF_SUCCESS,'Failed to run child component')
-            print*, "AERO: Run: "//trim(itemName)//" - phase:",phase ; flush 6
-            call ESMF_StatePrint(gim(item), nestedFlag=.true., __RC__)
             call MAPL_TimerOff(mapl, trim(itemName))
           end do
         end do
@@ -245,4 +243,5 @@ contains
 
        _RETURN(_SUCCESS)
     end subroutine get_NumBands
+
 end module Aerosol_GridComp_mod
