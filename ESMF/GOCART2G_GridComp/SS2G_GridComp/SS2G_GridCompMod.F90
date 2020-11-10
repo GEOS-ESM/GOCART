@@ -491,7 +491,7 @@ end do
     call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
                                  count=self%rad_MieTable(instance)%nch, rc=status)
 
-    if (rc /= 0) then
+    if (status /= 0) then
        do i = 1, NUM_BANDS
           self%rad_MieTable(instance)%channels(i) = i
        end do
