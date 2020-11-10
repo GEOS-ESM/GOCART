@@ -437,9 +437,11 @@ integer :: n
        call setZeroKlid4d (self%km, self%klid, int_ptr)
     end if
 
-do i = 1, 5
- if(mapl_am_i_root()) print*,'n = ', n,' : INIT SS2G sum(ss00n) = ',sum(int_ptr(:,:,:,i))
-end do
+    if (mapl_am_i_root()) then
+      do i = 1, size(int_ptr, 4)
+        print*,'n = ', i,' : INIT SS2G sum(ss00n) = ',sum(int_ptr(:,:,:,i))
+      end do
+    end if
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
@@ -670,9 +672,11 @@ end do
 
 #include "SS2G_GetPointer___.h"
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-end do
+    if (mapl_am_i_root()) then
+      do n = 1, size(SS, 4)
+        print*,'n = ', n,' : Run1 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+      end do
+    end if
 
 !   Get my private internal state
 !   ------------------------------
@@ -731,9 +735,11 @@ end do
        end if
     end do !n = 1
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-end do
+    if (mapl_am_i_root()) then
+      do n = 1, size(SS, 4)
+        print*,'n = ', n,' : Run1 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+      end do
+    end if
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
@@ -796,9 +802,11 @@ end do
 
 #include "SS2G_GetPointer___.h"
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-end do
+    if (mapl_am_i_root()) then
+      do n = 1, size(SS, 4)
+        print*,'n = ', n,' : Run2 B SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+      end do
+    end if
 
 !   Get my private internal state
 !   ------------------------------
@@ -856,9 +864,11 @@ end do
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, __RC__)
  
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-end do
+    if (mapl_am_i_root()) then
+      do n = 1, size(SS, 4)
+        print*,'n = ', n,' : Run2 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+      end do
+    end if
 
     RETURN_(ESMF_SUCCESS)
 
