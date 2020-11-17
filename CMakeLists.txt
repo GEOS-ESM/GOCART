@@ -55,7 +55,6 @@ if (NOT ESMF_FOUND)
   find_package (ESMF REQUIRED)
 endif ()
 
-find_package (FLAP REQUIRED)
 find_package (GFTL REQUIRED)
 find_package (GFTL_SHARED REQUIRED)
 find_package (PFLOGGER REQUIRED)
