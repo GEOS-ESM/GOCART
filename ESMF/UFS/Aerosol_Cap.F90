@@ -333,15 +333,20 @@ contains
 
     call this % cap_gc % set_services(_RC)
 
-    ! add public API to MAPL_CapGridCompMod to set grid and clock?
+    ! decorate grid object so it can be shared with MAPL
     call ESMF_AttributeSet(grid, name='GRID_LM', value=nlev, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
 
-    call this % cap_gc % set(grid=grid, _RC)
+    ! provide model grid to MAPL
+    call this % cap_gc % set_grid(grid, _RC)
 
+    ! provide model clock to MAPL
+    call this % cap_gc % set_clock(clock, _RC)
+
+    ! initialize aerosol grid component
     call this % cap_gc % initialize(_RC)
 
     ! set component's internal state
