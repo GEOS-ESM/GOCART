@@ -8,4 +8,5 @@ esma_add_subdirectories(
         Aerosol_GridComp
         GOCART2G_GridComp
         HEMCO_GridComp
+        UFS
 )
