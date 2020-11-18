@@ -3,9 +3,8 @@ EXPID:  ctmgcm_fromscratch
 EXPDSC: test
 EXPSRC: Jason-3_1
 
-COLLECTIONS:
-    'gocart2g_2d'
-    'gocart2g_3d'
+COLLECTIONS: 'gocart2g_2d'
+             'gocart2g_3d'
 ::
 
 ##################################################
@@ -867,7 +866,7 @@ PC360x181-DC.LM: 72
  gocart2g_3d.vscale:     100.0,    
  gocart2g_3d.vunit:      'hPa',    
  gocart2g_3d.vvars:      'log(PLE)' , 'DYN'          ,
- gocart2g_3d.levels:     1000 975 950 925 900 850 800 750 700 650 600 550 500 450 400 350 300 250 200 150 100 70 50 30 20 10,
+ # gocart2g_3d.levels:     1000 975 950 925 900 850 800 750 700 650 600 550 500 450 400 350 300 250 200 150 100 70 50 30 20 10,
  gocart2g_3d.fields:    'SSMASS'     , 'SS'       ,
                         'SSMASS25'   , 'SS'       ,
                         'SSCONC'     , 'SS'       ,
