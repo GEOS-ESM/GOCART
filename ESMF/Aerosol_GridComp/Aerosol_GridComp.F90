@@ -171,40 +171,37 @@ contains
         type(ESMF_State),  intent(inout) :: state
         integer, optional, intent(  out) :: rc
 
-        integer                                 :: itemCount, i, dims
+        integer                                 :: itemCount, i
         character(len=ESMF_MAXSTR), allocatable :: itemNameList(:)
         type(ESMF_StateItem_FLAG),  allocatable :: itemTypeList(:)
 
-        type(ESMF_Field) :: field
-        real, pointer    :: ptr2d(:,:), ptr3d(:,:,:)
+        type(ESMF_Field)            :: field
+        type(ESMF_FieldStatus_Flag) :: fieldStatus
+
 
         __Iam__('ForceAllocation')
 
         call ESMF_StateGet(state, itemCount=itemCount, __RC__)
-        allocate(itemNameList(itemCount), stat=status)
-        VERIFY_(status)
-        allocate(itemTypeList(itemCount), stat=status)
-        VERIFY_(status)
 
-        call ESMF_StateGet(state, itemNameList=itemNameList, &
+        if (itemCount > 0) then
+           allocate(itemNameList(itemCount), itemTypeList(itemCount), stat=status)
+           VERIFY_(status)
+
+           call ESMF_StateGet(state, itemNameList=itemNameList, &
                 itemTypeList=itemTypeList, __RC__)
 
-        if (itemCount /= 0) then
-            do i=1, itemCount
-                if (itemTypeList(i) == ESMF_STATEITEM_FIELD) then
-                    call ESMF_StateGet(state, trim(itemNameList(i)), field, __RC__)
-                    call ESMF_AttributeGet(field, name='DIMS', value=dims, __RC__)
-                    if (dims == MAPL_DimsHorzOnly) then
-                        call MAPL_GetPointer(state, ptr2d, trim(itemNameList(i)), &
-                                alloc=.true., __RC__)
-                    else if (dims == MAPL_DimsHorzVert) then
-                        call MAPL_GetPointer(state, ptr3d, trim(itemNameList(i)), &
-                                alloc=.true., __RC__)
-                    else
-                        _ASSERT((1 == 2), "invalid field for test defined")
-                    end if
-                end if
-            end do
+           do i=1, itemCount
+              if (itemTypeList(i) == ESMF_STATEITEM_FIELD) then
+                 call ESMF_StateGet(state, trim(itemNameList(i)), field, __RC__)
+                 call ESMF_FieldGet(field, status=fieldStatus, __RC__)
+                 if (fieldStatus == ESMF_FIELDSTATUS_GRIDSET) then
+                    call MAPL_AllocateCoupling(field, __RC__)
+                 end if
+              end if
+           end do
+
+           deallocate(itemNameList, itemTypeList, stat=status)
+           VERIFY_(status)
         end if
 
         _RETURN(_SUCCESS)
