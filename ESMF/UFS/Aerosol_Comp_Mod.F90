@@ -953,7 +953,7 @@ contains
 
     ! -- local variables
     integer :: localrc
-    integer :: item
+    integer :: i, item
     integer :: localDe, localDeCount, rank
     integer :: fieldCount, maxLength
     character(len=ESMF_MAXSTR)          :: msgString
@@ -966,10 +966,10 @@ contains
     real(ESMF_KIND_R4), dimension(:,:),     pointer :: fp2d
     real(ESMF_KIND_R4), dimension(:,:,:),   pointer :: fp3d
     real(ESMF_KIND_R4), dimension(:,:,:,:), pointer :: fp4d
-    type(ESMF_Field)  :: field
-    type(ESMF_VM)     :: vm
-    type(ESMF_FieldStatus_Flag), pointer :: fieldStatus
-    type(ESMF_StateItem_Flag),   pointer :: itemTypeList(:)
+    type(ESMF_Field) :: field
+    type(ESMF_VM)    :: vm
+    type(ESMF_FieldStatus_Flag) :: fieldStatus
+    type(ESMF_StateItem_Flag), pointer :: itemTypeList(:)
 
     ! -- local parameters
     character(len=*), parameter :: rName = "MAPL: diagnostic"
@@ -1049,12 +1049,21 @@ contains
             rcToReturn=rc)) return  ! bail out
           localDeCount = 0
           rank = 0
-          call ESMF_FieldGet(field, rank=rank, &
-            localDeCount=localDeCount, rc=localrc)
+          call ESMF_FieldGet(field, status=fieldStatus, rc=localrc)
           if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__,  &
             file=__FILE__,  &
             rcToReturn=rc)) return  ! bail out
+          if (fieldStatus == ESMF_FIELDSTATUS_COMPLETE) then
+            call ESMF_FieldGet(field, rank=rank, &
+              localDeCount=localDeCount, rc=localrc)
+            if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+              line=__LINE__,  &
+              file=__FILE__,  &
+              rcToReturn=rc)) return  ! bail out
+          else
+            shapeList(item) = "incomplete"
+          end if
 
           do localDe = 0, localDeCount - 1
             minValue = localMin(item)
@@ -1068,7 +1077,7 @@ contains
                   rcToReturn=rc)) return  ! bail out
                 minValue = minval(fp1d)
                 maxValue = maxval(fp1d)
-                write(shapeList(item), *) shape(fp1d)
+                write(shapeList(item), '(i0,":",i0)') lbound(fp1d,1), ubound(fp1d,1)
               case(2)
                 call ESMF_FieldGet(field, localDe=localDe, farrayPtr=fp2d, rc=localrc)
                 if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -1077,7 +1086,7 @@ contains
                   rcToReturn=rc)) return  ! bail out
                 minValue = minval(fp2d)
                 maxValue = maxval(fp2d)
-                write(shapeList(item), *) shape(fp2d)
+                write(shapeList(item), '(i0,":",i0,",",i0,":",i0)') (lbound(fp2d,i), ubound(fp2d,i), i=1,2)
               case(3)
                 call ESMF_FieldGet(field, localDe=localDe, farrayPtr=fp3d, rc=localrc)
                 if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -1086,7 +1095,7 @@ contains
                   rcToReturn=rc)) return  ! bail out
                 minValue = minval(fp3d)
                 maxValue = maxval(fp3d)
-                write(shapeList(item), *) shape(fp3d)
+                write(shapeList(item), '(i0,":",i0,2(",",i0,":",i0))') (lbound(fp3d,i), ubound(fp3d,i), i=1,3)
               case(4)
                 call ESMF_FieldGet(field, localDe=localDe, farrayPtr=fp4d, rc=localrc)
                 if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -1095,7 +1104,7 @@ contains
                   rcToReturn=rc)) return  ! bail out
                 minValue = minval(fp4d)
                 maxValue = maxval(fp4d)
-                write(shapeList(item), *) shape(fp4d)
+                write(shapeList(item), '(i0,":",i0,3(",",i0,":",i0))') (lbound(fp4d,i), ubound(fp4d,i), i=1,4)
               case default
                 call ESMF_LogSetError(ESMF_RC_NOT_IMPL, &
                   msg="Field rank not implemented.", &
