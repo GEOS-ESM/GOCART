@@ -51,10 +51,12 @@ module Aerosol_Cap
       "ocean_fraction                       "  &
     /)
   ! -- export fields
-  integer, parameter :: exportFieldCount = 1
+  integer, parameter :: exportFieldCount = 3
   character(len=*), dimension(exportFieldCount), parameter :: &
     exportFieldNames = (/ &
-      "inst_tracer_mass_frac                "  &
+      "inst_tracer_mass_frac                ", &
+      "inst_tracer_up_surface_flx           ", &
+      "inst_tracer_down_surface_flx         "  &
     /)
 
   type Aerosol_InternalState_T

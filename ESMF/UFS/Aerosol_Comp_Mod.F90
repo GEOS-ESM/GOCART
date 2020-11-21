@@ -63,7 +63,7 @@ contains
     integer :: localrc, stat
     integer :: imap, item, itemCount
     integer :: rank
-    integer :: i,j, k, kk, n, ni, nj, nk, offset, v
+    integer :: i,j, k, kk, n, ni, nj, nk, nlev, offset, v
     real(ESMF_KIND_R4) :: blkevap, blkesat
     real(ESMF_KIND_R8) :: dt, tmp
     real(ESMF_KIND_R4), dimension(:,:),     pointer :: fp2dr
@@ -265,13 +265,23 @@ contains
                         line=__LINE__,  &
                         file=__FILE__,  &
                         rcToReturn=rc)) return  ! bail out
-                      do k = 1, nk
-                        kk = nk - k + 1
+                      if (any(shape(fp3dp)-shape(fp3dr) /= 0)) then
+                        call ESMF_LogSetError(ESMF_RC_INTNRL_INCONS, &
+                          msg="Pointer shape mismatch between "//trim(fieldMap(imap,1)) &
+                            //" and "//trim(fieldMap(imap,2)), &
+                          line=__LINE__, &
+                          file=__FILE__, &
+                          rcToReturn=rc)
+                      end if
+                      nlev = size(fp3dp, 3)
+                      kk = ubound(fp3dr, 3)
+                      do k = 1, nlev
                         do j = 1, nj
                           do i = 1, ni
                             fp3dr(i,j,kk) = fp3dp(i,j,k)
                           end do
                         end do
+                        kk = kk - 1
                       end do
                     case default
                     ! -- nothing to do
@@ -322,7 +332,7 @@ contains
                 case ("Z0H")
                   fp2dr = 0.01_ESMF_KIND_R4 * zorl
                 case ("ZLE")
-                  do k = 1, nk
+                  do k = 1, nk + 1
                     kk = nk - k + 1
                     do j = 1, nj
                       do i = 1, ni
@@ -378,11 +388,11 @@ contains
     integer :: localrc, stat
     integer :: item, itemCount
     integer :: rank
-    integer :: i,j, k, kk, n, ni, nj, nk, offset, v
+    integer :: i, idiagn, j, k, kk, n, ni, nj, nk, offset, v
     real(ESMF_KIND_R4), dimension(:,:,:),   pointer :: fp3d
     real(ESMF_KIND_R4), dimension(:,:,:,:), pointer :: fp4d
     real(ESMF_KIND_R8), dimension(:,:,:),   pointer :: qu
-    real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: q
+    real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: q, qd
     real(ESMF_KIND_R8) :: iscale, escale
     type(ESMF_Field) :: field
     type(ESMF_FieldStatus_flag)         :: fieldStatus
@@ -398,6 +408,7 @@ contains
     integer, parameter :: p_msa    = p_o3 + 4
     integer, parameter :: p_dust_1 = p_o3 + 10
     integer, parameter :: p_seas_1 = p_o3 + 15
+    integer, parameter :: p_seas_d = p_seas_1 - p_so2 - 3
 
     ! -- begin
     if (present(rc)) rc = ESMF_SUCCESS
@@ -409,11 +420,27 @@ contains
       rcToReturn=rc)) return  ! bail out
 
     nullify(q)
-    call AerosolGetPtr(state, "inst_tracer_mass_frac",  q, rc=localrc)
+    call AerosolGetPtr(state, "inst_tracer_mass_frac", q, rc=localrc)
     if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__,  &
       rcToReturn=rc)) return  ! bail out
+
+    if (stateintent == ESMF_STATEINTENT_EXPORT) then
+      nullify(qu)
+      call AerosolGetPtr(state, "inst_tracer_up_surface_flx", qu, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      nullify(qd)
+      call AerosolGetPtr(state, "inst_tracer_down_surface_flx", qd, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+    end if
 
     call ESMF_StateGet(cap % cap_gc % export_state, itemCount=itemCount, rc=localrc)
     if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -451,11 +478,19 @@ contains
             file=__FILE__,  &
             rcToReturn=rc)) return  ! bail out
           rank = 0
-          call ESMF_FieldGet(field, rank=rank, rc=localrc)
+          call ESMF_FieldGet(field, status=fieldStatus, rc=localrc)
           if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__,  &
             file=__FILE__,  &
             rcToReturn=rc)) return  ! bail out
+
+          if (fieldStatus == ESMF_FIELDSTATUS_COMPLETE) then
+            call ESMF_FieldGet(field, rank=rank, rc=localrc)
+            if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+              line=__LINE__,  &
+              file=__FILE__,  &
+              rcToReturn=rc)) return  ! bail out
+          end if
 
           nullify(fp3d, fp4d)
           select case (rank)
@@ -475,6 +510,7 @@ contains
               cycle
           end select
 
+          idiagn = 0
           offset = 0
           iscale = 1._ESMF_KIND_R8
           escale = 1._ESMF_KIND_R8
@@ -508,14 +544,25 @@ contains
               iscale = ug2kg
               escale = kg2ug
 !           case ("SSEM")
-!             offset = -6
-!             iscale = ug2kg
-!             escale = kg2ug
+!             offset = p_dust_1 - p_seas_1
+            case ("SSSD")
+              offset = -p_seas_d
+              idiagn = 1
+            case ("SSDP")
+              offset = -p_seas_d
+              idiagn = 2
+            case ("SSWT")
+              offset = -p_seas_d
+              idiagn = 3
+            case ("SSSV")
+              offset = -p_seas_d
+              idiagn = 4
             case default
               nullify(fp3d, fp4d)
           end select
 
           if (stateintent == ESMF_STATEINTENT_IMPORT) then
+            if (offset < 0) nullify(fp3d,fp4d)
             if (associated(fp3d)) then
               v = offset + 1
               do k = 1, nk
@@ -543,8 +590,28 @@ contains
             if (associated(fp3d)) then
               if (offset < 0) then
                 ! -- diagnostics
-                v = -offset
-                qu(:,:,v:) = escale * fp3d
+                kk = size(fp3d, dim=3)
+                if (idiagn > 0) then
+                  if (associated(qd)) then
+                    do k = 1, kk
+                      do j = 1, nj
+                        do i = 1, ni
+                          qd(i,j,k-offset,idiagn) = escale * fp3d(i,j,k)
+                        end do
+                      end do
+                    end do
+                  end if
+                else
+                  if (associated(qu)) then
+                    do k = 1, kk
+                      do j = 1, nj
+                        do i = 1, ni
+                          qu(i,j,k-offset) = escale * fp3d(i,j,k)
+                        end do
+                      end do
+                    end do
+                  end if
+                end if
               else
                 v = offset + 1
                 do k = 1, nk
