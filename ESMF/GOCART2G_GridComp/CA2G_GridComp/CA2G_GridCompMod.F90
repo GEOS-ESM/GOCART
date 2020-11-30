@@ -17,7 +17,7 @@ module CA2G_GridCompMod
 
    use GOCART2G_Process       ! GOCART2G process library
    use GA_GridCompMod
-   use m_StrTemplate          ! string templates
+   use MAPL_StringTemplate, only: StrTemplate
 
    implicit none
    private
@@ -373,6 +373,7 @@ contains
     real, pointer, dimension(:,:)        :: area
     logical                              :: data_driven
     integer                              :: NUM_BANDS
+    logical                              :: bands_are_present
 
     __Iam__('Initialize')
 
@@ -533,19 +534,22 @@ contains
                                   label="aerosol_radBands_optics_file:", __RC__ )
 
     allocate (self%rad_MieTable(instance)%channels(NUM_BANDS), __STAT__ )
+    self%rad_MieTable(instance)%nch = NUM_BANDS
 
-    call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
-                                 count=self%rad_MieTable(instance)%nch, rc=status)
+    call ESMF_ConfigFindLabel(cfg, label="BANDS:", isPresent=bands_are_present, __RC__)
 
-    if (rc /= 0) then
+    if (bands_are_present) then
+       call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
+                                    count=self%rad_MieTable(instance)%nch, __RC__)
+    else
        do i = 1, NUM_BANDS
           self%rad_MieTable(instance)%channels(i) = i
        end do
-    end if
+    endif
 
     allocate (self%rad_MieTable(instance)%mie_aerosol, __STAT__)
-    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, rc)
-    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, rc)
+    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, __RC__)
+    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, __RC__)
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
@@ -827,7 +831,7 @@ contains
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
     if(self%doing_point_emissions) then
-       call StrTemplate (fname, self%point_emissions_srcfilen, xid='unknown', &
+       call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                          nymd=nymd, nhms=120000 )
        call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                  self%pBase, self%pTop, self%pEmis, self%pStart, &
