@@ -18,8 +18,12 @@ workflows:
   version: 2.1
   build-and-test:
     jobs:
-      - build-GOCART
-      - build-GEOSgcm
+      - build-GOCART:
+          context:
+            - docker-hub-creds
+      - build-GEOSgcm:
+          context:
+            - docker-hub-creds
 
 jobs:
   build-GOCART:
