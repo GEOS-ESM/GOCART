@@ -64,7 +64,7 @@ jobs:
           name: "Mepo clone external repos"
           command: |
             cd ${CIRCLE_WORKING_DIRECTORY}/GEOSgcm
-            git checkout feature/wjamieson/GOCARTrefactor_sparse
+            git checkout feature/wjamieson/GOCART_develop_testing
             mepo clone
             mepo develop GEOSgcm_GridComp GEOSgcm_App
             mepo status
