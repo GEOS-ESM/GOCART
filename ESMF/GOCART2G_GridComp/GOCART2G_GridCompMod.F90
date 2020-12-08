@@ -185,6 +185,50 @@ contains
        dims       = MAPL_DimsHorzOnly,                &
        datatype   = MAPL_BundleItem, __RC__)
 
+
+!   Set children's variables as exports from GOCART2G
+!   to satisfy connections in GEOS_ChemGridComp.F90.
+!   Currently only supports one instance.
+!   -------------------------------------------------
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'DU',                         &
+        child_id   = self%DU%instances(1)%id, __RC__) 
+
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'SS',                         &
+        child_id   = self%SS%instances(1)%id, __RC__)
+
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'NO3an1',                     &
+        child_id   = self%NI%instances(1)%id, __RC__)
+
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'NO3an2',                     &
+        child_id   = self%NI%instances(1)%id, __RC__)
+
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'NO3an3',                     &
+        child_id   = self%NI%instances(1)%id, __RC__)
+
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'SO4',                        &
+        child_id   = self%SU%instances(1)%id, __RC__)
+
+!   CA %instances(n) pertains to the instances specified in GOCART2G_GridComp.rc
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'CAphobicCA.oc',              &
+        child_id   = self%CA%instances(1)%id, __RC__)
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'CAphilicCA.oc',              &
+        child_id   = self%CA%instances(1)%id, __RC__)
+
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'CAphobicCA.bc',              &
+        child_id   = self%CA%instances(2)%id, __RC__)
+    call MAPL_AddExportSpec(GC,                    &
+        short_name = 'CAphilicCA.bc',              &
+        child_id   = self%CA%instances(2)%id, __RC__)
+
 #include "GOCART2G_Export___.h"
 
 
@@ -1355,7 +1399,7 @@ contains
 
           if (index(aeroList(i), 'CA.oc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilic', __RC__)
+             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.oc', __RC__)
              q = q + q_
              hygroscopicity = k_ORG * q_ + hygroscopicity
              density = densORG * q_ + density
@@ -1383,7 +1427,7 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.bc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilic', __RC__)
+             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.bc', __RC__)
              q = q + q_
              hygroscopicity = k_BC
              density = densBC
@@ -1394,7 +1438,7 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.oc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilic', __RC__)
+             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.oc', __RC__)
              q = q + q_
              hygroscopicity = k_OC
              density = densOC

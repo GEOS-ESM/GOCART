@@ -31,8 +31,6 @@ module SU2G_GridCompMod
    real, parameter :: fMassSulfur = 32., fMassSO2 = 64., fMassSO4 = 96., &
                       fMassDMS = 62., fMassMSA = 96.
 
-   real, parameter :: nAvogadro  = 6.022e23 ! molecules per mole of air 
-
    real, parameter ::  cpd    = 1004.16
 
 !  relative position of sulfate tracers

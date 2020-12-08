@@ -198,7 +198,7 @@ contains
           RESTART    = MAPL_RestartSkip,     __RC__)
 
        call MAPL_AddInternalSpec(GC,                          &
-          short_name = 'CAphobic',                            &
+          short_name = 'CAphobic'//trim(comp_name),           &
           long_name  = trim(GCsuffix)//' phobic Mixing Ratio',&
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
@@ -206,7 +206,7 @@ contains
           vlocation  = MAPL_VLocationCenter, __RC__) 
 
        call MAPL_AddInternalSpec(GC,                          &
-          short_name = 'CAphilic',                            &
+          short_name = 'CAphilic'//trim(comp_name),           &
           long_name  = trim(GCsuffix)//' philic Mixing Ratio',&
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
@@ -461,20 +461,20 @@ contains
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_ACI', aero_aci, __RC__)
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
-    call ESMF_StateGet (internal, 'CAphobic', field, __RC__)
+    call ESMF_StateGet (internal, 'CAphobic'//trim(comp_name), field, __RC__)
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), __RC__)
-    fld = MAPL_FieldCreate (field, 'CAphobic', __RC__)
+    fld = MAPL_FieldCreate (field, 'CAphobic'//trim(comp_name), __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 !    call MAPL_StateAdd (aero_aci, fld, __RC__)
 
     self%klid = 1 ! temporary value
 !   Set internal CAphobic values to 0 where above klid
-    call MAPL_GetPointer (internal, int_ptr, 'CAphobic', __RC__)
+    call MAPL_GetPointer (internal, int_ptr, 'CAphobic'//trim(comp_name), __RC__)
     call setZeroKlid(self%km, self%klid, int_ptr)
 
-    call ESMF_StateGet (internal, 'CAphilic', field, __RC__)
+    call ESMF_StateGet (internal, 'CAphilic'//trim(comp_name), field, __RC__)
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
-    fld = MAPL_FieldCreate (field, 'CAphilic', __RC__)
+    fld = MAPL_FieldCreate (field, 'CAphilic'//trim(comp_name), __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
     call MAPL_StateAdd (aero_aci, fld, __RC__)
 
@@ -483,7 +483,7 @@ contains
        call MAPL_GetPointer(import, ple, 'PLE', __RC__)
        call findKlid (self%klid, self%plid, ple, __RC__)
 !      Set internal CAphilic values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'CAphilic', __RC__)
+       call MAPL_GetPointer (internal, int_ptr, 'CAphilic'//trim(comp_name), __RC__)
        call setZeroKlid(self%km, self%klid, int_ptr)
     end if
 
@@ -587,8 +587,8 @@ contains
     call ESMF_AttributeSet(aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
 
     allocate(aerosol_names(self%nbins), __STAT__)
-    aerosol_names(1) = 'CAphobic'
-    aerosol_names(2) = 'CAphilic'
+    aerosol_names(1) = 'CAphobic'//trim(comp_name)
+    aerosol_names(2) = 'CAphilic'//trim(comp_name)
     call ESMF_AttributeSet(aero, name='internal_varaible_name', valueList=aerosol_names, &
                            itemCount=size(aerosol_names), __RC__)
 
@@ -699,6 +699,8 @@ contains
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     character(len=2)  :: GCsuffix
 
+    real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
+
 #include "CA2G_DeclarePointer___.h"
 
    __Iam__('Run1')
@@ -731,6 +733,9 @@ contains
        GCsuffix = 'BR' 
     end if
 
+    call MAPL_GetPointer (internal, intPtr_phobic, 'CAphobic'//trim(comp_name), __RC__)
+    call MAPL_GetPointer (internal, intPtr_philic, 'CAphilic'//trim(comp_name), __RC__)
+
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
@@ -752,8 +757,8 @@ contains
     idow = Chem_UtilIdow(nymd)
     if ( (nhms==0) .and. (idow == self%myDOW) ) then
        cdow = Chem_UtilCdow(nymd)
-       CAphobic = tiny(1.) ! avoid division by zero
-       CAphilic = tiny(1.) ! avoid division by zero
+       intPtr_phobic = tiny(1.) ! avoid division by zero
+       intPtr_philic = tiny(1.) ! avoid division by zero
        if ( MAPL_AM_I_ROOT() ) then
           print *, '<> CA '//cdow//' tracer being set to zero on ', nymd, nhms
        end if
@@ -821,7 +826,7 @@ contains
 
     call CAEmission (self%diag_MieTable(self%instance), self%km, self%nbins, self%cdt, MAPL_GRAV, GCsuffix, self%ratPOM, &
                      self%fTerpene, aviation_lto_src, aviation_cds_src, aviation_crs_src, self%fHydrophobic, &
-                     zpbl, t, airdens, rh2, CAphilic, CAphobic, delp, self%aviation_layers, biomass_src, &
+                     zpbl, t, airdens, rh2, intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
                      terpene_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
                      CAEM, CAEMAN, CAEMBB, CAEMBF, CAEMBG, __RC__ )
 
@@ -853,8 +858,8 @@ contains
                                        self%pStart, self%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
 
-       CAphobic = CAphobic + self%fHydrophobic * self%cdt * MAPL_GRAV / delp * emissions_point
-       CAphilic = CAphilic + (1-self%fHydrophobic) * self%cdt * MAPL_GRAV / delp * emissions_point
+       intPtr_phobic = intPtr_phobic + self%fHydrophobic * self%cdt * MAPL_GRAV / delp * emissions_point
+       intPtr_philic = intPtr_philic + (1-self%fHydrophobic) * self%cdt * MAPL_GRAV / delp * emissions_point
     end if
 
     RETURN_(ESMF_SUCCESS)
@@ -897,6 +902,7 @@ contains
     real, allocatable, dimension(:,:,:,:) :: int_arr
     character(len=2)  :: GCsuffix
     character(len=ESMF_MAXSTR)      :: short_name
+    real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
 
     real, parameter ::  cpd    = 1004.16
 
@@ -921,6 +927,9 @@ contains
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, &
                          INTERNALSPEC = InternalSpec, __RC__)
 
+    call MAPL_GetPointer (internal, intPtr_phobic, 'CAphobic'//trim(comp_name), __RC__)
+    call MAPL_GetPointer (internal, intPtr_philic, 'CAphilic'//trim(comp_name), __RC__)
+
 #include "CA2G_GetPointer___.h"
 
     if (comp_name(1:5) == 'CA.oc') then
@@ -943,7 +952,7 @@ contains
        pSOA_VOC = pSOA_ANTHRO_VOC
        where (1.01 * pSOA_VOC > MAPL_UNDEF) pSOA_VOC = 0.0
 
-       CAphilic = CAphilic + self%cdt * pSOA_VOC/airdens
+       intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
           CAPSOA = CAPSOA+sum(self%cdt*pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
@@ -952,7 +961,7 @@ contains
        pSOA_VOC = pSOA_BIOB_VOC 
        where (1.01 * pSOA_VOC > MAPL_UNDEF) pSOA_VOC = 0.0
 
-       CAphilic = CAphilic + self%cdt * pSOA_VOC/airdens
+       intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
           CAPSOA = sum(self%cdt*pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
@@ -960,7 +969,7 @@ contains
 !   Ad Hoc transfer of hydrophobic to hydrophilic aerosols
 !   Following Chin's parameterization, the rate constant is
 !   k = 4.63e-6 s-1 (.4 day-1; e-folding time = 2.5 days)
-    call phobicTophilic (CAphobic, CAphilic, CAHYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
+    call phobicTophilic (intPtr_phobic, intPtr_philic, CAHYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
 
 !   CA Settling
 !   -----------
@@ -1006,9 +1015,9 @@ contains
 
 !   Compute diagnostics
 !   -------------------
-    allocate(int_arr((ubound(CAphobic,1)), (ubound(CAphobic,2)), self%km, self%nbins), __STAT__)
-    int_arr(:,:,:,1) = CAphobic
-    int_arr(:,:,:,2) = CAphilic
+    allocate(int_arr((ubound(intPtr_phobic,1)), (ubound(intPtr_phobic,2)), self%km, self%nbins), __STAT__)
+    int_arr(:,:,:,1) = intPtr_phobic
+    int_arr(:,:,:,2) = intPtr_philic
 
     call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, nbins=2, &
                              channels=self%diag_MieTable(self%instance)%channels, aerosol=int_arr, grav=MAPL_GRAV, &
@@ -1018,8 +1027,8 @@ contains
                              NO3nFlag=.false., __RC__)
 
 if (trim(comp_name) == 'CA.oc') then
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphobic) = ',sum(CAphobic)
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphilic) = ',sum(CAphilic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphobic) = ',sum(intPtr_phobic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphilic) = ',sum(intPtr_philic)
 !  if(mapl_am_i_root()) print*,'CA2G Run2 E array OCphobic = ',CAphobic
 !  if(mapl_am_i_root()) print*,'CA2G Run2 E array OCphilic = ',CAphilic
 !if(mapl_am_i_root()) print*,'CA2G OC CASMASS = ',sum(CASMASS)
@@ -1027,8 +1036,8 @@ if (trim(comp_name) == 'CA.oc') then
 !if(mapl_am_i_root()) print*,'CA2G OC CAEXTTAU = ',sum(CAEXTTAU)
 !if(mapl_am_i_root()) print*,'CA2G OC CASCATAU = ',sum(CASCATAU)
 else if (trim(comp_name) == 'CA.bc') then
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BCphobic) = ',sum(CAphobic)
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BCphilic) = ',sum(CAphilic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BCphobic) = ',sum(intPtr_phobic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BCphilic) = ',sum(intPtr_philic)
 !  if(mapl_am_i_root()) print*,'CA2G Run2 E array BCphobic = ',CAphobic
 !  if(mapl_am_i_root()) print*,'CA2G Run2 E array BCphilic = ',CAphilic
 !if(mapl_am_i_root()) print*,'CA2G BC CASMASS = ',sum(CASMASS)
@@ -1036,8 +1045,8 @@ else if (trim(comp_name) == 'CA.bc') then
 !if(mapl_am_i_root()) print*,'CA2G BC CAEXTTAU = ',sum(CAEXTTAU)
 !if(mapl_am_i_root()) print*,'CA2G BC CASCATAU = ',sum(CASCATAU)
 else if (trim(comp_name) == 'CA.br') then
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphobic) = ',sum(CAphobic)
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphilic) = ',sum(CAphilic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphobic) = ',sum(intPtr_phobic)
+  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphilic) = ',sum(intPtr_philic)
 end if
 
 
@@ -1101,8 +1110,8 @@ end if
 
 !   Update interal data pointers with ExtData
 !   -----------------------------------------
-    call MAPL_GetPointer (internal, NAME='CAphobic', ptr=ptr3d_int_phobic, __RC__)
-    call MAPL_GetPointer (internal, NAME='CAphilic', ptr=ptr3d_int_philic, __RC__)
+    call MAPL_GetPointer (internal, NAME='CAphobic'//trim(comp_name), ptr=ptr3d_int_phobic, __RC__)
+    call MAPL_GetPointer (internal, NAME='CAphilic'//trim(comp_name), ptr=ptr3d_int_philic, __RC__)
 
     call MAPL_GetPointer (import, NAME='clim'//trim(GCsuffix)//'phobic', ptr=ptr3d_imp, __RC__)
     ptr3d_int_phobic = ptr3d_imp
