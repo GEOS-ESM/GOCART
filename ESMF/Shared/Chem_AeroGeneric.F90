@@ -7,7 +7,7 @@
 !BOP
 !
 
-! !MODULE:  Aerosol_Callbacks --- Call back methods for aerosol optics.
+! !MODULE: Chem_AeroGeneric - Utilitarian subroutines used by GOCART2G children. 
 !                             
 !
 ! !INTERFACE:
@@ -33,14 +33,11 @@ module  Chem_AeroGeneric
 !
 ! !DESCRIPTION:
 !
-!  These modules compute aerosol optical properties for GOCART2G.
+!  These subroutines perform repetitive tasks needed by GOCART2G children.
 !
 ! !REVISION HISTORY:
 !
-!  23Mar2005 Colarco - Initial code.
-!  11Jul2005 da Silva   Standardization.
-!  30Dec2019 Sherman, da Silva, Darmenov, Clune - 2nd Gen. Made ESMF compliant.
-!                                                 No longer relies on Chem_Reg
+!  March2020 Sherman, da Silva, Darmenov, Clune - created
 !
 !EOP
 !-------------------------------------------------------------------------
