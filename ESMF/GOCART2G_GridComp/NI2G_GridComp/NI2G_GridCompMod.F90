@@ -640,6 +640,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
     type (wrap_)                      :: wrap
     type (NI2G_GridComp), pointer     :: self
 
+    real, allocatable, dimension(:,:) :: emi_surface
+
 #include "NI2G_DeclarePointer___.h"
 
    __Iam__('Run1')
@@ -672,31 +674,17 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
 
 !   NH3 Emissions
 !   -------------
-    if (associated(NH3EM)) then
-       NH3EM = 0.
-       if (associated(EMI_NH3_BB)) NH3EM = NH3EM + EMI_NH3_BB
-       if (associated(EMI_NH3_AG)) NH3EM = NH3EM + EMI_NH3_AG
-       if (associated(EMI_NH3_EN)) NH3EM = NH3EM + EMI_NH3_EN
-       if (associated(EMI_NH3_TR)) NH3EM = NH3EM + EMI_NH3_TR
-       if (associated(EMI_NH3_RE)) NH3EM = NH3EM + EMI_NH3_RE
-       if (associated(EMI_NH3_IN)) NH3EM = NH3EM + EMI_NH3_IN
-       if (associated(EMI_NH3_OC)) NH3EM = NH3EM + EMI_NH3_OC
-    end if
+    allocate (emi_surface(ubound(self%xhno3,1), ubound(self%xhno3,2)), __STAT__)
 
-    if (associated(EMI_NH3_BB)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_BB
-    if (associated(EMI_NH3_AG)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_AG
-    if (associated(EMI_NH3_EN)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_EN
-    if (associated(EMI_NH3_IN)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_IN
-    if (associated(EMI_NH3_RE)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_RE
-    if (associated(EMI_NH3_TR)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_TR
-    if (associated(EMI_NH3_OC)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_OC
+    emi_surface = ( emi_nh3_bb + emi_nh3_ag + emi_nh3_en + &
+                    emi_nh3_tr + emi_nh3_re + emi_nh3_in + &
+                    emi_nh3_oc )
+
+    NH3(:,:,self%km) = NH3(:,:,self%km) + self%cdt * MAPL_GRAV / delp(:,:,self%km) * emi_surface(:,:)
+
+    if (associated(NH3EM)) NH3EM = emi_surface
+
+    deallocate(emi_surface, __STAT__)
 
 
 !if(mapl_am_i_root()) print*,'NI2G sum(DU)',sum(DU)
@@ -839,9 +827,13 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G self%rmedDU = ',self%rmedDU*1.e-6
 !if(mapl_am_i_root()) print*,'NI2G self%rmedSS = ',self%rmedSS*1.e-6
 
-    call NIheterogenousChem (NIHT, self%xhno3, MAPL_AVOGAD, MAPL_AIRMW, MAPL_PI, MAPL_RUNIV/1000., &
+if(mapl_am_i_root()) print*,'NI2G shape(self%fnumDU) = ',shape(self%fnumDU)
+if(mapl_am_i_root()) print*,'NI2G size(self%fnumDU) = ',size(self%fnumDU)
+
+    call NIheterogenousChem (NIHT, self%xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, MAPL_PI, MAPL_RUNIV/1000., &
                              airdens, t, rh2, delp, DU, SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
-                             self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, self%cdt, MAPL_GRAV, fMassHNO3, &
+                             self%fnumDU, self%fnumSS, 5, 5, self%km, &
+                             self%klid, self%cdt, MAPL_GRAV, fMassHNO3, &
                              fMassNO3, NO3an1, NO3an2, NO3an3, HNO3CONC, HNO3SMASS, &
                              HNO3CMASS, rc)
 
