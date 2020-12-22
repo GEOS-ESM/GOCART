@@ -27,7 +27,7 @@ category: IMPORT
 #RH2        | 1      | xyz  | C   |      | Rel_Hum_after_moist
 #T          | K      | xyz  | C   |      | air_temperature
 #ZLE        | m      | xyz  | E   |      | geopotential_height
-#PLE        | Pa     | xyz  | E   |      | air_pressure
+PLE         | Pa     | xyz  | E   |      | air_pressure
 #PFL_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_liquid_nonconvective_precipitation
 #PFI_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_ice_nonconvective_precipitation
 #U          | m s-1  | xyz  | C   |      | eastward_wind
@@ -39,6 +39,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
 #----------------------------------------------------------------------------------------
+UFSPLE      | Pa         | xyz | E  |            | ufs_air_pressure
 #DUMASS     | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
 #DUMASS25   | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
 #DUCONC     | kg m-3     | xyz | C  |            | Dust Mass Concentration                     __ENSEMBLE__
