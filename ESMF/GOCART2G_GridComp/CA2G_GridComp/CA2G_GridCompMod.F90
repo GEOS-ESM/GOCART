@@ -1047,6 +1047,8 @@ else if (trim(comp_name) == 'CA.bc') then
 else if (trim(comp_name) == 'CA.br') then
   if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphobic) = ',sum(intPtr_phobic)
   if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphilic) = ',sum(intPtr_philic)
+  if(mapl_am_i_root()) print*,'CA2G BR CAEXTTAU = ',sum(CAEXTTAU)
+  if(mapl_am_i_root()) print*,'CA2G BR CASCATAU = ',sum(CASCATAU)
 end if
 
 

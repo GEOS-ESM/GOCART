@@ -24,6 +24,7 @@
 ! !PUBLIC MEMBER FUNCTIONS:
 !
    public DustEmissionGOCART2G
+   public DustEmissionK14
    public DistributePointEmission
    public updatePointwiseEmissions
    public Chem_Settling2Gorig
@@ -202,6 +203,395 @@ CONTAINS
    rc=0
 
    end subroutine DustEmissionGOCART2G
+
+!==================================================================================
+!BOP
+! !IROUTINE: DustEmissionK14
+
+   subroutine DustEmissionK14( km, t_soil, w_top, rho_air,    &
+                               z0, z, u_z, v_z, ustar,    &
+                               f_land, f_snow,            &
+                               f_src,                     &
+                               f_sand, f_silt, f_clay,    &
+                               texture, vegetation, gvf,  &
+                               f_w, f_c, uts_gamma,       &
+                               UNDEF, GRAV, VON_KARMAN,   &
+                               opt_clay,                  &
+                               emissions,                 &
+                               u, u_t, u_ts,              &
+                               R, H_w, f_erod,            &
+                               rc )
+
+! !USES:
+   implicit none
+
+! !INPUT PARAMETERS:
+   integer, intent(in)              :: km         ! model levels
+   real, dimension(:,:), intent(in) :: rho_air    ! air density
+   real, dimension(:,:), intent(in) :: w_top      ! volumetric soil moisture in the top surface layer
+   real, dimension(:,:), intent(in) :: t_soil     ! soil temperature
+   real, dimension(:,:), intent(in) :: z0         ! aeolian aerodynamic roughness length
+   real, dimension(:,:), intent(in) :: z, u_z, v_z! hight and wind at this height
+   real, dimension(:,:), intent(in) :: ustar      ! friction velocity
+   real, dimension(:,:), intent(in) :: f_land     ! land fraction
+   real, dimension(:,:), intent(in) :: f_snow     ! snow fraction 
+   real, dimension(:,:), intent(in) :: f_src      ! dust source potential -- OBSOLETE  
+   real, dimension(:,:), intent(in) :: f_sand     ! sand fraction
+   real, dimension(:,:), intent(in) :: f_silt     ! silt fraction
+   real, dimension(:,:), intent(in) :: f_clay     ! clay fraction
+   real, dimension(:,:), intent(in) :: texture    ! soil texture
+   real, dimension(:,:), intent(in) :: vegetation ! vegetation categories (IGBP)
+   real, dimension(:,:), intent(in) :: gvf        ! vegetation fraction
+
+   integer, intent(in)              :: opt_clay   ! controls which clay&silt emissions term to use
+   real,    intent(in)              :: f_w        ! factor to scale down soil moisture in the top 5cm to soil moisture in the top 1cm
+   real,    intent(in)              :: f_c        ! scale down the wet sieving clay fraction to get it more in line with dry sieving measurements
+   real,    intent(in)              :: uts_gamma  ! threshold friction velocity parameter 'gamma' 
+   real,    intent(in)              :: UNDEF      ! paramter for undefined varaible
+   real,    intent(in)              :: GRAV       ! gravity
+   real,    intent(in)              :: VON_KARMAN ! von karman constant
+
+! !OUTPUT PARAMETERS:
+
+   real, dimension(:,:,:), intent(out) :: emissions ! mass flux of emitted dust particles
+
+   real, dimension(:,:), intent(out) :: u         ! aeolian friction velocity
+   real, dimension(:,:), intent(out) :: u_t       ! threshold friction velocity
+   real, dimension(:,:), intent(out) :: u_ts      ! threshold friction velocity over smooth surface
+
+   real, dimension(:,:), intent(out) :: H_w       ! soil mosture correction
+   real, dimension(:,:), intent(out) :: R         ! drag partition correction
+
+   real, dimension(:,:), intent(out) :: f_erod    ! erodibility
+
+
+   integer, intent(out) :: rc    ! Error return code:
+                                 !  0 - all is well
+                                 !  1 - 
+
+   character(len=*), parameter :: myname = 'DustEmissionK14'
+
+!  !Local Variables
+
+   real, dimension(:,:), allocatable :: w_g        ! gravimetric soil moisture
+   real, dimension(:,:), allocatable :: w_gt       ! threshold gravimetric soil moisture
+
+   real, dimension(:,:), allocatable :: f_veg      ! vegetation mask
+   real, dimension(:,:), allocatable :: clay       ! 'corrected' clay fraction in '%'
+   real, dimension(:,:), allocatable :: silt       ! 'corrected' silt fraction in '%'
+   real, dimension(:,:), allocatable :: k_gamma    ! silt and clay term (gamma in K14 and I&K, 2017)
+   real, dimension(:,:), allocatable :: z0s        ! smooth roughness length
+
+   real, dimension(:,:), allocatable :: Dp_size    ! typical size of soil particles for optimal saltation
+   real :: rho_p                              ! typical density of soil particles
+
+   integer :: i, j, i1=1, i2, j1=1, j2, n
+
+   real, parameter :: z0_valid = 0.08e-2      ! valid range of ARLEMS z0 is 0--0.08cm, z0 > 0.08cm is retreived but the data quality is low
+   real, parameter :: z0_max = 6.25 * z0_valid! maximum roughness over arid surfaces
+   real, parameter :: z0_    = 2.0e-4         ! representative aeolian aerodynamic roughness length z0 = 0.02cm
+
+   real, parameter :: rho_water     = 1000.0  ! water density, 'kg m-3'
+   real, parameter :: rho_soil_bulk = 1700.0  ! soil bulk density, 'kg m-3'
+   real, parameter :: rho_soil      = 2500.0  ! soil particle density, 'kg m-3'
+
+!  real, parameter :: f_w = 0.5               ! factor to scale down soil moisture in the top 5cm to soil moisture in the top 1cm
+!  real, parameter :: f_c = 0.7               ! scale down the wet sieving clay fraction to get it more in line with dry sieving measurements
+
+   ! Shao et al.
+   real, parameter :: a_n = 0.0123
+   real, parameter :: G   = 1.65e-4
+
+   ! size of coarsest mode in the STATSGO/FAO soil type
+   real, parameter :: Dc_soil(12) = (/ 710e-6, 710e-6, 125e-6, &
+                                       125e-6, 125e-6, 160e-6, &
+                                       710e-6, 125e-6, 125e-6, &
+                                       160e-6, 125e-6,   2e-6 /)
+
+
+! !DESCRIPTION: Computes the dust emissions for one time step
+!
+! !REVISION HISTORY:
+!
+!  15Aug2016, Darmenov - Initial implementation
+!  15Dec2020, E.Sherman - Ported to GOCART2G process library
+
+!EOP
+!-------------------------------------------------------------------------
+!  Begin...
+   rc = 0
+   i2 = ubound(t_soil,1)
+   j2 = ubound(t_soil,2)
+
+   allocate(w_g(i2,j2), w_gt(i2,j2), f_veg(i2,j2), clay(i2,j2), silt(i2,j2), k_gamma(i2,j2))
+   allocate(z0s(i2,j2), Dp_size(i2,j2))
+
+   ! typical size of soil particles for optimal saltation is about 75e-6m 
+   Dp_size = 75e-6
+
+   ! typical density of soil particles, e.g. quartz grains
+   rho_p = 2.65e3
+
+   ! threshold friction velocity over smooth surface
+   u_ts = UNDEF
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0))
+       u_ts = sqrt(a_n * ( ((rho_p/rho_air) * GRAV * Dp_size) + uts_gamma / (rho_air * Dp_size)))
+   end where
+
+#if (0)
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  1) < 0.5) u_ts = u_ts * 1.176
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  2) < 0.5) u_ts = u_ts * 1.206
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  3) < 0.5) u_ts = u_ts * 1.234
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  4) < 0.5) u_ts = u_ts * 1.261
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  5) < 0.5) u_ts = u_ts * 1.272
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  6) < 0.5) u_ts = u_ts * 1.216
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  7) < 0.5) u_ts = u_ts * 1.211
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  8) < 0.5) u_ts = u_ts * 1.266
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture -  9) < 0.5) u_ts = u_ts * 1.222
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture - 10) < 0.5) u_ts = u_ts * 1.146
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture - 11) < 0.5) u_ts = u_ts * 1.271
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0) .and. abs(texture - 12) < 0.5) u_ts = u_ts * 1.216
+#endif
+
+   ! gravimetric soil moisture : scaled down to represent the values in the top 1cm and converted to '%'
+   w_g = UNDEF
+   where (f_land > 0.0)
+#if (1)
+       ! following Zender
+       ! Q_s_ = 0.489 - 0.126*f_sand
+       ! rho_soil_bulk = rho_soil*(1 - Q_s_)
+       ! w_g = 100 * f_w * (rho_water / rho_soil_bulk) * w_top
+       ! ...the equivalent one-liner
+       w_g = 100 * f_w * rho_water / rho_soil / (1.0 - (0.489 - 0.126*f_sand)) * w_top
+#else
+       w_g = 100 * f_w * (rho_water / rho_soil_bulk) * w_top
+#endif
+   end where
+
+   ! soil moisture correction following Fecan
+   clay = UNDEF
+   silt = UNDEF
+   w_gt = UNDEF
+   where ((f_land > 0.0) .and. (f_clay <= 1.0) .and. (f_clay >= 0.0))
+       clay = f_c * f_clay
+       silt = f_silt + (1.0-f_c)*f_clay   ! move the excess clay to the silt fraction
+
+       w_gt = 14.0*clay*clay + 17.0*clay  ! w_gt in '%'
+   end where
+
+   H_w  = 1.0
+#if (1)
+   ! Fecan, 1999
+   where ((f_land > 0.0) .and. (w_g > w_gt))
+       H_w = sqrt(1.0 + 1.21*(w_g - w_gt)**0.68)
+   end where
+#else
+   ! Shao, 1996
+   where ((f_land > 0.0) .and. (w_top <= 1.0) .and. (w_top >= 0.0))
+       H_w = exp(22.7*f_w *w_top)
+   end where
+#endif
+
+
+   select case (opt_clay)
+   case (1)
+       ! following Ito and Kok, 2017
+       k_gamma = 0.05
+
+       where ((f_land > 0.0) .and. (clay < 0.2) .and. (clay >= 0.05))
+           k_gamma = clay
+       end where
+
+       where ((f_land > 0.0) .and. (clay >= 0.2) .and. (clay <= 1.0))
+           k_gamma = 0.2
+       end where
+   case (2)
+       ! following Ito and Kok, 2017
+       k_gamma = 1.0/1.4
+
+       where ((f_land > 0.0) .and. (clay < 0.2) .and. (clay >= 0.0))
+           k_gamma = 1.0 / (1.4 - clay - silt)
+       end where
+
+       where ((f_land > 0.0) .and. (clay >= 0.2) .and. (clay <= 1.0))
+           k_gamma = 1.0 / (1.0 + clay - silt)
+       end where
+   case default
+       ! following Kok et al, 2014
+       k_gamma = 0.0
+
+       where ((f_land > 0.0) .and. (clay <= 1.0) .and. (clay >= 0.0))
+           k_gamma = clay
+       end where
+   end select
+
+
+   ! roughness over smooth surface   
+   z0s = 125e-6
+   do j = j1, j2
+       do i = i1, i2
+           if (texture(i,j) > 0 .and. texture(i,j) < 13) then
+               z0s(i,j) = Dc_soil(nint(texture(i,j)))
+           end if
+       end do
+   end do
+
+   z0s = z0s / 30.0    ! z0s = MMD/x, where typically x is in the range 24--30; x=10 was recommended 
+                       ! as a more appropriate value for this parameter in a recent article
+
+   ! drag partition correction
+   R = 1.0
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > z0s))
+#if (1)
+       ! MacKinnon et al, 2004
+       R = 1.0 - log(z0/z0s)/log(0.7 * (122.55/z0s)**0.8)
+#else
+       ! King et al, 2005, Darmenova et al, 2009, and K14-S1 use the corrected MB expression
+       R = 1.0 - log(z0/z0s)/log(0.7 * (0.1/z0s)**0.8)
+#endif
+   end where
+
+
+   ! *soil* friction velocity, see Equations 5, S.10, S11 in Kok et al, 2014 and the supplement paper
+   u = UNDEF
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0))
+#if (1)
+       u = ustar
+#else
+       u = VON_KARMAN / log(z/z0) * sqrt(u_z*u_z + v_z*v_z)
+#endif
+       u = R * u           ! correction for roughness elements
+   end where
+
+
+   ! *soil* threshold friction velocity, Section 2.2 in Kok et al, 2014
+   u_t = UNDEF
+   where ((f_land > 0.0) .and. (z0 < z0_max) .and. (z0 > 0.0))
+       u_t = u_ts * H_w    ! apply moisture correction
+   end where
+
+
+   ! erodibility
+   f_erod = UNDEF
+   where (f_land > 0.0)
+       f_erod = 1.0
+   end where
+
+   ! erodibility parameterization - Laurent et al., 2008
+   where ((f_land > 0.0) .and. (z0 > 3.0e-5) .and. (z0 < z0_max))
+       f_erod = 0.7304 - 0.0804*log10(100*z0)
+   end where
+
+   ! bedrock
+   where (abs(texture - 15) < 0.5) f_erod = 0.0
+
+
+   ! vegetation mask
+   f_veg = 0.0
+   where ((f_land > 0.0) .and. abs(vegetation -  7) < 0.1) f_veg = 1.0  ! open shrublands
+!  where ((f_land > 0.0) .and. abs(vegetation -  9) < 0.1) f_veg = 1.0  ! savannas
+!  where ((f_land > 0.0) .and. abs(vegetation - 10) < 0.1) f_veg = 1.0  ! grasslands
+!  where ((f_land > 0.0) .and. abs(vegetation - 12) < 0.1) f_veg = 1.0  ! croplands
+   where ((f_land > 0.0) .and. abs(vegetation - 16) < 0.1) f_veg = 1.0  ! barren or sparsely vegetated
+
+   ! vegetation mask: modulate with vegetation fraction
+   where (f_land > 0.0 .and. gvf >= 0.0 .and. gvf < 0.8) f_veg = f_veg * (1 - gvf)
+
+
+   ! final erodibility
+   f_erod = f_erod * f_veg * f_land * (1.0 - f_snow)
+
+   ! ...kludge to deal with high emissions in Australia
+   where (f_src >= 0.0) f_erod = f_src * f_erod
+
+   call VerticalDustFluxK14( i1, i2, j1, j2, km, &
+                             u, u_t, rho_air,    &
+                             f_erod, k_gamma,    &
+                             emissions(:,:,1) )
+
+   ! duplicate dust emissions across the 3rd dimension for use in call to UpdateAerosolState
+   ! UpdateAerosolState expects surface dust emissions array of 3 dimensions(x, y, bin).
+   do n = 2, size(emissions, dim=3)
+      emissions(:,:,n) = emissions(:,:,1)
+   end do
+
+   end subroutine DustEmissionK14
+
+!==================================================================================
+!BOP
+! !IROUTINE: VerticalDustFluxK14
+
+   subroutine VerticalDustFluxK14( i1, i2, j1, j2, km, &
+                                   u, u_t, rho_air, &
+                                   f_erod, k_gamma,     &
+                                   emissions )
+
+! !USES:
+   implicit none
+
+! !INPUT PARAMETERS:
+   integer, intent(in) ::  i1, i2, j1, j2, km
+
+   real, dimension(:,:), intent(in) :: u           ! friction velocity, 'm s-1'
+   real, dimension(:,:), intent(in) :: u_t         ! threshold friction velocity, 'm s-1'
+   real, dimension(:,:), intent(in) :: rho_air     ! air density, 'kg m-3'
+   real, dimension(:,:), intent(in) :: f_erod      ! erodibility 
+   real, dimension(:,:), intent(in) :: k_gamma     ! clay and silt dependent term that modulates the emissions
+
+! !OUTPUT PARAMETERS:
+   real, intent(out)    :: emissions(:,:)          ! total vertical dust mass flux, 'kg m-2 s-1'
+
+   character(len=*), parameter :: myname = 'VerticalDustFluxK14'
+
+! !Local Variables
+   integer :: i, j
+   real    :: u_st                     ! standardized threshold friction velocity
+   real    :: C_d                      ! dust emission coefficient
+   real    :: f_ust                    ! numerical term
+
+  ! parameters from Kok et al. (2012, 2014)
+   real, parameter :: rho_a0 = 1.225   ! standard atmospheric density at sea level, 'kg m-3'
+   real, parameter :: u_st0  = 0.16    ! the minimal value of u* for an optimally erodible soil, 'm s-1'
+   real, parameter :: C_d0   = 4.4e-5  ! C_d0 = (4.4 +/- 0.5)*1e-5
+   real, parameter :: C_e    = 2.0     ! C_e  = 2.0 +/- 0.3
+   real, parameter :: C_a    = 2.7     ! C_a  = 2.7 +/- 1.0
+
+! !DESCRIPTION: Computes the dust emissions for one time step
+!
+! !REVISION HISTORY:
+!
+!  11Oct2011, Darmenov - For now use the GOCART emission scheme to 
+!                        calculate the total emission
+!
+!EOP
+!-------------------------------------------------------------------------
+
+  emissions = 0.0 ! total emission
+
+
+  !  Vertical dust flux
+  !  ------------------
+  do j = j1, j2
+      do i = i1, i2
+
+          if ((f_erod(i,j) > 0.0) .and. (u(i,j) > u_t(i,j))) then
+              u_st  = u_t(i,j) * sqrt(rho_air(i,j) / rho_a0)
+              u_st  = max(u_st, u_st0)
+
+              f_ust = (u_st - u_st0)/u_st0
+              C_d = C_d0 * exp(-C_e * f_ust)
+
+              emissions(i,j) = C_d * f_erod(i,j) * k_gamma(i,j) * rho_air(i,j)  &
+                                   * ((u(i,j)*u(i,j) - u_t(i,j)*u_t(i,j)) / u_st) &
+                                   * (u(i,j) / u_t(i,j))**(C_a * f_ust)
+          end if
+
+      end do
+  end do
+
+  ! all done
+  end subroutine VerticalDustFluxK14
+
 
 !==================================================================================
 !BOP
@@ -3578,185 +3968,6 @@ K_LOOP: do k = km, 1, -1
    end subroutine apportion_reaction_rate
 
 !============================================================================
-#if 0
-!BOP
-!
-! !IROUTINE: NIheterogenousChem
-!
-! !INTERFACE:
-   subroutine NIheterogenousChem (NI_phet, xhno3, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
-                                  DU, SS, rmedDU, rmedSS, fnumDU, fnumSS, nbinsDU, nbinsSS, &
-                                  km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2, & 
-                                  nNO3an3, HNO3_conc, HNO3_sfcmass, HNO3_colmass, rc)
-
-
-! !DESCRIPTION: Nitrogen heterogeneous chemistry
-
-! !USES:
-   implicit NONE
-
-! !INPUT PARAMETERS:
-   real, intent(in)                    :: AVOGAD         ! Avogadro's number [1/kmol]
-   real, intent(in)                    :: AIRMW          ! molecular weight of air [kg/kmol]
-   real, intent(in)                    :: PI             ! pi constant
-   real, intent(in)                    :: RUNIV          ! ideal gas constant [J/(Kmole*K)]
-   real, dimension(:,:,:), intent(in)  :: rhoa           ! Layer air density [kg/m^3]
-   real, dimension(:,:,:), intent(in)  :: tmpu           ! Layer temperature [K]
-   real, dimension(:,:,:), intent(in)  :: relhum         ! relative humidity [1]
-   real, dimension(:,:,:), intent(in)  :: delp           ! pressure thickness [Pa]
-   real, pointer, dimension(:,:,:,:), intent(in) :: DU   ! dust aerosol [kg/kg]
-   real, pointer, dimension(:,:,:,:), intent(in) :: SS   ! sea salt aerosol [kg/kg]
-   real, dimension(:) ,intent(in)      :: rmedDU         ! dust aerosol radius [um]
-   real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [um]
-   real, dimension(:) ,intent(in)      :: fnumDU         ! number of dust particles per kg mass
-   real, dimension(:) ,intent(in)      :: fnumSS         ! number of sea salt particles per kg mass
-   integer, intent(in)                 :: nbinsDU        ! number of dust bins
-   integer, intent(in)                 :: nbinsSS        ! number of sea salt bins
-   integer, intent(in)                 :: km             ! number of model levels
-   integer, intent(in)                 :: klid   ! index for pressure lid
-   real, intent(in)                    :: cdt            ! chemistry model timestep (sec)
-   real, intent(in)                    :: grav           ! gravity (m/sec)
-   real, intent(in)                    :: fMassHNO3      ! gram molecular weight
-   real, intent(in)                    :: fMassNO3       ! gram molecular weight
-
-
-! !INOUTPUT PARAMETERS:
-   real, pointer, dimension(:,:,:), intent(inout)  :: NI_phet   ! Nitrate Production from Het Chem [kg/(m^2 sec)]
-   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
-   real, pointer, dimension(:,:,:), intent(inout)  :: HNO3_conc ! Nitric Acid Mass Concentration [kg/m^3]
-   real, pointer, dimension(:,:), intent(inout)    :: HNO3_sfcmass ! Nitric Acid Surface Mass Concentration [kg/m^3]
-   real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^3]
-   real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an1 ! Nitrate bin 1 [kg/kg]
-   real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an2 ! Nitrate bin 2 [kg/kg]
-   real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an3 ! Nitrate bin 3 [kg/kg]
-
-! !OUTPUT PARAMETERS:
-   integer, optional, intent(out) :: rc
-
-! !Local Variables
-   real(kind=DP) :: kan1, kan2, kan3, sad, ad, rad, deltahno3, temp, rh
-!   real :: kan1, kan2, kan3, sad, ad, rad, deltahno3, temp, rh
-   integer  ::  i, j, k, n, j1, j2, i1, i2
-
-!EOP
-!------------------------------------------------------------------------------------
-!  Begin..
-
-!  Heterogeneous chemistry
-!  -----------------------
-!  Heterogeneous chemistry wants to know about GOCART dust and sea
-!  salt tracers.  This code is not at the moment generalized as it
-!  seems very wedded to the traditional GOCART arrangement (5 dust,
-!  5 sea salt) and the particulars of the nitrate aerosol arrangement.
-
-   if(associated(NI_phet)) NI_phet = 0.
-
-   j1 = lbound(tmpu, 2)
-   j2 = ubound(tmpu, 2)
-   i1 = lbound(tmpu, 1)
-   i2 = ubound(tmpu, 1)
-
-   do k = klid, km
-    do j = j1, j2
-     do i = i1, i2
-      kan1 = 0.
-      kan2 = 0.
-      kan3 = 0.
-      ad = 1.e-6*rhoa(i,j,k)*AVOGAD/AIRMW  ! air number density # cm-3
-      temp = tmpu(i,j,k)
-!      rh = w_c%rh(i,j,k)
-      rh = relhum(i,j,k)
-!     Dust
-      if (associated(DU)) then
-         do n = 1, nbinsDU
-            sad = 0.01*4.*PI*rmedDU(n)**2.*fnumDU(n) * &
-                  rhoa(i,j,k) * DU(i,j,k,n)       ! surface area density cm2 cm-3
-            rad = 100.*rmedDU(n)                  ! radius cm
-
-            if (sad > 0.) then
-               if(n == 1) &
-                  kan1 = kan1 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 2) &
-                  kan2 = kan2 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 3) &
-                  kan2 = kan2 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 4) &
-                  kan3 = kan3 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 5) &
-                  kan3 = kan3 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-            end if
-         enddo
-      endif
-
-!     Sea salt
-      if (associated(SS)) then
-         do n = 1, nbinsSS
-            sad = 0.01*4.*PI*rmedSS(n)**2.*fnumSS(n) * &
-                  rhoa(i,j,k) * SS(i,j,k,n)       ! surface area density cm2 cm-3
-            rad = 100.*rmedSS(n)                        ! radius cm
-
-            if (sad > 0.) then
-               if(n == 1) &
-                  kan1 = kan1 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 2) &
-                  kan1 = kan1 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 3) &
-                  kan2 = kan2 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 4) &
-                  kan2 = kan2 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 5) &
-                  kan3 = kan3 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-            end if
-         enddo
-      endif
-
-!     Compute the nitric acid loss (but don't actually update)
-      if( (kan1+kan2+kan3) > 0.) then
-       deltahno3 = xhno3(i,j,k) * fMassHNO3 / AIRMW * (1.-exp(-(kan1+kan2+kan3)*cdt))
-       xhno3(i,j,k) = xhno3(i,j,k) - deltahno3 * AIRMW / fMassHNO3
-       nNO3an1(i,j,k) = &
-         nNO3an1(i,j,k) + kan1/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-       nNO3an2(i,j,k) = &
-         nNO3an2(i,j,k) + kan2/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-       nNO3an3(i,j,k) = &
-         nNO3an3(i,j,k) + kan3/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-
-       if(associated(NI_phet)) then
-          NI_phet(i,j,1) = NI_phet(i,j,1) + kan1/(kan1+kan2+kan3)*deltahno3*delp(i,j,k)/grav/cdt
-          NI_phet(i,j,2) = NI_phet(i,j,2) + kan2/(kan1+kan2+kan3)*deltahno3*delp(i,j,k)/grav/cdt
-          NI_phet(i,j,3) = NI_phet(i,j,3) + kan3/(kan1+kan2+kan3)*deltahno3*delp(i,j,k)/grav/cdt
-       end if
-      endif !(kan1+kan2+kan3) > 0.
-
-     enddo !i
-    enddo !j
-   enddo !k
-
-!  Output diagnostic HNO3
-!  ----------------------
-!  Calculate the HNO3 mass concentration
-   if( associated(HNO3_conc) ) then
-      HNO3_conc = xhno3 * fMassHNO3 / AIRMW * rhoa
-   endif
-!  Calculate the HNO3 surface mass concentration
-   if( associated(HNO3_sfcmass) ) then
-      HNO3_sfcmass(i1:i2,j1:j2) = xhno3(i1:i2,j1:j2,km) * fMassHNO3 / AIRMW * rhoa(i1:i2,j1:j2,km)
-   endif
-!  Calculate the HNO3 column loading
-   if( associated(HNO3_colmass) ) then
-      HNO3_colmass(i1:i2,j1:j2) = 0.
-      do k = klid, km
-        HNO3_colmass(i1:i2,j1:j2) &
-         =   HNO3_colmass(i1:i2,j1:j2) + xhno3(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
-      end do
-   endif
-
-   __RETURN__(__SUCCESS__)
-   end subroutine NIheterogenousChem
-
-#endif
-
-!============================================================================
 !BOP
 !
 ! !IROUTINE: sktrs_hno3
@@ -3947,150 +4158,6 @@ K_LOOP: do k = km, 1, -1
    end function sktrs_sslt
 
 !============================================================================
-#if 0
-!BOP
-!
-! !IROUTINE: sktrs_hno3
-!
-! !INTERFACE: 
-   function sktrs_hno3 ( tk, frh, sad, ad, radA, pi, rgas, fMassHNO3 )
-
-! !DESCRIPTION:
-! Below are the series of heterogeneous reactions
-! The reactions sktrs_hno3n1, sktrs_hno3n2, and sktrs_hno3n3 are provided
-! as given by Huisheng Bian.  As written they depend on knowing the GOCART
-! structure and operate per column but the functions themselves are 
-! repetitive.  I cook up a single sktrs_hno3 function which is called per 
-! grid box per species with an optional parameter gamma being passed.
-! Following is objective:
-! loss rate (k = 1/s) of species on aerosol surfaces
-!
-! k = sad * [ radA/Dg +4/(vL) ]^(-1)
-!
-! where
-! Dg = gas phase diffusion coefficient (cm2/s)
-! L = sticking coefficient (unitless)  = gamma
-! v = mean molecular speed (cm/s) = [ 8RT / (pi*M) ]^1/2
-!
-! radA/Dg = uptake by gas-phase diffusion to the particle surface
-! 4/(vL) = uptake by free molecular collisions of gas molecules with the surface
-
-! !INPUT PARAMETERS:
-   real(kind=DP)  :: tk   ! temperature [K]
-   real(kind=DP)  :: frh   ! fractional relative humidity [0 - 1]
-   real(kind=DP)  :: sad  ! aerosol surface area density [cm2 cm-3]
-   real(kind=DP)  :: ad   ! air number concentration [# cm-3]
-   real(kind=DP)  :: radA ! aerosol radius [cm]
-   real(kind=DP)  :: sktrs_hno3
-
-   real  :: pi   ! pi constant
-   real  :: rgas ! ideal gas constant [J/(K*mol)]
-   real  :: fMassHNO3 ! gram molecular weight of HNO3
-!   real(kind=DP), optional  :: gammaInp ! optional uptake coefficient (e.g., 0.2 for SS, else calculated)
-
-! !Local Variables
-   real(kind=DP), parameter   :: GAMMA_HNO3 = 1.0d-3
-   real(kind=DP) :: dfkg
-   real(kind=DP) :: avgvel
-   real(kind=DP) :: gamma
-
-   real(kind=DP) :: pi_dp, rgas_dp
-   real, parameter :: fmassHNO3_hno3 = 63.013
-
-!EOP
-!------------------------------------------------------------------------------------
-!  Begin..
-      sktrs_hno3 = 0.d0
-      gamma      = 3.d-5
-      pi_dp = pi
-      rgas_dp = rgas
-
-!      Following uptake coefficients of Liu et al.(2007)
-       if (frh >= 0.1d0 .and. frh < 0.3d0 )  gamma = gamma_hno3 * (0.03d0 + 0.08d0  * (frh - 0.1d0))
-       if (frh >= 0.3d0 .and. frh < 0.5d0 )  gamma = gamma_hno3 * (0.19d0 + 0.255d0 * (frh - 0.3d0))
-       if (frh >= 0.5d0 .and. frh < 0.6d0 )  gamma = gamma_hno3 * (0.7d0  + 0.3d0   * (frh - 0.5d0))
-       if (frh >= 0.6d0 .and. frh < 0.7d0 )  gamma = gamma_hno3 * (1.0d0  + 0.3d0   * (frh - 0.6d0))
-       if (frh >= 0.7d0 .and. frh < 0.8d0 )  gamma = gamma_hno3 * (1.3d0  + 0.7d0   * (frh - 0.7d0))
-       if (frh >= 0.8d0 )                    gamma = gamma_hno3 * 2.0d0
-
-!     calculate gas phase diffusion coefficient (cm2/s)
-      dfkg = 9.45D17 / ad * ( tk * (3.472D-2 + 1.D0/fmassHNO3_hno3) )**0.5d0
-
-!     calculate mean molecular speed (cm/s)
-      avgvel = 100.0d0 * (8.0d0 * rgas_dp * tk * 1000.0d0 / (pi_dp * fmassHNO3_hno3))**0.5d0
-
-!     calculate rate coefficient
-      sktrs_hno3 = sad * ( 4.0d0 / ( gamma * avgvel )+ radA / dfkg )**(-1.0d0)
-
-   end function sktrs_hno3
-#endif
-!============================================================================
-#if 0
-!BOP
-!
-! !IROUTINE: sktrs_sslt
-!
-! !INTERFACE: 
-   function sktrs_sslt ( tk, sad, ad, radA, pi, rgas, fMassHNO3 )
-
-! !DESCRIPTION:
-! Below are the series of heterogeneous reactions
-! The reactions sktrs_hno3n1, sktrs_hno3n2, and sktrs_hno3n3 are provided
-! as given by Huisheng Bian.  As written they depend on knowing the GOCART
-! structure and operate per column but the functions themselves are 
-! repetitive.  I cook up a single sktrs_hno3 function which is called per 
-! grid box per species with an optional parameter gamma being passed.
-! Following is objective:
-! loss rate (k = 1/s) of species on aerosol surfaces
-!
-! k = sad * [ radA/Dg +4/(vL) ]^(-1)
-!
-! where
-! Dg = gas phase diffusion coefficient (cm2/s)
-! L = sticking coefficient (unitless)  = gamma
-! v = mean molecular speed (cm/s) = [ 8RT / (pi*M) ]^1/2
-!
-! radA/Dg = uptake by gas-phase diffusion to the particle surface
-! 4/(vL) = uptake by free molecular collisions of gas molecules with the surface
-
-! !INPUT PARAMETERS:
-   real(kind=DP)  :: tk   ! temperature [K]
-   real(kind=DP)  :: sad  ! aerosol surface area density [cm2 cm-3]
-   real(kind=DP)  :: ad   ! air number concentration [# cm-3]
-   real(kind=DP)  :: radA ! aerosol radius [cm]
-   real(kind=DP)  :: sktrs_sslt
-   real           :: pi   ! pi constant
-   real           :: rgas ! ideal gas constant [J/(K*mol)]
-   real           :: fMassHNO3 ! gram molecular weight of HNO3
-!   real(kind=DP), optional  :: gammaInp ! optional uptake coefficient (e.g., 0.2 for SS, else calculated)
-
-! !Local Variables
-   real(kind=DP), parameter   :: GAMMA_SSLT = 0.1d0
-   real(kind=DP) :: dfkg
-   real(kind=DP) :: avgvel
-   real(kind=DP) :: pi_dp, rgas_dp
-   real, parameter :: fmassHNO3_sslt = 63.013
-
-!EOP
-!------------------------------------------------------------------------------------
-!  Begin..
-!  Initialize
-   sktrs_sslt = 0.d0
-   pi_dp = pi
-   rgas_dp = rgas
-
-!  calculate gas phase diffusion coefficient (cm2/s)
-   dfkg = 9.45D17 / ad * ( tk * (3.472D-2 + 1.D0/fmassHNO3_sslt) )**0.5d0
-
-!  calculate mean molecular speed (cm/s)
-   avgvel = 100.0d0 * (8.0d0 * rgas_dp * tk * 1000.0d0 / (pi_dp * fmassHNO3_sslt))**0.5d0
-
-!  calculate rate coefficient
-   sktrs_sslt = sad * ( 4.0d0 / ( GAMMA_SSLT * avgvel )+ radA / dfkg )**(-1.0d0)
-
-   end function sktrs_sslt
-#endif
-!==================================================================================
 !BOP
 ! !IROUTINE: SulfateDistributeEmissions
 

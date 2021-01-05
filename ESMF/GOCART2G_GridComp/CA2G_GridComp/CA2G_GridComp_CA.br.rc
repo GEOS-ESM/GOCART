@@ -2,7 +2,6 @@
 # Resource file for BR parameters.
 #
 
-
 aerosol_radBands_optics_file: ExtData/MERRA2/x/opticsBands_BRC.v1_5.RRTMG.nc
 
 aerosol_monochromatic_optics_file: ExtData/AeroCom/x/optics_BRC.v1_5.nc
@@ -17,7 +16,7 @@ aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
 terpene_emission_fraction: 0.1
 
 # Ratio of POM/BRC -> convert source masses from carbon to POM
-pom_brc_ratio: 1.4
+pom_brc_ratio: 1.8
 
 # Initially hydrophobic portion
 hydrophobic_fraction: 0.5

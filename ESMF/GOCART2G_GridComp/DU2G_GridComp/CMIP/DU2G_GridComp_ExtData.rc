@@ -4,6 +4,15 @@ PrimaryExports%%
 #  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
 DU_SRC NA  N Y - none none du_src ExtData/CMIP/sfc/DU/gocart.dust_source.v5a_1x1inp.x360_y181.nc
+#DU_SRC        NA  N Y - 0.0  2.0  du_src    /discover/nobackup/adarmeno/projects/k14/data/australia.dust_source.v5a.x1152_y721.nc
+DU_CLAY       NA  N Y - none none clay      /dev/null
+DU_SILT       NA  N Y - none none silt      /dev/null
+DU_SAND       NA  N Y - none none sand      /dev/null
+DU_TEXTURE    NA  N V - none none texture   /dev/null
+DU_VEG        NA  N V - none none domveg    /dev/null
+DU_Z0         NA  N Y - none none roughness /dev/null
+
+DU_GVF        NA  N Y %y4-%m2-%d2t12:00:00 none none gvf    /dev/null
 
 # DU data - 3D
 climdu001           'kg kg-1'            Y        N               0              0.0      1.0     du001      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4

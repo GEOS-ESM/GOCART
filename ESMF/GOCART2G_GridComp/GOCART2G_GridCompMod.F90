@@ -307,7 +307,7 @@ contains
     type (wrap_)                           :: wrap
 
     integer                                :: n_modes
-    integer, parameter                     :: n_gocart_modes = 13 
+    integer, parameter                     :: n_gocart_modes = 14 
     character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
     real                                   :: f_aci_seasalt, maxclean, ccntuning
     character(LEN=ESMF_MAXSTR)             :: CLDMICRO
@@ -390,7 +390,7 @@ contains
                         'du004    ', 'du005    ',              &
                         'ss001    ', 'ss002    ', 'ss003    ', &  
                         'sulforg01', 'sulforg02', 'sulforg03', &
-                        'bcphilic ', 'ocphilic '/)
+                        'bcphilic ', 'ocphilic ', 'brcphilic'/)
 
     n_modes = size(aero_aci_modes)
 
@@ -866,26 +866,26 @@ contains
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CAEXTTAUCA.br', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CASCATAUCA.brc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CASCATAUCA.br', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CAANGSTRCA.br', __RC__)
-          if(associated(totexttau) .and. associated(ocexttau)) totexttau = totexttau+brexttau
-          if(associated(totscatau) .and. associated(ocscatau)) totscatau = totscatau+brscatau
-          if(associated(totextt25) .and. associated(ocexttau)) totextt25 = totextt25+brexttau
-          if(associated(totscat25) .and. associated(ocscatau)) totscat25 = totscat25+brscatau
-          if(associated(totexttfm) .and. associated(ocexttau)) totexttfm = totexttfm+brexttau
-          if(associated(totscatfm) .and. associated(ocscatau)) totscatfm = totscatfm+brscatau
+          if(associated(totexttau) .and. associated(brexttau)) totexttau = totexttau+brexttau
+          if(associated(totscatau) .and. associated(brscatau)) totscatau = totscatau+brscatau
+          if(associated(totextt25) .and. associated(brexttau)) totextt25 = totextt25+brexttau
+          if(associated(totscat25) .and. associated(brscatau)) totscat25 = totscat25+brscatau
+          if(associated(totexttfm) .and. associated(brexttau)) totexttfm = totexttfm+brexttau
+          if(associated(totscatfm) .and. associated(brscatau)) totscatfm = totscatfm+brscatau
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CASMASSCA.br', __RC__)
-          if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + brsmass
-          if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + brsmass
-          if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-          if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  ! 
-          if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
-          if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
+          if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
+          if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
+          if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
+          if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  ! 
+          if(associated(pm_rh50)   .and. associated(brsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
+          if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
 
           if(associated(totangstr) .and. associated(brexttau) .and. associated(brangstr)) then
-             tau1 = tau1 + ocexttau*exp(c1*brangstr)
-             tau2 = tau2 + ocexttau*exp(c2*brangstr)
+             tau1 = tau1 + brexttau*exp(c1*brangstr)
+             tau2 = tau2 + brexttau*exp(c2*brangstr)
           end if
        end if
     end do
@@ -1240,7 +1240,7 @@ contains
     real, parameter :: densDU  = 1700.0
     real, parameter :: densBC  = 1600.0
     real, parameter :: densOC  =  900.0
-    real, parameter :: densBRC =  900.0
+    real, parameter :: densBR  =  900.0
 
     real, parameter :: k_SO4   = 0.65
     real, parameter :: k_ORG   = 0.20
@@ -1248,7 +1248,7 @@ contains
     real, parameter :: k_DU    = 0.0001
     real, parameter :: k_BC    = 0.0001
     real, parameter :: k_OC    = 0.0001
-    real, parameter :: k_BRC   = 0.0001
+    real, parameter :: k_BR    = 0.0001
 
     integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015
 
@@ -1442,6 +1442,17 @@ contains
              q = q + q_
              hygroscopicity = k_OC
              density = densOC
+          end if
+       end do
+
+    else if (index(mode_, 'brcphilic') > 0) then ! Organic Carbon
+       do i = 1, size(aeroList)
+          if (index(aeroList(i), 'CA.br') > 0) then
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.br', __RC__)
+             q = q + q_
+             hygroscopicity = k_BR
+             density = densBR
           end if
        end do
     end if !(index(mode_, 'du00') > 0) then
@@ -1674,6 +1685,12 @@ contains
          num = q / ((MAPL_PI/6.0) * densBC * diameter*diameter*diameter * exp(4.5*sigma*sigma))
      
      case ('ocphilic')
+         sigma     = log(2.2)
+         f_organic = 1.0
+         diameter  = 0.0212*2.0e-6
+         num = q / ((MAPL_PI/6.0) * densOrg * diameter*diameter*diameter * exp(4.5*sigma*sigma))
+
+     case ('brcphilic')
          sigma     = log(2.2)
          f_organic = 1.0
          diameter  = 0.0212*2.0e-6

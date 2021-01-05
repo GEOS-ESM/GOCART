@@ -35,8 +35,10 @@ module DU2G_GridCompMod
 
 !EOP
 !===========================================================================
+   integer, parameter :: NHRES = 6
 
-   integer, parameter         :: NHRES = 6
+   integer, parameter :: EMIS_SCHEME_GINOUX = 1
+   integer, parameter :: EMIS_SCHEME_K14    = 2
 
 !  !Dust state
    type, extends(GA_GridComp) :: DU2G_GridComp
@@ -46,7 +48,12 @@ module DU2G_GridCompMod
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
-       integer                :: day_save = -1      
+       integer                :: day_save = -1
+       integer       :: emisFlag = EMIS_SCHEME_K14   ! 1 - Ginoux, 2 - K14, default is K14
+       integer       :: clayFlag       ! clay and silt term in K14
+       real          :: f_swc          ! soil mosture scaling factor
+       real          :: f_scl          ! clay content scaling factor
+       real          :: uts_gamma      ! threshold friction velocity parameter 'gamma'
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
@@ -136,6 +143,26 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%f_scl,      label='soil_clay_factor:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%uts_gamma,  label='uts_gamma:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%emisFlag,   label='emission_scheme:', __RC__)
+
+    select case(self%emisFlag)
+       case (EMIS_SCHEME_K14)
+          if (MAPL_AM_I_ROOT()) &
+             print *, trim(Iam)//': Dust emission scheme is K14'
+       case (EMIS_SCHEME_GINOUX)
+          if (MAPL_AM_I_ROOT()) &
+             print *, trim(Iam)//': Dust emission scheme is GINOUX'
+       case default
+          if (MAPL_AM_I_ROOT()) &
+             print *, trim(Iam)//': Unrecognized dust emission scheme!'
+          VERIFY_(900)
+          return
+    end select
+
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
     if ( (index(self%point_emissions_srcfilen,'/dev/null')>0) ) then
@@ -367,7 +394,7 @@ contains
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   ---------------------------------------------------------------
     self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
-    self%Ch_DU = self%Ch_DU * 1.00E-09
+!    self%Ch_DU = self%Ch_DU * 1.00E-09
 
 !   Get dimensions
 !   ---------------
@@ -647,6 +674,13 @@ contains
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     integer, pointer, dimension(:)  :: iPoint, jPoint
 
+    real, dimension(:,:), allocatable   :: z_        
+    real, dimension(:,:), allocatable   :: ustar_    
+    real, dimension(:,:), allocatable   :: ustar_t_  
+    real, dimension(:,:), allocatable   :: ustar_ts_ 
+    real, dimension(:,:), allocatable   :: R_  
+    real, dimension(:,:), allocatable   :: H_w_
+    real, dimension(:,:), allocatable   :: f_erod_
 
 #include "DU2G_DeclarePointer___.h"
 
@@ -697,14 +731,83 @@ contains
     emissions = 0.0
     allocate(emissions_point, mold=delp,  __STAT__)
     emissions_point = 0.0
-    allocate(emissions_surface(i2,j2,self%nbins), __STAT__) !if use mold, then crashes. Compiler issue?
+    allocate(emissions_surface(i2,j2,self%nbins), __STAT__)
     emissions_surface = 0.0
 
 !   Get surface gridded emissions
 !   -----------------------------
-    call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
-                              self%Ch_DU, du_src, MAPL_GRAV, &
-                              emissions_surface, __RC__)
+    select case(self%emisFlag)
+
+    case (EMIS_SCHEME_K14)
+       allocate(ustar_, mold=U10M,    __STAT__)
+       allocate(ustar_t_, mold=U10M,  __STAT__)
+       allocate(ustar_ts_, mold=U10M, __STAT__)
+       allocate(R_, mold=U10M,        __STAT__)
+       allocate(H_w_, mold=U10M,      __STAT__)
+       allocate(f_erod_, mold=U10M,   __STAT__)
+       allocate(z_, mold=U10M,        __STAT__)
+
+       z_ = 10.0 ! wind is at 10m
+
+if(mapl_am_i_root()) then 
+  print*,'tsoil1 = ',sum(tsoil1)
+  print*,'wcsf = ', sum(wcsf)
+  print*,'rhos = ', sum(rhos)
+  print*,'du_z0 = ',sum(du_z0)
+  print*,'du_sand = ',sum(du_sand)
+  print*,'du_silt = ',sum(du_silt)
+  print*,'du_clay = ',sum(du_clay)
+  print*,'du_texture = ',sum(du_texture)
+end if
+
+       call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
+                             du_z0, z_, u10n, v10n, ustar,    &
+                             frland, asnow,               &
+                             du_src,                       &
+                             du_sand, du_silt, du_clay,             &
+                             du_texture, du_veg, du_gvf,     &
+                             self%f_swc, self%f_scl, self%uts_gamma, &
+                             MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN,   &
+                             self%clayFlag,                &
+                             emissions_surface,            &
+                             ustar_,                       &
+                             ustar_t_,                     &
+                             ustar_ts_,                    &
+                             R_, H_w_, f_erod_,            &
+                             rc )
+
+#ifdef DEBUG
+       call pmaxmin('DU: z_     ', z_  ,       qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: z0     ', du_z0  ,       qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: u10n   ', u10n,       qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: v10n   ', v10n,       qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: ustar  ', ustar,      qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: frland ', frland,     qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: frsnow ', asnow,     qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: src    ', du_src,   qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: sand   ', du_sand,       qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: silt   ', du_silt,       qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: clay   ', du_clay,       qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: texture', du_texture,    qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: veg.   ', du_veg, qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: gvf    ', du_gvf,        qmin, qmax, ijl,1, 1. )
+       call pmaxmin('DU: emiss  ', emissions_surface,  qmin, qmax, ijl,1, 1. )
+#endif
+
+       if (associated(DU_UST)) DU_UST = ustar_
+       if (associated(DU_UST_T)) DU_UST_T = ustar_t_
+       if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
+       if (associated(DU_DPC)) DU_DPC = R_
+       if (associated(DU_SMC)) DU_SMC = H_w_
+       if (associated(DU_EROD)) DU_EROD = f_erod_
+
+    case (EMIS_SCHEME_GINOUX)
+
+       call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
+                                 self%Ch_DU*1.e-9, du_src, MAPL_GRAV, &
+                                 emissions_surface, __RC__)
+
+    end select !select case(self%emisFlag)
 
 !   Read point emissions file once per day
 !   --------------------------------------
