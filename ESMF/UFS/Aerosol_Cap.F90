@@ -24,7 +24,7 @@ module Aerosol_Cap
   implicit none
 
   ! -- import fields
-  integer, parameter :: importFieldCount = 22
+  integer, parameter :: importFieldCount = 25
   character(len=*), dimension(importFieldCount), parameter :: &
     importFieldNames = (/ &
       "inst_pres_interface                  ", &
@@ -34,6 +34,8 @@ module Aerosol_Cap
       "inst_temp_levels                     ", &
       "inst_zonal_wind_levels               ", &
       "inst_merid_wind_levels               ", &
+      "inst_ice_nonconv_tendency_levels     ", &
+      "inst_liq_nonconv_tendency_levels     ", &
       "inst_tracer_mass_frac                ", &
       "inst_pbl_height                      ", &
       "surface_cell_area                    ", &
@@ -46,6 +48,7 @@ module Aerosol_Cap
       "inst_temp_height_surface             ", &
       "inst_sensi_heat_flx                  ", &
       "inst_surface_roughness               ", &
+      "inst_surface_soil_wetness            ", &
       "ice_fraction                         ", &
       "lake_fraction                        ", &
       "ocean_fraction                       "  &

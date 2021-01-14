@@ -6,23 +6,26 @@ module Aerosol_Comp_Mod
 
   implicit none
 
-  integer, parameter :: fieldMapSize = 14
+  integer, parameter :: fieldMapSize = 17
   character(len=*), dimension(fieldMapSize, 2), parameter :: &
     fieldMap = reshape((/ &
-      "FROCEAN                        ", "ocean_fraction                 ", &
-      "FRACI                          ", "ice_fraction                   ", &
-      "LWI                            ", "inst_land_sea_mask             ", &
-      "U10M                           ", "inst_zonal_wind_height10m      ", &
-      "V10M                           ", "inst_merid_wind_height10m      ", &
-      "USTAR                          ", "inst_friction_velocity         ", &
-      "TS                             ", "inst_temp_height_surface       ", &
-      "AREA                           ", "surface_cell_area              ", &
-      "ZPBL                           ", "inst_pbl_height                ", &
-      "SH                             ", "inst_sensi_heat_flx            ", &
-      "T                              ", "inst_temp_levels               ", &
-      "PLE                            ", "inst_pres_interface            ", &
-      "U                              ", "inst_zonal_wind_levels         ", &
-      "V                              ", "inst_merid_wind_levels         "  &
+      "FROCEAN                         ", "ocean_fraction                  ", &
+      "FRACI                           ", "ice_fraction                    ", &
+      "LWI                             ", "inst_land_sea_mask              ", &
+      "WET1                            ", "inst_surface_soil_wetness       ", &
+      "U10M                            ", "inst_zonal_wind_height10m       ", &
+      "V10M                            ", "inst_merid_wind_height10m       ", &
+      "USTAR                           ", "inst_friction_velocity          ", &
+      "TS                              ", "inst_temp_height_surface        ", &
+      "AREA                            ", "surface_cell_area               ", &
+      "ZPBL                            ", "inst_pbl_height                 ", &
+      "SH                              ", "inst_sensi_heat_flx             ", &
+      "T                               ", "inst_temp_levels                ", &
+      "PLE                             ", "inst_pres_interface             ", &
+      "U                               ", "inst_zonal_wind_levels          ", &
+      "V                               ", "inst_merid_wind_levels          ", &
+      "PFI_LSAN                        ", "inst_liq_nonconv_tendency_levels", &
+      "PFL_LSAN                        ", "inst_liq_nonconv_tendency_levels"  &
       /), (/fieldMapSize, 2/), order=(/2,1/))
 
   ! gravity (m/s2)
