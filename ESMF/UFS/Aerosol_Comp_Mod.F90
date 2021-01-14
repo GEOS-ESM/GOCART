@@ -64,6 +64,7 @@ contains
     integer :: imap, item, itemCount
     integer :: rank
     integer :: i,j, k, kk, n, ni, nj, nk, nlev, offset, v
+    integer, dimension(1) :: plb, pub, rlb, rub
     real(ESMF_KIND_R4) :: blkevap, blkesat
     real(ESMF_KIND_R8) :: dt, tmp
     real(ESMF_KIND_R4), dimension(:,:),     pointer :: fp2dr
@@ -225,6 +226,11 @@ contains
                     file=__FILE__,  &
                     rcToReturn=rc)) return  ! bail out
                 case (3)
+                  call ESMF_FieldGet(rfield, ungriddedLBound=rlb, ungriddedUBound=rub, rc=localrc)
+                  if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+                    line=__LINE__,  &
+                    file=__FILE__,  &
+                    rcToReturn=rc)) return  ! bail out
                   call ESMF_FieldGet(rfield, farrayPtr=fp3dr, rc=localrc)
                   if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
                     line=__LINE__,  &
@@ -260,28 +266,29 @@ contains
                       fp2dr = fp2dp
                     case (3)
                       nullify(fp3dp)
+                      call ESMF_FieldGet(pfield, ungriddedLBound=plb, ungriddedUBound=pub, rc=localrc)
+                      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+                        line=__LINE__,  &
+                        file=__FILE__,  &
+                        rcToReturn=rc)) return  ! bail out
                       call ESMF_FieldGet(pfield, farrayPtr=fp3dp, rc=localrc)
                       if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
                         line=__LINE__,  &
                         file=__FILE__,  &
                         rcToReturn=rc)) return  ! bail out
-                      if (any(shape(fp3dp)-shape(fp3dr) /= 0)) then
-                        call ESMF_LogSetError(ESMF_RC_INTNRL_INCONS, &
-                          msg="Pointer shape mismatch between "//trim(fieldMap(imap,1)) &
-                            //" and "//trim(fieldMap(imap,2)), &
-                          line=__LINE__, &
-                          file=__FILE__, &
-                          rcToReturn=rc)
-                      end if
-                      nlev = size(fp3dp, 3)
-                      kk = ubound(fp3dr, 3)
-                      do k = 1, nlev
+
+                      ! -- map provider field levels to receiver field levels in reverse order
+                      ! -- NOTE: if provider field has fewer vertical levels than the receiver field,
+                      ! -- the remaining receiver field levels are filled by replicating values from
+                      ! -- the closest available level in the provider field.
+                      kk = plb(1)
+                      do k = rub(1), rlb(1), -1
                         do j = 1, nj
                           do i = 1, ni
-                            fp3dr(i,j,kk) = fp3dp(i,j,k)
+                            fp3dr(i,j,k) = fp3dp(i,j,kk)
                           end do
                         end do
-                        kk = kk - 1
+                        kk = min(pub(1), kk + 1)
                       end do
                     case default
                     ! -- nothing to do
