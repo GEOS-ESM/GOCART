@@ -6,7 +6,7 @@ module Aerosol_Comp_Mod
 
   implicit none
 
-  integer, parameter :: fieldMapSize = 17
+  integer, parameter :: fieldMapSize = 18
   character(len=*), dimension(fieldMapSize, 2), parameter :: &
     fieldMap = reshape((/ &
       "FROCEAN                         ", "ocean_fraction                  ", &
@@ -25,7 +25,8 @@ module Aerosol_Comp_Mod
       "U                               ", "inst_zonal_wind_levels          ", &
       "V                               ", "inst_merid_wind_levels          ", &
       "PFI_LSAN                        ", "inst_liq_nonconv_tendency_levels", &
-      "PFL_LSAN                        ", "inst_liq_nonconv_tendency_levels"  &
+      "PFL_LSAN                        ", "inst_liq_nonconv_tendency_levels", &
+      "FCLD                            ", "inst_cloud_frac_levels          "  &
       /), (/fieldMapSize, 2/), order=(/2,1/))
 
   ! gravity (m/s2)
