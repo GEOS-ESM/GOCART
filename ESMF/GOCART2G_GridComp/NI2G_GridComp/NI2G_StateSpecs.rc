@@ -27,23 +27,23 @@ category: IMPORT
  U           | m s-1    | xyz  | C    |           | eastward_wind
  V           | m s-1    | xyz  | C    |           | northward_wind
 #.........................................................................................
- EMI_NH3_AG   |kg m-2 s-1| xy  | N    |           | source species
- EMI_NH3_BB   |kg m-2 s-1| xy  | N    |           | source species
- EMI_NH3_EN   |kg m-2 s-1| xy  | N    |           | source species
- EMI_NH3_IN   |kg m-2 s-1| xy  | N    |           | source species
- EMI_NH3_OC   |kg m-2 s-1| xy  | N    |           | source species
- EMI_NH3_RE   |kg m-2 s-1| xy  | N    |           | source species
- EMI_NH3_TR   |kg m-2 s-1| xy  | N    |           | source species
- NITRATE_HNO3 |kg m-2 s-1| xyz | C    |           | source species
+ EMI_NH3_AG   |kg m-2 s-1| xy  | N    |           | agriculture emissions
+ EMI_NH3_BB   |kg m-2 s-1| xy  | N    |           | biomass burning emissions
+ EMI_NH3_EN   |kg m-2 s-1| xy  | N    |           | energy emissions
+ EMI_NH3_IN   |kg m-2 s-1| xy  | N    |           | industry emissions
+ EMI_NH3_OC   |kg m-2 s-1| xy  | N    |           | ocean emissions
+ EMI_NH3_RE   |kg m-2 s-1| xy  | N    |           | resedential emissions
+ EMI_NH3_TR   |kg m-2 s-1| xy  | N    |           | transport emissions
+ NITRATE_HNO3 |kg m-2 s-1| xyz | C    |           | nitrate hno3 emissions
  DU           | kg kg-1  | xyz | C    | 5         | Dust Mixing Ratio all bins
  SS           | kg kg-1  | xyz | C    | 5         | Sea Salt Mixing Ratio all bins
- SO4          | kg kg-1  | xyz | C    |           | Sulfate
+ SO4          | kg kg-1  | xyz | C    |           | Sulfate Mixing Ratio
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE              | DIMENSIONS |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
+ NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
   NH3MASS   | kg/kg      | xyz | C   |           | Ammonia Mass Mixing Ratio 
   NH4MASS   | kg/kg      | xyz | C   |           | Ammonium Aerosol Mass Mixing Ratio 
@@ -60,11 +60,11 @@ category: EXPORT
   NIPNO3AQ  | kg m-2 s-1 | xy  | N   |           | Nitrate Production from Aqueous Chemistry  
   NIPNH4AQ  | kg m-2 s-1 | xy  | N   |           | Ammonium Production from Aqueous Chemistry 
   NIPNH3AQ  | kg m-2 s-1 | xy  | N   |           | Ammonia Change from Aqueous Chemistry 
-  NIHT      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Production from Het Chem All Bins
-  NISD      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Sedimentation All Bins 
-  NIDP      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Dry Deposition All Bins 
-  NIWT      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Wet Deposition All Bins 
-  NISV      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Convective Scavenging All Bins
+  NIHT      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Production from Het Chem (Bin %d)
+  NISD      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Sedimentation (Bin %d)
+  NIDP      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Dry Deposition (Bin %d)
+  NIWT      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Wet Deposition (Bin %d)
+  NISV      | kg m-2 s-1 | xy  | N   | 3         | Nitrate Convective Scavenging (Bin %d)
   NH3EM     | kg m-2 s-1 | xy  | N   |           | Ammonia Emission 
   NH3DP     | kg m-2 s-1 | xy  | N   |           | Ammonia Dry Deposition 
   NH3WT     | kg m-2 s-1 | xy  | N   |           | Ammonia Wet Deposition 

@@ -8,14 +8,9 @@ category: IMPORT
      NAME    | UNITS  | DIMS | VLOC | LONG NAME
 #----------------------------------------------------------------------------------------
  FROCEAN    | 1      | xy   | N    | fraction_of_ocean
-# FRACI      | 1      | xy   | N    | ice_covered_fraction_of_tile
  LWI        | 1      | xy   | N   | land-ocean-ice_mask
  U10M       | m s-1  | xy   | N   | 10-meter_eastward_wind
  V10M       | m s-1  | xy   | N   | 10-meter_northward_wind
-# USTAR      | m s-1  | xy   | N   | surface_velocity_scale
-# TS         | K      | xy   | N   | surface skin temperature
-# DZ         | m      | xy   | N   | surface_layer_height
-# FRLAKE     | 1      | xy   | N   | fraction_of_lake
  AREA       | m^2    | xy   | N   | agrid_cell_area
  ZPBL       | m      | xy   | N   | planetary_boundary_layer_height
  USTAR      | m s-1  | xy   | N   | surface velocity scale
@@ -23,7 +18,6 @@ category: IMPORT
  Z0H        | m      | xy   | N   | surface_roughness_for_heat
  CN_PRCP    |kg/m^2/s| xy   | N   | surface_conv._rain_flux_needed_by_land
  NCN_PRCP   |kg/m^2/s| xy   | N   | Non-convective precipitation
- SU_regionMask | 1    | xy   | N    | source species
 #........................................................................................
  AIRDENS    | kg/m^3 | xyz  | C    | moist_air_density
  DELP       | Pa     | xyz  | C    | pressure_thickness
@@ -42,12 +36,12 @@ category: IMPORT
 # SU_OH       | 1      | xyz  | C    | climatological OH source
 # SU_H2O2     | 1      | xyz  | C    | climatological H2O2 source
 #........................................................................................
- SU_BIOMASS  | 1      | xy   | N   | biomass burning source species
- SU_ANTHROL1 | 1      | xy   | N   | source species
- SU_ANTHROL2 | 1      | xy   | N   | source species
- SU_SHIPSO2  | 1      | xy   | N   | source species
- SU_SHIPSO4  | 1      | xy   | N   | source species
- SU_DMSO     | 1      | xy   | N   | source species
+ SU_BIOMASS  | 1      | xy   | N   | biomass burning emissions
+ SU_ANTHROL1 | 1      | xy   | N   | anthropogenic BF emissions
+ SU_ANTHROL2 | 1      | xy   | N   | anthropogenic FF emissions
+ SU_SHIPSO2  | 1      | xy   | N   | SO2 ship emissions
+ SU_SHIPSO4  | 1      | xy   | N   | SO4 ship emissions
+ SU_DMSO     | 1      | xy   | N   | DMS emissions
  SU_AVIATION_LTO | 1  | xy   | N   | Landing/Take-off aircraft source species
  SU_AVIATION_CDS | 1  | xy   | N   | Climb/Descent aircraft source species
  SU_AVIATION_CRS | 1  | xy   | N   | Cruise aircraft source species
@@ -58,11 +52,11 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME      | UNITS      | DIMS| VLOC | UNGRIDDED  | LONG NAME
 #----------------------------------------------------------------------------------------
- SUEM      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfer Emission All Bins 
- SUDP      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Dry Deposition All Bins
- SUSD      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Settling All Bins
- SUWT      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Wet Deposition All Bins
- SUSV      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Convective Scavenging All Bins
+ SUEM      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfer Emission (Bin %d) 
+ SUDP      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Dry Deposition (Bin %d)
+ SUSD      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Settling (Bin %d)
+ SUWT      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Wet Deposition (Bin %d)
+ SUSV      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Convective Scavenging (Bin %d)
  SO4EMAN   | kg m-2 s-1 | xy  | N    |            | SO4 Anthropogenic Emissions
  SO2EMAN   | kg m-2 s-1 | xy  | N    |            | SO2 Anthropogenic Emissions
  SO2EMBB   | kg m-2 s-1 | xy  | N    |            | SO2 Biomass Burning Emissions

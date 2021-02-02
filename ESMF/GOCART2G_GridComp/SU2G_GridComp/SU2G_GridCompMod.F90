@@ -31,18 +31,14 @@ module SU2G_GridCompMod
    real, parameter :: fMassSulfur = 32., fMassSO2 = 64., fMassSO4 = 96., &
                       fMassDMS = 62., fMassMSA = 96.
 
-   real, parameter ::  airmw  = 28.97   ! molecular weight of air
-   real, parameter :: nAvogadro  = 6.022e23 ! molecules per mole of air 
-
    real, parameter ::  cpd    = 1004.16
-   real, parameter ::  undefval  = 1.e15   ! missing value
-   real, parameter ::  chemgrav   = 9.80616
 
 !  relative position of sulfate tracers
    integer, parameter :: nDMS = 1, &
                          nSO2 = 2, &
                          nSO4 = 3, &
                          nMSA = 4
+real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
 
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
@@ -412,8 +408,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     real, pointer, dimension(:,:,:)      :: int_ptr
     logical                              :: data_driven
     integer                              :: NUM_BANDS
+    logical                              :: bands_are_present
     real, pointer, dimension(:,:,:)      :: ple
-    real, pointer, dimension(:,:)        :: area
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
@@ -537,8 +533,10 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
        call get_HenrysLawCts('SO2',Vect_Hcts(1),Vect_Hcts(2),Vect_Hcts(3),Vect_Hcts(4),__RC__)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, __RC__)
 
-       call ESMF_StateGet (internal, 'MSA', field, __RC__)
-       call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(4), __RC__)
+       call ESMF_StateGet (internal, 'MSA', field, rc=status)
+       if (status == 0) then
+          call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(4), __RC__)
+       end if
     end if
 
 !   Fill AERO State with SO4
@@ -604,19 +602,22 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                                   label="aerosol_radBands_optics_file:", __RC__ )
 
     allocate (self%rad_MieTable(instance)%channels(NUM_BANDS), __STAT__ )
+    self%rad_MieTable(instance)%nch = NUM_BANDS
 
-    call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
-                                 count=self%rad_MieTable(instance)%nch, rc=status)
+    call ESMF_ConfigFindLabel(cfg, label="BANDS:", isPresent=bands_are_present, __RC__)
 
-    if (rc /= 0) then
+    if (bands_are_present) then
+       call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
+                                    count=self%rad_MieTable(instance)%nch, __RC__)
+    else
        do i = 1, NUM_BANDS
           self%rad_MieTable(instance)%channels(i) = i
        end do
-    end if
+    endif
 
     allocate (self%rad_MieTable(instance)%mie_aerosol, __STAT__)
-    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, rc)
-    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, rc)
+    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, __RC__)
+    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, __RC__)
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
@@ -763,6 +764,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     real, dimension(:,:,:), allocatable :: emissions_point
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
 
+    real, pointer, dimension(:,:,:) :: dummyMSA => null() ! This is so the model can run without MSA enabled
+
 #include "SU2G_DeclarePointer___.h"
 
    __Iam__('Run1')
@@ -787,6 +790,9 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 #include "SU2G_GetPointer___.h"
 
+    call MAPL_GetPointer(internal, dummyMSA, 'MSA', rc=status)
+
+
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
@@ -808,7 +814,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
        DMS = tiny(1.) ! avoid division by zero
        SO2 = tiny(1.) ! avoid division by zero
        SO4 = tiny(1.) ! avoid division by zero
-       MSA = tiny(1.) ! avoid division by zero
+       if ( associated(dummyMSA)) dummyMSA = tiny(1.) ! avoid division by zero
        if ( MAPL_AM_I_ROOT() ) then
           print *, '<> SU '//cdow//' tracer being set to zero on ', nymd, nhms
        end if
@@ -821,10 +827,10 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     so4ship_src = SU_SHIPSO4
 
 !   As a safety check, where value is undefined set to 0
-    where(1.01*so2anthro_l1_src > undefval)  so2anthro_l1_src = 0.
-    where(1.01*so2anthro_l2_src > undefval)  so2anthro_l2_src = 0.
-    where(1.01*so2ship_src > undefval)       so2ship_src = 0.
-    where(1.01*so4ship_src > undefval)       so4ship_src = 0.
+    where(1.01*so2anthro_l1_src > MAPL_UNDEF)  so2anthro_l1_src = 0.
+    where(1.01*so2anthro_l2_src > MAPL_UNDEF)  so2anthro_l2_src = 0.
+    where(1.01*so2ship_src > MAPL_UNDEF)       so2ship_src = 0.
+    where(1.01*so4ship_src > MAPL_UNDEF)       so4ship_src = 0.
 
     aircraft_fuel_src = SU_AIRCRAFT
     so2biomass_src = SU_BIOMASS
@@ -834,12 +840,12 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     aviation_crs_src = SU_AVIATION_CRS
 
 !   As a safety check, where value is undefined set to 0
-    where(1.01*so2biomass_src > undefval)    so2biomass_src = 0.
-    where(1.01*dmso_conc > undefval)         dmso_conc = 0.
-    where(1.01*aircraft_fuel_src > undefval) aircraft_fuel_src = 0.
-    where(1.01*aviation_lto_src > undefval ) aviation_lto_src = 0.
-    where(1.01*aviation_cds_src > undefval ) aviation_cds_src = 0.
-    where(1.01*aviation_crs_src > undefval ) aviation_crs_src = 0.
+    where(1.01*so2biomass_src > MAPL_UNDEF)    so2biomass_src = 0.
+    where(1.01*dmso_conc > MAPL_UNDEF)         dmso_conc = 0.
+    where(1.01*aircraft_fuel_src > MAPL_UNDEF) aircraft_fuel_src = 0.
+    where(1.01*aviation_lto_src > MAPL_UNDEF ) aviation_lto_src = 0.
+    where(1.01*aviation_cds_src > MAPL_UNDEF ) aviation_cds_src = 0.
+    where(1.01*aviation_crs_src > MAPL_UNDEF ) aviation_crs_src = 0.
 
 !   Update emissions/production if necessary (daily)
 !   -----------------------------------------------
@@ -876,8 +882,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
            end if
 
        call SUvolcanicEmissions (self%nVolc, self%vStart, self%vEnd, self%vSO2, self%vElev, &
-                                 self%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, &
-                                 self%km, self%cdt, chemgrav, zle, delp, area, self%vLat, self%vLon, __RC__)
+                                 self%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SUEM, &
+                                 self%km, self%cdt, MAPL_GRAV, zle, delp, area, self%vLat, self%vLon, __RC__)
     end if
 
 !   Apply diurnal cycle if so desired
@@ -891,7 +897,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 !   Apply sulfate emissions
 !   -----------------------
-    call SulfateDistributeEmissions ( self%km, self%nbins, self%cdt, chemgrav, nymd, nhms, &
+    call SulfateDistributeEmissions ( self%km, self%nbins, self%cdt, MAPL_GRAV, nymd, nhms, &
                                       fMassSO4, fMassSO2, self%fSO4anth, self%eAircraftFuel, &
                                       nSO2, nSO4, &
                                       so2anthro_l1_src, so2anthro_l2_src, &
@@ -900,7 +906,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                                       aircraft_fuel_src, &
                                       SO2, SO4, &
                                       lwi, u10m, v10m, zle, zpbl, &
-                                      t, airdens, delp, &
+                                      t, airdens, delp, self%nVolc, &
                                       SUEM, SO4EMAN, SO2EMAN, SO2EMBB, &
                                       self%aviation_layers,   &
                                       aviation_lto_src, &
@@ -908,8 +914,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                                       aviation_crs_src, rc) 
 
     if (associated(dms)) then 
-       call DMSemission (self%km, self%cdt, chemgrav, t, u10m, v10m, lwi, delp, &
-                         fMassDMS, SU_DMSO, dms, SUEM, ndms, rc)
+       call DMSemission (self%km, self%cdt, MAPL_GRAV, t, u10m, v10m, lwi, delp, &
+                         fMassDMS, SU_DMSO, dms, SUEM, nDMS, rc)
     end if
 
 !   Read any pointwise emissions, if requested
@@ -991,6 +997,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     real, dimension(:,:,:), allocatable ::  xoh, xno3, xh2o2
 
     real, dimension(:,:), allocatable :: drydepositionf
+    real, pointer, dimension(:,:,:) :: dummyMSA => null() ! this is so the model can run without MSA enabled
+    
 
 #include "SU2G_DeclarePointer___.h"
 
@@ -1016,7 +1024,9 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                          LATS = LATS, __RC__ )
 
 #include "SU2G_GetPointer___.h"
-
+    
+    call MAPL_GetPointer(internal, dummyMSA, 'MSA', rc=status)
+    
 !   Extract nymd(yyyymmdd) from clock
 !   ---------------------------------
     call ESMF_ClockGet (clock, currTime=time, __RC__)
@@ -1053,11 +1063,19 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
     xh2o2 = self%h2o2_init 
 
-    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, &
-                                airdens, self%km, self%cdt, &
-                                self%nymd_oxidants, undefval, &
+!if(mapl_am_i_root()) print*,'SU2G Run2 sum(xh2o2) = ',sum(xh2o2)
+!if(mapl_am_i_root()) print*,'SU2G Run2 sum(self%h2o2_init) = ',sum(self%h2o2_init)
+!if(mapl_am_i_root()) print*,'SU2G Run2 sum(xoh) = ',sum(xoh)
+
+    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+                                self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
+                                MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 oh, no3, h2o2, &
                                 xoh, xno3, xh2o2, self%recycle_h2o2, rc)
+
+!if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(xh2o2) = ',sum(xh2o2)
+!if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(self%h2o2_init) = ',sum(self%h2o2_init)
+!if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(xoh) = ',sum(xoh)
 
 !   SU Settling
 !   -----------
@@ -1065,17 +1083,17 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
 
-       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, CHEMgrav, delp, &
+       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, MAPL_GRAV, delp, &
                                  self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
                                  rh2, zle, SUSD, rc=rc)
     end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
-    call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_karman, &
-                            airmw, nAvogadro, cpd, chemgrav, &
+    call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
+                            MAPL_AIRMW, MAPL_AVOGAD/1000., cpd, MAPL_GRAV, &
                             fMassMSA, fMassDMS, fMassSO2, fMassSO4, &
                             nymd, nhms, lons, lats, &
-                            dms, so2, so4, msa, &
+                            dms, so2, so4, dummyMSA, &
                             nDMS, nSO2, nSO4, nMSA, &
                             xoh, xno3, xh2o2, self%h2o2_init, &
                             delp, t, fcld, airdens, zle, &
@@ -1084,17 +1102,27 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             SUPSO4, SUPSO4g, SUPSO4aq, &
                             pso2, pmsa, pso4, pso4g, pso4aq, drydepositionf, & ! 3d diagnostics
                             rc)
+
+!if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(xh2o2) = ',sum(xh2o2)
+!if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(self%h2o2_init) = ',sum(self%h2o2_init)
+!if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(xoh) = ',sum(xoh)
+!if(mapl_am_i_root()) print*,'SU2G Run2 sum(SUPSO4aq) = ',sum(SUPSO4aq)
+!if(mapl_am_i_root()) print*,'SU2G Run2 sum(SUPSO4g) = ',sum(SUPSO4g)
+
     KIN = .true.
-    call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, chemgrav, airMW, &
+    call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
                           delp, fMassSO4, fMassSO2, &
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
-                          nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, MSA, &
+                          nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, rc )
 
+!if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(xh2o2) = ',sum(xh2o2)
+!if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(self%h2o2_init) = ',sum(self%h2o2_init)
+
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
-                            chemgrav, MAPL_pi, nSO4, self%diag_MieTable(self%instance), &
+                            MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
                             self%diag_MieTable(self%instance)%channels, &
-                            t, airdens, delp, rh2, u, v, DMS, SO2, SO4, MSA, &
+                            t, airdens, delp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &
                             MSASMASS, MSACMASS, &
                             SO2SMASS, SO2CMASS, &
@@ -1105,7 +1133,9 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO2) = ',sum(SO2)
 if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO4) = ',sum(SO4)
 if(mapl_am_i_root()) print*,'SU2G Run2 E sum(DMS) = ',sum(DMS)
-if(mapl_am_i_root()) print*,'SU2G Run2 E sum(MSA) = ',sum(MSA)
+if (associated(dummyMSA)) then
+   if(mapl_am_i_root()) print*,'SU2G Run2 E sum(MSA) = ',sum(dummyMSA)
+end if
 
     RETURN_(ESMF_SUCCESS)
 
