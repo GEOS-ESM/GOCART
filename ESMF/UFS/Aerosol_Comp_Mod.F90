@@ -417,8 +417,17 @@ contains
     integer, parameter :: p_sulf   = p_o3 + 2
     integer, parameter :: p_dms    = p_o3 + 3
     integer, parameter :: p_msa    = p_o3 + 4
+    integer, parameter :: p_bc_1   = p_o3 + 6
+    integer, parameter :: p_bc_2   = p_o3 + 7
+    integer, parameter :: p_oc_1   = p_o3 + 8
+    integer, parameter :: p_oc_2   = p_o3 + 9
     integer, parameter :: p_dust_1 = p_o3 + 10
     integer, parameter :: p_seas_1 = p_o3 + 15
+    integer, parameter :: p_nh3    = p_o3 + 20
+    integer, parameter :: p_nh4a   = p_o3 + 21
+    integer, parameter :: p_no3an1 = p_o3 + 22
+    integer, parameter :: p_no3an2 = p_o3 + 23
+    integer, parameter :: p_no3an3 = p_o3 + 24
     integer, parameter :: p_seas_d = p_seas_1 - p_so2 - 3
 
     ! -- begin
@@ -568,6 +577,42 @@ contains
             case ("SSSV")
               offset = -p_seas_d
               idiagn = 4
+            case ("CAphobicCA.bc")
+              offset = p_bc_1 - 1
+              iscale = ug2kg
+              escale = kg2ug
+            case ("CAphilicCA.bc")
+              offset = p_bc_2 - 1
+              iscale = ug2kg
+              escale = kg2ug
+            case ("CAphobicCA.oc")
+              offset = p_oc_1 - 1
+              iscale = ug2kg
+              escale = kg2ug
+            case ("CAphilicCA.oc")
+              offset = p_oc_2 - 1
+              iscale = ug2kg
+              escale = kg2ug
+            case ("NH3")
+              offset = p_nh3 - 1
+              iscale = ug2kg
+              escale = kg2ug
+            case ("NH4a")
+              offset = p_nh4a - 1
+              iscale = ug2kg
+              escale = kg2ug
+            case ("NO3an1")
+              offset = p_no3an1 - 1
+              iscale = ug2kg
+              escale = kg2ug
+            case ("NO3an2")
+              offset = p_no3an2 - 1
+              iscale = ug2kg
+              escale = kg2ug
+            case ("NO3an3")
+              offset = p_no3an3 - 1
+              iscale = ug2kg
+              escale = kg2ug
             case default
               nullify(fp3d, fp4d)
           end select
