@@ -27,3 +27,7 @@ esma_add_library (${this}
   SUBCOMPONENTS ${alldirs}
   DEPENDENCIES ${dependencies}
   )
+
+mapl_acg (${this}   GOCART2G_StateSpecs.rc
+          IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
+          GET_POINTERS DECLARE_POINTERS)
