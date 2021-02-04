@@ -309,7 +309,7 @@ contains
                     kk = nk - k + 1
                     do j = 1, nj
                       do i = 1, ni
-                        fp3dr(i,j,kk) = prsl(i,j,k) / (rv * temp(i,j,k) * ( 1._ESMF_KIND_R8 + fv * q(i,j,k,1) ) )
+                        fp3dr(i,j,kk) = prsl(i,j,k) / (rd * temp(i,j,k) * ( 1._ESMF_KIND_R8 + fv * q(i,j,k,1) ) )
                       end do
                     end do
                   end do
