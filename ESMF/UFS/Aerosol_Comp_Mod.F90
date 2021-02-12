@@ -11,6 +11,7 @@ module Aerosol_Comp_Mod
     fieldMap = reshape((/ &
       "FROCEAN                         ", "ocean_fraction                  ", &
       "FRACI                           ", "ice_fraction                    ", &
+      "FRLAKE                          ", "lake_fraction                   ", &
       "LWI                             ", "inst_land_sea_mask              ", &
       "WET1                            ", "inst_surface_soil_wetness       ", &
       "U10M                            ", "inst_zonal_wind_height10m       ", &
