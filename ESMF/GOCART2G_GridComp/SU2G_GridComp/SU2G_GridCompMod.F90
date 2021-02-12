@@ -124,6 +124,7 @@ contains
 !   !Locals
     character (len=ESMF_MAXSTR)                 :: COMP_NAME
     type (ESMF_Config)                          :: cfg
+    type (ESMF_Config)                          :: universal_cfg
     type (wrap_)                                :: wrap
     type (SU2G_GridComp), pointer               :: self
 
@@ -140,7 +141,7 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
 if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
@@ -160,7 +161,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     end if
 
 !   process generic config items
-    call self%GA_GridComp%load_from_config( cfg, __RC__)
+    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
 
     allocate(self%sigma(self%nbins), __STAT__)
 
@@ -1122,6 +1123,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
                             self%diag_MieTable(self%instance)%channels, &
+                            self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
                             t, airdens, delp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &
                             MSASMASS, MSACMASS, &
@@ -1129,6 +1131,11 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, rc)
+
+!if(mapl_am_i_root()) print*,'SU2G Run2 E size(suexttau) = ',size(suexttau)
+!if(mapl_am_i_root()) print*,'SU2G Run2 E size(suescaau) = ',size(suscatau)
+!if(mapl_am_i_root()) print*,'SU2G Run2 E sum(suexttau) = ',sum(suexttau)
+!if(mapl_am_i_root()) print*,'SU2G Run2 E sum(suescaau) = ',sum(suscatau)
 
 if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO2) = ',sum(SO2)
 if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO4) = ',sum(SO4)

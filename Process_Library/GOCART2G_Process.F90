@@ -1762,7 +1762,8 @@ CONTAINS
 !
 ! !INTERFACE:
    subroutine Aero_Compute_Diags (mie_table, km, klid, nbegin, nbins, rlow, rup, channels, &
-                                  aerosol, grav, tmpu, rhoa, rh, u, v, delp, &
+                                  wavelengths_profile, wavelengths_vertint, aerosol, &
+                                  grav, tmpu, rhoa, rh, u, v, delp, &
                                   sfcmass, colmass, mass, exttau, scatau, &
                                   sfcmass25, colmass25, mass25, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, &
@@ -1779,7 +1780,8 @@ CONTAINS
    real, optional, dimension(:), intent(in)    :: rlow   ! bin radii - low bounds
    real, optional, dimension(:), intent(in)    :: rup    ! bin radii - upper bounds
    real, dimension(:), intent(in)    :: channels
-!   real, pointer, dimension(:,:,:,:) :: aerosol     ! 
+   real, dimension(:), intent(in)    :: wavelengths_profile
+   real, dimension(:), intent(in)    :: wavelengths_vertint
    real, dimension(:,:,:,:), intent(in) :: aerosol     ! 
    real, intent(in) :: grav
    real, pointer, dimension(:,:,:), intent(in) :: tmpu  ! temperature [K]
@@ -1797,20 +1799,20 @@ CONTAINS
    real, pointer, dimension(:,:,:), intent(inout) :: mass      ! 3d mass mixing ratio kg/kg
    real, pointer, dimension(:,:,:), intent(inout) :: conc      ! 3d mass concentration, kg/m3
 !  Total optical properties
-   real, optional, pointer, dimension(:,:), intent(inout)   :: exttau    ! ext. AOT at 550 nm
-   real, optional, pointer, dimension(:,:), intent(inout)   :: scatau    ! sct. AOT at 550 nm
+   real, optional, pointer, dimension(:,:,:), intent(inout)   :: exttau    ! ext. AOT at 550 nm
+   real, optional, pointer, dimension(:,:,:), intent(inout)   :: scatau    ! sct. AOT at 550 nm
    real, optional, pointer, dimension(:,:), intent(inout)   :: sfcmass25 ! sfc mass concentration kg/m3 (pm2.5)
    real, optional, pointer, dimension(:,:), intent(inout)   :: colmass25 ! col mass density kg/m2 (pm2.5)
    real, optional, pointer, dimension(:,:,:), intent(inout) :: mass25    ! 3d mass mixing ratio kg/kg (pm2.5)
-   real, optional, pointer, dimension(:,:), intent(inout)   :: exttau25  ! ext. AOT at 550 nm (pm2.5)
-   real, optional, pointer, dimension(:,:), intent(inout)   :: scatau25  ! sct. AOT at 550 nm (pm2.5)
+   real, optional, pointer, dimension(:,:,:), intent(inout)   :: exttau25  ! ext. AOT at 550 nm (pm2.5)
+   real, optional, pointer, dimension(:,:,:), intent(inout)   :: scatau25  ! sct. AOT at 550 nm (pm2.5)
    real, optional, pointer, dimension(:,:),  intent(inout)  :: aerindx   ! TOMS UV AI
    real, optional, pointer, dimension(:,:), intent(inout)   :: fluxu     ! Column mass flux in x direction
    real, optional, pointer, dimension(:,:), intent(inout)   :: fluxv     ! Column mass flux in y direction
-   real, optional, pointer, dimension(:,:,:), intent(inout) :: extcoef   ! 3d ext. coefficient, 1/m
-   real, optional, pointer, dimension(:,:,:), intent(inout) :: scacoef   ! 3d scat.coefficient, 1/m
-   real, optional, pointer, dimension(:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
-   real, optional, pointer, dimension(:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
+   real, optional, pointer, dimension(:,:,:,:), intent(inout) :: extcoef   ! 3d ext. coefficient, 1/m
+   real, optional, pointer, dimension(:,:,:,:), intent(inout) :: scacoef   ! 3d scat.coefficient, 1/m
+   real, optional, pointer, dimension(:,:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
+   real, optional, pointer, dimension(:,:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
    real, optional, pointer, dimension(:,:), intent(inout)   :: angstrom  ! 470-870 nm Angstrom parameter
    integer, optional, intent(out)   :: rc        ! Error return code:
                                                  !  0 - all is well
@@ -1826,9 +1828,10 @@ CONTAINS
 
 ! !Local Variables
    character(len=*), parameter :: myname = 'Aero_Compute_Diags'
-   integer :: i, j, k, n, ios, nch
+   integer :: i, j, k, n, w, ios, nch
    integer :: i1 =1, i2, j1=1, j2
    real :: ilam550, ilam470, ilam870
+   real, allocatable, dimension(:) :: wavelengths_index_profile, wavelengths_index_vertint
    real :: tau, ssa
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
@@ -1855,6 +1858,10 @@ CONTAINS
 !  Get the wavelength indices
 !  --------------------------
 !  Must provide ilam550 for AOT calculation
+   allocate(wavelengths_index_profile(size(wavelengths_profile)))
+   allocate(wavelengths_index_vertint(size(wavelengths_vertint)))
+   wavelengths_index_profile = 0.
+   wavelengths_index_vertint = 0.
    ilam550 = 1.
    ilam470 = 0.
    ilam870 = 0.
@@ -1868,6 +1875,38 @@ CONTAINS
               channels(i) .le. 8.71e-7) ilam870 = i
       enddo
    endif
+
+   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
+   do i = 1, size(wavelengths_profile)
+      if ((wavelengths_profile(i) .ge. 5.49e-7) .and. (wavelengths_profile(i) .le. 5.51e-7)) then
+         wavelengths_index_profile(i) = 2.
+      else if ((wavelengths_profile(i) .ge. 4.69e-7) .and. (wavelengths_profile(i) .le. 4.71e-7)) then
+         wavelengths_index_profile(i) = 1.
+      else if ((wavelengths_profile(i) .ge. 6.69e-7) .and. (wavelengths_profile(i) .le. 6.71e-7)) then
+         wavelengths_index_profile(i) = 3.
+      else if ((wavelengths_profile(i) .ge. 8.68e-7) .and. (wavelengths_profile(i) .le. 8.71e-7)) then
+         wavelengths_index_profile(i) = 4.
+      else
+         print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
+         return
+      end if
+   end do
+
+   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
+   do i = 1, size(wavelengths_vertint)
+      if ((wavelengths_vertint(i) .ge. 5.49e-7) .and. (wavelengths_vertint(i) .le. 5.51e-7)) then
+         wavelengths_index_vertint(i) = 2.
+      else if ((wavelengths_vertint(i) .ge. 4.69e-7) .and. (wavelengths_vertint(i) .le. 4.71e-7)) then
+         wavelengths_index_vertint(i) = 1.
+      else if ((wavelengths_vertint(i) .ge. 6.69e-7) .and. (wavelengths_vertint(i) .le. 6.71e-7)) then
+         wavelengths_index_vertint(i) = 3.
+      else if ((wavelengths_vertint(i) .ge. 8.68e-7) .and. (wavelengths_vertint(i) .le. 8.71e-7)) then
+         wavelengths_index_vertint(i) = 4.
+      else
+         print*,'wavelengths_vertint of ',wavelengths_vertint(i),' is an invalid value.'
+         return
+      end if
+   end do
 
 !  Determine if going to do Angstrom parameter calculation
 !  -------------------------------------------------------
@@ -1986,89 +2025,106 @@ CONTAINS
    endif
 
 !  Calculate the extinction and/or scattering AOD
+   if( (present(extcoef) .and. associated(extcoef)) .or. &
+       (present(scacoef) .and. associated(scacoef)) ) then
+
+      if( present(extcoef) .and. associated(extcoef)) extcoef = 0.
+      if( present(scacoef) .and. associated(scacoef)) scacoef = 0.
+
+      do n = nbegin, nbins
+       do w = 1, size(wavelengths_profile)
+         do k = klid, km
+            do j = j1, j2
+               do i = i1, i2
+!                call Chem_MieQuery(mie_table, n, ilam550, &
+                 call Chem_MieQuery(mie_table, n, wavelengths_index_profile(w), &
+                 aerosol(i,j,k,n)*delp(i,j,k)/grav, &
+                 rh(i,j,k), tau=tau, ssa=ssa)
+
+!                Calculate the total ext. and scat. coefficients
+                 if( present(extcoef) .and. associated(extcoef) ) then
+                     extcoef(i,j,k,w) = extcoef(i,j,k,w) + &
+                                      tau * (grav * rhoa(i,j,k) / delp(i,j,k))
+                 endif
+                 if( present(scacoef) .and. associated(scacoef) ) then
+                    scacoef(i,j,k,w) = scacoef(i,j,k,w) + &
+                                     ssa * tau * (grav * rhoa(i,j,k) / delp(i,j,k))
+                 endif
+               enddo !i
+            enddo !j
+         enddo !k
+       enddo !wavelengths_profile
+      enddo !nbins
+    end if !present(extcoef)...
+
    if( (present(exttau) .and. associated(exttau)) .or. &
        (present(scatau) .and. associated(scatau)) .or. &
        (present(exttau25) .and. associated(exttau25)) .or. &
        (present(exttaufm) .and. associated(exttaufm)) .or. &
        (present(scatau25) .and. associated(scatau25)) .or. &
-       (present(scataufm) .and. associated(scataufm)) .or. &
-       (present(extcoef) .and. associated(extcoef)) .or. &
-       (present(scacoef) .and. associated(scacoef)) ) then
+       (present(scataufm) .and. associated(scataufm)) ) then
 
-      if( present(exttau) .and. associated(exttau)) exttau(i1:i2,j1:j2) = 0.
-      if( present(scatau) .and. associated(scatau)) scatau(i1:i2,j1:j2) = 0.
+      if( present(exttau) .and. associated(exttau)) exttau = 0.
+      if( present(scatau) .and. associated(scatau)) scatau = 0.
 
-      if( present(exttau25) .and. associated(exttau25)) exttau25(i1:i2,j1:j2) = 0.
-      if( present(scatau25) .and. associated(scatau25)) scatau25(i1:i2,j1:j2) = 0.
+      if( present(exttau25) .and. associated(exttau25)) exttau25 = 0.
+      if( present(scatau25) .and. associated(scatau25)) scatau25 = 0.
 
-      if( present(exttaufm) .and. associated(exttaufm)) exttaufm(i1:i2,j1:j2) = 0.
-      if( present(scataufm) .and. associated(scataufm)) scataufm(i1:i2,j1:j2) = 0.
-
-      if( present(extcoef) .and. associated(extcoef)) extcoef(i1:i2,j1:j2,1:km) = 0.
-      if( present(scacoef) .and. associated(scacoef)) scacoef(i1:i2,j1:j2,1:km) = 0.
+      if( present(exttaufm) .and. associated(exttaufm)) exttaufm = 0.
+      if( present(scataufm) .and. associated(scataufm)) scataufm = 0.
 
       do n = nbegin, nbins
+       do w = 1, size(wavelengths_vertint)
+         do k = klid, km
+            do j = j1, j2
+               do i = i1, i2
 
-!      Select the name for species
-       do k = klid, km
-        do j = j1, j2
-         do i = i1, i2
-          call Chem_MieQuery(mie_table, n, ilam550, &
-              aerosol(i,j,k,n)*delp(i,j,k)/grav, &
-              rh(i,j,k), tau=tau, ssa=ssa)
+!                call Chem_MieQuery(mie_table, n, ilam550, &
+                 call Chem_MieQuery(mie_table, n, wavelengths_index_vertint(w), &
+                 aerosol(i,j,k,n)*delp(i,j,k)/grav, &
+                 rh(i,j,k), tau=tau, ssa=ssa)
 
-!         Calculate the total ext. and scat. coefficients
-          if( present(extcoef) .and. associated(extcoef) ) then
-              extcoef(i,j,k) = extcoef(i,j,k) + &
-                                      tau * (grav * rhoa(i,j,k) / delp(i,j,k))
-          endif
-          if( present(scacoef) .and. associated(scacoef) ) then
-              scacoef(i,j,k) = scacoef(i,j,k) + &
-                                      ssa * tau * (grav * rhoa(i,j,k) / delp(i,j,k))
-          endif
+!                Integrate in the vertical
+                 if( present(exttau) .and. associated(exttau) ) exttau(i,j,w) = exttau(i,j,w) + tau
+                 if( present(exttaufm) .and. associated(exttaufm)) then
+                    if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
+                       exttaufm(i,j,w) = exttaufm(i,j,w) + tau
+                    else
+                       exttaufm(i,j,w) = exttaufm(i,j,w) + tau * fPMfm(n)
+                    end if
+                 end if
 
-!         Integrate in the vertical
-          if( present(exttau) .and. associated(exttau) ) exttau(i,j) = exttau(i,j) + tau
-          if( present(exttaufm) .and. associated(exttaufm)) then
-             if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
-                exttaufm(i,j) = exttaufm(i,j) + tau
-             else
-                exttaufm(i,j) = exttaufm(i,j) + tau * fPMfm(n)
-             end if
-          end if
+                 if( present(exttau25) .and. associated(exttau25)) then
+                    if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
+                       exttau25(i,j,w) = exttau25(i,j,w) + tau
+                    else
+                       exttau25(i,j,w) = exttau25(i,j,w) + tau * fPM25(n)
+                    end if
+                 end if
 
-          if( present(exttau25) .and. associated(exttau25)) then
-             if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
-                exttau25(i,j) = exttau25(i,j) + tau
-             else
-                exttau25(i,j) = exttau25(i,j) + tau * fPM25(n)
-             end if
-          end if
+                 if( present(scatau) .and. associated(scatau) ) scatau(i,j,w) = scatau(i,j,w) + tau*ssa
+                 if( present(scataufm) .and. associated(scataufm) ) then
+                    if( present(NO3nFlag) .and. (NO3nFlag)) then
+                       scataufm(i,j,w) = scataufm(i,j,w) + tau * ssa
+                    else
+                       scataufm(i,j,w) = scataufm(i,j,w) + tau * ssa * fPMfm(n)
+                    end if
+                 end if
 
-          if( present(scatau) .and. associated(scatau) ) scatau(i,j) = scatau(i,j) + tau*ssa
-          if( present(scataufm) .and. associated(scataufm) ) then
-             if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
-                scataufm(i,j) = scataufm(i,j) + tau * ssa
-             else
-                scataufm(i,j) = scataufm(i,j) + tau * ssa * fPMfm(n)
-             end if
-          end if
+                 if( present(scatau25) .and. associated(scatau25) ) then
+                    if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
+                       scatau25(i,j,w) = scatau25(i,j,w) + tau * ssa
+                    else
+                       scatau25(i,j,w) = scatau25(i,j,w) + tau * ssa * fPM25(n)
+                    end if
+                 end if
 
-          if( present(scatau25) .and. associated(scatau25) ) then
-             if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
-                scatau25(i,j) = scatau25(i,j) + tau * ssa
-             else
-                scatau25(i,j) = scatau25(i,j) + tau * ssa * fPM25(n)
-             end if
-          end if
-
-         enddo
-        enddo
-       enddo
-
-      enddo  ! nbins
-
-   endif
+               enddo !i
+            enddo !j
+         enddo !k
+       enddo !wavelengths_vertint
+      enddo !nbins
+   endif !present(exttau)...
 
 !  Calculate the 470-870 Angstrom parameter
    if( present(angstrom) .and. associated(angstrom) .and. do_angstrom ) then
@@ -4969,6 +5025,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: SU_Compute_Diags
 
    subroutine SU_Compute_Diags ( km, klid, rmed, sigma, rhop, grav, pi, nSO4, mie_table, channels, &
+                                 wavelengths_profile, wavelengths_vertint, &
                                  tmpu, rhoa, delp, rh, u, v, &
                                  DMS, SO2, SO4, MSA, &
                                  dmssfcmass, dmscolmass, &
@@ -4992,6 +5049,8 @@ K_LOOP: do k = km, 1, -1
    integer, intent(in) :: nSO4  ! index of SO4 relative to other internal variables
    type(Chem_Mie), intent(in) :: mie_table   ! mie table
    real, dimension(:), intent(in)  :: channels
+   real, dimension(:), intent(in)  :: wavelengths_profile
+   real, dimension(:), intent(in)  :: wavelengths_vertint
    real, pointer, dimension(:,:,:), intent(in) :: tmpu    ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density [kg/m^3]
    real, pointer, dimension(:,:,:), intent(in) :: delp    ! pressure thickness [Pa]
@@ -5012,12 +5071,12 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:),   intent(inout)  :: so2colmass ! col mass density [kg/m2]
    real, pointer, dimension(:,:),   intent(inout)  :: so4sfcmass ! sfc mass concentration [kg/m3]
    real, pointer, dimension(:,:),   intent(inout)  :: so4colmass ! col mass density [kg/m2]
-   real, pointer, dimension(:,:),   intent(inout)  :: exttau     ! ext. AOT at 550 nm
-   real, pointer, dimension(:,:),   intent(inout)  :: scatau     ! sct. AOT at 550 nm
+   real, pointer, dimension(:,:,:), intent(inout)  :: exttau     ! ext. AOT at 550 nm
+   real, pointer, dimension(:,:,:), intent(inout)  :: scatau     ! sct. AOT at 550 nm
    real, pointer, dimension(:,:,:), intent(inout)  :: so4mass    ! 3D sulfate mass mr
    real, pointer, dimension(:,:,:), intent(inout)  :: so4conc    ! 3D mass concentration, [kg/m3]
-   real, pointer, dimension(:,:,:), intent(inout)  :: extcoef    ! 3D ext. coefficient, [1/m]
-   real, pointer, dimension(:,:,:), intent(inout)  :: scacoef    ! 3D scat.coefficient, [1/m]
+   real, pointer, dimension(:,:,:,:), intent(inout)  :: extcoef    ! 3D ext. coefficient, [1/m]
+   real, pointer, dimension(:,:,:,:), intent(inout)  :: scacoef    ! 3D scat.coefficient, [1/m]
    real, pointer, dimension(:,:),   intent(inout)  :: angstrom   ! 470-870 nm Angstrom parameter
    real, pointer, dimension(:,:),   intent(inout)  :: fluxu      ! Column mass flux in x direction
    real, pointer, dimension(:,:),   intent(inout)  :: fluxv      ! Column mass flux in y direction
@@ -5036,7 +5095,8 @@ K_LOOP: do k = km, 1, -1
 !  29july2020, E.Sherman - refactored for process library
 
 ! !Local Variables
-   integer :: i, j, k, i1=1, j1=1, i2, j2, nch
+   integer :: i, j, k, w, i1=1, j1=1, i2, j2, nch
+   real, allocatable, dimension(:)  :: wavelengths_index_profile, wavelengths_index_vertint
    real :: tau, ssa
    real, dimension(:,:), allocatable :: tau470, tau870
    real    :: ilam550, ilam470, ilam870
@@ -5061,15 +5121,52 @@ K_LOOP: do k = km, 1, -1
    ilam470 = 0.
    ilam870 = 0.
    if(nch .gt. 1) then
-    do i = 1, nch
-     if ( channels(i) .ge. 5.49e-7 .and. &
-          channels(i) .le. 5.51e-7) ilam550 = i
-     if ( channels(i) .ge. 4.69e-7 .and. &
-          channels(i) .le. 4.71e-7) ilam470 = i
-     if ( channels(i) .ge. 8.69e-7 .and. &
-          channels(i) .le. 8.71e-7) ilam870 = i
-    enddo
+      do i = 1, nch
+         if ( channels(i) .ge. 5.49e-7 .and. &
+              channels(i) .le. 5.51e-7) ilam550 = i
+         if ( channels(i) .ge. 4.69e-7 .and. &
+              channels(i) .le. 4.71e-7) ilam470 = i
+         if ( channels(i) .ge. 8.69e-7 .and. &
+              channels(i) .le. 8.71e-7) ilam870 = i
+      enddo
    endif
+
+   allocate(wavelengths_index_profile(size(wavelengths_profile)))
+   allocate(wavelengths_index_vertint(size(wavelengths_vertint)))
+   wavelengths_index_profile = 0.
+   wavelengths_index_vertint = 0.
+
+   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
+   do i = 1, size(wavelengths_profile)
+      if ((wavelengths_profile(i) .ge. 5.49e-7) .and. (wavelengths_profile(i) .le. 5.51e-7)) then
+         wavelengths_index_profile(i) = 2.
+      else if ((wavelengths_profile(i) .ge. 4.69e-7) .and. (wavelengths_profile(i) .le. 4.71e-7)) then
+         wavelengths_index_profile(i) = 1.
+      else if ((wavelengths_profile(i) .ge. 6.69e-7) .and. (wavelengths_profile(i) .le. 6.71e-7)) then
+         wavelengths_index_profile(i) = 3.
+      else if ((wavelengths_profile(i) .ge. 8.69e-7) .and. (wavelengths_profile(i) .le. 8.71e-7)) then
+         wavelengths_index_profile(i) = 4.
+      else
+         print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
+         return
+      end if
+   end do  
+
+   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
+   do i = 1, size(wavelengths_vertint)
+      if ((wavelengths_vertint(i) .ge. 5.49e-7) .and. (wavelengths_vertint(i) .le. 5.51e-7)) then
+         wavelengths_index_vertint(i) = 2.
+      else if ((wavelengths_vertint(i) .ge. 4.69e-7) .and. (wavelengths_vertint(i) .le. 4.71e-7)) then
+         wavelengths_index_vertint(i) = 1.
+      else if ((wavelengths_vertint(i) .ge. 6.69e-7) .and. (wavelengths_vertint(i) .le. 6.71e-7)) then
+         wavelengths_index_vertint(i) = 3.
+      else if ((wavelengths_vertint(i) .ge. 8.69e-7) .and. (wavelengths_vertint(i) .le. 8.71e-7)) then
+         wavelengths_index_vertint(i) = 4.
+      else
+         print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
+         return
+      end if
+   end do 
 
 !  Determine if going to do Angstrom parameter calculation
 !  -------------------------------------------------------
@@ -5178,53 +5275,62 @@ K_LOOP: do k = km, 1, -1
    endif
 
 !  Calculate the extinction and/or scattering AOD
-   if( associated(exttau) .or. associated(scatau) ) then
+   if( associated(extcoef) .or. associated(scacoef) ) then
 
-      if( associated(exttau) ) then
-       exttau(i1:i2,j1:j2) = 0.
-      endif
-      if( associated(scatau) ) then
-       scatau(i1:i2,j1:j2) = 0.
-      endif
+      if (associated(extcoef)) extcoef = 0.
+      if (associated(scacoef)) scacoef = 0.
 
-      if( associated(extcoef) ) then
-          extcoef(i1:i2,j1:j2,1:km) = 0.
-      endif
-      if( associated(scacoef) ) then
-          scacoef(i1:i2,j1:j2,1:km) = 0.
-      endif
-
+      do w = 1, size(wavelengths_profile)
        do k = klid, km
         do j = j1, j2
          do i = i1, i2
-          call Chem_MieQuery(mie_table, 1, ilam550, & ! Only SO4 exists in the MieTable, so its index is 1
+          call Chem_MieQuery(mie_table, 1, wavelengths_index_profile(w), & ! Only SO4 exists in the MieTable, so its index is 1
               SO4(i,j,k)*delp(i,j,k)/grav, &
               rh(i,j,k), tau=tau, ssa=ssa)
 
 !         Calculate the total ext. and scat. coefficients
           if( associated(extcoef) ) then
-              extcoef(i,j,k) = extcoef(i,j,k) + &
+              extcoef(i,j,k,w) = extcoef(i,j,k,w) + &
                               tau * (grav * rhoa(i,j,k) / delp(i,j,k))
           endif
           if( associated(scacoef) ) then
-              scacoef(i,j,k) = scacoef(i,j,k) + &
+              scacoef(i,j,k,w) = scacoef(i,j,k,w) + &
                               ssa * tau * (grav * rhoa(i,j,k) / delp(i,j,k))
-          endif
-
-!         Integrate in the vertical
-          if( associated(exttau) ) then
-           exttau(i,j) = exttau(i,j) + tau
-          endif
-          if( associated(scatau) ) then
-           scatau(i,j) = scatau(i,j) + tau*ssa
           endif
 
          enddo
         enddo
        enddo
+      enddo
+   endif
 
-!      enddo  ! nbins
 
+
+   if( associated(exttau) .or. associated(scatau) ) then
+
+      if (associated(exttau)) exttau = 0.
+      if (associated(scatau)) scatau = 0.
+
+      do w = 1, size(wavelengths_vertint)
+       do k = klid, km
+        do j = j1, j2
+         do i = i1, i2
+            call Chem_MieQuery(mie_table, 1, wavelengths_index_vertint(w), & ! Only SO4 exists in the MieTable, so its index is 1
+            SO4(i,j,k)*delp(i,j,k)/grav, &
+            rh(i,j,k), tau=tau, ssa=ssa)
+
+!         Integrate in the vertical
+          if( associated(exttau) ) then
+           exttau(i,j,w) = exttau(i,j,w) + tau
+          endif
+          if( associated(scatau) ) then
+           scatau(i,j,w) = scatau(i,j,w) + tau*ssa
+          endif
+
+         enddo
+        enddo
+       enddo
+      enddo
    endif
 
 !  Calculate the 470-870 Angstrom parameter

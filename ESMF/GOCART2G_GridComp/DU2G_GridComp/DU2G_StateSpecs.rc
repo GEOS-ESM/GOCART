@@ -38,31 +38,31 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
- DUMASS     | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio
- DUMASS25   | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio
- DUCONC     | kg m-3     | xyz | C  |            | Dust Mass Concentration
- DUEXTCOEF  | m-1        | xyz | C  |            | Dust Extinction Coefficient [550 nm]
- DUSCACOEF  | m-1        | xyz | C  |            | Dust Scattering Coefficient [550 nm]
+ DUMASS     | kg kg-1    | xyz | C  |                          | Dust Mass Mixing Ratio
+ DUMASS25   | kg kg-1    | xyz | C  |                          | Dust Mass Mixing Ratio
+ DUCONC     | kg m-3     | xyz | C  |                          | Dust Mass Concentration
+ DUEXTCOEF  | m-1        | xyz | C  | size(self%wavelengths_profile) | Dust Extinction Coefficient [550 nm]
+ DUSCACOEF  | m-1        | xyz | C  | size(self%wavelengths_profile) | Dust Scattering Coefficient [550 nm]
 #........................................................................................
- DUSMASS    | kg m-3     | xy  | N  |            | Dust Surface Mass Concentration
- DUCMASS    | kg m-2     | xy  | N  |            | Dust Column Mass Density
- DUEXTTAU   |    1       | xy  | N  |            | Dust Extinction AOT [550 nm]
- DUSCATAU   |    1       | xy  | N  |            | Dust Scattering AOT [550 nm]
- DUSMASS25  | kg m-3     | xy  | N  |            | Dust Surface Mass Concentration - PM 2.5
- DUCMASS25  | kg m-2     | xy  | N  |            | Dust Column Mass Density - PM 2.5
- DUEXTT25   |    1       | xy  | N  |            | Dust Extinction AOT [550 nm] - PM 2.5
- DUSCAT25   |    1       | xy  | N  |            | Dust Scattering AOT [550 nm] - PM 2.5
- DUAERIDX   |    1       | xy  | N  |            | Dust TOMS UV Aerosol Index
- DUFLUXU    | kg m-1 s-1 | xy  | N  |            | Dust column u-wind mass flux
- DUFLUXV    | kg m-1 s-1 | xy  | N  |            | Dust column v-wind mass flux  
- DUEXTTFM   |    1       | xy  | N  |            | Dust Extinction AOT [550 nm] - PM 1.0 um  
- DUSCATFM   |    1       | xy  | N  |            | Dust Scattering AOT [550 nm] - PM 1.0 um  
- DUANGSTR   |    1       | xy  | N  |            | Dust Angstrom parameter [470-870 nm]
- DUEM       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Emission (Bin %d)
- DUSD       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Sedimentation (Bin %d)
- DUDP       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Dry Deposition (Bin %d)
- DUWT       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Wet Deposition (Bin %d)
- DUSV       | kg m-2 s-1 | xy  | N  | self%nbins | Dust Convective Scavenging (Bin %d)
+ DUSMASS    | kg m-3     | xy  | N  |                          | Dust Surface Mass Concentration
+ DUCMASS    | kg m-2     | xy  | N  |                          | Dust Column Mass Density
+ DUEXTTAU   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Extinction AOT [550 nm]
+ DUSCATAU   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Scattering AOT [550 nm]
+ DUSMASS25  | kg m-3     | xy  | N  |                          | Dust Surface Mass Concentration - PM 2.5
+ DUCMASS25  | kg m-2     | xy  | N  |                          | Dust Column Mass Density - PM 2.5
+ DUEXTT25   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Extinction AOT [550 nm] - PM 2.5
+ DUSCAT25   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Scattering AOT [550 nm] - PM 2.5
+ DUAERIDX   |    1       | xy  | N  |                          | Dust TOMS UV Aerosol Index
+ DUFLUXU    | kg m-1 s-1 | xy  | N  |                          | Dust column u-wind mass flux
+ DUFLUXV    | kg m-1 s-1 | xy  | N  |                          | Dust column v-wind mass flux  
+ DUEXTTFM   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Extinction AOT [550 nm] - PM 1.0 um  
+ DUSCATFM   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Scattering AOT [550 nm] - PM 1.0 um  
+ DUANGSTR   |    1       | xy  | N  |                          | Dust Angstrom parameter [470-870 nm]
+ DUEM       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Emission (Bin %d)
+ DUSD       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Sedimentation (Bin %d)
+ DUDP       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Dry Deposition (Bin %d)
+ DUWT       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Wet Deposition (Bin %d)
+ DUSV       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Convective Scavenging (Bin %d)
 
 
 category: INTERNAL

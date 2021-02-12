@@ -89,6 +89,7 @@ contains
 !   !Locals
     character (len=ESMF_MAXSTR)                 :: COMP_NAME
     type (ESMF_Config)                          :: cfg
+    type (ESMF_Config)                          :: universal_cfg
     type (wrap_)                                :: wrap
     type (NI2G_GridComp), pointer               :: self
 
@@ -102,7 +103,7 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
 if(mapl_am_i_root()) print*,trim(comp_name),' SetServices BEGIN'
@@ -122,7 +123,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices BEGIN'
     end if
 
     ! process generic config items
-    call self%GA_GridComp%load_from_config( cfg, __RC__)
+    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
 
 !   Is NI data driven?
 !   ------------------
@@ -279,6 +280,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
 !   !Locals 
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     type (MAPL_MetaComp),      pointer   :: MAPL
+    type (ESMF_Config)                   :: universal_cfg
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero
@@ -320,7 +322,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
 !   Get my internal MAPL_Generic state
@@ -1034,6 +1036,8 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    aerosol(:,:,:,1) = NH4a
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NH4SMASS, colmass=NH4CMASS, mass=NH4MASS, conc=NH4CONC, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4SMASS) = ',sum(NH4SMASS) 
@@ -1044,6 +1048,8 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    aerosol(:,:,:,1) = NH3
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NH3SMASS, colmass=NH3CMASS, mass=NH3MASS, conc=NH3CONC, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3SMASS) = ',sum(NH3SMASS)
@@ -1054,6 +1060,8 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    aerosol(:,:,:,1) = NO3an1
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NISMASS25, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, &
                             exttau25=NIEXTT25, scatau25=NISCAT25, exttaufm=NIEXTTFM, scataufm=NISCATFM, &
@@ -1069,6 +1077,8 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    aerosol(:,:,:,3) = NO3an3
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=3, channels=self%diag_MieTable(self%instance)%channels, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NISMASS, colmass=NICMASS, mass=NIMASS, conc=NICONC, &
                             exttau=NIEXTTAU, scatau=NISCATAU, &

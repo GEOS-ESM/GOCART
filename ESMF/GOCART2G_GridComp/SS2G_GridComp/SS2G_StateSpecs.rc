@@ -43,8 +43,8 @@ category: EXPORT
  SSMASS    | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio
  SSMASS25  | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio - PM 2.5
  SSCONC    | kg m-3     | xyz | C   |            | Sea Salt Mass Concentration
- SSEXTCOEF | m-1        | xyz | C   |            | Sea Salt Extinction Coefficient [550 nm]
- SSSCACOEF | m-1        | xyz | C   |            | Sea Salt Scattering Coefficient [550 nm]
+ SSEXTCOEF | m-1        | xyz | C   | size(self%wavelengths_profile)           | Sea Salt Extinction Coefficient [550 nm]
+ SSSCACOEF | m-1        | xyz | C   | size(self%wavelengths_profile)           | Sea Salt Scattering Coefficient [550 nm]
 #..........|............|.....|.....|............|..................................
  SSEM      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Emission (Bin %d) 
  SSSD      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Sedimentation (Bin %d)
@@ -53,15 +53,15 @@ category: EXPORT
  SSSV      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Convective Scavenging (Bin %d)
  SSSMASS   | kg m-3     | xy  | N   |            | Sea Salt Surface Mass Concentration
  SSCMASS   | kg m-2     | xy  | N   |            | Sea Salt Column Mass Density
- SSEXTTAU  |    1       | xy  | N   |            | Sea Salt Extinction AOT [550 nm]
- SSSCATAU  |    1       | xy  | N   |            | Sea Salt Scattering AOT [550 nm]
+ SSEXTTAU  |    1       | xy  | N   | size(self%wavelengths_vertint)           | Sea Salt Extinction AOT [550 nm]
+ SSSCATAU  |    1       | xy  | N   | size(self%wavelengths_vertint)           | Sea Salt Scattering AOT [550 nm]
  SSSMASS25 | kg m-3     | xy  | N   |            | Sea Salt Surface Mass Concentration - PM 2.5
  SSCMASS25 | kg m-2     | xy  | N   |            | Sea Salt Column Mass Density - PM 2.5
- SSEXTT25  |    1       | xy  | N   |            | Sea Salt Extinction AOT [550 nm] - PM 2.5
- SSSCAT25  |    1       | xy  | N   |            | Sea Salt Scattering AOT [550 nm] - PM 2.5
+ SSEXTT25  |    1       | xy  | N   | size(self%wavelengths_vertint)           | Sea Salt Extinction AOT [550 nm] - PM 2.5
+ SSSCAT25  |    1       | xy  | N   | size(self%wavelengths_vertint)           | Sea Salt Scattering AOT [550 nm] - PM 2.5
  SSAERIDX  |    1       | xy  | N   |            | Sea Salt TOMS UV Aerosol Index
- SSEXTTFM  |    1       | xy  | N   |            | Sea Salt Extinction AOT [550 nm] - PM 1.0 um
- SSSCATFM  |    1       | xy  | N   |            | Sea Salt Scattering AOT [550 nm] - PM 1.0 um
+ SSEXTTFM  |    1       | xy  | N   | size(self%wavelengths_vertint)           | Sea Salt Extinction AOT [550 nm] - PM 1.0 um
+ SSSCATFM  |    1       | xy  | N   | size(self%wavelengths_vertint)           | Sea Salt Scattering AOT [550 nm] - PM 1.0 um
  SSANGSTR  |    1       | xy  | N   |            | Sea Salt Angstrom parameter [470-870 nm]
  SSFLUXU   | kg m-1 s-1 | xy  | N   |            | Sea Salt column u-wind mass flux
  SSFLUXV   | kg m-1 s-1 | xy  | N   |            | Sea Salt column v-wind mass flux
