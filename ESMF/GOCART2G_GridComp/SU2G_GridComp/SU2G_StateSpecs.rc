@@ -18,7 +18,6 @@ category: IMPORT
  Z0H        | m      | xy   | N   | surface_roughness_for_heat
  CN_PRCP    |kg/m^2/s| xy   | N   | surface_conv._rain_flux_needed_by_land
  NCN_PRCP   |kg/m^2/s| xy   | N   | Non-convective precipitation
- SU_regionMask | 1    | xy   | N    | source species
 #........................................................................................
  AIRDENS    | kg/m^3 | xyz  | C    | moist_air_density
  DELP       | Pa     | xyz  | C    | pressure_thickness
