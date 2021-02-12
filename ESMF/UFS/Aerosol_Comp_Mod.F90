@@ -24,7 +24,7 @@ module Aerosol_Comp_Mod
       "PLE                             ", "inst_pres_interface             ", &
       "U                               ", "inst_zonal_wind_levels          ", &
       "V                               ", "inst_merid_wind_levels          ", &
-      "PFI_LSAN                        ", "inst_liq_nonconv_tendency_levels", &
+      "PFI_LSAN                        ", "inst_ice_nonconv_tendency_levels", &
       "PFL_LSAN                        ", "inst_liq_nonconv_tendency_levels", &
       "FCLD                            ", "inst_cloud_frac_levels          "  &
       /), (/fieldMapSize, 2/), order=(/2,1/))
