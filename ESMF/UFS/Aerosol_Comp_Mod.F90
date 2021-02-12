@@ -6,7 +6,7 @@ module Aerosol_Comp_Mod
 
   implicit none
 
-  integer, parameter :: fieldMapSize = 18
+  integer, parameter :: fieldMapSize = 19
   character(len=*), dimension(fieldMapSize, 2), parameter :: &
     fieldMap = reshape((/ &
       "FROCEAN                         ", "ocean_fraction                  ", &
