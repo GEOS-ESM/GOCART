@@ -17,8 +17,9 @@ module NOAA_GOCARTtracers_mod
    character(*), parameter :: rc_label     = 'GOCART_tracer_config:'
    character(*), parameter :: bundle_label = 'inst_mass_tracers'
 
-   type, extends(StringVector) :: GOCARTtracers
-      type(TracerMap) :: tracer_map
+   type :: GOCARTtracers
+      type(StringVector) :: GOCART_tracers
+      type(TracerMap)    :: tracer_map
    contains
       procedure, nopass :: read_filename_from_config
       procedure :: parse_yaml
@@ -70,7 +71,7 @@ contains
             sub_iter = sub_config%begin()
             do while(sub_iter /= sub_config%end())
                field_name = sub_iter%get()
-               call this%push_back(field_name)
+               call this%GOCART_tracers%push_back(field_name)
 
                call sub_iter%next()
             end do
@@ -104,11 +105,11 @@ contains
       type(StringVectorIterator)    :: iter
       integer                       :: status, i
 
-      allocate(tracers(this%size()))
+      allocate(tracers(this%GOCART_tracers%size()))
 
       i    = 1
-      iter = this%begin()
-      do while(iter /= this%end())
+      iter = this%GOCART_tracers%begin()
+      do while(iter /= this%GOCART_tracers%end())
          call this%tracer_map%create_tracer(field, iter%get(), tracers(i), __RC__)
 
          i = i + 1
