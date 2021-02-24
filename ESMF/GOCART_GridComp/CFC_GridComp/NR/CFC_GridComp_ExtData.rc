@@ -1,0 +1,8 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+CFC12 NA  N Y - none none CFC-12_EMISSION ExtData/g5chem/sfc/ARCTAS.CFC12.emission.x540_y361.2008.hdf
+%%
+

@@ -1,0 +1,19 @@
+PrimaryExports%%
+# A = Climatology? Y/N; B = Conservative regridding? Y/N
+#---------------+-------------------+-+-+---------------------+--------+--------+------------------------------------   
+# Export        |                   | | |_______ Refresh _____|____ Factors ____|_______ External File __________
+# Name          | Units             |A|B|     Time Template   | Offset | Scale  |  Variable   |      Template
+#---------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------   
+ CO2_BIOMASS     'kg CO2 m-2 s-1'    N Y F%y4-%m2-%d2t12:00:00 none     none     biomass       ExtData/MERRA2/sfc/HFED/v1.0/Y%y4/hfed.emis_co2.x576_y361_t14.%y4.nc4
+ CO2_FF          'kg C m-2 s-1'      Y Y F%y4-%m2-%d2t12:00:00 none     0.27273  emco2ff       ExtData/MERRA2/sfc/edgar-v42.emis_co2.anthropogenic.x1152_y721.19700703T12z_20200703T00z.nc4
+ CO2_NEP         'kg C m-2 s-1'      Y Y F%y4-%m2-%d2t12:00:00 none     none     emco2nep      ExtData/PIESA/sfc/bian.co2.x288_y181_t12.2001.nc
+ CO2_OCN         'kg C m-2 s-1'      Y Y F%y4-%m2-%d2t12:00:00 none     none     emco2ocn      ExtData/PIESA/sfc/bian.co2.x288_y181_t12.2001.nc
+
+ CO2_CMS_BIOMASS 'kg C m-2 s-1'      N Y F%y4-%m2-%d2t12:00:00 none     0.27273  biomass       ExtData/MERRA2/sfc/HFED/v1.0/Y%y4/hfed.emis_co2.x576_y361_t14.%y4.nc4
+ CO2_CMS_FF      'kg C m-2 s-1'      N Y F%y4-%m2-%d2t12:00:00 none     none     emco2ff       ExtData/MERRA2/sfc/EDGAR.emis_co2.x3600_y1800.t14.%y4.nc4
+ CO2_CMS_NEP     'kg C m-2 s-1'      N Y  P0000-00-00T03:00    none     none     emco2nep      ExtData/MERRA2/sfc/daily_CO2_bio/Y%y4/M%m2/CASA_CO2.3hr.NEE.x3600_y1800.t8.%y4%m2%d2.nc4
+ CO2_CMS_OCN     'kg C m-2 s-1'      N Y F%y4-%m2-%d2t12:00:00 none     none     emco2ocn      ExtData/PIESA/sfc/CMS/NOBM_fco2.daily.1x1.25.%y4.nc
+
+ CO2_regionMask  NA                  N v   -                   none     none     REGION_MASK   ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+#---------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------   
+%%

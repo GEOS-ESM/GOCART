@@ -1,0 +1,30 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+# Biomass burning -- QFED-v2.x
+OC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
+
+# Terpene emission
+OC_TERPENE NA  Y Y %y4-%m2-%d2t12:00:00 none none terpene ExtData/PIESA/sfc/geia.terpene_biogenic.x144_y91_t12.1971.nc
+
+# Biofuel Source -- Included in AeroCom anthropogenic emissions
+OC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+OC_ANTEOC1 NA  Y Y %y4-%m2-%d2t12:00:00 none none anteoc1 ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_oc.surface.x3600_y1800_t12.2010.nc4
+OC_ANTEOC2 NA  Y Y %y4-%m2-%d2t12:00:00 none none anteoc2 ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_oc.elevated.x3600_y1800_t12.2010.nc4
+
+# EDGAR based ship emissions
+OC_SHIP    NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_ship ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_oc.ships.x3600_y1800_t12.2010.nc4
+
+# Aviation emissions during the three phases of flight
+OC_AVIATION_LTO NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_oc.aviation_lto.x3600_y1800_t12.2010.nc4
+OC_AVIATION_CDS NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_oc.aviation_cds.x3600_y1800_t12.2010.nc4
+OC_AVIATION_CRS NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_oc.aviation_crs.x3600_y1800_t12.2010.nc4
+
+# SOA production
+pSOA_ANTHRO_VOC NA Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+%%
+

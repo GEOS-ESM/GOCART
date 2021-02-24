@@ -1,0 +1,47 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: CO2
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<CO2::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |            |     | V |Item|Intervl| Sub |          Long
+#  Name    |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  CO2      | mol/mol    | xyz | C |    |   |   |     | Carbon Dioxide
+  CO2NAMER | mol/mol    | xyz | C |    |   |   |     | North American Carbon Dioxide
+  CO2SAMER | mol/mol    | xyz | C |    |   |   |     | South American Carbon Dioxide
+  CO2AFRIC | mol/mol    | xyz | C |    |   |   |     | African Carbon Dioxide
+# .........|............|.....|...|....|...|...|.....|..................................
+  CO2EM001 | kg m-2 s-1 | xy  |   |    |   |   |     | CO2 Emission Bin 001     
+  CO2EM002 | kg m-2 s-1 | xy  |   |    |   |   |     | CO2 Emission Bin 002     
+  CO2EM003 | kg m-2 s-1 | xy  |   |    |   |   |     | CO2 Emission Bin 003     
+  CO2EM004 | kg m-2 s-1 | xy  |   |    |   |   |     | CO2 Emission Bin 004     
+  CO2CL001 | 1          | xy  |   |    |   |   |     | CO2 Bulk Mixing Ratio (Column Mass/ps) Bin 001
+  CO2CL002 | 1          | xy  |   |    |   |   |     | CO2 Bulk Mixing Ratio (Column Mass/ps) Bin 002
+  CO2CL003 | 1          | xy  |   |    |   |   |     | CO2 Bulk Mixing Ratio (Column Mass/ps) Bin 003
+  CO2CL004 | 1          | xy  |   |    |   |   |     | CO2 Bulk Mixing Ratio (Column Mass/ps) Bin 004
+  CO2SC001 | 1e-6       | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 001     
+  CO2SC002 | 1e-6       | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 002     
+  CO2SC003 | 1e-6       | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 003     
+  CO2SC004 | 1e-6       | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 004     
+  CO2DRY001| mol/mol    | xyz | C |    |   |   |     | Dry-air Molar Carbon Dioxide Bin 001
+  CO2DRY002| mol/mol    | xyz | C |    |   |   |     | Dry-air Molar Carbon Dioxide Bin 002
+  CO2DRY003| mol/mol    | xyz | C |    |   |   |     | Dry-air Molar Carbon Dioxide Bin 003
+  CO2DRY004| mol/mol    | xyz | C |    |   |   |     | Dry-air Molar Carbon Dioxide Bin 004
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+</CO2::ExportSpec>
+
+

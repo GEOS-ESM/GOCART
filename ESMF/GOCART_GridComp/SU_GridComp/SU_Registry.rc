@@ -1,0 +1,252 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: SU
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<SU::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |            |     | V |Item|Intervl|# Sub|          Long
+#  Name    |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  SUEM001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 001            __ENSEMBLE__
+  SUEM002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 002            __ENSEMBLE__
+  SUEM003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 003            __ENSEMBLE__
+  SUEM004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 004            __ENSEMBLE__
+  SUDP001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 001            __ENSEMBLE__
+  SUDP002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 002            __ENSEMBLE__
+  SUDP003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 003            __ENSEMBLE__
+  SUDP004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 004            __ENSEMBLE__
+  SUSD001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 001            __ENSEMBLE__
+  SUSD002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 002            __ENSEMBLE__
+  SUSD003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 003            __ENSEMBLE__
+  SUSD004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 004            __ENSEMBLE__
+  SUWT001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 001            __ENSEMBLE__
+  SUWT002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 002            __ENSEMBLE__
+  SUWT003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 003            __ENSEMBLE__
+  SUWT004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 004            __ENSEMBLE__
+  SUSV001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 001            __ENSEMBLE__
+  SUSV002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 002            __ENSEMBLE__
+  SUSV003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 003            __ENSEMBLE__
+  SUSV004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 004            __ENSEMBLE__
+  SO4EMAN  | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Anthropogenic Emissions       __ENSEMBLE__
+  SO2EMAN  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Anthropogenic Emissions       __ENSEMBLE__
+  SO2EMBB  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Biomass Burning Emissions       __ENSEMBLE__
+  SO2EMVN  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Volcanic (non-explosive) Emissions       __ENSEMBLE__
+  SO2EMVE  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Volcanic (explosive) Emissions       __ENSEMBLE__
+  PSO2     | kg m-2 s-1 | xyz | C |    |   |   |     | SO2 Prod from DMS oxidation        __ENSEMBLE__
+  PMSA     | kg m-2 s-1 | xyz | C |    |   |   |     | MSA Prod from DMS oxidation        __ENSEMBLE__
+  PSO4     | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from all SO2 oxidation        __ENSEMBLE__
+  PSO4G    | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from gaseous SO2 oxidation        __ENSEMBLE__
+  PSO4WET  | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from wet SO2 oxidation        __ENSEMBLE__
+  PSO4AQ   | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from aqueous SO2 oxidation        __ENSEMBLE__
+  SUPSO2   | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Prod from DMS Oxidation [column]        __ENSEMBLE__
+  SUPSO4   | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from All SO2 Oxidation [column]        __ENSEMBLE__
+  SUPSO4G  | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Gaseous SO2 Oxidation [column]        __ENSEMBLE__
+  SUPSO4AQ | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Aqueous SO2 Oxidation [column]        __ENSEMBLE__
+  SUPSO4WT | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Aqueous SO2 Oxidation (wet dep) [column]        __ENSEMBLE__
+  SUPMSA   | kg m-2 s-1 | xy  |   |    |   |   |     | MSA Prod from DMS Oxidation [column]        __ENSEMBLE__
+  SO2SMASS | kg m-3     | xy  |   |    |   |   |     | SO2 Surface Mass Concentration           __ENSEMBLE__
+  SO2CMASS | kg m-2     | xy  |   |    |   |   |     | SO2 Column Mass Density       __ENSEMBLE__
+  SO4SMASS | kg m-3     | xy  |   |    |   |   |     | SO4 Surface Mass Concentration           __ENSEMBLE__
+  SO4CMASS | kg m-2     | xy  |   |    |   |   |     | SO4 Column Mass Density           __ENSEMBLE__
+  DMSSMASS | kg m-3     | xy  |   |    |   |   |     | DMS Surface Mass Concentration           __ENSEMBLE__
+  DMSCMASS | kg m-2     | xy  |   |    |   |   |     | DMS Column Mass Density           __ENSEMBLE__
+  MSASMASS | kg m-3     | xy  |   |    |   |   |     | MSA Surface Mass Concentration           __ENSEMBLE__
+  MSACMASS | kg m-2     | xy  |   |    |   |   |     | MSA Column Mass Density           __ENSEMBLE__
+  SUCONC   | kg m-3     | xyz | C |    |   |   |     | SO4 Aerosol Mass Concentration       __ENSEMBLE__
+  SUEXTCOEF| m-1        | xyz | C |    |   |   |     | SO4 Extinction Coefficient [550 nm]       __ENSEMBLE__
+  SUSCACOEF| m-1        | xyz | C |    |   |   |     | SO4 Scattering Coefficient [550 nm]       __ENSEMBLE__
+  SUANGSTR |      1     | xy  |   |    |   |   |     | SO4 Angstrom parameter [470-870 nm]       __ENSEMBLE__
+  SUFLUXU  | kg m-1 s-1 | xy  |   |    |   |   |     | SO4 column u-wind mass flux       __ENSEMBLE__
+  SUFLUXV  | kg m-1 s-1 | xy  |   |    |   |   |     | SO4 column v-wind mass flux       __ENSEMBLE__
+  SO4MASS  | kg kg-1    | xyz | C |    |   |   |     | SO4 Aerosol Mass Mixing Ratio       __ENSEMBLE__
+  SUEXTTAU |      1     | xy  |   |    |   |   |     | SO4 Extinction AOT [550 nm]       __ENSEMBLE__
+  SUSCATAU |      1     | xy  |   |    |   |   |     | SO4 Scattering AOT [550 nm]           __ENSEMBLE__
+  SO4SAREA | m2 m-3     | xyz | C |    |   |   |     | SO4 Surface Area Density          __ENSEMBLE__
+  SO4SNUM  | m-3        | xyz | C |    |   |   |     | SO4 Number Density          __ENSEMBLE__
+# .........|............|.....|...|....|...|...|.....|..................................
+  SUEM001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 001 (Anthropogenic)           
+  SUEM002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 002  (Anthropogenic)            
+  SUEM003anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 003  (Anthropogenic)            
+  SUEM004anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 004  (Anthropogenic)            
+  SUDP001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 001   (Anthropogenic)           
+  SUDP002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 002  (Anthropogenic)            
+  SUDP003anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 003  (Anthropogenic)            
+  SUDP004anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 004   (Anthropogenic)           
+  SUSD001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 001   (Anthropogenic)
+  SUSD002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 002   (Anthropogenic)
+  SUSD003anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 003   (Anthropogenic)
+  SUSD004anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 004   (Anthropogenic)
+  SUWT001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 001   (Anthropogenic)           
+  SUWT002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 002   (Anthropogenic)           
+  SUWT003anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 003    (Anthropogenic)          
+  SUWT004anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 004    (Anthropogenic)          
+  SUSV001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 001           (Anthropogenic) 
+  SUSV002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 002            (Anthropogenic) 
+  SUSV003anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 003            (Anthropogenic) 
+  SUSV004anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 004            (Anthropogenic) 
+  SO4EMANanth  | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Anthropogenic Emissions      (Anthropogenic)   
+  SO2EMANanth  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Anthropogenic Emissions      (Anthropogenic)   
+  SO2EMBBanth  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Biomass Burning Emissions        (Anthropogenic) 
+  SO2EMVNanth  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Volcanic (non-explosive) Emissions   (Anthropogenic)      
+  SO2EMVEanth  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Volcanic (explosive) Emissions      (Anthropogenic)   
+  PSO2anth     | kg m-2 s-1 | xyz | C |    |   |   |     | SO2 Prod from DMS oxidation (Anthropogenic) 
+  PMSAanth     | kg m-2 s-1 | xyz | C |    |   |   |     | MSA Prod from DMS oxidation (Anthropogenic) 
+  PSO4anth     | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from all SO2 oxidation (Anthropogenic) 
+  PSO4Ganth    | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from gaseous SO2 oxidation (Anthropogenic) 
+  PSO4WETanth  | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from wet SO2 oxidation (Anthropogenic) 
+  PSO4AQanth   | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from aqueous SO2 oxidation (Anthropogenic) 
+  SUPSO2anth   | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Prod from DMS Oxidation [column] (Anthropogenic) 
+  SUPSO4anth   | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from All SO2 Oxidation [column] (Anthropogenic) 
+  SUPSO4Ganth  | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Gaseous SO2 Oxidation [column] (Anthropogenic) 
+  SUPSO4AQanth | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Aqueous SO2 Oxidation [column] (Anthropogenic) 
+  SUPSO4WTanth | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Aqueous SO2 Oxidation (wet dep) [column] (Anthropogenic) 
+  SUPMSAanth   | kg m-2 s-1 | xy  |   |    |   |   |     | MSA Prod from DMS Oxidation [column] (Anthropogenic) 
+  SO2SMASSanth | kg m-3     | xy  |   |    |   |   |     | SO2 Surface Mass Concentration (Anthropogenic) 
+  SO2CMASSanth | kg m-2     | xy  |   |    |   |   |     | SO2 Column Mass Density (Anthropogenic) 
+  SO4SMASSanth | kg m-3     | xy  |   |    |   |   |     | SO4 Surface Mass Concentration (Anthropogenic) 
+  SO4CMASSanth | kg m-2     | xy  |   |    |   |   |     | SO4 Column Mass Density        (Anthropogenic) 
+  DMSSMASSanth | kg m-3     | xy  |   |    |   |   |     | DMS Surface Mass Concentration (Anthropogenic) 
+  DMSCMASSanth | kg m-2     | xy  |   |    |   |   |     | DMS Column Mass Density        (Anthropogenic) 
+  MSASMASSanth | kg m-3     | xy  |   |    |   |   |     | MSA Surface Mass Concentration (Anthropogenic) 
+  MSACMASSanth | kg m-2     | xy  |   |    |   |   |     | MSA Column Mass Density        (Anthropogenic) 
+  SUCONCanth   | kg m-3     | xyz | C |    |   |   |     | SO4 Aerosol Mass Concentration (Anthropogenic) 
+  SUEXTCOEFanth| m-1        | xyz | C |    |   |   |     | SO4 Extinction Coefficient [550 nm] (Anthropogenic) 
+  SUSCACOEFanth| m-1        | xyz | C |    |   |   |     | SO4 Scattering Coefficient [550 nm] (Anthropogenic) 
+  SUANGSTRanth |      1     | xy  |   |    |   |   |     | SO4 Angstrom parameter [470-870 nm] (Anthropogenic) 
+  SUFLUXUanth  | kg m-1 s-1 | xy  |   |    |   |   |     | SO4 column u-wind mass flux        (Anthropogenic) 
+  SUFLUXVanth  | kg m-1 s-1 | xy  |   |    |   |   |     | SO4 column v-wind mass flux        (Anthropogenic) 
+  SO4MASSanth  | kg kg-1    | xyz | C |    |   |   |     | SO4 Aerosol Mass Mixing Ratio      (Anthropogenic) 
+  SUEXTTAUanth |      1     | xy  |   |    |   |   |     | SO4 Extinction AOT [550 nm]        (Anthropogenic) 
+  SUSCATAUanth |      1     | xy  |   |    |   |   |     | SO4 Scattering AOT [550 nm]        (Anthropogenic) 
+  SO4SAREAanth | m2 m-3     | xyz | C |    |   |   |     | SO4 Surface Area Density          (Anthropogenic)
+  SO4SNUManth  | m-3        | xyz | C |    |   |   |     | SO4 Number Density          (Anthropogenic) 
+# .............|............|.....|...|....|...|...|.....|..................................
+  SUEM001volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 001 (Volcanic)           
+  SUEM002volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 002  (Volcanic)            
+  SUEM003volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 003  (Volcanic)            
+  SUEM004volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 004  (Volcanic)            
+  SUDP001volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 001   (Volcanic)           
+  SUDP002volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 002  (Volcanic)            
+  SUDP003volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 003  (Volcanic)            
+  SUDP004volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 004   (Volcanic)           
+  SUSD001volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 001   (Volcanic)
+  SUSD002volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 002   (Volcanic)
+  SUSD003volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 003   (Volcanic)
+  SUSD004volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 004   (Volcanic)
+  SUWT001volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 001   (Volcanic)           
+  SUWT002volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 002   (Volcanic)           
+  SUWT003volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 003    (Volcanic)          
+  SUWT004volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 004    (Volcanic)          
+  SUSV001volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 001           (Volcanic) 
+  SUSV002volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 002            (Volcanic) 
+  SUSV003volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 003            (Volcanic) 
+  SUSV004volc  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 004            (Volcanic) 
+  SO4EMANvolc  | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Anthropogenic Emissions      (Volcanic)   
+  SO2EMANvolc  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Anthropogenic Emissions      (Volcanic)   
+  SO2EMBBvolc  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Biomass Burning Emissions        (Volcanic) 
+  SO2EMVNvolc  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Volcanic (non-explosive) Emissions   (Volcanic)      
+  SO2EMVEvolc  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Volcanic (explosive) Emissions      (Volcanic)   
+  PSO2volc     | kg m-2 s-1 | xyz | C |    |   |   |     | SO2 Prod from DMS oxidation (Volcanic) 
+  PMSAvolc     | kg m-2 s-1 | xyz | C |    |   |   |     | MSA Prod from DMS oxidation (Volcanic) 
+  PSO4volc     | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from all SO2 oxidation (Volcanic) 
+  PSO4Gvolc    | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from gaseous SO2 oxidation (Volcanic) 
+  PSO4WETvolc  | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from wet SO2 oxidation (Volcanic) 
+  PSO4AQvolc   | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from aqueous SO2 oxidation (Volcanic) 
+  SUPSO2volc   | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Prod from DMS Oxidation [column] (Volcanic) 
+  SUPSO4volc   | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from All SO2 Oxidation [column] (Volcanic) 
+  SUPSO4Gvolc  | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Gaseous SO2 Oxidation [column] (Volcanic) 
+  SUPSO4AQvolc | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Aqueous SO2 Oxidation [column] (Volcanic) 
+  SUPSO4WTvolc | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Aqueous SO2 Oxidation (wet dep) [column] (Volcanic) 
+  SUPMSAvolc   | kg m-2 s-1 | xy  |   |    |   |   |     | MSA Prod from DMS Oxidation [column] (Volcanic) 
+  SO2SMASSvolc | kg m-3     | xy  |   |    |   |   |     | SO2 Surface Mass Concentration (Volcanic) 
+  SO2CMASSvolc | kg m-2     | xy  |   |    |   |   |     | SO2 Column Mass Density (Volcanic) 
+  SO4SMASSvolc | kg m-3     | xy  |   |    |   |   |     | SO4 Surface Mass Concentration (Volcanic) 
+  SO4CMASSvolc | kg m-2     | xy  |   |    |   |   |     | SO4 Column Mass Density        (Volcanic) 
+  DMSSMASSvolc | kg m-3     | xy  |   |    |   |   |     | DMS Surface Mass Concentration (Volcanic) 
+  DMSCMASSvolc | kg m-2     | xy  |   |    |   |   |     | DMS Column Mass Density        (Volcanic) 
+  MSASMASSvolc | kg m-3     | xy  |   |    |   |   |     | MSA Surface Mass Concentration (Volcanic) 
+  MSACMASSvolc | kg m-2     | xy  |   |    |   |   |     | MSA Column Mass Density        (Volcanic) 
+  SUCONCvolc   | kg m-3     | xyz | C |    |   |   |     | SO4 Aerosol Mass Concentration (Volcanic) 
+  SUEXTCOEFvolc| m-1        | xyz | C |    |   |   |     | SO4 Extinction Coefficient [550 nm] (Volcanic) 
+  SUSCACOEFvolc| m-1        | xyz | C |    |   |   |     | SO4 Scattering Coefficient [550 nm] (Volcanic) 
+  SUANGSTRvolc |      1     | xy  |   |    |   |   |     | SO4 Angstrom parameter [470-870 nm] (Volcanic) 
+  SUFLUXUvolc  | kg m-1 s-1 | xy  |   |    |   |   |     | SO4 column u-wind mass flux        (Volcanic) 
+  SUFLUXVvolc  | kg m-1 s-1 | xy  |   |    |   |   |     | SO4 column v-wind mass flux        (Volcanic) 
+  SO4MASSvolc  | kg kg-1    | xyz | C |    |   |   |     | SO4 Aerosol Mass Mixing Ratio      (Volcanic) 
+  SUEXTTAUvolc |      1     | xy  |   |    |   |   |     | SO4 Extinction AOT [550 nm]        (Volcanic) 
+  SUSCATAUvolc |      1     | xy  |   |    |   |   |     | SO4 Scattering AOT [550 nm]        (Volcanic) 
+  SO4SAREAvolc | m2 m-3     | xyz | C |    |   |   |     | SO4 Surface Area Density          (Volcanic)
+  SO4SNUMvolc  | m-3        | xyz | C |    |   |   |     | SO4 Number Density          (Volcanic)
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  SUEM001strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 001 (Stratospheric)           
+  SUEM002strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 002  (Stratospheric)            
+  SUEM003strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 003  (Stratospheric)            
+  SUEM004strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Emission Bin 004  (Stratospheric)            
+  SUDP001strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 001   (Stratospheric)           
+  SUDP002strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 002  (Stratospheric)            
+  SUDP003strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 003  (Stratospheric)            
+  SUDP004strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Dry Deposition Bin 004   (Stratospheric)           
+  SUSD001strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 001   (Stratospheric)
+  SUSD002strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 002   (Stratospheric)
+  SUSD003strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 003   (Stratospheric)
+  SUSD004strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Settling Bin 004   (Stratospheric)
+  SUWT001strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 001   (Stratospheric)           
+  SUWT002strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 002   (Stratospheric)           
+  SUWT003strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 003    (Stratospheric)          
+  SUWT004strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Wet Deposition Bin 004    (Stratospheric)          
+  SUSV001strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 001           (Stratospheric) 
+  SUSV002strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 002            (Stratospheric) 
+  SUSV003strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 003            (Stratospheric) 
+  SUSV004strat  | kg m-2 s-1 | xy  |   |    |   |   |     | Sulfate Convective Scavenging Bin 004            (Stratospheric) 
+  SO4EMANstrat  | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Anthropogenic Emissions      (Stratospheric)   
+  SO2EMANstrat  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Anthropogenic Emissions      (Stratospheric)   
+  SO2EMBBstrat  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Biomass Burning Emissions        (Stratospheric) 
+  SO2EMVNstrat  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Volcanic (non-explosive) Emissions   (Stratospheric)      
+  SO2EMVEstrat  | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Volcanic (explosive) Emissions      (Stratospheric)   
+  PSO2strat     | kg m-2 s-1 | xyz | C |    |   |   |     | SO2 Prod from DMS oxidation (Stratospheric) 
+  PMSAstrat     | kg m-2 s-1 | xyz | C |    |   |   |     | MSA Prod from DMS oxidation (Stratospheric) 
+  PSO4strat     | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from all SO2 oxidation (Stratospheric) 
+  PSO4Gstrat    | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from gaseous SO2 oxidation (Stratospheric) 
+  PSO4WETstrat  | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from wet SO2 oxidation (Stratospheric) 
+  PSO4AQstrat   | kg m-2 s-1 | xyz | C |    |   |   |     | SO4 Prod from aqueous SO2 oxidation (Stratospheric) 
+  SUPSO2strat   | kg m-2 s-1 | xy  |   |    |   |   |     | SO2 Prod from DMS Oxidation [column] (Stratospheric) 
+  SUPSO4strat   | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from All SO2 Oxidation [column] (Stratospheric) 
+  SUPSO4Gstrat  | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Gaseous SO2 Oxidation [column] (Stratospheric) 
+  SUPSO4AQstrat | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Aqueous SO2 Oxidation [column] (Stratospheric) 
+  SUPSO4WTstrat | kg m-2 s-1 | xy  |   |    |   |   |     | SO4 Prod from Aqueous SO2 Oxidation (wet dep) [column] (Stratospheric) 
+  SUPMSAstrat   | kg m-2 s-1 | xy  |   |    |   |   |     | MSA Prod from DMS Oxidation [column] (Stratospheric) 
+  SO2SMASSstrat | kg m-3     | xy  |   |    |   |   |     | SO2 Surface Mass Concentration (Stratospheric) 
+  SO2CMASSstrat | kg m-2     | xy  |   |    |   |   |     | SO2 Column Mass Density (Stratospheric) 
+  SO4SMASSstrat | kg m-3     | xy  |   |    |   |   |     | SO4 Surface Mass Concentration (Stratospheric) 
+  SO4CMASSstrat | kg m-2     | xy  |   |    |   |   |     | SO4 Column Mass Density        (Stratospheric) 
+  DMSSMASSstrat | kg m-3     | xy  |   |    |   |   |     | DMS Surface Mass Concentration (Stratospheric) 
+  DMSCMASSstrat | kg m-2     | xy  |   |    |   |   |     | DMS Column Mass Density        (Stratospheric) 
+  MSASMASSstrat | kg m-3     | xy  |   |    |   |   |     | MSA Surface Mass Concentration (Stratospheric) 
+  MSACMASSstrat | kg m-2     | xy  |   |    |   |   |     | MSA Column Mass Density        (Stratospheric) 
+  SUCONCstrat   | kg m-3     | xyz | C |    |   |   |     | SO4 Aerosol Mass Concentration (Stratospheric) 
+  SUEXTCOEFstrat| m-1        | xyz | C |    |   |   |     | SO4 Extinction Coefficient [550 nm] (Stratospheric) 
+  SUSCACOEFstrat| m-1        | xyz | C |    |   |   |     | SO4 Scattering Coefficient [550 nm] (Stratospheric) 
+  SUANGSTRstrat |      1     | xy  |   |    |   |   |     | SO4 Angstrom parameter [470-870 nm] (Stratospheric) 
+  SUFLUXUstrat  | kg m-1 s-1 | xy  |   |    |   |   |     | SO4 column u-wind mass flux        (Stratospheric) 
+  SUFLUXVstrat  | kg m-1 s-1 | xy  |   |    |   |   |     | SO4 column v-wind mass flux        (Stratospheric) 
+  SO4MASSstrat  | kg kg-1    | xyz | C |    |   |   |     | SO4 Aerosol Mass Mixing Ratio      (Stratospheric) 
+  SUEXTTAUstrat |      1     | xy  |   |    |   |   |     | SO4 Extinction AOT [550 nm]        (Stratospheric) 
+  SUSCATAUstrat |      1     | xy  |   |    |   |   |     | SO4 Scattering AOT [550 nm]        (Stratospheric) 
+  SO4SAREAstrat | m2 m-3     | xyz | C |    |   |   |     | SO4 Surface Area Density          (Stratospheric)
+  SO4SNUMstrat  | m-3        | xyz | C |    |   |   |     | SO4 Number Density          (Stratospheric) 
+# .............|............|.....|...|....|...|...|.....|..................................
+</SU::ExportSpec>
+

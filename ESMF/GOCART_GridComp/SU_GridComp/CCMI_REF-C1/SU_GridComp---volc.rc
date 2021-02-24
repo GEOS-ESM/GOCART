@@ -1,0 +1,69 @@
+#
+# Resource file for SU parameters. 
+#
+
+number_su_classes:  4
+
+
+# Indicate regions using a comma-delimited list of integers.
+# To activate all land boxes, use -1, or all or global (not case sensitive)
+SU_regions_indices: global
+
+# For all land boxes in a latitude range, set doZoneMasking to
+# 1 then specify BOTH the south and north limits in degrees.
+# WARNING: When set, zone masking OVERRIDES regions setting above!
+# ----------------------------------------------------------------
+doZoneMasking: 0
+LatitudeSouth: 45.0
+LatitudeNorth: 90.0
+
+# Volcanic pointwise sources
+volcano_srcfilen:  /discover/nobackup/mmanyin/CCM/EXT_DATA/SU/volcanic/volcanic_v10_1958-2015_explosive/so2_volcanic_emissions_Carns.%y4%m2%d2.rc
+
+# Heights [m] of LTO, CDS and CRS aviation emissions layers
+aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
+
+# Fraction of anthropogenic emissions that are SO4
+so4_anthropogenic_fraction: 0.03
+
+# Aircraft emission factor: go from kg fuel to kg SO2
+aircraft_fuel_emission_factor: 0.0008
+
+# Scavenging efficiency per bin [km-1] (NOT USED UNLESS RAS IS CALLED)
+fscav: 0.0  0.0 0.4 0.4
+
+# Dry particle radius [um], used for settling
+particle_radius: 0.0 0.0 0.60 0.0
+
+# Type of settling to use (see Chem_SettlingMod)
+rhFlag: 4
+
+# Dry particle density [kg m-3]
+particle_density: -1  -1  1700  -1
+
+# Molecular weight of species [kg mole-1]
+molecular_weight: -1  -1  0.132  -1
+
+# Number of particles per kg mass
+fnum: -1  -1  1.24e15  -1
+
+# Number median radius [um]
+particle_radius_number: -1  -1  0.35  -1
+
+# Sigma of lognormal number distribution
+sigma: -1  -1  1.59  -1
+
+# OH H2O2 NO3 from GMI Combined Stratosphere Troposphere (Lower case yes to enable)
+# -------------------------------------------------------------------------------------
+using_GMI_OH: yes
+using_GMI_NO3: yes
+using_GMI_H2O2: yes
+export_H2O2: no
+
+# production of SO2 by OCS from ACHEM
+# -----------------------------------
+using_ACHEM_pSO2_OCS: no
+
+# Day of the week to reset tracer to zero; -1 means never reset to zero
+my_day_of_the_week: -1 # Sun=1, Mon=2, ..., Sat=7
+

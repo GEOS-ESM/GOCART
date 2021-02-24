@@ -1,0 +1,33 @@
+#
+# Resource file Dust parameters. 
+#
+
+number_dust_bins: 5
+
+
+particle_radius: 0.73 1.4 2.4 4.5 8.0
+
+radius_lower: 0.1 1.0 1.8 3.0 6.0
+
+radius_upper: 1.0 1.8 3.0 6.0 10.0
+
+source_fraction: 0.1 0.25 0.25 0.25 0.25
+
+soil_density: 2500. 2650. 2650. 2650. 2650.
+
+# Resolution dependent tuning constant for emissions (a,b,c,d,e,f)
+Ch_DU: 0.2 0.2 0.08 0.08 0.08 0.067
+
+# Scavenging efficiency per bin [km-1]
+fscav: 0.2  0.2  0.2  0.2  0.2   #    
+
+# Molecular weight of species [kg mole-1]
+molecular_weight: 0.1  0.1  0.1  0.1  0.1
+
+# Number of particles per kg mass
+fnum: 2.45e14  3.28e13  6.52e12  9.89e11 1.76e11
+
+rhFlag: 0
+
+# Maring settling velocity correction
+maringFlag: 1
