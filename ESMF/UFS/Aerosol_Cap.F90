@@ -333,11 +333,17 @@ contains
 
     this => is % maplCap
 
-    call this % nuopc_fill_mapl_comm(_RC)
+    ! initialize MAPL I/O on the same PETs as the model component
+    call this % initialize_io_clients_servers(this % get_comm_world(), _RC)
 
-    call this % initialize_cap_gc(this % get_mapl_comm())
+    ! create aerosol grid component
+    call this % initialize_cap_gc(_RC)
 
-    call this % cap_gc % set_services(_RC)
+    call this % cap_gc % set_services(rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! provide model grid to MAPL
     call this % cap_gc % set_grid(grid, lm=nlev, _RC)
@@ -346,7 +352,11 @@ contains
     call this % cap_gc % set_clock(clock, _RC)
 
     ! initialize aerosol grid component
-    call this % cap_gc % initialize(_RC)
+    call this % cap_gc % initialize(rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! set component's internal state
     call ESMF_GridCompSetInternalState(model, is, rc)
@@ -443,7 +453,11 @@ contains
         return  ! bail out
 
       ! -- run cap
-      call is % maplCap % cap_gc % run(_RC)
+      call is % maplCap % cap_gc % run(rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
 
       ! -- export tarcers
       call AerosolStateUpdate(model, is % maplCap, "export", rc=rc)
