@@ -2,7 +2,7 @@ esma_set_this ()
 
 esma_add_library (${this}
   SRCS ${this}Mod.F90
-  DEPENDENCIES GA_GridComp Chem_Shared2G Process_Library esmf NetCDF::NetCDF_Fortran)
+  DEPENDENCIES MAPL GA_GridComp Chem_Shared2G Process_Library esmf NetCDF::NetCDF_Fortran)
 
 mapl_acg (${this}   SS2G_StateSpecs.rc 
           IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS 
