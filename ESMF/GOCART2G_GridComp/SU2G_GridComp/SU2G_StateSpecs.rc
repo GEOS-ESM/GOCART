@@ -83,14 +83,14 @@ category: EXPORT
  MSASMASS  | kg m-3     | xy  | N    |            | MSA Surface Mass Concentration
  MSACMASS  | kg m-2     | xy  | N    |            | MSA Column Mass Density
  SUCONC    | kg m-3     | xyz | C    |            | SO4 Aerosol Mass Concentration
- SUEXTCOEF | m-1        | xyz | C    |            | SO4 Extinction Coefficient [550 nm]
- SUSCACOEF | m-1        | xyz | C    |            | SO4 Scattering Coefficient [550 nm]
+ SUEXTCOEF | m-1        | xyz | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient [550 nm]
+ SUSCACOEF | m-1        | xyz | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient [550 nm]
  SUANGSTR  |      1     | xy  | N    |            | SO4 Angstrom parameter [470-870 nm]
  SUFLUXU   | kg m-1 s-1 | xy  | N    |            | SO4 column u-wind mass flux
  SUFLUXV   | kg m-1 s-1 | xy  | N    |            | SO4 column v-wind mass flux
  SO4MASS   | kg kg-1    | xyz | C    |            | SO4 Aerosol Mass Mixing Ratio
- SUEXTTAU  |      1     | xy  | N    |            | SO4 Extinction AOT [550 nm]
- SUSCATAU  |      1     | xy  | N    |            | SO4 Scattering AOT [550 nm]
+ SUEXTTAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT [550 nm]
+ SUSCATAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT [550 nm]
  SO4SAREA  | m2 m-3     | xyz | C    |            | SO4 Surface Area Density
  SO4SNUM   | m-3        | xyz | C    |            | SO4 Number Density
 

@@ -88,6 +88,7 @@ contains
 !   !Locals
     character (len=ESMF_MAXSTR)                 :: COMP_NAME
     type (ESMF_Config)                          :: cfg
+    type (ESMF_Config)                          :: universal_cfg
     type (wrap_)                                :: wrap
     type (SS2G_GridComp), pointer               :: self
 
@@ -103,7 +104,7 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
 !   Wrap internal state for storing in GC
@@ -121,7 +122,7 @@ contains
     end if
 
     ! process generic config items
-    call self%GA_GridComp%load_from_config( cfg, __RC__)
+    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
 
     allocate(self%rlow(self%nbins), self%rup(self%nbins), self%rmed(self%nbins), __STAT__)
 
@@ -833,8 +834,9 @@ contains
 
 !   Compute diagnostics
 !   -------------------
-    call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow,&
-                             self%rup, self%diag_MieTable(self%instance)%channels, SS, MAPL_GRAV, t, airdens, &
+    call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
+                             self%rup, self%diag_MieTable(self%instance)%channels, self%wavelengths_profile*1.0e-9, &
+                             self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens, &
                              rh2, u, v, delp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSCATAU,     &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &

@@ -48,6 +48,8 @@ module GOCART2G_GridCompMod
      type(Constituent) :: SU
      type(Constituent) :: CA
      type(Constituent) :: NI
+     real, allocatable :: wavelengths_profile(:) ! wavelengths for profile aop [nm]
+     real, allocatable :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
   end type GOCART_State
 
   type wrap_
@@ -99,9 +101,13 @@ contains
 !
 !   Locals
     character (len=ESMF_MAXSTR)                   :: COMP_NAME 
-    type (ESMF_Config)                            :: myCF
+    type (ESMF_Config)                            :: myCF      ! GOCART2G_GridComp.rc
+    type (ESMF_Config)                            :: cf        ! universal config
     type (GOCART_State), pointer                  :: self
     type (wrap_)                                  :: wrap
+
+    integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
+    integer, allocatable, dimension(:) :: wavelengths_diagmie
 
     __Iam__('SetServices')
 
@@ -110,8 +116,8 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
-    Iam = trim(COMP_NAME)//'::'//'SetServices'
+    call ESMF_GridCompGet (GC, name=comp_name, config=cf, __RC__)
+    Iam = trim(comp_name)//'::'//'SetServices'
 
 !   Wrap internal state for storing in GC
 !   -------------------------------------
@@ -129,11 +135,33 @@ contains
     call ESMF_UserCompSetInternalState (GC, 'GOCART_State', wrap, STATUS)
     VERIFY_(STATUS)
 
-!   Get instances to determine what children will be born
-!   -----------------------------------------------------
     myCF = ESMF_ConfigCreate (__RC__)
     call ESMF_ConfigLoadFile (myCF, 'GOCART2G_GridComp.rc', __RC__)
 
+!   Retrieve wavelengths from GOCART2G_GridComp.rc
+    n_wavelengths_profile = ESMF_ConfigGetLen (myCF, label='wavelengths_for_profile_aop_in_nm:', __RC__)
+    n_wavelengths_vertint = ESMF_ConfigGetLen (myCF, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+    n_wavelengths_diagmie = ESMF_ConfigGetLen (myCF, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+
+    allocate(self%wavelengths_profile(n_wavelengths_profile), self%wavelengths_vertint(n_wavelengths_vertint), &
+             wavelengths_diagmie(n_wavelengths_diagmie), __STAT__)
+!    allocate(wavelengths_profile(n_wavelengths_profile), wavelengths_vertint(n_wavelengths_vertint), __STAT__)
+    call ESMF_ConfigGetAttribute (myCF, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+
+!   Set wavelengths in universal config
+    call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile(1), label='wavelengths_for_profile_aop_in_nm:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint(1), label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie(1), label='aerosol_monochromatic_optics_wavelength:', __RC__)
+
+!call ESMF_ConfigGetAttribute(cf, wave_prof, label='wavelengths_for_profile_aop_in_nm:', __RC__)
+!if(mapl_am_i_root()) print*,'GOCART2G wave_prof = ',wave_prof
+!call ESMF_ConfigGetAttribute(cf, wave_vert, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+!if(mapl_am_i_root()) print*,'GOCART2G wave_vert = ',wave_vert
+
+!   Get instances to determine what children will be born
+!   -----------------------------------------------------
     call getInstances_('DU', myCF, species=self%DU, __RC__)
     call getInstances_('SS', myCF, species=self%SS, __RC__)
     call getInstances_('SU', myCF, species=self%SU, __RC__)
@@ -376,7 +404,10 @@ contains
 
     call ESMF_AttributeSet(aero, name='band_for_aerosol_optics',             value=0,     __RC__)
 
-!   Attach the aerosol optics method
+!   Attach method to create a Bundle of aerosol fields used in GAAS
+    call ESMF_MethodAdd (aero, label='serialize_bundle', userRoutine=serialize_bundle, __RC__)
+
+!   Attach the aerosol optics method used in Radiation
     call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, __RC__)
 
     ! This attribute indicates if the aerosol optics method is implemented or not. 
@@ -567,34 +598,34 @@ contains
 
     type (wrap_)                        :: wrap
     character(len=ESMF_MAXSTR)          :: child_name
-    integer                             :: i, n
+    integer                             :: i, n, w
     real, pointer, dimension(:,:)       :: LATS
     real, pointer, dimension(:,:)       :: LONS
 
-    real, pointer, dimension(:,:)   :: duexttau, duscatau, &
+    real, pointer, dimension(:,:,:) :: duexttau, duscatau, &
                                        duextt25, duscat25, &
-                                       duexttfm, duscatfm, &
-                                       duangstr, dusmass,  &
+                                       duexttfm, duscatfm
+    real, pointer, dimension(:,:)   :: duangstr, dusmass,  &
                                        dusmass25
-    real, pointer, dimension(:,:)   :: ssexttau, ssscatau, &
+    real, pointer, dimension(:,:,:) :: ssexttau, ssscatau, &
                                        ssextt25, ssscat25, &
-                                       ssexttfm, ssscatfm, &
-                                       ssangstr, sssmass,  &
+                                       ssexttfm, ssscatfm
+    real, pointer, dimension(:,:)   :: ssangstr, sssmass,  &
                                        sssmass25
-    real, pointer, dimension(:,:)   :: niexttau, niscatau, &
+    real, pointer, dimension(:,:,:) :: niexttau, niscatau, &
                                        niextt25, niscat25, &
-                                       niexttfm, niscatfm, &
-                                       niangstr, nismass,  &
+                                       niexttfm, niscatfm
+    real, pointer, dimension(:,:)   :: niangstr, nismass,  &
                                        nismass25
     real, pointer, dimension(:,:)   :: nh4smass
-    real, pointer, dimension(:,:)   :: suexttau, suscatau, &
-                                       suangstr, so4smass
-    real, pointer, dimension(:,:)   :: bcexttau, bcscatau, &
-                                       bcangstr, bcsmass
-    real, pointer, dimension(:,:)   :: ocexttau, ocscatau, &
-                                       ocangstr, ocsmass
-    real, pointer, dimension(:,:)   :: brexttau, brscatau, &
-                                       brangstr, brsmass
+    real, pointer, dimension(:,:,:) :: suexttau, suscatau
+    real, pointer, dimension(:,:)   :: suangstr, so4smass
+    real, pointer, dimension(:,:,:) :: bcexttau, bcscatau
+    real, pointer, dimension(:,:)   :: bcangstr, bcsmass
+    real, pointer, dimension(:,:,:) :: ocexttau, ocscatau
+    real, pointer, dimension(:,:)   :: ocangstr, ocsmass
+    real, pointer, dimension(:,:,:) :: brexttau, brscatau
+    real, pointer, dimension(:,:)   :: brangstr, brsmass
     real, pointer, dimension(:,:,:) :: pso4
     real, allocatable               :: tau1(:,:), tau2(:,:)
     real                            :: c1, c2, c3
@@ -629,12 +660,12 @@ contains
 
 #include "GOCART2G_GetPointer___.h"
 
-    if(associated(totexttau)) totexttau(:,:) = 0.
-    if(associated(totscatau)) totscatau(:,:) = 0.
-    if(associated(totextt25)) totextt25(:,:) = 0.
-    if(associated(totscat25)) totscat25(:,:) = 0.
-    if(associated(totexttfm)) totexttfm(:,:) = 0.
-    if(associated(totscatfm)) totscatfm(:,:) = 0.
+    if(associated(totexttau)) totexttau = 0.
+    if(associated(totscatau)) totscatau = 0.
+    if(associated(totextt25)) totextt25 = 0.
+    if(associated(totscat25)) totscat25 = 0.
+    if(associated(totexttfm)) totexttfm = 0.
+    if(associated(totscatfm)) totscatfm = 0.
 
     if(associated(pm))        pm(:,:)        = 0.
     if(associated(pm25))      pm25(:,:)      = 0.
@@ -679,12 +710,16 @@ contains
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatfm, 'DUSCATFM', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duangstr, 'DUANGSTR', __RC__)
-          if(associated(totexttau) .and. associated(duexttau)) totexttau = totexttau+duexttau
-          if(associated(totscatau) .and. associated(duscatau)) totscatau = totscatau+duscatau
-          if(associated(totextt25) .and. associated(duextt25)) totextt25 = totextt25+duextt25
-          if(associated(totscat25) .and. associated(duscat25)) totscat25 = totscat25+duscat25
-          if(associated(totexttfm) .and. associated(duexttfm)) totexttfm = totexttfm+duexttfm
-          if(associated(totscatfm) .and. associated(duscatfm)) totscatfm = totscatfm+duscatfm
+
+      !   Iterate over the wavelengths
+          do w = 1, size(self%wavelengths_vertint)
+             if(associated(totexttau) .and. associated(duexttau)) totexttau(:,:,w) = totexttau(:,:,w)+duexttau(:,:,w)
+             if(associated(totscatau) .and. associated(duscatau)) totscatau(:,:,w) = totscatau(:,:,w)+duscatau(:,:,w)
+             if(associated(totextt25) .and. associated(duextt25)) totextt25(:,:,w) = totextt25(:,:,w)+duextt25(:,:,w)
+             if(associated(totscat25) .and. associated(duscat25)) totscat25(:,:,w) = totscat25(:,:,w)+duscat25(:,:,w)
+             if(associated(totexttfm) .and. associated(duexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+duexttfm(:,:,w)
+             if(associated(totscatfm) .and. associated(duscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+duscatfm(:,:,w)
+          end do
 
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25, 'DUSMASS25', __RC__)
@@ -696,8 +731,8 @@ contains
           if(associated(pm25_rh50) .and. associated(dusmass25)) pm25_rh50 = pm25_rh50 + dusmass25
 
           if(associated(totangstr) .and. associated(duexttau) .and. associated(duangstr)) then
-             tau1 = tau1 + duexttau*exp(c1*duangstr)
-             tau2 = tau2 + duexttau*exp(c2*duangstr)
+             tau1 = tau1 + duexttau(:,:,2)*exp(c1*duangstr)
+             tau2 = tau2 + duexttau(:,:,2)*exp(c2*duangstr)
           end if
        end if   
     end do
@@ -712,12 +747,16 @@ contains
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttfm, 'SSEXTTFM', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatfm, 'SSSCATFM', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssangstr, 'SSANGSTR', __RC__)
-          if(associated(totexttau) .and. associated(ssexttau)) totexttau = totexttau+ssexttau
-          if(associated(totscatau) .and. associated(ssscatau)) totscatau = totscatau+ssscatau
-          if(associated(totextt25) .and. associated(ssextt25)) totextt25 = totextt25+ssextt25
-          if(associated(totscat25) .and. associated(ssscat25)) totscat25 = totscat25+ssscat25
-          if(associated(totexttfm) .and. associated(ssexttfm)) totexttfm = totexttfm+ssexttfm
-          if(associated(totscatfm) .and. associated(ssscatfm)) totscatfm = totscatfm+ssscatfm
+
+      !   Iterate over the wavelengths
+          do w = 1, size(self%wavelengths_vertint)
+             if(associated(totexttau) .and. associated(ssexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ssexttau(:,:,w)
+             if(associated(totscatau) .and. associated(ssscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ssscatau(:,:,w)
+             if(associated(totextt25) .and. associated(ssextt25)) totextt25(:,:,w) = totextt25(:,:,w)+ssextt25(:,:,w)
+             if(associated(totscat25) .and. associated(ssscat25)) totscat25(:,:,w) = totscat25(:,:,w)+ssscat25(:,:,w)
+             if(associated(totexttfm) .and. associated(ssexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+ssexttfm(:,:,w)
+             if(associated(totscatfm) .and. associated(ssscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+ssscatfm(:,:,w)
+          end do
 
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass,   'SSSMASS',   __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass25, 'SSSMASS25', __RC__)
@@ -729,8 +768,8 @@ contains
           if(associated(pm25_rh50) .and. associated(sssmass25)) pm25_rh50 = pm25_rh50 + 2.42*sssmass25
 
           if(associated(totangstr) .and. associated(ssexttau) .and. associated(ssangstr)) then
-             tau1 = tau1 + ssexttau*exp(c1*ssangstr)
-             tau2 = tau2 + ssexttau*exp(c2*ssangstr)
+             tau1 = tau1 + ssexttau(:,:,2)*exp(c1*ssangstr)
+             tau2 = tau2 + ssexttau(:,:,2)*exp(c2*ssangstr)
           end if
        end if
     end do
@@ -745,12 +784,16 @@ contains
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatfm, 'NISCATFM', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niangstr, 'NIANGSTR', __RC__)
-          if(associated(totexttau) .and. associated(niexttau)) totexttau = totexttau+niexttau
-          if(associated(totscatau) .and. associated(niscatau)) totscatau = totscatau+niscatau
-          if(associated(totextt25) .and. associated(niextt25)) totextt25 = totextt25+niextt25
-          if(associated(totscat25) .and. associated(niscat25)) totscat25 = totscat25+niscat25
-          if(associated(totexttfm) .and. associated(niexttfm)) totexttfm = totexttfm+niexttfm
-          if(associated(totscatfm) .and. associated(niscatfm)) totscatfm = totscatfm+niscatfm
+
+      !   Iterate over the wavelengths
+          do w = 1, size(self%wavelengths_vertint)
+             if(associated(totexttau) .and. associated(niexttau)) totexttau(:,:,w) = totexttau(:,:,w)+niexttau(:,:,w)
+             if(associated(totscatau) .and. associated(niscatau)) totscatau(:,:,w) = totscatau(:,:,w)+niscatau(:,:,w)
+             if(associated(totextt25) .and. associated(niextt25)) totextt25(:,:,w) = totextt25(:,:,w)+niextt25(:,:,w)
+             if(associated(totscat25) .and. associated(niscat25)) totscat25(:,:,w) = totscat25(:,:,w)+niscat25(:,:,w)
+             if(associated(totexttfm) .and. associated(niexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+niexttfm(:,:,w)
+             if(associated(totscatfm) .and. associated(niscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+niscatfm(:,:,w)
+          end do
 
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', __RC__)
@@ -763,8 +806,8 @@ contains
           if(associated(pm25_rh50) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh50 = pm25_rh50 + 1.51*(nismass25 + nh4smass)
 
           if(associated(totangstr) .and. associated(niexttau) .and. associated(niangstr)) then
-             tau1 = tau1 + niexttau*exp(c1*niangstr)
-             tau2 = tau2 + niexttau*exp(c2*niangstr)
+             tau1 = tau1 + niexttau(:,:,2)*exp(c1*niangstr)
+             tau2 = tau2 + niexttau(:,:,2)*exp(c2*niangstr)
           end if
        end if
     end do
@@ -775,12 +818,16 @@ contains
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', __RC__)
-          if(associated(totexttau) .and. associated(suexttau)) totexttau = totexttau+suexttau
-          if(associated(totscatau) .and. associated(suscatau)) totscatau = totscatau+suscatau
-          if(associated(totextt25) .and. associated(suexttau)) totextt25 = totextt25+suexttau
-          if(associated(totscat25) .and. associated(suscatau)) totscat25 = totscat25+suscatau
-          if(associated(totexttfm) .and. associated(suexttau)) totexttfm = totexttfm+suexttau
-          if(associated(totscatfm) .and. associated(suscatau)) totscatfm = totscatfm+suscatau
+
+          !   Iterate over the wavelengths
+          do w = 1, size(self%wavelengths_vertint)
+             if(associated(totexttau) .and. associated(suexttau)) totexttau(:,:,w) = totexttau(:,:,w)+suexttau(:,:,w)
+             if(associated(totscatau) .and. associated(suscatau)) totscatau(:,:,w) = totscatau(:,:,w)+suscatau(:,:,w)
+             if(associated(totextt25) .and. associated(suexttau)) totextt25(:,:,w) = totextt25(:,:,w)+suexttau(:,:,w)
+             if(associated(totscat25) .and. associated(suscatau)) totscat25(:,:,w) = totscat25(:,:,w)+suscatau(:,:,w)
+             if(associated(totexttfm) .and. associated(suexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+suexttau(:,:,w)
+             if(associated(totscatfm) .and. associated(suscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+suscatau(:,:,w)
+          end do
 
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', __RC__)
           if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
@@ -803,8 +850,8 @@ contains
           end if
 
           if(associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
-             tau1 = tau1 + suexttau*exp(c1*suangstr)
-             tau2 = tau2 + suexttau*exp(c2*suangstr)
+!             tau1 = tau1 + suexttau(:,:,2)*exp(c1*suangstr)
+!             tau2 = tau2 + suexttau(:,:,2)*exp(c2*suangstr)
           end if
        end if
     end do
@@ -818,12 +865,16 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CAEXTTAUCA.bc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CASCATAUCA.bc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CAANGSTRCA.bc', __RC__)
-          if(associated(totexttau) .and. associated(bcexttau)) totexttau = totexttau+bcexttau
-          if(associated(totscatau) .and. associated(bcscatau)) totscatau = totscatau+bcscatau
-          if(associated(totextt25) .and. associated(bcexttau)) totextt25 = totextt25+bcexttau
-          if(associated(totscat25) .and. associated(bcscatau)) totscat25 = totscat25+bcscatau
-          if(associated(totexttfm) .and. associated(bcexttau)) totexttfm = totexttfm+bcexttau
-          if(associated(totscatfm) .and. associated(bcscatau)) totscatfm = totscatfm+bcscatau
+
+          !   Iterate over the wavelengths
+          do w = 1, size(self%wavelengths_vertint)
+             if(associated(totexttau) .and. associated(bcexttau)) totexttau(:,:,w) = totexttau(:,:,w)+bcexttau(:,:,w)
+             if(associated(totscatau) .and. associated(bcscatau)) totscatau(:,:,w) = totscatau(:,:,w)+bcscatau(:,:,w)
+             if(associated(totextt25) .and. associated(bcexttau)) totextt25(:,:,w) = totextt25(:,:,w)+bcexttau(:,:,w)
+             if(associated(totscat25) .and. associated(bcscatau)) totscat25(:,:,w) = totscat25(:,:,w)+bcscatau(:,:,w)
+             if(associated(totexttfm) .and. associated(bcexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+bcexttau(:,:,w)
+             if(associated(totscatfm) .and. associated(bcscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+bcscatau(:,:,w)
+          end do
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CASMASSCA.bc', __RC__)
           if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
@@ -834,8 +885,8 @@ contains
           if(associated(pm25_rh50) .and. associated(bcsmass)) pm25_rh50 = pm25_rh50 + bcsmass
 
           if(associated(totangstr) .and. associated(bcexttau) .and. associated(bcangstr)) then
-             tau1 = tau1 + bcexttau*exp(c1*bcangstr)
-             tau2 = tau2 + bcexttau*exp(c2*bcangstr)
+             tau1 = tau1 + bcexttau(:,:,2)*exp(c1*bcangstr)
+             tau2 = tau2 + bcexttau(:,:,2)*exp(c2*bcangstr)
           end if
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
@@ -843,12 +894,16 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CAEXTTAUCA.oc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CASCATAUCA.oc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CAANGSTRCA.oc', __RC__)
-          if(associated(totexttau) .and. associated(ocexttau)) totexttau = totexttau+ocexttau
-          if(associated(totscatau) .and. associated(ocscatau)) totscatau = totscatau+ocscatau
-          if(associated(totextt25) .and. associated(ocexttau)) totextt25 = totextt25+ocexttau
-          if(associated(totscat25) .and. associated(ocscatau)) totscat25 = totscat25+ocscatau
-          if(associated(totexttfm) .and. associated(ocexttau)) totexttfm = totexttfm+ocexttau
-          if(associated(totscatfm) .and. associated(ocscatau)) totscatfm = totscatfm+ocscatau
+
+          !   Iterate over the wavelengths
+          do w = 1, size(self%wavelengths_vertint)
+             if(associated(totexttau) .and. associated(ocexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ocexttau(:,:,w)
+             if(associated(totscatau) .and. associated(ocscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ocscatau(:,:,w)
+             if(associated(totextt25) .and. associated(ocexttau)) totextt25(:,:,w) = totextt25(:,:,w)+ocexttau(:,:,w)
+             if(associated(totscat25) .and. associated(ocscatau)) totscat25(:,:,w) = totscat25(:,:,w)+ocscatau(:,:,w)
+             if(associated(totexttfm) .and. associated(ocexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+ocexttau(:,:,w)
+             if(associated(totscatfm) .and. associated(ocscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+ocscatau(:,:,w)
+          end do
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CASMASSCA.oc', __RC__)
           if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
@@ -859,33 +914,37 @@ contains
           if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
 
           if(associated(totangstr) .and. associated(ocexttau) .and. associated(ocangstr)) then
-             tau1 = tau1 + ocexttau*exp(c1*ocangstr)
-             tau2 = tau2 + ocexttau*exp(c2*ocangstr)
+             tau1 = tau1 + ocexttau(:,:,2)*exp(c1*ocangstr)
+             tau2 = tau2 + ocexttau(:,:,2)*exp(c2*ocangstr)
           end if
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CAEXTTAUCA.br', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CASCATAUCA.brc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CASCATAUCA.br', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CAANGSTRCA.br', __RC__)
-          if(associated(totexttau) .and. associated(ocexttau)) totexttau = totexttau+brexttau
-          if(associated(totscatau) .and. associated(ocscatau)) totscatau = totscatau+brscatau
-          if(associated(totextt25) .and. associated(ocexttau)) totextt25 = totextt25+brexttau
-          if(associated(totscat25) .and. associated(ocscatau)) totscat25 = totscat25+brscatau
-          if(associated(totexttfm) .and. associated(ocexttau)) totexttfm = totexttfm+brexttau
-          if(associated(totscatfm) .and. associated(ocscatau)) totscatfm = totscatfm+brscatau
+
+          !   Iterate over the wavelengths
+          do w = 1, size(self%wavelengths_vertint)
+             if(associated(totexttau) .and. associated(brexttau)) totexttau(:,:,w) = totexttau(:,:,w)+brexttau(:,:,w)
+             if(associated(totscatau) .and. associated(brscatau)) totscatau(:,:,w) = totscatau(:,:,w)+brscatau(:,:,w)
+             if(associated(totextt25) .and. associated(brexttau)) totextt25(:,:,w) = totextt25(:,:,w)+brexttau(:,:,w)
+             if(associated(totscat25) .and. associated(brscatau)) totscat25(:,:,w) = totscat25(:,:,w)+brscatau(:,:,w)
+             if(associated(totexttfm) .and. associated(brexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+brexttau(:,:,w)
+             if(associated(totscatfm) .and. associated(brscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+brscatau(:,:,w)
+          end do
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CASMASSCA.br', __RC__)
-          if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + brsmass
-          if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + brsmass
-          if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-          if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  ! 
-          if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
-          if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
+          if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
+          if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
+          if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
+          if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  ! 
+          if(associated(pm_rh50)   .and. associated(brsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
+          if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
 
           if(associated(totangstr) .and. associated(brexttau) .and. associated(brangstr)) then
-             tau1 = tau1 + ocexttau*exp(c1*brangstr)
-             tau2 = tau2 + ocexttau*exp(c2*brangstr)
+             tau1 = tau1 + brexttau(:,:,2)*exp(c1*brangstr)
+             tau2 = tau2 + brexttau(:,:,2)*exp(c2*brangstr)
           end if
        end if
     end do
@@ -1013,6 +1072,81 @@ contains
 
   end subroutine createInstances_
 
+!===================================================================================
+  subroutine serialize_bundle (state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                             :: state
+    integer,            intent(out)               :: rc
+
+!   !Local
+    character (len=ESMF_MAXSTR), allocatable      :: itemList(:)
+    type (ESMF_State)                             :: child_state
+    type (ESMF_StateItem_Flag), allocatable       :: itemTypes(:)
+    type (ESMF_FieldBundle)                       :: bundle
+    type (ESMF_Grid)                              :: grid
+    type (ESMF_Field)                             :: field, serializedField
+
+    character (len=ESMF_MAXSTR)                   :: binIndexstr
+    character (len=ESMF_MAXSTR), allocatable      :: aeroName(:)
+
+    real, pointer, dimension(:,:,:,:)             :: orig_ptr
+    real, pointer, dimension(:,:,:)               :: ptr3d
+
+    integer     :: b, i, j, n, rank, nbins
+
+    __Iam__('GOCART2G::serialize_bundle')
+
+!   !Description: Callback for AERO_RAD state used in GAAS module to provide a 
+!                 serialized ESMF_Bundle of aerosol fields.
+!-----------------------------------------------------------------------------------
+!   Begin...
+
+!   Get list of child states within state and add to aeroList
+!   Remember, AERO_RAD contains its children's AERO_RAD states
+!   ----------------------------------------------------------
+    call ESMF_StateGet (state, itemCount=n, __RC__)
+    allocate (itemList(n), __STAT__)
+    allocate (itemTypes(n), __STAT__)
+    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+
+!  Create empty ESMF_FieldBundle to add Children's aerosol fields to
+   bundle = ESMF_FieldBundleCreate(name="serialized_aerosolBundle", __RC__)
+   call MAPL_StateAdd(state, bundle, __RC__)
+
+   do i = 1, n
+      if (itemTypes(i) /= ESMF_StateItem_State) cycle ! exclude non-states
+      call ESMF_StateGet (state, trim(itemList(i)), child_state, __RC__)
+      call ESMF_AttributeGet (child_state, name='internal_varaible_name', itemCount=nbins, __RC__)
+      allocate (aeroName(nbins), __STAT__)
+      call ESMF_AttributeGet (child_state, name='internal_varaible_name', valueList=aeroName, __RC__)
+
+
+      do b = 1, size(aeroName)
+         call ESMF_StateGet (child_state, trim(aeroName(b)), field, __RC__)
+         call ESMF_FieldGet (field, rank=rank, __RC__)
+
+         if (rank == 3) then
+            call MAPL_FieldBundleAdd (bundle, field, __RC__)
+
+         else if (rank == 4) then ! serialize 4d variables to mulitple 3d variables
+            call ESMF_FieldGet (field, grid=grid, __RC__)
+            call MAPL_GetPointer (child_state, orig_ptr, trim(aeroName(b)), __RC__)
+            do j = 1, size(orig_ptr, 4)
+               write (binIndexstr, '(I0.3)') j
+               ptr3d => orig_ptr(:,:,:,j)
+               serializedField = ESMF_FieldCreate (grid=grid, datacopyFlag=ESMF_DATACOPY_REFERENCE, &
+                                              farrayPtr=ptr3d, name=trim(aeroName(b))//trim(binIndexstr), __RC__)
+               call MAPL_FieldBundleAdd (bundle, serializedField, __RC__)
+            end do ! do j
+         end if ! if (rank
+      end do ! do b
+      deallocate (aeroName, __STAT__)
+   end do ! do i
+
+  end subroutine serialize_bundle
 
 !===================================================================================
   subroutine run_aerosol_optics (state, rc)
@@ -1046,7 +1180,8 @@ contains
 
     __Iam__('GOCART2G::run_aerosol_optics')
 
-
+!   Description: Used in Radiation gridded components to provide aerosol properties
+!-----------------------------------------------------------------------------------
 !   Begin... 
 
 !   Radiation band

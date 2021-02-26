@@ -91,6 +91,7 @@ contains
 !   !Locals
     character (len=ESMF_MAXSTR)              :: COMP_NAME
     type (ESMF_Config)                       :: cfg
+    type (ESMF_Config)                       :: universal_cfg
     type (wrap_)                             :: wrap
     type (CA2G_GridComp), pointer            :: self
 
@@ -107,7 +108,7 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
     if (comp_name(1:5) == 'CA.oc') then
@@ -134,7 +135,7 @@ contains
     end if
 
 !   process generic config items
-    call self%GA_GridComp%load_from_config( cfg, __RC__)
+    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
 
     call ESMF_ConfigGetAttribute (cfg, self%nbins, label='nbins:', __RC__)
     nbins = self%nbins
@@ -1020,7 +1021,8 @@ contains
     int_arr(:,:,:,2) = intPtr_philic
 
     call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, nbins=2, &
-                             channels=self%diag_MieTable(self%instance)%channels, aerosol=int_arr, grav=MAPL_GRAV, &
+                             channels=self%diag_MieTable(self%instance)%channels, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
                              tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, sfcmass=CASMASS, colmass=CACMASS, &
                              mass=CAMASS, exttau=CAEXTTAU, scatau=CASCATAU, fluxu=CAFLUXU, fluxv=CAFLUXV, &
                              conc=CACONC, extcoef=CAEXTCOEF, scacoef=CASCACOEF, angstrom=CAANGSTR, aerindx=CAAERIDX,&
