@@ -1226,7 +1226,7 @@ CONTAINS
    integer, intent(in) :: bin_ind ! bin index (usually the loop iteration)
    real, intent(in)    :: cdt     ! chemistry model time-step [sec]
    character(len=*)    :: aero_type
-   logical, intent(inout)  :: KIN ! true for aerosol
+   logical, intent(in) :: KIN ! true for aerosol
    real, intent(in)    :: grav    ! gravity [m/sec^2]
    real, intent(in)    :: fwet
    real, dimension(:,:,:), intent(inout) :: aerosol  ! internal state aerosol [kg/kg]
