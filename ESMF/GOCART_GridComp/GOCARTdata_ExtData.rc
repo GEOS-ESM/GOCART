@@ -1,0 +1,136 @@
+#
+# Sample resource file exemplifying the specification of an interface to
+# boundary conditions, emissions and other external files. This resource
+# file is meant to be read by the MAPL_ExtData Grid Component.
+#
+
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+
+# GOCART.data - 3D
+climdu001           'kg kg-1'            Y        N               0              0.0      1.0     du001      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu002           'kg kg-1'            Y        N               0              0.0      1.0     du002      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu003           'kg kg-1'            Y        N               0              0.0      1.0     du003      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu004           'kg kg-1'            Y        N               0              0.0      1.0     du004      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu005           'kg kg-1'            Y        N               0              0.0      1.0     du005      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+
+climss001           'kg kg-1'            Y        N               0              0.0      1.0     ss001      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climss002           'kg kg-1'            Y        N               0              0.0      1.0     ss002      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climss003           'kg kg-1'            Y        N               0              0.0      1.0     ss003      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climss004           'kg kg-1'            Y        N               0              0.0      1.0     ss004      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climss005           'kg kg-1'            Y        N               0              0.0      1.0     ss005      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+
+climSO4             'kg kg-1'            Y        N               0              0.0      1.0     SO4        ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climDMS             'kg kg-1'            Y        N               -              0.0      1.0     none       /dev/null
+climMSA             'kg kg-1'            Y        N               -              0.0      1.0     none       /dev/null
+climSO2             'kg kg-1'            Y        N               -              0.0      1.0     none       /dev/null
+
+climBCphobic        'kg kg-1'            Y        N               0              0.0      1.0     BCphobic   ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climBCphilic        'kg kg-1'            Y        N               0              0.0      1.0     BCphilic   ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climOCphobic        'kg kg-1'            Y        N               0              0.0      1.0     OCphobic   ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climOCphilic        'kg kg-1'            Y        N               0              0.0      1.0     OCphilic   ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+
+# GOCART.data - 2D
+climDUDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climDUDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climDUDP003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climDUDP004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climDUDP005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP005    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT005    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD005    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV005    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climBCDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     BCDP001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     BCWT001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     BCSD001    /dev/null
+climBCSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     BCSV001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climBCDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     BCDP002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     BCWT002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     BCSD002    /dev/null
+climBCSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     BCSV002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climOCDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     OCDP001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     OCWT001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     OCSD001    /dev/null
+climOCSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     OCSV001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climOCDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     OCDP002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     OCWT002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     OCSD002    /dev/null
+climOCSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     OCSV002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSUDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUDP001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUWT001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUSD001    /dev/null
+climSUSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUSV001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSUDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUDP002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUWT002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUSD002    /dev/null
+climSUSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUSV002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSUDP003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUDP003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUWT003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUWT003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSD003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUSD003    /dev/null
+climSUSV003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUSV003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSUDP004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUDP004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUWT004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUWT004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSD004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUSD004    /dev/null
+climSUSV004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SUSV004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV001    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV002    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV003    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV004    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP005         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP005    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT005         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT005    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD005         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD005    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV005         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV005    ExtData/PIESA/sfc/aero_clm/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+%%
+
+DerivedExports%%
+# ---------|---------|--------------------------------------------|
+#  Export  | Primary |_________________ Mask _____________________|
+#  Name    |  Name   |    Name    |           Expression          |    
+# ---------|---------|------------|-------------------------------|
+# ---------|---------|------------|-------------------------------|
+%%
+

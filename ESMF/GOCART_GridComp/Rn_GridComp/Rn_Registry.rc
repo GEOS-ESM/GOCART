@@ -1,0 +1,53 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: Rn
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<Rn::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |            |     | V |Item|Intervl|# Sub|          Long
+#  Name    |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  RnEM     | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Emission __ENSEMBLE__
+  RnEMAsia | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Emission Asia
+  RnEMEuro | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Emission Europe
+  RnEMNoAm | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Emission North America
+  RnEMSoAm | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Emission South America
+  RnEMAfri | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Emission Africa
+  RnEMAust | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Emission Australia
+  RnLS	   | kg m-2 s-1 | xy  |	  |    |   |   |     | Rn Decay __ENSEMBLE__
+  RnLSAsia | kg m-2 s-1 | xy  |	  |    |   |   |     | Rn Decay Asia
+  RnLSEuro | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Decay Europe
+  RnLSNoAm | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Decay North America
+  RnLSSoAm | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Decay South America
+  RnLSAfri | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Decay Africa
+  RnLSAust | kg m-2 s-1 | xy  |   |    |   |   |     | Rn Decay Australia
+  RnSC	   | mol/mol    | xy  |	  |    |   |   |     | Rn Surface Concentration __ENSEMBLE__
+  RnSCAsia | mol/mol    | xy  |   |    |   |   |     | Rn Surface Concentration Asia
+  RnSCEuro | mol/mol    | xy  |   |    |   |   |     | Rn Surface Concentration Europe
+  RnSCNoAm | mol/mol    | xy  |   |    |   |   |     | Rn Surface Concentration North America
+  RnSCSoAm | mol/mol    | xy  |   |    |   |   |     | Rn Surface Concentration South America
+  RnSCAfri | mol/mol    | xy  |   |    |   |   |     | Rn Surface Concentration Africa
+  RnSCAust | mol/mol    | xy  |	  |    |   |   |     | Rn Surface Concentration Australia
+  RnCL	   | kg m-2     | xy  |   |    |   |   |     | Rn Column Burden __ENSEMBLE__
+  RnCLAsia | kg m-2     | xy  |   |    |   |   |     | Rn Column Burden Asia
+  RnCLEuro | kg m-2     | xy  |   |    |   |   |     | Rn Column Burden Europe
+  RnCLNoAm | kg m-2     | xy  |   |    |   |   |     | Rn Column Burden North America
+  RnCLSoAm | kg m-2     | xy  |   |    |   |   |     | Rn Column Burden South America
+  RnCLAfri | kg m-2     | xy  |   |    |   |   |     | Rn Column Burden Africa
+  RnCLAust | kg m-2     | xy  |   |    |   |   |     | Rn Column Burden Australia
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+</Rn::ExportSpec>
+

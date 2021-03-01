@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Switched StrTemplate from using the one provided by `GMAO_MPEU` to one provided by `MAPL`
 ### Fixed
+- Bug with how some optional `rc` arguments where handled in the Process Library.
 ### Removed
 ### Added
 

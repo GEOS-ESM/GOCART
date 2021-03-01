@@ -1,13 +1,6 @@
 /cmake@/
-/ESMF/Shared/MAPL@/
-/cmake-build-debug/
-/build/
 /.mepo/
-/.idea/
+/ESMF/Shared/MAPL@/
 /ESMF/Shared/GMAO_Shared@/
 /ESMF/Shared/NCEP_Shared@/
 /ESMF/HEMCO_GridComp@/
-/install/
-tags
-
-.DS_STORE

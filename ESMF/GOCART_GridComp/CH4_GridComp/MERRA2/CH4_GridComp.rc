@@ -1,0 +1,14 @@
+#
+#  CH4 main resource file defining the particular instances.
+#
+#  For detailed description of the ARCTAS tags consult:
+#
+#  http://geos5.org/wiki/index.php?title=GEOS-5_Configuration_for_ARCTAS
+#
+# ------------------|-------|------------
+#       Region      | Tag   |   Masking
+# ------------------|-------|------------
+#  All instances    | full  | -1
+# ------------------|-------|------------
+
+CH4_instances: animls coal leak gasvnt hydz msw soilab trmite bogs burn ricec swamps tundra bf tot

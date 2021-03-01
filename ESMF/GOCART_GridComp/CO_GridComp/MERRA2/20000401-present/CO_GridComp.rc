@@ -1,0 +1,27 @@
+#
+#  CO main resource file defining the particular instances.
+#
+#  For detailed description of the GloPac tags consult:
+#
+#  http://www.geos5.org/wiki/index.php?title=GEOS-5_Configuration_for_GloPac
+#
+# ------------------|-------|------------
+#       Region      | Tag   |   Masking
+# ------------------|-------|------------
+#  Biomass burning
+# ------------------|-------|------------
+#   Asia and Europe | bbae  | 3, 9, 10 # no longer includes SE Asia
+#     North America | bbna  | 1
+# Cen. & S. America | bbla  | 2, 6
+#            Africa | bbaf  | 5
+#            Global | bbgl  | Global
+# ------------------|-------|------------
+#  Non-biomass burning
+# ------------------|-------|------------
+#              Asia | nbas  | 4, 10
+#     North America | nbna  | 1
+#            Europe | nbeu  | 3, 9
+#            Global | nbgl  | Global
+# ------------------|-------|------------
+
+CO_instances: full bbae bbna bbla bbaf bbgl nbas nbna nbeu nbgl

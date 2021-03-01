@@ -1,0 +1,104 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: BC
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+                    
+<BC::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# -------------|------------|-----|---|----|---|---|-----|-----------------------------------------------------
+#  Short       |            |     | V |Item|Intervl|# Sub|          Long
+#  Name        |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# -------------|------------|-----|---|----|---|---|-----|-----------------------------------------------------
+  BCMASS       | kg/kg      | xyz | C |    |   |   |     | Black Carbon Mass Mixing Ratio                  __ENSEMBLE__
+  BCCONC       | kg m-3     | xyz | C |    |   |   |     | Black Carbon Mass Concentration                 __ENSEMBLE__
+  BCEXTCOEF    | m-1        | xyz | C |    |   |   |     | Black Carbon Extinction Coefficient [550 nm]    __ENSEMBLE__
+  BCSCACOEF    | m-1        | xyz | C |    |   |   |     | Black Carbon Scattering Coefficient [550 nm]    __ENSEMBLE__
+# -------------|------------|-----|---|----|---|---|-----|-----------------------------------------------------
+  BCEM001      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Emission Bin 001                   __ENSEMBLE__
+  BCEM002      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Emission Bin 002                   __ENSEMBLE__
+  BCSD001      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Sedimentation Bin 001              __ENSEMBLE__
+  BCSD002      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Sedimentation Bin 002              __ENSEMBLE__
+  BCDP001      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Dry Deposition Bin 001             __ENSEMBLE__
+  BCDP002      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Dry Deposition Bin 002             __ENSEMBLE__
+  BCWT001      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Wet Deposition Bin 001             __ENSEMBLE__
+  BCWT002      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Wet Deposition Bin 002             __ENSEMBLE__
+  BCSV001      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Convective Scavenging Bin 001      __ENSEMBLE__
+  BCSV002      | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Convective  Scavenging Bin 002     __ENSEMBLE__
+  BCHYPHIL     | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Hydrophobic to Hydrophilic         __ENSEMBLE__
+  BCEMAN       | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Anthropogenic Emissions            __ENSEMBLE__
+  BCEMBB       | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Biomass Burning Emissions          __ENSEMBLE__
+  BCEMBF       | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Biofuel Emissions                  __ENSEMBLE__
+  BCSMASS      | kg m-3     | xy  |   |    |   |   |     | Black Carbon Surface Mass Concentration         __ENSEMBLE__
+  BCCMASS      | kg m-2     | xy  |   |    |   |   |     | Black Carbon Column Mass Density                __ENSEMBLE__
+  BCEXTTAU     |      1     | xy  |   |    |   |   |     | Black Carbon Extinction AOT [550 nm]            __ENSEMBLE__
+  BCSCATAU     |      1     | xy  |   |    |   |   |     | Black Carbon Scattering AOT [550 nm]            __ENSEMBLE__
+  BCANGSTR     |      1     | xy  |   |    |   |   |     | Black Carbon Angstrom parameter [470-870 nm]    __ENSEMBLE__
+  BCFLUXU      | kg m-1 s-1 | xy  |   |    |   |   |     | Black Carbon column u-wind mass flux            __ENSEMBLE__
+  BCFLUXV      | kg m-1 s-1 | xy  |   |    |   |   |     | Black Carbon column v-wind mass flux            __ENSEMBLE__
+# -------------|------------|-----|---|----|---|---|-----|-----------------------------------------------------
+  BCMASSbiob   | kg/kg      | xyz | C |    |   |   |     | Black Carbon Mass Mixing Ratio                  biob
+  BCCONCbiob   | kg m-3     | xyz | C |    |   |   |     | Black Carbon Mass Concentration                 biob
+  BCEXTCOEFbiob| m-1        | xyz | C |    |   |   |     | Black Carbon Extinction Coefficient [550 nm]    biob
+  BCSCACOEFbiob| m-1        | xyz | C |    |   |   |     | Black Carbon Scattering Coefficient [550 nm]    biob
+# -------------|------------|-----|---|----|---|---|-----|----------------------------------------------------- 
+  BCEM001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Emission Bin 001                   biob
+  BCEM002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Emission Bin 002                   biob
+  BCSD001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Sedimentation Bin 001              biob
+  BCSD002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Sedimentation Bin 002              biob
+  BCDP001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Dry Deposition Bin 001             biob
+  BCDP002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Dry Deposition Bin 002             biob
+  BCWT001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Wet Deposition Bin 001             biob
+  BCWT002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Wet Deposition Bin 002             biob
+  BCSV001biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Convective Scavenging Bin 001      biob
+  BCSV002biob  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Convective  Scavenging Bin 002     biob
+  BCHYPHILbiob | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Hydrophobic to Hydrophilic         biob
+  BCEMANbiob   | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Anthropogenic Emissions            biob
+  BCEMBBbiob   | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Biomass Burning Emissions          biob
+  BCEMBFbiob   | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Biofuel Emissions                  biob
+  BCSMASSbiob  | kg m-3     | xy  |   |    |   |   |     | Black Carbon Surface Mass Concentration         biob
+  BCCMASSbiob  | kg m-2     | xy  |   |    |   |   |     | Black Carbon Column Mass Density                biob
+  BCEXTTAUbiob |      1     | xy  |   |    |   |   |     | Black Carbon Extinction AOT [550 nm]            biob
+  BCSCATAUbiob |      1     | xy  |   |    |   |   |     | Black Carbon Scattering AOT [550 nm]            biob
+  BCANGSTRbiob |      1     | xy  |   |    |   |   |     | Black Carbon Angstrom parameter [470-870 nm]    biob
+  BCFLUXUbiob  | kg m-1 s-1 | xy  |   |    |   |   |     | Black Carbon column u-wind mass flux            biob
+  BCFLUXVbiob  | kg m-1 s-1 | xy  |   |    |   |   |     | Black Carbon column v-wind mass flux            biob
+# -------------|------------|-----|---|----|---|---|-----|-----------------------------------------------------
+  BCMASSanth   | kg/kg      | xyz | C |    |   |   |     | Black Carbon Mass Mixing Ratio                  anth
+  BCCONCanth   | kg m-3     | xyz | C |    |   |   |     | Black Carbon Mass Concentration                 anth
+  BCEXTCOEFanth| m-1        | xyz | C |    |   |   |     | Black Carbon Extinction Coefficient [550 nm]    anth
+  BCSCACOEFanth| m-1        | xyz | C |    |   |   |     | Black Carbon Scattering Coefficient [550 nm]    anth
+# -------------|------------|-----|---|----|---|---|-----|-----------------------------------------------------
+  BCEM001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Emission Bin 001                   anth
+  BCEM002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Emission Bin 002                   anth
+  BCSD001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Sedimentation Bin 001              anth
+  BCSD002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Sedimentation Bin 002              anth
+  BCDP001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Dry Deposition Bin 001             anth
+  BCDP002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Dry Deposition Bin 002             anth
+  BCWT001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Wet Deposition Bin 001             anth
+  BCWT002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Wet Deposition Bin 002             anth
+  BCSV001anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Convective Scavenging Bin 001      anth
+  BCSV002anth  | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Convective  Scavenging Bin 002     anth
+  BCHYPHILanth | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Hydrophobic to Hydrophilic         anth
+  BCEMANanth   | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Anthropogenic Emissions            anth
+  BCEMBBanth   | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Biomass Burning Emissions          anth
+  BCEMBFanth   | kg m-2 s-1 | xy  |   |    |   |   |     | Black Carbon Biofuel Emissions                  anth
+  BCSMASSanth  | kg m-3     | xy  |   |    |   |   |     | Black Carbon Surface Mass Concentration         anth
+  BCCMASSanth  | kg m-2     | xy  |   |    |   |   |     | Black Carbon Column Mass Density                anth
+  BCEXTTAUanth |      1     | xy  |   |    |   |   |     | Black Carbon Extinction AOT [550 nm]            anth
+  BCSCATAUanth |      1     | xy  |   |    |   |   |     | Black Carbon Scattering AOT [550 nm]            anth
+  BCANGSTRanth |      1     | xy  |   |    |   |   |     | Black Carbon Angstrom parameter [470-870 nm]    anth
+  BCFLUXUanth  | kg m-1 s-1 | xy  |   |    |   |   |     | Black Carbon column u-wind mass flux            anth
+  BCFLUXVanth  | kg m-1 s-1 | xy  |   |    |   |   |     | Black Carbon column v-wind mass flux            anth
+# -------------|------------|-----|---|----|---|---|-----|---------------------------------------------------------
+</BC::ExportSpec>

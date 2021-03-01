@@ -1,0 +1,7 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+DU_SRC NA  N Y - none none du_src ExtData/CMIP/sfc/DU/gocart.dust_source.v5a_1x1inp.x360_y181.nc
+%%
