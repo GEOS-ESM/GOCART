@@ -1,0 +1,417 @@
+#------------------------------------------------------------------------
+#BOP
+#
+# !RESOURCE: AeroChem_Registry --- AeroChem Registry
+# 
+# !HELP:
+#
+#  The Chemistry Registry resource file is used to control basic
+#  properties of the GOCART and StratChem Grid Components. 
+#  Specifically, it
+#
+#    - selects which constituents to simulate
+#    - selects the number of bins for each constituent
+#    - specifies variable names and units for each constituent
+#
+#  NOTES: The water vapor and ozone tracers are not really being used
+#        in GEOS-5. They are still kept for compatibility with GEOS-4.
+#
+#         XX lists GMIchem's non-transported species.  See Chem_MieRegistry.rc
+#         for Stratchem's XX (inferred) species list.
+#
+# !REVISION HISTORY:
+#
+#  27May2005  da Silva  Added variable tables for SU/BC/OC.
+#  19dec2005  da Silva  Changed volume mixing ratio units to 'mol mol-1'
+#  10Feb2006  Hayashi   Added analysis update frequency
+#  27Jul2006  da Silva  No more analysis frequencies; added GMI/PChem (GEOS-5)
+#
+#-----------------------------------------------------------------------
+#EOP
+
+                        # &Label Active Constituents
+
+# Whether to include the constituent in the simulation
+# ----------------------------------------------------
+doing_H2O: no   # water vapor (must always ON for fvGCM)
+doing_O3:  no   # ozone (must be always ON for fvGCM in DAS mode)
+doing_CO:  no   # &YesNo Include carbon monoxide?
+doing_CO2: no   # &YesNo Include carbon dioxide?
+doing_DU:  yes  # &YesNo Include mineral dust?
+doing_SS:  yes  # &YesNo Include sea salt?
+doing_SU:  yes  # &YesNo Include sulfates?
+doing_CFC: no   # &YesNo Include CFCs?
+doing_BC:  yes  # &YesNo Include black carbon?
+doing_OC:  yes  # &YesNo Include organic carbon?
+doing_Rn:  no   # &YesNo include Radon?
+doing_CH4: no   # &YesNo include Methane?
+doing_SC:  no   # &YesNo Include stratospheric chemistry?
+doing_GMI: no   # &YesNo GMI chemistry (GEOS-5)
+doing_XX:  no   # &YesNo generic tracer
+doing_PC:  no   # parameterized chemistry (GEOS-5)
+
+# You can select the number of bins (e.g., particle size)
+# for each of the constituents. Note nbins>1 may not be
+# supported by some constituents
+# ----------------------------------------------------
+nbins_H2O:  1   # water vapor
+nbins_O3:   1   # ozone
+nbins_CO:   1   # carbon monoxide
+nbins_CO2:  1   # carbon dioxide
+nbins_DU:   5   # mineral dust
+nbins_SS:   5   # sea salt
+nbins_SU:   4   # sulfates
+nbins_CFC:  2   # CFCs
+nbins_BC:   2   # black carbon
+nbins_OC:   2   # organic carbon
+nbins_Rn:   1   # radon
+nbins_CH4: 15   # methane
+nbins_SC:  35   # stratospheric chemistry
+nbins_XX:  51   # generic tracer
+nbins_PC:   1   # parameterized chemistry (GEOS-5)
+nbins_GMI: 72   # GMI chemistry (GEOS-5)
+
+# Units for each constituent
+# --------------------------
+units_H2O: 'kg kg-1'     # water vapor
+units_O3:  'kg kg-1'     # ozone
+units_CO:  'mol mol-1'   # carbon monoxide
+units_CO2: 'mol mol-1'   # carbon dioxide
+units_DU:  'kg kg-1'     # mineral dust
+units_SS:  'kg kg-1'     # sea salt
+units_SU:  'kg kg-1'     # sulfates
+units_CFC: 'mol mol-1'   # CFCs
+units_BC:  'kg kg-1'     # black carbon
+units_OC:  'kg kg-1'     # organic carbon
+units_Rn:  'mol mol-1'   # radon
+units_CH4: 'mol mol-1'   # methane
+units_SC:  'mol mol-1'   # stratospheric chemistry
+units_XX:  'mol mol-1'   # generic tracer
+units_PC:  'kg kg-1'     # parameterized chemistry (GEOS-5)
+units_GMI: 'mol mol-1'   # GMI chemistry (GEOS-5)
+
+# Variable names to override defaults.  Optional.  Name and Units must 
+# be 1 token. Long names can be more than one token.
+# --------------------------------------------------------------------
+
+variable_table_O3::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+O3         'mol mol-1'  Parameterized ozone
+::
+
+variable_table_CO::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+CO         'mol mol-1'  Carbon Monoxide (All Sources)
+COBBAE     'mol mol-1'  CO Asia and Europe Biomass Burning
+COBBNA     'mol mol-1'  CO North America Biomass Burning
+COBBLA     'mol mol-1'  CO Central and South America Biomass Burning
+COBBAF     'mol mol-1'  CO Africa Biomass Burning
+COBBGL     'mol mol-1'  CO Global Biomass Burning
+CONBAS     'mol mol-1'  CO Asia Non-Biomass Burning
+CONBNA     'mol mol-1'  CO North American Non-Biomass Burning
+CONBEU     'mol mol-1'  CO European Non-Biomass Burning
+CONBGL     'mol mol-1'  CO Global Non-Biomass Burning
+::
+
+variable_table_CO2::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+CO2        'mol mol-1'  Carbon Dioxide (All Sources)
+::
+
+variable_table_CFC::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+CFC12S    'mol mol-1'   Stratospheric CFC-12 (CCl2F2)
+CFC12T    'mol mol-1'   Tropospheric CFC-12 (CCl2F2)
+::
+
+variable_table_SU::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+DMS        'kg kg-1'    Dimethylsulphide
+SO2        'kg kg-1'    Sulphur dioxide
+SO4        'kg kg-1'    Sulphate aerosol
+MSA        'kg kg-1'    Methanesulphonic acid
+DMSv       'kg kg-1'    Dimethylsulphide (volcanic)
+SO2v       'kg kg-1'    Sulphur dioxide (volcanic)
+SO4v       'kg kg-1'    Sulphate aerosol (volcanic)
+MSAv       'kg kg-1'    Methanesulphonic acid (volcanic)
+::
+
+variable_table_BC::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+BCphobic   'kg kg-1'    Hydrophobic Black Carbon 
+BCphilic   'kg kg-1'    Hydrophilic Black Carbon
+::
+
+variable_table_OC::
+
+# Name         Units        Long Name
+# -----        ------       --------------------------------
+OCphobic       'kg kg-1'    Hydrophobic Organic Carbon (Particulate Matter)
+OCphilic       'kg kg-1'    Hydrophilic Organic Carbon (Particulate Matter)
+OCphobicbbbo   'kg kg-1'    Hydrophobic Organic Carbon (Boreal Biomass Burning, Particulate Matter)
+OCphilicbbbo   'kg kg-1'    Hydrophilic Organic Carbon (Boreal Biomass Burning, Particulate Matter)
+OCphobicbbnb   'kg kg-1'    Hydrophobic Organic Carbon (Non-Boreal Biomass Burning, Particulate Matter)
+OCphilicbbnb   'kg kg-1'    Hydrophilic Organic Carbon (Non-Boreal Biomass Burning, Particulate Matter)
+::
+
+variable_table_RN::
+
+# Name         Units        Long Name
+# -----        ------       --------------------------------
+Rn             'mol mol-1'  Global radon
+::
+
+variable_table_CH4::
+
+# Name         Units        Long Name
+# -----        ------       --------------------------------
+CH4animls      'mol mol-1'  Methane from animals
+CH4coal        'mol mol-1'  Methane from coal
+CH4leak        'mol mol-1'  Methane from leakage
+CH4gasvnt      'mol mol-1'  Methane from gas venting
+CH4hydz        'mol mol-1'  Methane from ocean HYDZ
+CH4msw         'mol mol-1'  Methane from municipal sewers
+CH4soilab      'mol mol-1'  Methane absorbed by soil
+CH4trmite      'mol mol-1'  Methane from termites
+CH4bogs        'mol mol-1'  Methane from bogs
+CH4burn        'mol mol-1'  Methane from biomass burning
+CH4ricec       'mol mol-1'  Methane from rice cultivation
+CH4swamps      'mol mol-1'  Methane from swamps
+CH4tundra      'mol mol-1'  Methane from tundra
+CH4bf	       'mol mol-1'  Methane from biofuel
+CH4tot         'mol mol-1'  Methane
+::
+
+variable_table_SC::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+OX         'mol mol-1'  Stratospheric odd oxygen
+NOX        'mol mol-1'  Odd nitrogen
+HNO3       'mol mol-1'  Nitric acid
+N2O5       'mol mol-1'  Dinitrogen pentoxide
+HO2NO2     'mol mol-1'  Peroxynitric acid
+CLONO2     'mol mol-1'  Chlorine nitrate
+CLX        'mol mol-1'  Odd chlorine
+HCL        'mol mol-1'  Hydrochloric acid
+HOCL       'mol mol-1'  Hypochlorous acid
+H2O2       'mol mol-1'  Hydrogen peroxide
+BRX        'mol mol-1'  Odd bromine
+N2O        'mol mol-1'  Nitrous oxide
+CL2        'mol mol-1'  Molecular chlorine
+OCLO       'mol mol-1'  Chlorine dioxide
+BRCL       'mol mol-1'  Bromine chloride
+HBR        'mol mol-1'  Hydrogen bromide
+BRONO2     'mol mol-1'  Bromine nitrate
+CH4        'mol mol-1'  Methane
+HOBR       'mol mol-1'  Hypobromous acid
+CH3OOH     'mol mol-1'  Methyl hydroperoxide
+CO         'mol mol-1'  Carbon monoxide
+HNO3COND   'mol mol-1'  Condensed nitric acid
+H2OCOND    'mol mol-1'  Condensed water vapor in chemistry
+CFC11      'mol mol-1'  CFC-11 (CCl3F)
+CFC12      'mol mol-1'  CFC-12 (CCl2F2)
+CFC113     'mol mol-1'  CFC-113 (CCl2FCClF2)
+HCFC       'mol mol-1'  HCFC
+HCFC22     'mol mol-1'  HCFC-22 (CHClF2)
+CCL4       'mol mol-1'  Carbon tetrachloride
+CH3CCL3    'mol mol-1'  Methyl chloroform
+CH3CL      'mol mol-1'  Methyl chloride
+CH3BR      'mol mol-1'  Methyl bromide
+H1301      'mol mol-1'  Halon 1301 (CBrF3)
+H12_24     'mol mol-1'  Halon 12_24
+Q4AGE      'mol mol-1'  SSG for computing age-of-air
+::
+
+variable_table_GMI::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+Q4AGE      none         Age-of-air tracer
+CH2O       'mol mol-1'  Formaldehyde
+CH4        'mol mol-1'  Methane
+CO         'mol mol-1'  Carbon monoxide
+H2         'mol mol-1'  Molecular hydrogen
+HCOOH      'mol mol-1'  Formic acid (CH2O2)
+HNO2       'mol mol-1'  Nitrous acid
+HNO3       'mol mol-1'  Nitric acid
+HNO4       'mol mol-1'  Pernitric acid
+HO2        'mol mol-1'  Perhydroxyl radical
+H2O2       'mol mol-1'  Hydrogen peroxide
+MOH        'mol mol-1'  Methanol
+MP         'mol mol-1'  Methyl hydroperoxide  
+N2O        'mol mol-1'  Nitrous oxide
+NO         'mol mol-1'  Nitric oxide
+NO2        'mol mol-1'  Nitrogen dioxide
+NO3        'mol mol-1'  Nitrogen trioxide
+N2O5       'mol mol-1'  Dinitrogen pentoxide
+O3VMR      'mol mol-1'  Ozone
+OH         'mol mol-1'  Hydroxyl radical
+Br         'mol mol-1'  Ground state atomic bromine (2P3/2)
+BrCl       'mol mol-1'  Bromine chloride
+BrO        'mol mol-1'  Bromine monoxide radical
+BrONO2     'mol mol-1'  Bromine nitrate
+HBr        'mol mol-1'  Hydrogen bromide
+HOBr       'mol mol-1'  Hydrobromous acid
+Cl         'mol mol-1'  Ground state atomic chlorine (2P3/2)
+Cl2        'mol mol-1'  Molecular chlorine
+ClO        'mol mol-1'  Chlorine monoxide radical
+Cl2O2      'mol mol-1'  Chlorine peroxide
+ClONO2     'mol mol-1'  Chlorine nitrate
+HCl        'mol mol-1'  Hydrochloric acid
+HOCl       'mol mol-1'  Hydrochlorous acid
+OClO       'mol mol-1'  Symmetrical chlorine dioxide
+CH3Br      'mol mol-1'  Methyl bromide
+CH3Cl      'mol mol-1'  Methyl chloride
+CH3CCl3    'mol mol-1'  Methyl chloroform
+CCl4       'mol mol-1'  Carbon tetrachloride
+CFC11      'mol mol-1'  CFC11 (CFCl3)
+CFC12      'mol mol-1'  CFC12 (CF2Cl2)
+CFC113     'mol mol-1'  CFC113 (C2Cl3F3)
+CFC114     'mol mol-1'  CFC114 (C2Cl2F4)
+CFC115     'mol mol-1'  CFC115 (C2ClF5)
+HCFC22     'mol mol-1'  HCFC22 (CClF2H)
+HCFC141b   'mol mol-1'  HCFC141b (C2Cl2FH3)
+HCFC142b   'mol mol-1'  HCFC142b (C2ClF2H3)
+CF2Br2     'mol mol-1'  Halon 1202
+CF2ClBr    'mol mol-1'  Halon 1211
+CF3Br      'mol mol-1'  Halon 1301
+H2402      'mol mol-1'  Halon 2402 (C2Br2F4)
+ACTA       'mol mol-1'  Acetic acid (C2H4O2)
+ALD2       'mol mol-1'  Acetaldehyde (C2H4O)
+ALK4       'mol mol-1'  C4,5 alkanes (C5H12)
+C2H6       'mol mol-1'  Ethane
+C3H8       'mol mol-1'  Propane
+ETP        'mol mol-1'  Ethylhydroperoxide (C2H6O2) from ETO2
+HAC        'mol mol-1'  Hydroxyacetone (C3H6O2)
+IALD       'mol mol-1'  Hydroxy carbonyl alkenes (C5H8O2) from isoprene
+IAP        'mol mol-1'  Peroxide (C5H10O5) from IAO2
+ISOP       'mol mol-1'  Isoprene (C5H8)
+MACR       'mol mol-1'  Methacrolein (C4H6O)
+MEK        'mol mol-1'  Methyl ethyl ketone (C4H8O)
+MVK        'mol mol-1'  Methyl vinyl ketone (C4H6O)
+PAN        'mol mol-1'  Peroxyacetyl nitrate (C2H3NO5)
+PMN        'mol mol-1'  Peroxymethacryloyl nitrate (C4H5O5N)
+PPN        'mol mol-1'  Peroxypropionyl nitrate (C3H5NO5)
+PRPE       'mol mol-1'  Propene (C3H6)
+R4N2       'mol mol-1'  C4-C5 alkylnitrates (C4H9O3N)
+RCHO       'mol mol-1'  C2 aldehydes (C3H6O)
+RCOOH      'mol mol-1'  C2 organic acids
+N2          m-3         Molecular nitrogen
+HNO3COND   'mol mol-1'  Condensed nitric acid
+::
+
+variable_table_XX::
+
+# Name     Units        Long Name
+# -----    ------       --------------------------------
+H          'mol mol-1'  Ground state atomic hydrogen (2S)
+MO2        'mol mol-1'  Methylperoxy radical (CH3O2)
+N          'mol mol-1'  Ground state atomic nitrogen
+O          'mol mol-1'  Ground state atomic oxygen (3P)
+O1D        'mol mol-1'  First excited singlet state of atomic oxygen (1D)
+A3O2       'mol mol-1'  Primary RO2 (C3H7O2) from propane
+ATO2       'mol mol-1'  RO2 from acetone (C3H6O3)
+B3O2       'mol mol-1'  Secondary RO2 (C3H7O2) from propane
+EOH        'mol mol-1'  Ethanol
+ETO2       'mol mol-1'  Ethylperoxy radical (C2H5O2)
+GCO3       'mol mol-1'  Hydroxy peroxyacetyl radical (C2H3O4)
+GLYC       'mol mol-1'  Glycolaldehyde (Hydroxyacetaldehyde C2H4O2)
+GLYX       'mol mol-1'  Glyoxal (2CHO)
+GP         'mol mol-1'  Peroxide (C2H4O4) from GCO3
+GPAN       'mol mol-1'  Peroxyacylnitrate (C2H3O6N)
+IAO2       'mol mol-1'  RO2 (C5H9O5) from isoprene oxidation products
+INO2       'mol mol-1'  RO2 (C5H8O3N) from ISOP+NO3
+INPN       'mol mol-1'  Peroxide (C5H8O6N2) from INO2
+ISN1       'mol mol-1'  RO2 (C4H7O4N) from ISN2
+ISNP       'mol mol-1'  Peroxide (C4H7O4N) from ISN1
+KO2        'mol mol-1'  RO2 (C4H7O3) from C3 ketones
+MAN2       'mol mol-1'  RO2 (C4H6O6N) from MACR+NO3
+MAO3       'mol mol-1'  Peroxyacyl (C4H5O3) from MACR and MVK
+MAOP       'mol mol-1'  Peroxide (C4H6O3) from MAO3
+MAP        'mol mol-1'  Peroxyacetic acid (C2H4O3)
+MCO3       'mol mol-1'  Peroxyacetyl radical (C2H3O3)
+MGLY       'mol mol-1'  Methylglyoxal (C3H4O2)
+MRO2       'mol mol-1'  RO2 (C4H7O4) from MACR+OH
+MRP        'mol mol-1'  Peroxide (C4H8O4) from MRO2
+MVN2       'mol mol-1'  C4H6O4N
+PO2        'mol mol-1'  RO2 (C3H7O3) from propene
+PP         'mol mol-1'  Peroxide (C3H8O3) from PO2
+PRN1       'mol mol-1'  RO2 (C3H6O3N) from propene+NO3
+PRPN       'mol mol-1'  Peroxide (C3H6O3N) from PRN1
+R4N1       'mol mol-1'  RO2 (C4H9O3N) from R4N2
+R4O2       'mol mol-1'  RO2 (C4H9O2) from ALK4
+R4P        'mol mol-1'  Peroxide (C4H10O2) from R4O2
+RA3P       'mol mol-1'  Peroxy propyl alcohol (C3H8O2) from A3O2
+RB3P       'mol mol-1'  Peroxide (C3H8O2) from B3O2
+RCO3       'mol mol-1'  Peroxypropionyl radical (C3H5O3)
+RIO1       'mol mol-1'  RO2 (C5H9O3) from isoprene oxydation products
+RIO2       'mol mol-1'  RO2 (C5H9O3) from isoprene
+RIP        'mol mol-1'  Peroxide (C5H10O3) from RIO2
+ROH        'mol mol-1'  C2 alcohols
+RP         'mol mol-1'  Methacrolein peroxy acid (C4H6O3)
+VRO2       'mol mol-1'  RO2 (C4H7O4) from MVK+OH
+VRP        'mol mol-1'  Peroxide (C4H8O4) from VRO2
+ACET       'mol mol-1'  Acetone
+O2          m-3         Molecular oxygen
+NUMDENS     m-3         Total number density
+T2M15d      K           Daily T2M time average
+::
+
+#........................................................................
+
+#               -------------------
+#               Not Implemented Yet
+#               -------------------
+
+# Whether to advect the constituent
+# ---------------------------------
+advect_H2O: yes  # water vapor 
+advect_O3:  yes  # ozone 
+advect_CO:  yes  # carbon monoxide
+advect_CO2: yes  # carbon dioxide
+advect_DU:  yes  # mineral dust
+advect_SS:  yes  # sea salt
+advect_SU:  yes  # sulfates
+advect_CFC: yes  # CFCs
+advect_BC:  yes  # black carbon
+advect_OC:  yes  # organic carbon
+advect_Rn:  yes  # radon
+advect_CH4: yes  # methane
+advect_SC:  yes  # stratospheric chemistry
+advect_XX:  no   # generic tracer
+advect_PC:  yes  # parameterized chemistry (GEOS-5)
+advect_GMI: yes  # GMI chemistry (GEOS-5)
+
+# Whether to diffuse the constituent
+# ----------------------------------
+diffuse_H2O: yes  # water vapor 
+diffuse_O3:  yes  # ozone 
+diffuse_XX:  yes  # generic tracer
+diffuse_CO:  yes  # carbon monoxide
+diffuse_CO2: yes  # carbon dioxide
+diffuse_DU:  yes  # mineral dust
+diffuse_SS:  yes  # sea salt
+diffuse_SU:  yes  # sulfates
+diffuse_CFC: yes  # CFCs
+diffuse_BC:  yes  # black carbon
+diffuse_OC:  yes  # organic carbon
+diffuse_Rn:  yes  # radon
+diffuse_CH4: yes  # methane
+diffuse_SC:  yes  # stratospheric chemistry
+diffuse_XX:  yes  # generic tracer
+diffuse_PC:  yes  # parameterized chemistry (GEOS-5)
+diffuse_GMI: yes  # GMI chemistry (GEOS-5)
+

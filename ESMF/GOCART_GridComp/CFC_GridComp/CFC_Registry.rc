@@ -1,0 +1,35 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#  27Jun2014  Nielsen   Added CFC-12 photorate export state.
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: CFC
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<CFC::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |            |     | V |Item|Intervl|# Sub|          Long
+#  Name    |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  CFC12S   | mol mol-1  | xyz | C |    |   |   |     | Stratospheric CFC-12 (CCl2F2)
+  CFC12T   | mol mol-1  | xyz | C |    |   |   |     | Tropospheric CFC-12 (CCl2F2)
+# .........|............|.....|...|....|...|...|.....|..................................
+  CFC12EM  | kg m-2 s-1 | xy  |   |    |   |   |     | CFC-12 Emission
+  CFC12SLS | m-3 s-1    | xyz | C |    |   |   |     | Stratospheric CFC-12 Loss
+  CFC12TLS | m-3 s-1    | xyz | C |    |   |   |     | Tropospheric CFC-12 Loss
+  CFC12SCL | kg m-2     | xy  |   |    |   |   |     | Stratospheric CFC-12 Column
+  CFC12TCL | kg m-2     | xy  |   |    |   |   |     | Tropospheric CFC-12 Column
+  CFC12PH  | s-1        | xyz | C |    |   |   |     | CFC-12 Photorate
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+</CFC::ExportSpec>
+

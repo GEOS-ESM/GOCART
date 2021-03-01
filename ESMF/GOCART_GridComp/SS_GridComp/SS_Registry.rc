@@ -1,0 +1,69 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: SS
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<SS::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |            |     | V |Item|Intervl| Sub |          Long
+#  Name    |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  SSMASS   | kg kg-1    | xyz | C |    |   |   |     | Sea Salt Mass Mixing Ratio                     __ENSEMBLE__ 
+  SSMASS25 | kg kg-1    | xyz | C |    |   |   |     | Sea Salt Mass Mixing Ratio - PM 2.5            __ENSEMBLE__
+  SSCONC   | kg m-3     | xyz | C |    |   |   |     | Sea Salt Mass Concentration                    __ENSEMBLE__
+  SSEXTCOEF| m-1        | xyz | C |    |   |   |     | Sea Salt Extinction Coefficient [550 nm]       __ENSEMBLE__
+  SSSCACOEF| m-1        | xyz | C |    |   |   |     | Sea Salt Scattering Coefficient [550 nm]       __ENSEMBLE__
+# .........|............|.....|...|....|...|...|.....|..................................
+  SSEM001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Emission Bin 001                      __ENSEMBLE__
+  SSEM002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Emission Bin 002                      __ENSEMBLE__
+  SSEM003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Emission Bin 003                      __ENSEMBLE__
+  SSEM004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Emission Bin 004                      __ENSEMBLE__
+  SSEM005  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Emission Bin 005                      __ENSEMBLE__
+  SSSD001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Sedimentation Bin 001                 __ENSEMBLE__
+  SSSD002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Sedimentation Bin 002                 __ENSEMBLE__
+  SSSD003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Sedimentation Bin 003                 __ENSEMBLE__
+  SSSD004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Sedimentation Bin 004                 __ENSEMBLE__
+  SSSD005  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Sedimentation Bin 005                 __ENSEMBLE__
+  SSDP001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Dry Deposition Bin 001                __ENSEMBLE__
+  SSDP002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Dry Deposition Bin 002                __ENSEMBLE__
+  SSDP003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Dry Deposition Bin 003                __ENSEMBLE__
+  SSDP004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Dry Deposition Bin 004                __ENSEMBLE__
+  SSDP005  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Dry Deposition Bin 005                __ENSEMBLE__
+  SSWT001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Wet Deposition Bin 001                __ENSEMBLE__
+  SSWT002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Wet Deposition Bin 002                __ENSEMBLE__
+  SSWT003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Wet Deposition Bin 003                __ENSEMBLE__
+  SSWT004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Wet Deposition Bin 004                __ENSEMBLE__
+  SSWT005  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Wet Deposition Bin 005                __ENSEMBLE__
+  SSSV001  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Convective Scavenging Bin 001         __ENSEMBLE__
+  SSSV002  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Convective Scavenging Bin 002         __ENSEMBLE__
+  SSSV003  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Convective Scavenging Bin 003         __ENSEMBLE__
+  SSSV004  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Convective Scavenging Bin 004         __ENSEMBLE__
+  SSSV005  | kg m-2 s-1 | xy  |   |    |   |   |     | Sea Salt Convective Scavenging Bin 005         __ENSEMBLE__
+  SSSMASS  | kg m-3     | xy  |   |    |   |   |     | Sea Salt Surface Mass Concentration            __ENSEMBLE__
+  SSCMASS  | kg m-2     | xy  |   |    |   |   |     | Sea Salt Column Mass Density                   __ENSEMBLE__
+  SSEXTTAU |    1       | xy  |   |    |   |   |     | Sea Salt Extinction AOT [550 nm]               __ENSEMBLE__
+  SSSCATAU |    1       | xy  |   |    |   |   |     | Sea Salt Scattering AOT [550 nm]               __ENSEMBLE__
+  SSSMASS25| kg m-3     | xy  |   |    |   |   |     | Sea Salt Surface Mass Concentration - PM 2.5   __ENSEMBLE__   
+  SSCMASS25| kg m-2     | xy  |   |    |   |   |     | Sea Salt Column Mass Density - PM 2.5          __ENSEMBLE__
+  SSEXTT25 |    1       | xy  |   |    |   |   |     | Sea Salt Extinction AOT [550 nm] - PM 2.5      __ENSEMBLE__
+  SSSCAT25 |    1       | xy  |   |    |   |   |     | Sea Salt Scattering AOT [550 nm] - PM 2.5      __ENSEMBLE__
+  SSAERIDX |    1       | xy  |   |    |   |   |     | Sea Salt TOMS UV Aerosol Index                 __ENSEMBLE__
+  SSEXTTFM |    1       | xy  |   |    |   |   |     | Sea Salt Extinction AOT [550 nm] - PM 1.0 um   __ENSEMBLE__
+  SSSCATFM |    1       | xy  |   |    |   |   |     | Sea Salt Scattering AOT [550 nm] - PM 1.0 um   __ENSEMBLE__
+  SSANGSTR |    1       | xy  |   |    |   |   |     | Sea Salt Angstrom parameter [470-870 nm]       __ENSEMBLE__
+  SSFLUXU  | kg m-1 s-1 | xy  |   |    |   |   |     | Sea Salt column u-wind mass flux               __ENSEMBLE__
+  SSFLUXV  | kg m-1 s-1 | xy  |   |    |   |   |     | Sea Salt column v-wind mass flux               __ENSEMBLE__
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+</SS::ExportSpec>

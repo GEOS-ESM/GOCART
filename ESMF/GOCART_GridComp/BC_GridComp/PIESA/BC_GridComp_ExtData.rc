@@ -1,0 +1,28 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+# QFED v2.x
+BC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/PIESA/sfc/QFED/v2.4r6/Y%y4/M%m2/qfed2.emis_bc.005.%y4%m2%d2.nc4
+
+# Biofuel Source -- Included in AeroCom anthropogenic emissions
+BC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+BC_ANTEBC1 NA  N Y %y4-%m2-%d2t12:00:00 none none antebc1 ExtData/PIESA/sfc/AeroCom.noship_BC_src.sfc.x360_y181_t44.19780703_12z_20210703_12z.nc
+BC_ANTEBC2 NA  Y Y %y4-%m2-%d2t12:00:00 none none antebc2 /dev/null
+
+# EDGAR based ship emissions
+BC_SHIP NA  N Y %y4-%m2-%d2t12:00:00 none none bc_ship ExtData/PIESA/sfc/AeroCom.ship_BC_src.sfc.x360_y181_t44.19780703_12z_20210703_12z.nc
+
+# Aviation emissions during the LTO, SDC and CRS phases of flight
+BC_AVIATION_LTO NA  N Y %y4-%m2-%d2t12:00:00 none none none /dev/null
+BC_AVIATION_CDS NA  N Y %y4-%m2-%d2t12:00:00 none none none /dev/null 
+BC_AVIATION_CRS NA  N Y %y4-%m2-%d2t12:00:00 none none none /dev/null
+
+# Anthropogenic emissions from NEI08 (National Emission Inventory, only US and Canada)
+# BC_NEI_BOT NA  N Y 0 none none BC /discover/nobackup/projects/gmao/share/dasilva/fvInput/AeroCom/sfc/NEI08.bot.x1152_y721_t8760.2010.nc4
+# BC_NEI_TOP NA  N Y 0 none none BC /discover/nobackup/projects/gmao/share/dasilva/fvInput/AeroCom/sfc/NEI08.top.x1152_y721_t8760.2010.nc4
+%%
+

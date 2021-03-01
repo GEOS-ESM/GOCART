@@ -1,0 +1,33 @@
+#
+# Resource file for NI parameters. 
+# Emission factors in kg species / kg emissions (DM or species)
+#
+
+
+# Indicate regions using a comma-delimited list of integers.
+# To activate all land boxes, use -1, or all or global (not case sensitive)
+# -------------------------------------------------------------------------
+NI_regions_indices: global
+
+
+# Scavenging efficiency per bin [km-1]
+fscav: 0.0   0.4    0.4    0.4    0.4  
+
+# Dry particle radius [um], used for settling
+particle_radius:  0.0    0.2695 0.2695 2.1    7.57
+
+# Dry particle density [kg m-3]
+particle_density: 1000   1769   1725   2200   2650
+
+# Molecular weight of species [kg mole-1]
+molecular_weight: 0.18  0.18  0.18  0.18  0.18
+
+# Number of particles per kg mass
+fnum: 1.50e19  1.50e19  1.50e19  1.50e19  1.50e19
+
+# Number median radius [um]
+particle_radius_number: 0.0118  0.0118  0.0118  0.0118  0.0118
+
+# Sigma of lognormal number distribution
+sigma: 2.0  2.0  2.0  2.0  2.0
+

@@ -1,0 +1,16 @@
+#
+# Resource file for GOCART Ozone grid component.
+#
+# Parameterized chemistry
+# -----------------------
+PCHEMs_file_name: /discover/nobackup/ltakacs/bcs/Ganymed-2_0_M/Shared/pchem.species.Clim_Prod_Loss.z_721x72.nc4
+pchem_clim_years: 1
+
+# GMI chemistry
+# -------------
+veg_file_name: ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+lai_file_name: ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+
+# Debug switch (1=yes or 0=no)
+# ----------------------------
+DEBUG: 0

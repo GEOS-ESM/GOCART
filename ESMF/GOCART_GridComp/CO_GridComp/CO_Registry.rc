@@ -1,0 +1,105 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: CO
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<CO::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |            |     | V |Item|Intervl|# Sub|          Long
+#  Name    |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+  COEM     | kg m-2 s-1 | xy  |   |    |   |   |     | CO Emission __ENSEMBLE__
+  COEMbbbo | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Boreal Biomass Burning)
+  COEMbbnb | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Non-Boreal Biomass Burning)
+  COEMffru | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Anthopogenic Emissions Northern Asia)
+  COEMffas | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Anthopogenic Emissions Southern Asia)
+  COEMffeu | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Anthopogenic Emissions Europe)
+  COEMffna | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Anthopogenic Emissions North America)
+  COEMbbae | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Asia and Europe Biomass Burning)
+  COEMbbna | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (North America Biomass Burning)
+  COEMbbla | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Central and South America Biomass Burning)
+  COEMbbaf | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Africa Biomass Burning)
+  COEMbbgl | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Emission (Global Biomass Burning)
+  COEMnbas | kg m-2 s-1 | xy  |   |    |   |   |     | CO Emission (Asia Non-Biomass Burning)
+  COEMnbeu | kg m-2 s-1 | xy  |   |    |   |   |     | CO Emission (European Non-Biomass Burning)
+  COEMnbna | kg m-2 s-1 | xy  |   |    |   |   |     | CO Emission (North American Non-Biomass Burning)
+  COEMnbgl | kg m-2 s-1 | xy  |   |    |   |   |     | CO Emission (Global Non-Biomass Burning)
+  COPD     | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production __ENSEMBLE__
+  COPDbbbo | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Production (Boreal Biomass Burning)
+  COPDbbnb | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Production (Non-Boreal Biomass Burning)
+  COPDffru | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Production (Anthopogenic Emissions Northern Asia)
+  COPDffas | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Production (Anthopogenic Emissions Southern Asia)
+  COPDffeu | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Production (Anthopogenic Emissions Europe)
+  COPDffna | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Production (Anthopogenic Emissions North America)
+  COPDbbae | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production (Asia and Europe Biomass Burning)
+  COPDbbna | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production (North America Biomass Burning)
+  COPDbbla | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production (Central and South America Biomass Burning)
+  COPDbbaf | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production (Africa Biomass Burning)
+  COPDbbgl | kg m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Production (Global Biomass Burning)
+  COPDnbas | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production (Asia Non-Biomass Burning)
+  COPDnbeu | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production (European Non-Biomass Burning)
+  COPDnbna | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production (North American Non-Biomass Burning)
+  COPDnbgl | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Production (Global Non-Biomass Burning)
+  COLS     | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Loss __ENSEMBLE__
+  COLSbbbo | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Boreal Biomass Burning)
+  COLSbbnb | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Non-Boreal Biomass Burning)
+  COLSffru | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Anthopogenic Emissions Northern Asia)
+  COLSffas | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Anthopogenic Emissions Southern Asia)
+  COLSffeu | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Anthopogenic Emissions Europe)
+  COLSffna | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Anthopogenic Emissions North America)
+  COLSbbae | km m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Loss (Asia and Europe Biomass Burning)
+  COLSbbna | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (North America Biomass Burning)
+  COLSbbla | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Central and South America Biomass Burning)
+  COLSbbaf | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Africa Biomass Burning)
+  COLSbbgl | km m-2 s-1 | xy  |	  |    |   |   |     | CO Chemical Loss (Global Biomass Burning)
+  COLSnbas | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Loss (Asia Non-Biomass Burning)
+  COLSnbeu | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Loss (European Non-Biomass Burning)
+  COLSnbna | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Loss (North American Non-Biomass Burning)
+  COLSnbgl | kg m-2 s-1 | xy  |   |    |   |   |     | CO Chemical Loss (Global Non-Biomass Burning)
+  COSC     | 1e-9       | xy  |   |    |   |   |     | CO Surface Concentration in ppbv __ENSEMBLE__
+  COSCbbbo | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Boreal Biomass Burning)
+  COSCbbnb | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Non-Boreal Biomass Burning)
+  COSCffru | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Anthopogenic Emissions Northern Asia)
+  COSCffas | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Anthopogenic Emissions Southern Asia)
+  COSCffeu | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Anthopogenic Emissions Europe)
+  COSCffna | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Anthopogenic Emissions North America)
+  COSCbbae | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Asia and Europe Biomass Burning)
+  COSCbbna | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (North America Biomass Burning)
+  COSCbbla | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Central and South America Biomass Burning)
+  COSCbbaf | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Africa Biomass Burning)
+  COSCbbgl | 1e-9       | xy  |	  |    |   |   |     | CO Surface Concentration in ppbv (Global Biomass Burning)
+  COSCnbas | 1e-9       | xy  |   |    |   |   |     | CO Surface Concentration in ppbv (Asia Non-Biomass Burning)
+  COSCnbeu | 1e-9       | xy  |   |    |   |   |     | CO Surface Concentration in ppbv (European Non-Biomass Burning)
+  COSCnbna | 1e-9       | xy  |   |    |   |   |     | CO Surface Concentration in ppbv (North American Non-Biomass Burning)
+  COSCnbgl | 1e-9       | xy  |   |    |   |   |     | CO Surface Concentration in ppbv (Global Non-Biomass Burning)
+  COCL     | kg m-2     | xy  |   |    |   |   |     | CO Column Burden __ENSEMBLE__
+  COCLbbbo | kg m-2     | xy  |	  |    |   |   |     | CO Column Burden (Boreal Biomass Burning)
+  COCLbbnb | kg m-2     | xy  |	  |    |   |   |     | CO Column Burden (Non-Boreal Biomass Burning)
+  COCLffru | kg m-2     | xy  |	  |    |   |   |     | CO Column Burden (Anthopogenic Emissions Northern Asia)
+  COCLffas | kg m-2     | xy  |	  |    |   |   |     | CO Column Burden (Anthopogenic Emissions Southern Asia)
+  COCLffeu | kg m-2     | xy  |	  |    |   |   |     | CO Column Burden (Anthopogenic Emissions Europe)
+  COCLffna | kg m-2     | xy  |	  |    |   |   |     | CO Column Burden (Anthopogenic Emissions North America)
+  COCLbbae | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (Asia and Europe Biomass Burning)
+  COCLbbna | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (North America Biomass Burning)
+  COCLbbla | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (Central and South America Biomass Burning)
+  COCLbbaf | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (Africa Biomass Burning)
+  COCLbbgl | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (Global Biomass Burning)
+  COCLnbas | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (Asia Non-Biomass Burning) 
+  COCLnbeu | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (European Non-Biomass Burning)
+  COCLnbna | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (North American Non-Biomass Burning) 
+  COCLnbgl | kg m-2     | xy  |   |    |   |   |     | CO Column Burden (Global Non-Biomass Burning)
+# ---------|------------|-----|---|----|---|---|-----|---------------------------------
+</CO::ExportSpec>
+

@@ -1,0 +1,16 @@
+#
+#  Radon main resource file defining the particular instances.
+#  Regions based on: RADON.region_mask.x540_y361.2008.nc
+#
+# ------------------|-------|------------
+#       Region      | Tag   |   Masking
+# ------------------|-------|------------
+#  Asia             | Asia  | 4
+#  Europe           | Euro  | 3
+#  North America    | NoAm  | 1,2
+#  Sorth America    | SoAm  | 6
+#  Africa           | Afri  | 5
+#  Australia        | Aust  | 7
+# ------------------|-------|------------
+
+Rn_instances: full Asia Euro NoAm SoAm Afri Aust
