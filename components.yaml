@@ -1,34 +1,27 @@
 cmake:
   local: ./cmake@
   remote: ../ESMA_cmake.git
-  tag: v3.0.6
+  tag: v3.3.6
   develop: develop
 
 ecbuild:
   local: ./cmake@/ecbuild@
   remote: ../ecbuild.git
-  tag: geos/v1.0.5
+  tag: geos/v1.0.6
 
 HEMCO:
   local: ./ESMF/HEMCO_GridComp@
   remote: ../HEMCO.git
-  branch: bugfix/GOCART_Build_error
-
-NCEP_Shared:
-  local: ./ESMF/Shared/NCEP_Shared@
-  remote: ../NCEP_Shared.git
-  tag: v1.0.0
-  sparse: ./config/NCEP_Shared.sparse
-  develop: main
+  branch: GEOS/develop
 
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
-  tag: v1.1.8
+  tag: v1.3.8
   sparse: ./config/GMAO_Shared.sparse
   develop: main
 
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  branch: NUOPC_MAPLcap
+  tag: v2.6.2

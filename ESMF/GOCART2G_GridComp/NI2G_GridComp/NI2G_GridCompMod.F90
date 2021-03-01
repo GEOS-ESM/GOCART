@@ -25,7 +25,7 @@ module NI2G_GridCompMod
    integer, parameter :: instanceData          = 2
 
    real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
-   real, parameter :: fMassHNO3 = 63., fMassNO3 = 62., fMassAir = 29.
+   real, parameter :: fMassHNO3 = 63., fMassNO3 = 62.
    integer, parameter :: nNH3 = 1
    integer, parameter :: nNH4a = 2
    integer, parameter :: nNO3an1 = 3
@@ -35,8 +35,8 @@ module NI2G_GridCompMod
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
 
-real, parameter ::  chemgrav   = 9.80616
 real, parameter ::  cpd    = 1004.16
+integer, parameter     :: DP = kind(1.0d0)
 
 ! !DESCRIPTION: This module implements GOCART's Nitrate (NI) Gridded Component.
 
@@ -89,6 +89,7 @@ contains
 !   !Locals
     character (len=ESMF_MAXSTR)                 :: COMP_NAME
     type (ESMF_Config)                          :: cfg
+    type (ESMF_Config)                          :: universal_cfg
     type (wrap_)                                :: wrap
     type (NI2G_GridComp), pointer               :: self
 
@@ -102,7 +103,7 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
 if(mapl_am_i_root()) print*,trim(comp_name),' SetServices BEGIN'
@@ -122,7 +123,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices BEGIN'
     end if
 
     ! process generic config items
-    call self%GA_GridComp%load_from_config( cfg, __RC__)
+    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
 
 !   Is NI data driven?
 !   ------------------
@@ -237,28 +238,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices BEGIN'
        VLOCATION  = MAPL_VLocationCenter,                       &
        DATATYPE   = MAPL_StateItem, __RC__)
 
-!   This state is needed by MOIST - It will contain aerosols
-!   ----------------------------------------------------------
-!    call MAPL_AddExportSpec(GC,                                                  &
-!       SHORT_NAME = trim(COMP_NAME)//'_AERO_ACI',                                &
-!       LONG_NAME  = 'aerosol_cloud_interaction_aerosols_from_'//trim(COMP_NAME),  &
-!       UNITS      = 'kg kg-1',                                                   &
-!       DIMS       = MAPL_DimsHorzVert,                                           &
-!       VLOCATION  = MAPL_VLocationCenter,                                        &
-!       DATATYPE   = MAPL_StateItem, __RC__)
-
-!   This bundle is needed by surface for snow albedo modification
-!   by aerosol settling and deposition
-!   DEVELOPMENT NOTE - Change to StateItem in future
-!   ---------------------------------------------------------------
-!    call MAPL_AddExportSpec(GC,                                   &
-!       SHORT_NAME = trim(COMP_NAME)//'_AERO_DP',                  &
-!       LONG_NAME  = 'aerosol_deposition_from_'//trim(COMP_NAME),  &
-!       UNITS      = 'kg m-2 s-1',                                 &
-!       DIMS       = MAPL_DimsHorzOnly,                            &
-!       DATATYPE   = MAPL_BundleItem, __RC__)
-
-
 !   Store internal state in GC
 !   --------------------------
     call ESMF_UserCompSetInternalState ( GC, 'NI2G_GridComp', wrap, STATUS )
@@ -268,13 +247,11 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices BEGIN'
 !   ----------------------------------
     call MAPL_GenericSetServices (GC, __RC__)
 
-
 if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
 
     RETURN_(ESMF_SUCCESS)
 
   end subroutine SetServices
-
 
 
 !============================================================================
@@ -303,9 +280,10 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
 !   !Locals 
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     type (MAPL_MetaComp),      pointer   :: MAPL
+    type (ESMF_Config)                   :: universal_cfg
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
-    type (ESMF_State)                    :: aero, aero_aci
+    type (ESMF_State)                    :: aero
     type (ESMF_State)                    :: providerState
     type (ESMF_Config)                   :: cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
@@ -321,10 +299,10 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
     integer                              :: HDT         ! model     timestep (secs)
     real, pointer, dimension(:,:,:)      :: int_ptr
     logical                              :: data_driven
+    logical                              :: bands_are_present
     integer                              :: NUM_BANDS
     character (len=ESMF_MAXSTR), allocatable    :: aerosol_names(:)
     real, pointer, dimension(:,:,:)      :: ple
-    real, pointer, dimension(:,:)        :: area
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
@@ -344,10 +322,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
-
-if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
 
 !   Get my internal MAPL_Generic state
 !   ----------------------------------- 
@@ -513,19 +489,22 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
                                   label="aerosol_radBands_optics_file:", __RC__ )
 
     allocate (self%rad_MieTable(instance)%channels(NUM_BANDS), __STAT__ )
+    self%rad_MieTable(instance)%nch = NUM_BANDS
 
-    call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
-                                 count=self%rad_MieTable(instance)%nch, rc=status)
+    call ESMF_ConfigFindLabel(cfg, label="BANDS:", isPresent=bands_are_present, __RC__)
 
-    if (rc /= 0) then
+    if (bands_are_present) then
+       call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
+                                    count=self%rad_MieTable(instance)%nch, __RC__)
+    else
        do i = 1, NUM_BANDS
           self%rad_MieTable(instance)%channels(i) = i
        end do
-    end if
+    endif
 
     allocate (self%rad_MieTable(instance)%mie_aerosol, __STAT__)
-    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, rc)
-    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, rc)
+    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, __RC__)
+    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, __RC__)
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
@@ -675,8 +654,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
     call ESMF_GridCompGet (GC, grid=grid, NAME=comp_name, __RC__)
     Iam = trim(comp_name) //'::'// Iam
 
-!if(mapl_am_i_root()) print*,trim(comp_name),'2G Run1 BEGIN'
-
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
@@ -686,9 +663,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
 #include "NI2G_GetPointer___.h"
-
-!if(mapl_am_i_root()) print*,'NI2G Run1 BEGIN sum(NH3) = ',sum(NH3)
-!if(mapl_am_i_root()) print*,'NI2G Run1 BEGIN sum(NH4a) = ',sum(NH4a)
 
 !   Get my private internal state
 !   ------------------------------
@@ -705,26 +679,26 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
        if (associated(EMI_NH3_BB)) NH3EM = NH3EM + EMI_NH3_BB
        if (associated(EMI_NH3_AG)) NH3EM = NH3EM + EMI_NH3_AG
        if (associated(EMI_NH3_EN)) NH3EM = NH3EM + EMI_NH3_EN
-       if (associated(EMI_NH3_RE)) NH3EM = NH3EM + EMI_NH3_RE
        if (associated(EMI_NH3_TR)) NH3EM = NH3EM + EMI_NH3_TR
+       if (associated(EMI_NH3_RE)) NH3EM = NH3EM + EMI_NH3_RE
        if (associated(EMI_NH3_IN)) NH3EM = NH3EM + EMI_NH3_IN
        if (associated(EMI_NH3_OC)) NH3EM = NH3EM + EMI_NH3_OC
     end if
 
     if (associated(EMI_NH3_BB)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_BB
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_BB
     if (associated(EMI_NH3_AG)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_AG
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_AG
     if (associated(EMI_NH3_EN)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_EN
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_EN
     if (associated(EMI_NH3_IN)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_IN
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_IN
     if (associated(EMI_NH3_RE)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_RE
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_RE
     if (associated(EMI_NH3_TR)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_TR
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_TR
     if (associated(EMI_NH3_OC)) &
-       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*chemgrav/delp(:,:,self%km)*EMI_NH3_OC
+       NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_OC
 
 
 !if(mapl_am_i_root()) print*,'NI2G sum(DU)',sum(DU)
@@ -773,15 +747,12 @@ if(mapl_am_i_root()) print*,trim(comp_name),' Init BEGIN'
     real, pointer, dimension(:,:,:)   :: fluxoutWT
     real, allocatable, dimension(:,:,:,:) :: aerosol
 
-!    character(len=15)                 :: ind
-
     type (ESMF_ALARM)               :: alarm
     logical                         :: alarm_is_ringing
 
     integer :: rhFlag
 
 integer :: i,j
-!real :: rmedDU(5), rmedSS(5), fnumDU(5), fnumSS(5)
 
 #include "NI2G_DeclarePointer___.h"
 
@@ -805,8 +776,6 @@ integer :: i,j
 
 #include "NI2G_GetPointer___.h"
 
-!if(mapl_am_i_root()) print*,trim(comp_name),'2G Run2 BEGIN'
-
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'NI2G_GridComp', wrap, STATUS)
@@ -824,15 +793,14 @@ integer :: i,j
     if (self%first) then
        self%xhno3 = MAPL_UNDEF
        self%first = .false.
-!if(mapl_am_i_root()) print*,'NI2G TEST1'
     end if
 
 !   Recycle HNO3 every 3 hours
     if (alarm_is_ringing) then
        self%xhno3 = NITRATE_HNO3
        call ESMF_AlarmRingerOff(alarm, __RC__)
-!if(mapl_am_i_root()) print*,'NI2G recycle alarm TRUE'
-!if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
+if(mapl_am_i_root()) print*,'NI2G recycle alarm TRUE'
+if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
     end if
 
 !if(mapl_am_i_root()) print*,'NI2G Run2 BEGIN sum(NH3) = ',sum(NH3)
@@ -855,22 +823,28 @@ integer :: i,j
 !if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH4a) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G before sum(SO4) = ',sum(SO4)
 
-    call NIthermo (self%km, self%klid, self%cdt, chemgrav, delp, airdens, t, rh2, fMassHNO3, fMassAir, &
+    call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, t, rh2, fMassHNO3, MAPL_AIRMW, &
                    SO4, NH3, NO3an1, NH4a, self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, rc)
 
 !if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH3) = ',sum(NH3)
 !if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an1) = ',sum(NO3an1)
+!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an2) = ',sum(NO3an2)
+!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an3) = ',sum(NO3an3)
 !if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH4a) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G after thermo sum(xhno3) = ',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNO3AQ) = ',sum(NIPNO3AQ)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNH4AQ) = ',sum(NIPNH4AQ)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNH3AQ) = ',sum(NIPNH3AQ)
 
-!    call NIheterogenousChem (NIHT, self%xhno3, MAPL_AVOGAD, MAPL_AIRMW, MAPL_PI, MAPL_RUNIV, &
+!if(mapl_am_i_root()) print*,'NI2G self%fnumDU = ',self%fnumDU
+!if(mapl_am_i_root()) print*,'NI2G self%fnumSS = ',self%fnumSS
+!if(mapl_am_i_root()) print*,'NI2G self%rmedDU = ',self%rmedDU*1.e-6
+!if(mapl_am_i_root()) print*,'NI2G self%rmedSS = ',self%rmedSS*1.e-6
+
     call NIheterogenousChem (NIHT, self%xhno3, MAPL_AVOGAD, MAPL_AIRMW, MAPL_PI, MAPL_RUNIV/1000., &
                              airdens, t, rh2, delp, DU, SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
-                             self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, self%cdt, chemgrav, fMassHNO3, &
-                             fMassNO3, fmassair, NO3an1, NO3an2, NO3an3, HNO3CONC, HNO3SMASS, &
+                             self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, self%cdt, MAPL_GRAV, fMassHNO3, &
+                             fMassNO3, NO3an1, NO3an2, NO3an3, HNO3CONC, HNO3SMASS, &
                              HNO3CMASS, rc)
 
 !if(mapl_am_i_root()) print*,'NI2G sum(NIHT(:,:,1)) = ',sum(NIHT(:,:,1))
@@ -885,6 +859,9 @@ integer :: i,j
 
 !if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH3) = ',sum(NH3)
 !if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH4a) = ',sum(NH4a)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an1) = ',sum(NO3an1)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an2) = ',sum(NO3an2)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an3) = ',sum(NO3an3)
 !if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
 
 !if(mapl_am_i_root()) print*,'NI2G NH4a array = ',NH4a
@@ -896,7 +873,7 @@ integer :: i,j
 
 !   Ammonium - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhflag, chemgrav, self%cdt, &
+    call Chem_SettlingSimpleOrig (self%km, self%klid, rhflag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNH4a), self%rhop(nNH4a), &
                                   NH4a, t, airdens, rh2, delp, zle, NH4SD, rc)
 
@@ -910,7 +887,7 @@ integer :: i,j
 !  Nitrate bin 1 - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
     fluxout = 0.
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, chemgrav, self%cdt, &
+    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an1), self%rhop(nNO3an1), &
                                   NO3an1, t, airdens, rh2, delp, zle, fluxout, rc)
     if (associated(NISD)) NISD(:,:,1) = fluxout
@@ -920,7 +897,7 @@ integer :: i,j
 !  Nitrate bin 2 - settles like sea salt (rhflag = 2)
     rhflag = 2
     fluxout = 0.
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, chemgrav, self%cdt, &
+    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an2), self%rhop(nNO3an2), &
                                   NO3an2, t, airdens, rh2, delp, zle, fluxout, rc)
     if (associated(NISD)) NISD(:,:,2) = fluxout
@@ -930,12 +907,12 @@ integer :: i,j
 !  Nitrate bin 1 - settles like dust (rhflag = 0)
     rhflag = 0
     fluxout = 0.
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, chemgrav, self%cdt, &
+    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an3), self%rhop(nNO3an3), &
                                   NO3an3, t, airdens, rh2, delp, zle, fluxout, rc)
     if (associated(NISD)) NISD(:,:,3) = fluxout
 !if(mapl_am_i_root()) print*,'NI2G sum(NISD(:,:,3)) = ',sum(NISD(:,:,3))
-!if(mapl_am_i_root()) print*,'NI2G sum(NO3an3) = ',sum(NO3an3)
+!if(mapl_am_i_root()) print*,'NI2G ChemSet sum(NO3an3) = ',sum(NO3an3)
 
 
 !if(mapl_am_i_root()) print*,'NI2G after chemset sum(NH3) = ',sum(NH3)
@@ -945,7 +922,7 @@ integer :: i,j
 !  -----------
     drydepositionfrequency = 0.
     call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
-                       MAPL_KARMAN, cpd, chemGRAV, z0h, drydepositionfrequency, __RC__ )
+                       MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, __RC__ )
 !if(mapl_am_i_root()) print"(g25.17)",'NI2G drydep = ',drydepositionfrequency
 !if(mapl_am_i_root()) print*,'NI2G NH3 array = ',NH3
 !if(mapl_am_i_root()) print*,'NI2G lwi array = ',lwi
@@ -969,7 +946,7 @@ integer :: i,j
    end do
 
    NH3(:,:,self%km) = NH3(:,:,self%km) - dqa
-   if( associated(NH3DP) ) NH3DP = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NH3DP) ) NH3DP = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3DP) = ',sum(NH3DP)
 !if(mapl_am_i_root()) print*,'NI2G dqa array = ',dqa
@@ -980,7 +957,7 @@ integer :: i,j
    dqa = 0.
    dqa = max(0.0, NH4a(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NH4a(:,:,self%km) = NH4a(:,:,self%km) - dqa
-   if( associated(NH4DP) ) NH4DP = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NH4DP) ) NH4DP = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4a) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4DP) = ',sum(NH4DP)
 
@@ -988,22 +965,22 @@ integer :: i,j
    dqa = 0.
    dqa = max(0.0, NO3an1(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NO3an1(:,:,self%km) = NO3an1(:,:,self%km) - dqa
-   if( associated(NIDP) ) NIDP(:,:,1) = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NIDP) ) NIDP(:,:,1) = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G sum(NO3an1) = ',sum(NO3an1)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIDP(:,:,1)) = ',sum(NIDP(:,:,1))
 
    dqa = 0.
    dqa = max(0.0, NO3an2(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NO3an2(:,:,self%km) = NO3an2(:,:,self%km) - dqa
-   if( associated(NIDP) ) NIDP(:,:,2) = dqa*delp(:,:,self%km)/chemgrav/self%cdt
+   if( associated(NIDP) ) NIDP(:,:,2) = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
 !if(mapl_am_i_root()) print*,'NI2G sum(NO3an2) = ',sum(NO3an2)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIDP(:,:,2)) = ',sum(NIDP(:,:,2))
 
    dqa = 0.
    dqa = max(0.0, NO3an3(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
    NO3an3(:,:,self%km) = NO3an3(:,:,self%km) - dqa
-   if( associated(NIDP) ) NIDP(:,:,3) = dqa*delp(:,:,self%km)/chemgrav/self%cdt
-!if(mapl_am_i_root()) print*,'NI2G sum(NO3an3) = ',sum(NO3an3)
+   if( associated(NIDP) ) NIDP(:,:,3) = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
+!if(mapl_am_i_root()) print*,'NI2G DryDep sum(NO3an3) = ',sum(NO3an3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIDP(:,:,3)) = ',sum(NIDP(:,:,3))
 
 !  NI Large-scale Wet Removal
@@ -1014,7 +991,7 @@ integer :: i,j
    KIN = .false.
    fwet = 1.
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
-                            KIN, chemGRAV, fwet, NH3, ple, t, airdens, &
+                            KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxoutWT, rc)
    if (associated(NH3WT)) NH3WT = fluxoutWT(:,:,1)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3WT) = ',sum(NH3WT)
@@ -1025,7 +1002,7 @@ integer :: i,j
    KIN = .true.
    fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH4a', &
-                           KIN, chemGRAV, fwet, NH4a, ple, t, airdens, &
+                           KIN, MAPL_GRAV, fwet, NH4a, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxoutWT, rc)
    if (associated(NH4WT)) NH4WT = fluxoutWT(:,:,1)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4WT) = ',sum(NH4WT)
@@ -1034,22 +1011,23 @@ integer :: i,j
    KIN = .true.
    fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'nitrate', &
-                           KIN, chemGRAV, fwet, NO3an1, ple, t, airdens, &
+                           KIN, MAPL_GRAV, fwet, NO3an1, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, rc)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIWT(:,:,1)) = ',sum(NIWT(:,:,1))
    KIN = .true.
    fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, 'nitrate', &
-                           KIN, chemGRAV, fwet, NO3an2, ple, t, airdens, &
+                           KIN, MAPL_GRAV, fwet, NO3an2, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, rc)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIWT(:,:,2)) = ',sum(NIWT(:,:,2))
 
    KIN = .true.
-   fwet = 1.
+   fwet = 0.3
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 3, self%cdt, 'nitrate', &
-                           KIN, chemGRAV, fwet, NO3an3, ple, t, airdens, &
+                           KIN, MAPL_GRAV, fwet, NO3an3, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, rc)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIWT(:,:,3)) = ',sum(NIWT(:,:,3))
+!if(mapl_am_i_root()) print*,'NI2G WetRemoval sum(NO3an3) = ',sum(NO3an3)
 
 !  Compute desired output diagnostics
 !  ----------------------------------
@@ -1058,7 +1036,9 @@ integer :: i,j
    aerosol(:,:,:,1) = NH4a
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
-                            aerosol=aerosol, grav=chemgrav, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NH4SMASS, colmass=NH4CMASS, mass=NH4MASS, conc=NH4CONC, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4SMASS) = ',sum(NH4SMASS) 
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4CMASS) = ',sum(NH4CMASS)
@@ -1068,7 +1048,9 @@ integer :: i,j
    aerosol(:,:,:,1) = NH3
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
-                            aerosol=aerosol, grav=chemgrav, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NH3SMASS, colmass=NH3CMASS, mass=NH3MASS, conc=NH3CONC, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3SMASS) = ',sum(NH3SMASS)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3CMASS) = ',sum(NH3CMASS)
@@ -1078,8 +1060,12 @@ integer :: i,j
    aerosol(:,:,:,1) = NO3an1
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels, &
-                            aerosol=aerosol, grav=chemgrav, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
-                            delp=delp, sfcmass=NISMASS25, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, __RC__)
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
+                            delp=delp, sfcmass=NISMASS25, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, &
+                            exttau25=NIEXTT25, scatau25=NISCAT25, exttaufm=NIEXTTFM, scataufm=NISCATFM, &
+                            NO3nFlag=.true., __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NISMASS25) = ',sum(NISMASS25)
 !if(mapl_am_i_root()) print*,'NI2G sum(NICMASS25) = ',sum(NICMASS25)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIMASS25) = ',sum(NIMASS25)
@@ -1091,11 +1077,13 @@ integer :: i,j
    aerosol(:,:,:,3) = NO3an3
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=3, channels=self%diag_MieTable(self%instance)%channels, &
-                            aerosol=aerosol, grav=chemgrav, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, sfcmass=NISMASS, colmass=NICMASS, mass=NIMASS, conc=NICONC, &
-                            exttau=NIEXTTAU, scatau=NISCATAU, exttau25=NIEXTT25, scatau25=NISCAT25, &
+                            exttau=NIEXTTAU, scatau=NISCATAU, &
                             fluxu=NIFLUXU, fluxv=NIFLUXV, extcoef=NIEXTCOEF, scacoef=NISCACOEF, &
-                            exttaufm=NIEXTTFM, scataufm=NISCATFM, angstrom=NIANGSTR, __RC__ )
+                            angstrom=NIANGSTR, __RC__ )
 !#endif
 !if(mapl_am_i_root()) print*,'NI2G sum(NIEXTTAU) = ',sum(NIEXTTAU)
 !if(mapl_am_i_root()) print*,'NI2G sum(NISCATAU) = ',sum(NISCATAU)
@@ -1103,18 +1091,17 @@ integer :: i,j
 !if(mapl_am_i_root()) print*,'NI2G sum(NIFLUXU) = ',sum(NIFLUXU)
 
 !if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NIANGSTR) = ',sum(NIANGSTR)
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH3) = ',sum(NH3)
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH4a) = ',sum(NH4a)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH3) = ',sum(NH3)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH4a) = ',sum(NH4a)
 !if(mapl_am_i_root()) print*,'NI2G Run2 END sum(self%xhno3) = ',sum(self%xhno3)
 
 !if(mapl_am_i_root()) print*,'NI2G Run2 END array NH3 = ',NH3
 !if(mapl_am_i_root()) print*,'NI2G Run2 END array NH4a = ',NH4a
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an1) = ',sum(NO3an1)
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an2) = ',sum(NO3an2)
-!if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an3) = ',sum(NO3an3)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an1) = ',sum(NO3an1)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an2) = ',sum(NO3an2)
+if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an3) = ',sum(NO3an3)
 
 
-if(mapl_am_i_root()) print*,trim(comp_name),'2G Run2 END'
 
     RETURN_(ESMF_SUCCESS)
   
@@ -1349,8 +1336,5 @@ if(mapl_am_i_root())print*,'NI2G Run_data END'
     end subroutine mie_
 
   end subroutine aerosol_optics
-
-
-
 
 end module NI2G_GridCompMod

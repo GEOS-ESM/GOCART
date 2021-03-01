@@ -104,8 +104,8 @@ contains
       @assert_that(field_rank, is(equal_to(4)))
 
       do i=1, t_dim
-         call GOCART_tracers%tracer_map%insert("tracer"//str(i), i)
-         if (i <= l_dim) call GOCART_tracers%push_back("tracer"//str(i))
+         call GOCART_tracers%tracer_map%tracer_map%insert("tracer"//str(i), i)
+         if (i <= l_dim) call GOCART_tracers%GOCART_tracers%push_back("tracer"//str(i))
       end do
 
       _RETURN(_SUCCESS)
@@ -148,7 +148,7 @@ contains
       character(:), allocatable :: name
       integer                   :: status
 
-      name = GOCART_tracers%at(idx)
+      name = GOCART_tracers%GOCART_tracers%at(idx)
 
       call ESMF_FieldBundleGet(bundle, fieldName=name, field=tracer, rc=status)
       @assert_that(status, is(equal_to(0)))
@@ -176,40 +176,40 @@ contains
    subroutine test_parse_yaml()
       type(GOCARTtracers) :: GOCART_tracers
 
-      @assert_that(GOCART_tracers%size(), is(equal_to(0_INT64)))
-      @assert_that(GOCART_tracers%tracer_map%size(), is(equal_to(0_INT64)))
+      @assert_that(GOCART_tracers%GOCART_tracers%size(), is(equal_to(0_INT64)))
+      @assert_that(GOCART_tracers%tracer_map%tracer_map%size(), is(equal_to(0_INT64)))
       call GOCART_tracers%parse_yaml('GOCART_Tracers.yaml')
-      @assert_that(GOCART_tracers%size(), is(equal_to(28_INT64)))
-      @assert_that(GOCART_tracers%tracer_map%size(), is(equal_to(28_INT64)))
+      @assert_that(GOCART_tracers%GOCART_tracers%size(), is(equal_to(28_INT64)))
+      @assert_that(GOCART_tracers%tracer_map%tracer_map%size(), is(equal_to(28_INT64)))
 
-      @assert_that(GOCART_tracers%at( 1), is(equal_to('sphum')))
-      @assert_that(GOCART_tracers%at( 2), is(equal_to('liq_wat')))
-      @assert_that(GOCART_tracers%at( 3), is(equal_to('rainwat')))
-      @assert_that(GOCART_tracers%at( 4), is(equal_to('ice_wat')))
-      @assert_that(GOCART_tracers%at( 5), is(equal_to('snowwat')))
-      @assert_that(GOCART_tracers%at( 6), is(equal_to('graupel')))
-      @assert_that(GOCART_tracers%at( 7), is(equal_to('o3mr')))
-      @assert_that(GOCART_tracers%at( 8), is(equal_to('so2')))
-      @assert_that(GOCART_tracers%at( 9), is(equal_to('sulf')))
-      @assert_that(GOCART_tracers%at(10), is(equal_to('DMS')))
-      @assert_that(GOCART_tracers%at(11), is(equal_to('msa')))
-      @assert_that(GOCART_tracers%at(12), is(equal_to('pp25')))
-      @assert_that(GOCART_tracers%at(13), is(equal_to('bc1')))
-      @assert_that(GOCART_tracers%at(14), is(equal_to('bc2')))
-      @assert_that(GOCART_tracers%at(15), is(equal_to('oc1')))
-      @assert_that(GOCART_tracers%at(16), is(equal_to('oc2')))
-      @assert_that(GOCART_tracers%at(17), is(equal_to('dust1')))
-      @assert_that(GOCART_tracers%at(18), is(equal_to('dust2')))
-      @assert_that(GOCART_tracers%at(19), is(equal_to('dust3')))
-      @assert_that(GOCART_tracers%at(20), is(equal_to('dust4')))
-      @assert_that(GOCART_tracers%at(21), is(equal_to('dust5')))
-      @assert_that(GOCART_tracers%at(22), is(equal_to('seas1')))
-      @assert_that(GOCART_tracers%at(23), is(equal_to('seas2')))
-      @assert_that(GOCART_tracers%at(24), is(equal_to('seas3')))
-      @assert_that(GOCART_tracers%at(25), is(equal_to('seas4')))
-      @assert_that(GOCART_tracers%at(26), is(equal_to('seas5')))
-      @assert_that(GOCART_tracers%at(27), is(equal_to('pp10')))
-      @assert_that(GOCART_tracers%at(28), is(equal_to('cld_amt')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 1), is(equal_to('sphum')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 2), is(equal_to('liq_wat')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 3), is(equal_to('rainwat')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 4), is(equal_to('ice_wat')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 5), is(equal_to('snowwat')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 6), is(equal_to('graupel')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 7), is(equal_to('o3mr')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 8), is(equal_to('so2')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at( 9), is(equal_to('sulf')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(10), is(equal_to('DMS')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(11), is(equal_to('msa')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(12), is(equal_to('pp25')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(13), is(equal_to('bc1')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(14), is(equal_to('bc2')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(15), is(equal_to('oc1')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(16), is(equal_to('oc2')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(17), is(equal_to('dust1')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(18), is(equal_to('dust2')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(19), is(equal_to('dust3')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(20), is(equal_to('dust4')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(21), is(equal_to('dust5')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(22), is(equal_to('seas1')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(23), is(equal_to('seas2')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(24), is(equal_to('seas3')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(25), is(equal_to('seas4')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(26), is(equal_to('seas5')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(27), is(equal_to('pp10')))
+      @assert_that(GOCART_tracers%GOCART_tracers%at(28), is(equal_to('cld_amt')))
    end subroutine test_parse_yaml
 
    @test
@@ -222,12 +222,12 @@ contains
       call create_config(config, rc)
       @assert_that(rc, is(equal_to(0)))
 
-      @assert_that(GOCART_tracers%size(), is(equal_to(0_INT64)))
-      @assert_that(GOCART_tracers%tracer_map%size(), is(equal_to(0_INT64)))
+      @assert_that(GOCART_tracers%GOCART_tracers%size(), is(equal_to(0_INT64)))
+      @assert_that(GOCART_tracers%tracer_map%tracer_map%size(), is(equal_to(0_INT64)))
       call GOCART_tracers%initialize(config, rc)
       @assert_that(rc, is(equal_to(0)))
-      @assert_that(GOCART_tracers%size(), is(equal_to(28_INT64)))
-      @assert_that(GOCART_tracers%tracer_map%size(), is(equal_to(28_INT64)))
+      @assert_that(GOCART_tracers%GOCART_tracers%size(), is(equal_to(28_INT64)))
+      @assert_that(GOCART_tracers%tracer_map%tracer_map%size(), is(equal_to(28_INT64)))
    end subroutine test_initialize
 
    @test
@@ -243,7 +243,7 @@ contains
       call create_mass_tracers(GOCART_tracers, field, f_array, t_array, rc)
       @assert_that(rc, is(equal_to(0)))
 
-      @assert_that(GOCART_tracers%size(), is(equal_to(l_dim)))
+      @assert_that(GOCART_tracers%GOCART_tracers%size(), is(equal_to(l_dim)))
 
       call GOCART_tracers%create_tracer_bundle(field, bundle, rc)
       @assert_that(rc, is(equal_to(0)))
@@ -254,17 +254,9 @@ contains
 !      @assert_that(trim(name), is(equal_to('inst_mass_tracers')))
       @assert_that(trim(name) == 'inst_mass_tracers', is(true()))
 
-      @assert_that(field_count == GOCART_tracers%size(), is(true()))
+      @assert_that(field_count == GOCART_tracers%GOCART_tracers%size(), is(true()))
       do i=1, field_count
          call check_tracer_bundle(GOCART_tracers, bundle, field, f_array, t_array, i)
       end do
    end subroutine test_create_tracer_bundle
-!
-!   @test
-!   subroutine test_reproducer()
-!      character(len=100) :: name
-!
-!      name = 'test'
-!      @assert_that(trim(name), is(equal_to(name)))
-!   end subroutine test_reproducer
 end module test_NOAA_GOCARTtracers

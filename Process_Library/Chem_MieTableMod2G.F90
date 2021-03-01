@@ -584,7 +584,7 @@ END SUBROUTINE Chem_MieTableRead
 
    type(Chem_Mie), target, intent(in ) :: this
    integer,                intent(in ) :: idx     ! variable index on Chem_Mie
-   real,                   intent(in ) :: channel ! channel number
+   real,                   intent(in ) :: channel ! channel number 
    real,                   intent(in ) :: q_mass  ! aerosol mass [kg/m2],
    real,                   intent(in ) :: rh      ! relative himidity
 
