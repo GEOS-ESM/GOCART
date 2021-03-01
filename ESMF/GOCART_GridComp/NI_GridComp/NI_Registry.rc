@@ -1,0 +1,81 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: NI
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+                    
+<NI::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# -----------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short     |            |     | V |Item|Intervl|# Sub|          Long
+#  Name      |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# -----------|------------|-----|---|----|---|---|-----|---------------------------------
+  NH3MASS    | kg/kg      | xyz | C |    |   |   |     | Ammonia Mass Mixing Ratio                  __ENSEMBLE__
+  NH4MASS    | kg/kg      | xyz | C |    |   |   |     | Ammonium Aerosol Mass Mixing Ratio         __ENSEMBLE__
+  NIMASS     | kg/kg      | xyz | C |    |   |   |     | Nitrate Mass Mixing Ratio                  __ENSEMBLE__
+  NIMASS25   | kg/kg      | xyz | C |    |   |   |     | Nitrate Mass Mixing Ratio [PM2.5]          __ENSEMBLE__
+  HNO3CONC   | kg m-3     | xyz | C |    |   |   |     | Nitric Acid Mass Concentration             __ENSEMBLE__
+  NH3CONC    | kg m-3     | xyz | C |    |   |   |     | Ammonia Mass Concentration                 __ENSEMBLE__
+  NH4CONC    | kg m-3     | xyz | C |    |   |   |     | Ammonium Mass Concentration                __ENSEMBLE__
+  NICONC     | kg m-3     | xyz | C |    |   |   |     | Nitrate Mass Concentration                 __ENSEMBLE__
+  NICONC25   | kg m-3     | xyz | C |    |   |   |     | Nitrate Mass Concentration [PM2.5]         __ENSEMBLE__
+  NIEXTCOEF  | m-1        | xyz | C |    |   |   |     | Nitrate Extinction Coefficient [550 nm]    __ENSEMBLE__
+  NISCACOEF  | m-1        | xyz | C |    |   |   |     | Nitrate Scattering Coefficient [550 nm]    __ENSEMBLE__
+# ...........|............|.....|...|....|...|...|.....|..................................
+  NIPNO3AQ   | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Production from Aqueous Chemistry  __ENSEMBLE__
+  NIPNH4AQ   | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonium Production from Aqueous Chemistry __ENSEMBLE__
+  NIPNH3AQ   | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonia Change from Aqueous Chemistry      __ENSEMBLE__
+  NIHT001    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Production from Het Chem Bin 001   __ENSEMBLE__
+  NIHT002    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Production from Het Chem Bin 002   __ENSEMBLE__
+  NIHT003    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Production from Het Chem Bin 003   __ENSEMBLE__
+  NISD001    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Sedimentation Bin 001              __ENSEMBLE__
+  NISD002    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Sedimentation Bin 002              __ENSEMBLE__
+  NISD003    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Sedimentation Bin 003              __ENSEMBLE__
+  NIDP001    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Dry Deposition Bin 001             __ENSEMBLE__
+  NIDP002    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Dry Deposition Bin 002             __ENSEMBLE__
+  NIDP003    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Dry Deposition Bin 003             __ENSEMBLE__
+  NIWT001    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Wet Deposition Bin 001             __ENSEMBLE__
+  NIWT002    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Wet Deposition Bin 002             __ENSEMBLE__
+  NIWT003    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Wet Deposition Bin 003             __ENSEMBLE__
+  NISV001    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Convective Scavenging Bin 001      __ENSEMBLE__
+  NISV002    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Convective Scavenging Bin 002      __ENSEMBLE__
+  NISV003    | kg m-2 s-1 | xy  |   |    |   |   |     | Nitrate Convective Scavenging Bin 003      __ENSEMBLE__
+  NH3EM      | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonia Emission                           __ENSEMBLE__
+  NH3DP      | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonia Dry Deposition                     __ENSEMBLE__
+  NH3WT      | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonia Wet Deposition                     __ENSEMBLE__
+  NH3SV      | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonia Convective Scavenging              __ENSEMBLE__
+  NH4SD      | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonium Settling                          __ENSEMBLE__
+  NH4DP      | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonium Dry Deposition                    __ENSEMBLE__
+  NH4WT      | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonium Wet Deposition                    __ENSEMBLE__
+  NH4SV      | kg m-2 s-1 | xy  |   |    |   |   |     | Ammonium Convective Scavenging             __ENSEMBLE__
+  HNO3SMASS  | kg m-3     | xy  |   |    |   |   |     | Nitric Acid Surface Mass Concentration     __ENSEMBLE__
+  NH3SMASS   | kg m-3     | xy  |   |    |   |   |     | Ammonia Surface Mass Concentration         __ENSEMBLE__
+  NH4SMASS   | kg m-3     | xy  |   |    |   |   |     | Ammonium Surface Mass Concentration        __ENSEMBLE__
+  NISMASS    | kg m-3     | xy  |   |    |   |   |     | Nitrate Surface Mass Concentration         __ENSEMBLE__
+  NISMASS25  | kg m-3     | xy  |   |    |   |   |     | Nitrate Surface Mass Concentration [PM2.5] __ENSEMBLE__
+  HNO3CMASS  | kg m-3     | xy  |   |    |   |   |     | Nitric Acid Column Mass Density            __ENSEMBLE__
+  NH3CMASS   | kg m-3     | xy  |   |    |   |   |     | Ammonia Column Mass Density                __ENSEMBLE__
+  NH4CMASS   | kg m-3     | xy  |   |    |   |   |     | Ammonium Column Mass Density               __ENSEMBLE__
+  NICMASS    | kg m-2     | xy  |   |    |   |   |     | Nitrate Column Mass Density                __ENSEMBLE__
+  NICMASS25  | kg m-2     | xy  |   |    |   |   |     | Nitrate Column Mass Density [PM2.5]        __ENSEMBLE__
+  NIEXTTFM   |      1     | xy  |   |    |   |   |     | Nitrate Extinction AOT [550 nm] - PM 1.0 um            __ENSEMBLE__
+  NISCATFM   |      1     | xy  |   |    |   |   |     | Nitrate Scattering AOT [550 nm] - PM 1.0 um            __ENSEMBLE__
+  NIEXTT25   |      1     | xy  |   |    |   |   |     | Nitrate Extinction AOT [550 nm] - PM 2.5 um            __ENSEMBLE__
+  NISCAT25   |      1     | xy  |   |    |   |   |     | Nitrate Scattering AOT [550 nm] - PM 2.5 um            __ENSEMBLE__
+  NIEXTTAU   |      1     | xy  |   |    |   |   |     | Nitrate Extinction AOT [550 nm]            __ENSEMBLE__
+  NISCATAU   |      1     | xy  |   |    |   |   |     | Nitrate Scattering AOT [550 nm]            __ENSEMBLE__
+  NIANGSTR   |      1     | xy  |   |    |   |   |     | Nitrate Angstrom parameter [470-870 nm]    __ENSEMBLE__
+  NIFLUXU    | kg m-1 s-1 | xy  |   |    |   |   |     | Nitrate column u-wind mass flux            __ENSEMBLE__
+  NIFLUXV    | kg m-1 s-1 | xy  |   |    |   |   |     | Nitrate column v-wind mass flux            __ENSEMBLE__
+# -----------|------------|-----|---|----|---|---|-----|---------------------------------
+</NI::ExportSpec>
