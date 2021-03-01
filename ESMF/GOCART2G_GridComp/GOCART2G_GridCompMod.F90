@@ -145,15 +145,17 @@ contains
 
     allocate(self%wavelengths_profile(n_wavelengths_profile), self%wavelengths_vertint(n_wavelengths_vertint), &
              wavelengths_diagmie(n_wavelengths_diagmie), __STAT__)
-!    allocate(wavelengths_profile(n_wavelengths_profile), wavelengths_vertint(n_wavelengths_vertint), __STAT__)
+
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
 
 !   Set wavelengths in universal config
-    call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile(1), label='wavelengths_for_profile_aop_in_nm:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint(1), label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie(1), label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+
+!call ConfigSetAttribute (cf, __RC__)
 
 !call ESMF_ConfigGetAttribute(cf, wave_prof, label='wavelengths_for_profile_aop_in_nm:', __RC__)
 !if(mapl_am_i_root()) print*,'GOCART2G wave_prof = ',wave_prof

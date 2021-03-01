@@ -319,7 +319,7 @@ contains
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero, aero_aci
     type (ESMF_State)                    :: providerState
-    type (ESMF_Config)                   :: cfg
+    type (ESMF_Config)                   :: cfg, universal_cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
     type (wrap_)                         :: wrap
     type (SS2G_GridComp), pointer        :: self
@@ -346,7 +346,7 @@ contains
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
 !   Get my internal MAPL_Generic state
@@ -505,10 +505,11 @@ contains
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%optics_file, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nch, label="n_channels:", __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%channels, &
+    call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
                                   label= "aerosol_monochromatic_optics_wavelength:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
@@ -834,8 +835,9 @@ contains
 
 !   Compute diagnostics
 !   -------------------
+!   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
-                             self%rup, self%diag_MieTable(self%instance)%channels, self%wavelengths_profile*1.0e-9, &
+                             self%rup, self%diag_MieTable(self%instance)%channels*1.0e-9, self%wavelengths_profile*1.0e-9, &
                              self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens, &
                              rh2, u, v, delp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSCATAU,     &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &

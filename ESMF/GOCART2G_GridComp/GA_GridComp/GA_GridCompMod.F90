@@ -36,7 +36,7 @@ module GA_GridCompMod
     !LOCALS
      integer :: status
      integer :: nbins
-     integer :: n_wavelengths_profile, n_wavelengths_vertint
+     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_channels
 
  contains
 
@@ -69,7 +69,8 @@ module GA_GridCompMod
        call ESMF_ConfigGetAttribute (cfg, self%rhFlag,     label='rhFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%plid,       label='pressure_lid_in_hPa:', __RC__)
        call ESMF_ConfigGetAttribute (universal_cfg, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
-       call ESMF_ConfigGetAttribute (universal_cfg, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+       call ESMF_ConfigGetAttribute (universal_cfg, self%wavelengths_vertint, &
+                                     label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
 
     end subroutine load_from_config
 

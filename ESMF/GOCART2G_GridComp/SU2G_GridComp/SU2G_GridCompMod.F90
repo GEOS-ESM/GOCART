@@ -391,7 +391,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero, aero_aci
     type (ESMF_State)                    :: providerState
-    type (ESMF_Config)                   :: cfg, cf
+    type (ESMF_Config)                   :: cfg, universal_cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
     type (wrap_)                         :: wrap
     type (SU2G_GridComp), pointer        :: self
@@ -427,7 +427,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=cf, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
 !   Get my internal MAPL_Generic state
@@ -454,7 +454,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 !   Check whether to de-activate diurnal biomass burning (default is *on*)
 !   ----------------------------------------------------------------------
-    call ESMF_ConfigGetAttribute(cf, diurnal_bb, label='DIURNAL_BIOMASS_BURNING:', &
+    call ESMF_ConfigGetAttribute(universal_cfg, diurnal_bb, label='DIURNAL_BIOMASS_BURNING:', &
                                  default='YES', __RC__)
     diurnal_bb = ESMF_UtilStringUpperCase(diurnal_bb, __RC__)
     if (trim(diurnal_bb) == 'YES') then
@@ -625,10 +625,12 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%optics_file, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nch, label="n_channels:", __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
+
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%channels, &
+    call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
                                   label= "aerosol_monochromatic_optics_wavelength:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
@@ -1119,10 +1121,10 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(xh2o2) = ',sum(xh2o2)
 !if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(self%h2o2_init) = ',sum(self%h2o2_init)
-
+!   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
-                            self%diag_MieTable(self%instance)%channels, &
+                            self%diag_MieTable(self%instance)%channels*1.0e-9, &
                             self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
                             t, airdens, delp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &

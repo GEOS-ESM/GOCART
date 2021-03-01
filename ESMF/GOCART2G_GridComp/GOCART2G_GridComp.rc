@@ -19,21 +19,29 @@
 
 # Include the constituent in the simulation?
 # ----------------------------------------------------
-ACTIVE_INSTANCES_DU:  DU # DU.data
-PASSIVE_INSTANCES_DU:
+ACTIVE_INSTANCES_DU:  DU #DU.test   
+PASSIVE_INSTANCES_DU:  
 
 ACTIVE_INSTANCES_SS:   SS #  SS.data
 PASSIVE_INSTANCES_SS:
 
-ACTIVE_INSTANCES_SU: SU   #SU.data 
+ACTIVE_INSTANCES_SU:  SU   #SU.data 
 PASSIVE_INSTANCES_SU:
 
-ACTIVE_INSTANCES_CA:  CA.oc CA.bc #CA.oc.data CA.bc.data 
+ACTIVE_INSTANCES_CA:  CA.oc CA.bc #CA.br #CA.oc.data CA.bc.datac 
 PASSIVE_INSTANCES_CA:
 
 ACTIVE_INSTANCES_NI:  NI  #NI.data 
 PASSIVE_INSTANCES_NI:
 
-aerosol_monochromatic_optics_wavelength: 4.7e-7 5.5e-7 6.7e-7 8.7e-7 ! units: m
+
+# Set optics parameters
+# ---------------------
+#aerosol_monochromatic_optics_wavelength: 4.7e-7 5.5e-7 6.7e-7 8.7e-7 # units: m
+aerosol_monochromatic_optics_wavelength: 470 550 670 870 # units:um
+
 wavelengths_for_profile_aop_in_nm: 470 550 870
 wavelengths_for_vertically_integrated_aop_in_nm: 470 550 670 870
+
+
+

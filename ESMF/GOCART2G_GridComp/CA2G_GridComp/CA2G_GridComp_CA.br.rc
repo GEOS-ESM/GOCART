@@ -4,11 +4,7 @@
 
 
 aerosol_radBands_optics_file: ExtData/MERRA2/x/opticsBands_BRC.v1_5.RRTMG.nc
-
 aerosol_monochromatic_optics_file: ExtData/AeroCom/x/optics_BRC.v1_5.nc
-aerosol_monochromatic_optics_wavelength: 470 550 670 870 ! units: nm
-n_channels: 4
-r_channels: 4.7e-7 5.5e-7 6.7e-7 8.7e-7
 
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
@@ -28,6 +24,11 @@ fscav: 0.0  0.4
 # particle radius
 particle_radius_microns: 0.35 0.35
 
+radius_lower: 0 0
+radius_upper: 0 0
+soil_density: 1800 1800
+rhFlag: 0
+
 # Dry particle density [kg m-3]
 particle_density: 1800   1800
 
@@ -37,7 +38,12 @@ molecular_weight: 0.18  0.18
 # Number of particles per kg mass
 fnum: 9.76e17  9.76e17
 
+# Number median radius [um]
+particle_radius_number: 0.0212  0.0212
+
 # Sigma of lognormal number distribution
 sigma: 2.20  2.20
+
+pressure_lid_in_hPa: 0.01
 
 nbins: 2
