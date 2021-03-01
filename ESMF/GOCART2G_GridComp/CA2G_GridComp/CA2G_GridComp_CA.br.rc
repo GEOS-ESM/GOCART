@@ -24,9 +24,6 @@ fscav: 0.0  0.4
 # particle radius
 particle_radius_microns: 0.35 0.35
 
-radius_lower: 0 0
-radius_upper: 0 0
-soil_density: 1800 1800
 rhFlag: 0
 
 # Dry particle density [kg m-3]
