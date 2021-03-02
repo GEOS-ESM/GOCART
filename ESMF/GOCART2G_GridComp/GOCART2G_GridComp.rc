@@ -37,8 +37,7 @@ PASSIVE_INSTANCES_NI:
 
 # Set optics parameters
 # ---------------------
-#aerosol_monochromatic_optics_wavelength: 4.7e-7 5.5e-7 6.7e-7 8.7e-7 # units: m
-aerosol_monochromatic_optics_wavelength: 470 550 670 870 # units:um
+aerosol_monochromatic_optics_wavelength: 470 550 670 870 # units:nm
 
 wavelengths_for_profile_aop_in_nm: 470 550 870
 wavelengths_for_vertically_integrated_aop_in_nm: 470 550 670 870
