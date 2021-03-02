@@ -11,7 +11,6 @@ if (BUILD_UFS)
   )
 else ()
   esma_add_subdirectories(
-    Apps
     Shared
     Aerosol_GridComp
     GOCART_GridComp
