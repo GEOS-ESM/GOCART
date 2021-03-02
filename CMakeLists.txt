@@ -4,7 +4,7 @@ cmake_policy (SET CMP0054 NEW)
 
 project (
         GOCART
-        VERSION 0.9.0
+        VERSION 1.0.0
         LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -30,12 +30,14 @@ set (DOING_GEOS5 YES)
 set (ACG_FLAGS -v)
 set (FV_PRECISION R4R8)
 
+if (BUILD_UFS)
 # Ensure we build as 32-bit
-message ("Force 32-bit build for GOCART")
-if (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-  string (REPLACE "-real-size 64" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
-elseif (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
-  string (REPLACE "-fdefault-real-8" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+  message ("Force 32-bit build for GOCART")
+  if (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+    string (REPLACE "-real-size 64" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+  elseif (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+    string (REPLACE "-fdefault-real-8" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+  endif()
 endif()
 
 if (NOT COMMAND esma)
@@ -81,3 +83,15 @@ add_subdirectory (ESMF)
 add_subdirectory (Process_Library)
 
 ecbuild_install_project (NAME GOCART)
+
+# https://www.scivision.dev/cmake-auto-gitignore-build-dir/
+# --- auto-ignore build directory
+if(NOT EXISTS ${PROJECT_BINARY_DIR}/.gitignore)
+  file(WRITE ${PROJECT_BINARY_DIR}/.gitignore "*")
+endif()
+
+# Piggyback that file into install
+install(
+   FILES ${PROJECT_BINARY_DIR}/.gitignore
+   DESTINATION ${CMAKE_INSTALL_PREFIX}
+   )

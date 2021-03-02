@@ -1,0 +1,32 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: O3
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<O3::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# ---------|---------------|-----|---|----|---|---|-----|---------------------------------
+#  Short   |               |     | V |Item|Intervl|# Sub|          Long
+#  Name    |   Units       | Dim |Loc|Type| R | A |Tiles|          Name
+# ---------|---------------|-----|---|----|---|---|-----|---------------------------------
+  O3       | kg kg-1       | xyz | C |    |   |   |     | Ozone_mass_mixing_ratio
+  OX       | mol mol-1     | xyz | C |    |   |   |     | Ozone_volume_mixing_ratio
+  O3DDV    | m s-1         | xy  |   |    |   |   |     | Dry_deposition_speed
+  O3PPMV   | ppmv          | xyz | C |    |   |   |     | Ozone
+  O3TOT    | Dobsons       | xy  |   |    |   |   |     | Total_ozone
+  O3DDP    | kg m-2 s-1    | xy  |   |    |   |   |     | Ozone_dry_deposition
+  DO3DT    | kg kg-1 s-1   | xyz | C |    |   |   |     | Ozone_tendency
+  OX_TEND  | mol mol-1 s-1 | xyz | C |    |   |   |     | tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry
+# ---------|---------------|-----|---|----|---|---|-----|--------------------------------
+</O3::ExportSpec>
