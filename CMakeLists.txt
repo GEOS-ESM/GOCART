@@ -66,7 +66,7 @@ endif ()
 
 if (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
   message (STATUS "Using local MAPL source tree: ${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
-else ()
+elseif (NOT Baselibs_FOUND)
   find_package (MAPL REQUIRED)
   include(mapl_acg)
 endif ()
