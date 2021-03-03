@@ -64,12 +64,13 @@ if (NOT Baselibs_FOUND)
   find_package (YAFYAML REQUIRED)
 endif ()
 
-if (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
-  message (STATUS "Using local MAPL source tree: ${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
-else ()
+if (BUILD_UFS)
   find_package (MAPL REQUIRED)
   include(mapl_acg)
+elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
+  message (STATUS "Using local MAPL source tree: ${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
 endif ()
+
 
 # This is a KLUDGE to emulate paths used in GEOSgcm so that GOCART Legacy code generation works
 file (MAKE_DIRECTORY ${esma_include}/GEOSchem_GridComp)
