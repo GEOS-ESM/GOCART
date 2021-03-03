@@ -47,20 +47,22 @@ endif()
 
     ecbuild_declare_project()
 
-# Find dependencies
-if (NOT NetCDF_Fortran_FOUND)
-  find_package (NetCDF REQUIRED Fortran)
-endif ()
-add_definitions(-DHAS_NETCDF3)
+if (NOT Baselibs_FOUND)
+  # Find dependencies
+  if (NOT NetCDF_Fortran_FOUND)
+    find_package (NetCDF REQUIRED Fortran)
+  endif ()
+  add_definitions(-DHAS_NETCDF3)
 
-if (NOT ESMF_FOUND)
-  find_package (ESMF REQUIRED)
-endif ()
+  if (NOT ESMF_FOUND)
+    find_package (ESMF REQUIRED)
+  endif ()
 
-find_package (GFTL REQUIRED)
-find_package (GFTL_SHARED REQUIRED)
-find_package (PFLOGGER REQUIRED)
-find_package (YAFYAML REQUIRED)
+  find_package (GFTL REQUIRED)
+  find_package (GFTL_SHARED REQUIRED)
+  find_package (PFLOGGER REQUIRED)
+  find_package (YAFYAML REQUIRED)
+endif ()
 
 if (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
   message (STATUS "Using local MAPL source tree: ${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
