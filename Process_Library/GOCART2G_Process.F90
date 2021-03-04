@@ -1337,6 +1337,7 @@ CONTAINS
         H298_R = -4.2d3
       else
         print *, 'stop in WetRemoval, need Kstar298 and H298_R'
+        ! TODO: fix stop statement
         stop
       endif
    endif
@@ -2403,6 +2404,7 @@ CONTAINS
         IF (XAM.GT.700.0.OR.A.GT.170.0) THEN
            WRITE(*,*)'IGAMMA: a and/or x too large, X = ', X
            WRITE(*,*) 'A = ', A
+           ! TODO: fix stop statement
            STOP
 
         ENDIF
@@ -4598,10 +4600,13 @@ K_LOOP: do k = km, 1, -1
 
 !  Allocate the dynamic arrays
    allocate(fd(km,nbins),stat=ios)
+   ! TODO: fix stop statement
    if(ios .ne. 0) stop
    allocate(dc(nbins),stat=ios)
+   ! TODO: fix stop statement
    if(ios .ne. 0) stop
    allocate(dpfli(i1:i2, j1:j2, km),stat=ios)
+   ! TODO: fix stop statement
    if(ios .ne. 0) stop
 
 !  Duration of rain: ls = model timestep, cv = 1800 s (<= cdt)
@@ -7108,6 +7113,7 @@ loop2: DO l = 1,nspecies_HL
 
 !.sds          CALL GEOS_CHEM_STOP
           err_msg = 'negative concen problem in RPMARES - TSO4, TNO3, TNH4:'
+          ! TODO: PrintError may need to be fixed
           call PrintError  &
      &      (err_msg, .true., 0, 0, 0, 2, TSO4, TNO3)
       ENDIF
@@ -7962,6 +7968,7 @@ loop2: DO l = 1,nspecies_HL
 !.sds            CALL ERROR_STOP( 'PHI < 1d-20', 'CUBIC (rpmares_mod.f)' )
             print *,'PHI < 1d-20 in  CUBIC (rpmares_mod.f)'
             err_msg = 'PHI < 1d-20 in  CUBIC (rpmares_mod.f):'
+            ! TODO: PrintError may need to be fixed
             call PrintError  &
      &         (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
 
@@ -8301,6 +8308,7 @@ loop2: DO l = 1,nspecies_HL
 !
 ! !INTERFACE:
 !
+      ! TODO: PrintError may need to be fixed
       subroutine PrintError  &
         (err_msg, err_do_stop, err_num_ints, err_int1, err_int2,  &
          err_num_reals, err_real1, err_real2)
@@ -8360,6 +8368,7 @@ loop2: DO l = 1,nspecies_HL
       Write (6,*)
 
       if (err_do_stop) then
+        ! TODO: fix stop statement
         stop "Code stopped by PrintError."
       end if
 
