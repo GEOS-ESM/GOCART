@@ -40,7 +40,7 @@ module GOCART2G_GridCompMod
      type(Instance), allocatable :: instances(:)
      integer :: n_active
   end type Constituent
-     
+
   type GOCART_State
      private
      type(Constituent) :: DU
@@ -58,15 +58,15 @@ module GOCART2G_GridCompMod
 
 ! !DESCRIPTION:
 !
-!   {\tt GOCART} is a gridded component from the GOCART model and includes 
-!  dust, sea salt, sulfates, nitrate, organic and black carbon. 
+!   {\tt GOCART} is a gridded component from the GOCART model and includes
+!  dust, sea salt, sulfates, nitrate, organic and black carbon.
 !
 !
 ! !REVISION HISTORY:
 !
 !  25feb2005  da Silva   First crack.
 !  19jul2006  da Silva   First separate GOCART component.
-!  14Oct2019  E.Sherman, A.Darmenov, A. da Silva, T. Clune  First attempt at refactoring. 
+!  14Oct2019  E.Sherman, A.Darmenov, A. da Silva, T. Clune  First attempt at refactoring.
 !
 !EOP
 !============================================================================
@@ -88,11 +88,11 @@ contains
 
 ! !DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !   the Initialize and Finalize services to generic versions. It also
-!   allocates our instance of a generic state and puts it in the 
+!   allocates our instance of a generic state and puts it in the
 !   gridded component (GC). Here we only set the two-stage run method and
 !   declare the data services.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 !  14oct2019  Sherman, da Silva, Darmenov, Clune - First attempt at refactoring for ESMF compatibility
 
 
@@ -100,7 +100,7 @@ contains
 !============================================================================
 !
 !   Locals
-    character (len=ESMF_MAXSTR)                   :: COMP_NAME 
+    character (len=ESMF_MAXSTR)                   :: COMP_NAME
     type (ESMF_Config)                            :: myCF      ! GOCART2G_GridComp.rc
     type (ESMF_Config)                            :: cf        ! universal config
     type (GOCART_State), pointer                  :: self
@@ -181,7 +181,7 @@ contains
     call createInstances_(self, GC, __RC__)
 
 !   Define EXPORT states
-!   This state is needed by radiation - It will contain 
+!   This state is needed by radiation - It will contain
 !   aerosols and aerosol optics
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                       &
@@ -220,7 +220,7 @@ contains
 !   -------------------------------------------------
     call MAPL_AddExportSpec(GC,                    &
         short_name = 'DU',                         &
-        child_id   = self%DU%instances(1)%id, __RC__) 
+        child_id   = self%DU%instances(1)%id, __RC__)
 
     call MAPL_AddExportSpec(GC,                    &
         short_name = 'SS',                         &
@@ -261,7 +261,7 @@ contains
 
 
 !   Add connectivities for Nitrate component
-!   Nitrate currently only supports one Nitrate component. Nitrate only 
+!   Nitrate currently only supports one Nitrate component. Nitrate only
 !   uses the first active dust and sea salt instance.
     if (size(self%NI%instances) > 0) then
        if ((self%DU%instances(1)%is_active)) then
@@ -304,7 +304,7 @@ contains
 
 ! !ARGUMENTS:
 
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -313,13 +313,13 @@ contains
 ! !DESCRIPTION:  This initializes the GOCART Grid Component. It primarily creates
 !                its exports and births its children.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! 14oct2019   E.Sherman  First attempt at refactoring
 
 !EOP
 !============================================================================
 
-!   Locals 
+!   Locals
     character (len=ESMF_MAXSTR)            :: COMP_NAME
 
     type (MAPL_MetaComp),       pointer    :: MAPL
@@ -335,7 +335,7 @@ contains
     type (wrap_)                           :: wrap
 
     integer                                :: n_modes
-    integer, parameter                     :: n_gocart_modes = 13 
+    integer, parameter                     :: n_gocart_modes = 13
     character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
     real                                   :: f_aci_seasalt, maxclean, ccntuning
     character(LEN=ESMF_MAXSTR)             :: CLDMICRO
@@ -343,7 +343,7 @@ contains
     __Iam__('Initialize')
 
 !****************************************************************************
-! Begin... 
+! Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -410,8 +410,8 @@ contains
 !   Attach the aerosol optics method used in Radiation
     call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, __RC__)
 
-    ! This attribute indicates if the aerosol optics method is implemented or not. 
-    ! Radiation will not call the aerosol optics method unless this attribute is 
+    ! This attribute indicates if the aerosol optics method is implemented or not.
+    ! Radiation will not call the aerosol optics method unless this attribute is
     ! explicitly set to true.
     call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., __RC__)
 
@@ -419,7 +419,7 @@ contains
 !   --------------
     aero_aci_modes =  (/'du001    ', 'du002    ', 'du003    ', &
                         'du004    ', 'du005    ',              &
-                        'ss001    ', 'ss002    ', 'ss003    ', &  
+                        'ss001    ', 'ss002    ', 'ss003    ', &
                         'sulforg01', 'sulforg02', 'sulforg03', &
                         'bcphilic ', 'ocphilic '/)
 
@@ -470,25 +470,25 @@ contains
 
      subroutine add_aero_states_(instances)
         type(Instance), intent(in) :: instances(:)
-        
+
         type (ESMF_State)       :: child_state
         type (ESMF_FieldBundle) :: child_bundle
         type (ESMF_Field), allocatable :: fieldList(:)
-        
+
         integer :: i
         integer :: id
         integer :: fieldCount
         __Iam__('Initialize::ad_aero_states_')
-        
+
         do i = 1, size(instances)
            if (.not. instances(i)%is_active) cycle
            id = instances(i)%id
-           
+
            call ESMF_GridCompGet (gcs(id), __RC__ )
-           
+
            call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO', child_state, __RC__)
            call ESMF_StateAdd (aero, [child_state], __RC__)
-           
+
            if (instances(i)%name(1:2) /= 'NI') then
               call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_ACI', child_state, __RC__)
               call ESMF_StateAdd (aero_ACI, [child_state], __RC__)
@@ -505,23 +505,23 @@ contains
      end subroutine add_aero_states_
 
  end subroutine Initialize
- 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !BOP
-! !IROUTINE: RUN -- Run method for GOCART2G 
+! !IROUTINE: RUN -- Run method for GOCART2G
 
 ! !INTERFACE:
 
   subroutine Run1 (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION: Run method 
+! !DESCRIPTION: Run method
 
 !EOP
 !============================================================================
@@ -539,7 +539,7 @@ contains
     __Iam__('Run1')
 
 !****************************************************************************
-! Begin... 
+! Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -575,7 +575,7 @@ contains
   subroutine Run2 (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -635,7 +635,7 @@ contains
     __Iam__('Run2')
 
 !****************************************************************************
-! Begin... 
+! Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -734,7 +734,7 @@ contains
              tau1 = tau1 + duexttau(:,:,2)*exp(c1*duangstr)
              tau2 = tau2 + duexttau(:,:,2)*exp(c2*duangstr)
           end if
-       end if   
+       end if
     end do
 
 !   Sea Salt
@@ -909,7 +909,7 @@ contains
           if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
           if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
           if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-          if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  ! 
+          if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  !
           if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*ocsmass  ! needs to be revisited: OCpho + 1.24 OCphi
           if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
 
@@ -938,7 +938,7 @@ contains
           if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
           if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
           if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-          if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  ! 
+          if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  !
           if(associated(pm_rh50)   .and. associated(brsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
           if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
 
@@ -950,7 +950,7 @@ contains
     end do
 
 !   Finish calculating totangstr
-    if(associated(totangstr)) then  
+    if(associated(totangstr)) then
        totangstr = log(tau1/tau2)/c3
     end if
 
@@ -1047,9 +1047,9 @@ contains
     RETURN_(ESMF_SUCCESS)
 
     contains
-        
+
         subroutine addChildren__ (gc, species, setServices, rc)
-        
+
           type (ESMF_GridComp),            intent(inout)     :: gc
           type(Constituent),               intent(inout)     :: species
           external                                           :: setServices
@@ -1099,7 +1099,7 @@ contains
 
     __Iam__('GOCART2G::serialize_bundle')
 
-!   !Description: Callback for AERO_RAD state used in GAAS module to provide a 
+!   !Description: Callback for AERO_RAD state used in GAAS module to provide a
 !                 serialized ESMF_Bundle of aerosol fields.
 !-----------------------------------------------------------------------------------
 !   Begin...
@@ -1182,7 +1182,7 @@ contains
 
 !   Description: Used in Radiation gridded components to provide aerosol properties
 !-----------------------------------------------------------------------------------
-!   Begin... 
+!   Begin...
 
 !   Radiation band
 !   --------------
@@ -1193,7 +1193,7 @@ contains
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
@@ -1332,7 +1332,7 @@ contains
 !   Local
 !   ---------
     character(len=ESMF_MAXSTR)      :: mode              ! mode name
-    character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name 
+    character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name
     type(ESMF_State)                :: child_state
 
     real, dimension(:,:,:), pointer :: ple               ! pressure at the edges of model layers
@@ -1345,13 +1345,13 @@ contains
     real, dimension(:,:,:), pointer :: q_                ! aerosol mass mixing ratio (temporary)
     real, dimension(:,:,:,:), pointer :: ptr_4d          ! aerosol mass mixing ratio (temporary)
 
-    real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
+    real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles
     real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
     real, dimension(:,:,:), pointer :: sigma             ! width of aerosol mode
     real, dimension(:,:,:), pointer :: density           ! density of aerosol
-    real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol 
+    real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol
     real, dimension(:,:,:), pointer :: f_dust            ! fraction of dust aerosol
-    real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol 
+    real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol
     real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
 
     real                            :: ss_scale          ! sea salt scaling factor
@@ -1389,7 +1389,7 @@ contains
 
     __Iam__('GOCART2G::aerosol_activation_properties')
 
-!   Begin... 
+!   Begin...
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
@@ -1419,12 +1419,12 @@ contains
 !   ------------
     call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, __RC__)
 
-!   Land fraction 
+!   Land fraction
 !   -------------
     call ESMF_AttributeGet(state, name='fraction_of_land_type', value=fld_name, __RC__)
     call MAPL_GetPointer(state, f_land, trim(fld_name), __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1498,7 +1498,7 @@ contains
     else if (index(mode_, 'ss00') > 0) then ! Sea Salt
        ! compute the total mass mixing ratio and impose a tri-modal size distribution
        do i = 1, size(aeroList)
-          if (index(aeroList(i), 'SS') > 0) then       
+          if (index(aeroList(i), 'SS') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
              do j = 1, ubound(ptr_4d, 4)
@@ -1617,11 +1617,11 @@ contains
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: dens_          ! density
 
 
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles 
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles
      real, intent(out), dimension(i1:i2,j1:j2,km) :: diameter       ! dry size of aerosol
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma          ! width of aerosol mode  
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma          ! width of aerosol mode
      real, intent(out), dimension(i1:i2,j1:j2,km) :: f_dust         ! fraction of dust aerosol
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: f_soot         ! fraction of soot aerosol 
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: f_soot         ! fraction of soot aerosol
      real, intent(out), dimension(i1:i2,j1:j2,km) :: f_organic      ! fraction of organic aerosol
 
      integer, intent(out) :: rc                                     ! return code
@@ -1661,9 +1661,9 @@ contains
 
      if (index(mode_, 'ss00') > 0) then
        if(adjustl(cld_micro)=="2MOMENT") then
-         TPI  (1) = 230e6          ! num fraction (reduced 091015)        
+         TPI  (1) = 230e6          ! num fraction (reduced 091015)
        else
-         TPI  (1) = 100e6          ! num fraction (reduced 091015)                   
+         TPI  (1) = 100e6          ! num fraction (reduced 091015)
        end if
 
          DPGI (1) = 0.02e-6        ! modal diameter (m)
@@ -1706,11 +1706,11 @@ contains
          ! fine
          TPIclean  (1) = 1.0e9      ! total concentration (# m-3)
          DPGIclean (1) = 0.016e-6   ! modal diameter (m)
-         SIGIclean (1) = log(1.6)   ! geometric dispersion (sigma_g)      
+         SIGIclean (1) = log(1.6)   ! geometric dispersion (sigma_g)
          ! accumulation
          TPIclean  (2) = 8.0e8      ! total concentration (# m-3)
          DPGIclean (2) = 0.067e-6   ! modal diameter (m)
-         SIGIclean (2) = log(2.1)   ! geometric dispersion (sigma_g) 
+         SIGIclean (2) = log(2.1)   ! geometric dispersion (sigma_g)
          !Coarse
          TPIclean  (3) = 2.0e6      ! total concentration (# m-3)
          DPGIclean (3) = 0.93e-6    ! modal diameter (m)
@@ -1777,7 +1777,7 @@ contains
          elsewhere
              sigma    = SIGIclean(1)
              diameter = DPGIclean(1)
-             num      = TPIclean(1) * qaux*ccn_tuning / (dens_*fmassclean)      ! only sulfate 
+             num      = TPIclean(1) * qaux*ccn_tuning / (dens_*fmassclean)      ! only sulfate
          end where
 
      case ('sulforg02')
@@ -1807,7 +1807,7 @@ contains
          f_soot   = 1.0
          diameter = 0.0118*2e-6
          num = q / ((MAPL_PI/6.0) * densBC * diameter*diameter*diameter * exp(4.5*sigma*sigma))
-     
+
      case ('ocphilic')
          sigma     = log(2.2)
          f_organic = 1.0
@@ -1851,7 +1851,7 @@ contains
              if (f_land(i,j) < 0.1) then  !ocean
 
                  if(adjustl(cld_micro) .ne."2MOMENT") then
-                    usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 10.0), -10.0) !smooth transition around some T value                                                      
+                    usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 10.0), -10.0) !smooth transition around some T value
                  else
                     usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 30.0), -30.0) !smooth transition around some T value
                  end if
@@ -1867,9 +1867,3 @@ contains
   end subroutine aerosol_activation_properties
 
 end module GOCART2G_GridCompMod
-
-
-
-
-
-
