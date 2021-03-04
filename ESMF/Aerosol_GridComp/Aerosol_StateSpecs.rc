@@ -39,7 +39,6 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
 #----------------------------------------------------------------------------------------
-ZLE | m | xyz | E | | Geopotential Height
 #DUMASS     | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
 #DUMASS25   | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
 #DUCONC     | kg m-3     | xyz | C  |            | Dust Mass Concentration                     __ENSEMBLE__

@@ -844,9 +844,11 @@ contains
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
  
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-end do
+    if (mapl_am_i_root()) then
+      do n = 1, size(SS, 4)
+        print*,'n = ', n,' : Run2 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
+      end do
+    end if
 
     RETURN_(ESMF_SUCCESS)
 

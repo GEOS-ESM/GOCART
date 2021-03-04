@@ -34,7 +34,6 @@ PASSIVE_INSTANCES_CA:
 ACTIVE_INSTANCES_NI:  NI  #NI.data 
 PASSIVE_INSTANCES_NI:
 
-
 # Set optics parameters
 # ---------------------
 aerosol_monochromatic_optics_wavelength: 470 550 670 870 # units:nm
