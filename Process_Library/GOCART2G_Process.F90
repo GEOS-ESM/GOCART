@@ -1,13 +1,13 @@
 #define __SUCCESS__ 0
 #define __FAIL__ 1
 #define __VERIFY__(x) if(x/=0) then; if(present(rc)) rc=x; return; endif
+#define __VERIFY_NO_OPT__(x) if(x/=0) then; rc=x; return; endif
 #define __RC__ rc=status); __VERIFY__(status
+#define __RC_NO_OPT__ rc=status); __VERIFY_NO_OPT__(status
 #define __STAT__ stat=status); __VERIFY__(status
 #define __IOSTAT__ iostat=status); __VERIFY__(status
 #define __RETURN__(x) if (present(rc)) rc=x; return
 #define __ASSERT__(expr) if(.not. (expr)) then; if (present(rc)) rc=-1; return; endif
-#define __VERIFY_NO_OPT__(x) if(x/=0) then; rc=x; return; endif
-#define __RC_NO_OPT__ rc=status); __VERIFY_NO_OPT__(status
 !-------------------------------------------------------------------------
 !
 ! !MODULE: GOCART2G_Process -- GOCART2G process library
@@ -228,7 +228,6 @@ CONTAINS
     integer, dimension(:),  intent(in)  :: jPoint ! j dimension location of emission on grid
     integer,                intent(in)  :: nhms   ! model hour mintue second
     real, dimension(:,:,:), intent(inout)  :: emissions_point ![kg/kg]
-    ! TODO: look at the optional rc
     integer, optional,      intent(out)  :: rc  ! return code
 
 !   !Local
@@ -286,7 +285,6 @@ CONTAINS
 
 ! !OUTPUT PARAMETERS:
    real, dimension(:), intent(out) ::  point_column_emissions ![kg/kg]
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc                       ! Error return code:
 
 
@@ -401,7 +399,6 @@ CONTAINS
 !  Optionally output the settling velocity calculated
    real, dimension(:,:,:), optional, intent(out)  :: vsettleOut !Layer fall speed [m/sec]
 
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc
 
 ! !DESCRIPTION: Gravitational settling of aerosol between vertical
@@ -761,7 +758,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
    real, pointer, dimension(:,:), intent(inout)  :: fluxout
    real, dimension(:,:,:), optional, intent(out)  :: vsettleOut
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc
 
 ! !DESCRIPTION: Computes the dust emissions for one time step
@@ -1342,8 +1338,6 @@ CONTAINS
         H298_R = -4.2d3
       else
         print *, 'stop in WetRemoval, need Kstar298 and H298_R'
-        ! TODO: fix stop statement
-        ! stop
         rc = __FAIL__
         return
       endif
@@ -1822,7 +1816,6 @@ CONTAINS
    real, optional, pointer, dimension(:,:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
    real, optional, pointer, dimension(:,:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
    real, optional, pointer, dimension(:,:), intent(inout)   :: angstrom  ! 470-870 nm Angstrom parameter
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc        ! Error return code:
                                                  !  0 - all is well
                                                  !  1 - 
@@ -2237,7 +2230,6 @@ CONTAINS
    real, intent(in)                       :: radToDeg
           
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc
 !EOP
 
@@ -2289,7 +2281,6 @@ CONTAINS
    real, dimension(:,:), intent(in)          :: ts  ! surface temperature (K)
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc
 !EOP
 
@@ -2351,7 +2342,6 @@ CONTAINS
 
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc
 
 ! !Descrption: The Weibull distribution correction ends up being a multiplicative constant
@@ -2421,8 +2411,6 @@ CONTAINS
         IF (XAM.GT.700.0.OR.A.GT.170.0) THEN
            WRITE(*,*)'IGAMMA: a and/or x too large, X = ', X
            WRITE(*,*) 'A = ', A
-           ! TODO: fix stop statement
-           ! STOP
            rc = __FAIL__
            return
         ENDIF
@@ -2812,7 +2800,6 @@ CONTAINS
    real, pointer, dimension(:,:)  :: OC_emisBB  ! OC emissions, kg/m2/s
    real, pointer, dimension(:,:)  :: OC_emisBF  ! OC emissions, kg/m2/s
    real, pointer, dimension(:,:)  :: OC_emisBG  ! OC emissions, kg/m2/s
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc         ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -3268,7 +3255,6 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), intent(inout)  :: aerosol_philic   ! OCphilic [kg kg-1]
    real, dimension(:,:), pointer   :: aerosol_toHydrophilic ! OCHYPHIL [kg m-2 s-1]
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc
 
 ! !Local Variables
@@ -3352,7 +3338,6 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an3 ! Nitrate bin 3 [kg/kg]
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc
 
 ! !Local Variables
@@ -3682,7 +3667,6 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:)  :: SU_SO2embb  ! SO2 bioburn emissions, kg/m2/s
 
 !  OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc    ! Error return code:
                                              !  0 - all is well
 
@@ -3915,7 +3899,6 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:,:), intent(inout)  :: SU_emis   ! SU emissions, kg/m2/s
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc    ! Error return code:
                                              !  0 - all is well
 
@@ -4192,7 +4175,6 @@ K_LOOP: do k = km, 1, -1
    logical, intent(inout) :: recycle_h2o2
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
   integer, optional, intent(out)   :: rc    ! Error return code:
                                             !  0 - all is well
 
@@ -4525,7 +4507,6 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:),intent(inout)  :: pSO4wet_colflux
    real, pointer, dimension(:,:,:),intent(inout) :: pso4
    real, pointer, dimension(:,:,:),intent(inout) :: pso4wet
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc    ! Error return code:
                                             !  0 - all is well
 
@@ -4626,17 +4607,8 @@ K_LOOP: do k = km, 1, -1
    if( associated(pso4wet)) pso4wet(i1:i2,j1:j2,1:km) = 0.
 
 !  Allocate the dynamic arrays
-   ! TODO: fix stop statement
-   ! allocate(fd(km,nbins),stat=ios)
-   ! if(ios .ne. 0) stop
    allocate(fd(km,nbins),__STAT__)
-   ! TODO: fix stop statement
-   ! allocate(dc(nbins),stat=ios)
-   ! if(ios .ne. 0) stop
    allocate(dc(nbins),__STAT__)
-   ! TODO: fix stop statement
-   ! allocate(dpfli(i1:i2, j1:j2, km),stat=ios)
-   ! if(ios .ne. 0) stop
    allocate(dpfli(i1:i2, j1:j2, km),__STAT__)
 
 !  Duration of rain: ls = model timestep, cv = 1800 s (<= cdt)
@@ -5117,7 +5089,6 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:),   intent(inout)  :: fluxv      ! Column mass flux in y direction
    real, pointer, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
    real, pointer, dimension(:,:,:), intent(inout)  :: snum       ! Sulfate number density [# m-2]
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 - 
@@ -5500,7 +5471,6 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:), allocatable, intent(out) :: drydepositionfrequency
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 - 
@@ -5694,7 +5664,6 @@ K_LOOP: do k = km, 1, -1
 ! !OUTPUT PARAMETERS:
    real, dimension(:,:,:), allocatable,  intent(out) :: pSO2_DMS ! SO2 production from DMS oxidation [kg kg-1 s-1]
    real, dimension(:,:,:), allocatable,  intent(out) :: pMSA_DMS ! MSA production from DMS oxidation [kg kg-1 s-1]
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc
 
 ! !DESCRIPTION: Computes the production of SO2 and MSA due to DMS oxidation
@@ -5866,7 +5835,6 @@ K_LOOP: do k = km, 1, -1
 ! !OUTPUT PARAMETERS:
    real, dimension(:,:,:), allocatable, intent(out) :: pSO4g_SO2 ! SO4 production - gas phase [kg kg-1 s-1]
    real, dimension(:,:,:), allocatable, intent(out) :: pSO4aq_SO2 ! SO4 production - aqueous [kg kg-1 s-1]
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc
 
 ! !DESCRIPTION: Computes the concentration of SO2 and production of SO4
@@ -6050,7 +6018,6 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:,:), intent(inout) :: SU_dep ! Sulfate Dry Deposition All Bins [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc
 
 ! !DESCRIPTION:
@@ -6152,7 +6119,6 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:,:), intent(inout) :: SU_dep ! Sulfate Dry Deposition All Bins [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out)   :: rc
 
 ! !DESCRIPTION: 
@@ -6237,7 +6203,6 @@ K_LOOP: do k = km, 1, -1
 
 ! !OUTPUT PARAMETERS:
    real, intent(out):: c1,c2,c3,c4
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc                   ! Error return code:
 
 
@@ -6723,7 +6688,6 @@ loop2: DO l = 1,nspecies_HL
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh3aq ! Ammonia Change from Aqueous Chemistry [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
-    ! TODO: look at the optional rc
    integer, optional, intent(out) :: rc                   ! Error return code:
 
 
@@ -7157,7 +7121,6 @@ loop2: DO l = 1,nspecies_HL
 
 !.sds          CALL GEOS_CHEM_STOP
           err_msg = 'negative concen problem in RPMARES - TSO4, TNO3, TNH4:'
-         ! TODO: PrintError may need to be fixed
           call PrintError  &
      &      (err_msg, .true., 0, 0, 0, 2, TSO4, TNO3, __RC_NO_OPT__)
       ENDIF
@@ -7976,7 +7939,6 @@ loop2: DO l = 1,nspecies_HL
       REAL*8            :: A2, A1, A0
       REAL*8            :: CRUTES(3)
 
-      ! TODO: this should be non-optional
       integer, intent(out) :: rc
 
       ! Local variables
@@ -8017,7 +7979,6 @@ loop2: DO l = 1,nspecies_HL
 !.sds            CALL ERROR_STOP( 'PHI < 1d-20', 'CUBIC (rpmares_mod.f)' )
             print *,'PHI < 1d-20 in  CUBIC (rpmares_mod.f)'
             err_msg = 'PHI < 1d-20 in  CUBIC (rpmares_mod.f):'
-            ! TODO: PrintError may need to be fixed
             call PrintError  &
      &         (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0, __RC_NO_OPT__)
 
@@ -8357,7 +8318,6 @@ loop2: DO l = 1,nspecies_HL
 !
 ! !INTERFACE:
 !
-      ! TODO: PrintError may need to be fixed
       subroutine PrintError  &
         (err_msg, err_do_stop, err_num_ints, err_int1, err_int2,  &
          err_num_reals, err_real1, err_real2, rc)
@@ -8420,8 +8380,6 @@ loop2: DO l = 1,nspecies_HL
       Write (6,*)
 
       if (err_do_stop) then
-        ! TODO: fix stop statement
-        ! stop "Code stopped by PrintError."
         rc = __FAIL__
         return
       end if
@@ -8452,7 +8410,6 @@ loop2: DO l = 1,nspecies_HL
                                               ! indexes 1, 2, ..., 5.
 
 ! !OUTPUT PARAMETERS:
-   ! TODO: this should be intent out
    integer, intent(inout) :: rc               ! return code
 
 
@@ -8770,7 +8727,6 @@ loop2: DO l = 1,nspecies_HL
 
       type(KeywordEnforcer), optional, intent(in) :: unusable
       character(*), optional, intent(in) :: label
-    ! TODO: look at the optional rc
       integer, optional, intent(out) :: rc
 
       ! Local arguments
@@ -8815,7 +8771,6 @@ loop2: DO l = 1,nspecies_HL
    subroutine open(this, filename, rc)
       class(EmissionReader), intent(inout) :: this
       character(*), intent(in) :: filename
-    ! TODO: look at the optional rc
       integer, optional, intent(out) :: rc
 
       integer :: status
@@ -8833,7 +8788,6 @@ loop2: DO l = 1,nspecies_HL
 
    subroutine close(this, rc)
       class(EmissionReader), intent(inout) :: this
-    ! TODO: look at the optional rc
       integer, optional, intent(out) :: rc
 
       integer :: status
@@ -8848,7 +8802,6 @@ loop2: DO l = 1,nspecies_HL
 
    subroutine rewind_reader(this, rc)
       class(EmissionReader), intent(in) :: this
-    ! TODO: look at the optional rc
       integer, optional, intent(out) :: rc
 
       integer :: status
@@ -8863,7 +8816,6 @@ loop2: DO l = 1,nspecies_HL
       integer :: dims(2)
       class(EmissionReader), intent(in) :: this
       character(*), intent(in) :: label
-    ! TODO: look at the optional rc
       integer, optional, intent(out) :: rc
 
       integer :: status
@@ -8927,7 +8879,6 @@ loop2: DO l = 1,nspecies_HL
       class(EmissionReader), intent(in) :: this
       real, allocatable :: table(:,:)
       character(*), intent(in) :: label
-    ! TODO: look at the optional rc
       integer, optional, intent(out) :: rc
 
       integer :: i, j
@@ -8959,7 +8910,6 @@ loop2: DO l = 1,nspecies_HL
       character(:), allocatable :: line
       class(EmissionReader), intent(in) :: this
       logical, intent(out) :: eof
-    ! TODO: look at the optional rc
       integer, optional, intent(out) :: rc
 
       integer, parameter :: MAX_LINE_LEN=1024
@@ -8991,7 +8941,6 @@ loop2: DO l = 1,nspecies_HL
    subroutine scan_to_label(this, label, rc)
       class(EmissionReader), intent(in) :: this
       character(*), intent(in) :: label
-    ! TODO: look at the optional rc
       integer, optional, intent(out) :: rc
 
       integer :: status
