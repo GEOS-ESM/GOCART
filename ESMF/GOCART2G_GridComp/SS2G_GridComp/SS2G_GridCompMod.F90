@@ -514,7 +514,8 @@ contains
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+    VERIFY_(status)
 
     ! Mie Table instance/index
     call ESMF_AttributeSet(aero, name='mie_table_instance', value=instance, __RC__)
@@ -543,7 +544,7 @@ contains
 !   Mask to prevent emissions from the Great Lakes and the Caspian Sea
 !   ------------------------------------------------------------------
     allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
-    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, rc)
+    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -829,7 +830,7 @@ contains
        fwet = 1.
        call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
                                KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
-                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, rc)
+                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
     end do
 
 !   Compute diagnostics

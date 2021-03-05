@@ -634,7 +634,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+    VERIFY_(status)
 
     ! Mie Table instance/index
     call ESMF_AttributeSet(aero, name='mie_table_instance', value=instance, __RC__)
@@ -859,7 +860,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             nymd=nymd, nhms=120000 )
           call ReadPointEmissions (nymd, fname, self%nVolc, self%vLat, self%vLon, &
                                    self%vElev, self%vCloud, self%vSO2, self%vStart, &
-                                   self%vEnd, label='volcano')
+                                   self%vEnd, label='volcano', __RC__)
           self%vSO2 = self%vSO2 * fMassSO2 / fMassSulfur
 !         Special possible case
           if(self%volcano_srcfilen(1:9) == '/dev/null') self%nVolc = 0
@@ -912,11 +913,11 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                                       self%aviation_layers,   &
                                       aviation_lto_src, &
                                       aviation_cds_src, &
-                                      aviation_crs_src, rc) 
+                                      aviation_crs_src, __RC__) 
 
     if (associated(dms)) then 
        call DMSemission (self%km, self%cdt, MAPL_GRAV, t, u10m, v10m, lwi, delp, &
-                         fMassDMS, SU_DMSO, dms, SUEM, nDMS, rc)
+                         fMassDMS, SU_DMSO, dms, SUEM, nDMS, __RC__)
     end if
 
 !   Read any pointwise emissions, if requested
@@ -926,7 +927,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                          nymd=nymd, nhms=120000 )
        call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                  self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                 self%pEnd, label='source')
+                                 self%pEnd, label='source', __RC__)
 
     endif
 
@@ -1072,7 +1073,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 oh, no3, h2o2, &
-                                xoh, xno3, xh2o2, self%recycle_h2o2, rc)
+                                xoh, xno3, xh2o2, self%recycle_h2o2, __RC__)
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(xh2o2) = ',sum(xh2o2)
 !if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(self%h2o2_init) = ',sum(self%h2o2_init)
@@ -1086,7 +1087,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
        call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, MAPL_GRAV, delp, &
                                  self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
-                                 rh2, zle, SUSD, rc=rc)
+                                 rh2, zle, SUSD, __RC__)
     end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
@@ -1102,7 +1103,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             SUDP, SUPSO2, SUPMSA, &
                             SUPSO4, SUPSO4g, SUPSO4aq, &
                             pso2, pmsa, pso4, pso4g, pso4aq, drydepositionf, & ! 3d diagnostics
-                            rc)
+                            __RC__)
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(xh2o2) = ',sum(xh2o2)
 !if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(self%h2o2_init) = ',sum(self%h2o2_init)
@@ -1115,7 +1116,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                           delp, fMassSO4, fMassSO2, &
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
-                          SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, rc )
+                          SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(xh2o2) = ',sum(xh2o2)
 !if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(self%h2o2_init) = ',sum(self%h2o2_init)
@@ -1130,7 +1131,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             SO2SMASS, SO2CMASS, &
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
-                            SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, rc)
+                            SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 E size(suexttau) = ',size(suexttau)
 !if(mapl_am_i_root()) print*,'SU2G Run2 E size(suescaau) = ',size(suscatau)
