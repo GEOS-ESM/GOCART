@@ -2714,6 +2714,8 @@ CONTAINS
    real, allocatable, dimension(:,:) ::  vsettle
    integer :: i, j
 
+   integer :: status
+
 
 !EOP
 !------------------------------------------------------------------------------------
@@ -2726,9 +2728,7 @@ CONTAINS
    do j = 1, ubound(rh,2)
       do i = 1, ubound(rh,1)
          call wetRadius (radius, rhop, rh(i,j), rhFlag, &
-                         radius_wet, rhop_wet, rc)
-         ! TODO: wetRadius can never return a non-zero rc so this statement is useless
-         if (rc /= 0) return
+                         radius_wet, rhop_wet, __RC_NO_OPT__)
          call Chem_CalcVsettle2Gorig (radius_wet, rhop_wet, airdens(i,j), t(i,j), &
                                       GRAV, diff_coef, vsettle(i,j))
          fhoppel(i,j) = (10./dz(i,j)) ** (vsettle(i,j)/KARMAN/ustar(i,j))

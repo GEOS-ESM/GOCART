@@ -525,7 +525,8 @@ integer :: n_wavelengths_profile, n_wavelengths_vertint
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+    VERIFY_(status)
 
 !   Mie Table instance/index
     call ESMF_AttributeSet (aero, name='mie_table_instance', value=instance, __RC__)
@@ -729,7 +730,7 @@ end do
                             nymd=nymd, nhms=120000 )
           call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                    self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                   self%pEnd, label='source')
+                                   self%pEnd, label='source', __RC__)
        end if
     end if
 
@@ -756,7 +757,7 @@ end do
 !   --------------------
     call UpdateAerosolState (emissions, emissions_surface, emissions_point, &
                              self%sfrac, self%nPts, self%km, self%CDT, MAPL_GRAV, &
-                             self%nbins, delp, DU, rc)
+                             self%nbins, delp, DU, __RC__)
 
     if (associated(DUEM)) then
        DUEM = sum(emissions, dim=3)
@@ -862,8 +863,9 @@ end do
    do n = 1, self%nbins
       drydepositionfrequency = 0.
       call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
-                         MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, rc, &
+                         MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, status, &
                          self%radius(n)*1.e-6, self%rhop(n), u10m, v10m, frlake, wet1)
+      VERIFY_(status)
 
       dqa = 0.
       dqa = max(0.0, DU(:,:,self%km,n)*(1.-exp(-drydepositionfrequency*self%cdt)))
