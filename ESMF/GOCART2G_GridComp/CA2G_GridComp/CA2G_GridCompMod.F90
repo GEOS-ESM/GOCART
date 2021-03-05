@@ -565,7 +565,8 @@ contains
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+    VERIFY_(status)
 
 !   Finish creating AERO state
 !   --------------------------
@@ -840,7 +841,7 @@ contains
                          nymd=nymd, nhms=120000 )
        call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                  self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                 self%pEnd, label='source')
+                                 self%pEnd, label='source', __RC__)
     endif
 
 !   Get indices for point emissions
@@ -1014,7 +1015,7 @@ contains
     fwet = 1.
     call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
                              KIN, MAPL_GRAV, fwet, CAphilic, ple, t, airdens, &
-                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, CAWT, rc)
+                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, CAWT, __RC__)
 
 !   Compute diagnostics
 !   -------------------
