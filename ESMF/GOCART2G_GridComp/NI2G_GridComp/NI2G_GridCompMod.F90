@@ -747,9 +747,10 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
     real                              :: fwet
     logical                           :: KIN
-    real, pointer, dimension(:,:)     :: fluxout
-    real, pointer, dimension(:,:,:)   :: fluxoutWT
+    real, allocatable, target, dimension(:,:,:) :: fluxoutWT
     real, allocatable, dimension(:,:,:,:) :: aerosol
+    real, pointer, dimension(:,:)     :: flux_ptr
+    real, pointer, dimension(:,:,:)   :: fluxWT_ptr
 
     type (ESMF_ALARM)               :: alarm
     logical                         :: alarm_is_ringing
@@ -887,34 +888,33 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G NH4SD array = ',NH4SD
 
 
-    allocate(fluxout, mold=lwi, __STAT__)
 !  Nitrate bin 1 - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
-    fluxout = 0.
+    nullify(flux_ptr)
+    if (associated(NISD)) flux_ptr => NISD(:,:,1)
     call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an1), self%rhop(nNO3an1), &
-                                  NO3an1, t, airdens, rh2, delp, zle, fluxout, __RC__)
-    if (associated(NISD)) NISD(:,:,1) = fluxout
+                                  NO3an1, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NISD(:,:,1)) = ',sum(NISD(:,:,1))
 !if(mapl_am_i_root()) print*,'NI2G sum(NO3an1) = ',sum(NO3an1)
 
 !  Nitrate bin 2 - settles like sea salt (rhflag = 2)
     rhflag = 2
-    fluxout = 0.
+    nullify(flux_ptr)
+    if (associated(NISD)) flux_ptr => NISD(:,:,2)
     call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an2), self%rhop(nNO3an2), &
-                                  NO3an2, t, airdens, rh2, delp, zle, fluxout, __RC__)
-    if (associated(NISD)) NISD(:,:,2) = fluxout
+                                  NO3an2, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NISD(:,:,2)) = ',sum(NISD(:,:,2))
 !if(mapl_am_i_root()) print*,'NI2G sum(NO3an2) = ',sum(NO3an2)
 
 !  Nitrate bin 1 - settles like dust (rhflag = 0)
     rhflag = 0
-    fluxout = 0.
+    nullify(flux_ptr)
+    if (associated(NISD)) flux_ptr => NISD(:,:,3)
     call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an3), self%rhop(nNO3an3), &
-                                  NO3an3, t, airdens, rh2, delp, zle, fluxout, __RC__)
-    if (associated(NISD)) NISD(:,:,3) = fluxout
+                                  NO3an3, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NISD(:,:,3)) = ',sum(NISD(:,:,3))
 !if(mapl_am_i_root()) print*,'NI2G ChemSet sum(NO3an3) = ',sum(NO3an3)
 
@@ -989,26 +989,34 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 
 !  NI Large-scale Wet Removal
 !  --------------------------
-   allocate(fluxoutWT(ubound(t,1), ubound(t,2), 1), __STAT__)
-   fluxoutWT = 0.
+   if (associated(NH3WT) .or. associated(NH4WT)) then
+      allocate(fluxoutWT(ubound(t,1), ubound(t,2), 1), __STAT__)
+   end if
 !  NH3
    KIN = .false.
    fwet = 1.
+   nullify(fluxWT_ptr)
+   if (associated(NH3WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
                             KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
-                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxoutWT, __RC__)
-   if (associated(NH3WT)) NH3WT = fluxoutWT(:,:,1)
+                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
+   if (associated(NH3WT)) NH3WT = fluxWT_ptr(:,:,1)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3WT) = ',sum(NH3WT)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
 
 !  NH4a
-   fluxoutWT = 0.
    KIN = .true.
    fwet = 1.
+   nullify(fluxWT_ptr)
+   if (associated(NH4WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH4a', &
                            KIN, MAPL_GRAV, fwet, NH4a, ple, t, airdens, &
-                           pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxoutWT, __RC__)
-   if (associated(NH4WT)) NH4WT = fluxoutWT(:,:,1)
+                           pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
+   if (associated(NH4WT)) NH4WT = fluxWT_ptr(:,:,1)
+
+   if (allocated(fluxoutWT)) then
+      deallocate(fluxoutWT, __STAT__)
+   end if
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4WT) = ',sum(NH4WT)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH4) = ',sum(NH4a)
 
