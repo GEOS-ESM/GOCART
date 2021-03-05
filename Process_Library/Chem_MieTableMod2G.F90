@@ -227,6 +227,7 @@ CONTAINS
 !     -------------------------------------
       rc = nf_open(this%mietablename, NF_NOWRITE, ncid)
       IF ( rc /= 0 ) THEN
+        ! TODO: Should there be a return here?
         print *, 'nf_open '//this%mietablename//'  RETURN CODE=', rc
       END IF
 
@@ -251,6 +252,7 @@ CONTAINS
          NF_VERIFY_(nf_inq_dimid(ncid,'nMom',idimid))
          NF_VERIFY_(nf_inq_dimlen(ncid,idimid,nmom_table))
          if ( nmom_ > nmom_table ) then
+        ! TODO: Should rc be set to non-zero here?
 !            rc = 99
             print*,'Error: nmom_ > nmom_table, see:'//myname
             return
@@ -267,6 +269,7 @@ CONTAINS
 !                bbck_table(nch_table,nrh_table,nbin_table), &
 !                g_table(nch_table,nrh_table,nbin_table), stat = rc )
 
+      ! TODO: none of these stat=rc are being handled
       allocate(channels_table(nch_table),stat = rc )
       allocate(rh_table(nrh_table),stat = rc )
       allocate(reff_table(nrh_table,nbin_table),stat = rc )
@@ -301,6 +304,7 @@ CONTAINS
       NF_VERIFY_(nf_inq_varid(ncid,'rh',ivarid))
       NF_VERIFY_(nf_get_var_double(ncid,ivarid,rh_table))
 
+      ! TODO: we need to look at these NF_NOERR checks
 !     Get the backscatter phase function values
       rc = nf_inq_varid(ncid,'pback',ivarid)
       if(rc .ne. NF_NOERR) then   ! pback not in table, fill in dummy variable
@@ -390,6 +394,7 @@ CONTAINS
 !                 this%g(this%nLambda,this%nrh,this%nbin),      &
 !                 stat = rc )
 
+      ! TODO: none of these stat=rc are being handled
       allocate (this%lambda(this%nLambda),stat = rc )
       allocate (this%rh(this%nrh),stat = rc )
       allocate (this%reff(this%nrh,this%nbin),stat = rc )
@@ -491,6 +496,7 @@ CONTAINS
 !      deallocate (channels_table, rh_table, bext_table, bsca_table, &
 !                  bbck_table, g_table, stat = rc )
 
+      ! TODO: none of these stat=rc are being handled
       deallocate (channels_table, stat = rc )
       deallocate (rh_table, stat = rc )
       deallocate (reff_table, stat = rc )
@@ -635,6 +641,7 @@ END SUBROUTINE Chem_MieTableRead
 
       character(len=*), parameter  :: Iam = 'Chem_MieQuery'
 
+      ! TODO: this rc seems to be doing nothing
       if ( present(rc) ) rc = 0
 
       ICHANNEL = nint(CHANNEL)
@@ -822,6 +829,7 @@ END SUBROUTINE Chem_MieTableRead
 
       character(len=*), parameter  :: Iam = 'Chem_MieQueryByIntWithpmom'
 
+      ! TODO: this rc seems to be doing nothing
       if ( present(rc) ) rc = 0
 
       ICHANNEL = nint(CHANNEL)
@@ -840,6 +848,7 @@ END SUBROUTINE Chem_MieTableRead
 
 !     Now linearly interpolate the input table for the requested aerosol and
 !     channel; rh is the relative humidity.
+   ! TODO: this rc is not beding handled.
     call Chem_MieQuery ( this, idx, channel, q_mass, rh, &
                          tau, ssa, gasym, bext, bsca, bbck, &
                          reff, p11, p22, gf, rhop, rhod, &
