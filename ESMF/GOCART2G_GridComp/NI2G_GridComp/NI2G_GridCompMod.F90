@@ -891,7 +891,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
     if (associated(NISD)) flux_ptr => NISD(:,:,1)
     call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an1), self%rhop(nNO3an1), &
-                                  NO3an1, t, airdens, rh2, delp, zle, flux_ptr, rc)
+                                  NO3an1, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NISD(:,:,1)) = ',sum(NISD(:,:,1))
 !if(mapl_am_i_root()) print*,'NI2G sum(NO3an1) = ',sum(NO3an1)
 
@@ -901,7 +901,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
     if (associated(NISD)) flux_ptr => NISD(:,:,2)
     call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an2), self%rhop(nNO3an2), &
-                                  NO3an2, t, airdens, rh2, delp, zle, flux_ptr, rc)
+                                  NO3an2, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NISD(:,:,2)) = ',sum(NISD(:,:,2))
 !if(mapl_am_i_root()) print*,'NI2G sum(NO3an2) = ',sum(NO3an2)
 
@@ -911,7 +911,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
     if (associated(NISD)) flux_ptr => NISD(:,:,3)
     call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
                                   1.e-6*self%radius(nNO3an3), self%rhop(nNO3an3), &
-                                  NO3an3, t, airdens, rh2, delp, zle, flux_ptr, rc)
+                                  NO3an3, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
 !if(mapl_am_i_root()) print*,'NI2G sum(NISD(:,:,3)) = ',sum(NISD(:,:,3))
 !if(mapl_am_i_root()) print*,'NI2G ChemSet sum(NO3an3) = ',sum(NO3an3)
 
@@ -996,7 +996,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    if (associated(NH3WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
                             KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
-                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, rc)
+                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
    if (associated(NH3WT)) NH3WT = fluxWT_ptr(:,:,1)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3WT) = ',sum(NH3WT)
 !if(mapl_am_i_root()) print*,'NI2G sum(NH3) = ',sum(NH3)
@@ -1008,7 +1008,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
    if (associated(NH4WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH4a', &
                            KIN, MAPL_GRAV, fwet, NH4a, ple, t, airdens, &
-                           pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, rc)
+                           pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
    if (associated(NH4WT)) NH4WT = fluxWT_ptr(:,:,1)
 
    if (allocated(fluxoutWT)) then
