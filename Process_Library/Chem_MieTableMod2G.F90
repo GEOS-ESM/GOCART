@@ -205,8 +205,10 @@ CONTAINS
 
       real :: yerr
       integer :: nmom_, imom, ipol
+      integer :: status
 
 #define NF_VERIFY_(expr) rc = expr; if (rc /= 0) return
+#define __NF_STAT__ stat=status); NF_VERIFY_(status
 
       rc = 0
 
@@ -229,6 +231,7 @@ CONTAINS
       IF ( rc /= 0 ) THEN
         ! TODO: Should there be a return here?
         print *, 'nf_open '//this%mietablename//'  RETURN CODE=', rc
+        NF_VERIFY_(rc)
       END IF
 
 !     RH
@@ -255,7 +258,7 @@ CONTAINS
         ! TODO: Should rc be set to non-zero here?
 !            rc = 99
             print*,'Error: nmom_ > nmom_table, see:'//myname
-            return
+            NF_VERIFY_(1)
          end if
          NF_VERIFY_(nf_inq_dimid(ncid,'nPol',idimid))
          NF_VERIFY_(nf_inq_dimlen(ncid,idimid,nPol_table))
@@ -270,24 +273,24 @@ CONTAINS
 !                g_table(nch_table,nrh_table,nbin_table), stat = rc )
 
       ! TODO: none of these stat=rc are being handled
-      allocate(channels_table(nch_table),stat = rc )
-      allocate(rh_table(nrh_table),stat = rc )
-      allocate(reff_table(nrh_table,nbin_table),stat = rc )
-      allocate(bext_table(nch_table,nrh_table,nbin_table),stat = rc )
-      allocate(bsca_table(nch_table,nrh_table,nbin_table),stat = rc )
-      allocate(bbck_table(nch_table,nrh_table,nbin_table), stat = rc )
+      allocate(channels_table(nch_table), __NF_STAT__)
+      allocate(rh_table(nrh_table), __NF_STAT__)
+      allocate(reff_table(nrh_table,nbin_table), __NF_STAT__)
+      allocate(bext_table(nch_table,nrh_table,nbin_table), __NF_STAT__)
+      allocate(bsca_table(nch_table,nrh_table,nbin_table), __NF_STAT__)
+      allocate(bbck_table(nch_table,nrh_table,nbin_table),  __NF_STAT__)
       allocate(g_table(nch_table,nrh_table,nbin_table), stat = rc )
-      allocate(pback_table(nch_table,nrh_table,nbin_table,nPol_table), stat = rc )
-      allocate(gf_table(nrh_table,nbin_table),stat = rc )
-      allocate(rhop_table(nrh_table,nbin_table),stat = rc )
-      allocate(rhod_table(nrh_table,nbin_table),stat = rc )
-      allocate(vol_table(nrh_table,nbin_table),stat = rc )
-      allocate(area_table(nrh_table,nbin_table),stat = rc )
-      allocate(refr_table(nch_table,nrh_table,nbin_table), stat = rc )
-      allocate(refi_table(nch_table,nrh_table,nbin_table), stat = rc )
+      allocate(pback_table(nch_table,nrh_table,nbin_table,nPol_table),  __NF_STAT__)
+      allocate(gf_table(nrh_table,nbin_table), __NF_STAT__)
+      allocate(rhop_table(nrh_table,nbin_table), __NF_STAT__)
+      allocate(rhod_table(nrh_table,nbin_table), __NF_STAT__)
+      allocate(vol_table(nrh_table,nbin_table), __NF_STAT__)
+      allocate(area_table(nrh_table,nbin_table), __NF_STAT__)
+      allocate(refr_table(nch_table,nrh_table,nbin_table), __NF_STAT__)
+      allocate(refi_table(nch_table,nrh_table,nbin_table), __NF_STAT__)
 
       if ( nmom_ > 0 ) then
-         allocate(pmom_table(nch_table,nrh_table,nbin_table,nmom_table,nPol_table), stat = rc )
+         allocate(pmom_table(nch_table,nrh_table,nbin_table,nmom_table,nPol_table), __NF_STAT__)
       end if
       NF_VERIFY_(nf_inq_varid(ncid,'lambda',ivarid))
       NF_VERIFY_(nf_get_var_double(ncid,ivarid,channels_table))
@@ -497,24 +500,24 @@ CONTAINS
 !                  bbck_table, g_table, stat = rc )
 
       ! TODO: none of these stat=rc are being handled
-      deallocate (channels_table, stat = rc )
-      deallocate (rh_table, stat = rc )
-      deallocate (reff_table, stat = rc )
-      deallocate (bext_table, stat = rc )
-      deallocate (bsca_table, stat = rc )
-      deallocate (bbck_table, stat = rc )
-      deallocate (g_table, stat = rc )
-      deallocate (pback_table, stat = rc )
+      deallocate (channels_table, __NF_STAT__)
+      deallocate (rh_table, __NF_STAT__)
+      deallocate (reff_table, __NF_STAT__)
+      deallocate (bext_table, __NF_STAT__)
+      deallocate (bsca_table, __NF_STAT__)
+      deallocate (bbck_table, __NF_STAT__)
+      deallocate (g_table, __NF_STAT__)
+      deallocate (pback_table, __NF_STAT__)
       if ( nmom_ > 0 ) then
-         deallocate (pmom_table, stat = rc )
+         deallocate (pmom_table, __NF_STAT__)
       endif
-      deallocate (gf_table, stat = rc )
-      deallocate (rhop_table, stat = rc )
-      deallocate (rhod_table, stat = rc )
-      deallocate (vol_table, stat = rc )
-      deallocate (area_table, stat = rc )
-      deallocate (refr_table, stat = rc )
-      deallocate (refi_table, stat = rc )
+      deallocate (gf_table, __NF_STAT__)
+      deallocate (rhop_table, __NF_STAT__)
+      deallocate (rhod_table, __NF_STAT__)
+      deallocate (vol_table, __NF_STAT__)
+      deallocate (area_table, __NF_STAT__)
+      deallocate (refr_table, __NF_STAT__)
+      deallocate (refi_table, __NF_STAT__)
 
 return
 
@@ -853,6 +856,7 @@ END SUBROUTINE Chem_MieTableRead
                          tau, ssa, gasym, bext, bsca, bbck, &
                          reff, p11, p22, gf, rhop, rhod, &
                          vol, area, refr, refi, rc )
+    NF_VERIFY_(rc)
 
          pmom(:,:) = TABLE%pmom(irh  ,ichannel,TYPE,:,:) * (1.-arh) &
                    + TABLE%pmom(irhp1,ichannel,TYPE,:,:) * arh
