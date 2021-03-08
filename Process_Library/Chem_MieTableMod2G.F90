@@ -229,7 +229,6 @@ CONTAINS
 !     -------------------------------------
       rc = nf_open(this%mietablename, NF_NOWRITE, ncid)
       IF ( rc /= 0 ) THEN
-        ! TODO: Should there be a return here?
         print *, 'nf_open '//this%mietablename//'  RETURN CODE=', rc
         NF_VERIFY_(rc)
       END IF
@@ -255,7 +254,6 @@ CONTAINS
          NF_VERIFY_(nf_inq_dimid(ncid,'nMom',idimid))
          NF_VERIFY_(nf_inq_dimlen(ncid,idimid,nmom_table))
          if ( nmom_ > nmom_table ) then
-        ! TODO: Should rc be set to non-zero here?
 !            rc = 99
             print*,'Error: nmom_ > nmom_table, see:'//myname
             NF_VERIFY_(1)
@@ -272,7 +270,6 @@ CONTAINS
 !                bbck_table(nch_table,nrh_table,nbin_table), &
 !                g_table(nch_table,nrh_table,nbin_table), stat = rc )
 
-      ! TODO: none of these stat=rc are being handled
       allocate(channels_table(nch_table), __NF_STAT__)
       allocate(rh_table(nrh_table), __NF_STAT__)
       allocate(reff_table(nrh_table,nbin_table), __NF_STAT__)
@@ -397,7 +394,6 @@ CONTAINS
 !                 this%g(this%nLambda,this%nrh,this%nbin),      &
 !                 stat = rc )
 
-      ! TODO: none of these stat=rc are being handled
       allocate (this%lambda(this%nLambda), __NF_STAT__)
       allocate (this%rh(this%nrh), __NF_STAT__)
       allocate (this%reff(this%nrh,this%nbin), __NF_STAT__)
@@ -499,7 +495,6 @@ CONTAINS
 !      deallocate (channels_table, rh_table, bext_table, bsca_table, &
 !                  bbck_table, g_table, stat = rc )
 
-      ! TODO: none of these stat=rc are being handled
       deallocate (channels_table, __NF_STAT__)
       deallocate (rh_table, __NF_STAT__)
       deallocate (reff_table, __NF_STAT__)
@@ -644,7 +639,6 @@ END SUBROUTINE Chem_MieTableRead
 
       character(len=*), parameter  :: Iam = 'Chem_MieQuery'
 
-      ! TODO: this rc seems to be doing nothing
       if ( present(rc) ) rc = 0
 
       ICHANNEL = nint(CHANNEL)
@@ -832,7 +826,6 @@ END SUBROUTINE Chem_MieTableRead
 
       character(len=*), parameter  :: Iam = 'Chem_MieQueryByIntWithpmom'
 
-      ! TODO: this rc seems to be doing nothing
       if ( present(rc) ) rc = 0
 
       ICHANNEL = nint(CHANNEL)
@@ -851,7 +844,6 @@ END SUBROUTINE Chem_MieTableRead
 
 !     Now linearly interpolate the input table for the requested aerosol and
 !     channel; rh is the relative humidity.
-   ! TODO: this rc is not beding handled.
     call Chem_MieQuery ( this, idx, channel, q_mass, rh, &
                          tau, ssa, gasym, bext, bsca, bbck, &
                          reff, p11, p22, gf, rhop, rhod, &
