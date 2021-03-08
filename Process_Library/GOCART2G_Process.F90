@@ -7086,6 +7086,8 @@ loop2: DO l = 1,nspecies_HL
 !-------------------------------------------------------------------------
 !  Begin...
 
+      rc = __SUCCESS__
+
       ! For extremely low relative humidity ( less than 1% ) set the 
       ! water content to a minimum and skip the calculation.
       IF ( RH .LT. 0.01 ) THEN
