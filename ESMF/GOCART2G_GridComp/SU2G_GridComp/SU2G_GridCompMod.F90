@@ -1084,6 +1084,9 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !   SU Settling
 !   -----------
     do n = 1, self%nbins
+       ! if radius == 0 then we're dealing with a gas which has no settling losses
+       if (self%radius(n) == 0.0) cycle
+
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
 
