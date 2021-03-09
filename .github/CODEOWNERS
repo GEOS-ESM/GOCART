@@ -4,7 +4,7 @@
 # precedence.
 
 # Everything in GOCART should be owned by the Chem gatekeepers
-* @GEOS-ESM/chemistry-gatekeepers
+* @GEOS-ESM/aerosol-team
 
 # NOAA Extras are Tom, Weiyuan for now
 /CCPP/                  @tclune @weiyuan-jiang
