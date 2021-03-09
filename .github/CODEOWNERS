@@ -6,12 +6,12 @@
 # Everything in GOCART should be owned by the Chem gatekeepers
 * @GEOS-ESM/chemistry-gatekeepers
 
-# NOAA Extras are Tom, William for now
-/CCPP/                  @tclune @weiyuan_jiang
-/ESMF/Aerosol_GridComp/ @tclune @weiyuan_jiang
-/ESMF/NUOPC/            @tclune @weiyuan_jiang
-/ESMF/Shared/           @tclune @weiyuan_jiang
-/ESMF/UFS/              @tclune @weiyuan_jiang
+# NOAA Extras are Tom, Weiyuan for now
+/CCPP/                  @tclune @weiyuan-jiang
+/ESMF/Aerosol_GridComp/ @tclune @weiyuan-jiang
+/ESMF/NUOPC/            @tclune @weiyuan-jiang
+/ESMF/Shared/           @tclune @weiyuan-jiang
+/ESMF/UFS/              @tclune @weiyuan-jiang
 
 # GOCART code reflects Chem GridComp
 /ESMF/GOCART_GridComp/   @GEOS-ESM/aerosol-team
