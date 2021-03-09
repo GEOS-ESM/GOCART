@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Switched StrTemplate from using the one provided by `GMAO_MPEU` to one provided by `MAPL`
+- Updated CODEOWNERS to reflect changes in staffing.
  
 ### Fixed
 

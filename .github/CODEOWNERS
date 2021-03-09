@@ -7,17 +7,17 @@
 * @GEOS-ESM/chemistry-gatekeepers
 
 # NOAA Extras are Tom, William for now
-/CCPP/                  @tclune @WilliamJamieson
-/ESMF/Aerosol_GridComp/ @tclune @WilliamJamieson
-/ESMF/NUOPC/            @tclune @WilliamJamieson
-/ESMF/Shared/           @tclune @WilliamJamieson
-/ESMF/UFS/              @tclune @WilliamJamieson
+/CCPP/                  @tclune @weiyuan_jiang
+/ESMF/Aerosol_GridComp/ @tclune @weiyuan_jiang
+/ESMF/NUOPC/            @tclune @weiyuan_jiang
+/ESMF/Shared/           @tclune @weiyuan_jiang
+/ESMF/UFS/              @tclune @weiyuan_jiang
 
 # GOCART code reflects Chem GridComp
-/ESMF/GOCART_GridComp/   @GEOS-ESM/aerosol-team @GEOS-ESM/chemistry-gatekeepers
+/ESMF/GOCART_GridComp/   @GEOS-ESM/aerosol-team
 
 # GOCART2G is Elliot for now
-#/ESMF/GOCART2G_GridComp/ @GEOS-ESM/aerosol-team @GEOS-ESM/chemistry-gatekeepers
+#/ESMF/GOCART2G_GridComp/ @GEOS-ESM/aerosol-team
 /ESMF/GOCART2G_GridComp/ @gmao-esherman
 
 # The CMake Team should know/approve these
