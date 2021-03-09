@@ -3,7 +3,7 @@
 # Order is important; the last matching pattern takes the most
 # precedence.
 
-# Everything in GOCART should be owned by the Chem gatekeepers
+# Everything in GOCART should be owned by the Aerosol Team
 * @GEOS-ESM/aerosol-team
 
 # NOAA Extras are Tom, Weiyuan for now
@@ -13,7 +13,6 @@
 /ESMF/Shared/           @tclune @weiyuan-jiang
 /ESMF/UFS/              @tclune @weiyuan-jiang
 
-# GOCART code reflects Chem GridComp
 /ESMF/GOCART_GridComp/   @GEOS-ESM/aerosol-team
 
 # GOCART2G is Elliot for now
