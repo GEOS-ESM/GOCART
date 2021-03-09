@@ -75,7 +75,7 @@ contains
        field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
        if (trim(field_name) == 'PLE') then
           call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationEdge, typekind=typekind, hw=0, __RC__)
-       else if (trim(field_name) == 'FRLAND') then
+       else if ((trim(field_name) == 'FRLAND') .or. (trim(field_name) == 'monochromatic_EXT')) then
           call MAPL_FieldAllocCommit(field, dims=MAPL_DimsHorzOnly, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
        else
           call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)

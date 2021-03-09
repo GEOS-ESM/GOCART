@@ -399,11 +399,18 @@ contains
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
+                   label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
 
-    call ESMF_AttributeSet(aero, name='band_for_aerosol_optics',             value=0,     __RC__)
+    call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0,     __RC__)
+    call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
 
 !   Attach method to create a Bundle of aerosol fields used in GAAS
     call ESMF_MethodAdd (aero, label='serialize_bundle', userRoutine=serialize_bundle, __RC__)
+
+!   Attach the monochromatic aerosol optics method used in GAAS
+    call ESMF_MethodAdd (aero, label='get_monochromatic_aop', &
+                         userRoutine=get_monochromatic_aop, __RC__)
 
 !   Attach the aerosol optics method used in Radiation
     call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, __RC__)
@@ -1862,5 +1869,136 @@ contains
     end subroutine ocean_correction_
 
   end subroutine aerosol_activation_properties
+
+
+!===================================================================================
+  subroutine get_monochromatic_aop (state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !Local
+    real, dimension(:,:,:), pointer                  :: ple
+    real, dimension(:,:,:), pointer                  :: rh
+    real, dimension(:,:), pointer                    :: var
+
+    character (len=ESMF_MAXSTR)                      :: fld_name
+
+    real, dimension(:,:),pointer                     :: tau_      ! (lon:,lat:,lev:)
+    real, dimension(:,:), allocatable                :: tau       ! (lon:,lat:,lev:)
+
+    integer                                          :: i, n, b, j
+    integer                                          :: i1, j1, i2, j2, km
+    real                                             :: wavelength
+
+    character (len=ESMF_MAXSTR), allocatable         :: itemList(:), aeroList(:)
+    type (ESMF_State)                                :: child_state
+    real, pointer,     dimension(:,:,:)              :: as_ptr_3d
+
+    type (ESMF_StateItem_Flag), allocatable          :: itemTypes(:)
+
+    __Iam__('GOCART2G::get_monochromatic_aop')
+
+!   Description: Used in Radiation gridded components to provide aerosol properties
+!-----------------------------------------------------------------------------------
+!   Begin... 
+
+!   Radiation band
+!   --------------
+    call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+
+!   Relative humidity
+!   -----------------
+    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
+
+!   Pressure at layer edges 
+!   ------------------------
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
+
+    i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+    j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+                         km = ubound(ple, 3)
+
+    allocate(tau(i1:i2,j1:j2), __STAT__)
+    tau = 0.0
+
+!   Get list of child states within state and add to aeroList
+!   ---------------------------------------------------------
+    call ESMF_StateGet (state, itemCount=n, __RC__)
+    allocate (itemList(n), __STAT__)
+    allocate (itemTypes(n), __STAT__)
+    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+
+    b=0
+    do i = 1, n
+        if (itemTypes(i) == ESMF_StateItem_State) then
+            b = b + 1
+        end if
+    end do
+
+    allocate (aeroList(b), __STAT__)
+
+    j = 1
+    do i = 1, n
+        if (itemTypes(i) == ESMF_StateItem_State) then
+            aeroList(j) = trim(itemList(i))
+            j = j + 1
+        end if
+    end do
+
+!   ! Get aerosol optic properties from children
+    do i = 1, size(aeroList)
+       call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+
+!      ! set RH in child's aero state
+       call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+
+       if (fld_name /= '') then
+          call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+          as_ptr_3d = rh
+       end if
+
+!      ! set PLE in child's aero state
+       call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+
+       if (fld_name /= '') then
+          call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+          as_ptr_3d = ple
+       end if
+
+!      ! set wavelength in child's aero state
+       call ESMF_AttributeSet(child_state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+
+!      ! execute the aerosol optics method
+       call ESMF_MethodExecute(child_state, label="monochromatic_aerosol_optics", __RC__)
+
+!      ! Retrieve extinction from each child
+       call ESMF_AttributeGet(child_state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+          call MAPL_GetPointer(child_state, tau_, trim(fld_name), __RC__)
+       end if
+
+!      ! Sum aerosol optic properties from each child
+       tau = tau + tau_
+    end do
+
+!   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
+    call ESMF_AttributeGet(state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+       var = tau
+    end if
+
+    deallocate(tau, __STAT__)
+
+   RETURN_(ESMF_SUCCESS)
+
+  end subroutine get_monochromatic_aop
+
 
 end module GOCART2G_GridCompMod

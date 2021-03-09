@@ -653,15 +653,19 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
+    call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
+                   label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
 
-    call ESMF_AttributeSet(aero, name='band_for_aerosol_optics',             value=0,     __RC__)
+    call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
+    call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0, __RC__)
 
     mieTable_pointer = transfer(c_loc(self), [1])
-    call ESMF_AttributeSet(aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
+    call ESMF_AttributeSet (aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
 
-    call ESMF_AttributeSet(aero, name='internal_varaible_name', value='SO4', __RC__)
+    call ESMF_AttributeSet (aero, name='internal_varaible_name', value='SO4', __RC__)
 
-    call ESMF_MethodAdd(AERO, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1403,6 +1407,138 @@ if (mapl_am_I_root()) print*,trim(comp_name),' Run_data END'
     end subroutine mie_
 
   end subroutine aerosol_optics
+
+!-----------------------------------------------------------------------------------
+  subroutine monochromatic_aerosol_optics(state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !Local
+    real, dimension(:,:,:), pointer                  :: ple, rh
+    real, dimension(:,:), pointer                    :: var
+    real, dimension(:,:,:), pointer                  :: q
+    real, dimension(:,:,:,:), pointer                :: q_4d
+    integer, allocatable                             :: opaque_self(:)
+    type(C_PTR)                                      :: address
+    type(SU2G_GridComp), pointer                     :: self
+
+    character (len=ESMF_MAXSTR)                      :: fld_name
+    type(ESMF_Field)                                 :: fld
+    character (len=ESMF_MAXSTR),allocatable          :: aerosol_names(:)
+
+    real, dimension(:,:,:), allocatable              :: tau_s, tau  ! (lon:,lat:,lev:)
+    real                                             :: x
+    integer                                          :: instance
+    integer                                          :: n, nbins
+    integer                                          :: i1, j1, i2, j2, km
+    real                                             :: wavelength, mieTable_index
+    integer :: i, j, k
+
+    __Iam__('SU2G::monochromatic_aerosol_optics')
+
+!   Begin... 
+
+!   Mie Table instance/index
+!   ------------------------
+    call ESMF_AttributeGet(state, name='mie_table_instance', value=instance, __RC__)
+
+!   Get aerosol names
+!   -----------------
+    call ESMF_AttributeGet (state, name='internal_varaible_name', itemCount=nbins, __RC__)
+    allocate (aerosol_names(nbins), __STAT__)
+    call ESMF_AttributeGet (state, name='internal_varaible_name', valueList=aerosol_names, __RC__)
+
+!   Radiation band
+!   --------------
+    call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+
+!   Get wavelength index for Mie Table
+!   ----------------------------------
+!   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
+    if ((wavelength .ge. 4.69e-7) .and. (wavelength .le. 4.71e-7)) then
+       mieTable_index = 1.
+    else if ((wavelength .ge. 5.49e-7) .and. (wavelength .le. 5.51e-7)) then
+       mieTable_index = 2.
+    else if ((wavelength .ge. 6.69e-7) .and. (wavelength .le. 6.71e-7)) then
+       mieTable_index = 3.
+    else if ((wavelength .ge. 8.68e-7) .and. (wavelength .le. 8.71e-7)) then
+       mieTable_index = 4.
+    else
+       print*,trim(Iam),' : wavelengths of ',wavelength,' is an invalid value.'
+       return
+    end if
+
+!   Pressure at layer edges 
+!   ------------------------
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
+!    call MAPL_GetPointer (state, ple, 'PLE', __RC__)
+
+    i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+    j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+                         km = ubound(ple, 3)
+
+!   Relative humidity
+!   -----------------
+    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, rh, trim(fld_name), __RC__)
+!    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
+
+    allocate(tau_s(i1:i2, j1:j2, km), &
+               tau(i1:i2, j1:j2, km), __STAT__)
+    tau_s = 0.0
+      tau = 0.0
+
+    allocate(q_4d(i1:i2, j1:j2, km, nbins), __STAT__)
+
+    do n = 1, nbins
+       call ESMF_StateGet (state, trim(aerosol_names(n)), field=fld, __RC__)
+       call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
+
+        do k = 1, km
+           do j = j1, j2
+              do i = i1, i2
+                 x = (ple(i,j,k) - ple(i,j,k-1))/MAPL_GRAV
+                 q_4d(i,j,k,n) = x * q(i,j,k)
+              end do
+           end do
+        end do
+    end do
+
+    call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)
+    allocate (opaque_self(n), __STAT__)
+    call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, __RC__)
+
+    address = transfer(opaque_self, address)
+    call c_f_pointer(address, self)
+
+    do n = 1, nbins
+      do i = 1, i2
+        do j = 1, j2
+          do k = 1, km
+            call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau(i,j,k), __RC__)
+            tau_s(i,j,k) = tau_s(i,j,k) + tau(i,j,k)
+          end do
+        end do
+      end do
+    end do
+
+    call ESMF_AttributeGet(state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        var = sum(tau_s, dim=3)
+    end if
+
+    deallocate(q_4d, __STAT__)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine monochromatic_aerosol_optics
+
 
 end module SU2G_GridCompMod
 
