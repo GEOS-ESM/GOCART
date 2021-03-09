@@ -829,7 +829,7 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G before sum(SO4) = ',sum(SO4)
 
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, t, rh2, fMassHNO3, MAPL_AIRMW, &
-                   SO4, NH3, NO3an1, NH4a, self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
+                   SO4, NH3, NO3an1, NH4a, self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, rc)
 
 !if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH3) = ',sum(NH3)
 !if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an1) = ',sum(NO3an1)

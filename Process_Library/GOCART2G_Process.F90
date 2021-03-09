@@ -6738,6 +6738,11 @@ loop2: DO l = 1,nspecies_HL
       call RPMARES (  SO4_, GNO3,  GNH3, RH_,  TEMP, &
                       ASO4, AHSO4, ANO3, AH2O, ANH4, __RC__ )
 
+!call RPMARES ( SO4_, GNO3, GNH3, RH_, TEMP, &
+!ASO4, AHSO4, ANO3, AH2O, ANH4, rc=status )
+!print*, "RPMARES: status= ", status
+!__VERIFY__(status)
+
 !     Diagnostic terms
       if(associated(NI_pno3aq)) &
        NI_pno3aq(i,j) = NI_pno3aq(i,j) &
@@ -7125,6 +7130,11 @@ loop2: DO l = 1,nspecies_HL
           err_msg = 'negative concen problem in RPMARES - TSO4, TNO3, TNH4:'
           call PrintError  &
      &      (err_msg, .true., 0, 0, 0, 2, TSO4, TNO3, __RC_NO_OPT__)
+!     &      (err_msg, .true., 0, 0, 0, 2, TSO4, TNO3, rc=status)
+! print*,'RPMARES: printerror status1 = ',status 
+! __VERIFY_NO_OPT__(STATUS)
+
+
       ENDIF
 
       ! now set humidity index IRH as a percent
@@ -7983,6 +7993,9 @@ loop2: DO l = 1,nspecies_HL
             err_msg = 'PHI < 1d-20 in  CUBIC (rpmares_mod.f):'
             call PrintError  &
      &         (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0, __RC_NO_OPT__)
+!     &         (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0, rc=status)
+!print*,'RPMARES: printerror status2 = ',status 
+!__VERIFY_NO_OPT__(STATUS)
 
          ENDIF
 
