@@ -40,6 +40,24 @@ module Aerosol_Comp_Mod
   real(ESMF_KIND_R8), parameter :: one2ppm = 1.e+06_ESMF_KIND_R8
   real(ESMF_KIND_R8), parameter :: ppm2one = 1.e-06_ESMF_KIND_R8
 
+  ! tracer map
+  integer, parameter :: p_o3     = 7
+  integer, parameter :: p_so2    = p_o3 + 1
+  integer, parameter :: p_sulf   = p_o3 + 2
+  integer, parameter :: p_dms    = p_o3 + 3
+  integer, parameter :: p_msa    = p_o3 + 4
+  integer, parameter :: p_bc_1   = p_o3 + 6
+  integer, parameter :: p_bc_2   = p_o3 + 7
+  integer, parameter :: p_oc_1   = p_o3 + 8
+  integer, parameter :: p_oc_2   = p_o3 + 9
+  integer, parameter :: p_dust_1 = p_o3 + 10
+  integer, parameter :: p_seas_1 = p_o3 + 15
+  integer, parameter :: p_nh3    = p_o3 + 20
+  integer, parameter :: p_nh4a   = p_o3 + 21
+  integer, parameter :: p_no3an1 = p_o3 + 22
+  integer, parameter :: p_no3an2 = p_o3 + 23
+  integer, parameter :: p_no3an3 = p_o3 + 24
+  integer, parameter :: p_seas_d = p_seas_1 - p_so2 - 3
 
   interface AerosolGetPtr
     module procedure AerosolGetPtr2D
@@ -411,25 +429,6 @@ contains
     type(ESMF_StateIntent_flag)         :: stateintent
     type(ESMF_StateItem_flag),  pointer :: itemTypeList(:)
     character(len=ESMF_MAXSTR), pointer :: itemNameList(:)
-
-    ! -- local parameters
-    integer, parameter :: p_o3     = 7
-    integer, parameter :: p_so2    = p_o3 + 1
-    integer, parameter :: p_sulf   = p_o3 + 2
-    integer, parameter :: p_dms    = p_o3 + 3
-    integer, parameter :: p_msa    = p_o3 + 4
-    integer, parameter :: p_bc_1   = p_o3 + 6
-    integer, parameter :: p_bc_2   = p_o3 + 7
-    integer, parameter :: p_oc_1   = p_o3 + 8
-    integer, parameter :: p_oc_2   = p_o3 + 9
-    integer, parameter :: p_dust_1 = p_o3 + 10
-    integer, parameter :: p_seas_1 = p_o3 + 15
-    integer, parameter :: p_nh3    = p_o3 + 20
-    integer, parameter :: p_nh4a   = p_o3 + 21
-    integer, parameter :: p_no3an1 = p_o3 + 22
-    integer, parameter :: p_no3an2 = p_o3 + 23
-    integer, parameter :: p_no3an3 = p_o3 + 24
-    integer, parameter :: p_seas_d = p_seas_1 - p_so2 - 3
 
     ! -- begin
     if (present(rc)) rc = ESMF_SUCCESS
