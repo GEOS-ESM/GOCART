@@ -51,7 +51,13 @@ module Aerosol_Comp_Mod
   integer, parameter :: p_oc_1   = p_o3 + 8
   integer, parameter :: p_oc_2   = p_o3 + 9
   integer, parameter :: p_dust_1 = p_o3 + 10
+  integer, parameter :: p_dust_2 = p_o3 + 11
+  integer, parameter :: p_dust_3 = p_o3 + 12
+  integer, parameter :: p_dust_4 = p_o3 + 13
   integer, parameter :: p_seas_1 = p_o3 + 15
+  integer, parameter :: p_seas_2 = p_o3 + 16
+  integer, parameter :: p_seas_3 = p_o3 + 17
+  integer, parameter :: p_seas_4 = p_o3 + 18
   integer, parameter :: p_nh3    = p_o3 + 20
   integer, parameter :: p_nh4a   = p_o3 + 21
   integer, parameter :: p_no3an1 = p_o3 + 22
