@@ -41,28 +41,33 @@ module Aerosol_Comp_Mod
   real(ESMF_KIND_R8), parameter :: ppm2one = 1.e-06_ESMF_KIND_R8
 
   ! tracer map
+  ! - prognostic section (advected)
   integer, parameter :: p_o3     = 7
   integer, parameter :: p_so2    = p_o3 + 1
   integer, parameter :: p_sulf   = p_o3 + 2
   integer, parameter :: p_dms    = p_o3 + 3
   integer, parameter :: p_msa    = p_o3 + 4
-  integer, parameter :: p_bc_1   = p_o3 + 6
-  integer, parameter :: p_bc_2   = p_o3 + 7
-  integer, parameter :: p_oc_1   = p_o3 + 8
-  integer, parameter :: p_oc_2   = p_o3 + 9
-  integer, parameter :: p_dust_1 = p_o3 + 10
-  integer, parameter :: p_dust_2 = p_o3 + 11
-  integer, parameter :: p_dust_3 = p_o3 + 12
-  integer, parameter :: p_dust_4 = p_o3 + 13
-  integer, parameter :: p_seas_1 = p_o3 + 15
-  integer, parameter :: p_seas_2 = p_o3 + 16
-  integer, parameter :: p_seas_3 = p_o3 + 17
-  integer, parameter :: p_seas_4 = p_o3 + 18
-  integer, parameter :: p_nh3    = p_o3 + 20
-  integer, parameter :: p_nh4a   = p_o3 + 21
-  integer, parameter :: p_no3an1 = p_o3 + 22
-  integer, parameter :: p_no3an2 = p_o3 + 23
-  integer, parameter :: p_no3an3 = p_o3 + 24
+  integer, parameter :: p_bc_1   = p_o3 + 5
+  integer, parameter :: p_bc_2   = p_o3 + 6
+  integer, parameter :: p_oc_1   = p_o3 + 7
+  integer, parameter :: p_oc_2   = p_o3 + 8
+  integer, parameter :: p_dust_1 = p_o3 + 9
+  integer, parameter :: p_dust_2 = p_o3 + 10
+  integer, parameter :: p_dust_3 = p_o3 + 11
+  integer, parameter :: p_dust_4 = p_o3 + 12
+  integer, parameter :: p_seas_1 = p_o3 + 14
+  integer, parameter :: p_seas_2 = p_o3 + 15
+  integer, parameter :: p_seas_3 = p_o3 + 16
+  integer, parameter :: p_seas_4 = p_o3 + 17
+  integer, parameter :: p_nh3    = p_o3 + 19
+  integer, parameter :: p_nh4a   = p_o3 + 20
+  integer, parameter :: p_no3an1 = p_o3 + 21
+  integer, parameter :: p_no3an2 = p_o3 + 22
+  integer, parameter :: p_no3an3 = p_o3 + 23
+  ! - diagnostic section (not advected)
+  integer, parameter :: p_pm25   = p_o3 + 24
+  integer, parameter :: p_pm10   = p_o3 + 25
+
   integer, parameter :: p_seas_d = p_seas_1 - p_so2 - 3
 
   interface AerosolGetPtr
