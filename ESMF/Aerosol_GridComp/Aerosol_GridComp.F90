@@ -21,6 +21,8 @@ module Aerosol_GridComp_mod
 
     character(*), parameter :: internal_name = "Aerosol_GridCompState"
     character(*), parameter :: num_bands    = 'NUM_BANDS:'
+    
+    integer :: foo
 
 contains
     subroutine SetServices(gc, rc)
