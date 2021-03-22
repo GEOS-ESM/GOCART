@@ -459,8 +459,15 @@ contains
         file=__FILE__)) &
         return  ! bail out
 
-      ! -- export tarcers
+      ! -- export tracers
       call AerosolStateUpdate(model, is % maplCap, "export", rc=rc)
+      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__)) &
+        return  ! bail out
+
+      ! -- export diagnostics
+      call AerosolDiagUpdate(model, is % maplCap, rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &
