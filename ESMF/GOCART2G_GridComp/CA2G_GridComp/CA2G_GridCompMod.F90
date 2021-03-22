@@ -354,7 +354,7 @@ contains
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero, aero_aci
     type (ESMF_State)                    :: providerState
-    type (ESMF_Config)                   :: cfg, cf
+    type (ESMF_Config)                   :: cfg, universal_cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
     type (wrap_)                         :: wrap
     type (CA2G_GridComp), pointer        :: self
@@ -380,7 +380,7 @@ contains
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=cf, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
     if (comp_name(1:5) == 'CA.oc') then
@@ -415,7 +415,7 @@ contains
 
 !   Check whether to de-activate diurnal biomass burning (default is *on*)
 !   ----------------------------------------------------------------------
-    call ESMF_ConfigGetAttribute(cf, diurnal_bb, label='DIURNAL_BIOMASS_BURNING:', &
+    call ESMF_ConfigGetAttribute(universal_cfg, diurnal_bb, label='DIURNAL_BIOMASS_BURNING:', &
                                  default='YES', __RC__)
     diurnal_bb = ESMF_UtilStringUpperCase(diurnal_bb, __RC__)
     if (trim(diurnal_bb) == 'YES') then
@@ -554,16 +554,19 @@ contains
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%optics_file, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nch, label="n_channels:", __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
+
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%channels, &
+    call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
                                   label= "aerosol_monochromatic_optics_wavelength:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+    VERIFY_(status)
 
 !   Finish creating AERO state
 !   --------------------------
@@ -838,7 +841,7 @@ contains
                          nymd=nymd, nhms=120000 )
        call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                  self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                 self%pEnd, label='source')
+                                 self%pEnd, label='source', __RC__)
     endif
 
 !   Get indices for point emissions
@@ -1012,7 +1015,7 @@ contains
     fwet = 1.
     call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
                              KIN, MAPL_GRAV, fwet, CAphilic, ple, t, airdens, &
-                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, CAWT, rc)
+                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, CAWT, __RC__)
 
 !   Compute diagnostics
 !   -------------------
@@ -1021,7 +1024,8 @@ contains
     int_arr(:,:,:,2) = intPtr_philic
 
     call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, nbins=2, &
-                             channels=self%diag_MieTable(self%instance)%channels, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                             channels=self%diag_MieTable(self%instance)%channels*1.0e-9, &
+                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
                              tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, sfcmass=CASMASS, colmass=CACMASS, &
                              mass=CAMASS, exttau=CAEXTTAU, scatau=CASCATAU, fluxu=CAFLUXU, fluxv=CAFLUXV, &

@@ -391,7 +391,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero, aero_aci
     type (ESMF_State)                    :: providerState
-    type (ESMF_Config)                   :: cfg, cf
+    type (ESMF_Config)                   :: cfg, universal_cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
     type (wrap_)                         :: wrap
     type (SU2G_GridComp), pointer        :: self
@@ -427,7 +427,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=cf, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
 !   Get my internal MAPL_Generic state
@@ -454,7 +454,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
 !   Check whether to de-activate diurnal biomass burning (default is *on*)
 !   ----------------------------------------------------------------------
-    call ESMF_ConfigGetAttribute(cf, diurnal_bb, label='DIURNAL_BIOMASS_BURNING:', &
+    call ESMF_ConfigGetAttribute(universal_cfg, diurnal_bb, label='DIURNAL_BIOMASS_BURNING:', &
                                  default='YES', __RC__)
     diurnal_bb = ESMF_UtilStringUpperCase(diurnal_bb, __RC__)
     if (trim(diurnal_bb) == 'YES') then
@@ -625,16 +625,19 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%optics_file, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nch, label="n_channels:", __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
+
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%channels, &
+    call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
                                   label= "aerosol_monochromatic_optics_wavelength:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+    VERIFY_(status)
 
     ! Mie Table instance/index
     call ESMF_AttributeSet(aero, name='mie_table_instance', value=instance, __RC__)
@@ -859,7 +862,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             nymd=nymd, nhms=120000 )
           call ReadPointEmissions (nymd, fname, self%nVolc, self%vLat, self%vLon, &
                                    self%vElev, self%vCloud, self%vSO2, self%vStart, &
-                                   self%vEnd, label='volcano')
+                                   self%vEnd, label='volcano', __RC__)
           self%vSO2 = self%vSO2 * fMassSO2 / fMassSulfur
 !         Special possible case
           if(self%volcano_srcfilen(1:9) == '/dev/null') self%nVolc = 0
@@ -912,11 +915,11 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                                       self%aviation_layers,   &
                                       aviation_lto_src, &
                                       aviation_cds_src, &
-                                      aviation_crs_src, rc) 
+                                      aviation_crs_src, __RC__) 
 
     if (associated(dms)) then 
        call DMSemission (self%km, self%cdt, MAPL_GRAV, t, u10m, v10m, lwi, delp, &
-                         fMassDMS, SU_DMSO, dms, SUEM, nDMS, rc)
+                         fMassDMS, SU_DMSO, dms, SUEM, nDMS, __RC__)
     end if
 
 !   Read any pointwise emissions, if requested
@@ -926,7 +929,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                          nymd=nymd, nhms=120000 )
        call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                  self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                 self%pEnd, label='source')
+                                 self%pEnd, label='source', __RC__)
 
     endif
 
@@ -1072,7 +1075,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 oh, no3, h2o2, &
-                                xoh, xno3, xh2o2, self%recycle_h2o2, rc)
+                                xoh, xno3, xh2o2, self%recycle_h2o2, __RC__)
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(xh2o2) = ',sum(xh2o2)
 !if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(self%h2o2_init) = ',sum(self%h2o2_init)
@@ -1081,12 +1084,18 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !   SU Settling
 !   -----------
     do n = 1, self%nbins
+       ! if radius == 0 then we're dealing with a gas which has no settling losses
+       if (self%radius(n) == 0.0) then
+          if (associated(SUSD)) SUSD(:,:,n) = 0.0
+          cycle
+       end if
+
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
 
        call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, MAPL_GRAV, delp, &
                                  self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
-                                 rh2, zle, SUSD, rc=rc)
+                                 rh2, zle, SUSD, __RC__)
     end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
@@ -1102,7 +1111,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             SUDP, SUPSO2, SUPMSA, &
                             SUPSO4, SUPSO4g, SUPSO4aq, &
                             pso2, pmsa, pso4, pso4g, pso4aq, drydepositionf, & ! 3d diagnostics
-                            rc)
+                            __RC__)
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(xh2o2) = ',sum(xh2o2)
 !if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(self%h2o2_init) = ',sum(self%h2o2_init)
@@ -1115,14 +1124,14 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                           delp, fMassSO4, fMassSO2, &
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
-                          SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, rc )
+                          SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(xh2o2) = ',sum(xh2o2)
 !if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(self%h2o2_init) = ',sum(self%h2o2_init)
-
+!   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
-                            self%diag_MieTable(self%instance)%channels, &
+                            self%diag_MieTable(self%instance)%channels*1.0e-9, &
                             self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
                             t, airdens, delp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &
@@ -1130,7 +1139,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             SO2SMASS, SO2CMASS, &
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
-                            SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, rc)
+                            SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 E size(suexttau) = ',size(suexttau)
 !if(mapl_am_i_root()) print*,'SU2G Run2 E size(suescaau) = ',size(suscatau)

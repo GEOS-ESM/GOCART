@@ -40,7 +40,7 @@ module GOCART2G_GridCompMod
      type(Instance), allocatable :: instances(:)
      integer :: n_active
   end type Constituent
-     
+
   type GOCART_State
      private
      type(Constituent) :: DU
@@ -60,6 +60,7 @@ module GOCART2G_GridCompMod
 !
 !   {\tt GOCART} is a gridded component from the GOCART model and includes 
 !  dust, sea salt, sulfates, nitrate, organic and black carbon. 
+
 !
 !
 ! !REVISION HISTORY:
@@ -67,6 +68,7 @@ module GOCART2G_GridCompMod
 !  25feb2005  da Silva   First crack.
 !  19jul2006  da Silva   First separate GOCART component.
 !  14Oct2019  E.Sherman, A.Darmenov, A. da Silva, T. Clune  First attempt at refactoring. 
+
 !
 !EOP
 !============================================================================
@@ -93,6 +95,7 @@ contains
 !   declare the data services.
 
 ! !REVISION HISTORY: 
+
 !  14oct2019  Sherman, da Silva, Darmenov, Clune - First attempt at refactoring for ESMF compatibility
 
 
@@ -145,20 +148,16 @@ contains
 
     allocate(self%wavelengths_profile(n_wavelengths_profile), self%wavelengths_vertint(n_wavelengths_vertint), &
              wavelengths_diagmie(n_wavelengths_diagmie), __STAT__)
-!    allocate(wavelengths_profile(n_wavelengths_profile), wavelengths_vertint(n_wavelengths_vertint), __STAT__)
+
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
 
 !   Set wavelengths in universal config
-    call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile(1), label='wavelengths_for_profile_aop_in_nm:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint(1), label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie(1), label='aerosol_monochromatic_optics_wavelength:', __RC__)
 
-!call ESMF_ConfigGetAttribute(cf, wave_prof, label='wavelengths_for_profile_aop_in_nm:', __RC__)
-!if(mapl_am_i_root()) print*,'GOCART2G wave_prof = ',wave_prof
-!call ESMF_ConfigGetAttribute(cf, wave_vert, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-!if(mapl_am_i_root()) print*,'GOCART2G wave_vert = ',wave_vert
+    call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
 
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------
@@ -181,6 +180,7 @@ contains
     call createInstances_(self, GC, __RC__)
 
 !   Define EXPORT states
+
 !   This state is needed by radiation - It will contain 
 !   aerosols and aerosol optics
 !   --------------------------------------------------------
@@ -287,7 +287,6 @@ contains
 !   ----------------------------------
     call MAPL_GenericSetServices (GC, __RC__)
 
-
     RETURN_(ESMF_SUCCESS)
 
   end subroutine SetServices
@@ -299,11 +298,9 @@ contains
 ! !IROUTINE: Initialize -- Initialize method for the composite Gridded Component
 
 ! !INTERFACE:
-
   subroutine Initialize (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
-
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
@@ -336,6 +333,7 @@ contains
 
     integer                                :: n_modes
     integer, parameter                     :: n_gocart_modes = 13 
+
     character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
     real                                   :: f_aci_seasalt, maxclean, ccntuning
     character(LEN=ESMF_MAXSTR)             :: CLDMICRO
@@ -469,8 +467,7 @@ contains
   contains
 
      subroutine add_aero_states_(instances)
-        type(Instance), intent(in) :: instances(:)
-        
+        type(Instance), intent(in) :: instances(:)      
         type (ESMF_State)       :: child_state
         type (ESMF_FieldBundle) :: child_bundle
         type (ESMF_Field), allocatable :: fieldList(:)
@@ -510,6 +507,7 @@ contains
 !BOP
 ! !IROUTINE: RUN -- Run method for GOCART2G 
 
+
 ! !INTERFACE:
 
   subroutine Run1 (GC, import, export, clock, RC)
@@ -540,6 +538,7 @@ contains
 
 !****************************************************************************
 ! Begin... 
+
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -1047,7 +1046,7 @@ contains
     RETURN_(ESMF_SUCCESS)
 
     contains
-        
+    
         subroutine addChildren__ (gc, species, setServices, rc)
         
           type (ESMF_GridComp),            intent(inout)     :: gc
@@ -1202,11 +1201,9 @@ contains
     j1 = lbound(ple, 2); j2 = ubound(ple, 2)
                          km = ubound(ple, 3)
 
-
     allocate(ext(i1:i2,j1:j2,km),  &
              ssa(i1:i2,j1:j2,km),  &
              asy(i1:i2,j1:j2,km), __STAT__)
-
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
@@ -1333,6 +1330,7 @@ contains
 !   ---------
     character(len=ESMF_MAXSTR)      :: mode              ! mode name
     character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name 
+
     type(ESMF_State)                :: child_state
 
     real, dimension(:,:,:), pointer :: ple               ! pressure at the edges of model layers
@@ -1344,6 +1342,7 @@ contains
     real, dimension(:,:,:), pointer :: q                 ! aerosol mass mixing ratio
     real, dimension(:,:,:), pointer :: q_                ! aerosol mass mixing ratio (temporary)
     real, dimension(:,:,:,:), pointer :: ptr_4d          ! aerosol mass mixing ratio (temporary)
+
 
     real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
     real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
@@ -1616,7 +1615,6 @@ contains
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: q_             ! auxiliary mass
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: dens_          ! density
 
-
      real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles 
      real, intent(out), dimension(i1:i2,j1:j2,km) :: diameter       ! dry size of aerosol
      real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma          ! width of aerosol mode  
@@ -1807,7 +1805,6 @@ contains
          f_soot   = 1.0
          diameter = 0.0118*2e-6
          num = q / ((MAPL_PI/6.0) * densBC * diameter*diameter*diameter * exp(4.5*sigma*sigma))
-     
      case ('ocphilic')
          sigma     = log(2.2)
          f_organic = 1.0
@@ -1867,9 +1864,3 @@ contains
   end subroutine aerosol_activation_properties
 
 end module GOCART2G_GridCompMod
-
-
-
-
-
-

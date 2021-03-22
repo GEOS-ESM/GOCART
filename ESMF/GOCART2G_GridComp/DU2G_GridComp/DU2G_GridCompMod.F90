@@ -104,8 +104,6 @@ contains
 
     __Iam__('SetServices')
 
-integer :: n_wavelengths_profile, n_wavelengths_vertint
-
 !****************************************************************************
 !   Begin...
 
@@ -366,10 +364,6 @@ integer :: n_wavelengths_profile, n_wavelengths_vertint
     VERIFY_(STATUS)
     self => wrap%ptr
 
-
-    ! process generic config items
-!    call self%GA_GridComp%load_from_config_Init(universal_cfg, __RC__)
-
     call MAPL_GridGet ( grid, globalCellCountPerDim=dims, __RC__ )
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
@@ -516,24 +510,27 @@ integer :: n_wavelengths_profile, n_wavelengths_vertint
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%optics_file, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nch, label="n_channels:", __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
+
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%channels, &
+    call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
                                   label= "aerosol_monochromatic_optics_wavelength:", __RC__) 
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+    VERIFY_(status)
 
 !   Mie Table instance/index
     call ESMF_AttributeSet (aero, name='mie_table_instance', value=instance, __RC__)
 
 !   Add variables to DU instance's aero state. This is used in aerosol optics calculations
 !   --------------------------------------------------------------------------------------
-    call add_aero (aero, label='air_pressure_for_aerosol_optics',             label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='relative_humidity_for_aerosol_optics',        label2='RH',  grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='air_pressure_for_aerosol_optics',      label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH',  grid=grid, typekind=MAPL_R4, __RC__)
 !   call ESMF_StateGet (import, 'PLE', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
@@ -543,7 +540,8 @@ integer :: n_wavelengths_profile, n_wavelengths_vertint
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8, __RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8, __RC__)
 
-    call ESMF_AttributeSet(aero, name='band_for_aerosol_optics',             value=0,     __RC__)
+    call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
+    call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0, __RC__)
 
     mieTable_pointer = transfer(c_loc(self), [1])
     call ESMF_AttributeSet(aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
@@ -729,7 +727,7 @@ end do
                             nymd=nymd, nhms=120000 )
           call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
                                    self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                   self%pEnd, label='source')
+                                   self%pEnd, label='source', __RC__)
        end if
     end if
 
@@ -756,7 +754,7 @@ end do
 !   --------------------
     call UpdateAerosolState (emissions, emissions_surface, emissions_point, &
                              self%sfrac, self%nPts, self%km, self%CDT, MAPL_GRAV, &
-                             self%nbins, delp, DU, rc)
+                             self%nbins, delp, DU, __RC__)
 
     if (associated(DUEM)) then
        DUEM = sum(emissions, dim=3)
@@ -862,8 +860,9 @@ end do
    do n = 1, self%nbins
       drydepositionfrequency = 0.
       call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
-                         MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, rc, &
+                         MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, status, &
                          self%radius(n)*1.e-6, self%rhop(n), u10m, v10m, frlake, wet1)
+      VERIFY_(status)
 
       dqa = 0.
       dqa = max(0.0, DU(:,:,self%km,n)*(1.-exp(-drydepositionfrequency*self%cdt)))
@@ -892,12 +891,11 @@ do n=1,5
    if(mapl_am_i_root()) print*,'n = ', n,' : Run2 E DU2G sum(du00n) = ',sum(DU(:,:,:,n))
 end do
 
-if(mapl_am_i_root()) print*,'DU2G self%wavelengths_profile = ',self%wavelengths_profile
-if(mapl_am_i_root()) print*,'DU2G self%wavelengths_vertint = ',self%wavelengths_vertint
-if(mapl_am_i_root()) print*,'DU2G self%diag_MieTable(self%instance)%channels = ',self%diag_MieTable(self%instance)%channels
-
+!  Compute diagnostics
+!  -------------------
+!  Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
    call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
-                            self%rup, self%diag_MieTable(self%instance)%channels, self%wavelengths_profile*1.0e-9, &
+                            self%rup, self%diag_MieTable(self%instance)%channels*1.0e-9, self%wavelengths_profile*1.0e-9, &
                             self%wavelengths_vertint*1.0e-9, DU, MAPL_GRAV, t, airdens, &
                             rh2, u, v, delp, DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSCATAU, &
                             DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
@@ -1123,8 +1121,6 @@ if(mapl_am_i_root()) print*,'DU2G self%diag_MieTable(self%instance)%channels = '
     end subroutine mie_
 
   end subroutine aerosol_optics
-
-!---------------------------------------------------------------------------------------
 
 end module DU2G_GridCompMod
 
