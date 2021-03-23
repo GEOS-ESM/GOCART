@@ -40,6 +40,35 @@ module Aerosol_Comp_Mod
   real(ESMF_KIND_R8), parameter :: one2ppm = 1.e+06_ESMF_KIND_R8
   real(ESMF_KIND_R8), parameter :: ppm2one = 1.e-06_ESMF_KIND_R8
 
+  ! tracer map
+  ! - prognostic section (advected)
+  integer, parameter :: p_o3     = 7
+  integer, parameter :: p_so2    = p_o3 + 1
+  integer, parameter :: p_sulf   = p_o3 + 2
+  integer, parameter :: p_dms    = p_o3 + 3
+  integer, parameter :: p_msa    = p_o3 + 4
+  integer, parameter :: p_bc_1   = p_o3 + 5
+  integer, parameter :: p_bc_2   = p_o3 + 6
+  integer, parameter :: p_oc_1   = p_o3 + 7
+  integer, parameter :: p_oc_2   = p_o3 + 8
+  integer, parameter :: p_dust_1 = p_o3 + 9
+  integer, parameter :: p_dust_2 = p_o3 + 10
+  integer, parameter :: p_dust_3 = p_o3 + 11
+  integer, parameter :: p_dust_4 = p_o3 + 12
+  integer, parameter :: p_seas_1 = p_o3 + 14
+  integer, parameter :: p_seas_2 = p_o3 + 15
+  integer, parameter :: p_seas_3 = p_o3 + 16
+  integer, parameter :: p_seas_4 = p_o3 + 17
+  integer, parameter :: p_nh3    = p_o3 + 19
+  integer, parameter :: p_nh4a   = p_o3 + 20
+  integer, parameter :: p_no3an1 = p_o3 + 21
+  integer, parameter :: p_no3an2 = p_o3 + 22
+  integer, parameter :: p_no3an3 = p_o3 + 23
+  ! - diagnostic section (not advected)
+  integer, parameter :: p_pm25   = p_o3 + 24
+  integer, parameter :: p_pm10   = p_o3 + 25
+
+  integer, parameter :: p_seas_d = p_seas_1 - p_so2 - 3
 
   interface AerosolGetPtr
     module procedure AerosolGetPtr2D
@@ -49,6 +78,7 @@ module Aerosol_Comp_Mod
 
   private
 
+  public :: AerosolDiagUpdate
   public :: AerosolStateUpdate
   public :: AerosolTracerReroute
 
@@ -412,25 +442,6 @@ contains
     type(ESMF_StateItem_flag),  pointer :: itemTypeList(:)
     character(len=ESMF_MAXSTR), pointer :: itemNameList(:)
 
-    ! -- local parameters
-    integer, parameter :: p_o3     = 7
-    integer, parameter :: p_so2    = p_o3 + 1
-    integer, parameter :: p_sulf   = p_o3 + 2
-    integer, parameter :: p_dms    = p_o3 + 3
-    integer, parameter :: p_msa    = p_o3 + 4
-    integer, parameter :: p_bc_1   = p_o3 + 6
-    integer, parameter :: p_bc_2   = p_o3 + 7
-    integer, parameter :: p_oc_1   = p_o3 + 8
-    integer, parameter :: p_oc_2   = p_o3 + 9
-    integer, parameter :: p_dust_1 = p_o3 + 10
-    integer, parameter :: p_seas_1 = p_o3 + 15
-    integer, parameter :: p_nh3    = p_o3 + 20
-    integer, parameter :: p_nh4a   = p_o3 + 21
-    integer, parameter :: p_no3an1 = p_o3 + 22
-    integer, parameter :: p_no3an2 = p_o3 + 23
-    integer, parameter :: p_no3an3 = p_o3 + 24
-    integer, parameter :: p_seas_d = p_seas_1 - p_so2 - 3
-
     ! -- begin
     if (present(rc)) rc = ESMF_SUCCESS
 
@@ -708,6 +719,101 @@ contains
     end if
 
   end subroutine AerosolTracerUpdate
+
+  subroutine AerosolDiagUpdate(model, cap, rc)
+    type(ESMF_GridComp)            :: model
+    type(MAPL_Cap)                 :: cap
+    integer, optional, intent(out) :: rc
+
+    ! -- local variables
+    integer :: localrc
+    integer :: i, j, k, kk, ni, nj, nk
+    real(ESMF_KIND_R4) :: pm25, pm10
+    real(ESMF_KIND_R4), dimension(:,:,:),   pointer :: rho
+    real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: q
+
+    type(ESMF_Field) :: field
+    type(ESMF_State) :: state
+
+    ! -- local parameters
+    real(ESMF_KIND_R8), parameter :: w_du2  = log(1.250_ESMF_KIND_R8) / log(1.8_ESMF_KIND_R8)
+    real(ESMF_KIND_R8), parameter :: w_du4  = log(1.667_ESMF_KIND_R8) / log(2.0_ESMF_KIND_R8)
+    real(ESMF_KIND_R8), parameter :: w_ss3  = log(2.50_ESMF_KIND_R8) / log(3._ESMF_KIND_R8)
+    real(ESMF_KIND_R8), parameter :: w_so4  = 132.14_ESMF_KIND_R8 / 96.06_ESMF_KIND_R8
+    real(ESMF_KIND_R8), parameter :: w_no3  = 80.043_ESMF_KIND_R8 / 62.0_ESMF_KIND_R8
+    real(ESMF_KIND_R8), parameter :: w25_no3an2 = 0.138_ESMF_KIND_R8 * w_no3
+    real(ESMF_KIND_R8), parameter :: w10_no3an2 = 0.808_ESMF_KIND_R8 * w_no3
+    real(ESMF_KIND_R8), parameter :: w10_no3an3 = 0.164_ESMF_KIND_R8 * w_no3
+
+    ! -- begin
+    if (present(rc)) rc = ESMF_SUCCESS
+
+    ! -- retrieve export state
+    call ESMF_GridCompGet(model, exportState=state, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    ! -- retrieve tracers
+    nullify(q)
+    call AerosolGetPtr(state, "inst_tracer_mass_frac", q, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    ! -- retrieve air density
+    call ESMF_StateGet(cap % cap_gc % import_state, "AIRDENS", field, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    nullify(rho)
+    call ESMF_FieldGet(field, farrayPtr=rho, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    ! -- compute pm
+    ni = size(q,1)
+    nj = size(q,2)
+    nk = size(q,3)
+
+    do k = 1, nk
+      kk = nk - k + 1
+      do j = 1, nj
+        do i = 1, ni
+          ! -- compute partial PM2.5
+          pm25 = q(i,j,k,p_bc_1) + q(i,j,k,p_bc_2)     &
+               + q(i,j,k,p_oc_1) + q(i,j,k,p_oc_2)     &
+               + q(i,j,k,p_dust_1)                     &
+               + q(i,j,k,p_seas_1) + q(i,j,k,p_seas_2) &
+               + w_so4 * q(i,j,k,p_sulf)               &
+               + w_no3 * q(i,j,k,p_no3an1)
+
+          ! -- compute PM10
+          pm10 = pm25 &
+               + q(i,j,k,p_dust_2) + q(i,j,k,p_dust_3) + w_du4 * q(i,j,k,p_dust_4) &
+               + w10_no3an2 * q(i,j,k,p_no3an2) + w10_no3an3 * q(i,j,k,p_no3an3)   &
+               + q(i,j,k,p_seas_3) + q(i,j,k,p_seas_4)
+
+          ! -- complete PM2.5
+          pm25 = pm25 &
+               + w_du2      * q(i,j,k,p_dust_2) &
+               + w25_no3an2 * q(i,j,k,p_no3an2) &
+               + w_ss3      * q(i,j,k,p_seas_3)
+
+          ! -- convert from ug/kg to ug/m3
+          q(i,j,k,p_pm25) = pm25 * rho(i,j,kk)
+          q(i,j,k,p_pm10) = pm10 * rho(i,j,kk)
+        end do
+      end do
+    end do
+
+  end subroutine AerosolDiagUpdate
 
   subroutine AerosolGetPtr2D(state, fieldName, farrayPtr, localDe, rc)
     type(ESMF_State)                :: state

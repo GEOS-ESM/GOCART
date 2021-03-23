@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Compute and export PM2.5 and PM10 diagnostic tracers in UFS interface
+
 ## [1.0.1] - 2021-03-22
 
 ### Fixed
