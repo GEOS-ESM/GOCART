@@ -541,6 +541,7 @@ contains
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8, __RC__)
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
                    grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
     call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0, __RC__)
@@ -552,6 +553,7 @@ contains
 
     call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
 
     RETURN_(ESMF_SUCCESS)
@@ -854,10 +856,6 @@ end do
                                  rh2, zle, DUSD, correctionMaring=self%maringFlag, __RC__)
     end do
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 chemset DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
-
 !   Dust Deposition
 !   ----------------
    do n = 1, self%nbins
@@ -876,9 +874,6 @@ end do
     end if
    end do
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 drydep DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
 
 !  Dust Large-scale Wet Removal
 !  ----------------------------
@@ -1240,8 +1235,8 @@ end do
 
     call ESMF_AttributeGet (state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
-        call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
-        var = sum(tau_s, dim=3)
+       call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+       var = sum(tau_s, dim=3)
     end if
 
     deallocate(q_4d, __STAT__)
@@ -1249,7 +1244,34 @@ end do
     RETURN_(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
+
 !---------------------------------------------------------------------------------------
+  subroutine get_mixR (state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !LOCALS:
+    real, dimension(:,:,:,:), pointer                :: ptr4d
+    real, dimension(:,:,:), pointer                  :: var
+    character (len=ESMF_MAXSTR)                      :: fld_name
+    integer                                          :: status
+
+!   Begin...
+
+    call MAPL_GetPointer (state, ptr4d, 'DU', __RC__)
+
+    call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+       var = sum(ptr4d, dim=4)
+    end if
+
+ end subroutine get_mixR
+
 
 end module DU2G_GridCompMod
 

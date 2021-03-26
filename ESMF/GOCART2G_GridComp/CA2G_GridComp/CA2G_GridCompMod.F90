@@ -586,6 +586,7 @@ contains
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
     call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0.0, __RC__)
@@ -601,6 +602,7 @@ contains
 
     call ESMF_MethodAdd(AERO, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1430,6 +1432,40 @@ end if
 
   end subroutine monochromatic_aerosol_optics
 
+!---------------------------------------------------------------------------------------
+  subroutine get_mixR (state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !LOCALS:
+    real, dimension(:,:,:), pointer                  :: ptr3d
+    real, dimension(:,:,:), pointer                  :: var
+    character (len=ESMF_MAXSTR)                      :: fld_name
+    integer                                          :: aeroN, i
+    character (len=ESMF_MAXSTR), allocatable         :: CAaerosols(:)
+    integer                                          :: status
+
+!   Begin...
+
+    call ESMF_AttributeGet(state, name='internal_varaible_name', itemCount=aeroN, __RC__)
+    allocate (CAaerosols(aeroN), __STAT__)
+    call ESMF_AttributeGet(state, name='internal_varaible_name', valueList=CAaerosols, __RC__)
+
+    do i = 1, size(CAaerosols)
+       call MAPL_GetPointer (state, ptr3d, trim(CAaerosols(i)), __RC__)
+       call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+          call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+          var = var + ptr3d
+       end if
+    end do
+
+
+ end subroutine get_mixR
 
 end module CA2G_GridCompMod
 

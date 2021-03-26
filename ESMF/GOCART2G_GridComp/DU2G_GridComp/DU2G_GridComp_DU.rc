@@ -37,5 +37,3 @@ nbins: 5
 
 pressure_lid_in_hPa: 0.01
 
-#point_emissions_srcfilen: /gpfsm/dnb32/esherman/gocartRefactor/RC/CA2G_point_src_test.rc
-
