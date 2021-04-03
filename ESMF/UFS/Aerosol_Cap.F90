@@ -24,7 +24,7 @@ module Aerosol_Cap
   implicit none
 
   ! -- import fields
-  integer, parameter :: importFieldCount = 26
+  integer, parameter :: importFieldCount = 28
   character(len=*), dimension(importFieldCount), parameter :: &
     importFieldNames = (/ &
       "inst_pres_interface                  ", &
@@ -50,9 +50,11 @@ module Aerosol_Cap
       "inst_sensi_heat_flx                  ", &
       "inst_surface_roughness               ", &
       "inst_surface_soil_wetness            ", &
+      "inst_soil_moisture_content           ", &
       "ice_fraction                         ", &
       "lake_fraction                        ", &
-      "ocean_fraction                       "  &
+      "ocean_fraction                       ", &
+      "surface_snow_area_fraction           "  &
     /)
   ! -- export fields
   integer, parameter :: exportFieldCount = 3

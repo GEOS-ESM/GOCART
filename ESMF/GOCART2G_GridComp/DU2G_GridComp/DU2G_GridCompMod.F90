@@ -38,15 +38,27 @@ module DU2G_GridCompMod
 
    integer, parameter         :: NHRES = 6
 
+!  !Supported dust schemes
+   enum, bind(C)
+     enumerator :: DUST_SCHEME_DATA    = 0
+     enumerator :: DUST_SCHEME_GOCART
+     enumerator :: DUST_SCHEME_FENGSHA
+   end enum
+
 !  !Dust state
    type, extends(GA_GridComp) :: DU2G_GridComp
-       real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
-       real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
+       real, allocatable      :: rlow(:)        ! particle radius lower bound [um]
+       real, allocatable      :: rup(:)         ! particle radius upper bound [um]
        real, allocatable      :: sfrac(:)       ! fraction of total source
+       real, allocatable      :: sdist(:)       ! aerosol fractional size distribution [1]
+       real                   :: alpha          ! FENGSHA scaling factor
+       real                   :: gamma          ! FENGSHA tuning exponent
+       real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
        integer                :: day_save = -1      
+       integer                :: emission_scheme     ! emission scheme selector
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
@@ -137,12 +149,22 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%emission_scheme, &
+                                  label='emission_scheme:', default=DUST_SCHEME_GOCART, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
     if ( (index(self%point_emissions_srcfilen,'/dev/null')>0) ) then
        self%doing_point_emissions = .false. ! disable it if no file specified
     else
        self%doing_point_emissions = .true.  ! we are good to go
+    end if
+
+!   read FENGSHA-specific parameters
+!   --------------------------------
+    if (self%emission_scheme == DUST_SCHEME_FENGSHA) then
+      call ESMF_ConfigGetAttribute (cfg, self%alpha,  label='alpha:', __RC__)
+      call ESMF_ConfigGetAttribute (cfg, self%gamma,  label='gamma:', __RC__)
+      call ESMF_ConfigGetAttribute (cfg, self%kvhmax, label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
     end if
 
 !   Is DU data driven?
@@ -370,6 +392,13 @@ contains
 !   ---------------------------------------------------------------
     self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
     self%Ch_DU = self%Ch_DU * 1.00E-09
+
+!   Dust emission size distribution for FENGSHA
+!   ---------------------------------------------------------------
+    if (self%emission_scheme == DUST_SCHEME_FENGSHA) then
+      allocate(self%sdist(self%nbins), __STAT__)
+      call DustAerosolDistributionKok(self%radius, self%rup, self%rlow, self%sdist)
+    end if
 
 !   Get dimensions
 !   ---------------
@@ -714,9 +743,19 @@ end do
 
 !   Get surface gridded emissions
 !   -----------------------------
-    call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
-                              self%Ch_DU, du_src, MAPL_GRAV, &
-                              emissions_surface, __RC__)
+    select case (self%emission_scheme)
+      case (DUST_SCHEME_FENGSHA)
+        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, frclay, frsand, frsilt, &
+                                  ssm, rdrag, airdens(:,:,self%km), ustar, uthres,  &
+                                  self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
+                                  self%rhop, self%sdist, emissions_surface, __RC__)
+      case (DUST_SCHEME_GOCART)
+        call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
+                                  self%Ch_DU, du_src, MAPL_GRAV, &
+                                  emissions_surface, __RC__)
+      case default
+         _ASSERT_RC(.false.,'missing dust emission scheme',ESMF_RC_NOT_IMPL)
+    end select
 
 !   Read point emissions file once per day
 !   --------------------------------------

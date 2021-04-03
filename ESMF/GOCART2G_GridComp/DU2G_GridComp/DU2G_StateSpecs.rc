@@ -9,8 +9,16 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
  DU_SRC     | 1      | xy   | N   |      | erod - dust emissions
  FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
+ FRSNOW     | 1      | xy   | N   |      | surface_snow_area_fraction
  WET1       | 1      | xy   | N   |      | surface_soil_wetness
+ SLC        | 1      | xy   | N   |      | liquid_water_content_of_soil_layer
  LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
+ FRCLAY     | 1      | xy   | N   |      | volume_fraction_of_clay_in_soil
+ FRSAND     | 1      | xy   | N   |      | volume_fraction_of_sand_in_soil
+ FRSILT     | 1      | xy   | N   |      | volume_fraction_of_silt_in_soil
+ RDRAG      | 1      | xy   | N   |      | drag_partition
+ SSM        | 1      | xy   | N   |      | sediment_supply_map
+ UTHRES     | m s-1  | xy   | N   |      | surface_dry_threshold_velocity
  U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
  V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
  AREA       | m^2    | xy   | N   |      | agrid_cell_area

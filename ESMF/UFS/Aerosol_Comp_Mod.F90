@@ -6,12 +6,13 @@ module Aerosol_Comp_Mod
 
   implicit none
 
-  integer, parameter :: fieldMapSize = 19
+  integer, parameter :: fieldMapSize = 20
   character(len=*), dimension(fieldMapSize, 2), parameter :: &
     fieldMap = reshape((/ &
       "FROCEAN                         ", "ocean_fraction                  ", &
       "FRACI                           ", "ice_fraction                    ", &
       "FRLAKE                          ", "lake_fraction                   ", &
+      "FRSNOW                          ", "surface_snow_area_fraction      ", &
       "LWI                             ", "inst_land_sea_mask              ", &
       "WET1                            ", "inst_surface_soil_wetness       ", &
       "U10M                            ", "inst_zonal_wind_height10m       ", &
@@ -107,7 +108,7 @@ contains
     real(ESMF_KIND_R4), dimension(:,:,:,:), pointer :: fp4dr
     real(ESMF_KIND_R8), dimension(:,:),     pointer :: fp2dp
     real(ESMF_KIND_R8), dimension(:,:),     pointer :: rain, rainc, zorl
-    real(ESMF_KIND_R8), dimension(:,:,:),   pointer :: fp3dp
+    real(ESMF_KIND_R8), dimension(:,:,:),   pointer :: fp3dp, slc
     real(ESMF_KIND_R8), dimension(:,:,:),   pointer :: phii, phil, prsi, prsl, temp
     real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: q
     type(ESMF_Clock) :: clock
@@ -221,6 +222,12 @@ contains
             rcToReturn=rc)) return  ! bail out
 
           call AerosolGetPtr(state, "inst_surface_roughness", zorl, rc=localrc)
+          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__,  &
+            file=__FILE__,  &
+            rcToReturn=rc)) return  ! bail out
+
+          call AerosolGetPtr(state, "inst_soil_moisture_content", slc, rc=localrc)
           if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__,  &
             file=__FILE__,  &
@@ -371,6 +378,8 @@ contains
                       end do
                     end do
                   end do
+                case ("SLC")
+                  fp2dr = slc(:,:,1)
                 case ("Z0H")
                   fp2dr = 0.01_ESMF_KIND_R4 * zorl
                 case ("ZLE")
