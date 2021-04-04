@@ -50,6 +50,7 @@
    public wetRadius
    public hoppelCorrection
    public CAEmission
+   public plumeRiseSofiev
    public phobicTophilic
    public NIheterogenousChem
    public SulfateDistributeEmissions
@@ -4731,6 +4732,85 @@ K_LOOP: do k = km, 1, -1
     end do
 
     end subroutine distribute_aviation_emissions
+
+!============================================================================
+
+!BOP
+!
+! !IROUTINE: plumeRiseSofiev - Compute Sofiev's plume rise distribution
+!
+! !INTERFACE:
+   subroutine plumeRiseSofiev(PT1, PT2, laydepth, frp, pblh, grav, Hp)
+
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   real, intent(in)  :: PT1          ! Potential Temperature right below PBL height [K]
+   real, intent(in)  :: PT2          ! Potential Temperature right above PBL height [K]
+   real, intent(in)  :: laydepth     ! depth of the layer at the PBL height [m]
+   real, intent(in)  :: frp          ! fire radiative power [W]
+   real, intent(in)  :: pblh         ! PBL height [m]
+   real, intent(in)  :: grav         ! gravity [m s-2]
+
+! !OUTPUT PARAMETERS:
+   real, intent(out) :: Hp           ! plume height [m]
+
+! !DESCRIPTION: This subroutine implements the Sofiev plume rise algorithm.
+!               Ref: M. Sofiev et al., Evaluation of the smoke-injection
+!               height from wild-land fires using remote sensing data.
+!               Atmos. Chem. Phys., 12, 1995-2006, 2012.
+!
+! !REVISION HISTORY:
+! 16Sep2019 D.Tong/NOAA     - First prototype
+! 15Oct2019 D.Tong/NOAA     - Bug fix based on feedback from M. Sofiev
+! ??Nov2019 Y.Li            - Parameterization options
+! 23Sep2020 R.Montuoro/NOAA - Refactored for NOAA air quality applications
+! 03Apr2021 R.Montuoro/NOAA - Added to GOCART process library
+!
+! !Local Variables
+   real NFT_sq       ! N square in Free Troposphere (@ z = 2pblh)
+   real alpha        ! part of ABL passed freely
+   real beta         ! weights contribution of fire intensity
+   real gama         ! power-law dependence on FRP
+   real delta        ! dependence on stability in the FT
+
+! !CONSTANTS:
+   real :: Pf0   = 1000000.0    ! reference fire power (W)
+   real :: N0_sq = 0.00025      ! Brunt-Vaisala frequency (s-2)
+
+!EOP
+!-------------------------------------------------------------------------
+!  Begin
+
+! ... Initial values.
+! ... predefined values parameter set to estimate whether hp is higher than abl
+   alpha = 0.15
+   beta  = 102
+   gama  = 0.49
+   delta = 0
+
+! ... calculate Brunt-Vaisala frequency
+   NFT_sq = grav/PT1*abs(PT1-PT2)/laydepth
+
+! ... calculate first guess plume rise top height
+   Hp = alpha*pblh + beta*(frp/Pf0)**gama * exp(-delta*NFT_sq/N0_sq)
+! ... compare Hp with ABL
+   if (Hp .lt. pblh) then
+     alpha = 0.24
+     beta  = 170
+     gama  = 0.35
+     delta = 0.6
+     Hp = alpha*pblh + beta*(frp/Pf0)**gama*exp(-delta*NFT_sq/N0_sq)
+   else
+     alpha = 0.93
+     beta  = 298
+     gama  = 0.13
+     delta = 0.7
+     Hp = alpha*pblh + beta*(frp/Pf0)**gama*exp(-delta*NFT_sq/N0_sq)
+   end if
+
+   end subroutine plumeRiseSofiev
 
 !============================================================================
 
