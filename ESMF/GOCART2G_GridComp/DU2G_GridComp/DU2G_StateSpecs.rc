@@ -16,7 +16,7 @@ category: IMPORT
  FRCLAY     | 1      | xy   | N   |      | volume_fraction_of_clay_in_soil
  FRSAND     | 1      | xy   | N   |      | volume_fraction_of_sand_in_soil
  FRSILT     | 1      | xy   | N   |      | volume_fraction_of_silt_in_soil
- RDRAG      | 1      | xy   | N   |      | drag_partition
+ RDRAG      | m-1    | xy   | N   |      | drag_partition
  SSM        | 1      | xy   | N   |      | sediment_supply_map
  UTHRES     | m s-1  | xy   | N   |      | surface_dry_threshold_velocity
  U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
