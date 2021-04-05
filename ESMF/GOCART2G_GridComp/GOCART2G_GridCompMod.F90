@@ -654,6 +654,7 @@ contains
     real, pointer, dimension(:,:,:) :: pso4
     real, allocatable               :: tau1(:,:), tau2(:,:)
     real                            :: c1, c2, c3
+    integer                         :: ind550
 
 #include "GOCART2G_DeclarePointer___.h"
 
@@ -710,11 +711,25 @@ contains
       end if
     end do
 
-
 !   Compute total aerosol diagnostic values for export
 !   --------------------------------------------------
     if(associated(totangstr)) then
-       totangstr(:,:) = 0.0
+    ind550 = 0
+       do w = 1, size(self%wavelengths_vertint) ! find index for 550nm to compute total angstrom
+          if ((self%wavelengths_vertint(w)*1.e-9 .ge. 5.49e-7) .and. &
+              (self%wavelengths_vertint(w)*1.e-9 .le. 5.51e-7)) then
+             ind550 = w
+             exit
+          end if
+       end do
+
+       if (ind550 == 0) then
+          print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',& 
+                           ' Cannot produce TOTANGSTR variable without 550nm wavelength.'
+          VERIFY_(100)
+       end if
+
+       totangstr = 0.0
        allocate(tau1(SIZE(LATS,1), SIZE(LATS,2)), &
                 tau2(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
 
@@ -756,8 +771,8 @@ contains
           if(associated(pm25_rh50) .and. associated(dusmass25)) pm25_rh50 = pm25_rh50 + dusmass25
 
           if(associated(totangstr) .and. associated(duexttau) .and. associated(duangstr)) then
-             tau1 = tau1 + duexttau(:,:,2)*exp(c1*duangstr)
-             tau2 = tau2 + duexttau(:,:,2)*exp(c2*duangstr)
+             tau1 = tau1 + duexttau(:,:,ind550)*exp(c1*duangstr)
+             tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
           end if
        end if   
     end do
@@ -793,8 +808,8 @@ contains
           if(associated(pm25_rh50) .and. associated(sssmass25)) pm25_rh50 = pm25_rh50 + 2.42*sssmass25
 
           if(associated(totangstr) .and. associated(ssexttau) .and. associated(ssangstr)) then
-             tau1 = tau1 + ssexttau(:,:,2)*exp(c1*ssangstr)
-             tau2 = tau2 + ssexttau(:,:,2)*exp(c2*ssangstr)
+             tau1 = tau1 + ssexttau(:,:,ind550)*exp(c1*ssangstr)
+             tau2 = tau2 + ssexttau(:,:,ind550)*exp(c2*ssangstr)
           end if
        end if
     end do
@@ -831,8 +846,8 @@ contains
           if(associated(pm25_rh50) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh50 = pm25_rh50 + 1.51*(nismass25 + nh4smass)
 
           if(associated(totangstr) .and. associated(niexttau) .and. associated(niangstr)) then
-             tau1 = tau1 + niexttau(:,:,2)*exp(c1*niangstr)
-             tau2 = tau2 + niexttau(:,:,2)*exp(c2*niangstr)
+             tau1 = tau1 + niexttau(:,:,ind550)*exp(c1*niangstr)
+             tau2 = tau2 + niexttau(:,:,ind550)*exp(c2*niangstr)
           end if
        end if
     end do
@@ -875,8 +890,8 @@ contains
           end if
 
           if(associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
-!             tau1 = tau1 + suexttau(:,:,2)*exp(c1*suangstr)
-!             tau2 = tau2 + suexttau(:,:,2)*exp(c2*suangstr)
+             tau1 = tau1 + suexttau(:,:,ind550)*exp(c1*suangstr)
+             tau2 = tau2 + suexttau(:,:,ind550)*exp(c2*suangstr)
           end if
        end if
     end do
@@ -910,8 +925,8 @@ contains
           if(associated(pm25_rh50) .and. associated(bcsmass)) pm25_rh50 = pm25_rh50 + bcsmass
 
           if(associated(totangstr) .and. associated(bcexttau) .and. associated(bcangstr)) then
-             tau1 = tau1 + bcexttau(:,:,2)*exp(c1*bcangstr)
-             tau2 = tau2 + bcexttau(:,:,2)*exp(c2*bcangstr)
+             tau1 = tau1 + bcexttau(:,:,ind550)*exp(c1*bcangstr)
+             tau2 = tau2 + bcexttau(:,:,ind550)*exp(c2*bcangstr)
           end if
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
@@ -939,8 +954,8 @@ contains
           if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
 
           if(associated(totangstr) .and. associated(ocexttau) .and. associated(ocangstr)) then
-             tau1 = tau1 + ocexttau(:,:,2)*exp(c1*ocangstr)
-             tau2 = tau2 + ocexttau(:,:,2)*exp(c2*ocangstr)
+             tau1 = tau1 + ocexttau(:,:,ind550)*exp(c1*ocangstr)
+             tau2 = tau2 + ocexttau(:,:,ind550)*exp(c2*ocangstr)
           end if
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
@@ -968,8 +983,8 @@ contains
           if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
 
           if(associated(totangstr) .and. associated(brexttau) .and. associated(brangstr)) then
-             tau1 = tau1 + brexttau(:,:,2)*exp(c1*brangstr)
-             tau2 = tau2 + brexttau(:,:,2)*exp(c2*brangstr)
+             tau1 = tau1 + brexttau(:,:,ind550)*exp(c1*brangstr)
+             tau2 = tau2 + brexttau(:,:,ind550)*exp(c2*brangstr)
           end if
        end if
     end do

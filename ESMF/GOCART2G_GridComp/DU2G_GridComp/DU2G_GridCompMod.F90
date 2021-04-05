@@ -521,8 +521,9 @@ contains
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels*1.e-9, rc=status, nmom=self%diag_MieTable(instance)%nmom)
     VERIFY_(status)
+
 
 !   Mie Table instance/index
     call ESMF_AttributeSet (aero, name='mie_table_instance', value=instance, __RC__)
@@ -683,10 +684,6 @@ integer :: n
 
 #include "DU2G_GetPointer___.h"
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
-
 !   Set du_src to 0 where undefined
 !   --------------------------------
     where (1.01*du_src > MAPL_UNDEF) du_src = 0.
@@ -834,10 +831,6 @@ end do
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
 #include "DU2G_GetPointer___.h"
-
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
 
 !   Get my private internal state
 !   ------------------------------

@@ -1343,18 +1343,26 @@ RUN_ALARM: if (gcNI%run_alarm) then
    if(associated(NI_pnh4aq%data2d)) NI_pnh4aq%data2d(:,:) = 0.
    if(associated(NI_pnh3aq%data2d)) NI_pnh3aq%data2d(:,:) = 0.
 
+if(mapl_am_i_root()) print*,'NI before thermo sum(NH3) = ',sum(w_c%qa(nNH3)%data3d)
+if(mapl_am_i_root()) print*,'NI before thermo sum(NO3an1) = ',sum(w_c%qa(nNO3an1)%data3d)
+if(mapl_am_i_root()) print*,'NI before thermo sum(NH4a) = ',sum(w_c%qa(nNH4a)%data3d)
+if(mapl_am_i_root()) print*,'NI before thermo sum(xhno3) = ',sum(gcNI%xhno3)
+
 !  RPMARES - thermodynamic module
 !  ------------------------------
 !  Take as input GOCART provided SO4, model provided RH,
 !  and HNO3, NH3, NH4, and fine-mode nitrate (NO3an1).
 !  At present we update NH3, NH4, and NO3an1.
 !  Check we are running GOCART sulfate
+
    nSO4 = -1
    if(w_c%reg%doing_SU) then
     do n = w_c%reg%i_SU, w_c%reg%j_SU
      if(trim(w_c%reg%vname(n)) .eq. 'SO4') nSO4 = n
     enddo
    endif
+if(mapl_am_i_root()) print*,'NI before thermo sum(SO4) = ',sum(w_c%qa(nSO4)%data3d)
+
    do k = 1, km
     do j = j1, j2
      do i = i1, i2
@@ -1383,6 +1391,9 @@ RUN_ALARM: if (gcNI%run_alarm) then
 
       call RPMARES (  SO4,  GNO3,  GNH3, RH,   TEMP, &
                       ASO4, AHSO4, ANO3, AH2O, ANH4 )
+!if(mapl_am_i_root()) print*,'RPMARES GNH3 = ',GNH3
+!if(mapl_am_i_root())print*,'RPMARES ANO3 = ',ANO3
+!if(mapl_am_i_root())print*,'RPMARES ANH4 = ',ANH4
 
 !     Diagnostic terms
       if(associated(NI_pno3aq%data2d)) &
@@ -1407,6 +1418,15 @@ RUN_ALARM: if (gcNI%run_alarm) then
      enddo
     enddo
    enddo
+
+if(mapl_am_i_root()) print*,'NI after thermo sum(NH3) = ',sum(w_c%qa(nNH3)%data3d)
+if(mapl_am_i_root()) print*,'NI after thermo sum(NO3an1) = ',sum(w_c%qa(nNO3an1)%data3d)
+if(mapl_am_i_root()) print*,'NI after thermo sum(NH4a) = ',sum(w_c%qa(nNH4a)%data3d)
+if(mapl_am_i_root()) print*,'NI after thermo sum(xhno3) = ',sum(gcNI%xhno3)
+if(mapl_am_i_root()) print*,'NI sum(NIPNO3AQ) = ',sum(NI_pno3aq%data2d)
+if(mapl_am_i_root()) print*,'NI sum(NIPNH4AQ) = ',sum(NI_pnh4aq%data2d)
+if(mapl_am_i_root()) print*,'NI sum(NIPNH3AQ) = ',sum(NI_pnh3aq%data2d)
+
 
    ! prepare the variable names for comparison
    if(w_c%reg%doing_DU) then
@@ -1531,6 +1551,15 @@ RUN_ALARM: if (gcNI%run_alarm) then
       end do
    endif
 
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NIHT 1) = ',sum(NI_phet(1)%data2d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NIHT 2) = ',sum(NI_phet(2)%data2d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NIHT 3) = ',sum(NI_phet(3)%data2d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an1) = ',sum(w_c%qa(nNO3an1)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an2) = ',sum(w_c%qa(nNO3an2)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an3) = ',sum(w_c%qa(nNO3an3)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NH3) = ',sum(w_c%qa(nNH3)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NH4a) = ',sum(w_c%qa(nNH4a)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(xhno3) = ',sum(gcNI%xhno3)
 
 !  NI Settling
 !  -----------
@@ -1706,6 +1735,14 @@ RUN_ALARM: if (gcNI%run_alarm) then
    if(associated(NI_conv(1)%data2d)) NI_conv(1)%data2d = -bcnv_(:,:,nNO3an1)/area_/icdt
    if(associated(NI_conv(2)%data2d)) NI_conv(2)%data2d = -bcnv_(:,:,nNO3an2)/area_/icdt
    if(associated(NI_conv(3)%data2d)) NI_conv(3)%data2d = -bcnv_(:,:,nNO3an3)/area_/icdt
+
+
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NH3) = ',sum(w_c%qa(nNH3)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NH4a) = ',sum(w_c%qa(nNH4a)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an1) = ',sum(w_c%qa(nNO3an1)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an2) = ',sum(w_c%qa(nNO3an2)%data3d)
+if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an3) = ',sum(w_c%qa(nNO3an3)%data3d)
+
 
 !  Clean up
 !  --------

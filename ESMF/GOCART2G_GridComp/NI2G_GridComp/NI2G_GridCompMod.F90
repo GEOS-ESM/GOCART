@@ -522,7 +522,7 @@ if(mapl_am_i_root()) print*,trim(comp_name),' SetServices END'
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels*1.e-9, rc=status, nmom=self%diag_MieTable(instance)%nmom)
     VERIFY_(status)
 
     ! Mie Table instance/index
@@ -829,20 +829,19 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
     if (associated(NIPNH3AQ)) NIPNH3AQ(:,:) = 0.
 
-!if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH3) = ',sum(NH3)
-!if(mapl_am_i_root()) print*,'NI2G before thermo sum(NO3an1) = ',sum(NO3an1)
-!if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH4a) = ',sum(NH4a)
-!if(mapl_am_i_root()) print*,'NI2G before sum(SO4) = ',sum(SO4)
+if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH3) = ',sum(NH3)
+if(mapl_am_i_root()) print*,'NI2G before thermo sum(NO3an1) = ',sum(NO3an1)
+if(mapl_am_i_root()) print*,'NI2G before thermo sum(NH4a) = ',sum(NH4a)
+if(mapl_am_i_root()) print*,'NI2G before thermo sum(SO4) = ',sum(SO4)
+if(mapl_am_i_root()) print*,'NI2G before thermo sum(xhno3) = ',sum(self%xhno3)
 
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, t, rh2, fMassHNO3, MAPL_AIRMW, &
                    SO4, NH3, NO3an1, NH4a, self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, rc)
 
-!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH3) = ',sum(NH3)
-!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an1) = ',sum(NO3an1)
-!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an2) = ',sum(NO3an2)
-!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an3) = ',sum(NO3an3)
-!if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH4a) = ',sum(NH4a)
-!if(mapl_am_i_root()) print*,'NI2G after thermo sum(xhno3) = ',sum(self%xhno3)
+if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH3) = ',sum(NH3)
+if(mapl_am_i_root()) print*,'NI2G after thermo sum(NO3an1) = ',sum(NO3an1)
+if(mapl_am_i_root()) print*,'NI2G after thermo sum(NH4a) = ',sum(NH4a)
+if(mapl_am_i_root()) print*,'NI2G after thermo sum(xhno3) = ',sum(self%xhno3)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNO3AQ) = ',sum(NIPNO3AQ)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNH4AQ) = ',sum(NIPNH4AQ)
 !if(mapl_am_i_root()) print*,'NI2G sum(NIPNH3AQ) = ',sum(NIPNH3AQ)
@@ -858,22 +857,19 @@ if(mapl_am_i_root()) print*,'NI recycle alarm sum(self%xhno3)',sum(self%xhno3)
                              fMassNO3, NO3an1, NO3an2, NO3an3, HNO3CONC, HNO3SMASS, &
                              HNO3CMASS, __RC__)
 
-!if(mapl_am_i_root()) print*,'NI2G sum(NIHT(:,:,1)) = ',sum(NIHT(:,:,1))
-!if(mapl_am_i_root()) print*,'NI2G sum(NIHT(:,:,2)) = ',sum(NIHT(:,:,2))
-!if(mapl_am_i_root()) print*,'NI2G sum(NIHT(:,:,3)) = ',sum(NIHT(:,:,3))
-!if(mapl_am_i_root()) print*,'NI2G sum(NO3an1) = ',sum(NO3an1)
-!if(mapl_am_i_root()) print*,'NI2G sum(NO3an2) = ',sum(NO3an2)
-!if(mapl_am_i_root()) print*,'NI2G sum(NO3an3) = ',sum(NO3an3)
-!if(mapl_am_i_root()) print*,'NI2G sum(HNO3CONC) = ',sum(HNO3CONC)
-!if(mapl_am_i_root()) print*,'NI2G sum(HNO3SMASS) = ',sum(HNO3SMASS)
-!if(mapl_am_i_root()) print*,'NI2G sum(HNO3CMASS) = ',sum(HNO3CMASS)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NIHT 1) = ',sum(NIHT(:,:,1))
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NIHT 2) = ',sum(NIHT(:,:,2))
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NIHT 3) = ',sum(NIHT(:,:,3))
+if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an1) = ',sum(NO3an1)
+if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an2) = ',sum(NO3an2)
+if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an3) = ',sum(NO3an3)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(HNO3CONC) = ',sum(HNO3CONC)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(HNO3SMASS) = ',sum(HNO3SMASS)
+!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(HNO3CMASS) = ',sum(HNO3CMASS)
 
-!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH3) = ',sum(NH3)
-!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH4a) = ',sum(NH4a)
-!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an1) = ',sum(NO3an1)
-!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an2) = ',sum(NO3an2)
-!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NO3an3) = ',sum(NO3an3)
-!if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
+if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH3) = ',sum(NH3)
+if(mapl_am_i_root()) print*,'NI2G after hetchem sum(NH4a) = ',sum(NH4a)
+if(mapl_am_i_root()) print*,'NI2G after hetchem sum(xhno3) = ',sum(self%xhno3)
 
 !if(mapl_am_i_root()) print*,'NI2G NH4a array = ',NH4a
 

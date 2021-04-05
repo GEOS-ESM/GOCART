@@ -69,8 +69,8 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  CAMASS*    | kg kg-1    | xyz | C   |       | Carbonaceous Aerosol Mass Mixing Ratio                
  CACONC*    | kg m-3     | xyz | C   |       | Carbonaceous Aerosol Mass Concentration               
- CAEXTCOEF* | m-1        | xyz | C   | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient [550 nm]  
- CASCACOEF* | m-1        | xyz | C   | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient [550 nm]  
+ CAEXTCOEF* | m-1        | xyz | C   | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient 
+ CASCACOEF* | m-1        | xyz | C   | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient 
 #...........|............|.....|.....|.......|............................................
  CAEM*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Emission (Bin %d) 
  CASD*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Sedimentation (Bin %d)
@@ -85,8 +85,8 @@ category: EXPORT
  CAPSOA*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol SOA Production                
  CASMASS*   | kg m-3     | xy  | N   |       | Carbonaceous Aerosol Surface Mass Concentration    
  CACMASS*   | kg m-2     | xy  | N   |       | Carbonaceous Aerosol Column Mass Density           
- CAEXTTAU*  |      1     | xy  | N   | size(self%wavelengths_vertint)  | Carbonaceous Aerosol Extinction AOT [550 nm]       
- CASCATAU*  |      1     | xy  | N   | size(self%wavelengths_vertint)  | Carbonaceous Aerosol Scattering AOT [550 nm]       
+ CAEXTTAU*  |      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT       
+ CASCATAU*  |      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT       
  CAANGSTR*  |      1     | xy  | N   |       | Carbonaceous Aerosol Angstrom parameter [470-870 nm] 
  CAFLUXU*   | kg m-1 s-1 | xy  | N   |       | Carbonaceous Aerosol column u-wind mass flux       
  CAFLUXV*   | kg m-1 s-1 | xy  | N   |       | Carbonaceous Aerosol column v-wind mass flux       

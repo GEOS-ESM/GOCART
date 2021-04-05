@@ -2075,8 +2075,9 @@ CONTAINS
       if( present(exttaufm) .and. associated(exttaufm)) exttaufm = 0.
       if( present(scataufm) .and. associated(scataufm)) scataufm = 0.
 
-      do n = nbegin, nbins
        do w = 1, size(wavelengths_vertint)
+      do n = nbegin, nbins
+!       do w = 1, size(wavelengths_vertint)
          do k = klid, km
             do j = j1, j2
                do i = i1, i2
@@ -3371,7 +3372,6 @@ K_LOOP: do k = km, 1, -1
       kan3 = 0.
       ad = 1.e-6*rhoa(i,j,k)*AVOGAD/AIRMW  ! air number density # cm-3
       temp = tmpu(i,j,k)
-!      rh = w_c%rh(i,j,k)
       rh = relhum(i,j,k)
 !     Dust
       if (associated(DU)) then
@@ -6668,8 +6668,8 @@ loop2: DO l = 1,nspecies_HL
 ! !INPUT PARAMETERS:
    integer, intent(in) :: km    ! total model levels
    integer, intent(in) :: klid   ! index for pressure lid
-   real, intent(in)    :: cdt   ! model time step [sec]
-   real, intent(in)    :: grav  ! gravity [m/sec]
+   real, intent(in)    :: cdt   ! model time step [s]
+   real, intent(in)    :: grav  ! gravity [m s-2]
    real, dimension(:,:,:), intent(in)  :: delp  ! pressure thickness [Pa]
    real, dimension(:,:,:), intent(in)  :: rhoa   ! Layer air density [kg m-3]
    real, dimension(:,:,:), intent(in)  :: tmpu   ! Layer temperature [K]
@@ -6727,7 +6727,7 @@ loop2: DO l = 1,nspecies_HL
       SO4_  = max(1.d-32,SO4(i,j,k) * fmmr_to_conc)
       GNO3  = max(1.d-32,xhno3(i,j,k) * fMassHNO3 / fMassAir * fmmr_to_conc)
       GNH3  = max(1.d-32,NH3(i,j,k)  * fmmr_to_conc)
-      RH_    = rh(i,j,k)
+      RH_   = rh(i,j,k)
       TEMP  = tmpu(i,j,k)
       ASO4  = 1.d-32
       AHSO4 = 1.d-32
@@ -6737,11 +6737,10 @@ loop2: DO l = 1,nspecies_HL
 
       call RPMARES (  SO4_, GNO3,  GNH3, RH_,  TEMP, &
                       ASO4, AHSO4, ANO3, AH2O, ANH4, __RC__ )
+!print*,'RPMARES G2G GNH3 = ',GNH3
+!print*,'RPMARES G2G ANO3 = ',ANO3
+!print*,'RPMARES G2G ANH4 = ',ANH4
 
-!call RPMARES ( SO4_, GNO3, GNH3, RH_, TEMP, &
-!ASO4, AHSO4, ANO3, AH2O, ANH4, rc=status )
-!print*, "RPMARES: status= ", status
-!__VERIFY__(status)
 
 !     Diagnostic terms
       if(associated(NI_pno3aq)) &
@@ -7131,10 +7130,6 @@ loop2: DO l = 1,nspecies_HL
           call PrintError  &
      &      (err_msg, .true., 0, 0, 0, 2, TSO4, TNO3, __RC_NO_OPT__)
 !     &      (err_msg, .true., 0, 0, 0, 2, TSO4, TNO3, rc=status)
-! print*,'RPMARES: printerror status1 = ',status 
-! __VERIFY_NO_OPT__(STATUS)
-
-
       ENDIF
 
       ! now set humidity index IRH as a percent
@@ -7993,9 +7988,6 @@ loop2: DO l = 1,nspecies_HL
             err_msg = 'PHI < 1d-20 in  CUBIC (rpmares_mod.f):'
             call PrintError  &
      &         (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0, __RC_NO_OPT__)
-!     &         (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0, rc=status)
-!print*,'RPMARES: printerror status2 = ',status 
-!__VERIFY_NO_OPT__(STATUS)
 
          ENDIF
 
