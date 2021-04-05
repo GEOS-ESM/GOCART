@@ -222,7 +222,7 @@ CONTAINS
    implicit NONE
 
 ! !INPUT PARAMETERS:
-   real, intent(in) :: slc     ! liquid water content of top soil layer [kg m-2]
+   real, intent(in) :: slc     ! liquid water content of top soil layer, volumetric fraction [1]
    real, intent(in) :: sand    ! fractional sand content [1]
    real, intent(in) :: clay    ! fractional clay content [1]
    real, intent(in) :: rhop    ! dry dust density [kg m-3]
@@ -308,7 +308,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
    real, dimension(:,:), intent(in) :: fraclake ! fraction of lake [1]
    real, dimension(:,:), intent(in) :: fracsnow ! surface snow area fraction [1]
-   real, dimension(:,:), intent(in) :: slc      ! liquid water content of soil layer [kg m-2]
+   real, dimension(:,:), intent(in) :: slc      ! liquid water content of soil layer, volumetric fraction [1]
    real, dimension(:,:), intent(in) :: oro      ! land-ocean-ice mask [1]
    real, dimension(:,:), intent(in) :: clay     ! fractional clay content [1]
    real, dimension(:,:), intent(in) :: sand     ! fractional sand content [1]
