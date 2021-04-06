@@ -977,12 +977,6 @@ contains
                             fluxu=NIFLUXU, fluxv=NIFLUXV, extcoef=NIEXTCOEF, scacoef=NISCACOEF, &
                             angstrom=NIANGSTR, __RC__ )
 
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH3) = ',sum(NH3)
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NH4a) = ',sum(NH4a)
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an1) = ',sum(NO3an1)
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an2) = ',sum(NO3an2)
-if(mapl_am_i_root()) print*,'NI2G Run2 END sum(NO3an3) = ',sum(NO3an3)
-
     RETURN_(ESMF_SUCCESS)
   
   end subroutine Run2

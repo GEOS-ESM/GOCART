@@ -592,7 +592,6 @@ contains
 
 !*****************************************************************************
 !   Begin... 
-!if(mapl_am_i_root()) print*,'DU2G Run BEGIN'
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -769,10 +768,6 @@ integer :: n
         deallocate(iPoint, jPoint, __STAT__)
     end if
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 E DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
-
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run1
@@ -877,10 +872,6 @@ end do
                               KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
    end do
-
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 E DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
 
 !  Compute diagnostics
 !  -------------------

@@ -144,8 +144,6 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
-if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
-
 !   Wrap internal state for storing in GC
 !   -------------------------------------
     allocate (self, __STAT__)
@@ -1073,19 +1071,11 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 
     xh2o2 = self%h2o2_init 
 
-!if(mapl_am_i_root()) print*,'SU2G Run2 sum(xh2o2) = ',sum(xh2o2)
-!if(mapl_am_i_root()) print*,'SU2G Run2 sum(self%h2o2_init) = ',sum(self%h2o2_init)
-!if(mapl_am_i_root()) print*,'SU2G Run2 sum(xoh) = ',sum(xoh)
-
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 oh, no3, h2o2, &
                                 xoh, xno3, xh2o2, self%recycle_h2o2, __RC__)
-
-!if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(xh2o2) = ',sum(xh2o2)
-!if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(self%h2o2_init) = ',sum(self%h2o2_init)
-!if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(xoh) = ',sum(xoh)
 
 !   SU Settling
 !   -----------
@@ -1119,12 +1109,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             pso2, pmsa, pso4, pso4g, pso4aq, drydepositionf, & ! 3d diagnostics
                             __RC__)
 
-!if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(xh2o2) = ',sum(xh2o2)
-!if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(self%h2o2_init) = ',sum(self%h2o2_init)
-!if(mapl_am_i_root()) print*,'SU2G Run2 ChemDriver sum(xoh) = ',sum(xoh)
-!if(mapl_am_i_root()) print*,'SU2G Run2 sum(SUPSO4aq) = ',sum(SUPSO4aq)
-!if(mapl_am_i_root()) print*,'SU2G Run2 sum(SUPSO4g) = ',sum(SUPSO4g)
-
     KIN = .true.
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
                           delp, fMassSO4, fMassSO2, &
@@ -1132,8 +1116,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
-!if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(xh2o2) = ',sum(xh2o2)
-!if(mapl_am_i_root()) print*,'SU2G Run2 WetRemoval sum(self%h2o2_init) = ',sum(self%h2o2_init)
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
@@ -1146,18 +1128,6 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
-
-!if(mapl_am_i_root()) print*,'SU2G Run2 E size(suexttau) = ',size(suexttau)
-!if(mapl_am_i_root()) print*,'SU2G Run2 E size(suescaau) = ',size(suscatau)
-!if(mapl_am_i_root()) print*,'SU2G Run2 E sum(suexttau) = ',sum(suexttau)
-!if(mapl_am_i_root()) print*,'SU2G Run2 E sum(suescaau) = ',sum(suscatau)
-
-if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO2) = ',sum(SO2)
-if(mapl_am_i_root()) print*,'SU2G Run2 E sum(SO4) = ',sum(SO4)
-if(mapl_am_i_root()) print*,'SU2G Run2 E sum(DMS) = ',sum(DMS)
-if (associated(dummyMSA)) then
-   if(mapl_am_i_root()) print*,'SU2G Run2 E sum(MSA) = ',sum(dummyMSA)
-end if
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1221,8 +1191,6 @@ end if
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'//Iam
 
-if (mapl_am_I_root()) print*,trim(comp_name),' Run_data BEGIN'
-
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
@@ -1234,8 +1202,6 @@ if (mapl_am_I_root()) print*,trim(comp_name),' Run_data BEGIN'
     call MAPL_GetPointer (internal, NAME='SO4', ptr=ptr3d_int, __RC__)
     call MAPL_GetPointer (import, NAME='climSO4', ptr=ptr3d_imp, __RC__)
     ptr3d_int = ptr3d_imp
-
-if (mapl_am_I_root()) print*,trim(comp_name),' Run_data END'
 
     RETURN_(ESMF_SUCCESS)
 
