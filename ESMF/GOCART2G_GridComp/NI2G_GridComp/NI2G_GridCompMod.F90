@@ -747,6 +747,7 @@ contains
     logical                         :: alarm_is_ringing
 
     integer :: rhFlag
+    integer :: i, j
 
 #include "NI2G_DeclarePointer___.h"
 
