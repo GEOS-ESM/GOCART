@@ -6654,7 +6654,7 @@ loop2: DO l = 1,nspecies_HL
    end subroutine get_HenrysLawCts
 
 !==================================================================================
-!BOP
+!BOh
 ! !IROUTINE: NIthermo
 
    subroutine NIthermo (km, klid, cdt, grav, delp, rhoa, tmpu, rh, fMassHNO3, fMassAir, &
@@ -6735,12 +6735,10 @@ loop2: DO l = 1,nspecies_HL
       AH2O  = 1.d-32
       ANH4  = max(1.d-32,NH4a(i,j,k) * fmmr_to_conc)
 
+!print*,'GOCART2G NIthermo TEST 2'
+
       call RPMARES (  SO4_, GNO3,  GNH3, RH_,  TEMP, &
                       ASO4, AHSO4, ANO3, AH2O, ANH4, __RC__ )
-!print*,'RPMARES G2G GNH3 = ',GNH3
-!print*,'RPMARES G2G ANO3 = ',ANO3
-!print*,'RPMARES G2G ANH4 = ',ANH4
-
 
 !     Diagnostic terms
       if(associated(NI_pno3aq)) &
@@ -6765,6 +6763,7 @@ loop2: DO l = 1,nspecies_HL
      enddo
     enddo
    enddo
+
 
    __RETURN__(__SUCCESS__)
    end subroutine NIthermo
@@ -7125,6 +7124,7 @@ loop2: DO l = 1,nspecies_HL
           PRINT*, 'TNO3 : ', TNO3
           PRINT*, 'TNH4 : ', TNH4
 
+
 !.sds          CALL GEOS_CHEM_STOP
           err_msg = 'negative concen problem in RPMARES - TSO4, TNO3, TNH4:'
           call PrintError  &
@@ -7214,7 +7214,6 @@ loop2: DO l = 1,nspecies_HL
 
          RETURN
       ENDIF
-
       !=================================================================
       ! High Ammonia Case
       !=================================================================
@@ -7237,7 +7236,6 @@ loop2: DO l = 1,nspecies_HL
          WH2O = 1.0d-3 * AH2O
 
          ASO4 = TSO4   * MWSO4
-
          ! In sulfate poor case, Sulfate ion is preferred
          ! Set bisulfate equal to zero [rjp, 12/12/01]
          AHSO4 = 0.0d0
@@ -7510,6 +7508,7 @@ loop2: DO l = 1,nspecies_HL
      &           + RK2SA * RKNWET * ZSO4 + RK2SA * RKNA * TNO3 )
 
             CALL CUBIC ( A2, A1, A0, NR, CRUTES, __RC_NO_OPT__ )
+!            CALL CUBIC ( A2, A1, A0, NR, CRUTES )
 
             ! Code assumes the smallest positive root is in CRUTES(1)
             HPLUS = CRUTES( 1 )
@@ -7534,7 +7533,6 @@ loop2: DO l = 1,nspecies_HL
 
             ! Calculate ionic strength
             STION = 0.5d0 * ( HPLUS + MNA + MNH4 + MHSO4 + 4.0d0 * MSO4)
-
             ! Update water
             CALL AWATER ( IRH, TSO4, YNH4, XNO3, AH2O )
 
@@ -7584,7 +7582,6 @@ loop2: DO l = 1,nspecies_HL
             !### PHIOLD = PHIBAR
             EROR = ABS ( GAMOLD - GAMAHAT ) / GAMOLD
             GAMOLD = GAMAHAT
-
             ! return with good solution
             IF ( EROR .LE. TOLER2 ) THEN
                RETURN
@@ -7924,6 +7921,8 @@ loop2: DO l = 1,nspecies_HL
 !------------------------------------------------------------------------------
 
       SUBROUTINE CUBIC( A2, A1, A0, NR, CRUTES, rc )
+!      SUBROUTINE CUBIC( A2, A1, A0, NR, CRUTES )
+
 !
 !******************************************************************************
 ! Subroutine to find the roots of a cubic equation / 3rd order polynomial
@@ -7959,10 +7958,11 @@ loop2: DO l = 1,nspecies_HL
       character (len=75) :: err_msg
 
       integer :: status
-
       !=================================================================
       ! CUBIC begins here!
       !=================================================================
+      rc = __SUCCESS__
+
       A2SQ = A2 * A2
       QQ   = ( A2SQ - 3.d0*A1 ) / 9.d0
       RR   = ( A2*( 2.d0*A2SQ - 9.d0*A1 ) + 27.d0*A0 ) / 54.d0
