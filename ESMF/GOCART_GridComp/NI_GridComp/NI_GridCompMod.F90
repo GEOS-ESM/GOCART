@@ -1386,9 +1386,6 @@ RUN_ALARM: if (gcNI%run_alarm) then
 
       call RPMARES (  SO4,  GNO3,  GNH3, RH,   TEMP, &
                       ASO4, AHSO4, ANO3, AH2O, ANH4 )
-!if(mapl_am_i_root()) print*,'RPMARES GNH3 = ',GNH3
-!if(mapl_am_i_root())print*,'RPMARES ANO3 = ',ANO3
-!if(mapl_am_i_root())print*,'RPMARES ANH4 = ',ANH4
 
 !     Diagnostic terms
       if(associated(NI_pno3aq%data2d)) &
