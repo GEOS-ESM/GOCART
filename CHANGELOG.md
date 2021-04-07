@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Added callbacks needed for GAAS2G. Removed diagnostic prints statements. Fixed bug with
+  the creation of Diagnostic Mie tables.
+  
 - Updated `CODEOWNERS` to reflect changes in staffing
 - Updated `components.yaml` for latest MAPL
 
