@@ -1343,10 +1343,6 @@ RUN_ALARM: if (gcNI%run_alarm) then
    if(associated(NI_pnh4aq%data2d)) NI_pnh4aq%data2d(:,:) = 0.
    if(associated(NI_pnh3aq%data2d)) NI_pnh3aq%data2d(:,:) = 0.
 
-if(mapl_am_i_root()) print*,'NI before thermo sum(NH3) = ',sum(w_c%qa(nNH3)%data3d)
-if(mapl_am_i_root()) print*,'NI before thermo sum(NO3an1) = ',sum(w_c%qa(nNO3an1)%data3d)
-if(mapl_am_i_root()) print*,'NI before thermo sum(NH4a) = ',sum(w_c%qa(nNH4a)%data3d)
-if(mapl_am_i_root()) print*,'NI before thermo sum(xhno3) = ',sum(gcNI%xhno3)
 
 !  RPMARES - thermodynamic module
 !  ------------------------------
@@ -1361,7 +1357,6 @@ if(mapl_am_i_root()) print*,'NI before thermo sum(xhno3) = ',sum(gcNI%xhno3)
      if(trim(w_c%reg%vname(n)) .eq. 'SO4') nSO4 = n
     enddo
    endif
-if(mapl_am_i_root()) print*,'NI before thermo sum(SO4) = ',sum(w_c%qa(nSO4)%data3d)
 
    do k = 1, km
     do j = j1, j2
@@ -1418,15 +1413,6 @@ if(mapl_am_i_root()) print*,'NI before thermo sum(SO4) = ',sum(w_c%qa(nSO4)%data
      enddo
     enddo
    enddo
-
-if(mapl_am_i_root()) print*,'NI after thermo sum(NH3) = ',sum(w_c%qa(nNH3)%data3d)
-if(mapl_am_i_root()) print*,'NI after thermo sum(NO3an1) = ',sum(w_c%qa(nNO3an1)%data3d)
-if(mapl_am_i_root()) print*,'NI after thermo sum(NH4a) = ',sum(w_c%qa(nNH4a)%data3d)
-if(mapl_am_i_root()) print*,'NI after thermo sum(xhno3) = ',sum(gcNI%xhno3)
-if(mapl_am_i_root()) print*,'NI sum(NIPNO3AQ) = ',sum(NI_pno3aq%data2d)
-if(mapl_am_i_root()) print*,'NI sum(NIPNH4AQ) = ',sum(NI_pnh4aq%data2d)
-if(mapl_am_i_root()) print*,'NI sum(NIPNH3AQ) = ',sum(NI_pnh3aq%data2d)
-
 
    ! prepare the variable names for comparison
    if(w_c%reg%doing_DU) then
@@ -1550,16 +1536,6 @@ if(mapl_am_i_root()) print*,'NI sum(NIPNH3AQ) = ',sum(NI_pnh3aq%data2d)
          =   HNO3_colmass%data2d(i1:i2,j1:j2) + gcNI%xhno3(i1:i2,j1:j2,k)*w_c%delp(i1:i2,j1:j2,k)/grav
       end do
    endif
-
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NIHT 1) = ',sum(NI_phet(1)%data2d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NIHT 2) = ',sum(NI_phet(2)%data2d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NIHT 3) = ',sum(NI_phet(3)%data2d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an1) = ',sum(w_c%qa(nNO3an1)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an2) = ',sum(w_c%qa(nNO3an2)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an3) = ',sum(w_c%qa(nNO3an3)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NH3) = ',sum(w_c%qa(nNH3)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NH4a) = ',sum(w_c%qa(nNH4a)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(xhno3) = ',sum(gcNI%xhno3)
 
 !  NI Settling
 !  -----------
@@ -1735,13 +1711,6 @@ if(mapl_am_i_root()) print*,'NI after hetchem sum(xhno3) = ',sum(gcNI%xhno3)
    if(associated(NI_conv(1)%data2d)) NI_conv(1)%data2d = -bcnv_(:,:,nNO3an1)/area_/icdt
    if(associated(NI_conv(2)%data2d)) NI_conv(2)%data2d = -bcnv_(:,:,nNO3an2)/area_/icdt
    if(associated(NI_conv(3)%data2d)) NI_conv(3)%data2d = -bcnv_(:,:,nNO3an3)/area_/icdt
-
-
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NH3) = ',sum(w_c%qa(nNH3)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NH4a) = ',sum(w_c%qa(nNH4a)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an1) = ',sum(w_c%qa(nNO3an1)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an2) = ',sum(w_c%qa(nNO3an2)%data3d)
-if(mapl_am_i_root()) print*,'NI after hetchem sum(NO3an3) = ',sum(w_c%qa(nNO3an3)%data3d)
 
 
 !  Clean up
