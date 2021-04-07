@@ -4,7 +4,7 @@ cmake_policy (SET CMP0054 NEW)
 
 project (
         GOCART
-        VERSION 1.0.0
+        VERSION 1.0.1
         LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -28,7 +28,6 @@ set (DOING_GEOS5 YES)
 
 # Should find a better place for this - used in Chem component
 set (ACG_FLAGS -v)
-set (FV_PRECISION R4R8)
 
 if (BUILD_UFS)
 # Ensure we build as 32-bit
@@ -45,7 +44,7 @@ if (NOT COMMAND esma)
     include (esma)
 endif()
 
-    ecbuild_declare_project()
+ecbuild_declare_project()
 
 if (NOT Baselibs_FOUND)
   # Find dependencies
