@@ -6654,7 +6654,7 @@ loop2: DO l = 1,nspecies_HL
    end subroutine get_HenrysLawCts
 
 !==================================================================================
-!BOh
+!BOP
 ! !IROUTINE: NIthermo
 
    subroutine NIthermo (km, klid, cdt, grav, delp, rhoa, tmpu, rh, fMassHNO3, fMassAir, &
