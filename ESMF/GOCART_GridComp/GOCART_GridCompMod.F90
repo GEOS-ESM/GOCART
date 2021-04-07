@@ -152,11 +152,11 @@ CONTAINS
         state%chemReg = Chem_RegistryCreate(STATUS, rcfile='GOCARTdata_AerRegistry.rc')
         VERIFY_(STATUS)
     else
-       call ESMF_ConfigGetAttribute(cf, chem_registry_file, label = "Chem_Registry_File:", &
+       call ESMF_ConfigGetAttribute(cf, chem_registry_file, label="Chem_Registry_File:", &
             default = "Chem_Registry.rc", rc = status)
        VERIFY_(status)
        state%chemReg = Chem_RegistryCreate(STATUS, rcfile=chem_registry_file)
-        VERIFY_(STATUS)
+       VERIFY_(STATUS)
     end if    
 
     r => state%chemReg   ! short hand
@@ -748,6 +748,16 @@ else
         VLOCATION  = MAPL_VLocationNone,                   &
         RESTART    = MAPL_RestartSkip,    __RC__)
 
+!    FRACLAND
+!    --------
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'FRLAND',                             &
+        LONG_NAME  = 'fraction_of_land',                   &
+        UNITS      = '1',                                  &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        RESTART    = MAPL_RestartSkip,    __RC__)
+    
 !    FRACLAKE
 !    --------
      call MAPL_AddImportSpec(GC,                           &
@@ -784,6 +794,24 @@ else
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'WET1',                               &
         LONG_NAME  = 'surface_soil_wetness',               &
+        UNITS      = '1',                                  &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone, __RC__)
+
+!    Volumetric soil water content
+!    -----------------------------
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'WCSF',                               &
+        LONG_NAME  = 'water_surface_layer',                &
+        UNITS      = 'm3 m-3',                             &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone, __RC__)
+
+!    Volumetric soil water content
+!    -----------------------------
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'ASNOW',                              &
+        LONG_NAME  = 'snow_covered_fraction_of_land',      &
         UNITS      = '1',                                  &
         DIMS       = MAPL_DimsHorzOnly,                    &
         VLOCATION  = MAPL_VLocationNone, __RC__)
@@ -848,6 +876,16 @@ else
         VLOCATION  = MAPL_VLocationNone,                   &
         RESTART    = MAPL_RestartSkip,   __RC__)
 
+!    RHOS -- Surface Air density
+!    ---------------------------
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'RHOS',                               &
+        LONG_NAME  = 'air_density_at_surface',             &
+        UNITS      = 'kg m-3',                             &
+        DIMS       = MAPL_DimsHorzOnly,                    &
+        VLOCATION  = MAPL_VLocationNone,                   &
+        DEFAULT    = 1.0,                __RC__)
+ 
 !    TA -- Surface Air Temperature
 !    ----
      call MAPL_AddImportSpec(GC,                           &
@@ -1091,7 +1129,7 @@ if ( r%doing_GOCART ) then
              call ESMF_ConfigGetAttribute(CF, AEROFRIENDLY, Label='AERO_FRIENDLIES:', default=trim(FRIENDLIES), __RC__)
 
              if (index(trim(FRIENDLIES), 'MOIST') > 0)  call Disable_Convection
-          endif
+          end if
 
        end if ! data or computational GC
 
@@ -1269,36 +1307,41 @@ GOCART_COMPUTATIONAL_EXPORTS: if (.not. state%data_driven) then
 end if GOCART_COMPUTATIONAL_EXPORTS
 
 
-!   Call Legacy Set Services
-!   ----------------------
-    if (.not.state%data_driven) then
-       call Aero_GridCompSetServices ( gc, r, __RC__)
-    end if
-
-
 !!EOS
 
 !   Set the Profiling timers
 !   ------------------------
     call MAPL_TimerAdd ( GC, name = 'RUN',        __RC__ )
+    call MAPL_TimerAdd ( GC, name = '-RUN1',      __RC__ )
+    call MAPL_TimerAdd ( GC, name = '-RUN2',      __RC__ )
+
     call MAPL_TimerAdd ( GC, name = 'INITIALIZE', __RC__ )
     call MAPL_TimerAdd ( GC, name = 'FINALIZE',   __RC__ )
-    call MAPL_TimerAdd ( GC, name = 'AERO1',   __RC__ )
-    call MAPL_TimerAdd ( GC, name = 'AERO2',   __RC__ )
 
-    call MAPL_TimerAdd (GC, name = 'SS', __RC__)
-    call MAPL_TimerAdd (GC, name = 'O3', __RC__)
-    call MAPL_TimerAdd (GC, name = 'DU', __RC__)
-    call MAPL_TimerAdd (GC, name = 'BC', __RC__)
-    call MAPL_TimerAdd (GC, name = 'OC', __RC__)
-    call MAPL_TimerAdd (GC, name = 'SU', __RC__)
-    call MAPL_TimerAdd (GC, name = 'CO', __RC__)
-    call MAPL_TimerAdd (GC, name = 'CO2', __RC__)
-    call MAPL_TimerAdd (GC, name = 'NI', __RC__)
-    call MAPL_TimerAdd (GC, name = 'BRC', __RC__)
-    call MAPL_TimerAdd (GC, name = 'CH4', __RC__)
-    call MAPL_TimerAdd (GC, name = 'CFC', __RC__)
+    ! aerosols
+    call MAPL_TimerAdd ( GC, name = 'SS',  __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'DU',  __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'OC',  __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'BC',  __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'BRC', __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'SU',  __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'NI',  __RC__ )
 
+    ! trace gases
+    call MAPL_TimerAdd ( GC, name = 'CO',  __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'CO2', __RC__ )
+
+    call MAPL_TimerAdd ( GC, name = 'O3',  __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'CH4', __RC__ )
+    call MAPL_TimerAdd ( GC, name = 'CFC', __RC__ )
+
+
+!   Call Legacy Set Services
+!   ----------------------
+    if (.not.state%data_driven) then
+       call Aero_GridCompSetServices ( gc, r, __RC__)
+    end if
+    
 end if ! doing GOCART
 
 
@@ -1389,12 +1432,16 @@ end if ! doing GOCART
    character(len=ESMF_MAXSTR)      :: fld_name
    integer                         :: n_aerosols
    integer                         :: n_modes
-   integer, parameter              :: n_gocart_modes = 13
+   integer, parameter              :: n_gocart_modes = 14
    character(len=ESMF_MAXSTR)      :: aero_aci_modes(n_gocart_modes)
    character(len=ESMF_MAXSTR)      :: short_name
-   real                            :: f_aci_seasalt, maxclean, ccntuning
+
+   real                            :: f_aci_seasalt, f_aci_seasalt_default
+   real                            :: maxclean
+   real                            :: ccntuning
+
    character(LEN=ESMF_MAXSTR)      :: CLDMICRO
-     
+   
    type(MAPL_VarSpec), pointer     :: InternalSpec(:)
    integer                         :: instance
 
@@ -1412,8 +1459,9 @@ end if ! doing GOCART
 
    type(ESMF_State)           :: providerState
    character(len=ESMF_MAXSTR) :: prefix
-  
-  real(ESMF_KIND_R4),  dimension(4) :: Vect_Hcts
+
+   real(ESMF_KIND_R4), dimension(4) :: Vect_Hcts
+
 
 !  Get my name and set-up traceback handle
 !  ---------------------------------------
@@ -1616,13 +1664,12 @@ end if ! doing GOCART
 !    so annotate the convection friendly internal state
 !   Note: Move this to AddInternalSpec but first we need to have
 !         the subcomponents as bonafide ESMF components
-!-srf added Henrys law constants
 !   --------------------------------------------------------------
     do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
        call ESMF_StateGet(internal, trim(COMP_NAME)//'::'//trim(ChemReg%vname(n)), field, __RC__)
        call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=ChemReg%fscav(n), __RC__)
-       Vect_Hcts(1:4)= ChemReg%hcts(1:4,n) 
-  
+
+       Vect_Hcts(1:4)= ChemReg%hcts(1:4,n)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, __RC__)
     end do
 
@@ -1643,27 +1690,27 @@ end if ! doing GOCART
 
         short_name = ESMF_UtilStringUpperCase(trim(ChemReg%vname(n)))
 
-        if ( short_name .eq. 'DU001'    .or. &
-             short_name .eq. 'DU002'    .or. &
-             short_name .eq. 'DU003'    .or. &
-             short_name .eq. 'DU004'    .or. &
-             short_name .eq. 'DU005'    .or. &
-             short_name .eq. 'SS001'    .or. &
-             short_name .eq. 'SS002'    .or. &
-             short_name .eq. 'SS003'    .or. &
-             short_name .eq. 'SS004'    .or. &
-             short_name .eq. 'SS005'    .or. &
-             short_name .eq. 'NO3AN1'   .or. &
-             short_name .eq. 'NO3AN2'   .or. &
-             short_name .eq. 'NO3AN3'   .or. &
-             short_name .eq. 'OCPHOBIC' .or. &
-             short_name .eq. 'OCPHILIC' .or. &
+        if ( short_name .eq. 'DU001'     .or. &
+             short_name .eq. 'DU002'     .or. &
+             short_name .eq. 'DU003'     .or. &
+             short_name .eq. 'DU004'     .or. &
+             short_name .eq. 'DU005'     .or. &
+             short_name .eq. 'SS001'     .or. &
+             short_name .eq. 'SS002'     .or. &
+             short_name .eq. 'SS003'     .or. &
+             short_name .eq. 'SS004'     .or. &
+             short_name .eq. 'SS005'     .or. &
+             short_name .eq. 'NO3AN1'    .or. &
+             short_name .eq. 'NO3AN2'    .or. &
+             short_name .eq. 'NO3AN3'    .or. &
+             short_name .eq. 'OCPHOBIC'  .or. &
+             short_name .eq. 'OCPHILIC'  .or. &
              short_name .eq. 'BRCPHOBIC' .or. &
              short_name .eq. 'BRCPHILIC' .or. &
-             short_name .eq. 'BCPHOBIC' .or. &
-             short_name .eq. 'BCPHILIC' .or. &
-             short_name .eq. 'SO4'      .or. &
-             short_name .eq. 'SO4V'     )    &
+             short_name .eq. 'BCPHOBIC'  .or. &
+             short_name .eq. 'BCPHILIC'  .or. &
+             short_name .eq. 'SO4'       .or. &
+             short_name .eq. 'SO4V'     )     &
         then
            call ESMF_StateGet(INTERNAL,                     &
                               trim(COMP_NAME) // '::'//     &
@@ -1775,25 +1822,27 @@ end if ! doing GOCART
     do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
         short_name = ESMF_UtilStringUpperCase(trim(ChemReg%vname(n)))
 
-        if ( short_name .eq. 'DU001'    .or. &
-             short_name .eq. 'DU002'    .or. &
-             short_name .eq. 'DU003'    .or. &
-             short_name .eq. 'DU004'    .or. &
-             short_name .eq. 'DU005'    .or. &
-             short_name .eq. 'SS001'    .or. &
-             short_name .eq. 'SS002'    .or. &
-             short_name .eq. 'SS003'    .or. &
-             short_name .eq. 'SS004'    .or. &
-             short_name .eq. 'SS005'    .or. &
-!!           short_name .eq. 'NO3AN1'   .or. &
-!!           short_name .eq. 'NO3AN2'   .or. &
-!!           short_name .eq. 'NO3AN3'   .or. &
-             short_name .eq. 'OCPHOBIC' .or. &
-             short_name .eq. 'OCPHILIC' .or. &
-             short_name .eq. 'BCPHOBIC' .or. &
-             short_name .eq. 'BCPHILIC' .or. &
-             short_name .eq. 'SO4'      .or. &
-             short_name .eq. 'SO4V'     )    &
+        if ( short_name .eq. 'DU001'     .or. &
+             short_name .eq. 'DU002'     .or. &
+             short_name .eq. 'DU003'     .or. &
+             short_name .eq. 'DU004'     .or. &
+             short_name .eq. 'DU005'     .or. &
+             short_name .eq. 'SS001'     .or. &
+             short_name .eq. 'SS002'     .or. &
+             short_name .eq. 'SS003'     .or. &
+             short_name .eq. 'SS004'     .or. &
+             short_name .eq. 'SS005'     .or. &
+!!           short_name .eq. 'NO3AN1'    .or. &
+!!           short_name .eq. 'NO3AN2'    .or. &
+!!           short_name .eq. 'NO3AN3'    .or. &
+             short_name .eq. 'OCPHOBIC'  .or. &
+             short_name .eq. 'OCPHILIC'  .or. &
+             short_name .eq. 'BRCPHOBIC' .or. &
+             short_name .eq. 'BRCPHILIC' .or. &
+             short_name .eq. 'BCPHOBIC'  .or. &
+             short_name .eq. 'BCPHILIC'  .or. &
+             short_name .eq. 'SO4'       .or. &
+             short_name .eq. 'SO4V'     )     &
         then
             call ESMF_StateGet(INTERNAL,                     &
                                trim(COMP_NAME) // '::'//     &
@@ -1821,7 +1870,7 @@ end if ! doing GOCART
                         'du004    ', 'du005    ',              &
                         'ss001    ', 'ss002    ', 'ss003    ', &
                         'sulforg01', 'sulforg02', 'sulforg03', &
-                        'bcphilic ', 'ocphilic '/)
+                        'bcphilic ', 'ocphilic ', 'brcphilic'/)
 
     n_modes = size(aero_aci_modes)
 
@@ -1848,14 +1897,13 @@ end if ! doing GOCART
         call ESMF_AttributeSet(aero_aci, name='cldmicro', value=CLDMICRO, __RC__)
 
         ! scaling factor for sea salt
-        if(adjustl(CLDMICRO)=="2MOMENT") then
-          call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=4.0, label='SS_SCALE:', __RC__)
-          call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
+        if (adjustl(CLDMICRO)=="2MOMENT") then
+            f_aci_seasalt_default = 4.0
         else
-          ! scaling factor for sea salt
-          call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=14.0, label='SS_SCALE:', __RC__)
-          call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
-        endif
+            f_aci_seasalt_default = 14.0
+        end if
+        call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=f_aci_seasalt_default, label='SS_SCALE:', __RC__)
+        call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
 
         ! aerosol activation properties
         call ESMF_AttributeSet(aero_aci, name='width_of_aerosol_mode',        value='SIGMA',    __RC__)
@@ -2140,8 +2188,8 @@ end if ! doing GOCART
 
 #endif
 
-    call MAPL_TimerOff(ggState, 'TOTAL')
     call MAPL_TimerOff(ggState, 'INITIALIZE')
+    call MAPL_TimerOff(ggState, 'TOTAL')
 
     RETURN_(ESMF_SUCCESS)
 
@@ -2303,11 +2351,11 @@ CONTAINS
 
 !  Call pre-ESMF version: runs at the heartbeat
 !  --------------------------------------------
-   call MAPL_TimerOn(ggState,'AERO1')
+   call MAPL_TimerOn(ggState,'-RUN1')
    call Aero_GridCompRun1 ( gcChem, w_c, gc, impChem, expChem, &
                             nymd, nhms, hdt, STATUS )
    VERIFY_(STATUS)
-   call MAPL_TimerOff(ggState,'AERO1')
+   call MAPL_TimerOff(ggState,'-RUN1')
 
    deallocate(SLR,   __STAT__)
    deallocate(ZTH,   __STAT__)
@@ -2559,11 +2607,11 @@ CONTAINS
 !  ---------------------
    run_alarm = ESMF_AlarmIsRinging(ALARM, RC=STATUS)
 
-   call MAPL_TimerOn(ggState,'AERO2')
+   call MAPL_TimerOn(ggState,'-RUN2')
    call Aero_GridCompRun2 ( gcChem, w_c, gc, impChem, expChem, &
                             run_alarm, nymd, nhms, cdt, STATUS )
    VERIFY_(STATUS)
-   call MAPL_TimerOff(ggState,'AERO2')
+   call MAPL_TimerOff(ggState,'-RUN2')
 
    if (run_alarm) then
       call ESMF_AlarmRingerOff(ALARM, __RC__)
@@ -2936,7 +2984,7 @@ CONTAINS
 
 !  Call pre-ESMF version
 !  ---------------------
-   call Aero_GridCompFinalize ( gcChem, w_c, impChem, expChem, &
+   call Aero_GridCompFinalize ( gcChem, w_c, gc, impChem, expChem, &
                                 nymd, nhms, cdt, STATUS )
    VERIFY_(STATUS)
 
@@ -3347,10 +3395,11 @@ subroutine aerosol_activation_properties(state, rc)
   real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
 
   real                            :: ss_scale          ! sea salt scaling factor
-  real                            :: max_clean          ! max mixing ratio before considered polluted
-  real                            :: ccn_tuning         ! tunes conversion factors for sulfate
+  real                            :: max_clean         ! max mixing ratio before considered polluted
+  real                            :: ccn_tuning        ! tunes conversion factors for sulfate
+
   character(LEN=ESMF_MAXSTR)      :: cld_micro
-  
+
   character(len=ESMF_MAXSTR)      :: fld_name
   type(ESMF_Field)                :: fld
 
@@ -3510,6 +3559,12 @@ subroutine aerosol_activation_properties(state, rc)
       hygroscopicity = k_ORG*q_ + hygroscopicity
       density = densORG*q_ + density
 
+      call ESMF_FieldBundleGet(aerosols, 'BRCphilic', field=fld, __RC__)
+      call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+      q = q + q_
+      hygroscopicity = k_ORG*q_ + hygroscopicity
+      density = densORG*q_ + density
+
       where (q > 2.0e-12 .and. hygroscopicity > tiny(0.0))
           hygroscopicity = hygroscopicity / q
           hygroscopicity = max(0.001, hygroscopicity)
@@ -3522,11 +3577,10 @@ subroutine aerosol_activation_properties(state, rc)
       end where
 
       ! required by the aap_(...)
-      if(adjustl(cld_micro)/="2MOMENT") then ! maintained for compatibility with the single moment
-      
+      if (adjustl(cld_micro)/="2MOMENT") then ! maintained for compatibility with the single moment
+ 
        call ESMF_FieldBundleGet(aerosols, 'SO4', field=fld, __RC__)
        call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)  ! only use the mass of sulfate to make the conversion
-     
       end if 
 
   else if (index(mode_, 'bcphilic') > 0) then
@@ -3542,6 +3596,13 @@ subroutine aerosol_activation_properties(state, rc)
       q = q_
       hygroscopicity = k_OC
       density = densOC
+
+  else if (index(mode_, 'brcphilic') > 0) then !this does not activate into droplets, only relevant for ice nuc.
+      call ESMF_FieldBundleGet(aerosols, 'BRCphilic', field=fld, __RC__)
+      call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+      q = q_
+      hygroscopicity = k_BRC
+      density = densBRC
 
   else
       __raise__(UNKNOWN_AEROSOL_MODE, "Unknown aerosol mode used in the GOCART aerosol activation properties method: "//trim(mode))
@@ -3605,9 +3666,7 @@ contains
      real, dimension(3) :: TPI, DPGI, SIGI
      real, dimension(3) :: TPIclean, DPGIclean, SIGIclean
      real, dimension(i1:i2,j1:j2,km) :: qaux
-      !real, parameter    :: max_clean = 5.0e-7  !max mixing ratio before considered polluted
- 
-
+     !real, parameter    :: max_clean = 5.0e-7  !max mixing ratio before considered polluted
  
 
      mode_ = trim(mode)
@@ -3620,22 +3679,22 @@ contains
      f_soot    = 0.0
      f_organic = 0.0
 
-      if(adjustl(cld_micro)=="2MOMENT") then
+     if (adjustl(cld_micro)=="2MOMENT") then
         qaux=q !this corrects a bug
-      else
+     else
         qaux  =  q_ !keep it to get zero diff with the single moment
         max_clean = 5.0e-7
         ccn_tuning = 1.0
-      end if
+     end if
 
 
      if (index(mode_, 'ss00') > 0) then
-       if(adjustl(cld_micro)=="2MOMENT") then
+       if (adjustl(cld_micro)=="2MOMENT") then
          TPI  (1) = 230e6          ! num fraction (reduced 091015)        
        else       
          TPI  (1) = 100e6          ! num fraction (reduced 091015)                   
        end if
-     
+
          DPGI (1) = 0.02e-6        ! modal diameter (m)
          SIGI (1) = log(1.6)       ! geometric dispersion (sigma_g)
          ! accumulation
@@ -3785,6 +3844,13 @@ contains
          f_organic = 1.0
          diameter  = 0.0212*2.0e-6
          num = q / ((MAPL_PI/6.0) * densOrg * diameter*diameter*diameter * exp(4.5*sigma*sigma))
+
+     case ('brcphilic')
+         sigma     = log(2.2)
+         f_organic = 1.0
+         diameter  = 0.0212*2.0e-6
+         num = q / ((MAPL_PI/6.0) * densOrg * diameter*diameter*diameter * exp(4.5*sigma*sigma))
+
 
      case default
          __raise__(UNKNOWN_AEROSOL_MODE,"Unknown aerosol mode used in the GOCART aerosol activation properties method: "//trim(mode))

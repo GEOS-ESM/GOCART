@@ -172,7 +172,27 @@ CONTAINS
       VERIFY_(STATUS)
    end do
 
+!  Set profiling timers
+!  --------------------
+   call MAPL_TimerAdd(GC, name = '-BC_TOTAL',           __RC__)
+   call MAPL_TimerAdd(GC, name = '-BC_RUN',             __RC__)
+   call MAPL_TimerAdd(GC, name = '-BC_INITIALIZE',      __RC__)
+   call MAPL_TimerAdd(GC, name = '-BC_FINALIZE',        __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-BC_RUN1',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--BC_EMISSIONS',      __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-BC_RUN2',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--BC_SETTLING',       __RC__)
+   call MAPL_TimerAdd(GC, name = '--BC_DRY_DEPOSITION', __RC__)
+   call MAPL_TimerAdd(GC, name = '--BC_WET_LS',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--BC_WET_CV',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--BC_DIAGNOSTICS',    __RC__)
+
+!  All done
+!  --------
    RETURN_(ESMF_SUCCESS)
+
    end subroutine BC_GridCompSetServices
 
 
@@ -186,7 +206,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BC_GridCompInitialize ( gcBC, w_c, impChem, expChem, &
+   subroutine BC_GridCompInitialize ( gcBC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -204,6 +224,7 @@ CONTAINS
    type(BC_GridComp), intent(inout) :: gcBC     ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -222,6 +243,9 @@ CONTAINS
    CHARACTER(LEN=255) :: name
    
    integer :: i, ier, n
+
+   call MAPL_TimerOn(ggState, '-BC_TOTAL')
+   call MAPL_TimerOn(ggState, '-BC_INITIALIZE')
 
 !  Load resource file
 !  ------------------
@@ -303,7 +327,7 @@ CONTAINS
        PRINT *,myname,": Initializing instance ",TRIM(gcBC%gcs(i)%iname)," [",gcBC%gcs(i)%instance,"]"
       END IF
       call BC_SingleInstance_ ( BC_GridCompInitialize1_, i, &
-                                gcBC%gcs(i), w_c, impChem, expChem,  &
+                                gcBC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = 1000+ier
@@ -320,6 +344,8 @@ CONTAINS
     rc = 40
    END IF
 
+   call MAPL_TimerOff(ggState, '-BC_INITIALIZE')
+   call MAPL_TimerOff(ggState, '-BC_TOTAL')
 
  end subroutine BC_GridCompInitialize
 
@@ -333,7 +359,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BC_GridCompRun1 ( gcBC, w_c, impChem, expChem, &
+   subroutine BC_GridCompRun1 ( gcBC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -352,6 +378,7 @@ CONTAINS
    TYPE(BC_GridComp), INTENT(INOUT) :: gcBC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -368,15 +395,21 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-BC_TOTAL')
+   call MAPL_TimerOn(ggState, '-BC_RUN')
+
    do i = 1, gcBC%n
       call BC_SingleInstance_ ( BC_GridCompRun1_, i, &
-                                gcBC%gcs(i), w_c, impChem, expChem, &
+                                gcBC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-BC_RUN')
+   call MAPL_TimerOff(ggState, '-BC_TOTAL')
 
  end subroutine BC_GridCompRun1
 
@@ -391,7 +424,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BC_GridCompRun2 ( gcBC, w_c, impChem, expChem, &
+   subroutine BC_GridCompRun2 ( gcBC, w_c, impChem, expChem, ggState, &
                                       run_alarm, nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -411,6 +444,7 @@ CONTAINS
    TYPE(BC_GridComp), INTENT(INOUT) :: gcBC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -427,17 +461,23 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-BC_TOTAL')
+   call MAPL_TimerOn(ggState, '-BC_RUN')
+
    do i = 1, gcBC%n
       gcBC%gcs(i)%run_alarm = run_alarm
 
       call BC_SingleInstance_ ( BC_GridCompRun2_, i, &
-                                gcBC%gcs(i), w_c, impChem, expChem, &
+                                gcBC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-BC_TOTAL')
+   call MAPL_TimerOff(ggState, '-BC_RUN')
 
  end subroutine BC_GridCompRun2
 
@@ -453,7 +493,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BC_GridCompFinalize ( gcBC, w_c, impChem, expChem, &
+   subroutine BC_GridCompFinalize ( gcBC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -472,6 +512,7 @@ CONTAINS
    TYPE(BC_GridComp), INTENT(INOUT) :: gcBC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -488,9 +529,12 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-BC_TOTAL')
+   call MAPL_TimerOn(ggState, '-BC_FINALIZE')
+
    do i = 1, gcBC%n
       call BC_SingleInstance_ ( BC_GridCompFinalize1_, i, &
-                                gcBC%gcs(i), w_c, impChem, expChem, &
+                                gcBC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
@@ -500,6 +544,9 @@ CONTAINS
 
    if (associated(gcBC%gcs)) deallocate ( gcBC%gcs, stat=ier )
    gcBC%n = -1
+
+   call MAPL_TimerOff(ggState, '-BC_FINALIZE')
+   call MAPL_TimerOff(ggState, '-BC_TOTAL')
 
  end subroutine BC_GridCompFinalize
 
@@ -680,7 +727,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BC_GridCompInitialize1_ ( gcBC, w_c, impChem, expChem, &
+   subroutine BC_GridCompInitialize1_ ( gcBC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -698,6 +745,7 @@ CONTAINS
    type(BC_GridComp1), intent(inout) :: gcBC    ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -1024,7 +1072,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BC_GridCompRun1_ ( gcBC, w_c, impChem, expChem, &
+   subroutine BC_GridCompRun1_ ( gcBC, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1034,7 +1082,8 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(BC_GridComp1), intent(inout) :: gcBC   ! Grid Component
-   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -1071,7 +1120,7 @@ CONTAINS
 !  Input fields from fvGCM
 !  -----------------------
    real, pointer, dimension(:,:)   :: pblh
-   real, pointer, dimension(:,:,:) :: tmpu, rhoa, ple
+   real, pointer, dimension(:,:,:) :: tmpu, rhoa, ple, hghte
 
 !  Workspace for NEI emissions
 !  ---------------------------
@@ -1097,6 +1146,8 @@ CONTAINS
 
 #include "BC_GetPointer___.h"
 
+
+   call MAPL_TimerOn(ggState, '-BC_RUN1')
 
 !  Initialize local variables
 !  --------------------------
@@ -1128,6 +1179,7 @@ CONTAINS
 
 ! Update emissions/production if necessary (daily)
 !  -----------------------------------------------
+    call MAPL_TimerOn(ggState, '--BC_EMISSIONS')
 
 !   Biomass Burning -- select on known inventories
 !   ----------------------------------------------
@@ -1269,6 +1321,7 @@ CONTAINS
    call MAPL_GetPointer ( impChem, tmpu,     'T',        __RC__ )
    call MAPL_GetPointer ( impChem, rhoa,     'AIRDENS',  __RC__ )
    call MAPL_GetPointer ( impChem, ple,      'PLE',      __RC__ )
+   call MAPL_GetPointer ( impChem, hghte,    'ZLE',      __RC__ )
 
 
 
@@ -1284,7 +1337,7 @@ CONTAINS
 !  BC Source
 !  -----------
    call BC_Emission ( i1, i2, j1, j2, km, nbins, cdt, gcBC, w_c, &
-                      pblh, tmpu, rhoa, BC_emis, &
+                      pblh, tmpu, rhoa, hghte, BC_emis, &
                       BC_emisAN, BC_emisBB, BC_emisBF, rc )
 
 #ifdef DEBUG
@@ -1294,6 +1347,12 @@ CONTAINS
    end do
 #endif
 
+   call MAPL_TimerOff(ggState, '--BC_EMISSIONS')
+   
+   call MAPL_TimerOff(ggState, '-BC_RUN1')
+
+!  All done
+!  --------
    return
 
 CONTAINS
@@ -1316,7 +1375,7 @@ CONTAINS
 !
 
    subroutine BC_Emission ( i1, i2, j1, j2, km, nbins, cdt, gcBC, w_c, &
-                            pblh, tmpu, rhoa, BC_emis, &
+                            pblh, tmpu, rhoa, hghte, BC_emis, &
                             BC_emisAN, BC_emisBB, BC_emisBF, rc )
 
 ! !USES:
@@ -1331,6 +1390,7 @@ CONTAINS
    real, pointer, dimension(:,:)    :: pblh
    real, pointer, dimension(:,:,:)  :: tmpu
    real, pointer, dimension(:,:,:)  :: rhoa
+   real, pointer, dimension(:,:,:)  :: hghte
 
 ! !OUTPUT PARAMETERS:
 
@@ -1521,6 +1581,7 @@ K_LOOP: do k = km, 1, -1
      end do ! i
     end do  ! j
 
+#if (0)
 !   Determine global max/min
 !   ------------------------
     call pmaxmin ( 'BC: Phobic ', srcHydrophobic, qmin, qmax, ijl, 1, 0. )
@@ -1531,6 +1592,7 @@ K_LOOP: do k = km, 1, -1
 !   If emissions are zero at this level (globally), we are done
 !   -----------------------------------------------------------
     if ( maxAll .eq. 0.0 ) exit K_LOOP
+#endif
 
 !   Update concentrations at this layer
 !   The "1" element is hydrophobic 
@@ -1589,9 +1651,9 @@ K_LOOP: do k = km, 1, -1
 !     --------------------------------------------
       if(nhms < gcBC%vStart(ii) .or. nhms >= gcBC%vEnd(ii)) cycle
 
-      call distribute_point_emissions(w_c%delp(i,j,:), rhoa(i,j,:), &
-                                      gcBC%vBase(ii), gcBC%vTop(ii), gcBC%vEmis(ii), &
-                                      point_column_emissions, km)
+      call Chem_UtilDistributePointEmissions(hghte(i,j,:), &
+                                             gcBC%vBase(ii), gcBC%vTop(ii), gcBC%vEmis(ii), &
+                                             point_column_emissions, km)
       w_c%qa(n1)%data3d(i,j,:) = w_c%qa(n1)%data3d(i,j,:) & 
          + gcBC%fHydrophobic * cdt * grav / w_c%delp(i,j,:) &
                              * point_column_emissions / w_c%grid%cell_area(i,j)
@@ -1688,84 +1750,6 @@ K_LOOP: do k = km, 1, -1
 
    end subroutine distribute_aviation_emissions
 
-
-!  Abstracted from distribute_aviation_emissions above, but called per column
-   subroutine distribute_point_emissions(delp, rhoa, z_bot, z_top, emissions_point, &
-                                         emissions, km)
-
-    implicit none
-
-    integer, intent(in) :: km
-
-    real, dimension(:), intent(in) :: delp
-    real, dimension(:), intent(in) :: rhoa
-    real,               intent(in) :: emissions_point
-    real, intent(in)                   :: z_bot
-    real, intent(in)                   :: z_top
-    real, dimension(:), intent(out):: emissions
-    
-!   local
-    integer :: k
-    integer :: k_bot, k_top
-    real    :: z_
-    real, dimension(km) :: z, dz, w_
-    
-!   find level height
-    z = 0.0
-    z_= 0.0 
-
-    do k = km, 1, -1
-       dz(k) = delp(k)/rhoa(k)/grav
-       z_    = z_ + dz(k)
-       z(k)  = z_
-    end do
-
-!   find the bottom level
-    do k = km, 1, -1
-       if (z(k) >= z_bot) then
-           k_bot = k
-           exit
-       end if
-    end do
-            
-!   find the top level
-    do k = k_bot, 1, -1
-       if (z(k) >= z_top) then
-           k_top = k
-           exit
-       end if
-    end do
-
-!   find the weights
-    w_ = 0
-
-!   if (k_top > k_bot) then
-!       need to bail - something went wrong here
-!   end if
-
-    if (k_bot .eq. k_top) then
-        w_(k_bot) = z_top - z_bot
-    else
-     do k = k_bot, k_top, -1
-        if ((k < k_bot) .and. (k > k_top)) then
-             w_(k) = dz(k)
-        else
-             if (k == k_bot) then
-                 w_(k) = (z(k) - z_bot)
-             end if
-
-             if (k == k_top) then
-                 w_(k) = z_top - (z(k)-dz(k))
-             end if
-        end if
-     end do
-    end if
-           
-!   distribute emissions in the vertical 
-    emissions(:) = (w_ / sum(w_)) * emissions_point
-
-    end subroutine distribute_point_emissions
-
  end subroutine BC_GridCompRun1_
 
 
@@ -1779,7 +1763,7 @@ K_LOOP: do k = km, 1, -1
 ! !INTERFACE:
 !
 
-   subroutine BC_GridCompRun2_ ( gcBC, w_c, impChem, expChem, &
+   subroutine BC_GridCompRun2_ ( gcBC, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1789,7 +1773,8 @@ K_LOOP: do k = km, 1, -1
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(BC_GridComp1), intent(inout) :: gcBC   ! Grid Component
-   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -1883,6 +1868,8 @@ K_LOOP: do k = km, 1, -1
 
 #include "BC_GetPointer___.h"
 
+
+   call MAPL_TimerOn(ggState, '-BC_RUN2')
 
 !  Initialize local variables
 !  --------------------------
@@ -2009,6 +1996,8 @@ RUN_ALARM: if (gcBC%run_alarm) then
 
 !  BC Settling
 !  -----------
+   call MAPL_TimerOn(ggState, '--BC_SETTLING')
+
    allocate( BC_radius(nbins), BC_rhop(nbins) )
    BC_radius(:) = 0.35e-6  ! radius for settling [m]
    BC_rhop(:)   = 1800.    ! density for setting [kg m-3]
@@ -2018,8 +2007,12 @@ RUN_ALARM: if (gcBC%run_alarm) then
                         hghte, BC_set, rc )
    deallocate( BC_radius, BC_rhop)
 
+   call MAPL_TimerOff(ggState, '--BC_SETTLING')
+
 !  BC Deposition
 !  -----------
+   call MAPL_TimerOn(ggState, '--BC_DRY_DEPOSITION')
+
    drydepositionfrequency = 0.
    call DryDepositionGOCART( i1, i2, j1, j2, km, &
                              tmpu, rhoa, hghte, oro, ustar, &
@@ -2034,6 +2027,9 @@ RUN_ALARM: if (gcBC%run_alarm) then
      BC_dep(n)%data2d = dqa*w_c%delp(:,:,km)/grav/cdt
    end do
 
+
+   call MAPL_TimerOff(ggState, '--BC_DRY_DEPOSITION')
+
 #ifdef DEBUG
    do n = n1, n2
       call pmaxmin('BC: q_dry', w_c%qa(n)%data3d(i1:i2,j1:j2,1:km), qmin, qmax, &
@@ -2044,6 +2040,8 @@ RUN_ALARM: if (gcBC%run_alarm) then
 
 !  BC Large-scale Wet Removal
 !  --------------------------
+   call MAPL_TimerOn(ggState, '--BC_WET_LS')
+
 !  Hydrophobic mode (first tracer) is not removed
    if(associated(BC_wet(1)%data2d)) BC_wet(1)%data2d = 0.
 !  Hydrophilic mode (second tracer) is removed
@@ -2056,6 +2054,8 @@ RUN_ALARM: if (gcBC%run_alarm) then
     if(associated(BC_wet(n)%data2d)) BC_wet(n)%data2d = fluxout%data2d
    end do
 
+   call MAPL_TimerOff(ggState, '--BC_WET_LS')
+
 #ifdef DEBUG
    do n = n1, n2
       call pmaxmin('BC: q_wet', w_c%qa(n)%data3d(i1:i2,j1:j2,1:km), qmin, qmax, &
@@ -2065,6 +2065,8 @@ RUN_ALARM: if (gcBC%run_alarm) then
 
 !  Black Carbon Convective-scale Mixing and Wet Removal
 !  ----------------------------------------------------
+   call MAPL_TimerOn(ggState, '--BC_WET_CV')
+
    KIN = .TRUE.
    icdt = cdt
    allocate(cmfmc_(i1:i2,j1:j2,km+1), qccu_(i1:i2,j1:j2,km), &
@@ -2125,16 +2127,24 @@ RUN_ALARM: if (gcBC%run_alarm) then
    deallocate(fluxout%data2d)
    deallocate(fluxout, dqa, drydepositionfrequency, stat=ios )
 
+   call MAPL_TimerOff(ggState, '--BC_WET_CV')
+
    end if RUN_ALARM
 
 !  Compute the desired output diagnostics here
 !  Ideally this will go where chemout is called in fvgcm.F since that
 !  will reflect the distributions after transport, etc.
 !  ------------------------------------------------------------------
+   call MAPL_TimerOn(ggState, '--BC_DIAGNOSTICS')
+
    call BC_Compute_Diags(i1, i2, j1, j2, km, nbins, gcBC, w_c, tmpu, rhoa, u, v, &
                          BC_sfcmass, BC_colmass, BC_mass, BC_exttau, &
                          BC_scatau, BC_conc, BC_extcoef, BC_scacoef, BC_angstrom, &
                          BC_fluxu, BC_fluxv, rc)
+
+   call MAPL_TimerOff(ggState, '--BC_DIAGNOSTICS')
+
+   call MAPL_TimerOff(ggState, '-BC_RUN2')
 
    return
 
@@ -2425,7 +2435,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BC_GridCompFinalize1_ ( gcBC, w_c, impChem, expChem, &
+   subroutine BC_GridCompFinalize1_ ( gcBC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -2447,6 +2457,7 @@ CONTAINS
 
    type(ESMF_State), intent(inout) :: impChem   ! Import State
    type(ESMF_State), intent(inout) :: expChem   ! Import State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 -
@@ -2494,7 +2505,7 @@ CONTAINS
 ! !INTERFACE:
 !
   subroutine BC_SingleInstance_ ( Method_, instance, &
-                                  gcBC, w_c, impChem, expChem, &
+                                  gcBC, w_c, impChem, expChem, ggState, &
                                   nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -2511,7 +2522,7 @@ CONTAINS
 !  Input "function pointer"
 !  -----------------------
    interface 
-     subroutine Method_ (gc, w, imp, exp, ymd, hms, dt, rcode )
+     subroutine Method_ (gc, w, imp, exp, state, ymd, hms, dt, rcode )
        Use BC_GridCompMod
        Use ESMF
        Use MAPL
@@ -2520,6 +2531,7 @@ CONTAINS
        type(Chem_Bundle),   intent(in)     :: w
        type(ESMF_State),    intent(inout)  :: imp
        type(ESMF_State),    intent(inout)  :: exp
+       type(MAPL_MetaComp), intent(inout)  :: state
        integer,             intent(in)     :: ymd, hms
        real,                intent(in)     :: dt
        integer,             intent(out)    :: rcode
@@ -2538,6 +2550,7 @@ CONTAINS
    TYPE(BC_GridComp1), INTENT(INOUT) :: gcBC    ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), intent(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -2576,7 +2589,7 @@ CONTAINS
   
 ! Execute the instance method
 ! ---------------------------
-  call Method_ ( gcBC, w_c, impChem, expChem, &
+  call Method_ ( gcBC, w_c, impChem, expChem, ggState, &
                  nymd, nhms, cdt, rc )
 
 ! Restore the overall BC indices

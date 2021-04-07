@@ -4,11 +4,11 @@ PrimaryExports%%
 #  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
 # Biomass burning -- QFED-v2.x
-SU_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
+SU_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
 
 # Anthropogenic (BF & FF) emissions -- allowed to input as two layers
-SU_ANTHROL1 NA  Y Y %y4-%m2-%d2t12:00:00 none none sanl1 ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_so2.surface.x3600_y1800_t12.2010.nc4
-SU_ANTHROL2 NA  Y Y %y4-%m2-%d2t12:00:00 none none sanl2 ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_so2.elevated.x3600_y1800_t12.2010.nc4
+SU_ANTHROL1 NA  N Y %y4-%m2-%d2t12:00:00 none none sanl1 ExtData/PIESA/sfc/HTAP_OMI_SO2/htapv2.2.emisso2.surface.x3600y1800t14.%y4.integrate.nc4
+SU_ANTHROL2 NA  N Y %y4-%m2-%d2t12:00:00 none none sanl2 ExtData/PIESA/sfc/HTAP_OMI_SO2/htapv2.2.emisso2.elevated.x3600y1800t14.%y4.integrate.nc4
 
 # Ship emissions
 SU_SHIPSO2 NA  Y Y %y4-%m2-%d2t12:00:00 none none so2_ship ExtData/PIESA/sfc/HTAP/v2.2/htap-v2.2.emis_so2.ships.x3600_y1800_t12.2010.nc4

@@ -4,10 +4,7 @@ PrimaryExports%%
 #  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
 # Biomass burning -- QFED-v2.x
-OC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
-
-# Terpene emission
-OC_TERPENE NA  Y Y %y4-%m2-%d2t12:00:00 none none terpene ExtData/PIESA/sfc/geia.terpene_biogenic.x144_y91_t12.1971.nc
+OC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass /dev/null
 
 # Biofuel Source -- Included in AeroCom anthropogenic emissions
 OC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null

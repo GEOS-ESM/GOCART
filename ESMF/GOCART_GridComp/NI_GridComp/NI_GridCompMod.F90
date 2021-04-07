@@ -83,8 +83,8 @@
 !   4) Loss processes via dry deposition, sedimentation, and convective
 !      and wet removal
 !
-!  Parameters
-   real*8, parameter :: gamma_seasalt = 0.2
+
+
 !EOP
 !-------------------------------------------------------------------------
 
@@ -197,7 +197,32 @@ CONTAINS
         RC         = STATUS)
    VERIFY_(STATUS)
 
+
+!  Set profiling timers
+!  --------------------
+   call MAPL_TimerAdd(GC, name = '-NI_TOTAL',           __RC__)
+   call MAPL_TimerAdd(GC, name = '-NI_RUN',             __RC__)
+   call MAPL_TimerAdd(GC, name = '-NI_INITIALIZE',      __RC__)
+   call MAPL_TimerAdd(GC, name = '-NI_FINALIZE',        __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-NI_RUN1',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--NI_EMISSIONS',      __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-NI_RUN2',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--NI_THERMODYNAMICS', __RC__)
+   call MAPL_TimerAdd(GC, name = '--NI_HETCHEMISTRY',   __RC__)
+   call MAPL_TimerAdd(GC, name = '---NI_HETCHEM_DUST',  __RC__)
+   call MAPL_TimerAdd(GC, name = '---NI_HETCHEM_SALT',  __RC__)
+   call MAPL_TimerAdd(GC, name = '--NI_SETTLING',       __RC__)
+   call MAPL_TimerAdd(GC, name = '--NI_DRY_DEPOSITION', __RC__)
+   call MAPL_TimerAdd(GC, name = '--NI_WET_LS',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--NI_WET_CV',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--NI_DIAGNOSTICS',    __RC__)
+
+!  All done
+!  --------
    RETURN_(ESMF_SUCCESS)
+
  end subroutine NI_GridCompSetServices
 
 
@@ -211,7 +236,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine NI_GridCompInitialize ( gcNI, w_c, impChem, expChem, &
+   subroutine NI_GridCompInitialize ( gcNI, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -229,6 +254,7 @@ CONTAINS
    type(NI_GridComp), intent(inout) :: gcNI     ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -248,6 +274,9 @@ CONTAINS
    CHARACTER(LEN=255) :: name
    
    integer i, ier, n,i_
+
+   call MAPL_TimerOn(ggState, '-NI_TOTAL')
+   call MAPL_TimerOn(ggState, '-NI_INITIALIZE')
 
 !  Load resource file
 !  ------------------
@@ -315,7 +344,7 @@ CONTAINS
       ELSE
        gcNI%gcs(i)%iname = TRIM(name)       ! instance name for others
       END IF
-   end do    
+   end do
 
 !  Next initialize each instance
 !  -----------------------------
@@ -325,7 +354,7 @@ CONTAINS
        PRINT *,myname,": Initializing instance ",TRIM(gcNI%gcs(i)%iname)," [",gcNI%gcs(i)%instance,"]"
       END IF
       call NI_SingleInstance_ ( NI_GridCompInitialize1_, i, &
-                                gcNI%gcs(i), w_c, impChem, expChem,  &
+                                gcNI%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = 1000+ier
@@ -355,6 +384,8 @@ CONTAINS
     rc = 40
    END IF
 
+   call MAPL_TimerOff(ggState, '-NI_INITIALIZE')
+   call MAPL_TimerOff(ggState, '-NI_TOTAL')
 
  end subroutine NI_GridCompInitialize
 
@@ -368,7 +399,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine NI_GridCompRun1 ( gcNI, w_c, impChem, expChem, &
+   subroutine NI_GridCompRun1 ( gcNI, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -387,6 +418,7 @@ CONTAINS
    TYPE(NI_GridComp), INTENT(INOUT) :: gcNI     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -403,15 +435,21 @@ CONTAINS
 
    integer i, ier
 
+   call MAPL_TimerOn(ggState, '-NI_TOTAL')
+   call MAPL_TimerOn(ggState, '-NI_RUN')
+
    do i = 1, gcNI%n
       call NI_SingleInstance_ ( NI_GridCompRun1_, i, &
-                                gcNI%gcs(i), w_c, impChem, expChem, &
+                                gcNI%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-NI_RUN')
+   call MAPL_TimerOff(ggState, '-NI_TOTAL')
 
  end subroutine NI_GridCompRun1
 
@@ -427,7 +465,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine NI_GridCompRun2 ( gcNI, w_c, impChem, expChem, &
+   subroutine NI_GridCompRun2 ( gcNI, w_c, impChem, expChem, ggState, &
                                 run_alarm, nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -447,6 +485,7 @@ CONTAINS
    TYPE(NI_GridComp), INTENT(INOUT) :: gcNI     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -463,17 +502,23 @@ CONTAINS
 
    integer i, ier
 
+   call MAPL_TimerOn(ggState, '-NI_TOTAL')
+   call MAPL_TimerOn(ggState, '-NI_RUN')
+
    do i = 1, gcNI%n
       gcNI%gcs(i)%run_alarm = run_alarm
 
       call NI_SingleInstance_ ( NI_GridCompRun2_, i, &
-                                gcNI%gcs(i), w_c, impChem, expChem, &
+                                gcNI%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-NI_RUN')
+   call MAPL_TimerOff(ggState, '-NI_TOTAL')
 
  end subroutine NI_GridCompRun2
 
@@ -488,7 +533,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine NI_GridCompFinalize ( gcNI, w_c, impChem, expChem, &
+   subroutine NI_GridCompFinalize ( gcNI, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -507,6 +552,7 @@ CONTAINS
    TYPE(NI_GridComp), INTENT(INOUT) :: gcNI     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -523,9 +569,12 @@ CONTAINS
 
    integer i, ier
 
+   call MAPL_TimerOn(ggState, '-NI_TOTAL')
+   call MAPL_TimerOn(ggState, '-NI_FINALIZE')
+
    do i = 1, gcNI%n
       call NI_SingleInstance_ ( NI_GridCompFinalize1_, i, &
-                                gcNI%gcs(i), w_c, impChem, expChem, &
+                                gcNI%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
@@ -535,6 +584,9 @@ CONTAINS
 
    deallocate ( gcNI%gcs, stat=ier )    
    gcNI%n = -1
+
+   call MAPL_TimerOff(ggState, '-NI_FINALIZE')
+   call MAPL_TimerOff(ggState, '-NI_TOTAL')
 
  end subroutine NI_GridCompFinalize
 
@@ -656,7 +708,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine NI_GridCompInitialize1_ ( gcNI, w_c, impChem, expChem, &
+   subroutine NI_GridCompInitialize1_ ( gcNI, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -674,6 +726,7 @@ CONTAINS
    type(NI_GridComp1), intent(inout) :: gcNI    ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -688,7 +741,7 @@ CONTAINS
 !EOP
 !-------------------------------------------------------------------------
 
-   character(len=*), parameter :: myname = 'NI_GridCompInitialize1'
+   character(len=*), parameter :: Iam = 'NI_GridCompInitialize1'
 
 
    character(len=255) :: rcfilen
@@ -853,10 +906,10 @@ CONTAINS
 
    IF(MAPL_AM_I_ROOT()) THEN
     IF(NoRegionalConstraint) THEN
-     PRINT *,myname,": This instantiation has no regional constraints."
+     PRINT *, Iam, ": This instantiation has no regional constraints."
     ELSE
-     PRINT *,myname,": This instantiation is regionally constrained."
-     PRINT *,myname,": List of region numbers included: ",TRIM(gcNI%regionsString)
+     PRINT *, Iam, ": This instantiation is regionally constrained."
+     PRINT *, Iam, ": List of region numbers included: ",TRIM(gcNI%regionsString)
     END IF
    END IF
 
@@ -901,7 +954,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine NI_GridCompRun1_ ( gcNI, w_c, impChem, expChem, &
+   subroutine NI_GridCompRun1_ ( gcNI, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -911,7 +964,8 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(NI_GridComp1), intent(inout) :: gcNI   ! Grid Component
-   type(Chem_Bundle), intent(inout)  :: w_c    ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout)  :: w_c    ! Chemical tracer fields
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -941,7 +995,7 @@ CONTAINS
    character(len=*), parameter :: myname = 'NI_GridCompRun1_'
    character(len=*), parameter :: Iam = myname
 
-   integer :: i1, i2, im, j1, j2, jm, nbins, n1, n2, km
+   integer :: i1, i2, im, j1, j2, jm, nbins, n1, n2, n, km
    integer :: ijl, ijkl, ijk1l
    real :: qmax, qmin
 
@@ -957,6 +1011,8 @@ CONTAINS
 !  Tracer assignments (local)
    integer :: nNH3, nNH4a, nNO3an1, nNO3an2, nNO3an3
 
+   real, allocatable, dimension(:,:) :: emi_surface
+
 
 #define EXPORT        expChem
 #define iNAME         TRIM(gcNI%iname)
@@ -969,6 +1025,7 @@ CONTAINS
 
 #include "NI_GetPointer___.h"
 
+   call MAPL_TimerOn(ggState, '-NI_RUN1')
 
 !  Initialize local variables
 !  --------------------------
@@ -1003,6 +1060,8 @@ CONTAINS
 #endif
 
 
+   call MAPL_TimerOn(ggState, '--NI_EMISSIONS')
+
 !  Emissions
 !  ---------
    call MAPL_GetPointer ( impChem, emi_nh3_bb, 'EMI_NH3_BB'//iNAME, __RC__ )
@@ -1016,38 +1075,22 @@ CONTAINS
 
 !  NH3 Emissions
 !  -------------
-   if(associated(NH3_emis%data2d)) then 
-    NH3_emis%data2d = 0.
-    if(associated(emi_nh3_bb)) NH3_emis%data2d = NH3_emis%data2d + emi_nh3_bb
-    if(associated(emi_nh3_ag)) NH3_emis%data2d = NH3_emis%data2d + emi_nh3_ag
-    if(associated(emi_nh3_en)) NH3_emis%data2d = NH3_emis%data2d + emi_nh3_en
-    if(associated(emi_nh3_tr)) NH3_emis%data2d = NH3_emis%data2d + emi_nh3_tr
-    if(associated(emi_nh3_re)) NH3_emis%data2d = NH3_emis%data2d + emi_nh3_re
-    if(associated(emi_nh3_in)) NH3_emis%data2d = NH3_emis%data2d + emi_nh3_in
-    if(associated(emi_nh3_oc)) NH3_emis%data2d = NH3_emis%data2d + emi_nh3_oc
-   endif
+   allocate(emi_surface(i1:i2, j1:j2), __STAT__)
 
-   if(associated(emi_nh3_bb)) &
-    w_c%qa(nNH3)%data3d(:,:,km) = w_c%qa(nNH3)%data3d(:,:,km) &
-                                + cdt * grav / w_c%delp(:,:,km) * emi_nh3_bb
-   if(associated(emi_nh3_ag)) &
-    w_c%qa(nNH3)%data3d(:,:,km) = w_c%qa(nNH3)%data3d(:,:,km) &
-                                + cdt * grav / w_c%delp(:,:,km) * emi_nh3_ag
-   if(associated(emi_nh3_en)) &
-    w_c%qa(nNH3)%data3d(:,:,km) = w_c%qa(nNH3)%data3d(:,:,km) &
-                                + cdt * grav / w_c%delp(:,:,km) * emi_nh3_en
-   if(associated(emi_nh3_in)) &
-    w_c%qa(nNH3)%data3d(:,:,km) = w_c%qa(nNH3)%data3d(:,:,km) &
-                                + cdt * grav / w_c%delp(:,:,km) * emi_nh3_in
-   if(associated(emi_nh3_re)) &
-    w_c%qa(nNH3)%data3d(:,:,km) = w_c%qa(nNH3)%data3d(:,:,km) &
-                                + cdt * grav / w_c%delp(:,:,km) * emi_nh3_re
-   if(associated(emi_nh3_tr)) &
-    w_c%qa(nNH3)%data3d(:,:,km) = w_c%qa(nNH3)%data3d(:,:,km) &
-                                + cdt * grav / w_c%delp(:,:,km) * emi_nh3_tr
-   if(associated(emi_nh3_oc)) &
-    w_c%qa(nNH3)%data3d(:,:,km) = w_c%qa(nNH3)%data3d(:,:,km) &
-                                + cdt * grav / w_c%delp(:,:,km) * emi_nh3_oc
+   emi_surface = ( emi_nh3_bb + emi_nh3_ag + emi_nh3_en + &
+                   emi_nh3_tr + emi_nh3_re + emi_nh3_in + &
+                   emi_nh3_oc )
+
+   w_c%qa(nNH3)%data3d(:,:,km) = w_c%qa(nNH3)%data3d(:,:,km) &
+                                + cdt * grav / w_c%delp(:,:,km) * emi_surface(:,:)
+
+   if(associated(NH3_emis%data2d)) NH3_emis%data2d = emi_surface
+
+   deallocate(emi_surface, __STAT__)
+
+   call MAPL_TimerOff(ggState, '--NI_EMISSIONS')
+
+   call MAPL_TimerOff(ggState, '-NI_RUN1')
 
    return
 
@@ -1065,7 +1108,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine NI_GridCompRun2_ ( gcNI, w_c, impChem, expChem, &
+   subroutine NI_GridCompRun2_ ( gcNI, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1075,7 +1118,8 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(NI_GridComp1), intent(inout) :: gcNI   ! Grid Component
-   type(Chem_Bundle), intent(inout)  :: w_c    ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout)  :: w_c    ! Chemical tracer fields
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -1142,14 +1186,20 @@ CONTAINS
    integer :: nNH3, nNH4a, nNO3an1, nNO3an2, nNO3an3, nSO4, na
 
 !  variables for call to RPMARES
-   real   :: fmmr_to_conc
+   real :: fmmr_to_conc, fconc_to_mmr, f_dz
    real*8 :: SO4, GNO3, GNH3, RH, TEMP, ASO4, AHSO4, AH2O, ANO3, ANH4
+   real*8, parameter :: small_ = 1d-32
+
+!  buffers for 2D diagnostics
+   real, dimension(:,:), allocatable :: NI_pno3aq_
+   real, dimension(:,:), allocatable :: NI_pnh4aq_
+   real, dimension(:,:), allocatable :: NI_pnh3aq_
 
 !  variables for call to heterogeneous chemistry
-   real*8 :: kan1, kan2, kan3, sad, ad, rad, deltahno3
+   real, dimension(:,:,:), allocatable :: kan1, kan2, kan3, kan
+   real, dimension(:,:,:), allocatable :: deltahno3
+   character(len=255) :: vname
 
-   character(len=5), allocatable :: duname(:)
-   character(len=5), allocatable :: ssname(:)
 
 #define EXPORT        expChem
 #define iNAME         TRIM(gcNI%iname)
@@ -1209,6 +1259,7 @@ CONTAINS
 
 #include "NI_GetPointer___.h"
 
+   call MAPL_TimerOn(ggState, '-NI_RUN2')
 
 !  Initialize local variables
 !  --------------------------
@@ -1274,6 +1325,12 @@ CONTAINS
    call MAPL_GetPointer ( impChem, pfllsan,  'PFL_LSAN', __RC__ )
    call MAPL_GetPointer ( impChem, pfilsan,  'PFI_LSAN', __RC__ )
 
+
+!  Unlike GEOS-4 hghte is defined for km+1
+!  ---------------------------------------
+   hsurf => hghte(i1:i2,j1:j2,km) ! Recall: GEOS-5 has edges with k in [0,km]
+
+
 #ifdef DEBUG
 
    call pmaxmin('NI: frlake     ', frlake  , qmin, qmax, ijl,1, 1. )
@@ -1326,22 +1383,18 @@ CONTAINS
 
 RUN_ALARM: if (gcNI%run_alarm) then
 
-   allocate( fluxout )
-   allocate( fluxout%data2d(i1:i2,j1:j2), dqa(i1:i2,j1:j2), &
-             drydepositionfrequency(i1:i2,j1:j2), stat=STATUS)
-   VERIFY_(STATUS)
-
-
-!  Unlike GEOS-4 hghte is defined for km+1
-!  ---------------------------------------
-   hsurf => hghte(i1:i2,j1:j2,km) ! Recall: GEOS-5 has edges with k in [0,km]
-    
-
 !  Nitrate Chemistry
 !  -----------------
-   if(associated(NI_pno3aq%data2d)) NI_pno3aq%data2d(:,:) = 0.
-   if(associated(NI_pnh4aq%data2d)) NI_pnh4aq%data2d(:,:) = 0.
-   if(associated(NI_pnh3aq%data2d)) NI_pnh3aq%data2d(:,:) = 0.
+   call MAPL_TimerOn(ggState, '--NI_THERMODYNAMICS')
+
+   allocate(NI_pno3aq_(i1:i2,j1:j2), &
+            NI_pnh4aq_(i1:i2,j1:j2), &
+            NI_pnh3aq_(i1:i2,j1:j2), __STAT__)
+
+   NI_pno3aq_ = 0.0
+   NI_pnh4aq_ = 0.0 
+   NI_pnh3aq_ = 0.0
+
 
 !  RPMARES - thermodynamic module
 !  ------------------------------
@@ -1352,15 +1405,18 @@ RUN_ALARM: if (gcNI%run_alarm) then
    nSO4 = -1
    if(w_c%reg%doing_SU) then
     do n = w_c%reg%i_SU, w_c%reg%j_SU
-     if(trim(w_c%reg%vname(n)) .eq. 'SO4') nSO4 = n
+     if(w_c%reg%vname(n) == 'SO4') nSO4 = n
     enddo
    endif
+
    do k = 1, km
     do j = j1, j2
      do i = i1, i2
 
 !     Conversion of mass mixing ratio to concentration (ug m-3)
       fmmr_to_conc = 1.e9 * rhoa(i,j,k)
+      fconc_to_mmr = 1.0 / fmmr_to_conc
+      f_dz = w_c%delp(i,j,k)/grav/cdt
 
 !     Unit conversion for input to thermodynamic module
 !     Per grid box call to RPMARES thermodynamic module
@@ -1369,59 +1425,51 @@ RUN_ALARM: if (gcNI%run_alarm) then
 !     not update SO4 on output from RPMARES.
 !     At present we are importing HNO3 from offline file, so we
 !     do not update on return.
-      SO4 = 1.d-32
-      if(nSO4 > 0) SO4  = max(1.d-32,w_c%qa(nSO4)%data3d(i,j,k) * fmmr_to_conc)
-      GNO3              = max(1.d-32,gcNI%xhno3(i,j,k) * fMassHNO3 / fMassAir * fmmr_to_conc)
-      GNH3              = max(1.d-32,w_c%qa(nNH3)%data3d(i,j,k)  * fmmr_to_conc)
+      SO4 = small_
+      if(nSO4 > 0) SO4  = max(small_, w_c%qa(nSO4)%data3d(i,j,k) * fmmr_to_conc)
+      GNO3              = max(small_, gcNI%xhno3(i,j,k) * fMassHNO3 / fMassAir * fmmr_to_conc)
+      GNH3              = max(small_, w_c%qa(nNH3)%data3d(i,j,k)  * fmmr_to_conc)
       RH                = w_c%rh(i,j,k)
       TEMP              = tmpu(i,j,k)
-      ASO4              = 1.d-32
-      AHSO4             = 1.d-32
-      ANO3              = max(1.d-32,w_c%qa(nNO3an1)%data3d(i,j,k) * fmmr_to_conc)
-      AH2O              = 1.d-32
-      ANH4              = max(1.d-32,w_c%qa(nNH4a)%data3d(i,j,k) * fmmr_to_conc)
+      ASO4              = small_
+      AHSO4             = small_
+      ANO3              = max(small_, w_c%qa(nNO3an1)%data3d(i,j,k) * fmmr_to_conc)
+      AH2O              = small_
+      ANH4              = max(small_, w_c%qa(nNH4a)%data3d(i,j,k) * fmmr_to_conc)
 
       call RPMARES (  SO4,  GNO3,  GNH3, RH,   TEMP, &
                       ASO4, AHSO4, ANO3, AH2O, ANH4 )
 
 !     Diagnostic terms
-      if(associated(NI_pno3aq%data2d)) &
-       NI_pno3aq%data2d(i,j) = NI_pno3aq%data2d(i,j) &
-        + (ANO3 / fmmr_to_conc - w_c%qa(nNO3an1)%data3d(i,j,k)) &
-          * w_c%delp(i,j,k)/grav/cdt
-      if(associated(NI_pnh4aq%data2d)) &
-       NI_pnh4aq%data2d(i,j) = NI_pnh4aq%data2d(i,j) &
-        + (ANH4 / fmmr_to_conc - w_c%qa(nNH4a)%data3d(i,j,k)) &
-          * w_c%delp(i,j,k)/grav/cdt
-      if(associated(NI_pnh3aq%data2d)) &
-       NI_pnh3aq%data2d(i,j) = NI_pnh3aq%data2d(i,j) &
-        + (GNH3 / fmmr_to_conc - w_c%qa(nNH3)%data3d(i,j,k)) &
-          * w_c%delp(i,j,k)/grav/cdt
+      NI_pno3aq_(i,j) = NI_pno3aq_(i,j) + (ANO3*fconc_to_mmr - w_c%qa(nNO3an1)%data3d(i,j,k))*f_dz 
+      NI_pnh4aq_(i,j) = NI_pnh4aq_(i,j) + (ANH4*fconc_to_mmr - w_c%qa(nNH4a)%data3d(i,j,k))*f_dz
+      NI_pnh3aq_(i,j) = NI_pnh3aq_(i,j) + (GNH3*fconc_to_mmr - w_c%qa(nNH3)%data3d(i,j,k))*f_dz
 
 !     Unit conversion back on return from thermodynamic module
-      w_c%qa(nNH3)%data3d(i,j,k)    = GNH3 / fmmr_to_conc
-      w_c%qa(nNO3an1)%data3d(i,j,k) = ANO3 / fmmr_to_conc
-      w_c%qa(nNH4a)%data3d(i,j,k)   = ANH4 / fmmr_to_conc
-      gcNI%xhno3(i,j,k) = max(1.d-32, GNO3 * fMassAir / fMassHNO3 / fmmr_to_conc)
+      w_c%qa(nNH3)%data3d(i,j,k)    = GNH3 * fconc_to_mmr
+      w_c%qa(nNO3an1)%data3d(i,j,k) = ANO3 * fconc_to_mmr
+      w_c%qa(nNH4a)%data3d(i,j,k)   = ANH4 * fconc_to_mmr
+
+      gcNI%xhno3(i,j,k) = max(small_, GNO3 * fconc_to_mmr * fMassAir / fMassHNO3)
 
      enddo
     enddo
    enddo
 
-   ! prepare the variable names for comparison
-   if(w_c%reg%doing_DU) then
-      allocate(duname(w_c%reg%i_DU:w_c%reg%j_DU))
-      do n = w_c%reg%i_DU, w_c%reg%j_DU
-        duname(n) = ESMF_UtilStringUpperCase(trim(w_c%reg%vname(n)))
-      end do
-   end if
+   call MAPL_TimerOff(ggState, '--NI_THERMODYNAMICS')
 
-   if(w_c%reg%doing_SS) then
-      allocate(ssname(w_c%reg%i_SS:w_c%reg%j_SS))
-      do n = w_c%reg%i_SS, w_c%reg%j_SS
-        ssname(n) = ESMF_UtilStringUpperCase(trim(w_c%reg%vname(n)))
-      end do
-   end if
+
+   call MAPL_TimerOn(ggState, '--NI_DIAGNOSTICS')
+
+!  Diagnostic terms
+   if (associated(NI_pno3aq%data2d))  NI_pno3aq%data2d = NI_pno3aq_
+   if (associated(NI_pnh4aq%data2d))  NI_pnh4aq%data2d = NI_pnh4aq_ 
+   if (associated(NI_pnh3aq%data2d))  NI_pnh3aq%data2d = NI_pnh3aq_
+
+   deallocate(NI_pno3aq_, NI_pnh4aq_, NI_pnh3aq_, __STAT__)
+
+   call MAPL_TimerOff(ggState, '--NI_DIAGNOSTICS')
+
 
 !  Heterogeneous chemistry
 !  -----------------------
@@ -1429,88 +1477,135 @@ RUN_ALARM: if (gcNI%run_alarm) then
 !  salt tracers.  This code is not at the moment generalized as it
 !  seems very wedded to the traditional GOCART arrangement (5 dust,
 !  5 sea salt) and the particulars of the nitrate aerosol arrangement.
-   if(associated(NI_phet(1)%data2d)) NI_phet(1)%data2d = 0.
-   if(associated(NI_phet(2)%data2d)) NI_phet(2)%data2d = 0.
-   if(associated(NI_phet(3)%data2d)) NI_phet(3)%data2d = 0.
-   do k = 1, km
-    do j = j1, j2
-     do i = i1, i2
-      kan1 = 0.
-      kan2 = 0.
-      kan3 = 0.
-      ad = 1.e-6*rhoa(i,j,k)*MAPL_AVOGAD/MAPL_AIRMW  ! air number density # cm-3
-      temp = tmpu(i,j,k)
-      rh = w_c%rh(i,j,k)
-!     Dust
-      if(w_c%reg%doing_DU) then
-       do n = w_c%reg%i_DU, w_c%reg%j_DU
-        sad = 0.01*4.*MAPL_PI*w_c%reg%rmed(n)**2.*w_c%reg%fnum(n) * &
-              rhoa(i,j,k) * w_c%qa(n)%data3d(i,j,k)       ! surface area density cm2 cm-3
-        rad = 100.*w_c%reg%rmed(n)                        ! radius cm
 
-        if (sad > 0.) then
-           if(duname(n) .eq. 'DU001') &
-            kan1 = kan1 + sktrs_hno3(temp,rh,sad,ad,rad)
-           if(duname(n) .eq. 'DU002') &
-            kan2 = kan2 + sktrs_hno3(temp,rh,sad,ad,rad)
-           if(duname(n) .eq. 'DU003') &
-            kan2 = kan2 + sktrs_hno3(temp,rh,sad,ad,rad)
-           if(duname(n) .eq. 'DU004') &
-            kan3 = kan3 + sktrs_hno3(temp,rh,sad,ad,rad)
-           if(duname(n) .eq. 'DU005') &
-            kan3 = kan3 + sktrs_hno3(temp,rh,sad,ad,rad)
-        end if
+   call MAPL_TimerOn(ggState, '--NI_HETCHEMISTRY')
 
-       enddo
-      endif
+   allocate(kan1(i1:i2,j1:j2,km), __STAT__)
+   allocate(kan2(i1:i2,j1:j2,km), __STAT__)
+   allocate(kan3(i1:i2,j1:j2,km), __STAT__)
+   allocate(kan (i1:i2,j1:j2,km), __STAT__)
 
-!     Sea salt
-      if(w_c%reg%doing_SS) then
-       do n = w_c%reg%i_SS, w_c%reg%j_SS
-        sad = 0.01*4.*MAPL_PI*w_c%reg%rmed(n)**2.*w_c%reg%fnum(n) * &
-              rhoa(i,j,k) * w_c%qa(n)%data3d(i,j,k)       ! surface area density cm2 cm-3
-        rad = 100.*w_c%reg%rmed(n)                        ! radius cm
+   kan1 = 0.0
+   kan2 = 0.0
+   kan3 = 0.0
+   kan  = MAPL_UNDEF
 
-        if (sad > 0.) then
-           if(ssname(n) .eq. 'SS001') &
-            kan1 = kan1 + sktrs_sslt(temp,rh,sad,ad,rad)
-           if(ssname(n) .eq. 'SS002') &
-            kan1 = kan1 + sktrs_sslt(temp,rh,sad,ad,rad)
-           if(ssname(n) .eq. 'SS003') &
-            kan2 = kan2 + sktrs_sslt(temp,rh,sad,ad,rad)
-           if(ssname(n) .eq. 'SS004') &
-            kan2 = kan2 + sktrs_sslt(temp,rh,sad,ad,rad)
-           if(ssname(n) .eq. 'SS005') &
-            kan3 = kan3 + sktrs_sslt(temp,rh,sad,ad,rad)
-        end if
+   call MAPL_TimerOn(ggState, '---NI_HETCHEM_DUST')
 
-       enddo
-      endif
+   DUST_HETEROGENEOUS_CHEM:  if (w_c%reg%doing_DU) then
 
-!     Compute the nitric acid loss (but don't actually update)
-      if( (kan1+kan2+kan3) > 0.) then
-       deltahno3 = gcNI%xhno3(i,j,k) * fMassHNO3 / fMassAir * (1.-exp(-(kan1+kan2+kan3)*cdt))
-       gcNI%xhno3(i,j,k) = gcNI%xhno3(i,j,k) - deltahno3 * fMassAir / fMassHNO3
-       w_c%qa(nNO3an1)%data3d(i,j,k) = &
-         w_c%qa(nNO3an1)%data3d(i,j,k) + kan1/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-       w_c%qa(nNO3an2)%data3d(i,j,k) = &
-         w_c%qa(nNO3an2)%data3d(i,j,k) + kan2/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-       w_c%qa(nNO3an3)%data3d(i,j,k) = &
-         w_c%qa(nNO3an3)%data3d(i,j,k) + kan3/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-       if(associated(NI_phet(1)%data2d)) &
-         NI_phet(1)%data2d(i,j) = NI_phet(1)%data2d(i,j) + kan1/(kan1+kan2+kan3)*deltahno3*w_c%delp(i,j,k)/grav/cdt
-       if(associated(NI_phet(2)%data2d)) &
-         NI_phet(2)%data2d(i,j) = NI_phet(2)%data2d(i,j) + kan2/(kan1+kan2+kan3)*deltahno3*w_c%delp(i,j,k)/grav/cdt
-       if(associated(NI_phet(3)%data2d)) &
-         NI_phet(3)%data2d(i,j) = NI_phet(3)%data2d(i,j) + kan3/(kan1+kan2+kan3)*deltahno3*w_c%delp(i,j,k)/grav/cdt
-      endif
-     enddo
-    enddo
-   enddo   
+      DUST_REACTION_RATES: do n = w_c%reg%i_DU, w_c%reg%j_DU
+         
+         vname = ESMF_UtilStringUpperCase( trim(w_c%reg%vname(n)) )
 
-   if(w_c%reg%doing_DU) deallocate(duname)
-   if(w_c%reg%doing_SS) deallocate(ssname)
+         if (vname == 'DU001' .or. &
+             vname == 'DU002' .or. &
+             vname == 'DU003' .or. &
+             vname == 'DU004' .or. &
+             vname == 'DU005') then
+   
+            kan = 0.0 
+            call HNO3_reaction_rate(i1, i2, j1, j2, km, & 
+                                    w_c%reg%rmed(n), w_c%reg%fnum(n), &
+                                    rhoa, tmpu, w_c%rh, w_c%qa(n)%data3d, kan)
 
+            select case(vname)
+               case ('DU001')
+                 kan1 = kan1 + kan
+               case ('DU002')
+                 kan2 = kan2 + kan
+               case ('DU003')
+                 kan2 = kan2 + kan
+               case ('DU004')
+                 kan3 = kan3 + kan
+               case ('DU005')
+                 kan3 = kan3 + kan
+            end select
+
+         end if
+
+      end do DUST_REACTION_RATES
+   end if DUST_HETEROGENEOUS_CHEM
+
+   call MAPL_TimerOff(ggState, '---NI_HETCHEM_DUST')
+
+
+   call MAPL_TimerOn(ggState, '---NI_HETCHEM_SALT')
+
+   SALT_HETEROGENEOUS_CHEM:  if (w_c%reg%doing_SS) then
+
+      SALT_REACTION_RATES: do n = w_c%reg%i_SS, w_c%reg%j_SS
+
+         vname = ESMF_UtilStringUpperCase( trim(w_c%reg%vname(n)) )
+
+         if (vname == 'SS001' .or. &
+             vname == 'SS002' .or. &
+             vname == 'SS003' .or. &
+             vname == 'SS004' .or. &
+             vname == 'SS005') then
+   
+            kan = 0.0
+            call SSLT_reaction_rate(i1, i2, j1, j2, km, & 
+                                    w_c%reg%rmed(n), w_c%reg%fnum(n), &
+                                    rhoa, tmpu, w_c%rh, w_c%qa(n)%data3d, kan)
+
+            select case(vname)
+               case ('SS001')
+                  kan1 = kan1 + kan
+               case ('SS002')
+                  kan1 = kan1 + kan
+               case ('SS003')
+                  kan2 = kan2 + kan
+               case ('SS004')
+                  kan2 = kan2 + kan
+               case ('SS005')
+                  kan3 = kan3 + kan
+            end select
+
+         end if
+
+      end do SALT_REACTION_RATES
+   end if SALT_HETEROGENEOUS_CHEM
+   
+   call MAPL_TimerOff(ggState, '---NI_HETCHEM_SALT')
+
+!  Compute the nitric acid loss (but don't actually update)
+   kan = max(0.0, (kan1 + kan2 + kan3))
+
+   call apportion_reaction_rate(i1, i2, j1, j2, km, kan1, kan)
+   call apportion_reaction_rate(i1, i2, j1, j2, km, kan2, kan)
+   call apportion_reaction_rate(i1, i2, j1, j2, km, kan3, kan)
+
+   allocate(deltahno3, mold=kan, __STAT__)
+   deltahno3 = gcNI%xhno3 * fMassHNO3 / fMassAir * (1.0 - exp(-kan*cdt))
+   deltahno3 = max(0.0, deltahno3)
+
+
+   gcNI%xhno3 = gcNI%xhno3 - deltahno3 * fMassAir / fMassHNO3
+
+   w_c%qa(nNO3an1)%data3d = w_c%qa(nNO3an1)%data3d + kan1*deltahno3*fMassNO3/fMassHNO3
+   w_c%qa(nNO3an2)%data3d = w_c%qa(nNO3an2)%data3d + kan2*deltahno3*fMassNO3/fMassHNO3
+   w_c%qa(nNO3an3)%data3d = w_c%qa(nNO3an3)%data3d + kan3*deltahno3*fMassNO3/fMassHNO3
+
+   call MAPL_TimerOff(ggState, '--NI_HETCHEMISTRY')
+
+   call MAPL_TimerOn(ggState, '--NI_DIAGNOSTICS')
+
+   if (associated(NI_phet(1)%data2d)) &
+      NI_phet(1)%data2d = (1.0 / (grav*cdt)) * sum(kan1*deltahno3*w_c%delp, dim=3)
+
+   if (associated(NI_phet(2)%data2d)) &
+      NI_phet(2)%data2d = (1.0 / (grav*cdt)) * sum(kan2*deltahno3*w_c%delp, dim=3)
+
+   if (associated(NI_phet(3)%data2d)) &
+      NI_phet(3)%data2d = (1.0 / (grav*cdt)) * sum(kan3*deltahno3*w_c%delp, dim=3)
+
+   call MAPL_TimerOff(ggState, '--NI_DIAGNOSTICS')
+
+   deallocate(kan, kan1, kan2, kan3, deltahno3, __STAT__)
+
+
+   call MAPL_TimerOn(ggState, '--NI_DIAGNOSTICS')
 
 !  Output diagnostic HNO3
 !  ----------------------
@@ -1531,6 +1626,8 @@ RUN_ALARM: if (gcNI%run_alarm) then
       end do
    endif
 
+   call MAPL_TimerOff(ggState, '--NI_DIAGNOSTICS')
+
 
 !  NI Settling
 !  -----------
@@ -1538,6 +1635,15 @@ RUN_ALARM: if (gcNI%run_alarm) then
 !  handle the call to settling differently.
 
 !  Ammonium - settles like ammonium sulfate (rhflag = 3)
+
+   call MAPL_TimerOn(ggState, '--NI_SETTLING')
+
+   allocate( fluxout )
+   allocate( fluxout%data2d(i1:i2,j1:j2), dqa(i1:i2,j1:j2), &
+             drydepositionfrequency(i1:i2,j1:j2), stat=STATUS)
+   VERIFY_(STATUS)
+
+
    n = globalnNH4a
    rhflag = 3
    NI_radius = 1.e-6*gcNI%radius(n)   ! radius in [m]
@@ -1577,9 +1683,13 @@ RUN_ALARM: if (gcNI%run_alarm) then
                         hghte, fluxout, rc )
    if(associated(NI_set(3)%data2d)) NI_set(3)%data2d = fluxout%data2d
 
+   call MAPL_TimerOff(ggState, '--NI_SETTLING')
+
 
 !  NI Deposition
-!  -----------
+!  -------------
+   call MAPL_TimerOn(ggState, '--NI_DRY_DEPOSITION')
+
    drydepositionfrequency = 0.
    call DryDepositionGOCART( i1, i2, j1, j2, km, &
                              tmpu, rhoa, hghte, oro, ustar, &
@@ -1608,6 +1718,8 @@ RUN_ALARM: if (gcNI%run_alarm) then
     if( associated(NI_dep(n-2)%data2d) ) NI_dep(n-2)%data2d = dqa*w_c%delp(:,:,km)/grav/cdt
    end do
 
+   call MAPL_TimerOff(ggState, '--NI_DRY_DEPOSITION')
+
 #ifdef DEBUG
    do n = n1, n2
       call pmaxmin('NI: q_dry', w_c%qa(n)%data3d(i1:i2,j1:j2,1:km), qmin, qmax, &
@@ -1617,6 +1729,8 @@ RUN_ALARM: if (gcNI%run_alarm) then
 
 !  NI Large-scale Wet Removal
 !  --------------------------
+   call MAPL_TimerOn(ggState, '--NI_WET_LS')
+
    w_c%qa(nNH3)%fwet = 1.
    KIN = .FALSE.   ! treat ammonia as gas
    call WetRemovalGOCART(i1, i2, j1, j2, km, nNH3, nNH3, cdt, 'NH3', KIN, &
@@ -1648,10 +1762,13 @@ RUN_ALARM: if (gcNI%run_alarm) then
                     ijl, km, 1. )
    end do
 #endif
+   call MAPL_TimerOff(ggState, '--NI_WET_LS')
 
 
 !  Nitrate Convective-scale Mixing and Wet Removal
 !  -----------------------------------------------
+   call MAPL_TimerOn(ggState, '--NI_WET_CV')
+
    KIN = .TRUE.
    icdt = cdt
    allocate(cmfmc_(i1:i2,j1:j2,km+1), qccu_(i1:i2,j1:j2,km), &
@@ -1713,8 +1830,10 @@ RUN_ALARM: if (gcNI%run_alarm) then
               delz_, vud_, delp_, airmol_, tmpu_, bcnv_, ple_, &
               area_, frlake_, frocean_, frseaice_, __STAT__ )
 
-   deallocate(fluxout%data2d)
-   deallocate(fluxout, dqa, drydepositionfrequency, stat=ios )
+   deallocate(fluxout%data2d, __STAT__)
+   deallocate(fluxout, dqa, drydepositionfrequency, __STAT__)
+
+   call MAPL_TimerOff(ggState, '--NI_WET_CV')
 
    end if RUN_ALARM
 
@@ -1723,6 +1842,8 @@ RUN_ALARM: if (gcNI%run_alarm) then
 !  Ideally this will go where chemout is called in fvgcm.F since that
 !  will reflect the distributions after transport, etc.
 !  ------------------------------------------------------------------
+   call MAPL_TimerOn(ggState, '--NI_DIAGNOSTICS')
+
    call NI_Compute_Diags(i1, i2, j1, j2, km, nbins, gcNI, w_c, tmpu, rhoa, u, v, &
                          NH3_sfcmass, NH3_colmass, NH3_mass, NH3_conc, &
                          NH4_sfcmass, NH4_colmass, NH4_mass, NH4_conc, &
@@ -1732,6 +1853,9 @@ RUN_ALARM: if (gcNI%run_alarm) then
                          NI_exttau25,  NI_scatau25, NI_exttauFM,  NI_scatauFM, &
                          NI_fluxu, NI_fluxv, rc)
 
+   call MAPL_TimerOff(ggState, '--NI_DIAGNOSTICS')
+
+   call MAPL_TimerOff(ggState, '-NI_RUN2')
 
    return
 
@@ -2105,6 +2229,139 @@ CONTAINS
 
    end subroutine NI_Compute_Diags
 
+
+
+   subroutine HNO3_reaction_rate(i1, i2, j1, j2, km, rmed, fnum, rhoa, temp, rh, q, kan)
+
+      implicit none
+
+      integer, intent(in) :: i1, i2, j1, j2, km
+
+      real, intent(in) :: rmed
+      real, intent(in) :: fnum
+
+      real, dimension(i1:i2,j1:j2,km), intent(in ) :: rhoa
+      real, dimension(i1:i2,j1:j2,km), intent(in ) :: temp
+      real, dimension(i1:i2,j1:j2,km), intent(in ) :: rh
+      real, dimension(i1:i2,j1:j2,km), intent(in ) :: q
+
+      real, dimension(i1:i2,j1:j2,km), intent(out) :: kan
+
+      ! local
+      integer :: i, j, k
+
+      real :: f_sad
+      real :: f_ad
+      real :: radius
+      real :: ad
+      real :: sad
+
+#ifdef DEBUG
+      real :: qmin, qmax
+      integer :: ijl
+
+      ijl  = ( i2 - i1 + 1 ) * ( j2 - j1 + 1 )
+#endif
+
+
+      f_ad = 1.e-6*MAPL_AVOGAD/MAPL_AIRMW  ! air number density # cm-3 per unit air density
+
+      ! surface area per unit air density and unit aerosol mass mixing ratio 
+      f_sad  = 0.01 * 4 * MAPL_PI * rmed**2 * fnum
+
+      ! radius in 'cm'
+      radius = 100 * rmed
+
+#ifdef DEBUG
+      call pmaxmin('NI:HNO3: q    ', q    , qmin, qmax, ijl, km, 1. )
+      call pmaxmin('NI:HNO3: rhoa ', rhoa , qmin, qmax, ijl, km, 1. )
+      call pmaxmin('NI:HNO3: temp ', temp , qmin, qmax, ijl, km, 1. )
+      call pmaxmin('NI:HNO3: rh   ', rh   , qmin, qmax, ijl, km, 1. )
+#endif
+
+      do k = 1, km
+       do j = j1, j2
+         do i = i1, i2
+          ad   = f_ad  * rhoa(i,j,k)             ! air number density # cm-3
+          sad  = f_sad * rhoa(i,j,k) * q(i,j,k)  ! surface area density cm2 cm-3
+
+          kan(i,j,k) = sktrs_hno3(temp(i,j,k), rh(i,j,k), sad, ad, radius)
+         end do
+       end do
+      end do
+
+#ifdef DEBUG
+      call pmaxmin('NI:HNO3: kan  ', kan  , qmin, qmax, ijl, km, 1. )
+#endif
+#undef DEBUG
+   end subroutine HNO3_reaction_rate
+
+
+   subroutine SSLT_reaction_rate(i1, i2, j1, j2, km, rmed, fnum, rhoa, temp, rh, q, kan)
+
+      implicit none
+
+      integer, intent(in) :: i1, i2, j1, j2, km
+
+      real, intent(in) :: rmed
+      real, intent(in) :: fnum
+
+      real, dimension(i1:i2,j1:j2,km), intent(in ) :: rhoa
+      real, dimension(i1:i2,j1:j2,km), intent(in ) :: temp
+      real, dimension(i1:i2,j1:j2,km), intent(in ) :: rh
+      real, dimension(i1:i2,j1:j2,km), intent(in ) :: q
+
+      real, dimension(i1:i2,j1:j2,km), intent(out) :: kan
+
+      ! local
+      integer :: i, j, k
+
+      real :: f_sad
+      real :: f_ad
+      real :: radius
+      real :: ad
+      real :: sad
+
+      f_ad = 1.e-6*MAPL_AVOGAD/MAPL_AIRMW  ! air number density # cm-3 per unit air density
+
+      ! surface area per unit air density and unit aerosol mass mixing ratio 
+      f_sad  = 0.01 * 4 * MAPL_PI * rmed**2 * fnum
+
+      ! radius in 'cm'
+      radius = 100 * rmed
+
+      do k = 1, km
+       do j = j1, j2
+         do i = i1, i2
+          ad   = f_ad  * rhoa(i,j,k)             ! air number density # cm-3
+          sad  = f_sad * rhoa(i,j,k) * q(i,j,k)  ! surface area density cm2 cm-3
+
+          kan(i,j,k) = sktrs_sslt(temp(i,j,k), rh(i,j,k), sad, ad, radius)
+         end do
+       end do
+      end do
+
+   end subroutine SSLT_reaction_rate
+
+
+   subroutine apportion_reaction_rate(i1, i2, j1, j2, km, kan, kan_total)
+
+      implicit none
+
+      integer, intent(in) :: i1, i2, j1, j2, km
+
+      real, dimension(i1:i2,j1:j2,km), intent(inout) :: kan
+      real, dimension(i1:i2,j1:j2,km), intent(in)    :: kan_total
+
+      where (kan_total > tiny(kan_total))
+          kan = kan / kan_total
+      else where
+          kan = 0.0
+      end where
+
+   end subroutine apportion_reaction_rate
+
+
  end subroutine NI_GridCompRun2_
 
 
@@ -2119,7 +2376,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine NI_GridCompFinalize1_ ( gcNI, w_c, impChem, expChem, &
+   subroutine NI_GridCompFinalize1_ ( gcNI, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -2141,6 +2398,7 @@ CONTAINS
 
    type(ESMF_State), intent(inout) :: impChem   ! Import State
    type(ESMF_State), intent(inout) :: expChem   ! Import State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 -
@@ -2177,7 +2435,7 @@ CONTAINS
 ! !INTERFACE:
 !
   subroutine NI_SingleInstance_ ( Method_, instance, &
-                                  gcNI, w_c, impChem, expChem, &
+                                  gcNI, w_c, impChem, expChem, ggState, &
                                   nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -2194,7 +2452,7 @@ CONTAINS
 !  Input "function pointer"
 !  -----------------------
    interface 
-     subroutine Method_ (gc, w, imp, exp, ymd, hms, dt, rcode )
+     subroutine Method_ (gc, w, imp, exp, state, ymd, hms, dt, rcode )
        Use NI_GridCompMod
        Use ESMF
        Use MAPL
@@ -2203,6 +2461,7 @@ CONTAINS
        type(Chem_Bundle),   intent(in)     :: w
        type(ESMF_State),    intent(inout)  :: imp
        type(ESMF_State),    intent(inout)  :: exp
+       type(MAPL_MetaComp), intent(inout)  :: state
        integer,             intent(in)     :: ymd, hms
        real,                intent(in)     :: dt
        integer,             intent(out)    :: rcode
@@ -2221,6 +2480,7 @@ CONTAINS
    TYPE(NI_GridComp1), INTENT(INOUT) :: gcNI    ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), intent(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -2265,7 +2525,7 @@ CONTAINS
   
 ! Execute the instance method
 ! ---------------------------
-  call Method_ ( gcNI, w_c, impChem, expChem, &
+  call Method_ ( gcNI, w_c, impChem, expChem, ggState, &
                  nymd, nhms, cdt, rc )
 
 ! Restore the overall NI indices

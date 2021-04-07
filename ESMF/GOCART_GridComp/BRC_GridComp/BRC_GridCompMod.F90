@@ -177,6 +177,26 @@ CONTAINS
       VERIFY_(STATUS)
    end do
 
+!  Set profiling timers
+!  --------------------
+   call MAPL_TimerAdd(GC, name = '-BRC_TOTAL',           __RC__)
+   call MAPL_TimerAdd(GC, name = '-BRC_RUN',             __RC__)
+   call MAPL_TimerAdd(GC, name = '-BRC_INITIALIZE',      __RC__)
+   call MAPL_TimerAdd(GC, name = '-BRC_FINALIZE',        __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-BRC_RUN1',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--BRC_EMISSIONS',      __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-BRC_RUN2',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--BRC_SETTLING',       __RC__)
+   call MAPL_TimerAdd(GC, name = '--BRC_DRY_DEPOSITION', __RC__)
+   call MAPL_TimerAdd(GC, name = '--BRC_WET_LS',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--BRC_WET_CV',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--BRC_DIAGNOSTICS',    __RC__)
+
+!  All done
+!  --------
+
    RETURN_(ESMF_SUCCESS)
    end subroutine BRC_GridCompSetServices
 
@@ -190,7 +210,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BRC_GridCompInitialize ( gcBRC, w_c, impChem, expChem, &
+   subroutine BRC_GridCompInitialize ( gcBRC, w_c, impChem, expChem, ggState, &
                                        nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -208,6 +228,7 @@ CONTAINS
    type(BRC_GridComp), intent(inout) :: gcBRC   ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -226,6 +247,10 @@ CONTAINS
    CHARACTER(LEN=255) :: name
    
    integer :: i, ier, n
+
+   call MAPL_TimerOn(ggState, '-BRC_TOTAL')
+   call MAPL_TimerOn(ggState, '-BRC_INITIALIZE')
+
 
 !  Load resource file
 !  ------------------
@@ -307,7 +332,7 @@ CONTAINS
        PRINT *,myname,": Initializing instance ",TRIM(gcBRC%gcs(i)%iname)," [",gcBRC%gcs(i)%instance,"]"
       END IF
       call BRC_SingleInstance_ ( BRC_GridCompInitialize1_, i, &
-                                gcBRC%gcs(i), w_c, impChem, expChem,  &
+                                gcBRC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = 1000+ier
@@ -324,6 +349,8 @@ CONTAINS
     rc = 40
    END IF
 
+   call MAPL_TimerOff(ggState, '-BRC_INITIALIZE')
+   call MAPL_TimerOff(ggState, '-BRC_TOTAL')
 
  end subroutine BRC_GridCompInitialize
 
@@ -337,7 +364,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BRC_GridCompRun1 ( gcBRC, w_c, impChem, expChem, &
+   subroutine BRC_GridCompRun1 ( gcBRC, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -356,6 +383,7 @@ CONTAINS
    TYPE(BRC_GridComp), INTENT(INOUT) :: gcBRC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -372,15 +400,21 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-BRC_TOTAL')
+   call MAPL_TimerOn(ggState, '-BRC_RUN')
+
    do i = 1, gcBRC%n
       call BRC_SingleInstance_ ( BRC_GridCompRun1_, i, &
-                                gcBRC%gcs(i), w_c, impChem, expChem, &
+                                gcBRC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-BRC_RUN')
+   call MAPL_TimerOff(ggState, '-BRC_TOTAL')
 
  end subroutine BRC_GridCompRun1
 
@@ -395,7 +429,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BRC_GridCompRun2 ( gcBRC, w_c, impChem, expChem, &
+   subroutine BRC_GridCompRun2 ( gcBRC, w_c, impChem, expChem, ggState, &
                                  run_alarm, nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -415,6 +449,7 @@ CONTAINS
    TYPE(BRC_GridComp), INTENT(INOUT) :: gcBRC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -431,17 +466,23 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-BRC_TOTAL')
+   call MAPL_TimerOn(ggState, '-BRC_RUN')
+
    do i = 1, gcBRC%n
       gcBRC%gcs(i)%run_alarm = run_alarm
 
       call BRC_SingleInstance_ ( BRC_GridCompRun2_, i, &
-                                gcBRC%gcs(i), w_c, impChem, expChem, &
+                                gcBRC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-BRC_RUN')
+   call MAPL_TimerOff(ggState, '-BRC_TOTAL')
 
  end subroutine BRC_GridCompRun2
 
@@ -457,7 +498,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BRC_GridCompFinalize ( gcBRC, w_c, impChem, expChem, &
+   subroutine BRC_GridCompFinalize ( gcBRC, w_c, impChem, expChem, ggState, &
                                      nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -476,6 +517,7 @@ CONTAINS
    TYPE(BRC_GridComp), INTENT(INOUT) :: gcBRC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -492,9 +534,12 @@ CONTAINS
 
    integer i, ier
 
+   call MAPL_TimerOn(ggState, '-BRC_TOTAL')
+   call MAPL_TimerOn(ggState, '-BRC_FINALIZE')
+
    do i = 1, gcBRC%n
       call BRC_SingleInstance_ ( BRC_GridCompFinalize1_, i, &
-                                gcBRC%gcs(i), w_c, impChem, expChem, &
+                                gcBRC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
@@ -504,6 +549,9 @@ CONTAINS
 
    if (associated(gcBRC%gcs)) deallocate ( gcBRC%gcs, stat=ier )
    gcBRC%n = -1
+
+   call MAPL_TimerOff(ggState, '-BRC_FINALIZE')
+   call MAPL_TimerOff(ggState, '-BRC_TOTAL')
 
  end subroutine BRC_GridCompFinalize
 
@@ -614,8 +662,8 @@ CONTAINS
 
    call MAPL_AddImportSpec(GC, &
      SHORT_NAME = 'pSOA_BIOB_VOC'//trim(iname), &
-     LONG_NAME  = 'SOA from Anthropogenic and biomass burning VOC' , &
-     UNITS      = 'kg m-3 s-1',                &
+     LONG_NAME  = 'Production of SOA from Biomass Burning VOC' , &
+     UNITS      = 'kg m-3 s-1',       &
      DIMS       = MAPL_DimsHorzVert,  &
      VLOCATION  = MAPL_VLocationCenter, &
      RESTART    = MAPL_RestartSkip,   &
@@ -706,7 +754,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BRC_GridCompInitialize1_ ( gcBRC, w_c, impChem, expChem, &
+   subroutine BRC_GridCompInitialize1_ ( gcBRC, w_c, impChem, expChem, ggState, &
                                          nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -724,6 +772,7 @@ CONTAINS
    type(BRC_GridComp1), intent(inout) :: gcBRC    ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -1073,7 +1122,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BRC_GridCompRun1_ ( gcBRC, w_c, impChem, expChem, &
+   subroutine BRC_GridCompRun1_ ( gcBRC, w_c, impChem, expChem, ggState, &
                                   nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1083,7 +1132,8 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(BRC_GridComp1), intent(inout) :: gcBRC   ! Grid Component
-   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -1120,7 +1170,7 @@ CONTAINS
 !  Input fields from fvGCM
 !  -----------------------
    real, pointer, dimension(:,:)   :: pblh
-   real, pointer, dimension(:,:,:) :: tmpu, rhoa, ple
+   real, pointer, dimension(:,:,:) :: tmpu, rhoa, ple, hghte
 
 !  Workspace for NEI emissions
 !  ---------------------------
@@ -1146,6 +1196,7 @@ CONTAINS
 
 #include "BRC_GetPointer___.h"
 
+   call MAPL_TimerOn(ggState, '-BRC_RUN1')
 
 !  Initialize local variables
 !  --------------------------
@@ -1176,7 +1227,8 @@ CONTAINS
   end if
 
 ! Update emissions/production if necessary (daily)
-!  ------------------------------------------
+! ------------------------------------------------
+   call MAPL_TimerOn(ggState, '--BRC_EMISSIONS')
 
 !   Biomass Burning -- select on known inventories
 !   ----------------------------------------------
@@ -1317,6 +1369,7 @@ CONTAINS
    call MAPL_GetPointer ( impChem, tmpu,     'T',        __RC__ )
    call MAPL_GetPointer ( impChem, rhoa,     'AIRDENS',  __RC__ )
    call MAPL_GetPointer ( impChem, ple,      'PLE',      __RC__ )
+   call MAPL_GetPointer ( impChem, hghte,    'ZLE',      __RC__ )
 
   
 
@@ -1333,7 +1386,7 @@ CONTAINS
 !  BRC Source
 !  -----------
    call BRC_Emission ( i1, i2, j1, j2, km, nbins, cdt, gcBRC, w_c, &
-                      pblh, tmpu, rhoa, BRC_emis, &
+                      pblh, tmpu, rhoa, hghte, BRC_emis, &
                       BRC_emisAN, BRC_emisBB, BRC_emisBF, BRC_emisBG, rc )
 #ifdef DEBUG
    do n = n1, n2
@@ -1342,6 +1395,12 @@ CONTAINS
    end do
 #endif
 
+   call MAPL_TimerOff(ggState, '--BRC_EMISSIONS')
+   
+   call MAPL_TimerOff(ggState, '-BRC_RUN1')
+
+!  All done
+!  --------
    return
 
 CONTAINS
@@ -1365,7 +1424,7 @@ CONTAINS
 !
 
    subroutine BRC_Emission ( i1, i2, j1, j2, km, nbins, cdt, gcBRC, w_c, &
-                             pblh, tmpu, rhoa, BRC_emis, &
+                             pblh, tmpu, rhoa, hghte, BRC_emis, &
                              BRC_emisAN, BRC_emisBB, BRC_emisBF, BRC_emisBG, rc )
 
 ! !USES:
@@ -1380,6 +1439,7 @@ CONTAINS
    real, pointer, dimension(:,:)    :: pblh
    real, pointer, dimension(:,:,:)  :: tmpu
    real, pointer, dimension(:,:,:)  :: rhoa
+   real, pointer, dimension(:,:,:)  :: hghte
 
 ! !OUTPUT PARAMETERS:
 
@@ -1569,6 +1629,7 @@ K_LOOP_BB: do k = km, 1, -1
      end do ! i
     end do  ! j
 
+#if (0)
 !   Determine global max/min
 !   ------------------------
     call pmaxmin ( 'BRC: Phobic ', srcHydrophobic, qmin, qmax, ijl, 1, 0. )
@@ -1579,7 +1640,8 @@ K_LOOP_BB: do k = km, 1, -1
 !   If emissions are zero at this level (globally), we are done
 !   -----------------------------------------------------------
     if ( maxAll .eq. 0.0 ) exit K_LOOP_BB
-
+#endif
+    
 !   Update concentrations at this layer
 !   The "1" element is hydrophobic 
 !   The "2" element is hydrophilic
@@ -1716,6 +1778,7 @@ K_LOOP: do k = km, 1, -1
      end do ! i
     end do  ! j
 
+#if (0)
 !   Determine global max/min
 !   ------------------------
     call pmaxmin ( 'BRC: Phobic ', srcHydrophobic, qmin, qmax, ijl, 1, 0. )
@@ -1726,6 +1789,7 @@ K_LOOP: do k = km, 1, -1
 !   If emissions are zero at this level (globally), we are done
 !   -----------------------------------------------------------
     if ( maxAll .eq. 0.0 ) exit K_LOOP
+#endif
 
 !   Update concentrations at this layer
 !   The "1" element is hydrophobic 
@@ -1787,9 +1851,9 @@ K_LOOP: do k = km, 1, -1
 !     --------------------------------------------
       if(nhms < gcBRC%vStart(ii) .or. nhms >= gcBRC%vEnd(ii)) cycle
 
-      call distribute_point_emissions(w_c%delp(i,j,:), rhoa(i,j,:), &
-                                      gcBRC%vBase(ii), gcBRC%vTop(ii), gcBRC%vEmis(ii), &
-                                      point_column_emissions, km)
+      call Chem_UtilDistributePointEmissions(hghte(i,j,:), &
+                                             gcBRC%vBase(ii), gcBRC%vTop(ii), gcBRC%vEmis(ii), &
+                                             point_column_emissions, km)
       w_c%qa(n1)%data3d(i,j,:) = w_c%qa(n1)%data3d(i,j,:) & 
          + gcBRC%fHydrophobic * cdt * grav / w_c%delp(i,j,:) &
                              * point_column_emissions / w_c%grid%cell_area(i,j)
@@ -1885,85 +1949,6 @@ K_LOOP: do k = km, 1, -1
 
     end subroutine distribute_aviation_emissions
 
-
-!  Abstracted from distribute_aviation_emissions above, but called per column
-   subroutine distribute_point_emissions(delp, rhoa, z_bot, z_top, emissions_point, &
-                                         emissions, km)
-
-    implicit none
-
-    integer, intent(in) :: km
-
-    real, dimension(:), intent(in) :: delp
-    real, dimension(:), intent(in) :: rhoa
-    real,               intent(in) :: emissions_point
-    real, intent(in)                   :: z_bot
-    real, intent(in)                   :: z_top
-    real, dimension(:), intent(out):: emissions
-    
-!   local
-    integer :: k
-    integer :: k_bot, k_top
-    real    :: z_
-    real, dimension(km) :: z, dz, w_
-    
-!   find level height
-    z = 0.0
-    z_= 0.0 
-
-    do k = km, 1, -1
-       dz(k) = delp(k)/rhoa(k)/grav
-       z_    = z_ + dz(k)
-       z(k)  = z_
-    end do
-
-!   find the bottom level
-    do k = km, 1, -1
-       if (z(k) >= z_bot) then
-           k_bot = k
-           exit
-       end if
-    end do
-            
-!   find the top level
-    do k = k_bot, 1, -1
-       if (z(k) >= z_top) then
-           k_top = k
-           exit
-       end if
-    end do
-
-!   find the weights
-    w_ = 0
-
-!   if (k_top > k_bot) then
-!       need to bail - something went wrong here
-!   end if
-
-    if (k_bot .eq. k_top) then
-        w_(k_bot) = z_top - z_bot
-    else
-     do k = k_bot, k_top, -1
-        if ((k < k_bot) .and. (k > k_top)) then
-             w_(k) = dz(k)
-        else
-             if (k == k_bot) then
-                 w_(k) = (z(k) - z_bot)
-             end if
-
-             if (k == k_top) then
-                 w_(k) = z_top - (z(k)-dz(k))
-             end if
-        end if
-     end do
-    end if
-           
-!   distribute emissions in the vertical 
-    emissions(:) = (w_ / sum(w_)) * emissions_point
-
-    end subroutine distribute_point_emissions
-
-
  end subroutine BRC_GridCompRun1_
 
 
@@ -1978,7 +1963,7 @@ K_LOOP: do k = km, 1, -1
 ! !INTERFACE:
 !
 
-   subroutine BRC_GridCompRun2_ ( gcBRC, w_c, impChem, expChem, &
+   subroutine BRC_GridCompRun2_ ( gcBRC, w_c, impChem, expChem, ggState, &
                                   nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1988,7 +1973,8 @@ K_LOOP: do k = km, 1, -1
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(BRC_GridComp1), intent(inout) :: gcBRC   ! Grid Component
-   type(Chem_Bundle), intent(inout)  :: w_c    ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout)  :: w_c    ! Chemical tracer fields
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -2084,6 +2070,7 @@ K_LOOP: do k = km, 1, -1
 
 #include "BRC_GetPointer___.h"
 
+   call MAPL_TimerOn(ggState, '-BRC_RUN2')
 
 !  Initialize local variables
 !  --------------------------
@@ -2186,7 +2173,7 @@ RUN_ALARM: if (gcBRC%run_alarm) then
    VERIFY_(STATUS)
 
 
-!  SOA production from oxidation of anthropogenic VOC
+!  SOA production from oxidation of biomass burning VOC
    call MAPL_GetPointer(impChem, var3d, 'pSOA_BIOB_VOC'//iNAME, __RC__)
    gcBRC%psoa_biob_voc = var3d
 
@@ -2198,7 +2185,7 @@ RUN_ALARM: if (gcBRC%run_alarm) then
    w_c%qa(n2)%data3d = w_c%qa(n2)%data3d + cdt*gcBRC%psoa_biob_voc/rhoa  ! hydrophilic
 
    if ( associated(BRC_pSOA%data2d)) &
-       BRC_pSOA%data2d = sum(cdt*gcBRC%psoa_biob_voc*w_c%delp/rhoa/grav, 3)
+       BRC_pSOA%data2d = sum(gcBRC%psoa_biob_voc*w_c%delp/rhoa/grav, 3)
 
 
 !  Ad Hoc transfer of hydrophobic to hydrophilic aerosols
@@ -2224,6 +2211,8 @@ RUN_ALARM: if (gcBRC%run_alarm) then
 
 !  BRC Settling
 !  -----------
+   call MAPL_TimerOn(ggState, '--BRC_SETTLING')
+
    allocate( BRC_radius(nbins), BRC_rhop(nbins) )
    BRC_radius(:) = 0.35e-6  ! radius for settling [m]
    BRC_rhop(:)   = 1800.    ! density for setting [kg m-3]
@@ -2233,8 +2222,12 @@ RUN_ALARM: if (gcBRC%run_alarm) then
                         hghte, BRC_set, rc )
    deallocate( BRC_radius, BRC_rhop)
 
+   call MAPL_TimerOff(ggState, '--BRC_SETTLING')
+
 !  BRC Deposition
-!  -----------
+!  --------------
+   call MAPL_TimerOn(ggState, '--BRC_DRY_DEPOSITION')
+
    drydepositionfrequency = 0.
    call DryDepositionGOCART( i1, i2, j1, j2, km, &
                              tmpu, rhoa, hghte, oro, ustar, &
@@ -2249,6 +2242,8 @@ RUN_ALARM: if (gcBRC%run_alarm) then
      BRC_dep(n)%data2d = dqa*w_c%delp(:,:,km)/grav/cdt
    end do
 
+   call MAPL_TimerOff(ggState, '--BRC_DRY_DEPOSITION')
+
 #ifdef DEBUG
    do n = n1, n2
       call pmaxmin('BRC: q_dry', w_c%qa(n)%data3d(i1:i2,j1:j2,1:km), qmin, qmax, &
@@ -2259,6 +2254,8 @@ RUN_ALARM: if (gcBRC%run_alarm) then
 
 !  Organic Carbon Large-scale Wet Removal
 !  --------------------------------------
+   call MAPL_TimerOn(ggState, '--BRC_WET_LS')
+
 !  Hydrophobic mode (first tracer) is not removed
    if(associated(BRC_wet(1)%data2d)) BRC_wet(1)%data2d = 0.
 !  Hydrophilic mode (second tracer) is removed
@@ -2271,6 +2268,8 @@ RUN_ALARM: if (gcBRC%run_alarm) then
     if(associated(BRC_wet(n)%data2d)) BRC_wet(n)%data2d = fluxout%data2d
    end do
 
+   call MAPL_TimerOff(ggState, '--BRC_WET_LS')
+
 #ifdef DEBUG
    do n = n1, n2
       call pmaxmin('BRC: q_wet', w_c%qa(n)%data3d(i1:i2,j1:j2,1:km), qmin, qmax, &
@@ -2280,6 +2279,8 @@ RUN_ALARM: if (gcBRC%run_alarm) then
 
 !  Organic Carbon Convective-scale Mixing and Wet Removal
 !  ------------------------------------------------------
+   call MAPL_TimerOn(ggState, '--BRC_WET_CV')
+
    KIN = .TRUE.
    icdt = cdt
    allocate(cmfmc_(i1:i2,j1:j2,km+1), qccu_(i1:i2,j1:j2,km), &
@@ -2341,17 +2342,25 @@ RUN_ALARM: if (gcBRC%run_alarm) then
    deallocate(fluxout%data2d)
    deallocate(fluxout, dqa, drydepositionfrequency, stat=ios )
 
+   call MAPL_TimerOff(ggState, '--BRC_WET_CV')
+
    end if RUN_ALARM
 
 
 !  Compute the desired output diagnostics here
 !  Ideally this will go where chemout is called in fvgcm.F since that
 !  will reflect the distributions after transport, etc.
-!  -----------
+!  ------------------------------------------------------------------
+   call MAPL_TimerOn(ggState, '--BRC_DIAGNOSTICS')
+
    call BRC_Compute_Diags(i1, i2, j1, j2, km, nbins, gcBRC, w_c, tmpu, rhoa, u, v, &
                          BRC_sfcmass, BRC_colmass, BRC_mass, BRC_exttau, &
                          BRC_scatau, BRC_conc, BRC_extcoef, BRC_scacoef, BRC_angstrom, &
                          BRC_fluxu, BRC_fluxv, rc)
+
+   call MAPL_TimerOff(ggState, '--BRC_DIAGNOSTICS')
+
+   call MAPL_TimerOff(ggState, '-BRC_RUN2')
 
    return
 
@@ -2641,7 +2650,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine BRC_GridCompFinalize1_ ( gcBRC, w_c, impChem, expChem, &
+   subroutine BRC_GridCompFinalize1_ ( gcBRC, w_c, impChem, expChem, ggState, &
                                        nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -2663,6 +2672,7 @@ CONTAINS
 
    type(ESMF_State), intent(inout) :: impChem   ! Import State
    type(ESMF_State), intent(inout) :: expChem   ! Import State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 -
@@ -2710,7 +2720,7 @@ CONTAINS
 ! !INTERFACE:
 !
   subroutine BRC_SingleInstance_ ( Method_, instance, &
-                                   gcBRC, w_c, impChem, expChem, &
+                                   gcBRC, w_c, impChem, expChem, ggState, &
                                    nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -2727,7 +2737,7 @@ CONTAINS
 !  Input "function pointer"
 !  -----------------------
    interface 
-     subroutine Method_ (gc, w, imp, exp, ymd, hms, dt, rcode )
+     subroutine Method_ (gc, w, imp, exp, state, ymd, hms, dt, rcode )
        Use BRC_GridCompMod
        Use ESMF
        Use MAPL
@@ -2736,6 +2746,7 @@ CONTAINS
        type(Chem_Bundle),   intent(in)     :: w
        type(ESMF_State),    intent(inout)  :: imp
        type(ESMF_State),    intent(inout)  :: exp
+       type(MAPL_MetaComp), intent(inout)  :: state
        integer,             intent(in)     :: ymd, hms
        real,                intent(in)     :: dt
        integer,             intent(out)    :: rcode
@@ -2754,6 +2765,7 @@ CONTAINS
    TYPE(BRC_GridComp1), INTENT(INOUT) :: gcBRC    ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), intent(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -2792,7 +2804,7 @@ CONTAINS
   
 ! Execute the instance method
 ! ---------------------------
-  call Method_ ( gcBRC, w_c, impChem, expChem, &
+  call Method_ ( gcBRC, w_c, impChem, expChem, ggState, &
                  nymd, nhms, cdt, rc )
 
 ! Restore the overall BRC indices

@@ -76,7 +76,7 @@
         real, pointer :: biomass_src_(:,:)
         real, pointer :: eocant1_src(:,:)  ! level 1
         real, pointer :: eocant2_src(:,:)  ! level 2
-        real, pointer :: terpene_src(:,:)  ! level 2
+        real, pointer :: biogvoc_src(:,:)  ! level 2
         real, pointer :: oc_ship_src(:,:)
         real, pointer :: psoa_anthro_voc(:,:,:) ! production of SOA from anthropogenic VOC
         real, pointer :: aviation_lto_src(:,:)  ! aviation - landing and takeoff
@@ -86,7 +86,11 @@
         
         real :: ratPOM               ! Ratio of POM to OC mass
         real :: fHydrophobic         ! Fraction of emissions hydrophobic
-        real :: fTerpene             ! Fraction of terpene emissions -> aerosol
+
+        real :: fMonoterpenes        ! Fraction of monoterpenes emissions -> aerosol
+        real :: fIsoprene            ! Fraction of isoprene emissions -> aerosol
+
+
         integer :: myDOW = -1             ! my Day of the week: Sun=1, Mon=2,...,Sat=7
         logical :: doing_nei=.FALSE.      ! NEI08: National Emission Inventory (US+Canada)
         real    :: nei_lon(2), nei_lat(2) ! NEI bounding box; superseeds eocant1/2 inside
@@ -177,7 +181,28 @@ CONTAINS
       VERIFY_(STATUS)
    end do
 
+
+!  Set profiling timers
+!  --------------------
+   call MAPL_TimerAdd(GC, name = '-OC_TOTAL',           __RC__)
+   call MAPL_TimerAdd(GC, name = '-OC_RUN',             __RC__)
+   call MAPL_TimerAdd(GC, name = '-OC_INITIALIZE',      __RC__)
+   call MAPL_TimerAdd(GC, name = '-OC_FINALIZE',        __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-OC_RUN1',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--OC_EMISSIONS',      __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-OC_RUN2',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--OC_SETTLING',       __RC__)
+   call MAPL_TimerAdd(GC, name = '--OC_DRY_DEPOSITION', __RC__)
+   call MAPL_TimerAdd(GC, name = '--OC_WET_LS',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--OC_WET_CV',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--OC_DIAGNOSTICS',    __RC__)
+
+!  All done
+!  --------
    RETURN_(ESMF_SUCCESS)
+
    end subroutine OC_GridCompSetServices
 
 !-------------------------------------------------------------------------
@@ -190,7 +215,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine OC_GridCompInitialize ( gcOC, w_c, impChem, expChem, &
+   subroutine OC_GridCompInitialize ( gcOC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -208,6 +233,7 @@ CONTAINS
    type(OC_GridComp), intent(inout) :: gcOC   ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -226,6 +252,9 @@ CONTAINS
    CHARACTER(LEN=255) :: name
    
    integer :: i, ier, n
+
+   call MAPL_TimerOn(ggState, '-OC_TOTAL')
+   call MAPL_TimerOn(ggState, '-OC_INITIALIZE')
 
 !  Load resource file
 !  ------------------
@@ -307,7 +336,7 @@ CONTAINS
        PRINT *,myname,": Initializing instance ",TRIM(gcOC%gcs(i)%iname)," [",gcOC%gcs(i)%instance,"]"
       END IF
       call OC_SingleInstance_ ( OC_GridCompInitialize1_, i, &
-                                gcOC%gcs(i), w_c, impChem, expChem,  &
+                                gcOC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = 1000+ier
@@ -324,6 +353,8 @@ CONTAINS
     rc = 40
    END IF
 
+   call MAPL_TimerOff(ggState, '-OC_INITIALIZE')
+   call MAPL_TimerOff(ggState, '-OC_TOTAL')
 
  end subroutine OC_GridCompInitialize
 
@@ -337,7 +368,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine OC_GridCompRun1 ( gcOC, w_c, impChem, expChem, &
+   subroutine OC_GridCompRun1 ( gcOC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -356,6 +387,7 @@ CONTAINS
    TYPE(OC_GridComp), INTENT(INOUT) :: gcOC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -372,15 +404,21 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-OC_TOTAL')
+   call MAPL_TimerOn(ggState, '-OC_RUN')
+
    do i = 1, gcOC%n
       call OC_SingleInstance_ ( OC_GridCompRun1_, i, &
-                                gcOC%gcs(i), w_c, impChem, expChem, &
+                                gcOC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-OC_RUN')
+   call MAPL_TimerOff(ggState, '-OC_TOTAL')
 
  end subroutine OC_GridCompRun1
 
@@ -395,7 +433,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine OC_GridCompRun2 ( gcOC, w_c, impChem, expChem, &
+   subroutine OC_GridCompRun2 ( gcOC, w_c, impChem, expChem, ggState, &
                                 run_alarm, nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -415,6 +453,7 @@ CONTAINS
    TYPE(OC_GridComp), INTENT(INOUT) :: gcOC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -431,17 +470,23 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-OC_TOTAL')
+   call MAPL_TimerOn(ggState, '-OC_RUN')
+
    do i = 1, gcOC%n
       gcOC%gcs(i)%run_alarm = run_alarm
 
       call OC_SingleInstance_ ( OC_GridCompRun2_, i, &
-                                gcOC%gcs(i), w_c, impChem, expChem, &
+                                gcOC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-OC_RUN')
+   call MAPL_TimerOff(ggState, '-OC_TOTAL')
 
  end subroutine OC_GridCompRun2
 
@@ -457,7 +502,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine OC_GridCompFinalize ( gcOC, w_c, impChem, expChem, &
+   subroutine OC_GridCompFinalize ( gcOC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -476,6 +521,7 @@ CONTAINS
    TYPE(OC_GridComp), INTENT(INOUT) :: gcOC     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -492,9 +538,12 @@ CONTAINS
 
    integer i, ier
 
+   call MAPL_TimerOn(ggState, '-OC_TOTAL')
+   call MAPL_TimerOn(ggState, '-OC_FINALIZE')
+
    do i = 1, gcOC%n
       call OC_SingleInstance_ ( OC_GridCompFinalize1_, i, &
-                                gcOC%gcs(i), w_c, impChem, expChem, &
+                                gcOC%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
@@ -504,6 +553,9 @@ CONTAINS
 
    if (associated(gcOC%gcs)) deallocate ( gcOC%gcs, stat=ier )
    gcOC%n = -1
+
+   call MAPL_TimerOff(ggState, '-OC_FINALIZE')
+   call MAPL_TimerOff(ggState, '-OC_TOTAL')
 
  end subroutine OC_GridCompFinalize
 
@@ -521,7 +573,7 @@ CONTAINS
    character(len=ESMF_MAXSTR) :: Iam
 
    Iam ="OC_GridCompSetServices1_"
- 	
+
    call MAPL_AddImportSpec(GC, &
       SHORT_NAME = 'OC_BIOMASS'//trim(iname), &
       LONG_NAME  = 'source species'  , &
@@ -533,7 +585,37 @@ CONTAINS
    VERIFY_(STATUS)
 
    call MAPL_AddImportSpec(GC, &
-      SHORT_NAME = 'OC_TERPENE'//trim(iname), &
+      SHORT_NAME = 'OC_MTPA'//trim(iname), &
+      LONG_NAME  = 'MEGAN MTPA (a-, b-pinene, sabinene, carene)', &
+      UNITS      = 'kgC/m2/s',                &
+      DIMS       = MAPL_DimsHorzOnly,  &
+      VLOCATION  = MAPL_VLocationNone, &
+      RESTART    = MAPL_RestartSkip,   &
+      RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC, &
+      SHORT_NAME = 'OC_MTPO'//trim(iname), &
+      LONG_NAME  = 'MEGAN MTPO (myrcene, ocimene, other monoterpenes)'  , &
+      UNITS      = 'kgC/m2/s',                &
+      DIMS       = MAPL_DimsHorzOnly,  &
+      VLOCATION  = MAPL_VLocationNone, &
+      RESTART    = MAPL_RestartSkip,   &
+      RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC, &
+      SHORT_NAME = 'OC_LIMO'//trim(iname), &
+      LONG_NAME  = 'MEGAN Limonenes' , &
+      UNITS      = 'kgC/m2/s',                &
+      DIMS       = MAPL_DimsHorzOnly,  &
+      VLOCATION  = MAPL_VLocationNone, &
+      RESTART    = MAPL_RestartSkip,   &
+      RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC, &
+      SHORT_NAME = 'OC_ISOPRENE'//trim(iname), &
       LONG_NAME  = 'source species'  , &
       UNITS      = '1',                &
       DIMS       = MAPL_DimsHorzOnly,  &
@@ -614,14 +696,14 @@ CONTAINS
 
    call MAPL_AddImportSpec(GC, &
      SHORT_NAME = 'pSOA_ANTHRO_VOC'//trim(iname), &
-     LONG_NAME  = 'SOA from Anthropogenic and biomass burning VOC' , &
+     LONG_NAME  = 'Production of SOA from Anthropogenic + Biofuel Burning VOC' , &
      UNITS      = 'kg m-3 s-1',                &
      DIMS       = MAPL_DimsHorzVert,  &
      VLOCATION  = MAPL_VLocationCenter, &
-      RESTART    = MAPL_RestartSkip,   &
+     RESTART    = MAPL_RestartSkip,   &
      RC         = STATUS)
-  VERIFY_(STATUS)
-  
+   VERIFY_(STATUS)
+
 
 !  Parse the resource file to see if NEI imports are required
 !  ----------------------------------------------------------
@@ -706,7 +788,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine OC_GridCompInitialize1_ ( gcOC, w_c, impChem, expChem, &
+   subroutine OC_GridCompInitialize1_ ( gcOC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -724,6 +806,7 @@ CONTAINS
    type(OC_GridComp1), intent(inout) :: gcOC    ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -896,10 +979,17 @@ CONTAINS
    end if
 
 
-!  Terpene Emission Factor
-!  ---------------
-   call i90_label ( 'terpene_emission_fraction:', ier(1) )
-   gcOC%fTerpene = i90_gfloat ( ier(2) )
+!  Biogenic VOCs Emission Factors
+!  -----------------------------
+   call i90_label ( 'monoterpenes_emission_fraction:', ier(1) )
+   gcOC%fMonoterpenes = i90_gfloat ( ier(2) )
+   if ( any(ier(1:2) /= 0) ) then
+      call final_(50)
+      return
+   end if
+
+   call i90_label ( 'isoprene_emission_fraction:', ier(1) )
+   gcOC%fIsoprene = i90_gfloat ( ier(2) )
    if ( any(ier(1:2) /= 0) ) then
       call final_(50)
       return
@@ -1038,7 +1128,7 @@ CONTAINS
    allocate ( gcOC%biomass_src(i1:i2,j1:j2), gcOC%biofuel_src(i1:i2,j1:j2), &
               gcOC%biomass_src_(i1:i2,j1:j2), &
               gcOC%eocant1_src(i1:i2,j1:j2), gcOC%eocant2_src(i1:i2,j1:j2), &
-              gcOC%terpene_src(i1:i2,j1:j2), gcOC%oc_ship_src(i1:i2,j1:j2), &
+              gcOC%biogvoc_src(i1:i2,j1:j2), gcOC%oc_ship_src(i1:i2,j1:j2), &
               gcOC%psoa_anthro_voc(i1:i2,j1:j2,km), &
               gcOC%aviation_lto_src(i1:i2,j1:j2), &
               gcOC%aviation_cds_src(i1:i2,j1:j2), &
@@ -1052,7 +1142,7 @@ CONTAINS
    deallocate ( gcOC%biomass_src, gcOC%biofuel_src, &
                 gcOC%biomass_src_, &
                 gcOC%eocant1_src, gcOC%eocant2_src, &
-                gcOC%terpene_src, gcOC%oc_ship_src, &
+                gcOC%biogvoc_src, gcOC%oc_ship_src, &
                 gcOC%psoa_anthro_voc, &
                 gcOC%aviation_lto_src, &
                 gcOC%aviation_cds_src, &
@@ -1073,7 +1163,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine OC_GridCompRun1_ ( gcOC, w_c, impChem, expChem, &
+   subroutine OC_GridCompRun1_ ( gcOC, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1083,7 +1173,8 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(OC_GridComp1), intent(inout) :: gcOC   ! Grid Component
-   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -1120,7 +1211,7 @@ CONTAINS
 !  Input fields from fvGCM
 !  -----------------------
    real, pointer, dimension(:,:)   :: pblh
-   real, pointer, dimension(:,:,:) :: tmpu, rhoa, ple
+   real, pointer, dimension(:,:,:) :: tmpu, rhoa, ple, hghte
 
 !  Workspace for NEI emissions
 !  ---------------------------
@@ -1146,6 +1237,8 @@ CONTAINS
 
 #include "OC_GetPointer___.h"
 
+
+   call MAPL_TimerOn(ggState, '-OC_RUN1')
 
 !  Initialize local variables
 !  --------------------------
@@ -1176,7 +1269,10 @@ CONTAINS
   end if
 
 ! Update emissions/production if necessary (daily)
-!  ------------------------------------------
+! ------------------------------------------------
+   
+    call MAPL_TimerOn(ggState, '--OC_EMISSIONS')
+
 
 !   Biomass Burning -- select on known inventories
 !   ----------------------------------------------
@@ -1187,8 +1283,19 @@ CONTAINS
 
 !   Terpene, biofuel and anthropogenic emissions (inventories)
 !   ----------------------------------------------------------
-    call MAPL_GetPointer(impChem, var2d, 'OC_TERPENE'//iNAME, __RC__)
-    gcOC%terpene_src = var2d
+    gcOC%biogvoc_src = 0.0
+
+    call MAPL_GetPointer(impChem, var2d, 'OC_MTPA'//iNAME, __RC__)
+    gcOC%biogvoc_src = gcOC%biogvoc_src + gcOC%fMonoterpenes*var2d
+
+    call MAPL_GetPointer(impChem, var2d, 'OC_MTPO'//iNAME, __RC__)
+    gcOC%biogvoc_src = gcOC%biogvoc_src + gcOC%fMonoterpenes*var2d
+
+    call MAPL_GetPointer(impChem, var2d, 'OC_LIMO'//iNAME, __RC__)
+    gcOC%biogvoc_src = gcOC%biogvoc_src + gcOC%fMonoterpenes*var2d
+
+    call MAPL_GetPointer(impChem, var2d, 'OC_ISOPRENE'//iNAME, __RC__)
+    gcOC%biogvoc_src = gcOC%biogvoc_src + gcOC%fIsoprene*var2d
 
     call MAPL_GetPointer(impChem, var2d, 'OC_BIOFUEL'//iNAME, __RC__)
     gcOC%biofuel_src = var2d
@@ -1218,7 +1325,7 @@ CONTAINS
     do j = j1, j2
      do i = i1, i2
       if(1.01*gcOC%biomass_src(i,j) .gt. undefval) gcOC%biomass_src(i,j) = 0.
-      if(1.01*gcOC%terpene_src(i,j) .gt. undefval) gcOC%terpene_src(i,j) = 0.
+      if(1.01*gcOC%biogvoc_src(i,j) .gt. undefval) gcOC%biogvoc_src(i,j) = 0.
       if(1.01*gcOC%biofuel_src(i,j) .gt. undefval) gcOC%biofuel_src(i,j) = 0.
       if(1.01*gcOC%eocant1_src(i,j) .gt. undefval) gcOC%eocant1_src(i,j) = 0.
       if(1.01*gcOC%eocant2_src(i,j) .gt. undefval) gcOC%eocant2_src(i,j) = 0.
@@ -1235,7 +1342,7 @@ CONTAINS
     call pmaxmin('OC: biofuel', gcOC%biofuel_src, qmin, qmax, ijl,1, 1. )
     call pmaxmin('OC: eocant1', gcOC%eocant1_src, qmin, qmax, ijl,1,1.)
     call pmaxmin('OC: eocant2', gcOC%eocant2_src, qmin, qmax, ijl,1,1.)
-    call pmaxmin('OC: terpene', gcOC%terpene_src, qmin, qmax, ijl,1, 1.)
+    call pmaxmin('OC: biogvoc', gcOC%biogvoc_src, qmin, qmax, ijl,1, 1.)
     call pmaxmin('OC: oc_ship', gcOC%oc_ship_src, qmin, qmax, ijl,1, 1.)
     call pmaxmin('OC: avi_lto', gcOC%aviation_lto_src, qmin, qmax, ijl,1,1.)
     call pmaxmin('OC: avi_cds', gcOC%aviation_cds_src, qmin, qmax, ijl,1,1.)
@@ -1317,6 +1424,7 @@ CONTAINS
    call MAPL_GetPointer ( impChem, tmpu,     'T',        __RC__ )
    call MAPL_GetPointer ( impChem, rhoa,     'AIRDENS',  __RC__ )
    call MAPL_GetPointer ( impChem, ple,      'PLE',      __RC__ )
+   call MAPL_GetPointer ( impChem, hghte,    'ZLE',      __RC__ )
 
   
 
@@ -1332,7 +1440,7 @@ CONTAINS
 !  OC Source
 !  -----------
    call OC_Emission ( i1, i2, j1, j2, km, nbins, cdt, gcOC, w_c, &
-                      pblh, tmpu, rhoa, OC_emis, &
+                      pblh, tmpu, rhoa, hghte, OC_emis, &
                       OC_emisAN, OC_emisBB, OC_emisBF, OC_emisBG, rc )
 #ifdef DEBUG
    do n = n1, n2
@@ -1341,6 +1449,13 @@ CONTAINS
    end do
 #endif
 
+
+   call MAPL_TimerOff(ggState, '--OC_EMISSIONS')
+   
+   call MAPL_TimerOff(ggState, '-OC_RUN1')
+
+!  All done
+!  --------
    return
 
 CONTAINS
@@ -1364,7 +1479,7 @@ CONTAINS
 !
 
    subroutine OC_Emission ( i1, i2, j1, j2, km, nbins, cdt, gcOC, w_c, &
-                            pblh, tmpu, rhoa, OC_emis, &
+                            pblh, tmpu, rhoa, hghte, OC_emis, &
                             OC_emisAN, OC_emisBB, OC_emisBF, OC_emisBG, rc )
 
 ! !USES:
@@ -1379,6 +1494,7 @@ CONTAINS
    real, pointer, dimension(:,:)    :: pblh
    real, pointer, dimension(:,:,:)  :: tmpu
    real, pointer, dimension(:,:,:)  :: rhoa
+   real, pointer, dimension(:,:,:)  :: hghte
 
 ! !OUTPUT PARAMETERS:
 
@@ -1448,7 +1564,7 @@ CONTAINS
 !  Emission factors scaling from source files to desired mass quantity
    eBiomass = gcOC%ratPOM
    eBiofuel = gcOC%ratPOM 
-   eTerpene = gcOC%ratPOM * gcOC%fTerpene
+   eTerpene = gcOC%ratPOM
    eAnthro  = gcOC%ratPOM
 
 !  Zero diagnostic accumulators
@@ -1532,6 +1648,8 @@ CONTAINS
 #endif
 
 
+NON_ZERO_BIOMASS_BURNING_EMISSIONS: if (any(gcOC%biomass_src > tiny(0.0))) then 
+
 !   Limit biomass burning emissions
 !   -------------------------------
     allocate(qa_bb_(nbins,i1:i2,j1:j2,km), __STAT__)
@@ -1568,6 +1686,7 @@ K_LOOP_BB: do k = km, 1, -1
      end do ! i
     end do  ! j
 
+#if (0)
 !   Determine global max/min
 !   ------------------------
     call pmaxmin ( 'OC: Phobic ', srcHydrophobic, qmin, qmax, ijl, 1, 0. )
@@ -1578,6 +1697,7 @@ K_LOOP_BB: do k = km, 1, -1
 !   If emissions are zero at this level (globally), we are done
 !   -----------------------------------------------------------
     if ( maxAll .eq. 0.0 ) exit K_LOOP_BB
+#endif
 
 !   Update concentrations at this layer
 !   The "1" element is hydrophobic 
@@ -1645,6 +1765,12 @@ K_LOOP_BB: do k = km, 1, -1
  
    deallocate(qa_bb_, __STAT__)
 
+else
+
+   f_bb_ = 1.0
+
+end if NON_ZERO_BIOMASS_BURNING_EMISSIONS
+   
 
 !  Now update the tracer mixing ratios with the aerosol sources
 !  ------------------------------------------------------------
@@ -1701,7 +1827,7 @@ K_LOOP: do k = km, 1, -1
                        + f100 * eAnthro  * gcOC%oc_ship_src(i,j) &
                        +        eAnthro  * srcAviation(i,j,k)
       srcBiomass(i,j)  = fPBL * eBiomass * gcOC%biomass_src(i,j) * f_bb_(i,j)
-      srcBiogenic(i,j) = fBot * eTerpene * gcOC%terpene_src(i,j)
+      srcBiogenic(i,j) = fBot * eTerpene * gcOC%biogvoc_src(i,j)
 
       srcTmp = srcBiofuel(i,j) + srcAnthro(i,j) + srcBiomass(i,j)
 
@@ -1715,6 +1841,7 @@ K_LOOP: do k = km, 1, -1
      end do ! i
     end do  ! j
 
+#if (0)
 !   Determine global max/min
 !   ------------------------
     call pmaxmin ( 'OC: Phobic ', srcHydrophobic, qmin, qmax, ijl, 1, 0. )
@@ -1725,6 +1852,7 @@ K_LOOP: do k = km, 1, -1
 !   If emissions are zero at this level (globally), we are done
 !   -----------------------------------------------------------
     if ( maxAll .eq. 0.0 ) exit K_LOOP
+#endif
 
 !   Update concentrations at this layer
 !   The "1" element is hydrophobic 
@@ -1786,9 +1914,9 @@ K_LOOP: do k = km, 1, -1
 !     --------------------------------------------
       if(nhms < gcOC%vStart(ii) .or. nhms >= gcOC%vEnd(ii)) cycle
 
-      call distribute_point_emissions(w_c%delp(i,j,:), rhoa(i,j,:), &
-                                      gcOC%vBase(ii), gcOC%vTop(ii), gcOC%vEmis(ii), &
-                                      point_column_emissions, km)
+      call Chem_UtilDistributePointEmissions(hghte(i,j,:), &
+                                             gcOC%vBase(ii), gcOC%vTop(ii), gcOC%vEmis(ii), &
+                                             point_column_emissions, km)
       w_c%qa(n1)%data3d(i,j,:) = w_c%qa(n1)%data3d(i,j,:) & 
          + gcOC%fHydrophobic * cdt * grav / w_c%delp(i,j,:) &
                              * point_column_emissions / w_c%grid%cell_area(i,j)
@@ -1884,85 +2012,6 @@ K_LOOP: do k = km, 1, -1
 
     end subroutine distribute_aviation_emissions
 
-
-!  Abstracted from distribute_aviation_emissions above, but called per column
-   subroutine distribute_point_emissions(delp, rhoa, z_bot, z_top, emissions_point, &
-                                         emissions, km)
-
-    implicit none
-
-    integer, intent(in) :: km
-
-    real, dimension(:), intent(in) :: delp
-    real, dimension(:), intent(in) :: rhoa
-    real,               intent(in) :: emissions_point
-    real, intent(in)                   :: z_bot
-    real, intent(in)                   :: z_top
-    real, dimension(:), intent(out):: emissions
-    
-!   local
-    integer :: k
-    integer :: k_bot, k_top
-    real    :: z_
-    real, dimension(km) :: z, dz, w_
-    
-!   find level height
-    z = 0.0
-    z_= 0.0 
-
-    do k = km, 1, -1
-       dz(k) = delp(k)/rhoa(k)/grav
-       z_    = z_ + dz(k)
-       z(k)  = z_
-    end do
-
-!   find the bottom level
-    do k = km, 1, -1
-       if (z(k) >= z_bot) then
-           k_bot = k
-           exit
-       end if
-    end do
-            
-!   find the top level
-    do k = k_bot, 1, -1
-       if (z(k) >= z_top) then
-           k_top = k
-           exit
-       end if
-    end do
-
-!   find the weights
-    w_ = 0
-
-!   if (k_top > k_bot) then
-!       need to bail - something went wrong here
-!   end if
-
-    if (k_bot .eq. k_top) then
-        w_(k_bot) = z_top - z_bot
-    else
-     do k = k_bot, k_top, -1
-        if ((k < k_bot) .and. (k > k_top)) then
-             w_(k) = dz(k)
-        else
-             if (k == k_bot) then
-                 w_(k) = (z(k) - z_bot)
-             end if
-
-             if (k == k_top) then
-                 w_(k) = z_top - (z(k)-dz(k))
-             end if
-        end if
-     end do
-    end if
-           
-!   distribute emissions in the vertical 
-    emissions(:) = (w_ / sum(w_)) * emissions_point
-
-    end subroutine distribute_point_emissions
-
-
  end subroutine OC_GridCompRun1_
 
 
@@ -1977,7 +2026,7 @@ K_LOOP: do k = km, 1, -1
 ! !INTERFACE:
 !
 
-   subroutine OC_GridCompRun2_ ( gcOC, w_c, impChem, expChem, &
+   subroutine OC_GridCompRun2_ ( gcOC, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1988,6 +2037,7 @@ K_LOOP: do k = km, 1, -1
 
    type(OC_GridComp1), intent(inout) :: gcOC   ! Grid Component
    type(Chem_Bundle), intent(inout)  :: w_c    ! Chemical tracer fields   
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -2083,6 +2133,7 @@ K_LOOP: do k = km, 1, -1
 
 #include "OC_GetPointer___.h"
 
+   call MAPL_TimerOn(ggState, '-OC_RUN2')
 
 !  Initialize local variables
 !  --------------------------
@@ -2194,17 +2245,11 @@ RUN_ALARM: if (gcOC%run_alarm) then
 
 !  Add on SOA from Anthropogenic VOC oxidation
 !  -------------------------------------------
-   do k = 1, km
-    do j = j1, j2
-     do i = i1, i2
-      w_c%qa(n2)%data3d(i,j,k) = w_c%qa(n2)%data3d(i,j,k) + cdt*gcOC%psoa_anthro_voc(i,j,k)/rhoa(i,j,k)  ! hydrophilic
-      if ( associated(OC_pSOA%data2d)) &
-          OC_pSOA%data2d(i,j) = OC_pSOA%data2d(i,j) &
-             + cdt*gcOC%psoa_anthro_voc(i,j,k)*w_c%delp(i,j,k)/rhoa(i,j,k)/grav
-     end do
-    end do
-   end do
+   w_c%qa(n2)%data3d = w_c%qa(n2)%data3d + cdt*gcOC%psoa_anthro_voc/rhoa  ! hydrophilic
 
+
+   if (associated(OC_pSOA%data2d)) &
+       OC_pSOA%data2d = sum(gcOC%psoa_anthro_voc*w_c%delp/rhoa/grav, 3)
 
 
 !  Ad Hoc transfer of hydrophobic to hydrophilic aerosols
@@ -2230,6 +2275,8 @@ RUN_ALARM: if (gcOC%run_alarm) then
 
 !  OC Settling
 !  -----------
+   call MAPL_TimerOn(ggState, '--OC_SETTLING')
+
    allocate( OC_radius(nbins), OC_rhop(nbins) )
    OC_radius(:) = 0.35e-6  ! radius for settling [m]
    OC_rhop(:)   = 1800.    ! density for setting [kg m-3]
@@ -2239,8 +2286,12 @@ RUN_ALARM: if (gcOC%run_alarm) then
                         hghte, OC_set, rc )
    deallocate( OC_radius, OC_rhop)
 
+   call MAPL_TimerOff(ggState, '--OC_SETTLING')
+
 !  OC Deposition
-!  -----------
+!  -------------
+   call MAPL_TimerOn(ggState, '--OC_DRY_DEPOSITION')
+
    drydepositionfrequency = 0.
    call DryDepositionGOCART( i1, i2, j1, j2, km, &
                              tmpu, rhoa, hghte, oro, ustar, &
@@ -2255,6 +2306,8 @@ RUN_ALARM: if (gcOC%run_alarm) then
      OC_dep(n)%data2d = dqa*w_c%delp(:,:,km)/grav/cdt
    end do
 
+   call MAPL_TimerOff(ggState, '--OC_DRY_DEPOSITION')
+
 #ifdef DEBUG
    do n = n1, n2
       call pmaxmin('OC: q_dry', w_c%qa(n)%data3d(i1:i2,j1:j2,1:km), qmin, qmax, &
@@ -2265,6 +2318,8 @@ RUN_ALARM: if (gcOC%run_alarm) then
 
 !  Organic Carbon Large-scale Wet Removal
 !  --------------------------------------
+   call MAPL_TimerOn(ggState, '--OC_WET_LS')
+
 !  Hydrophobic mode (first tracer) is not removed
    if(associated(OC_wet(1)%data2d)) OC_wet(1)%data2d = 0.
 !  Hydrophilic mode (second tracer) is removed
@@ -2277,6 +2332,8 @@ RUN_ALARM: if (gcOC%run_alarm) then
     if(associated(OC_wet(n)%data2d)) OC_wet(n)%data2d = fluxout%data2d
    end do
 
+   call MAPL_TimerOff(ggState, '--OC_WET_LS')
+
 #ifdef DEBUG
    do n = n1, n2
       call pmaxmin('OC: q_wet', w_c%qa(n)%data3d(i1:i2,j1:j2,1:km), qmin, qmax, &
@@ -2286,6 +2343,8 @@ RUN_ALARM: if (gcOC%run_alarm) then
 
 !  Organic Carbon Convective-scale Mixing and Wet Removal
 !  ------------------------------------------------------
+   call MAPL_TimerOn(ggState, '--OC_WET_CV')
+
    KIN = .TRUE.
    icdt = cdt
    allocate(cmfmc_(i1:i2,j1:j2,km+1), qccu_(i1:i2,j1:j2,km), &
@@ -2347,17 +2406,25 @@ RUN_ALARM: if (gcOC%run_alarm) then
    deallocate(fluxout%data2d)
    deallocate(fluxout, dqa, drydepositionfrequency, stat=ios )
 
+   call MAPL_TimerOff(ggState, '--OC_WET_CV')
+
    end if RUN_ALARM
 
 
 !  Compute the desired output diagnostics here
 !  Ideally this will go where chemout is called in fvgcm.F since that
 !  will reflect the distributions after transport, etc.
-!  -----------
+!  ------------------------------------------------------------------
+   call MAPL_TimerOn(ggState, '--OC_DIAGNOSTICS')
+
    call OC_Compute_Diags(i1, i2, j1, j2, km, nbins, gcOC, w_c, tmpu, rhoa, u, v, &
                          OC_sfcmass, OC_colmass, OC_mass, OC_exttau, &
                          OC_scatau, OC_conc, OC_extcoef, OC_scacoef, OC_angstrom, &
                          OC_fluxu, OC_fluxv, rc)
+
+   call MAPL_TimerOff(ggState, '--OC_DIAGNOSTICS')
+
+   call MAPL_TimerOff(ggState, '-OC_RUN2')
 
    return
 
@@ -2647,7 +2714,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine OC_GridCompFinalize1_ ( gcOC, w_c, impChem, expChem, &
+   subroutine OC_GridCompFinalize1_ ( gcOC, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -2669,6 +2736,7 @@ CONTAINS
 
    type(ESMF_State), intent(inout) :: impChem   ! Import State
    type(ESMF_State), intent(inout) :: expChem   ! Import State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 -
@@ -2716,7 +2784,7 @@ CONTAINS
 ! !INTERFACE:
 !
   subroutine OC_SingleInstance_ ( Method_, instance, &
-                                  gcOC, w_c, impChem, expChem, &
+                                  gcOC, w_c, impChem, expChem, ggState, &
                                   nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -2733,7 +2801,7 @@ CONTAINS
 !  Input "function pointer"
 !  -----------------------
    interface 
-     subroutine Method_ (gc, w, imp, exp, ymd, hms, dt, rcode )
+     subroutine Method_ (gc, w, imp, exp, state, ymd, hms, dt, rcode )
        Use OC_GridCompMod
        Use ESMF
        Use MAPL
@@ -2742,6 +2810,7 @@ CONTAINS
        type(Chem_Bundle),   intent(in)     :: w
        type(ESMF_State),    intent(inout)  :: imp
        type(ESMF_State),    intent(inout)  :: exp
+       type(MAPL_MetaComp), intent(inout)  :: state
        integer,             intent(in)     :: ymd, hms
        real,                intent(in)     :: dt
        integer,             intent(out)    :: rcode
@@ -2760,6 +2829,7 @@ CONTAINS
    TYPE(OC_GridComp1), INTENT(INOUT) :: gcOC    ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), intent(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -2798,7 +2868,7 @@ CONTAINS
   
 ! Execute the instance method
 ! ---------------------------
-  call Method_ ( gcOC, w_c, impChem, expChem, &
+  call Method_ ( gcOC, w_c, impChem, expChem, ggState, &
                  nymd, nhms, cdt, rc )
 
 ! Restore the overall OC indices

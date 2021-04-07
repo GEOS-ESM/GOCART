@@ -63,9 +63,9 @@
   NH4SMASS   | kg m-3     | xy  |   |    |   |   |     | Ammonium Surface Mass Concentration        __ENSEMBLE__
   NISMASS    | kg m-3     | xy  |   |    |   |   |     | Nitrate Surface Mass Concentration         __ENSEMBLE__
   NISMASS25  | kg m-3     | xy  |   |    |   |   |     | Nitrate Surface Mass Concentration [PM2.5] __ENSEMBLE__
-  HNO3CMASS  | kg m-3     | xy  |   |    |   |   |     | Nitric Acid Column Mass Density            __ENSEMBLE__
-  NH3CMASS   | kg m-3     | xy  |   |    |   |   |     | Ammonia Column Mass Density                __ENSEMBLE__
-  NH4CMASS   | kg m-3     | xy  |   |    |   |   |     | Ammonium Column Mass Density               __ENSEMBLE__
+  HNO3CMASS  | kg m-2     | xy  |   |    |   |   |     | Nitric Acid Column Mass Density            __ENSEMBLE__
+  NH3CMASS   | kg m-2     | xy  |   |    |   |   |     | Ammonia Column Mass Density                __ENSEMBLE__
+  NH4CMASS   | kg m-2     | xy  |   |    |   |   |     | Ammonium Column Mass Density               __ENSEMBLE__
   NICMASS    | kg m-2     | xy  |   |    |   |   |     | Nitrate Column Mass Density                __ENSEMBLE__
   NICMASS25  | kg m-2     | xy  |   |    |   |   |     | Nitrate Column Mass Density [PM2.5]        __ENSEMBLE__
   NIEXTTFM   |      1     | xy  |   |    |   |   |     | Nitrate Extinction AOT [550 nm] - PM 1.0 um            __ENSEMBLE__

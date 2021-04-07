@@ -60,6 +60,8 @@
 !
 !EOP
 !-------------------------------------------------------------------------
+  integer, parameter :: EMIS_SCHEME_GINOUX = 1
+  integer, parameter :: EMIS_SCHEME_K14    = 2
 
   type DU_GridComp1
         character(len=255) :: name
@@ -69,10 +71,16 @@
         integer :: instance                   ! instance number
 
         logical :: run_alarm = .false.        ! run alarm
+
+        integer :: emisFlag = EMIS_SCHEME_K14 ! 1 - Ginoux, 2 - K14, default is K14
         
         type(Chem_Mie), pointer :: mie_tables => null() ! aod LUTs
         integer       :: rhFlag         ! choice of relative humidity parameterization for radius
         logical       :: maringFlag     ! settling velocity correction
+        integer       :: clayFlag       ! clay and silt term in K14
+        real          :: f_swc          ! soil mosture scaling factor
+        real          :: f_scl          ! clay content scaling factor
+        real          :: uts_gamma      ! threshold friction velocity parameter 'gamma'
         real, pointer :: src(:,:)       ! Ginoux dust sources
         real, pointer :: radius(:)      ! particle effective radius [um]
         real, pointer :: rlow(:)        ! particle effective radius lower bound [um]
@@ -106,6 +114,7 @@
 
   real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
   real, parameter :: radTODeg = 57.2957795
+
 
 CONTAINS
 
@@ -166,11 +175,32 @@ CONTAINS
       ELSE
        name = TRIM(name)       ! instance name for others
       END IF
+
       call DU_GridCompSetServices1_(gc,chemReg,name,rc=status)
       VERIFY_(STATUS)
    end do
 
+!  Set profiling timers
+!  --------------------
+   call MAPL_TimerAdd(GC, name = '-DU_TOTAL',           __RC__)
+   call MAPL_TimerAdd(GC, name = '-DU_RUN',             __RC__)
+   call MAPL_TimerAdd(GC, name = '-DU_INITIALIZE',      __RC__)
+   call MAPL_TimerAdd(GC, name = '-DU_FINALIZE',        __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-DU_RUN1',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--DU_EMISSIONS',      __RC__)
+
+   call MAPL_TimerAdd(GC, name = '-DU_RUN2',            __RC__)
+   call MAPL_TimerAdd(GC, name = '--DU_SETTLING',       __RC__)
+   call MAPL_TimerAdd(GC, name = '--DU_DRY_DEPOSITION', __RC__)
+   call MAPL_TimerAdd(GC, name = '--DU_WET_LS',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--DU_WET_CV',         __RC__)
+   call MAPL_TimerAdd(GC, name = '--DU_DIAGNOSTICS',    __RC__)
+
+!  All done
+!  --------
    RETURN_(ESMF_SUCCESS)
+
    end subroutine DU_GridCompSetServices
 
 
@@ -184,7 +214,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine DU_GridCompInitialize ( gcDU, w_c, impChem, expChem, &
+   subroutine DU_GridCompInitialize ( gcDU, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -202,6 +232,7 @@ CONTAINS
    type(DU_GridComp), intent(inout) :: gcDU     ! Grid Component
    type(ESMF_State), intent(inout)  :: impChem  ! Import State
    type(ESMF_State), intent(inout)  :: expChem  ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -220,6 +251,9 @@ CONTAINS
    CHARACTER(LEN=255) :: name
    
    integer i, ier, n
+
+   call MAPL_TimerOn(ggState, '-DU_TOTAL')
+   call MAPL_TimerOn(ggState, '-DU_INITIALIZE')
 
 !  Load resource file
 !  ------------------
@@ -301,7 +335,7 @@ CONTAINS
        PRINT *,myname,": Initializing instance ",TRIM(gcDU%gcs(i)%iname)," [",gcDU%gcs(i)%instance,"]"
       END IF
       call DU_SingleInstance_ ( DU_GridCompInitialize1_, i, &
-                                gcDU%gcs(i), w_c, impChem, expChem,  &
+                                gcDU%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = 1000+ier
@@ -318,6 +352,9 @@ CONTAINS
     rc = 40
    END IF
 
+   call MAPL_TimerOff(ggState, '-DU_INITIALIZE')
+   call MAPL_TimerOff(ggState, '-DU_TOTAL')
+
    end subroutine DU_GridCompInitialize
 
 
@@ -332,7 +369,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine DU_GridCompRun1 ( gcDU, w_c, impChem, expChem, &
+   subroutine DU_GridCompRun1 ( gcDU, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -351,6 +388,7 @@ CONTAINS
    TYPE(DU_GridComp), INTENT(INOUT) :: gcDU     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -367,15 +405,21 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-DU_TOTAL')
+   call MAPL_TimerOn(ggState, '-DU_RUN')
+
    do i = 1, gcDU%n
       call DU_SingleInstance_ ( DU_GridCompRun1_, i, &
-                                gcDU%gcs(i), w_c, impChem, expChem, &
+                                gcDU%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-DU_RUN')
+   call MAPL_TimerOff(ggState, '-DU_TOTAL')
 
    end subroutine DU_GridCompRun1
 
@@ -392,7 +436,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine DU_GridCompRun2 ( gcDU, w_c, impChem, expChem, &
+   subroutine DU_GridCompRun2 ( gcDU, w_c, impChem, expChem, ggState, &
                                       run_alarm, nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -412,6 +456,7 @@ CONTAINS
    TYPE(DU_GridComp), INTENT(INOUT) :: gcDU     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -428,17 +473,23 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-DU_TOTAL')
+   call MAPL_TimerOn(ggState, '-DU_RUN')
+
    do i = 1, gcDU%n
       gcDU%gcs(i)%run_alarm = run_alarm
 
       call DU_SingleInstance_ ( DU_GridCompRun2_, i, &
-                                gcDU%gcs(i), w_c, impChem, expChem, &
+                                gcDU%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
          return
       end if
    end do
+
+   call MAPL_TimerOff(ggState, '-DU_RUN')
+   call MAPL_TimerOff(ggState, '-DU_TOTAL')
 
    end subroutine DU_GridCompRun2
 
@@ -453,7 +504,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine DU_GridCompFinalize ( gcDU, w_c, impChem, expChem, &
+   subroutine DU_GridCompFinalize ( gcDU, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -472,6 +523,7 @@ CONTAINS
    TYPE(DU_GridComp), INTENT(INOUT) :: gcDU     ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), INTENT(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -488,9 +540,12 @@ CONTAINS
 
    integer :: i, ier
 
+   call MAPL_TimerOn(ggState, '-DU_TOTAL')
+   call MAPL_TimerOn(ggState, '-DU_FINALIZE')
+
    do i = 1, gcDU%n
       call DU_SingleInstance_ ( DU_GridCompFinalize1_, i, &
-                                gcDU%gcs(i), w_c, impChem, expChem, &
+                                gcDU%gcs(i), w_c, impChem, expChem, ggState, &
                                 nymd, nhms, cdt, ier )
       if ( ier .NE. 0 ) then
          rc = i * 1000+ier
@@ -500,6 +555,9 @@ CONTAINS
 
    if (associated(gcDU%gcs)) deallocate ( gcDU%gcs, stat=ier )
    gcDU%n = -1
+
+   call MAPL_TimerOff(ggState, '-DU_FINALIZE')
+   call MAPL_TimerOff(ggState, '-DU_TOTAL')
 
    end subroutine DU_GridCompFinalize
 
@@ -526,7 +584,133 @@ CONTAINS
         RC         = STATUS)
    VERIFY_(STATUS)
 
-  RETURN_(ESMF_SUCCESS)
+   call MAPL_AddImportSpec(GC,              &
+        SHORT_NAME = 'DU_Z0'//trim(iname),  &
+        LONG_NAME  = 'aerodynamic_surface_roughness_for_aeolian_processes' , &
+        UNITS      = 'm',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RESTART    = MAPL_RestartSkip,      &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC,              &
+        SHORT_NAME = 'DU_GVF'//trim(iname), &
+        LONG_NAME  = 'GVF',                 &
+        UNITS      = '1',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RESTART    = MAPL_RestartSkip,      &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC,              &
+        SHORT_NAME = 'DU_SAND'//trim(iname),&
+        LONG_NAME  = 'sand fraction'  ,     &
+        UNITS      = '1',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RESTART    = MAPL_RestartSkip,      &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC,              &
+        SHORT_NAME = 'DU_SILT'//trim(iname),&
+        LONG_NAME  = 'silt fraction'  ,     &
+        UNITS      = '1',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RESTART    = MAPL_RestartSkip,      &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC,              &
+        SHORT_NAME = 'DU_CLAY'//trim(iname),&
+        LONG_NAME  = 'clay fraction'  ,     &
+        UNITS      = '1',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RESTART    = MAPL_RestartSkip,      &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC,              &
+        SHORT_NAME = 'DU_TEXTURE'//trim(iname),&
+        LONG_NAME  = 'soil texture'  ,      &
+        UNITS      = '',                    &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RESTART    = MAPL_RestartSkip,      &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddImportSpec(GC,              &
+        SHORT_NAME = 'DU_VEG'//trim(iname), &
+        LONG_NAME  = 'vegetation_type'  ,   &
+        UNITS      = '1',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RESTART    = MAPL_RestartSkip,      &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+  
+   ! exports
+   call MAPL_AddExportSpec(GC,              &
+        SHORT_NAME = 'DU_UST'//trim(iname), &
+        LONG_NAME  = 'aeolian_friction_velocity', &
+        UNITS      = 'm s-2',               &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddExportSpec(GC,              &
+        SHORT_NAME = 'DU_UST_T'//trim(iname), &
+        LONG_NAME  = 'aeolian_threshold_friction_velocity', &
+        UNITS      = 'm s-2',               &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddExportSpec(GC,              &
+        SHORT_NAME = 'DU_UST_TS'//trim(iname), &
+        LONG_NAME  = 'aeolian_threshold_friction_velocity_over_smooth_surface', &
+        UNITS      = 'm s-2',               &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddExportSpec(GC,              &
+        SHORT_NAME = 'DU_DPC'//trim(iname), &
+        LONG_NAME  = 'aeolian_drag_partition_correction', &
+        UNITS      = '1',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+
+   call MAPL_AddExportSpec(GC,              &
+        SHORT_NAME = 'DU_SMC'//trim(iname), &
+        LONG_NAME  = 'aeolian_soil_moisture_correction', &
+        UNITS      = '1',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+ 
+   call MAPL_AddExportSpec(GC,              &
+        SHORT_NAME = 'DU_EROD'//trim(iname),&
+        LONG_NAME  = 'aeolian_erodibility', &
+        UNITS      = '1',                   &
+        DIMS       = MAPL_DimsHorzOnly,     &
+        VLOCATION  = MAPL_VLocationNone,    &
+        RC         = STATUS)
+   VERIFY_(STATUS)
+   
+
+   RETURN_(ESMF_SUCCESS)
 
    end subroutine DU_GridCompSetServices1_
 
@@ -541,7 +725,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine DU_GridCompInitialize1_ ( gcDU, w_c, impChem, expChem, &
+   subroutine DU_GridCompInitialize1_ ( gcDU, w_c, impChem, expChem, ggState, &
                                       nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -559,6 +743,7 @@ CONTAINS
    type(DU_GridComp1), intent(inout) :: gcDU    ! Grid Component
    type(ESMF_State), intent(inout)   :: impChem ! Import State
    type(ESMF_State), intent(inout)   :: expChem ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -584,6 +769,9 @@ CONTAINS
    real :: radius, rlow, rup, rhop, fscav, fnum, molwght
    integer :: irhFlag
    integer :: imaringFlag
+   integer :: iclayFlag
+   integer :: iemisFlag
+   real    :: f_swc, f_scl, uts_gamma
 
    integer, parameter :: nhres = 6   ! number of horizontal model resolutions: a,b,c,d,e
    real    :: Ch_DU(nhres)           ! emission tuning coefficient buffer
@@ -756,7 +944,6 @@ CONTAINS
       Ch_DU(n) = i90_gfloat ( ier(n+1) )
    end do
    gcDU%Ch_DU = Chem_UtilResVal(im, jm, Ch_DU(:), ier(nhres + 2))
-   gcDU%Ch_DU = gcDU%Ch_DU * 1.00E-09
    if ( any(ier(1:nhres+2) /= 0) ) then
       call final_(50)
       return
@@ -793,6 +980,80 @@ CONTAINS
                gcDU%doing_point_emissions = .TRUE.  ! we are good to go
          end if
    end if
+
+!  Clay and silt term modulating the strength 
+!  of the dust emissins in K14 & I&K, 2017
+!  ------------------------------------------
+   call i90_label ( 'clayFlag:', ier(1) )
+   iclayFlag = i90_gint ( ier(2) )
+   gcDU%clayFlag = iclayFlag
+   if ( any(ier(1:2) /= 0) ) then
+      call final_(60)
+      return
+   end if
+
+!  Scaling factor for the soil mosture
+!  -----------------------------------
+   call i90_label ( 'soil_moisture_factor:', ier(1) )
+   f_swc = i90_gfloat ( ier(2) )
+   gcDU%f_swc = f_swc
+   if ( any(ier(1:2) /= 0) ) then
+      call final_(61)
+      return
+   end if
+
+!  Scaling factor for the clay fraction
+!  ------------------------------------
+   call i90_label ( 'soil_clay_factor:', ier(1) )
+   f_scl = i90_gfloat ( ier(2) )
+   gcDU%f_scl = f_scl
+   if ( any(ier(1:2) /= 0) ) then
+      call final_(62)
+      return
+   end if
+
+!  Threshold friction velocity factor 'gamma'
+!  ------------------------------------------
+   call i90_label ( 'uts_gamma:', ier(1) )
+   uts_gamma = i90_gfloat ( ier(2) )
+   gcDU%uts_gamma = uts_gamma
+   if ( any(ier(1:2) /= 0) ) then
+      call final_(63)
+      return
+   end if
+
+!  Parameterization of dust emissions 
+!  ----------------------------------
+   ier(:) = 0
+   iemisFlag = 0
+   call i90_label  ( 'emission_scheme:', ier(1) )
+   iemisFlag = i90_gint ( ier(2) )
+   if ( ier(1) /= 0 ) then
+      gcDU%emisFlag = EMIS_SCHEME_K14  ! if rc is missing, don't fuss and default to K14
+   else
+      if ( ier(2) /= 0 ) then
+         call final_(64) ! emissions parameterization info is messed up, abort
+         return
+      end if
+
+      gcDU%emisFlag = iemisFlag
+   end if
+
+   select case(gcDU%emisFlag)
+      case (EMIS_SCHEME_K14)
+         if (MAPL_AM_I_ROOT()) &
+             print *, trim(myname)//': Dust emission scheme is K14'
+      case (EMIS_SCHEME_GINOUX)
+         if (MAPL_AM_I_ROOT()) &
+             print *, trim(myname)//': Dust emission scheme is GINOUX'
+      case default
+         if (MAPL_AM_I_ROOT()) &
+             print *, trim(myname)//': Unrecognized dust emission scheme!'
+         call final_(65)
+         return
+   end select 
+
+!                          -------
 
 
 !                          -------
@@ -843,7 +1104,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine DU_GridCompRun1_ ( gcDU, w_c, impChem, expChem, &
+   subroutine DU_GridCompRun1_ ( gcDU, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -853,7 +1114,8 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(DU_GridComp1), intent(inout) :: gcDU    ! Grid Component
-   type(Chem_Bundle), intent(inout)  :: w_c     ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout)  :: w_c     ! Chemical tracer fields  
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -890,11 +1152,40 @@ CONTAINS
 
 !  Input fields from fvGCM
 !  -----------------------
-   real, pointer, dimension(:,:)   :: gwettop, oro, u10m, v10m, &
-                                      ustar
-   real, pointer, dimension(:,:,:) :: rhoa
+   real, pointer, dimension(:,:)   :: gwettop, wcsf
+   real, pointer, dimension(:,:)   :: oro 
+   real, pointer, dimension(:,:)   :: u10m, v10m
+   real, pointer, dimension(:,:)   :: u10n, v10n
+   real, pointer, dimension(:,:)   :: rhos
+   real, pointer, dimension(:,:)   :: ustar
+
    real, pointer, dimension(:,:)   :: frlake
-   real, pointer, dimension(:,:)   :: du_src => null()
+   real, pointer, dimension(:,:)   :: frland
+   real, pointer, dimension(:,:)   :: frsnow
+   real, pointer, dimension(:,:)   :: tsoil
+
+   real, pointer, dimension(:,:)   :: z0
+   real, pointer, dimension(:,:)   :: sand
+   real, pointer, dimension(:,:)   :: silt
+   real, pointer, dimension(:,:)   :: clay
+   real, pointer, dimension(:,:)   :: texture
+   real, pointer, dimension(:,:)   :: vegetation
+   real, pointer, dimension(:,:)   :: gvf
+
+   real, pointer, dimension(:,:,:) :: rhoa     ! air density, kg m-3
+   real, pointer, dimension(:,:,:) :: hghte    ! edge layer height, m
+
+   real, pointer, dimension(:,:)   :: du_src     => null()
+
+   real, pointer, dimension(:,:)   :: z_         => null()
+   real, pointer, dimension(:,:)   :: ustar_     => null()
+   real, pointer, dimension(:,:)   :: ustar_t_   => null()
+   real, pointer, dimension(:,:)   :: ustar_ts_  => null()
+   real, pointer, dimension(:,:)   :: R_         => null()
+   real, pointer, dimension(:,:)   :: H_w_       => null()
+   real, pointer, dimension(:,:)   :: f_erod_    => null()
+
+   real, pointer, dimension(:,:)   :: ptr2d
 
 #define EXPORT        expChem
 #define iNAME         TRIM(gcDU%iname)
@@ -908,8 +1199,10 @@ CONTAINS
    real, dimension(w_c%grid%km)    :: point_column_emissions
    integer                         :: ios, ii
 
-
+   
 #include "DU_GetPointer___.h"
+
+   call MAPL_TimerOn(ggState, '-DU_RUN1')
 
 !  Initialize local variables
 !  --------------------------
@@ -930,7 +1223,10 @@ CONTAINS
       call die(myname,'inconsistent bins in resource file and registry')
    endif
 
-! Update emissions/production if necessary (daily)
+
+   call MAPL_TimerOn(ggState, '--DU_EMISSIONS')
+
+!  Update emissions/production if necessary (daily)
 !  ------------------------------------------
    if(gcDU%nymd < 0) then
 
@@ -986,46 +1282,174 @@ CONTAINS
 
 !  Get 2D Imports
 !  --------------
-   call MAPL_GetPointer ( impChem, frlake,   'FRLAKE',   __RC__ )
-   call MAPL_GetPointer ( impChem, gwettop,  'WET1',     __RC__ )
-   call MAPL_GetPointer ( impChem, oro,      'LWI',      __RC__ )
-   call MAPL_GetPointer ( impChem, u10m,     'U10M',     __RC__ )
-   call MAPL_GetPointer ( impChem, v10m,     'V10M',     __RC__ )
-   call MAPL_GetPointer ( impChem, ustar,    'USTAR',    __RC__ )
+   call MAPL_GetPointer ( impChem, frland,     'FRLAND',     __RC__ )
+   call MAPL_GetPointer ( impChem, frlake,     'FRLAKE',     __RC__ )
+   call MAPL_GetPointer ( impChem, frsnow,     'ASNOW',      __RC__ ) 
+   call MAPL_GetPointer ( impChem, gwettop,    'WET1',       __RC__ )
+   call MAPL_GetPointer ( impChem, wcsf,       'WCSF',       __RC__ )
+   call MAPL_GetPointer ( impChem, tsoil,      'TSOIL1',     __RC__ )
+   call MAPL_GetPointer ( impChem, clay,       'DU_CLAY',    __RC__ )
+   call MAPL_GetPointer ( impChem, silt,       'DU_SILT',    __RC__ )
+   call MAPL_GetPointer ( impChem, sand,       'DU_SAND',    __RC__ )
+   call MAPL_GetPointer ( impChem, texture,    'DU_TEXTURE', __RC__ )
+   call MAPL_GetPointer ( impChem, z0,         'DU_Z0',      __RC__ )
+   call MAPL_GetPointer ( impChem, vegetation, 'DU_VEG',     __RC__ )
+   call MAPL_GetPointer ( impChem, gvf,        'DU_GVF',     __RC__  )
+   call MAPL_GetPointer ( impChem, oro,        'LWI',        __RC__ )
+   call MAPL_GetPointer ( impChem, u10m,       'U10M',       __RC__ )
+   call MAPL_GetPointer ( impChem, v10m,       'V10M',       __RC__ )
+   call MAPL_GetPointer ( impChem, u10n,       'U10N',       __RC__ )
+   call MAPL_GetPointer ( impChem, v10n,       'V10N',       __RC__ )
+
+   call MAPL_GetPointer ( impChem, rhos,       'RHOS',       __RC__ )
+   call MAPL_GetPointer ( impChem, ustar,      'USTAR',      __RC__ )
 
 !  Get 3D Imports
 !  --------------
    call MAPL_GetPointer ( impChem, rhoa,     'AIRDENS',  __RC__ )
+   call MAPL_GetPointer ( impChem, hghte,    'ZLE',      __RC__ )
 
 #ifdef DEBUG
 
    call pmaxmin('DU: frlake     ', frlake  , qmin, qmax, ijl,1, 1. )
    call pmaxmin('DU: gwtop      ', gwettop , qmin, qmax, ijl,1, 1. )
+   call pmaxmin('DU: wcsf       ', wcsf    , qmin, qmax, ijl,1, 1. )
    call pmaxmin('DU: oro        ', oro     , qmin, qmax, ijl,1, 1. )
    call pmaxmin('DU: u10m       ', u10m    , qmin, qmax, ijl,1, 1. )
    call pmaxmin('DU: v10m       ', v10m    , qmin, qmax, ijl,1, 1. )
+   call pmaxmin('DU: u10n       ', u10n    , qmin, qmax, ijl,1, 1. )
+   call pmaxmin('DU: v10n       ', v10n    , qmin, qmax, ijl,1, 1. )
    call pmaxmin('DU: ustar      ', ustar   , qmin, qmax, ijl,1, 1. )
 
 #endif
 
 !  Dust Source
 !  -----------
-   do n = 1, nbins
-       emissions = 0.0
-       dqa = 0.0
+   select case(gcDU%emisFlag)
 
-       call DustEmissionGOCART( i1, i2, j1, j2, km, DU_radius(n), &
-                                frlake, gwettop, oro, u10m, v10m, &
-                                emissions, rc )
+   case (EMIS_SCHEME_K14)
+      allocate(ustar_(i1:i2,j1:j2),    __STAT__)
+      allocate(ustar_t_(i1:i2,j1:j2),  __STAT__)
+      allocate(ustar_ts_(i1:i2,j1:j2), __STAT__)
+      allocate(R_(i1:i2,j1:j2),        __STAT__)
+      allocate(H_w_(i1:i2,j1:j2),      __STAT__)
+      allocate(f_erod_(i1:i2,j1:j2),   __STAT__)
+      allocate(z_(i1:i2,j1:j2),        __STAT__)
 
-       dqa = gcDU%Ch_DU * gcDU%sfrac(n)*gcDU%src * emissions * cdt * grav / w_c%delp(:,:,km)
+      z_ = 10.0 ! wind is at 10m
+   
+      call DustEmissionK14( i1, i2, j1, j2, km,           &
+                            tsoil, wcsf, rhos,            &
+                            z0, z_, u10n, v10n, ustar,    &
+                            frland, frsnow,               &
+                            gcDU%src,                     &
+                            sand, silt, clay,             &
+                            texture, vegetation, gvf,     &
+                            gcDU%f_swc, gcDU%f_scl, gcDU%uts_gamma, &
+                            gcDU%clayFlag,                &
+                            emissions,                    &
+                            ustar_,                       &
+                            ustar_t_,                     &
+                            ustar_ts_,                    &
+                            R_, H_w_, f_erod_,            &
+                            rc )
 
-       w_c%qa(n1+n-1)%data3d(:,:,km) = w_c%qa(n1+n-1)%data3d(:,:,km) + dqa
+#ifdef DEBUG
+      call pmaxmin('DU: z_     ', z_  ,       qmin, qmax, ijl,1, 1. )                   
+      call pmaxmin('DU: z0     ', z0  ,       qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: u10n   ', u10n,       qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: v10n   ', v10n,       qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: ustar  ', ustar,      qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: frland ', frland,     qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: frsnow ', frsnow,     qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: src    ', gcDU%src,   qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: sand   ', sand,       qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: silt   ', silt,       qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: clay   ', clay,       qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: texture', texture,    qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: veg.   ', vegetation, qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: gvf    ', gvf,        qmin, qmax, ijl,1, 1. )
+      call pmaxmin('DU: emiss  ', emissions,  qmin, qmax, ijl,1, 1. )
+#endif
 
-       if (associated(DU_emis(n)%data2d)) then
-           DU_emis(n)%data2d = gcDU%Ch_DU*gcDU%sfrac(n)*gcDU%src * emissions
-       end if
-   end do
+      do n = 1, nbins
+          dqa = gcDU%Ch_DU * gcDU%sfrac(n) * emissions * cdt * grav / w_c%delp(:,:,km)
+   
+          w_c%qa(n1+n-1)%data3d(:,:,km) = w_c%qa(n1+n-1)%data3d(:,:,km) + dqa
+   
+          if (associated(DU_emis(n)%data2d)) then
+              DU_emis(n)%data2d = gcDU%Ch_DU * gcDU%sfrac(n)* emissions
+          end if
+      end do
+     
+      ! aeolian diagnostics
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_UST',    __RC__ ); 
+      if (associated(ptr2d)) ptr2d = ustar_
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_UST_T',  __RC__ )
+      if (associated(ptr2d)) ptr2d = ustar_t_
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_UST_TS', __RC__ )
+      if (associated(ptr2d)) ptr2d = ustar_ts_
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_DPC',    __RC__ )
+      if (associated(ptr2d)) ptr2d = R_
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_SMC',    __RC__ )
+      if (associated(ptr2d)) ptr2d = H_w_
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_EROD',   __RC__ )
+      if (associated(ptr2d)) ptr2d = f_erod_
+  
+      deallocate(z_,        __STAT__)
+      deallocate(ustar_,    __STAT__)
+      deallocate(ustar_t_,  __STAT__)
+      deallocate(ustar_ts_, __STAT__)
+      deallocate(R_,        __STAT__)
+      deallocate(H_w_,      __STAT__)
+      deallocate(f_erod_,   __STAT__)
+
+   case (EMIS_SCHEME_GINOUX) 
+      do n = 1, nbins
+          emissions = 0.0
+          dqa = 0.0
+   
+          call DustEmissionGOCART( i1, i2, j1, j2, km, DU_radius(n), &
+                                   frlake, gwettop, oro, u10m, v10m, &
+                                   emissions, rc )
+   
+          dqa = (1e-9*gcDU%Ch_DU) * gcDU%sfrac(n)*gcDU%src * emissions * cdt * grav / w_c%delp(:,:,km)
+   
+          w_c%qa(n1+n-1)%data3d(:,:,km) = w_c%qa(n1+n-1)%data3d(:,:,km) + dqa
+   
+          if (associated(DU_emis(n)%data2d)) then
+              DU_emis(n)%data2d = (1e-9*gcDU%Ch_DU)*gcDU%sfrac(n)*gcDU%src * emissions
+          end if
+      end do
+
+      ! aeolian diagnostics
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_UST',    __RC__ ); 
+      if (associated(ptr2d)) ptr2d = MAPL_UNDEF
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_UST_T',  __RC__ )
+      if (associated(ptr2d)) ptr2d = MAPL_UNDEF
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_UST_TS', __RC__ )
+      if (associated(ptr2d)) ptr2d = MAPL_UNDEF
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_DPC',    __RC__ )
+      if (associated(ptr2d)) ptr2d = MAPL_UNDEF
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_SMC',    __RC__ )
+      if (associated(ptr2d)) ptr2d = MAPL_UNDEF
+   
+      call MAPL_GetPointer ( expChem, ptr2d, 'DU_EROD',   __RC__ )
+      if (associated(ptr2d)) ptr2d = MAPL_UNDEF
+
+   case default
+      call die(myname, 'Unrecognized dust emission scheme.')
+
+   end select    
 
 
 #ifdef DEBUG
@@ -1062,9 +1486,10 @@ CONTAINS
 !     --------------------------------------------
       if(nhms < gcDU%pStart(ii) .or. nhms >= gcDU%pEnd(ii)) cycle
 
-      call distribute_point_emissions(w_c%delp(i,j,:), rhoa(i,j,:), &
-                                      gcDU%pBase(ii), gcDU%pTop(ii), gcDU%pEmis(ii), &
-                                      point_column_emissions, km)
+      call Chem_UtilDistributePointEmissions(hghte(i,j,:), &
+                                             gcDU%pBase(ii), gcDU%pTop(ii), &
+                                             gcDU%pEmis(ii), & 
+                                             point_column_emissions, km)
       do n = 1, nbins
 
        w_c%qa(n1+n-1)%data3d(i,j,:) = w_c%qa(n1+n-1)%data3d(i,j,:) & 
@@ -1083,86 +1508,14 @@ CONTAINS
 !  --------
    deallocate ( DU_radius, DU_rhop, emissions, dqa, stat=STATUS )
 
+   call MAPL_TimerOff(ggState, '--DU_EMISSIONS')
+
+   call MAPL_TimerOff(ggState, '-DU_RUN1')
+
+
+!  All done
+!  --------
    return
-
-CONTAINS
-
-!  Abstracted from distribute_aviation_emissions, but called per column
-   subroutine distribute_point_emissions(delp, rhoa, z_bot, z_top, emissions_point, &
-                                         emissions, km)
-
-    implicit none
-
-    integer, intent(in) :: km
-
-    real, dimension(:), intent(in) :: delp
-    real, dimension(:), intent(in) :: rhoa
-    real,               intent(in) :: emissions_point
-    real, intent(in)                   :: z_bot
-    real, intent(in)                   :: z_top
-    real, dimension(:), intent(out):: emissions
-    
-!   local
-    integer :: k
-    integer :: k_bot, k_top
-    real    :: z_
-    real, dimension(km) :: z, dz, w_
-    
-!   find level height
-    z = 0.0
-    z_= 0.0 
-
-    do k = km, 1, -1
-       dz(k) = delp(k)/rhoa(k)/grav
-       z_    = z_ + dz(k)
-       z(k)  = z_
-    end do
-
-!   find the bottom level
-    do k = km, 1, -1
-       if (z(k) >= z_bot) then
-           k_bot = k
-           exit
-       end if
-    end do
-            
-!   find the top level
-    do k = k_bot, 1, -1
-       if (z(k) >= z_top) then
-           k_top = k
-           exit
-       end if
-    end do
-
-!   find the weights
-    w_ = 0
-
-!   if (k_top > k_bot) then
-!       need to bail - something went wrong here
-!   end if
-
-    if (k_bot .eq. k_top) then
-        w_(k_bot) = z_top - z_bot
-    else
-     do k = k_bot, k_top, -1
-        if ((k < k_bot) .and. (k > k_top)) then
-             w_(k) = dz(k)
-        else
-             if (k == k_bot) then
-                 w_(k) = (z(k) - z_bot)
-             end if
-
-             if (k == k_top) then
-                 w_(k) = z_top - (z(k)-dz(k))
-             end if
-        end if
-     end do
-    end if
-           
-!   distribute emissions in the vertical 
-    emissions(:) = (w_ / sum(w_)) * emissions_point
-
-    end subroutine distribute_point_emissions
 
  end subroutine DU_GridCompRun1_
 
@@ -1178,7 +1531,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine DU_GridCompRun2_ ( gcDU, w_c, impChem, expChem, &
+   subroutine DU_GridCompRun2_ ( gcDU, w_c, impChem, expChem, ggState, &
                                  nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1189,6 +1542,7 @@ CONTAINS
 
    type(DU_GridComp1), intent(inout) :: gcDU    ! Grid Component
    type(Chem_Bundle), intent(inout)  :: w_c     ! Chemical tracer fields   
+   type(MAPL_MetaComp), intent(inout) :: ggState
 
 ! !INPUT PARAMETERS:
 
@@ -1277,6 +1631,8 @@ CONTAINS
    integer :: STATUS
 
 #include "DU_GetPointer___.h"
+
+   call MAPL_TimerOn(ggState, '-DU_RUN2')
 
 !  Initialize local variables
 !  --------------------------
@@ -1377,16 +1733,17 @@ RUN_ALARM: if (gcDU%run_alarm) then
    DU_radius = 1.e-6*gcDU%radius
    DU_rhop   = gcDU%rhop
 
-   allocate( fluxout )
-   allocate( fluxout%data2d(i1:i2,j1:j2), dqa(i1:i2,j1:j2), &
-             drydepositionfrequency(i1:i2,j1:j2), stat=STATUS)
-   VERIFY_(STATUS)
 
 !  Dust Settling
 !  -----------
+   call MAPL_TimerOn(ggState, '--DU_SETTLING')
+
    call Chem_Settling ( i1, i2, j1, j2, km, n1, n2, nbins, gcDU%rhFlag, &
                         DU_radius, DU_rhop, cdt, w_c, tmpu, rhoa, hsurf,    &
                         hghte, DU_set, rc, correctionMaring=gcDU%maringFlag )
+
+
+   call MAPL_TimerOff(ggState, '--DU_SETTLING')
 
 #ifdef DEBUG
    do n = n1, n2
@@ -1394,9 +1751,16 @@ RUN_ALARM: if (gcDU%run_alarm) then
                     ijl, km, 1. )
    end do
 #endif
-
+   
 !  Dust Deposition
 !  -----------
+   call MAPL_TimerOn(ggState, '--DU_DRY_DEPOSITION')
+
+   allocate( fluxout )
+   allocate( fluxout%data2d(i1:i2,j1:j2), dqa(i1:i2,j1:j2), &
+             drydepositionfrequency(i1:i2,j1:j2), stat=STATUS)
+   VERIFY_(STATUS)
+
    do n = 1, nbins
     drydepositionfrequency = 0.
     call DryDepositionGOCART( i1, i2, j1, j2, km, &
@@ -1412,6 +1776,8 @@ RUN_ALARM: if (gcDU%run_alarm) then
      DU_dep(n)%data2d = dqa*w_c%delp(:,:,km)/grav/cdt
    end do
 
+   call MAPL_TimerOff(ggState, '--DU_DRY_DEPOSITION')
+
 #ifdef DEBUG
    do n = n1, n2
       call pmaxmin('DU: q_dry', w_c%qa(n)%data3d(i1:i2,j1:j2,1:km), qmin, qmax, &
@@ -1421,15 +1787,19 @@ RUN_ALARM: if (gcDU%run_alarm) then
 
 !  Dust Large-scale Wet Removal
 !  ----------------------------
+   call MAPL_TimerOn(ggState, '--DU_WET_LS')
+
    KIN = .TRUE. 
    do n = 1, nbins
    !w_c%qa(n1+n-1)%fwet = 1.0   ! GEOS-Chem
-    w_c%qa(n1+n-1)%fwet = 0.3
+    w_c%qa(n1+n-1)%fwet = 0.8
     call WetRemovalGOCART(i1, i2, j1, j2, km, n1+n-1, n1+n-1, cdt, 'dust', KIN, &
                           w_c%qa, ple, tmpu, rhoa, pfllsan, pfilsan, &
                           precc, precl, fluxout, rc )
     if(associated(DU_wet(n)%data2d)) DU_wet(n)%data2d = fluxout%data2d
    end do
+
+   call MAPL_TimerOff(ggState, '--DU_WET_LS')
 
 #ifdef DEBUG
    do n = n1, n2
@@ -1440,6 +1810,8 @@ RUN_ALARM: if (gcDU%run_alarm) then
 
 !  Dust Convective-scale Mixing and Wet Removal
 !  --------------------------------------------
+   call MAPL_TimerOn(ggState, '--DU_WET_CV')
+
    KIN = .TRUE.
    icdt = cdt
 
@@ -1499,22 +1871,31 @@ RUN_ALARM: if (gcDU%run_alarm) then
               delz_, vud_, delp_, airmol_, tmpu_, bcnv_, ple_, &
               area_, frlake_, frocean_, frseaice_, __STAT__ )
 
+          
    deallocate ( fluxout%data2d )
    deallocate ( fluxout, DU_radius, DU_rhop, &
                 dqa, drydepositionfrequency, stat=STATUS )
+
+   call MAPL_TimerOff(ggState, '--DU_WET_CV')
 
    end if RUN_ALARM
 
 !  Compute the desired output diagnostics here
 !  Ideally this will go where chemout is called in fvgcm.F since that
 !  will reflect the distributions after transport, etc.
-!  -----------
+!  ------------------------------------------------------------------
+   call MAPL_TimerOn(ggState, '--DU_DIAGNOSTICS')
+
    call DU_Compute_Diags(i1, i2, j1, j2, km, nbins, gcDU, w_c, tmpu, rhoa,    &
                          u, v, DU_sfcmass,  DU_colmass, DU_mass, DU_exttau,   &
                          DU_scatau,   DU_sfcmass25, DU_colmass25, DU_mass25,  &
                          DU_exttau25, DU_scatau25,  DU_aeridx, DU_fluxu,      &
                          DU_fluxv, DU_conc, DU_extcoef, DU_scacoef,           &
                          DU_exttaufm, DU_scataufm, DU_angstrom, rc)
+
+   call MAPL_TimerOff(ggState, '--DU_DIAGNOSTICS')
+
+   call MAPL_TimerOff(ggState, '-DU_RUN2')
 
    return
 
@@ -1899,7 +2280,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine DU_GridCompFinalize1_ ( gcDU, w_c, impChem, expChem, &
+   subroutine DU_GridCompFinalize1_ ( gcDU, w_c, impChem, expChem, ggState, &
                                     nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1920,6 +2301,7 @@ CONTAINS
 
    type(ESMF_State), intent(inout) :: impChem   ! Import State
    type(ESMF_State), intent(inout) :: expChem   ! Export State
+   type(MAPL_MetaComp), intent(inout) :: ggState
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 -
@@ -1962,7 +2344,7 @@ CONTAINS
 ! !INTERFACE:
 !
   subroutine DU_SingleInstance_ ( Method_, instance, &
-                                  gcDU, w_c, impChem, expChem, &
+                                  gcDU, w_c, impChem, expChem, ggState, &
                                   nymd, nhms, cdt, rc )
 
 ! !USES:
@@ -1979,7 +2361,7 @@ CONTAINS
 !  Input "function pointer"
 !  -----------------------
    interface 
-     subroutine Method_ (gc, w, imp, exp, ymd, hms, dt, rcode )
+     subroutine Method_ (gc, w, imp, exp, state, ymd, hms, dt, rcode )
        Use DU_GridCompMod
        Use ESMF
        Use MAPL
@@ -1988,6 +2370,7 @@ CONTAINS
        type(Chem_Bundle),   intent(in)     :: w
        type(ESMF_State),    intent(inout)  :: imp
        type(ESMF_State),    intent(inout)  :: exp
+       type(MAPL_MetaComp), intent(inout)  :: state
        integer,             intent(in)     :: ymd, hms
        real,                intent(in)     :: dt
        integer,             intent(out)    :: rcode
@@ -2006,6 +2389,7 @@ CONTAINS
    TYPE(DU_GridComp1), INTENT(INOUT) :: gcDU    ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
+   TYPE(MAPL_MetaComp), intent(INOUT) :: ggState
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 - 
@@ -2054,7 +2438,7 @@ CONTAINS
   
 ! Execute the instance method
 ! ---------------------------
-  call Method_ ( gcDU, w_c, impChem, expChem, &
+  call Method_ ( gcDU, w_c, impChem, expChem, ggState, &
                  nymd, nhms, cdt, rc )
 
 ! Restore the overall DU indices
