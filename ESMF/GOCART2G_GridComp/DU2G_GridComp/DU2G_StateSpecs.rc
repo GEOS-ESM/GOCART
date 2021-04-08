@@ -7,18 +7,18 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
      NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
 #----------------------------------------------------------------------------------------
- DU_SRC     | 1      | xy   | N   |      | erod - dust emissions
- FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
- FRSNOW     | 1      | xy   | N   |      | surface_snow_area_fraction
+ DU_SRC     | 1      | xy   | N   | scheme == 'ginoux'  | erod - dust emissions
+ FRSNOW     | 1      | xy   | N   | scheme == 'fengsha' | surface_snow_area_fraction
+ SLC        | 1      | xy   | N   | scheme == 'fengsha' | liquid_water_content_of_soil_layer
+ FRCLAY     | 1      | xy   | N   | scheme == 'fengsha' | volume_fraction_of_clay_in_soil
+ FRSAND     | 1      | xy   | N   | scheme == 'fengsha' | volume_fraction_of_sand_in_soil
+ FRSILT     | 1      | xy   | N   | scheme == 'fengsha' | volume_fraction_of_silt_in_soil
+ RDRAG      | m-1    | xy   | N   | scheme == 'fengsha' | drag_partition
+ SSM        | 1      | xy   | N   | scheme == 'fengsha' | sediment_supply_map
+ UTHRES     | m s-1  | xy   | N   | scheme == 'fengsha' | surface_dry_threshold_velocity
  WET1       | 1      | xy   | N   |      | surface_soil_wetness
- SLC        | 1      | xy   | N   |      | liquid_water_content_of_soil_layer
  LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
- FRCLAY     | 1      | xy   | N   |      | volume_fraction_of_clay_in_soil
- FRSAND     | 1      | xy   | N   |      | volume_fraction_of_sand_in_soil
- FRSILT     | 1      | xy   | N   |      | volume_fraction_of_silt_in_soil
- RDRAG      | m-1    | xy   | N   |      | drag_partition
- SSM        | 1      | xy   | N   |      | sediment_supply_map
- UTHRES     | m s-1  | xy   | N   |      | surface_dry_threshold_velocity
+ FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
  U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
  V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
  AREA       | m^2    | xy   | N   |      | agrid_cell_area

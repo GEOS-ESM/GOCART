@@ -38,7 +38,7 @@ nbins: 5
 pressure_lid_in_hPa: 0.01
 
 # Emissions methods
-emission_scheme: 1       # 1 for GOCART, 2 for FENGSHA
+emission_scheme: Ginoux       # available schemes: Ginoux, FENGSHA
 
 # FENGSHA settings
 alpha: 0.3
