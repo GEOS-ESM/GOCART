@@ -708,10 +708,6 @@ integer :: n
 !   -----------------------------------
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
-
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
@@ -728,6 +724,10 @@ end do
     associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
     end associate
+
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
+end do
 
 !   Get dimensions
 !   ---------------
@@ -872,10 +872,6 @@ end do
 !   -----------------------------------
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
-
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
@@ -885,6 +881,10 @@ end do
     associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
     end associate
+
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
+end do
 
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
