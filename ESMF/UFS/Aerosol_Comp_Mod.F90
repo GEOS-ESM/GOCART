@@ -6,9 +6,8 @@ module Aerosol_Comp_Mod
 
   implicit none
 
-  integer, parameter :: fieldMapSize = 20
-  character(len=*), dimension(fieldMapSize, 2), parameter :: &
-    fieldMap = reshape((/ &
+  character(len=*), dimension(*), parameter :: &
+    fieldPairList = [ &
       "FROCEAN                         ", "ocean_fraction                  ", &
       "FRACI                           ", "ice_fraction                    ", &
       "FRLAKE                          ", "lake_fraction                   ", &
@@ -29,7 +28,10 @@ module Aerosol_Comp_Mod
       "PFI_LSAN                        ", "inst_ice_nonconv_tendency_levels", &
       "PFL_LSAN                        ", "inst_liq_nonconv_tendency_levels", &
       "FCLD                            ", "inst_cloud_frac_levels          "  &
-      /), (/fieldMapSize, 2/), order=(/2,1/))
+    ]
+
+  character(len=*), dimension(*,2), parameter :: &
+    fieldMap = reshape(fieldPairList, [size(fieldPairList)/2,2], order=[2,1])
 
   ! gravity (m/s2)
   real(ESMF_KIND_R8), parameter :: con_g = 9.80665e+0_ESMF_KIND_R8
@@ -99,6 +101,7 @@ contains
     integer :: localrc, stat
     integer :: imap, item, itemCount
     integer :: rank
+    integer :: fieldMapSize
     integer :: i,j, k, kk, n, ni, nj, nk, nlev, offset, v
     integer, dimension(1) :: plb, pub, rlb, rub
     real(ESMF_KIND_R4) :: blkevap, blkesat
@@ -242,6 +245,7 @@ contains
           ni = size(q, 1)
           nj = size(q, 2)
           nk = size(q, 3)
+          fieldMapSize = size(fieldMap, 1)
 
           do item = 1, itemCount
             if (itemTypeList(item) == ESMF_STATEITEM_FIELD) then
