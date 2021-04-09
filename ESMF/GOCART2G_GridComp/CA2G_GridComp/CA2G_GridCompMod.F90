@@ -1432,6 +1432,12 @@ contains
     allocate (CAaerosols(aeroN), __STAT__)
     call ESMF_AttributeGet(state, name='internal_variable_name', valueList=CAaerosols, __RC__)
 
+    call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+       var = 0.0
+    end if
+
     do i = 1, size(CAaerosols)
        call MAPL_GetPointer (state, ptr3d, trim(CAaerosols(i)), __RC__)
        call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)

@@ -30,6 +30,7 @@ module  Chem_AeroGeneric
    public setZeroKlid
    public setZeroKlid4d
    public findKlid
+!   public get_mixR_gen
 !
 ! !DESCRIPTION:
 !
@@ -355,6 +356,49 @@ contains
    end do
 
    end subroutine findKlid
+
+!===================================================================================
+!BOP
+! !IROUTINE: get_mixR_gen
+#if 0
+  subroutine get_mixR_gen (state, rc)
+
+! !USES:
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !LOCALS:
+    real, dimension(:,:,:), pointer                  :: ptr3d
+    real, dimension(:,:,:), pointer                  :: var
+    character (len=ESMF_MAXSTR)                      :: fld_name
+    integer                                          :: aeroN, i
+    character (len=ESMF_MAXSTR), allocatable         :: aerosolNames(:)
+    integer                                          :: status
+
+!   Begin...
+
+    call ESMF_AttributeGet(state, name='internal_variable_name', itemCount=aeroN, __RC__)
+    allocate (aerosolNames(aeroN), __STAT__)
+    call ESMF_AttributeGet(state, name='internal_variable_name', valueList=aerosolNames, __RC__)
+
+    var = 0.0
+    do i = 1, size(aerosolNames)
+       call MAPL_GetPointer (state, ptr3d, trim(aerosolNames(i)), __RC__)
+       call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+          call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+          var = var + ptr3d
+       end if
+    end do
+
+
+ end subroutine get_mixR_gen
+
+#endif
+
 
 end module  Chem_AeroGeneric
 
