@@ -545,12 +545,11 @@ contains
     mieTable_pointer = transfer(c_loc(self), [1])
     call ESMF_AttributeSet (aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
 
-!    call ESMF_AttributeSet(aero, name='internal_varaible_name', value='SS', __RC__)
     allocate(aerosol_names(3), __STAT__)
     aerosol_names(1) = 'NO3an1'
     aerosol_names(2) = 'NO3an2'
     aerosol_names(3) = 'NO3an3'
-    call ESMF_AttributeSet (aero, name='internal_varaible_name', valueList=aerosol_names, &
+    call ESMF_AttributeSet (aero, name='internal_variable_name', valueList=aerosol_names, &
                             itemCount=size(aerosol_names), __RC__)
 
     call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
@@ -1086,9 +1085,9 @@ contains
 
 !   Get aerosol names
 !   -----------------
-    call ESMF_AttributeGet (state, name='internal_varaible_name', itemCount=nbins, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', itemCount=nbins, __RC__)
     allocate (aerosol_names(nbins), __STAT__)
-    call ESMF_AttributeGet (state, name='internal_varaible_name', valueList=aerosol_names, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', valueList=aerosol_names, __RC__)
 
 !   Radiation band
 !   --------------
@@ -1251,9 +1250,9 @@ contains
 
 !   Get aerosol names
 !   -----------------
-    call ESMF_AttributeGet (state, name='internal_varaible_name', itemCount=nbins, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', itemCount=nbins, __RC__)
     allocate (aerosol_names(nbins), __STAT__)
-    call ESMF_AttributeGet (state, name='internal_varaible_name', valueList=aerosol_names, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', valueList=aerosol_names, __RC__)
 
 !   Radiation band
 !   --------------

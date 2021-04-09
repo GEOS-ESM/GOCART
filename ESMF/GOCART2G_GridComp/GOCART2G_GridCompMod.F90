@@ -1159,9 +1159,9 @@ contains
    do i = 1, n
       if (itemTypes(i) /= ESMF_StateItem_State) cycle ! exclude non-states
       call ESMF_StateGet (state, trim(itemList(i)), child_state, __RC__)
-      call ESMF_AttributeGet (child_state, name='internal_varaible_name', itemCount=nbins, __RC__)
+      call ESMF_AttributeGet (child_state, name='internal_variable_name', itemCount=nbins, __RC__)
       allocate (aeroName(nbins), __STAT__)
-      call ESMF_AttributeGet (child_state, name='internal_varaible_name', valueList=aeroName, __RC__)
+      call ESMF_AttributeGet (child_state, name='internal_variable_name', valueList=aeroName, __RC__)
 
 
       do b = 1, size(aeroName)

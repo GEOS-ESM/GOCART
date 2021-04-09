@@ -597,7 +597,7 @@ contains
     allocate(aerosol_names(self%nbins), __STAT__)
     aerosol_names(1) = 'CAphobic'//trim(comp_name)
     aerosol_names(2) = 'CAphilic'//trim(comp_name)
-    call ESMF_AttributeSet(aero, name='internal_varaible_name', valueList=aerosol_names, &
+    call ESMF_AttributeSet(aero, name='internal_variable_name', valueList=aerosol_names, &
                            itemCount=size(aerosol_names), __RC__)
 
     call ESMF_MethodAdd(AERO, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
@@ -1155,9 +1155,9 @@ contains
 
 !   Get aerosol names
 !   -----------------
-    call ESMF_AttributeGet (state, name='internal_varaible_name', itemCount=nbins, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', itemCount=nbins, __RC__)
     allocate (aerosol_names(nbins), __STAT__)
-    call ESMF_AttributeGet (state, name='internal_varaible_name', valueList=aerosol_names, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', valueList=aerosol_names, __RC__)
 
 !   Radiation band
 !   --------------
@@ -1318,9 +1318,9 @@ contains
 
 !   Get aerosol names
 !   -----------------
-    call ESMF_AttributeGet (state, name='internal_varaible_name', itemCount=nbins, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', itemCount=nbins, __RC__)
     allocate (aerosol_names(nbins), __STAT__)
-    call ESMF_AttributeGet (state, name='internal_varaible_name', valueList=aerosol_names, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', valueList=aerosol_names, __RC__)
 
 !   Radiation wavelength
 !   --------------------
@@ -1428,9 +1428,9 @@ contains
 
 !   Begin...
 
-    call ESMF_AttributeGet(state, name='internal_varaible_name', itemCount=aeroN, __RC__)
+    call ESMF_AttributeGet(state, name='internal_variable_name', itemCount=aeroN, __RC__)
     allocate (CAaerosols(aeroN), __STAT__)
-    call ESMF_AttributeGet(state, name='internal_varaible_name', valueList=CAaerosols, __RC__)
+    call ESMF_AttributeGet(state, name='internal_variable_name', valueList=CAaerosols, __RC__)
 
     do i = 1, size(CAaerosols)
        call MAPL_GetPointer (state, ptr3d, trim(CAaerosols(i)), __RC__)
