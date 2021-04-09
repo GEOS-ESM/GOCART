@@ -1341,33 +1341,5 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
-!---------------------------------------------------------------------------------------
-  subroutine get_mixR (state, rc)
-
-    implicit none
-
-!   !ARGUMENTS:
-    type (ESMF_State)                                :: state
-    integer,            intent(out)                  :: rc
-
-!   !LOCALS:
-    real, dimension(:,:,:), pointer                  :: ptr3d1, ptr3d2, ptr3d3
-    real, dimension(:,:,:), pointer                  :: var
-    character (len=ESMF_MAXSTR)                      :: fld_name
-    integer                                          :: status
-
-!   Begin...
-
-    call MAPL_GetPointer (state, ptr3d1, 'NO3an1', __RC__)
-    call MAPL_GetPointer (state, ptr3d2, 'NO3an2', __RC__)
-    call MAPL_GetPointer (state, ptr3d3, 'NO3an3', __RC__)
-
-    call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-       call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
-       var = ptr3d1 + ptr3d2 + ptr3d3
-    end if
-
- end subroutine get_mixR
 
 end module NI2G_GridCompMod

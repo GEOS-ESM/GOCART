@@ -30,7 +30,7 @@ module  Chem_AeroGeneric
    public setZeroKlid
    public setZeroKlid4d
    public findKlid
-!   public get_mixR_gen
+   public get_mixR
 !
 ! !DESCRIPTION:
 !
@@ -359,9 +359,8 @@ contains
 
 !===================================================================================
 !BOP
-! !IROUTINE: get_mixR_gen
-#if 0
-  subroutine get_mixR_gen (state, rc)
+! !IROUTINE: get_mixR
+  subroutine get_mixR (state, rc)
 
 ! !USES:
     implicit none
@@ -372,7 +371,8 @@ contains
 
 !   !LOCALS:
     real, dimension(:,:,:), pointer                  :: ptr3d
-    real, dimension(:,:,:), pointer                  :: var
+    real, dimension(:,:,:,:), pointer                :: ptr4d
+    real, dimension(:,:,:), pointer                  :: aeroSum
     character (len=ESMF_MAXSTR)                      :: fld_name
     integer                                          :: aeroN, i
     character (len=ESMF_MAXSTR), allocatable         :: aerosolNames(:)
@@ -384,20 +384,24 @@ contains
     allocate (aerosolNames(aeroN), __STAT__)
     call ESMF_AttributeGet(state, name='internal_variable_name', valueList=aerosolNames, __RC__)
 
-    var = 0.0
+!   Zero out previous aerosol sum value so it doesn't keep growing.
+    call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer (state, aeroSum, trim(fld_name), __RC__)
+       aeroSum = 0.0
+    end if
+
     do i = 1, size(aerosolNames)
-       call MAPL_GetPointer (state, ptr3d, trim(aerosolNames(i)), __RC__)
-       call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
-       if (fld_name /= '') then
-          call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
-          var = var + ptr3d
+       if ((aerosolNames(i) == 'DU') .or. (aerosolNames(i) == 'SS')) then
+          call MAPL_GetPointer (state, ptr4d, trim(aerosolNames(i)), __RC__)
+          aeroSum = sum(ptr4d, dim=4) !DU and SS only have 1 internal state variable so no need to =+
+       else
+          call MAPL_GetPointer (state, ptr3d, trim(aerosolNames(i)), __RC__)
+          aeroSum = aeroSum + ptr3d
        end if
     end do
 
-
- end subroutine get_mixR_gen
-
-#endif
+ end subroutine get_mixR
 
 
 end module  Chem_AeroGeneric

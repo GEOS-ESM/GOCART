@@ -1409,46 +1409,6 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
-!---------------------------------------------------------------------------------------
-  subroutine get_mixR (state, rc)
-
-    implicit none
-
-!   !ARGUMENTS:
-    type (ESMF_State)                                :: state
-    integer,            intent(out)                  :: rc
-
-!   !LOCALS:
-    real, dimension(:,:,:), pointer                  :: ptr3d
-    real, dimension(:,:,:), pointer                  :: var
-    character (len=ESMF_MAXSTR)                      :: fld_name
-    integer                                          :: aeroN, i
-    character (len=ESMF_MAXSTR), allocatable         :: CAaerosols(:)
-    integer                                          :: status
-
-!   Begin...
-
-    call ESMF_AttributeGet(state, name='internal_variable_name', itemCount=aeroN, __RC__)
-    allocate (CAaerosols(aeroN), __STAT__)
-    call ESMF_AttributeGet(state, name='internal_variable_name', valueList=CAaerosols, __RC__)
-
-    call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-       call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
-       var = 0.0
-    end if
-
-    do i = 1, size(CAaerosols)
-       call MAPL_GetPointer (state, ptr3d, trim(CAaerosols(i)), __RC__)
-       call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
-       if (fld_name /= '') then
-          call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
-          var = var + ptr3d
-       end if
-    end do
-
-
- end subroutine get_mixR
 
 end module CA2G_GridCompMod
 

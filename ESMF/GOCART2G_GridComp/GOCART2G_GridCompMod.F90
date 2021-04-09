@@ -405,7 +405,7 @@ contains
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
 
-!   Used in get_mixR
+!   Used in get_mixRatioSum
     call add_aero (aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', grid=grid, typekind=MAPL_R4, __RC__)
@@ -423,7 +423,7 @@ contains
     call ESMF_AttributeSet(aero, name='km', value=dims(3), __RC__)
 
 !   Attach method to return sum of aerosols. Used in GAAS.
-    call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
+    call ESMF_MethodAdd (aero, label='get_mixRatioSum', userRoutine=get_mixRatioSum, __RC__)
 
 !   Attach method to create a Bundle of aerosol fields. Used in GAAS.
     call ESMF_MethodAdd (aero, label='serialize_bundle', userRoutine=serialize_bundle, __RC__)
@@ -2036,7 +2036,7 @@ contains
 
 
 !===================================================================================
-  subroutine get_mixR (state, rc)
+  subroutine get_mixRatioSum (state, rc)
 
     implicit none
 
@@ -2055,7 +2055,7 @@ contains
 
     integer  :: b, i, n, j, im, jm, km
 
-    __Iam__('GOCART2G::get_mixR')
+    __Iam__('GOCART2G::get_mixRatioSum')
 
 !   Description: Used in GAAS gridded component to provide sum of aerosol mixing ratio
 !--------------------------------------------------------------------------------------
@@ -2160,7 +2160,7 @@ contains
           end if
 
        case default
-          print *,"Invalid aerosolName of '",trim(aeroName), "' in GOCART2G::get_mixR"
+          print *,"Invalid aerosolName of '",trim(aeroName), "' in GOCART2G::get_mixRatioSum"
     end select
 
 contains
@@ -2201,7 +2201,7 @@ contains
 
     end subroutine getAerosolSum
 
-  end subroutine get_mixR
+  end subroutine get_mixRatioSum
 
 
 end module GOCART2G_GridCompMod
