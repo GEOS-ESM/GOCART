@@ -6,12 +6,12 @@ module Aerosol_Comp_Mod
 
   implicit none
 
-  integer, parameter :: fieldMapSize = 19
-  character(len=*), dimension(fieldMapSize, 2), parameter :: &
-    fieldMap = reshape((/ &
+  character(len=*), dimension(*), parameter :: &
+    fieldPairList = [ &
       "FROCEAN                         ", "ocean_fraction                  ", &
       "FRACI                           ", "ice_fraction                    ", &
       "FRLAKE                          ", "lake_fraction                   ", &
+      "FRSNOW                          ", "surface_snow_area_fraction      ", &
       "LWI                             ", "inst_land_sea_mask              ", &
       "WET1                            ", "inst_surface_soil_wetness       ", &
       "U10M                            ", "inst_zonal_wind_height10m       ", &
@@ -28,7 +28,10 @@ module Aerosol_Comp_Mod
       "PFI_LSAN                        ", "inst_ice_nonconv_tendency_levels", &
       "PFL_LSAN                        ", "inst_liq_nonconv_tendency_levels", &
       "FCLD                            ", "inst_cloud_frac_levels          "  &
-      /), (/fieldMapSize, 2/), order=(/2,1/))
+    ]
+
+  character(len=*), dimension(*,2), parameter :: &
+    fieldMap = reshape(fieldPairList, [size(fieldPairList)/2,2], order=[2,1])
 
   ! gravity (m/s2)
   real(ESMF_KIND_R8), parameter :: con_g = 9.80665e+0_ESMF_KIND_R8
@@ -98,6 +101,7 @@ contains
     integer :: localrc, stat
     integer :: imap, item, itemCount
     integer :: rank
+    integer :: fieldMapSize
     integer :: i,j, k, kk, n, ni, nj, nk, nlev, offset, v
     integer, dimension(1) :: plb, pub, rlb, rub
     real(ESMF_KIND_R4) :: blkevap, blkesat
@@ -107,7 +111,7 @@ contains
     real(ESMF_KIND_R4), dimension(:,:,:,:), pointer :: fp4dr
     real(ESMF_KIND_R8), dimension(:,:),     pointer :: fp2dp
     real(ESMF_KIND_R8), dimension(:,:),     pointer :: rain, rainc, zorl
-    real(ESMF_KIND_R8), dimension(:,:,:),   pointer :: fp3dp
+    real(ESMF_KIND_R8), dimension(:,:,:),   pointer :: fp3dp, slc
     real(ESMF_KIND_R8), dimension(:,:,:),   pointer :: phii, phil, prsi, prsl, temp
     real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: q
     type(ESMF_Clock) :: clock
@@ -226,6 +230,12 @@ contains
             file=__FILE__,  &
             rcToReturn=rc)) return  ! bail out
 
+          call AerosolGetPtr(state, "inst_soil_moisture_content", slc, rc=localrc)
+          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__,  &
+            file=__FILE__,  &
+            rcToReturn=rc)) return  ! bail out
+
           call AerosolGetPtr(state, "inst_tracer_mass_frac",  q, rc=localrc)
           if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__,  &
@@ -235,6 +245,7 @@ contains
           ni = size(q, 1)
           nj = size(q, 2)
           nk = size(q, 3)
+          fieldMapSize = size(fieldMap, 1)
 
           do item = 1, itemCount
             if (itemTypeList(item) == ESMF_STATEITEM_FIELD) then
@@ -371,6 +382,8 @@ contains
                       end do
                     end do
                   end do
+                case ("SLC")
+                  fp2dr = slc(:,:,1)
                 case ("Z0H")
                   fp2dr = 0.01_ESMF_KIND_R4 * zorl
                 case ("ZLE")

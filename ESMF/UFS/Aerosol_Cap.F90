@@ -24,9 +24,8 @@ module Aerosol_Cap
   implicit none
 
   ! -- import fields
-  integer, parameter :: importFieldCount = 26
-  character(len=*), dimension(importFieldCount), parameter :: &
-    importFieldNames = (/ &
+  character(len=*), dimension(*), parameter :: &
+    importFieldNames = [ &
       "inst_pres_interface                  ", &
       "inst_pres_levels                     ", &
       "inst_geop_interface                  ", &
@@ -50,18 +49,19 @@ module Aerosol_Cap
       "inst_sensi_heat_flx                  ", &
       "inst_surface_roughness               ", &
       "inst_surface_soil_wetness            ", &
+      "inst_soil_moisture_content           ", &
       "ice_fraction                         ", &
       "lake_fraction                        ", &
-      "ocean_fraction                       "  &
-    /)
+      "ocean_fraction                       ", &
+      "surface_snow_area_fraction           "  &
+    ]
   ! -- export fields
-  integer, parameter :: exportFieldCount = 3
-  character(len=*), dimension(exportFieldCount), parameter :: &
-    exportFieldNames = (/ &
+  character(len=*), dimension(*), parameter :: &
+    exportFieldNames = [ &
       "inst_tracer_mass_frac                ", &
       "inst_tracer_up_surface_flx           ", &
       "inst_tracer_down_surface_flx         "  &
-    /)
+    ]
 
   type Aerosol_InternalState_T
     type(MAPL_Cap), pointer :: maplCap
@@ -187,28 +187,24 @@ contains
     rc = ESMF_SUCCESS
 
     ! -- advertise imported fields
-    if (importFieldCount > 0) then
-      call NUOPC_Advertise(importState, importFieldNames, &
-        TransferOfferGeomObject="cannot provide", &
-        SharePolicyField="share", &
-        rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
-    end if
+    call NUOPC_Advertise(importState, importFieldNames, &
+      TransferOfferGeomObject="cannot provide", &
+      SharePolicyField="share", &
+      rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! -- advertise exported fields
-    if (exportFieldCount > 0) then
-      call NUOPC_Advertise(exportState, exportFieldNames, &
-        TransferOfferGeomObject="cannot provide", &
-        SharePolicyField="share", &
-        rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
-    end if
+    call NUOPC_Advertise(exportState, exportFieldNames, &
+      TransferOfferGeomObject="cannot provide", &
+      SharePolicyField="share", &
+      rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
   end subroutine ModelInitializeP1
 
