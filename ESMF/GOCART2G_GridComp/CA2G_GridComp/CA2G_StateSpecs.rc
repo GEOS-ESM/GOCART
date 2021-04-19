@@ -35,7 +35,10 @@ category: IMPORT
  pSOA_BIOB_VOC   | kg m-3 s-1 | xyz | C |   | SOA from Anthropogenic and biomass burning VOC
 #........................................................................................
  OC_BIOMASS  | 1      | xy   | N   |      | biomass burning emissions
- OC_TERPENE  | 1      | xy   | N   |      | terpene emissions
+ OC_ISOPRENE | 1      | xy   | N   |      | source species
+ OC_MTPA     | 1      | xy   | N   |      | source species
+ OC_MTPO     | 1      | xy   | N   |      | source species
+ OC_LIMO     | 1      | xy   | N   |      | source species
  OC_BIOFUEL  | 1      | xy   | N   |      | biofuel emissions
  OC_ANTEOC1  | 1      | xy   | N   |      | anthropogenic BF emissions
  OC_ANTEOC2  | 1      | xy   | N   |      | anthropogenic FF emissions

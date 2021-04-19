@@ -332,7 +332,7 @@ contains
     type (wrap_)                           :: wrap
 
     integer                                :: n_modes
-    integer, parameter                     :: n_gocart_modes = 13 
+    integer, parameter                     :: n_gocart_modes = 14 
     integer                                :: dims(3)
 
     character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
@@ -446,7 +446,7 @@ contains
                         'du004    ', 'du005    ',              &
                         'ss001    ', 'ss002    ', 'ss003    ', &  
                         'sulforg01', 'sulforg02', 'sulforg03', &
-                        'bcphilic ', 'ocphilic '/)
+                        'bcphilic ', 'ocphilic ', 'brcphilic'/)
 
     n_modes = size(aero_aci_modes)
 
@@ -468,7 +468,6 @@ contains
        call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=4.0, label='SS_SCALE:', __RC__)
        call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
     else
-       ! scaling factor for sea salt
        call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=14.0, label='SS_SCALE:', __RC__)
        call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
     endif
@@ -1355,8 +1354,6 @@ contains
 
 !=====================================================================================================
 
-!#if 0
-
   subroutine aerosol_activation_properties(state, rc)
 
     implicit none
@@ -1365,7 +1362,6 @@ contains
 !   ---------
     type(ESMF_State)     :: state
     integer, intent(out) :: rc
-
 
 !   Local
 !   ---------
@@ -1383,7 +1379,6 @@ contains
     real, dimension(:,:,:), pointer :: q                 ! aerosol mass mixing ratio
     real, dimension(:,:,:), pointer :: q_                ! aerosol mass mixing ratio (temporary)
     real, dimension(:,:,:,:), pointer :: ptr_4d          ! aerosol mass mixing ratio (temporary)
-
 
     real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
     real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
@@ -1415,7 +1410,7 @@ contains
     real, parameter :: densDU  = 1700.0
     real, parameter :: densBC  = 1600.0
     real, parameter :: densOC  =  900.0
-    real, parameter :: densBRC =  900.0
+    real, parameter :: densBR  =  900.0
 
     real, parameter :: k_SO4   = 0.65
     real, parameter :: k_ORG   = 0.20
@@ -1423,7 +1418,7 @@ contains
     real, parameter :: k_DU    = 0.0001
     real, parameter :: k_BC    = 0.0001
     real, parameter :: k_OC    = 0.0001
-    real, parameter :: k_BRC   = 0.0001
+    real, parameter :: k_BR    = 0.0001
 
     integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015
 
@@ -1619,6 +1614,18 @@ contains
              density = densOC
           end if
        end do
+
+    else if (index(mode_, 'brcphilic') > 0) then ! Organic Carbon
+       do i = 1, size(aeroList)
+          if (index(aeroList(i), 'CA.br') > 0) then
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.br', __RC__)
+             q = q + q_
+             hygroscopicity = k_BR
+             density = densBR
+          end if
+       end do
+
     end if !(index(mode_, 'du00') > 0) then
 
 !   Obtain aerosol activation properties of this aerosol mode
@@ -1846,7 +1853,14 @@ contains
          f_soot   = 1.0
          diameter = 0.0118*2e-6
          num = q / ((MAPL_PI/6.0) * densBC * diameter*diameter*diameter * exp(4.5*sigma*sigma))
+
      case ('ocphilic')
+         sigma     = log(2.2)
+         f_organic = 1.0
+         diameter  = 0.0212*2.0e-6
+         num = q / ((MAPL_PI/6.0) * densOrg * diameter*diameter*diameter * exp(4.5*sigma*sigma))
+
+     case ('brcphilic')
          sigma     = log(2.2)
          f_organic = 1.0
          diameter  = 0.0212*2.0e-6
@@ -1861,8 +1875,6 @@ contains
      RETURN_(ESMF_SUCCESS)
 
     end subroutine aap_
-
-
 
     subroutine ocean_correction_(f, f_land, t_air_sfc, ss_scale, i1, i2, j1, j2, km)
 

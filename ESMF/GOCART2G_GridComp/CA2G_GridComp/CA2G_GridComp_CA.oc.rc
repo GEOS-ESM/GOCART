@@ -8,8 +8,9 @@ aerosol_monochromatic_optics_file: ExtData/AeroCom/x/optics_OC.v1_3.nc
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
 
-# Fraction of terpene emissions for SOA production
-terpene_emission_fraction: 0.1
+# Fraction of biogenic VOCs emissions for SOA production
+monoterpenes_emission_fraction: 0.05
+isoprene_emission_fraction:     0.03
 
 # Ratio of POM/OC -> convert source masses from carbon to POM
 pom_oc_ratio: 1.4

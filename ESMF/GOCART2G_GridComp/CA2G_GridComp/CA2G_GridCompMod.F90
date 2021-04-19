@@ -41,7 +41,8 @@ module CA2G_GridCompMod
       type, extends(GA_GridComp) :: CA2G_GridComp
        integer            :: myDOW = -1   ! my Day of the week: Sun=1, Mon=2,...,Sat=7
        real               :: ratPOM = 1.0  ! Ratio of POM to OC mass
-       real               :: fTerpene = 0.0 ! Fraction of terpene emissions -> aerosol
+       real               :: fMonoterpenes = 0.0 ! Fraction of monoterpene emissions -> aerosol
+       real               :: fIsoprene = 0.0 ! Franction of isoprene emissions -> aerosol
        real               :: fHydrophobic ! Initially hydrophobic portion
        logical            :: diurnal_bb   ! diurnal biomass burning
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
@@ -145,7 +146,8 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%myDOW, label='my_day_of_week:', default=-1, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fhydrophobic, label='hydrophobic_fraction:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_oc_ratio:', default=1.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%fTerpene, label='terpene_emission_fraction:', default=0.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%fMonoterpenes, label='monoterpenes_emission_fraction:', default=0.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%fIsoprene, label='isoprene_emission_fraction:', default=0.0, __RC__)
 
     call ESMF_ConfigFindLabel (cfg, 'aviation_vertical_layers:', __RC__)
     do i=1,size(self%aviation_layers)
@@ -466,9 +468,7 @@ contains
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), __RC__)
     fld = MAPL_FieldCreate (field, 'CAphobic'//trim(comp_name), __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-!    call MAPL_StateAdd (aero_aci, fld, __RC__)
 
-    self%klid = 1 ! temporary value
 !   Set internal CAphobic values to 0 where above klid
     call MAPL_GetPointer (internal, int_ptr, 'CAphobic'//trim(comp_name), __RC__)
     call setZeroKlid(self%km, self%klid, int_ptr)
@@ -701,7 +701,7 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)     :: lats
     real, pointer, dimension(:,:)     :: lons
-    real, dimension(:,:), allocatable :: biomass_src, terpene_src, biofuel_src, &
+    real, dimension(:,:), allocatable :: biomass_src, biofuel_src, biogvoc_src, &
           eocant1_src, eocant2_src, oc_ship_src, aviation_lto_src, aviation_cds_src, &
           aviation_crs_src, biomass_src_
     real, dimension(:,:,:), allocatable :: emissions_point
@@ -777,7 +777,6 @@ contains
 !   Implicit allocation with Fortran 2003
     if (trim(comp_name) == 'CA.oc') then
        biomass_src = OC_BIOMASS
-       terpene_src = OC_TERPENE
        biofuel_src = OC_BIOFUEL
        eocant1_src = OC_ANTEOC1
        eocant2_src = OC_ANTEOC2
@@ -785,6 +784,9 @@ contains
        aviation_lto_src = OC_AVIATION_LTO
        aviation_cds_src = OC_AVIATION_CDS
        aviation_crs_src = OC_AVIATION_CRS
+       allocate(biogvoc_src, mold=OC_MTPA, __STAT__)
+       biogvoc_src = 0.0
+       biogvoc_src = ((OC_MTPA + OC_MTPO + OC_LIMO) * self%fMonoterpenes) + (OC_ISOPRENE * self%fIsoprene)
     else if (trim(comp_name) == 'CA.bc') then
        biomass_src = BC_BIOMASS
        biofuel_src = BC_BIOFUEL
@@ -794,11 +796,14 @@ contains
        aviation_lto_src = BC_AVIATION_LTO
        aviation_cds_src = BC_AVIATION_CDS
        aviation_crs_src = BC_AVIATION_CRS
-       allocate(terpene_src, mold=BC_BIOMASS, __STAT__)
-       terpene_src = 1.0
+       allocate(biogvoc_src, mold=BC_BIOMASS, __STAT__)
+! Black carbon has no biogvoc_src, so we set it to zero. 
+! biogvoc_src is still needed for the call to CAEmissions, however it
+! effectivly does nothing since we set all its values to zero.
+       biogvoc_src = 0.0
     else if (trim(comp_name) == 'CA.br') then
        biomass_src = BRC_BIOMASS
-       terpene_src = BRC_TERPENE
+       biogvoc_src = BRC_TERPENE
        biofuel_src = BRC_BIOFUEL
        eocant1_src = BRC_ANTEBRC1
        eocant2_src = BRC_ANTEBRC2
@@ -810,7 +815,7 @@ contains
 
 !   As a safety check, where value is undefined set to 0
     where(1.01*biomass_src > MAPL_UNDEF) biomass_src = 0.
-    where(1.01*terpene_src > MAPL_UNDEF) terpene_src = 0.
+    where(1.01*biogvoc_src > MAPL_UNDEF) biogvoc_src = 0.
     where(1.01*biofuel_src > MAPL_UNDEF) biofuel_src = 0.
     where(1.01*eocant1_src > MAPL_UNDEF) eocant1_src = 0.
     where(1.01*eocant2_src > MAPL_UNDEF) eocant2_src = 0.
@@ -834,10 +839,11 @@ contains
                                  nhms, self%cdt)
     end if
 
-    call CAEmission (self%diag_MieTable(self%instance), self%km, self%nbins, self%cdt, MAPL_GRAV, GCsuffix, self%ratPOM, &
-                     self%fTerpene, aviation_lto_src, aviation_cds_src, aviation_crs_src, self%fHydrophobic, &
-                     zpbl, t, airdens, rh2, intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
-                     terpene_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
+    call CAEmission (self%diag_MieTable(self%instance), self%km, self%nbins, self%cdt, &
+                     MAPL_GRAV, GCsuffix, self%ratPOM, aviation_lto_src, aviation_cds_src, &
+                     aviation_crs_src, self%fHydrophobic, zpbl, t, airdens, rh2, &
+                     intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
+                     biogvoc_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
                      CAEM, CAEMAN, CAEMBB, CAEMBF, CAEMBG, __RC__ )
 
 !   Read any pointwise emissions, if requested
@@ -964,7 +970,7 @@ contains
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
-          CAPSOA = CAPSOA+sum(self%cdt*pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
+          CAPSOA = CAPSOA+sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
 
     if (trim(comp_name) == 'CA.br') then
@@ -973,7 +979,7 @@ contains
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
-          CAPSOA = sum(self%cdt*pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
+          CAPSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
 
 !   Ad Hoc transfer of hydrophobic to hydrophilic aerosols
