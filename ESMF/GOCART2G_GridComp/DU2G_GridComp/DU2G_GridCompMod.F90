@@ -397,7 +397,7 @@ contains
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   ---------------------------------------------------------------
     self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
-    self%Ch_DU = self%Ch_DU * 1.00E-09
+    self%Ch_DU = self%Ch_DU * 1.0e-9
 
 !   Get dimensions
 !   ---------------
@@ -686,7 +686,8 @@ contains
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     integer, pointer, dimension(:)  :: iPoint, jPoint
 
-    integer :: n
+    real :: qmax, qmin
+    integer :: n, ijl
     real, dimension(:,:), allocatable   :: z_
     real, dimension(:,:), allocatable   :: ustar_
     real, dimension(:,:), allocatable   :: ustar_t_
@@ -739,6 +740,7 @@ contains
     import_shape = shape(wet1)
     i2 = import_shape(1)
     j2 = import_shape(2)
+    ijl  = ( i2 - 1 + 1 ) * ( j2 - 1 + 1 )
 
     allocate(emissions(i2,j2,self%km,self%nbins),  __STAT__)
     emissions = 0.0
@@ -761,6 +763,7 @@ contains
        allocate(z_, mold=U10M,        __STAT__)
 
        z_ = 10.0 ! wind is at 10m
+if(mapl_am_i_root()) print*,'DU Ch_DU = ',self%Ch_DU
 
        call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
                              du_z0, z_, u10n, v10n, ustar,    &
@@ -770,14 +773,14 @@ contains
                              du_texture, du_veg, du_gvf,     &
                              self%f_swc, self%f_scl, self%uts_gamma, &
                              MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN,   &
-                             self%clayFlag,                &
+                             self%clayFlag, self%Ch_DU/1.e-9,  &
                              emissions_surface,            &
                              ustar_,                       &
                              ustar_t_,                     &
                              ustar_ts_,                    &
                              R_, H_w_, f_erod_,            &
-                             rc )
-
+                             __RC__ )
+if(mapl_am_i_root()) print*,'sum DU emiss = ',sum(emissions_surface(:,:,1))
 #ifdef DEBUG
        call pmaxmin('DU: z_     ', z_  ,       qmin, qmax, ijl,1, 1. )
        call pmaxmin('DU: z0     ', du_z0  ,       qmin, qmax, ijl,1, 1. )

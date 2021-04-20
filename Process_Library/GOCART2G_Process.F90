@@ -217,7 +217,7 @@ CONTAINS
                                texture, vegetation, gvf,  &
                                f_w, f_c, uts_gamma,       &
                                UNDEF, GRAV, VON_KARMAN,   &
-                               opt_clay,                  &
+                               opt_clay, Ch_DU,           &
                                emissions,                 &
                                u, u_t, u_ts,              &
                                R, H_w, f_erod,            &
@@ -245,6 +245,7 @@ CONTAINS
    real, dimension(:,:), intent(in) :: gvf        ! vegetation fraction
 
    integer, intent(in)              :: opt_clay   ! controls which clay&silt emissions term to use
+   real, intent(in)                 :: Ch_DU      ! dust emission tuning coefficient [kg/(sec^2 m^5)]
    real,    intent(in)              :: f_w        ! factor to scale down soil moisture in the top 5cm to soil moisture in the top 1cm
    real,    intent(in)              :: f_c        ! scale down the wet sieving clay fraction to get it more in line with dry sieving measurements
    real,    intent(in)              :: uts_gamma  ! threshold friction velocity parameter 'gamma' 
@@ -511,6 +512,7 @@ CONTAINS
 
    ! duplicate dust emissions across the 3rd dimension for use in call to UpdateAerosolState
    ! UpdateAerosolState expects surface dust emissions array of 3 dimensions(x, y, bin).
+   emissions(:,:,1) = emissions(:,:,1) * Ch_DU
    do n = 2, size(emissions, dim=3)
       emissions(:,:,n) = emissions(:,:,1)
    end do
