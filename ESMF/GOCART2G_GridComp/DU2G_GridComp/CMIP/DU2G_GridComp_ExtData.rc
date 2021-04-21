@@ -3,7 +3,16 @@ PrimaryExports%%
 #  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
 #  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
-DU_SRC NA  N Y - none none du_src ExtData/CMIP/sfc/DU/gocart.dust_source.v5a_1x1inp.x360_y181.nc
+DU_SRC NA  N Y - none none du_src ExtData/PIESA/sfc/gocart.dust_source.v5a.x1152_y721.nc
+#DU_SRC        NA  N Y - 0.0  2.0  du_src    /discover/nobackup/adarmeno/projects/k14/data/australia.dust_source.v5a.x1152_y721.nc
+DU_CLAY       NA  N Y - none none clay      /discover/nobackup/adarmeno/projects/soils/GLDAS/_gldas-fao.soil_texture.x1152_y721_t1.nc4
+DU_SILT       NA  N Y - none none silt      /discover/nobackup/adarmeno/projects/soils/GLDAS/_gldas-fao.soil_texture.x1152_y721_t1.nc4
+DU_SAND       NA  N Y - none none sand      /discover/nobackup/adarmeno/projects/soils/GLDAS/_gldas-fao.soil_texture.x1152_y721_t1.nc4
+DU_TEXTURE    NA  N V - none none texture   /discover/nobackup/adarmeno/projects/soils/GLDAS/_gldas-fao.soil_category.x1152_y721_t1.nc4
+DU_VEG        NA  N V - none none domveg    /discover/nobackup/adarmeno/projects/soils/GLDAS/veg20.x1152_y721_t1.nc4
+DU_Z0         NA  N Y - none none roughness /discover/nobackup/adarmeno/projects/k14/arlems-roughness.x1151_y720_t1.nc4
+
+DU_GVF        NA  N Y %y4-%m2-%d2t12:00:00 none none gvf    /discover/nobackup/projects/gmao/share/gmao_ops/fvInput/g5chem/sfc/NDVI/QVI/qvi-1.0.r3/0.1/QVI/yearly/qvi.006.%y4.nc4
 
 # DU data - 3D
 climdu001           'kg kg-1'            Y        N               0              0.0      1.0     du001      ExtData/PIESA/L72/aero_clm/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
