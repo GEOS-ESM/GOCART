@@ -763,7 +763,6 @@ contains
        allocate(z_, mold=U10M,        __STAT__)
 
        z_ = 10.0 ! wind is at 10m
-if(mapl_am_i_root()) print*,'DU Ch_DU = ',self%Ch_DU
 
        call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
                              du_z0, z_, u10n, v10n, ustar,    &
@@ -780,24 +779,7 @@ if(mapl_am_i_root()) print*,'DU Ch_DU = ',self%Ch_DU
                              ustar_ts_,                    &
                              R_, H_w_, f_erod_,            &
                              __RC__ )
-if(mapl_am_i_root()) print*,'sum DU emiss = ',sum(emissions_surface(:,:,1))
-#ifdef DEBUG
-       call pmaxmin('DU: z_     ', z_  ,       qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: z0     ', du_z0  ,       qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: u10n   ', u10n,       qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: v10n   ', v10n,       qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: ustar  ', ustar,      qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: frland ', frland,     qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: frsnow ', asnow,     qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: src    ', du_src,   qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: sand   ', du_sand,       qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: silt   ', du_silt,       qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: clay   ', du_clay,       qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: texture', du_texture,    qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: veg.   ', du_veg, qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: gvf    ', du_gvf,        qmin, qmax, ijl,1, 1. )
-       call pmaxmin('DU: emiss  ', emissions_surface,  qmin, qmax, ijl,1, 1. )
-#endif
+
 
        if (associated(DU_UST)) DU_UST = ustar_
        if (associated(DU_UST_T)) DU_UST_T = ustar_t_
@@ -935,6 +917,11 @@ if(mapl_am_i_root()) print*,'sum DU emiss = ',sum(emissions_surface(:,:,1))
        call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, DU(:,:,:,n), MAPL_GRAV, delp, &
                                  self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
                                  rh2, zle, DUSD, correctionMaring=self%maringFlag, __RC__)
+!       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
+!                           self%radius(n)*1.e-6, self%rhop(n), DU(:,:,:,n), t, airdens, &
+!                           rh2, zle, delp, DUSD, correctionMaring=self%maringFlag, __RC__)
+
+
     end do
 
 !   Dust Deposition

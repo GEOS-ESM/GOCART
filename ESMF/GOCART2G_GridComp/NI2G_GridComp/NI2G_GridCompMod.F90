@@ -799,14 +799,18 @@ contains
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
     if (associated(NIPNH3AQ)) NIPNH3AQ(:,:) = 0.
 
-    call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, t, rh2, fMassHNO3, MAPL_AIRMW, &
-                   SO4, NH3, NO3an1, NH4a, self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
+    call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, &
+                   t, rh2, fMassHNO3, MAPL_AIRMW, SO4, NH3, NO3an1, NH4a, &
+                   self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
 
-    call NIheterogenousChem (NIHT, self%xhno3, MAPL_AVOGAD, MAPL_AIRMW, MAPL_PI, MAPL_RUNIV/1000., &
-                             airdens, t, rh2, delp, DU, SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
-                             self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, self%cdt, MAPL_GRAV, &
-                             fMassHNO3, fMassNO3, NO3an1, NO3an2, NO3an3, HNO3CONC, HNO3SMASS, &
-                             HNO3CMASS, __RC__)
+
+    call NIheterogenousChem (NIHT, self%xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
+                             MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
+                             SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
+                             self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, &
+                             self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, & 
+                             NO3an3, HNO3CONC, HNO3SMASS,  HNO3CMASS, __RC__)
+
 
 !   NI Settling
 !   -----------
