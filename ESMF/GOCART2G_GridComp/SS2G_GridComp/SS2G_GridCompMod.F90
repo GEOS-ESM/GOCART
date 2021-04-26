@@ -254,16 +254,6 @@ contains
        VLOCATION  = MAPL_VLocationCenter,                       &
        DATATYPE   = MAPL_StateItem, __RC__)
 
-!   This state is needed by MOIST - It will contain aerosols
-!   ----------------------------------------------------------
-    call MAPL_AddExportSpec(GC,                                                  &
-       SHORT_NAME = trim(COMP_NAME)//'_AERO_ACI',                                &
-       LONG_NAME  = 'aerosol_cloud_interaction_aerosols_from_'//trim(COMP_NAME),  &
-       UNITS      = 'kg kg-1',                                                   &
-       DIMS       = MAPL_DimsHorzVert,                                           &
-       VLOCATION  = MAPL_VLocationCenter,                                        &
-       DATATYPE   = MAPL_StateItem, __RC__)
-
 !   This bundle is needed by surface for snow albedo modification
 !   by aerosol settling and deposition
 !   DEVELOPMENT NOTE - Change to StateItem in future
@@ -317,7 +307,7 @@ contains
     type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
-    type (ESMF_State)                    :: aero, aero_aci
+    type (ESMF_State)                    :: aero
     type (ESMF_State)                    :: providerState
     type (ESMF_Config)                   :: cfg, universal_cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
@@ -419,14 +409,12 @@ contains
 !   Fill AERO State with sea salt fields
 !   ----------------------------------------
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
-    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_ACI', aero_aci, __RC__)
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, 'SS', field, __RC__)
     call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
     fld = MAPL_FieldCreate (field, 'SS', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-    call MAPL_StateAdd (aero_aci, fld, __RC__)
 
     if (.not. data_driven) then
 !      Set klid

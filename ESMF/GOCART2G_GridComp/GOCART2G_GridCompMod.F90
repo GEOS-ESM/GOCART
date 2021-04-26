@@ -181,8 +181,8 @@ contains
 
 !   Define EXPORT states
 
-!   This state is needed by radiation - It will contain 
-!   aerosols and aerosol optics
+!   This state is needed by radiation and moist. It contains 
+!   aerosols and callback methods
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                       &
        short_name = 'AERO',                           &
@@ -191,17 +191,6 @@ contains
        dims       = MAPL_DimsHorzVert,                &
        vlocation  = MAPL_VLocationCenter,             &
        datatype   = MAPL_StateItem, __RC__)
-
-!   This state is needed by MOIST - It will contain
-!   aerosols
-!   --------------------------------------------------------
-!    call MAPL_AddExportSpec(GC,                       &
-!       short_name = 'AERO_ACI',                     &
-!       long_name  = 'aerosol_cloud_interaction_ng',   &
-!       units      = 'kg kg-1',                        &
-!       dims       = MAPL_DimsHorzVert,                &
-!       vlocation  = MAPL_VLocationCenter,             &
-!       datatype   = MAPL_StateItem, __RC__)
 
 !   This bundle is needed by surface for snow albedo modification
 !   by aerosol settling and deposition
@@ -450,8 +439,8 @@ contains
     ! explicitly set to true.
     call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., __RC__)
 
-!   Begin AERO_ACI
-!   --------------
+!   Begin adding necessary aerosol cloud interaction information
+!   ------------------------------------------------------------
     aero_aci_modes =  (/'du001    ', 'du002    ', 'du003    ', &
                         'du004    ', 'du005    ',              &
                         'ss001    ', 'ss002    ', 'ss003    ', &  
@@ -482,7 +471,7 @@ contains
        call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
     endif
 
-!   Add variables to AERO_ACI state.
+!   Add variables to AERO state
     call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='width_of_aerosol_mode', label2='SIGMA', grid=grid, typekind=MAPL_R4, __RC__)
@@ -521,9 +510,6 @@ contains
            call ESMF_StateAdd (aero, [child_state], __RC__)
            
            if (instances(i)%name(1:2) /= 'NI') then
-!              call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_ACI', child_state, __RC__)
-!              call ESMF_StateAdd (aero_ACI, [child_state], __RC__)
-
               call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_DP', child_bundle, __RC__)
               call ESMF_FieldBundleGet (child_bundle, fieldCount=fieldCount, __RC__)
               allocate (fieldList(fieldCount), __STAT__)

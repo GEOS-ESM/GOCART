@@ -292,16 +292,6 @@ contains
        vlocation  = MAPL_VLocationCenter,                    &
        datatype   = MAPL_StateItem, __RC__)
 
-!   This state is needed by MOIST - It will contain aerosols
-!   ----------------------------------------------------------
-    call MAPL_AddExportSpec (GC,                                                  &
-       short_name = trim(COMP_NAME)//'_AERO_ACI',                                 &
-       long_name  = 'aerosol_cloud_interaction_aerosols_from_'//trim(COMP_NAME),  &
-       units      = 'kg kg-1',                                                    &
-       dims       = MAPL_DimsHorzVert,                                            &
-       vlocation  = MAPL_VLocationCenter,                                         &
-       datatype   = MAPL_StateItem, __RC__)
-
 !   This bundle is needed by surface for snow albedo modification
 !   by aerosol settling and deposition
 !   ~~~DEVELOPERS NOTE~~~ Change to StateItem when possible
@@ -354,7 +344,7 @@ contains
     type (MAPL_MetaComp), pointer        :: MAPL
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
-    type (ESMF_State)                    :: aero, aero_aci
+    type (ESMF_State)                    :: aero
     type (ESMF_State)                    :: providerState
     type (ESMF_Config)                   :: cfg, universal_cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
@@ -461,7 +451,6 @@ contains
 !   Fill AERO States with carbon fields
 !   ------------------------------------
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
-    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_ACI', aero_aci, __RC__)
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, 'CAphobic'//trim(comp_name), field, __RC__)
@@ -477,7 +466,6 @@ contains
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
     fld = MAPL_FieldCreate (field, 'CAphilic'//trim(comp_name), __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-    call MAPL_StateAdd (aero_aci, fld, __RC__)
 
     if (.not. data_driven) then
 !      Set klid
