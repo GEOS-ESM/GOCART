@@ -185,7 +185,7 @@ contains
 !   aerosols and aerosol optics
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                       &
-       short_name = 'AERO_RAD',                         &
+       short_name = 'AERO',                           &
        long_name  = 'aerosol_mass_mixing_ratios_ng',  &
        units      = 'kg kg-1',                        &
        dims       = MAPL_DimsHorzVert,                &
@@ -195,13 +195,13 @@ contains
 !   This state is needed by MOIST - It will contain
 !   aerosols
 !   --------------------------------------------------------
-    call MAPL_AddExportSpec(GC,                       &
-       short_name = 'AERO_ACI',                     &
-       long_name  = 'aerosol_cloud_interaction_ng',   &
-       units      = 'kg kg-1',                        &
-       dims       = MAPL_DimsHorzVert,                &
-       vlocation  = MAPL_VLocationCenter,             &
-       datatype   = MAPL_StateItem, __RC__)
+!    call MAPL_AddExportSpec(GC,                       &
+!       short_name = 'AERO_ACI',                     &
+!       long_name  = 'aerosol_cloud_interaction_ng',   &
+!       units      = 'kg kg-1',                        &
+!       dims       = MAPL_DimsHorzVert,                &
+!       vlocation  = MAPL_VLocationCenter,             &
+!       datatype   = MAPL_StateItem, __RC__)
 
 !   This bundle is needed by surface for snow albedo modification
 !   by aerosol settling and deposition
@@ -325,7 +325,7 @@ contains
     type (ESMF_Grid)                       :: grid
     type (ESMF_Config)                     :: CF
 
-    type (ESMF_State)                      :: aero, aero_aci
+    type (ESMF_State)                      :: aero
     type (ESMF_FieldBundle)                :: aero_dp
 
     type (GOCART_State),      pointer      :: self
@@ -380,9 +380,8 @@ contains
 
 !   Fill AERO_RAD, AERO_ACI, and AERO_DP with the children's states
 !   ---------------------------------------------------------------
-    call ESMF_StateGet (export, 'AERO_RAD' , aero     , __RC__)
-    call ESMF_StateGet (export, 'AERO_ACI' , aero_aci , __RC__)
-    call ESMF_StateGet (export, 'AERO_DP'  , aero_dp  , __RC__)
+    call ESMF_StateGet (export, 'AERO', aero, __RC__)
+    call ESMF_StateGet (export, 'AERO_DP', aero_dp, __RC__)
 
 
 !   Add children's AERO states to GOCART2G's AERO states
@@ -397,23 +396,34 @@ contains
 !   Begin AERO_RAD
 !   --------------
 !   Add variables to AERO_RAD state. Used in aerosol optics calculations
-    call add_aero (aero, label='air_pressure_for_aerosol_optics',             label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='relative_humidity_for_aerosol_optics',        label2='RH',  grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='air_pressure_for_aerosol_optics', label2='PLE', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
 
 !   Used in get_mixRatioSum
-    call add_aero (aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_CA.oc', label2='aerosolSumCA.oc', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_CA.bc', label2='aerosolSumCA.bc', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_CA.br', label2='aerosolSumCA.br', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_SU', label2='aerosolSumSU', grid=grid, typekind=MAPL_R4, __RC__)
-
+    call add_aero (aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_CA.oc', label2='aerosolSumCA.oc', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_CA.bc', label2='aerosolSumCA.bc', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_CA.br', label2='aerosolSumCA.br', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_SU', label2='aerosolSumSU', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
     call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
@@ -450,43 +460,42 @@ contains
 
     n_modes = size(aero_aci_modes)
 
-    call ESMF_AttributeSet(aero_aci, name='number_of_aerosol_modes', value=n_modes, __RC__)
-    call ESMF_AttributeSet(aero_aci, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, __RC__)
+    call ESMF_AttributeSet(aero, name='number_of_aerosol_modes', value=n_modes, __RC__)
+    call ESMF_AttributeSet(aero, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, __RC__)
 
     ! max mixing ratio before switching to "polluted" size distributions
     call ESMF_ConfigGetAttribute(CF, maxclean, default=1.0e-9, label='MAXCLEAN:', __RC__)
-    call ESMF_AttributeSet(aero_aci, name='max_q_clean', value=maxclean, __RC__)
+    call ESMF_AttributeSet(aero, name='max_q_clean', value=maxclean, __RC__)
 
     call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)
-    call ESMF_AttributeSet(aero_aci, name='ccn_tuning', value=CCNtuning, __RC__)
+    call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, __RC__)
 
     call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICRO:',  default="1MOMENT", RC=STATUS)
-    call ESMF_AttributeSet(aero_aci, name='cldmicro', value=CLDMICRO, __RC__)
+    call ESMF_AttributeSet(aero, name='cldmicro', value=CLDMICRO, __RC__)
 
     ! scaling factor for sea salt
     if(adjustl(CLDMICRO)=="2MOMENT") then
        call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=4.0, label='SS_SCALE:', __RC__)
-       call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
+       call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
     else
        call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=14.0, label='SS_SCALE:', __RC__)
-       call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
+       call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
     endif
 
 !   Add variables to AERO_ACI state.
-    call add_aero (aero_aci, label='air_pressure',                label2='PLE',      grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='air_temperature',             label2='T',        grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='fraction_of_land_type',       label2='FRLAND',   grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='width_of_aerosol_mode',       label2='SIGMA',    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='aerosol_number_concentration',label2='NUM',      grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='aerosol_dry_size',            label2='DGN',      grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='aerosol_density',             label2='density',  grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='aerosol_hygroscopicity',      label2='KAPPA',    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='fraction_of_dust_aerosol',    label2='FDUST',    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='fraction_of_soot_aerosol',    label2='FSOOT',    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='width_of_aerosol_mode', label2='SIGMA', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='aerosol_number_concentration', label2='NUM', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='aerosol_dry_size', label2='DGN', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='aerosol_density', label2='density', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='aerosol_hygroscopicity', label2='KAPPA', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='fraction_of_dust_aerosol', label2='FDUST', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='fraction_of_soot_aerosol', label2='FSOOT', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, __RC__)
 
 !   Attach the aerosol optics method
-    call ESMF_MethodAdd(aero_aci, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
+    call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -512,8 +521,8 @@ contains
            call ESMF_StateAdd (aero, [child_state], __RC__)
            
            if (instances(i)%name(1:2) /= 'NI') then
-              call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_ACI', child_state, __RC__)
-              call ESMF_StateAdd (aero_ACI, [child_state], __RC__)
+!              call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_ACI', child_state, __RC__)
+!              call ESMF_StateAdd (aero_ACI, [child_state], __RC__)
 
               call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_DP', child_bundle, __RC__)
               call ESMF_FieldBundleGet (child_bundle, fieldCount=fieldCount, __RC__)
@@ -1435,20 +1444,22 @@ contains
 
     b=0
     do i = 1, n
-        if (itemTypes(i) == ESMF_StateItem_State) then
-            b = b + 1
-        end if
+       if ((itemTypes(i) == ESMF_StateItem_State) .and. (trim(itemList(i)(1:2)) /= 'NI')) then
+          b = b + 1
+       end if
     end do
 
     allocate (aeroList(b), __STAT__)
 
     j = 1
     do i = 1, n
-        if (itemTypes(i) == ESMF_StateItem_State) then
-            aeroList(j) = trim(itemList(i))
-            j = j + 1
-        end if
+       if ((itemTypes(i) == ESMF_StateItem_State) .and. (trim(itemList(i)(1:2)) /= 'NI')) then
+          aeroList(j) = trim(itemList(i))
+          j = j + 1
+       end if
     end do
+
+if(mapl_am_i_root()) print*,'AERO_ACI aeroList = ',aeroList
 
 !   Aerosol mode
 !   ------------
@@ -1461,7 +1472,7 @@ contains
 
 !   Pressure at layer edges 
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure', value=fld_name, __RC__)
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
 
 !   Temperature
