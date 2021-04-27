@@ -819,33 +819,45 @@ contains
 
 !   Ammonium - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhflag, MAPL_GRAV, self%cdt, &
-                                  1.e-6*self%radius(nNH4a), self%rhop(nNH4a), &
-                                  NH4a, t, airdens, rh2, delp, zle, NH4SD, __RC__)
+!    call Chem_SettlingSimpleOrig (self%km, self%klid, rhflag, MAPL_GRAV, self%cdt, &
+!                                  1.e-6*self%radius(nNH4a), self%rhop(nNH4a), &
+!                                  NH4a, t, airdens, rh2, delp, zle, NH4SD, __RC__)
+    call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
+                              self%radius(nNH4a)*1.e-6, self%rhop(nNH4a), NH4a, t, &
+                              airdens, rh2, zle, delp, NH4SD, __RC__)
 
 !  Nitrate bin 1 - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,1)
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
-                                  1.e-6*self%radius(nNO3an1), self%rhop(nNO3an1), &
-                                  NO3an1, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
+!    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
+!                                  1.e-6*self%radius(nNO3an1), self%rhop(nNO3an1), &
+!                                  NO3an1, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
+    call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
+                              self%radius(nNO3an1)*1.e-6, self%rhop(nNO3an1), NO3an1, &
+                              t, airdens, rh2, zle, delp, flux_ptr, __RC__)
 
 !  Nitrate bin 2 - settles like sea salt (rhflag = 2)
     rhflag = 2
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,2)
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
-                                  1.e-6*self%radius(nNO3an2), self%rhop(nNO3an2), &
-                                  NO3an2, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
+!    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
+!                                  1.e-6*self%radius(nNO3an2), self%rhop(nNO3an2), &
+!                                  NO3an2, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
+    call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
+                              self%radius(nNO3an2)*1.e-6, self%rhop(nNO3an2), NO3an2, &
+                              t, airdens, rh2, zle, delp, flux_ptr, __RC__)
 
 !  Nitrate bin 1 - settles like dust (rhflag = 0)
     rhflag = 0
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,3)
-    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
-                                  1.e-6*self%radius(nNO3an3), self%rhop(nNO3an3), &
-                                  NO3an3, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
+!    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
+!                                  1.e-6*self%radius(nNO3an3), self%rhop(nNO3an3), &
+!                                  NO3an3, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
+    call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
+                              self%radius(nNO3an3)*1.e-6, self%rhop(nNO3an3), NO3an3, &
+                              t, airdens, rh2, zle, delp, flux_ptr, __RC__)
 
 !  NI Deposition
 !  -----------

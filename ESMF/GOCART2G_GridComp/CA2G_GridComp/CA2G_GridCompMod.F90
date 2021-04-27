@@ -981,9 +981,9 @@ contains
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
 
-       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, MAPL_GRAV, delp, &
-                                 self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
-                                 rh2, zle, CASD, __RC__)
+       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
+                           self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
+                           rh2, zle, delp, CASD, __RC__)
     end do
 
 !   CA Deposition
