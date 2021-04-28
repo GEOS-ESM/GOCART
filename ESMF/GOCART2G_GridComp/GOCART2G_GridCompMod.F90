@@ -1445,8 +1445,6 @@ contains
        end if
     end do
 
-if(mapl_am_i_root()) print*,'AERO_ACI aeroList = ',aeroList
-
 !   Aerosol mode
 !   ------------
     call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, __RC__)
