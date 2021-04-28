@@ -1554,7 +1554,7 @@ CONTAINS
 
 !==================================================================================
 !BOP
-! !IROUTINE: Chem_Settling2G
+! !IROUTINE: Chem_Settling2Gorig
 
    subroutine Chem_Settling2Gorig (km, klid, flag, bin, int_qa, grav, delp, &
                                    radiusInp, rhopInp, cdt, tmpu, rhoa, &
@@ -1641,14 +1641,9 @@ CONTAINS
 
 !  Get dimensions
 !  ---------------
-!   nbins = size(radiusInp)
    dims = shape(rhoa)
    i2 = dims(1); j2 = dims(2)
    ijl  = ( i2 - i1 + 1 ) * ( j2 - j1 + 1 )
-
-!print*,'nbins = ',nbins
-!print*,'i2 = ',i2
-!print*,'j2 = ',j2
 
    gravDP = grav
 
@@ -1798,8 +1793,6 @@ CONTAINS
       end do 
     end do  
 
-!    cmass_after = sum(qa / gravDP * delp,3)
-
 !   Find the column dry mass after sedimentation and thus the loss flux
     do k = klid, km
      do j = j1, j2
@@ -1823,7 +1816,7 @@ CONTAINS
 
 !BOP
 !
-! !IROUTINE:  Chem_CalcVsettle2G - Calculate the aerosol settling velocity
+! !IROUTINE:  Chem_CalcVsettle2Gorig - Calculate the aerosol settling velocity
 !
 ! !INTERFACE:
    subroutine Chem_CalcVsettle2Gorig ( radius, rhop, rhoa, tmpu, grav, &
@@ -2345,7 +2338,7 @@ CONTAINS
    end subroutine DryDeposition
 
 !====================================================================================
-! !IROUTINE: ObukhovLength - Calculate the Obukhov length scale stability parameter
+! !IROUTINE: ObukhovLength2G - Calculate the Obukhov length scale stability parameter
 !
 ! !INTERFACE:
 !
@@ -2399,7 +2392,6 @@ CONTAINS
 !BOP
 
 ! !IROUTINE: WetRemovalGOCART2G 
-!#if 0
    subroutine WetRemovalGOCART2G ( km, klid, n1, n2, bin_ind, cdt, aero_type, kin, grav, fwet, &
                                    aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
                                    precc, precl, fluxout, rc )
@@ -2512,7 +2504,6 @@ CONTAINS
    allocate(fd(km,nbins),stat=ios)
    allocate(dc(nbins),stat=ios)
 
-!   if( associated(fluxout%data2d) ) fluxout%data2d(i1:i2,j1:j2) = 0.0
    if( associated(fluxout) ) fluxout(i1:i2,j1:j2,bin_ind) = 0.0
 
 !  Accumulate the 3-dimensional arrays of rhoa and pdog
@@ -2566,7 +2557,6 @@ CONTAINS
 !    Find the highest model layer experiencing rainout.  Assumes no
 !    scavenging if T < 258 K
      LH = 0
-!     do k = 1, km
      do k = klid, km
       if(dpfli(i,j,k) .gt. 0. ) then
        LH = k
@@ -2630,12 +2620,9 @@ CONTAINS
         endif
 
         effRemoval = fwet
-!        DC(n) = qa(n1+n-1)%data3d(i,j,k) * F * effRemoval *(1.-exp(-BT))
         DC(n) = aerosol(i,j,k) * F * effRemoval *(1.-exp(-BT))
         if (DC(n).lt.0.) DC(n) = 0.
-!        qa(n1+n-1)%data3d(i,j,k) = qa(n1+n-1)%data3d(i,j,k)-DC(n)
         aerosol(i,j,k) = aerosol(i,j,k)-DC(n)
-!        if (qa(n1+n-1)%data3d(i,j,k) .lt. 1.0E-32) qa(n1+n-1)%data3d(i,j,k) = 1.0E-32
         if (aerosol(i,j,k) .lt. 1.0E-32) aerosol(i,j,k) = 1.0E-32
        end do
 !      Flux down:  unit is kg m-2
@@ -2665,9 +2652,6 @@ CONTAINS
 
  333    continue
         F = F0_ls / (1. + F0_ls*B0_ls*XL_ls/(Qmx*cdt/Td_ls))
-     ! if (MAPL_AM_I_ROOT()) then
-     !    print *, 'hbianwdep WASHFmax =',F
-     ! endif
         if (F.lt.0.01) F = 0.01
 !-----------------------------------------------------------------------------
 !  The following is to convert Q(k) from kgH2O/m3/sec to mm/sec in order
@@ -2722,21 +2706,15 @@ CONTAINS
 !       Adjust du level:
         do n = 1, nbins
          if ( KIN ) then
-!            DC(n) = qa(n1+n-1)%data3d(i,j,k) * F * (1.-exp(-BT))
             DC(n) = aerosol(i,j,k) * F * (1.-exp(-BT))
          else
-!            DC(n) = qa(n1+n-1)%data3d(i,j,k) * F * WASHFRAC
             DC(n) = aerosol(i,j,k) * F * WASHFRAC
          endif
          if (DC(n).lt.0.) DC(n) = 0.
-!         qa(n1+n-1)%data3d(i,j,k) = qa(n1+n-1)%data3d(i,j,k)-DC(n)
          aerosol(i,j,k) = aerosol(i,j,k)-DC(n)
-!         if (qa(n1+n-1)%data3d(i,j,k) .lt. 1.0E-32) &
          if (aerosol(i,j,k) .lt. 1.0E-32) &
           aerosol(i,j,k) = 1.0E-32
-!         if( associated(fluxout%data2d) ) then
          if( associated(fluxout)) then
-!          fluxout%data2d(i,j) = fluxout%data2d(i,j)+DC(n)*pdog(i,j,k)/cdt
           fluxout(i,j,bin_ind) = fluxout(i,j,bin_ind)+DC(n)*pdog(i,j,k)/cdt
 
          endif
@@ -2760,14 +2738,10 @@ CONTAINS
 
 !      Adjust du level: 
        do n = 1, nbins
-!        effRemoval = qa(n1+n-1)%fwet
         effRemoval = fwet
-!        DC(n) = qa(n1+n-1)%data3d(i,j,k) * F * effRemoval * (1.-exp(-BT))
         DC(n) = aerosol(i,j,k) * F * effRemoval * (1.-exp(-BT))
         if (DC(n).lt.0.) DC(n) = 0.
-!        qa(n1+n-1)%data3d(i,j,k) = qa(n1+n-1)%data3d(i,j,k)-DC(n)
         aerosol(i,j,k) = aerosol(i,j,k)-DC(n)
-!        if (qa(n1+n-1)%data3d(i,j,k) .lt. 1.0E-32) qa(n1+n-1)%data3d(i,j,k) = 1.0E-32
         if (aerosol(i,j,k) .lt. 1.0E-32) aerosol(i,j,k) = 1.0E-32
        end do
 
@@ -2818,14 +2792,10 @@ CONTAINS
 
 !       Adjust du level:
         do n = 1, nbins
-!         DC(n) = qa(n1+n-1)%data3d(i,j,k) * F * (1.-exp(-BT))
          DC(n) = aerosol(i,j,k) * F * (1.-exp(-BT))
          if (DC(n).lt.0.) DC(n) = 0.
-!         qa(n1+n-1)%data3d(i,j,k) = qa(n1+n-1)%data3d(i,j,k)-DC(n)
          aerosol(i,j,k) = aerosol(i,j,k)-DC(n)
-!         if (qa(n1+n-1)%data3d(i,j,k) .lt. 1.0E-32) &
          if (aerosol(i,j,k) .lt. 1.0E-32) &
-!          qa(n1+n-1)%data3d(i,j,k) = 1.0E-32
           aerosol(i,j,k) = 1.0E-32
          if( associated(fluxout)) then
           fluxout(i,j,bin_ind) = fluxout(i,j,bin_ind)+DC(n)*pdog(i,j,k)/cdt
@@ -2856,11 +2826,8 @@ CONTAINS
 !         Adjust tracer in the level
           do n = 1, nbins
            DC(n) =  Fd(k-1,n) / pdog(i,j,k) * A
-!           qa(n1+n-1)%data3d(i,j,k) = qa(n1+n-1)%data3d(i,j,k) + DC(n)
            aerosol(i,j,k) = aerosol(i,j,k) + DC(n)
-!           qa(n1+n-1)%data3d(i,j,k) = max(qa(n1+n-1)%data3d(i,j,k),1.e-32)
            aerosol(i,j,k) = max(aerosol(i,j,k),1.e-32)
-!          Adjust the flux out of the bottom of the layer
            Fd(k,n)  = Fd(k,n) - DC(n)*pdog(i,j,k)
           end do
 
@@ -2871,9 +2838,7 @@ CONTAINS
 
 
      do n = 1, nbins
-!      if( associated(fluxout%data2d) ) then
       if( associated(fluxout)) then
-!       fluxout%data2d(i,j) = fluxout%data2d(i,j)+Fd(km,n)/cdt
        fluxout(i,j,bin_ind) = fluxout(i,j,bin_ind)+Fd(km,n)/cdt
       endif
      end do
@@ -4043,8 +4008,6 @@ CONTAINS
 !  --------------------------
    i2 = size(rhoa,1)
    j2 = size(rhoa,2)
-!   n1  = w_c%reg%i_OC
-!   n2  = w_c%reg%j_OC
    ijl = ( i2 - i1 + 1 ) * ( j2 - j1 + 1 )
 
    allocate(factor(i2,j2), srcHydrophobic(i2,j2), srcHydrophilic(i2,j2), srcBiofuel(i2,j2), &
@@ -4982,11 +4945,6 @@ K_LOOP: do k = km, 1, -1
    real :: dfkg
    real :: avgvel
    real :: sqrt_tk
-!   real(kind=DP) :: pi_dp = pi
-!   real(kind=DP) :: rgas_dp = rgas
-
-!   real, parameter :: p_dfkg   = sqrt(3.472e-2 + 1.0/fmassHNO3)
-!   real, parameter :: p_avgvel = sqrt(8.0 * rgas_dp * 1000.0 / (pi_dp * fmassHNO3))
 
    real(kind=DP) :: pi_dp
    real(kind=DP) :: rgas_dp
@@ -5016,333 +4974,6 @@ K_LOOP: do k = km, 1, -1
       sktrs_sslt = sad / ( 4.0 / (gamma_sslt * avgvel) + radA / dfkg )
 
    end function sktrs_sslt
-
-!============================================================================
-
-#if 0
-!~~~~~~ OLD NITRATE before Anton's refactor ~~~~~~~~~~~~~~~
-
-
-!BOP
-!
-! !IROUTINE: NIheterogenousChem
-!
-! !INTERFACE:
-   subroutine NIheterogenousChem (NI_phet, xhno3, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
-                                  DU, SS, rmedDU, rmedSS, fnumDU, fnumSS, nbinsDU, nbinsSS, &
-                                  km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2, & 
-                                  nNO3an3, HNO3_conc, HNO3_sfcmass, HNO3_colmass, rc)
-
-
-! !DESCRIPTION: Nitrogen heterogeneous chemistry
-
-! !USES:
-   implicit NONE
-
-! !INPUT PARAMETERS:
-   real, intent(in)                    :: AVOGAD         ! Avogadro's number [1/kmol]
-   real, intent(in)                    :: AIRMW          ! molecular weight of air [kg/kmol]
-   real, intent(in)                    :: PI             ! pi constant
-   real, intent(in)                    :: RUNIV          ! ideal gas constant [J/(Kmole*K)]
-   real, dimension(:,:,:), intent(in)  :: rhoa           ! Layer air density [kg/m^3]
-   real, dimension(:,:,:), intent(in)  :: tmpu           ! Layer temperature [K]
-   real, dimension(:,:,:), intent(in)  :: relhum         ! relative humidity [1]
-   real, dimension(:,:,:), intent(in)  :: delp           ! pressure thickness [Pa]
-   real, pointer, dimension(:,:,:,:), intent(in) :: DU   ! dust aerosol [kg/kg]
-   real, pointer, dimension(:,:,:,:), intent(in) :: SS   ! sea salt aerosol [kg/kg]
-   real, dimension(:) ,intent(in)      :: rmedDU         ! dust aerosol radius [um]
-   real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [um]
-   real, dimension(:) ,intent(in)      :: fnumDU         ! number of dust particles per kg mass
-   real, dimension(:) ,intent(in)      :: fnumSS         ! number of sea salt particles per kg mass
-   integer, intent(in)                 :: nbinsDU        ! number of dust bins
-   integer, intent(in)                 :: nbinsSS        ! number of sea salt bins
-   integer, intent(in)                 :: km             ! number of model levels
-   integer, intent(in)                 :: klid   ! index for pressure lid
-   real, intent(in)                    :: cdt            ! chemistry model timestep (sec)
-   real, intent(in)                    :: grav           ! gravity (m/sec)
-   real, intent(in)                    :: fMassHNO3      ! gram molecular weight
-   real, intent(in)                    :: fMassNO3       ! gram molecular weight
-
-
-! !INOUTPUT PARAMETERS:
-   real, pointer, dimension(:,:,:), intent(inout)  :: NI_phet   ! Nitrate Production from Het Chem [kg/(m^2 sec)]
-   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
-   real, pointer, dimension(:,:,:), intent(inout)  :: HNO3_conc ! Nitric Acid Mass Concentration [kg/m^3]
-   real, pointer, dimension(:,:), intent(inout)    :: HNO3_sfcmass ! Nitric Acid Surface Mass Concentration [kg/m^3]
-   real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^3]
-   real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an1 ! Nitrate bin 1 [kg/kg]
-   real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an2 ! Nitrate bin 2 [kg/kg]
-   real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an3 ! Nitrate bin 3 [kg/kg]
-
-! !OUTPUT PARAMETERS:
-   integer, optional, intent(out) :: rc
-
-! !Local Variables
-   real(kind=DP) :: kan1, kan2, kan3, sad, ad, rad, deltahno3, temp, rh
-!   real :: kan1, kan2, kan3, sad, ad, rad, deltahno3, temp, rh
-   integer  ::  i, j, k, n, j1, j2, i1, i2
-
-!EOP
-!------------------------------------------------------------------------------------
-!  Begin..
-
-!  Heterogeneous chemistry
-!  -----------------------
-!  Heterogeneous chemistry wants to know about GOCART dust and sea
-!  salt tracers.  This code is not at the moment generalized as it
-!  seems very wedded to the traditional GOCART arrangement (5 dust,
-!  5 sea salt) and the particulars of the nitrate aerosol arrangement.
-
-   if(associated(NI_phet)) NI_phet = 0.
-
-   j1 = lbound(tmpu, 2)
-   j2 = ubound(tmpu, 2)
-   i1 = lbound(tmpu, 1)
-   i2 = ubound(tmpu, 1)
-
-   do k = klid, km
-    do j = j1, j2
-     do i = i1, i2
-      kan1 = 0.
-      kan2 = 0.
-      kan3 = 0.
-      ad = 1.e-6*rhoa(i,j,k)*AVOGAD/AIRMW  ! air number density # cm-3
-      temp = tmpu(i,j,k)
-      rh = relhum(i,j,k)
-!     Dust
-      if (associated(DU)) then
-         do n = 1, nbinsDU
-            sad = 0.01*4.*PI*rmedDU(n)**2.*fnumDU(n) * &
-                  rhoa(i,j,k) * DU(i,j,k,n)       ! surface area density cm2 cm-3
-            rad = 100.*rmedDU(n)                  ! radius cm
-
-            if (sad > 0.) then
-               if(n == 1) &
-                  kan1 = kan1 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 2) &
-                  kan2 = kan2 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 3) &
-                  kan2 = kan2 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 4) &
-                  kan3 = kan3 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 5) &
-                  kan3 = kan3 + sktrs_hno3(temp,rh,sad,ad,rad,PI,RUNIV,fMassHNO3)
-            end if
-         enddo
-      endif
-
-!     Sea salt
-      if (associated(SS)) then
-         do n = 1, nbinsSS
-            sad = 0.01*4.*PI*rmedSS(n)**2.*fnumSS(n) * &
-                  rhoa(i,j,k) * SS(i,j,k,n)       ! surface area density cm2 cm-3
-            rad = 100.*rmedSS(n)                        ! radius cm
-
-            if (sad > 0.) then
-               if(n == 1) &
-                  kan1 = kan1 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 2) &
-                  kan1 = kan1 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 3) &
-                  kan2 = kan2 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 4) &
-                  kan2 = kan2 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-               if(n == 5) &
-                  kan3 = kan3 + sktrs_sslt(temp,sad,ad,rad,PI,RUNIV,fMassHNO3)
-            end if
-         enddo
-      endif
-
-!     Compute the nitric acid loss (but don't actually update)
-      if( (kan1+kan2+kan3) > 0.) then
-       deltahno3 = xhno3(i,j,k) * fMassHNO3 / AIRMW * (1.-exp(-(kan1+kan2+kan3)*cdt))
-       xhno3(i,j,k) = xhno3(i,j,k) - deltahno3 * AIRMW / fMassHNO3
-       nNO3an1(i,j,k) = &
-         nNO3an1(i,j,k) + kan1/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-       nNO3an2(i,j,k) = &
-         nNO3an2(i,j,k) + kan2/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-       nNO3an3(i,j,k) = &
-         nNO3an3(i,j,k) + kan3/(kan1+kan2+kan3)*deltahno3*fMassNO3/fMassHNO3
-
-       if(associated(NI_phet)) then
-          NI_phet(i,j,1) = NI_phet(i,j,1) + kan1/(kan1+kan2+kan3)*deltahno3*delp(i,j,k)/grav/cdt
-          NI_phet(i,j,2) = NI_phet(i,j,2) + kan2/(kan1+kan2+kan3)*deltahno3*delp(i,j,k)/grav/cdt
-          NI_phet(i,j,3) = NI_phet(i,j,3) + kan3/(kan1+kan2+kan3)*deltahno3*delp(i,j,k)/grav/cdt
-       end if
-      endif !(kan1+kan2+kan3) > 0.
-
-     enddo !i
-    enddo !j
-   enddo !k
-
-!  Output diagnostic HNO3
-!  ----------------------
-!  Calculate the HNO3 mass concentration
-   if( associated(HNO3_conc) ) then
-      HNO3_conc = xhno3 * fMassHNO3 / AIRMW * rhoa
-   endif
-!  Calculate the HNO3 surface mass concentration
-   if( associated(HNO3_sfcmass) ) then
-      HNO3_sfcmass(i1:i2,j1:j2) = xhno3(i1:i2,j1:j2,km) * fMassHNO3 / AIRMW * rhoa(i1:i2,j1:j2,km)
-   endif
-!  Calculate the HNO3 column loading
-   if( associated(HNO3_colmass) ) then
-      HNO3_colmass(i1:i2,j1:j2) = 0.
-      do k = klid, km
-        HNO3_colmass(i1:i2,j1:j2) &
-         =   HNO3_colmass(i1:i2,j1:j2) + xhno3(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
-      end do
-   endif
-
-   __RETURN__(__SUCCESS__)
-   end subroutine NIheterogenousChem
-
-!============================================================================
-!BOP
-!
-! !IROUTINE: sktrs_hno3
-!
-! !INTERFACE: 
-   function sktrs_hno3 ( tk, frh, sad, ad, radA, pi, rgas, fMassHNO3 )
-
-! !DESCRIPTION:
-! Below are the series of heterogeneous reactions
-! The reactions sktrs_hno3n1, sktrs_hno3n2, and sktrs_hno3n3 are provided
-! as given by Huisheng Bian.  As written they depend on knowing the GOCART
-! structure and operate per column but the functions themselves are 
-! repetitive.  I cook up a single sktrs_hno3 function which is called per 
-! grid box per species with an optional parameter gamma being passed.
-! Following is objective:
-! loss rate (k = 1/s) of species on aerosol surfaces
-!
-! k = sad * [ radA/Dg +4/(vL) ]^(-1)
-!
-! where
-! Dg = gas phase diffusion coefficient (cm2/s)
-! L = sticking coefficient (unitless)  = gamma
-! v = mean molecular speed (cm/s) = [ 8RT / (pi*M) ]^1/2
-!
-! radA/Dg = uptake by gas-phase diffusion to the particle surface
-! 4/(vL) = uptake by free molecular collisions of gas molecules with the surface
-
-! !INPUT PARAMETERS:
-   real(kind=DP)  :: tk   ! temperature [K]
-   real(kind=DP)  :: frh   ! fractional relative humidity [0 - 1]
-   real(kind=DP)  :: sad  ! aerosol surface area density [cm2 cm-3]
-   real(kind=DP)  :: ad   ! air number concentration [# cm-3]
-   real(kind=DP)  :: radA ! aerosol radius [cm]
-   real(kind=DP)  :: sktrs_hno3
-
-   real  :: pi   ! pi constant
-   real  :: rgas ! ideal gas constant [J/(K*mol)]
-   real  :: fMassHNO3 ! gram molecular weight of HNO3
-!   real(kind=DP), optional  :: gammaInp ! optional uptake coefficient (e.g., 0.2 for SS, else calculated)
-
-! !Local Variables
-   real(kind=DP), parameter   :: GAMMA_HNO3 = 1.0d-3
-   real(kind=DP) :: dfkg
-   real(kind=DP) :: avgvel
-   real(kind=DP) :: gamma
-
-   real(kind=DP) :: pi_dp, rgas_dp
-   real, parameter :: fmassHNO3_hno3 = 63.013
-
-!EOP
-!------------------------------------------------------------------------------------
-!  Begin..
-      sktrs_hno3 = 0.d0
-      gamma      = 3.d-5
-      pi_dp = pi
-      rgas_dp = rgas
-
-!      Following uptake coefficients of Liu et al.(2007)
-       if (frh >= 0.1d0 .and. frh < 0.3d0 )  gamma = gamma_hno3 * (0.03d0 + 0.08d0  * (frh - 0.1d0))
-       if (frh >= 0.3d0 .and. frh < 0.5d0 )  gamma = gamma_hno3 * (0.19d0 + 0.255d0 * (frh - 0.3d0))
-       if (frh >= 0.5d0 .and. frh < 0.6d0 )  gamma = gamma_hno3 * (0.7d0  + 0.3d0   * (frh - 0.5d0))
-       if (frh >= 0.6d0 .and. frh < 0.7d0 )  gamma = gamma_hno3 * (1.0d0  + 0.3d0   * (frh - 0.6d0))
-       if (frh >= 0.7d0 .and. frh < 0.8d0 )  gamma = gamma_hno3 * (1.3d0  + 0.7d0   * (frh - 0.7d0))
-       if (frh >= 0.8d0 )                    gamma = gamma_hno3 * 2.0d0
-
-!     calculate gas phase diffusion coefficient (cm2/s)
-      dfkg = 9.45D17 / ad * ( tk * (3.472D-2 + 1.D0/fmassHNO3_hno3) )**0.5d0
-
-!     calculate mean molecular speed (cm/s)
-      avgvel = 100.0d0 * (8.0d0 * rgas_dp * tk * 1000.0d0 / (pi_dp * fmassHNO3_hno3))**0.5d0
-
-!     calculate rate coefficient
-      sktrs_hno3 = sad * ( 4.0d0 / ( gamma * avgvel )+ radA / dfkg )**(-1.0d0)
-
-   end function sktrs_hno3
-
-!============================================================================
-!BOP
-!
-! !IROUTINE: sktrs_sslt
-!
-! !INTERFACE: 
-   function sktrs_sslt ( tk, sad, ad, radA, pi, rgas, fMassHNO3 )
-
-! !DESCRIPTION:
-! Below are the series of heterogeneous reactions
-! The reactions sktrs_hno3n1, sktrs_hno3n2, and sktrs_hno3n3 are provided
-! as given by Huisheng Bian.  As written they depend on knowing the GOCART
-! structure and operate per column but the functions themselves are 
-! repetitive.  I cook up a single sktrs_hno3 function which is called per 
-! grid box per species with an optional parameter gamma being passed.
-! Following is objective:
-! loss rate (k = 1/s) of species on aerosol surfaces
-!
-! k = sad * [ radA/Dg +4/(vL) ]^(-1)
-!
-! where
-! Dg = gas phase diffusion coefficient (cm2/s)
-! L = sticking coefficient (unitless)  = gamma
-! v = mean molecular speed (cm/s) = [ 8RT / (pi*M) ]^1/2
-!
-! radA/Dg = uptake by gas-phase diffusion to the particle surface
-! 4/(vL) = uptake by free molecular collisions of gas molecules with the surface
-
-! !INPUT PARAMETERS:
-   real(kind=DP)  :: tk   ! temperature [K]
-   real(kind=DP)  :: sad  ! aerosol surface area density [cm2 cm-3]
-   real(kind=DP)  :: ad   ! air number concentration [# cm-3]
-   real(kind=DP)  :: radA ! aerosol radius [cm]
-   real(kind=DP)  :: sktrs_sslt
-   real           :: pi   ! pi constant
-   real           :: rgas ! ideal gas constant [J/(K*mol)]
-   real           :: fMassHNO3 ! gram molecular weight of HNO3
-!   real(kind=DP), optional  :: gammaInp ! optional uptake coefficient (e.g., 0.2 for SS, else calculated)
-
-! !Local Variables
-   real(kind=DP), parameter   :: GAMMA_SSLT = 0.1d0
-   real(kind=DP) :: dfkg
-   real(kind=DP) :: avgvel
-   real(kind=DP) :: pi_dp, rgas_dp
-   real, parameter :: fmassHNO3_sslt = 63.013
-
-!EOP
-!------------------------------------------------------------------------------------
-!  Begin..
-!  Initialize
-   sktrs_sslt = 0.d0
-   pi_dp = pi
-   rgas_dp = rgas
-
-!  calculate gas phase diffusion coefficient (cm2/s)
-   dfkg = 9.45D17 / ad * ( tk * (3.472D-2 + 1.D0/fmassHNO3_sslt) )**0.5d0
-
-!  calculate mean molecular speed (cm/s)
-   avgvel = 100.0d0 * (8.0d0 * rgas_dp * tk * 1000.0d0 / (pi_dp * fmassHNO3_sslt))**0.5d0
-
-!  calculate rate coefficient
-   sktrs_sslt = sad * ( 4.0d0 / ( GAMMA_SSLT * avgvel )+ radA / dfkg )**(-1.0d0)
-
-   end function sktrs_sslt
-
-#endif
-!~~~~~~ OLD NITRATE before Anton's refactor ~~~~~~~~~~~~~~~
-
-
 
 !==================================================================================
 !BOP
@@ -6064,7 +5695,7 @@ K_LOOP: do k = km, 1, -1
 
 !==================================================================================
 !BOP
-! !IROUTINE: SulfateUpdateOxidants
+! !IROUTINE: szangle
 
    subroutine szangle (jday, xhour, lonRad, latRad, PI, radToDeg, sza, cossza, i2, j2)
 
@@ -7047,8 +6678,6 @@ K_LOOP: do k = km, 1, -1
        enddo
       enddo
    endif
-
-
 
    if( associated(exttau) .or. associated(scatau) ) then
 
