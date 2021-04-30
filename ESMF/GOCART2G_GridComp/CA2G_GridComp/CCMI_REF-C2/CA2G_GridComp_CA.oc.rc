@@ -3,22 +3,20 @@
 #
 
 aerosol_radBands_optics_file: ExtData/MERRA2/x/opticsBands_OC.v1_3.RRTMG.nc
-
 aerosol_monochromatic_optics_file: ExtData/AeroCom/x/optics_OC.v1_3.nc
-aerosol_monochromatic_optics_wavelength: 4.7e-7 5.5e-7 6.7e-7 8.7e-7 ! units: nm
-n_channels: 4
 
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
 
-# Fraction of terpene emissions for SOA production
-terpene_emission_fraction: 0.1
+# Fraction of biogenic VOCs emissions for SOA production
+monoterpenes_emission_fraction: 0.05
+isoprene_emission_fraction:     0.03
 
 # Ratio of POM/OC -> convert source masses from carbon to POM
 pom_oc_ratio: 1.4
 
 # particle radius
-particle_radius_microns: 0.0212  0.0212 
+particle_radius_microns: 0.35 0.35
 
 rhFlag: 0
 
@@ -41,6 +39,5 @@ fnum: 9.76e17  9.76e17
 sigma: 2.20  2.20
 
 pressure_lid_in_hPa: 0.01
-
 
 nbins: 2 
