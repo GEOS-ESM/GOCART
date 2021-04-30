@@ -2,7 +2,6 @@
 # Resource file for BR parameters.
 #
 
-
 aerosol_radBands_optics_file: ExtData/MERRA2/x/opticsBands_BRC.v1_5.RRTMG.nc
 aerosol_monochromatic_optics_file: ExtData/AeroCom/x/optics_BRC.v1_5.nc
 
