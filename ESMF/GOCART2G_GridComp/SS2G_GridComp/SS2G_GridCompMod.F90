@@ -115,10 +115,10 @@ contains
 !   Load resource file 
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SS2G_GridComp_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
     if (status /= 0) then
-       if (mapl_am_i_root()) print*,'SS2G_GridComp_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_GridComp_SS.data.rc instead'
-       call ESMF_ConfigLoadFile (cfg, 'SS2G_GridComp_SS.rc', __RC__)
+       if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
     ! process generic config items
@@ -369,11 +369,11 @@ contains
 !  Load resource file and get number of bins 
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SS2G_GridComp_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
     if (status /= 0) then
-      if (mapl_am_i_root()) print*,'SS2G_GridComp_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading SS2G_GridComp_SS.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'SS2G_GridComp_SS.rc', __RC__)
+      if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
+                                    loading SS2G_instance_SS.rc instead'
+      call ESMF_ConfigLoadFile( cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
 !   Call Generic Initialize 
@@ -494,11 +494,11 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%optics_file, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
-    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
     self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
-                                  label= "aerosol_monochromatic_optics_wavelength:", __RC__)
+                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
@@ -525,7 +525,7 @@ contains
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
-    call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0, __RC__)
+    call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
 
     mieTable_pointer = transfer(c_loc(self), [1])
     call ESMF_AttributeSet (aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)

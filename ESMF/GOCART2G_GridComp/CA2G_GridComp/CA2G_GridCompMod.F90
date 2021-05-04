@@ -128,11 +128,11 @@ contains
 !   Load resource file  
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'CA2G_GridComp_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', rc=status)
     if (status /= 0) then
-        if (mapl_am_i_root()) print*,'CA2G_GridComp_'//trim(COMP_NAME)//'.rc does not exist! &
-                                      Loading CA2G_GridComp_CA.oc.rc instead'
-        call ESMF_ConfigLoadFile (cfg, 'CA2G_GridComp_CA.oc.rc', __RC__)
+        if (mapl_am_i_root()) print*,'CA2G_instance_'//trim(comp_name)//'.rc does not exist! &
+                                      Loading CA2G_instance_'//trim(comp_name)//'.rc instead'
+        call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', __RC__)
     end if
 
 !   process generic config items
@@ -419,9 +419,9 @@ contains
 !   Load resource file  
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'CA2G_GridComp_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
     if (status /= 0) then
-        if (mapl_am_i_root()) print*,'ERROR: CA2G_GridComp_'//trim(COMP_NAME)//'.rc does not exist!' 
+        if (mapl_am_i_root()) print*,'ERROR: CA2G_instance_'//trim(COMP_NAME)//'.rc does not exist!' 
         return
     end if
 
@@ -544,11 +544,11 @@ contains
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
 
-    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
     self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
-                                  label= "aerosol_monochromatic_optics_wavelength:", __RC__)
+                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
