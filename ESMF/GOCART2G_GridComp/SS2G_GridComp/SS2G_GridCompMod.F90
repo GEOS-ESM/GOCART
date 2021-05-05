@@ -16,7 +16,7 @@ module SS2G_GridCompMod
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
-   use GA_GridCompMod
+   use GA_EnvironmentMod
 
    implicit none
    private
@@ -41,7 +41,7 @@ real, parameter ::  cpd    = 1004.16
    integer, parameter         :: NHRES = 6
 
 !  !Sea Salt state
-   type, extends(GA_GridComp) :: SS2G_GridComp
+   type, extends(GA_Environment) :: SS2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
        real, allocatable      :: rmed(:)        ! number median radius [um]
@@ -122,7 +122,7 @@ contains
     end if
 
     ! process generic config items
-    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
     allocate(self%rlow(self%nbins), self%rup(self%nbins), self%rmed(self%nbins), __STAT__)
 

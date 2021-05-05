@@ -16,7 +16,7 @@ module DU2G_GridCompMod
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
-   use GA_GridCompMod
+   use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
    
    implicit none
@@ -42,7 +42,7 @@ module DU2G_GridCompMod
    integer, parameter :: EMIS_SCHEME_K14    = 2
 
 !  !Dust state
-   type, extends(GA_GridComp) :: DU2G_GridComp
+   type, extends(GA_Environment) :: DU2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
        real, allocatable      :: sfrac(:)       ! fraction of total source
@@ -136,7 +136,7 @@ contains
     end if
 
     ! process generic config items
-    call self%GA_GridComp%load_from_config(cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config(cfg, universal_cfg, __RC__)
 
     allocate(self%sfrac(self%nbins), self%rlow(self%nbins), self%rup(self%nbins), __STAT__)
     ! process DU-specific items

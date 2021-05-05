@@ -1,6 +1,6 @@
 #include "MAPL_Generic.h"
 
-module GA_GridCompMod
+module GA_EnvironmentMod
 
    use ESMF
    use MAPL
@@ -9,9 +9,9 @@ module GA_GridCompMod
    implicit none
    private
 
-   public :: GA_GridComp
+   public :: GA_Environment
 
-   type :: GA_GridComp
+   type :: GA_Environment
        type(Chem_Mie), dimension(2)    :: rad_MieTable, diag_MieTable
        real, allocatable      :: radius(:)      ! particle effective radius [um]
        real, allocatable      :: rhop(:)        ! soil class density [kg m-3]
@@ -30,7 +30,7 @@ module GA_GridCompMod
        real, allocatable      :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
     contains
        procedure :: load_from_config
-    end type GA_GridComp
+    end type GA_Environment
 
 
     !LOCALS
@@ -42,7 +42,7 @@ module GA_GridCompMod
 
 
     subroutine load_from_config(self, cfg, universal_cfg, rc)
-       class(GA_GridComp), intent(inout) :: self
+       class(GA_Environment), intent(inout) :: self
        type(ESMF_Config), intent(inout) :: cfg
        type(ESMF_Config), intent(inout) :: universal_cfg
        integer, optional, intent(out) :: rc
@@ -74,4 +74,4 @@ module GA_GridCompMod
 
     end subroutine load_from_config
 
-end module GA_GridCompMod
+end module GA_EnvironmentMod

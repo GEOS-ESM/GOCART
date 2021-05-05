@@ -16,7 +16,7 @@ module SU2G_GridCompMod
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
-   use GA_GridCompMod
+   use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
 
    implicit none
@@ -52,7 +52,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
 !EOP
 !===========================================================================
 !  !Sulfer state
-   type, extends(GA_GridComp) :: SU2G_GridComp
+   type, extends(GA_Environment) :: SU2G_GridComp
       integer :: myDOW = -1     ! my Day of the week: Sun=1, Mon=2,...,Sat=7
       logical :: using_GMI_OH
       logical :: using_GMI_NO3
@@ -159,7 +159,7 @@ contains
     end if
 
 !   process generic config items
-    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
     allocate(self%sigma(self%nbins), __STAT__)
 

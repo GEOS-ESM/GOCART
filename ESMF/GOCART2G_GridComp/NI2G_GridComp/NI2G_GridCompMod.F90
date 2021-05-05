@@ -16,7 +16,7 @@ module NI2G_GridCompMod
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
-   use GA_GridCompMod
+   use GA_EnvironmentMod
 
    implicit none
    private
@@ -47,7 +47,7 @@ integer, parameter     :: DP = kind(1.0d0)
 !===========================================================================
 
 !  !Nitrate state
-   type, extends(GA_GridComp) :: NI2G_GridComp
+   type, extends(GA_Environment) :: NI2G_GridComp
        logical           :: first
        logical           :: recycle_HNO3 = .false.
        real, allocatable :: xhno3(:,:,:)   ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
@@ -121,7 +121,7 @@ contains
     end if
 
     ! process generic config items
-    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
 !   Is NI data driven?
 !   ------------------

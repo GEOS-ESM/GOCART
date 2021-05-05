@@ -16,7 +16,7 @@ module CA2G_GridCompMod
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
-   use GA_GridCompMod
+   use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
 
    implicit none
@@ -38,7 +38,7 @@ module CA2G_GridCompMod
 !===========================================================================
 
 !  !Carbonaceous aerosol state
-      type, extends(GA_GridComp) :: CA2G_GridComp
+      type, extends(GA_Environment) :: CA2G_GridComp
        integer            :: myDOW = -1   ! my Day of the week: Sun=1, Mon=2,...,Sat=7
        real               :: ratPOM = 1.0  ! Ratio of POM to OC mass
        real               :: fMonoterpenes = 0.0 ! Fraction of monoterpene emissions -> aerosol
@@ -136,7 +136,7 @@ contains
     end if
 
 !   process generic config items
-    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
     call ESMF_ConfigGetAttribute (cfg, self%nbins, label='nbins:', __RC__)
     nbins = self%nbins
