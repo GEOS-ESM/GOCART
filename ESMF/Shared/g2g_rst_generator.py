@@ -21,11 +21,11 @@ import numpy as np
 
 # prompt user for gocart restart file
 # -----------------------------------
-gocart_rst = input("Path to gocart_internal_rst:")
+gocart_rst = input("Path to gocart_internal_rst: ")
 
 # ask user if brown carbon is included in restart
 # ------------------------------------------------
-answer = input("Is brown carbon included in the gocart_internal_rst? (yes/no)")
+answer = input("Is brown carbon included in the gocart_internal_rst? (yes/no): ")
 
 if answer.upper() == 'YES':
   aeroList = ['du','ss','ni','su','caoc','cabc','cabr']
