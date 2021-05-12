@@ -696,6 +696,7 @@ contains
     integer, pointer, dimension(:)    :: iPoint, jPoint
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     character(len=2)  :: GCsuffix
+    logical :: fileExists
 
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
 
@@ -838,11 +839,16 @@ contains
 !   ------------------------------------------
     if(self%doing_point_emissions) then
        call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
-                         nymd=nymd, nhms=120000 )
-       call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                 self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                 self%pEnd, label='source', __RC__)
-    endif
+                        nymd=nymd, nhms=120000 )
+       inquire( file=fname, exist=fileExists)
+       if (fileExists) then
+          call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
+                                   self%pBase, self%pTop, self%pEmis, self%pStart, &
+                                   self%pEnd, label='source', __RC__)
+       else if (.not. fileExists) then
+         if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
+       end if
+    end if
 
 !   Get indices for point emissions
 !   -------------------------------
