@@ -673,7 +673,7 @@ contains
     real, dimension(:,:,:), allocatable   :: emissions_point
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     integer, pointer, dimension(:)  :: iPoint, jPoint
-
+    logical :: fileExists
     real :: qmax, qmin
     integer :: n, ijl
     real, dimension(:,:), allocatable   :: z_
@@ -789,9 +789,14 @@ contains
           self%day_save = idd
           call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                             nymd=nymd, nhms=120000 )
-          call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                   self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                   self%pEnd, label='source', __RC__)
+          inquire( file=fname, exist=fileExists)
+          if (fileExists) then
+             call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
+                                      self%pBase, self%pTop, self%pEmis, self%pStart, &
+                                      self%pEnd, label='source', __RC__)
+          else if (.not. fileExists) then
+             if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
+          end if
        end if
     end if
 
