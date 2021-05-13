@@ -52,7 +52,7 @@ jobs:
           name: "Build GOCART2G_GridComp"
           command: |
             cd ${CIRCLE_WORKING_DIRECTORY}/GOCART/build
-            make -j"$(nproc)" install
+            make -j"$(nproc)" GOCART2G_GridComp
             #MEDIUM# make -j4 GOCART2G_GridComp
 
   build-GEOSgcm:
