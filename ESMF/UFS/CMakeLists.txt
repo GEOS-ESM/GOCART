@@ -4,6 +4,7 @@ set (srcs
   Aerosol_Cap.F90
   Aerosol_Comp_Mod.F90
   Aerosol_Internal_Mod.F90
+  Aerosol_Shared_Mod.F90
   )
 
 set (dependencies Aerosol_GridComp MAPL esmf)

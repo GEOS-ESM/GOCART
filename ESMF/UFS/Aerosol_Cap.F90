@@ -14,6 +14,7 @@ module Aerosol_Cap
 
   use Aerosol_Comp_mod
   use Aerosol_Internal_mod
+  use Aerosol_Shared_mod
 
   use Aerosol_GridComp_mod, only : &
     aerosol_routine_SS          => SetServices
