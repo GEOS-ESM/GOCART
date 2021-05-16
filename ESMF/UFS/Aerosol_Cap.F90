@@ -213,21 +213,18 @@ contains
     ! local variables
     integer          :: stat, urc
     integer          :: localDeCount
-    integer          :: localPet, petCount, activePetCount
-    integer          :: maplComm, modelComm
+    integer          :: modelComm
     integer          :: status
     integer          :: lb(2), ub(2)
     integer          :: item, nlev, rank
-    integer, dimension(:), allocatable :: petList, recvBuffer
     type(ESMF_Clock) :: clock
-    type(ESMF_Field), pointer :: fieldList(:)
     type(ESMF_Grid)  :: grid
     type(ESMF_State) :: importState, exportState
-    type(ESMF_TimeInterval) :: timeStep
     type(ESMF_VM)    :: vm
+    type(ESMF_Field), pointer :: fieldList(:)
+    type(MAPL_Cap),   pointer :: cap
+    type(MAPL_CapOptions)     :: maplCapOptions
     type(Aerosol_InternalState_T) :: is
-    type(MAPL_Cap), pointer :: cap
-    type(MAPL_CapOptions) :: maplCapOptions
 
     ! begin
     rc = ESMF_SUCCESS
@@ -250,7 +247,7 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
-    ! select PETs carrying data payloads from imported fields
+    ! retrieve number of vertical levels from imported fields
     nlev = 1
     if (associated(fieldList)) then
       do item = 1, size(fieldList)
@@ -284,14 +281,14 @@ contains
       nullify(fieldList)
     end if
 
-    ! select PETs carrying data payloads from imported fields
+    ! retrieve model's MPI communicator
     call ESMF_GridCompGet(model, vm=vm, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
 
-    call ESMF_VMGet(vm, localPet=localPet, mpiCommunicator=modelComm, rc=rc)
+    call ESMF_VMGet(vm, mpiCommunicator=modelComm, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
@@ -383,12 +380,8 @@ contains
     integer, intent(out) :: rc
 
     ! local variables
-    integer                       :: status
     integer                       :: diagnostic
-    integer                       :: item
-    logical                       :: isCap
     character(len=ESMF_MAXSTR)    :: name
-    type(ESMF_Field)              :: ifield, ofield
     type(ESMF_State)              :: importState
     type(ESMF_State)              :: exportState
     type(ESMF_Clock)              :: clock
@@ -426,7 +419,7 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
-    ! print tinestep details
+    ! print timestep details
     call ESMF_ClockPrint(clock, options="currTime", &
       preString="------>Advancing Aerosol from: ", rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
