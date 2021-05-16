@@ -13,6 +13,7 @@ module Aerosol_Cap
     model_label_Finalize        => label_Finalize
 
   use Aerosol_Comp_mod
+  use Aerosol_Internal_mod
 
   use Aerosol_GridComp_mod, only : &
     aerosol_routine_SS          => SetServices
@@ -63,9 +64,6 @@ module Aerosol_Cap
       "inst_tracer_down_surface_flx         "  &
     ]
 
-  type Aerosol_InternalState_T
-    type(MAPL_Cap), pointer :: maplCap
-  end type Aerosol_InternalState_T
 
   private
 
@@ -228,7 +226,7 @@ contains
     type(ESMF_TimeInterval) :: timeStep
     type(ESMF_VM)    :: vm
     type(Aerosol_InternalState_T) :: is
-    type(MAPL_Cap), pointer :: this
+    type(MAPL_Cap), pointer :: cap
     type(MAPL_CapOptions) :: maplCapOptions
 
     ! begin
@@ -299,7 +297,15 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
-    nullify(is % maplCap)
+    ! allocate memory for the internal state and store it into component
+    allocate(is % wrap, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Unable to allocate internal state", &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    nullify(is % wrap % maplCap)
 
     ! set MAPL options
     maplCapOptions = MAPL_CapOptions(_RC)
@@ -318,37 +324,37 @@ contains
     end if
 
     ! startup MAPL
-    allocate(is % maplCap, stat=stat)
+    allocate(is % wrap % maplCap, stat=stat)
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-      msg="Unable to allocate internal memory", &
+      msg="Unable to allocate MAPL cap", &
       line=__LINE__,  &
       file=__FILE__,  &
       rcToReturn=rc)) return  ! bail out
 
-    is % maplCap = MAPL_Cap("MAPL Driver", aerosol_routine_SS, cap_options=maplCapOptions, _RC)
+    is % wrap % maplCap = MAPL_Cap("MAPL Driver", aerosol_routine_SS, cap_options=maplCapOptions, _RC)
 
-    this => is % maplCap
+    cap => is % wrap % maplCap
 
     ! initialize MAPL I/O on the same PETs as the model component
-    call this % initialize_io_clients_servers(this % get_comm_world(), _RC)
+    call cap % initialize_io_clients_servers(cap % get_comm_world(), _RC)
 
     ! create aerosol grid component
-    call this % initialize_cap_gc(_RC)
+    call cap % initialize_cap_gc(_RC)
 
-    call this % cap_gc % set_services(rc=rc)
+    call cap % cap_gc % set_services(rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
 
     ! provide model grid to MAPL
-    call this % cap_gc % set_grid(grid, lm=nlev, _RC)
+    call cap % cap_gc % set_grid(grid, lm=nlev, _RC)
 
     ! provide model clock to MAPL
-    call this % cap_gc % set_clock(clock, _RC)
+    call cap % cap_gc % set_clock(clock, _RC)
 
     ! initialize aerosol grid component
-    call this % cap_gc % initialize(rc=rc)
+    call cap % cap_gc % initialize(rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
@@ -380,6 +386,7 @@ contains
     integer                       :: status
     integer                       :: diagnostic
     integer                       :: item
+    logical                       :: isCap
     character(len=ESMF_MAXSTR)    :: name
     type(ESMF_Field)              :: ifield, ofield
     type(ESMF_State)              :: importState
@@ -387,7 +394,9 @@ contains
     type(ESMF_Clock)              :: clock
     type(ESMF_Time)               :: currTime
     type(ESMF_TimeInterval)       :: timeStep
+    type(MAPL_Cap),       pointer :: cap
     type(Aerosol_InternalState_T) :: is
+    type(Aerosol_InternalData_T), pointer :: this
 
     ! local parameters
     character(len=*), parameter :: rName = "ModelAdvance"
@@ -411,7 +420,6 @@ contains
       return  ! bail out
 
     ! get component's internal state
-    nullify(is % maplCap)
     call ESMF_GridCompGetInternalState(model, is, rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
@@ -439,31 +447,34 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+    nullify(cap)
+    if (associated(is % wrap)) cap => is % wrap % maplCap
+
     ! advance MAPL component
-    if (associated(is % maplCap)) then
+    if (associated(cap)) then
       ! -- import
-      call AerosolStateUpdate(model, is % maplCap, "import", rc=rc)
+      call AerosolStateUpdate(model, cap, "import", rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &
         return  ! bail out
 
       ! -- run cap
-      call is % maplCap % cap_gc % run(rc=rc)
+      call cap % cap_gc % run(rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &
         return  ! bail out
 
       ! -- export tracers
-      call AerosolStateUpdate(model, is % maplCap, "export", rc=rc)
+      call AerosolStateUpdate(model, cap, "export", rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &
         return  ! bail out
 
       ! -- export diagnostics
-      call AerosolDiagUpdate(model, is % maplCap, rc=rc)
+      call AerosolDiagUpdate(model, cap, rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &
@@ -477,16 +488,18 @@ contains
         line=__LINE__, &
         file=__FILE__)) &
         return  ! bail out
-      call MAPLFieldDiagnostics(model, is % maplCap % cap_gc % import_state, "import", rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
-      call MAPLFieldDiagnostics(model, is % maplCap % cap_gc % export_state, "export", rc=rc)
-      if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__)) &
-        return  ! bail out
+      if (associated(cap)) then
+        call MAPLFieldDiagnostics(model, cap % cap_gc % import_state, "import", rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, &
+          file=__FILE__)) &
+          return  ! bail out
+        call MAPLFieldDiagnostics(model, cap % cap_gc % export_state, "export", rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__, &
+          file=__FILE__)) &
+          return  ! bail out
+      end if
     end if
 
   end subroutine ModelAdvance
@@ -497,38 +510,51 @@ contains
 
     ! local variables
     integer :: status
+    type(MAPL_Cap),       pointer :: cap
     type(Aerosol_InternalState_T) :: is
+    type(Aerosol_InternalData_T), pointer :: this
 
     ! begin
     rc = ESMF_SUCCESS
 
     ! get component's internal state
-    nullify(is % maplCap)
     call ESMF_GridCompGetInternalState(model, is, rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
 
-    if (associated(is % maplCap)) then
+    nullify(this, cap)
+    if (associated(is % wrap)) then
+      this => is % wrap
+      cap  => this % maplCap
+      if (associated(cap)) then
+        ! finalize MAPL component
+        call cap % cap_gc % finalize(_RC)
 
-      ! finalize MAPL component
-      call is % maplCap % cap_gc % finalize(_RC)
+        ! finalize I/O
+        call cap % finalize_io_clients_servers(_RC)
 
-      ! finalize I/O
-      call is % maplCap % finalize_io_clients_servers(_RC)
+        ! finalize MAPL framework
+        call MAPL_Finalize(comm=cap % get_comm_world(), _RC)
 
-      ! finalize MAPL framework
-      call MAPL_Finalize(comm=is % maplCap % get_comm_world(), _RC)
-
+        ! deallocate MAPL Cap
+        deallocate(this % maplCap, stat=status)
+        if (ESMF_LogFoundDeallocError(statusToCheck=status, &
+          msg="Failed to free MAPL Cap.", &
+          line=__LINE__,  &
+          file=__FILE__)) &
+          return  ! bail out
+        nullify(this % maplCap, cap)
+      end if
       ! finally, deallocate internal state
-      deallocate(is % maplCap, stat=status)
+      deallocate(is % wrap, stat=status)
       if (ESMF_LogFoundDeallocError(statusToCheck=status, &
         msg="Failed to free internal state memory.", &
         line=__LINE__,  &
         file=__FILE__)) &
         return  ! bail out
-      nullify(is % maplCap)
+      nullify(is % wrap, this)
     end if
 
   end subroutine ModelFinalize
