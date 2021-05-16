@@ -83,7 +83,6 @@ module Aerosol_Comp_Mod
 
   public :: AerosolDiagUpdate
   public :: AerosolStateUpdate
-  public :: AerosolTracerReroute
 
   public :: AerosolFieldDiagnostics
   public :: MAPLFieldDiagnostics
@@ -919,76 +918,6 @@ contains
   end subroutine AerosolGetPtr4D
 
   ! -- Additional tools --
-
-  subroutine AerosolTracerReroute(model, rc)
-    type(ESMF_GridComp)            :: model
-    integer, optional, intent(out) :: rc
-
-    ! -- local variables
-    integer :: localrc
-    integer :: localDe, localDeCount
-    type(ESMF_Field) :: iField, eField
-    type(ESMF_State) :: importState, exportState
-    real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: fpImp, fpExp
-
-    logical, save :: first = .true.
-
-    ! -- begin
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    ! -- query the Component for its VM and importState
-    call ESMF_GridCompGet(model, importState=importState, &
-      exportState=exportState, rc=localrc)
-    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__,  &
-      rcToReturn=rc)) return  ! bail out
-
-    ! -- retrieve
-    call ESMF_StateGet(importState, "inst_tracer_mass_frac", iField, rc=localrc)
-    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__,  &
-      rcToReturn=rc)) return  ! bail out
-
-    call ESMF_StateGet(exportState, "inst_tracer_mass_frac", eField, rc=localrc)
-    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__,  &
-      rcToReturn=rc)) return  ! bail out
-
-    if (first) then
-      call ESMF_FieldFill(eField, dataFillScheme="one", const1=1.e-05_ESMF_KIND_R8, rc=localrc)
-      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__,  &
-        file=__FILE__,  &
-        rcToReturn=rc)) return  ! bail out
-      first = .false.
-      return
-    end if
-
-    call ESMF_FieldGet(eField, localDeCount=localDeCount, rc=localrc)
-    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__,  &
-      rcToReturn=rc)) return  ! bail out
-
-    do localDe = 0, localDeCount - 1
-      nullify(fpExp, fpImp)
-      call ESMF_FieldGet(eField, localDe=localDe, farrayPtr=fpImp, rc=localrc)
-      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__, &
-        rcToReturn=rc)) return  ! bail out
-      call ESMF_FieldGet(iField, localDe=localDe, farrayPtr=fpExp, rc=localrc)
-      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__, &
-        file=__FILE__, &
-        rcToReturn=rc)) return  ! bail out
-      fpExp = fpImp
-    end do
-
-  end subroutine AerosolTracerReroute
 
   subroutine AerosolFieldDiagnostics(model, rc)
     type(ESMF_GridComp)            :: model
