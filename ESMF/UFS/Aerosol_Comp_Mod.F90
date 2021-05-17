@@ -4,7 +4,9 @@ module Aerosol_Comp_Mod
   use NUOPC
   use MAPL
 
+  use Aerosol_Internal_mod
   use Aerosol_Shared_mod
+  use Aerosol_Tracer_mod, only: AerosolTracerGetUnitConv
 
   implicit none
 
@@ -37,7 +39,8 @@ module Aerosol_Comp_Mod
 
   ! tracer map
   ! - prognostic section (advected)
-  integer, parameter :: p_o3     = 7
+! integer, parameter :: p_o3     = 7
+  integer, parameter :: p_o3     = 8
   integer, parameter :: p_so2    = p_o3 + 1
   integer, parameter :: p_sulf   = p_o3 + 2
   integer, parameter :: p_dms    = p_o3 + 3
@@ -76,10 +79,9 @@ module Aerosol_Comp_Mod
 
 contains
 
-  subroutine AerosolStateUpdate(model, cap, action, rc)
+  subroutine AerosolImportsUpdate(model, cap, rc)
     type(ESMF_GridComp)            :: model
     type(MAPL_Cap)                 :: cap
-    character(len=*),  intent(in)  :: action
     integer, optional, intent(out) :: rc
 
     ! -- local variables
@@ -123,331 +125,367 @@ contains
     ! -- begin
     if (present(rc)) rc = ESMF_SUCCESS
 
-    select case (trim(action))
-      case ("import")
+    call ESMF_GridCompGet(model, importState=state, clock=clock, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
 
-        call ESMF_GridCompGet(model, importState=state, clock=clock, rc=localrc)
-        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__,  &
-          file=__FILE__,  &
-          rcToReturn=rc)) return  ! bail out
+    call ESMF_ClockGet(clock, timeStep=timeStep, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
 
-        call ESMF_ClockGet(clock, timeStep=timeStep, rc=localrc)
-        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__,  &
-          file=__FILE__,  &
-          rcToReturn=rc)) return  ! bail out
+    call ESMF_TimeIntervalGet(timeStep, s_r8=dt, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
 
-        call ESMF_TimeIntervalGet(timeStep, s_r8=dt, rc=localrc)
-        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__,  &
-          file=__FILE__,  &
-          rcToReturn=rc)) return  ! bail out
+    call ESMF_StateGet(cap % cap_gc % import_state, itemCount=itemCount, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
 
-        call ESMF_StateGet(cap % cap_gc % import_state, itemCount=itemCount, rc=localrc)
-        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__,  &
-          file=__FILE__,  &
-          rcToReturn=rc)) return  ! bail out
+    if (itemCount > 0) then
 
-        if (itemCount > 0) then
+      allocate(itemNameList(itemCount), itemTypeList(itemCount), stat=stat)
+      if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+        msg="Unable to allocate internal workspace", &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
 
-          allocate(itemNameList(itemCount), itemTypeList(itemCount), stat=stat)
-          if (ESMF_LogFoundAllocError(statusToCheck=stat, &
-            msg="Unable to allocate internal workspace", &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
+      call ESMF_StateGet(cap % cap_gc % import_state, itemNameList=itemNameList, &
+        itemTypeList=itemTypeList, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
 
-          call ESMF_StateGet(cap % cap_gc % import_state, itemNameList=itemNameList, &
-            itemTypeList=itemTypeList, rc=localrc)
+      ! -- retrieve pointers to field data from import state
+      call AerosolGetPtr(state, "inst_pres_interface", prsi, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_pres_levels",    prsl, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_geop_interface",    phii, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_geop_levels",       phil, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_temp_levels",       temp, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_rainfall_amount", rain, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_convective_rainfall_amount", rainc, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_surface_roughness", zorl, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_soil_moisture_content", slc, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      call AerosolGetPtr(state, "inst_tracer_mass_frac",  q, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+
+      ni = size(q, 1)
+      nj = size(q, 2)
+      nk = size(q, 3)
+      fieldMapSize = size(fieldMap, 1)
+
+      do item = 1, itemCount
+        if (itemTypeList(item) == ESMF_STATEITEM_FIELD) then
+
+          call ESMF_StateGet(cap % cap_gc % import_state, trim(itemNameList(item)), &
+            rfield, rc=localrc)
           if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__,  &
             file=__FILE__,  &
             rcToReturn=rc)) return  ! bail out
 
-          ! -- retrieve pointers to field data from import state
-          call AerosolGetPtr(state, "inst_pres_interface", prsi, rc=localrc)
+          call ESMF_FieldGet(rfield, rank=rank, rc=localrc)
           if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
             line=__LINE__,  &
             file=__FILE__,  &
             rcToReturn=rc)) return  ! bail out
 
-          call AerosolGetPtr(state, "inst_pres_levels",    prsl, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
+          nullify(fp2dr, fp3dr, fp4dr)
+          select case (rank)
+            case (2)
+              call ESMF_FieldGet(rfield, farrayPtr=fp2dr, rc=localrc)
+              if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+                line=__LINE__,  &
+                file=__FILE__,  &
+                rcToReturn=rc)) return  ! bail out
+            case (3)
+              call ESMF_FieldGet(rfield, ungriddedLBound=rlb, ungriddedUBound=rub, rc=localrc)
+              if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+                line=__LINE__,  &
+                file=__FILE__,  &
+                rcToReturn=rc)) return  ! bail out
+              call ESMF_FieldGet(rfield, farrayPtr=fp3dr, rc=localrc)
+              if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+                line=__LINE__,  &
+                file=__FILE__,  &
+                rcToReturn=rc)) return  ! bail out
+            case (4)
+              call ESMF_FieldGet(rfield, farrayPtr=fp4dr, rc=localrc)
+              if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+                line=__LINE__,  &
+                file=__FILE__,  &
+                rcToReturn=rc)) return  ! bail out
+          end select
 
-          call AerosolGetPtr(state, "inst_geop_interface",    phii, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
+          imap = 0
+          do while (imap < fieldMapSize)
+            imap = imap + 1
+            if (trim(fieldMap(imap,1)) == trim(itemNameList(item))) then
 
-          call AerosolGetPtr(state, "inst_geop_levels",       phil, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
-
-          call AerosolGetPtr(state, "inst_temp_levels",       temp, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
-
-          call AerosolGetPtr(state, "inst_rainfall_amount", rain, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
-
-          call AerosolGetPtr(state, "inst_convective_rainfall_amount", rainc, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
-
-          call AerosolGetPtr(state, "inst_surface_roughness", zorl, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
-
-          call AerosolGetPtr(state, "inst_soil_moisture_content", slc, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
-
-          call AerosolGetPtr(state, "inst_tracer_mass_frac",  q, rc=localrc)
-          if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
-
-          ni = size(q, 1)
-          nj = size(q, 2)
-          nk = size(q, 3)
-          fieldMapSize = size(fieldMap, 1)
-
-          do item = 1, itemCount
-            if (itemTypeList(item) == ESMF_STATEITEM_FIELD) then
-
-              call ESMF_StateGet(cap % cap_gc % import_state, trim(itemNameList(item)), &
-                rfield, rc=localrc)
+              call ESMF_StateGet(state, trim(fieldMap(imap,2)), pfield, rc=localrc)
               if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
                 line=__LINE__,  &
                 file=__FILE__,  &
                 rcToReturn=rc)) return  ! bail out
 
-              call ESMF_FieldGet(rfield, rank=rank, rc=localrc)
-              if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-                line=__LINE__,  &
-                file=__FILE__,  &
-                rcToReturn=rc)) return  ! bail out
-
-              nullify(fp2dr, fp3dr, fp4dr)
               select case (rank)
                 case (2)
-                  call ESMF_FieldGet(rfield, farrayPtr=fp2dr, rc=localrc)
+                  nullify(fp2dp)
+                  call ESMF_FieldGet(pfield, farrayPtr=fp2dp, rc=localrc)
                   if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
                     line=__LINE__,  &
                     file=__FILE__,  &
                     rcToReturn=rc)) return  ! bail out
+                  fp2dr = fp2dp
                 case (3)
-                  call ESMF_FieldGet(rfield, ungriddedLBound=rlb, ungriddedUBound=rub, rc=localrc)
+                  nullify(fp3dp)
+                  call ESMF_FieldGet(pfield, ungriddedLBound=plb, ungriddedUBound=pub, rc=localrc)
                   if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
                     line=__LINE__,  &
                     file=__FILE__,  &
                     rcToReturn=rc)) return  ! bail out
-                  call ESMF_FieldGet(rfield, farrayPtr=fp3dr, rc=localrc)
+                  call ESMF_FieldGet(pfield, farrayPtr=fp3dp, rc=localrc)
                   if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
                     line=__LINE__,  &
                     file=__FILE__,  &
                     rcToReturn=rc)) return  ! bail out
-                case (4)
-                  call ESMF_FieldGet(rfield, farrayPtr=fp4dr, rc=localrc)
-                  if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-                    line=__LINE__,  &
-                    file=__FILE__,  &
-                    rcToReturn=rc)) return  ! bail out
+
+                  ! -- map provider field levels to receiver field levels in reverse order
+                  ! -- NOTE: if provider field has fewer vertical levels than the receiver field,
+                  ! -- the remaining receiver field levels are filled by replicating values from
+                  ! -- the closest available level in the provider field.
+                  kk = plb(1)
+                  do k = rub(1), rlb(1), -1
+                    do j = 1, nj
+                      do i = 1, ni
+                        fp3dr(i,j,k) = fp3dp(i,j,kk)
+                      end do
+                    end do
+                    kk = min(pub(1), kk + 1)
+                  end do
+                case default
+                ! -- nothing to do
               end select
-
-              imap = 0
-              do while (imap < fieldMapSize)
-                imap = imap + 1
-                if (trim(fieldMap(imap,1)) == trim(itemNameList(item))) then
-
-                  call ESMF_StateGet(state, trim(fieldMap(imap,2)), pfield, rc=localrc)
-                  if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-                    line=__LINE__,  &
-                    file=__FILE__,  &
-                    rcToReturn=rc)) return  ! bail out
-
-                  select case (rank)
-                    case (2)
-                      nullify(fp2dp)
-                      call ESMF_FieldGet(pfield, farrayPtr=fp2dp, rc=localrc)
-                      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-                        line=__LINE__,  &
-                        file=__FILE__,  &
-                        rcToReturn=rc)) return  ! bail out
-                      fp2dr = fp2dp
-                    case (3)
-                      nullify(fp3dp)
-                      call ESMF_FieldGet(pfield, ungriddedLBound=plb, ungriddedUBound=pub, rc=localrc)
-                      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-                        line=__LINE__,  &
-                        file=__FILE__,  &
-                        rcToReturn=rc)) return  ! bail out
-                      call ESMF_FieldGet(pfield, farrayPtr=fp3dp, rc=localrc)
-                      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-                        line=__LINE__,  &
-                        file=__FILE__,  &
-                        rcToReturn=rc)) return  ! bail out
-
-                      ! -- map provider field levels to receiver field levels in reverse order
-                      ! -- NOTE: if provider field has fewer vertical levels than the receiver field,
-                      ! -- the remaining receiver field levels are filled by replicating values from
-                      ! -- the closest available level in the provider field.
-                      kk = plb(1)
-                      do k = rub(1), rlb(1), -1
-                        do j = 1, nj
-                          do i = 1, ni
-                            fp3dr(i,j,k) = fp3dp(i,j,kk)
-                          end do
-                        end do
-                        kk = min(pub(1), kk + 1)
-                      end do
-                    case default
-                    ! -- nothing to do
-                  end select
-                  imap = fieldMapSize + 1
-                end if
-              end do
-
-              if (imap > fieldMapSize) cycle
-
-              select case (trim(itemNameList(item)))
-                case ("AIRDENS")
-                  do k = 1, nk
-                    kk = nk - k + 1
-                    do j = 1, nj
-                      do i = 1, ni
-                        fp3dr(i,j,kk) = prsl(i,j,k) / (rd * temp(i,j,k) * ( 1._ESMF_KIND_R8 + fv * q(i,j,k,1) ) )
-                      end do
-                    end do
-                  end do
-                case ("DELP")
-                  do k = 1, nk
-                    kk = nk - k + 1
-                    do j = 1, nj
-                      do i = 1, ni
-                        fp3dr(i,j,kk) = prsi(i,j,k) - prsi(i,j,k+1)
-                      end do
-                    end do
-                  end do
-                case ("DZ")
-                  fp2dr = onebg * phil(:,:,1)
-                case ("CN_PRCP")
-                  fp2dr = rainc / dt
-                case ("NCN_PRCP")
-                  fp2dr = max(0._ESMF_KIND_R8, rain - rainc) / dt
-                case ("RH2")
-                  do k = 1, nk
-                    kk = nk - k + 1
-                    do j = 1, nj
-                      do i = 1, ni
-                        tmp = temp(i,j,k) - stdtemp
-                        blkesat = al * exp( bl * ( tmp / ( tmp + cl ) ) )
-                        blkevap = prsl(i,j,k) * q(i,j,k,1) / ( epswater + q(i,j,k,1) )
-                        fp3dr(i,j,kk) = max( 0.005, min( 0.99, blkevap / blkesat ) )
-                      end do
-                    end do
-                  end do
-                case ("SLC")
-                  fp2dr = slc(:,:,1)
-                case ("Z0H")
-                  fp2dr = 0.01_ESMF_KIND_R4 * zorl
-                case ("ZLE")
-                  do k = 1, nk + 1
-                    kk = nk - k + 1
-                    do j = 1, nj
-                      do i = 1, ni
-                        fp3dr(i,j,kk) = onebg * phii(i,j,k)
-                      end do
-                    end do
-                  end do
-              end select
+              imap = fieldMapSize + 1
             end if
-
           end do
-          deallocate(itemNameList, itemTypeList, stat=stat)
-          if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-            msg="Unable to deallocate internal workspace", &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)) return  ! bail out
 
+          if (imap > fieldMapSize) cycle
+
+          select case (trim(itemNameList(item)))
+            case ("AIRDENS")
+              do k = 1, nk
+                kk = nk - k + 1
+                do j = 1, nj
+                  do i = 1, ni
+                    fp3dr(i,j,kk) = prsl(i,j,k) / (rd * temp(i,j,k) * ( 1._ESMF_KIND_R8 + fv * q(i,j,k,1) ) )
+                  end do
+                end do
+              end do
+            case ("DELP")
+              do k = 1, nk
+                kk = nk - k + 1
+                do j = 1, nj
+                  do i = 1, ni
+                    fp3dr(i,j,kk) = prsi(i,j,k) - prsi(i,j,k+1)
+                  end do
+                end do
+              end do
+            case ("DZ")
+              fp2dr = onebg * phil(:,:,1)
+            case ("CN_PRCP")
+              fp2dr = rainc / dt
+            case ("NCN_PRCP")
+              fp2dr = max(0._ESMF_KIND_R8, rain - rainc) / dt
+            case ("RH2")
+              do k = 1, nk
+                kk = nk - k + 1
+                do j = 1, nj
+                  do i = 1, ni
+                    tmp = temp(i,j,k) - stdtemp
+                    blkesat = al * exp( bl * ( tmp / ( tmp + cl ) ) )
+                    blkevap = prsl(i,j,k) * q(i,j,k,1) / ( epswater + q(i,j,k,1) )
+                    fp3dr(i,j,kk) = max( 0.005, min( 0.99, blkevap / blkesat ) )
+                  end do
+                end do
+              end do
+            case ("SLC")
+              fp2dr = slc(:,:,1)
+            case ("Z0H")
+              fp2dr = 0.01_ESMF_KIND_R4 * zorl
+            case ("ZLE")
+              do k = 1, nk + 1
+                kk = nk - k + 1
+                do j = 1, nj
+                  do i = 1, ni
+                    fp3dr(i,j,kk) = onebg * phii(i,j,k)
+                  end do
+                end do
+              end do
+          end select
         end if
 
-        ! -- import tracer mixing ratios
-        call AerosolTracerUpdate(state, cap, rc=localrc)
-        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__,  &
-          file=__FILE__,  &
-          rcToReturn=rc)) return  ! bail out
+      end do
+      deallocate(itemNameList, itemTypeList, stat=stat)
+      if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
+        msg="Unable to deallocate internal workspace", &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
 
-      case ("export")
+    end if
 
-        call ESMF_GridCompGet(model, exportState=state, clock=clock, rc=localrc)
-        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__,  &
-          file=__FILE__,  &
-          rcToReturn=rc)) return  ! bail out
+  end subroutine AerosolImportsUpdate
 
-        ! -- import tracer mixing ratios
-        call AerosolTracerUpdate(state, cap, rc=localrc)
-        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__,  &
-          file=__FILE__,  &
-          rcToReturn=rc)) return  ! bail out
+  subroutine AerosolStateUpdate(model, cap, action, rc)
+    type(ESMF_GridComp)            :: model
+    type(MAPL_Cap)                 :: cap
+    character(len=*),  intent(in)  :: action
+    integer, optional, intent(out) :: rc
 
-    end select
+    ! -- local variables
+    integer :: localrc
+
+    ! -- begin
+    if (present(rc)) rc = ESMF_SUCCESS
+
+    ! -- update imported fields if required
+    if (trim(action) == "import") then
+      call AerosolImportsUpdate(model, cap, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+    end if
+
+    ! -- update tracers
+    call AerosolTracerUpdate(model, action, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
 
   end subroutine AerosolStateUpdate
 
-  subroutine AerosolTracerUpdate(state, cap, rc)
-    type(ESMF_State)               :: state
-    type(MAPL_Cap)                 :: cap
+  subroutine AerosolTracerUpdate(model, action, rc)
+    type(ESMF_GridComp)            :: model
+    character(len=*),  intent(in)  :: action
     integer, optional, intent(out) :: rc
 
     ! -- local variables
     integer :: localrc, stat
     integer :: item, itemCount
     integer :: rank
-    integer :: i, idiagn, j, k, kk, n, ni, nj, nk, offset, v
+    integer :: i, j, k, kk, n, ni, nj, nk, v
+    integer :: tracerId
+    integer :: scaleOption
     real(ESMF_KIND_R4), dimension(:,:,:),   pointer :: fp3d
     real(ESMF_KIND_R4), dimension(:,:,:,:), pointer :: fp4d
-    real(ESMF_KIND_R8), dimension(:,:,:),   pointer :: qu
-    real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: q, qd
-    real(ESMF_KIND_R8) :: iscale, escale
+    real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: q
+    real(ESMF_KIND_R8) :: scalefac
     type(ESMF_Field) :: field
     type(ESMF_FieldStatus_flag)         :: fieldStatus
-    type(ESMF_StateIntent_flag)         :: stateintent
+!   type(ESMF_StateIntent_flag)         :: stateintent
+    type(ESMF_State) :: state
     type(ESMF_StateItem_flag),  pointer :: itemTypeList(:)
     character(len=ESMF_MAXSTR), pointer :: itemNameList(:)
+    type(MAPL_Cap), pointer :: cap
+    type(Aerosol_InternalState_T) :: is
+    type(Aerosol_InternalData_T), pointer :: this
 
     ! -- begin
     if (present(rc)) rc = ESMF_SUCCESS
 
-    call ESMF_StateGet(state, stateintent=stateintent, rc=localrc)
+    ! -- retrieve model import/export states
+    select case (trim(action))
+      case ("import")
+        scaleOption = 0
+        call ESMF_GridCompGet(model, importState=state, rc=localrc)
+        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__,  &
+          file=__FILE__,  &
+          rcToReturn=rc)) return  ! bail out
+      case ("export")
+        scaleOption = 1
+        call ESMF_GridCompGet(model, exportState=state, rc=localrc)
+        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__,  &
+          file=__FILE__,  &
+          rcToReturn=rc)) return  ! bail out
+      case default
+        ! -- action undefined, bailout
+        return
+    end select
+
+    ! -- retrieve model internal state
+    call ESMF_GridCompGetInternalState(model, is, localrc)
     if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__,  &
       rcToReturn=rc)) return  ! bail out
+
+    nullify(cap, this)
+    if (.not.associated(is % wrap)) return
+    this => is % wrap
+    cap  => is % wrap % maplCap
+    if (.not.associated(cap)) return
 
     nullify(q)
     call AerosolGetPtr(state, "inst_tracer_mass_frac", q, rc=localrc)
@@ -455,22 +493,6 @@ contains
       line=__LINE__,  &
       file=__FILE__,  &
       rcToReturn=rc)) return  ! bail out
-
-    if (stateintent == ESMF_STATEINTENT_EXPORT) then
-      nullify(qu)
-      call AerosolGetPtr(state, "inst_tracer_up_surface_flx", qu, rc=localrc)
-      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__,  &
-        file=__FILE__,  &
-        rcToReturn=rc)) return  ! bail out
-
-      nullify(qd)
-      call AerosolGetPtr(state, "inst_tracer_down_surface_flx", qd, rc=localrc)
-      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-        line=__LINE__,  &
-        file=__FILE__,  &
-        rcToReturn=rc)) return  ! bail out
-    end if
 
     call ESMF_StateGet(cap % cap_gc % export_state, itemCount=itemCount, rc=localrc)
     if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -540,168 +562,65 @@ contains
               cycle
           end select
 
-          idiagn = 0
-          offset = 0
-          iscale = 1._ESMF_KIND_R8
-          escale = 1._ESMF_KIND_R8
-          select case (trim(itemNameList(item)))
-            case ("DMS")
-              offset = p_dms - 1
-              iscale = ppm2one
-              escale = one2ppm
-            case ("MSA")
-              offset = p_msa - 1
-              iscale = ppm2one
-              escale = one2ppm
-            case ("SO2")
-              offset = p_so2 - 1
-              iscale = ppm2one
-              escale = one2ppm
-            case ("SO4")
-              offset = p_sulf - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("DU")
-              offset = p_dust_1 - 1
-              iscale = ug2kg
-              escale = kg2ug
-!           case ("DUEM")
-!             offset = -1
-!             iscale = ug2kg
-!             escale = kg2ug
-            case ("SS")
-              offset = p_seas_1 - 1
-              iscale = ug2kg
-              escale = kg2ug
-!           case ("SSEM")
-!             offset = p_dust_1 - p_seas_1
-            case ("SSSD")
-              offset = -p_seas_d
-              idiagn = 1
-            case ("SSDP")
-              offset = -p_seas_d
-              idiagn = 2
-            case ("SSWT")
-              offset = -p_seas_d
-              idiagn = 3
-            case ("SSSV")
-              offset = -p_seas_d
-              idiagn = 4
-            case ("CAphobicCA.bc")
-              offset = p_bc_1 - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("CAphilicCA.bc")
-              offset = p_bc_2 - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("CAphobicCA.oc")
-              offset = p_oc_1 - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("CAphilicCA.oc")
-              offset = p_oc_2 - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("NH3")
-              offset = p_nh3 - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("NH4a")
-              offset = p_nh4a - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("NO3an1")
-              offset = p_no3an1 - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("NO3an2")
-              offset = p_no3an2 - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case ("NO3an3")
-              offset = p_no3an3 - 1
-              iscale = ug2kg
-              escale = kg2ug
-            case default
-              nullify(fp3d, fp4d)
-          end select
+          ! -- get tracer location in coupled field
+          tracerId = this % tracerMap % at(trim(itemNameList(item)))
+          scalefac = AerosolTracerGetUnitConv(trim(itemNameList(item)), scaleOption)
 
-          if (stateintent == ESMF_STATEINTENT_IMPORT) then
-            if (offset < 0) nullify(fp3d,fp4d)
-            if (associated(fp3d)) then
-              v = offset + 1
-              do k = 1, nk
-                kk = nk - k + 1
-                do j = 1, nj
-                  do i = 1, ni
-                    fp3d(i,j,kk) = iscale * max(0._ESMF_KIND_R8, q(i,j,k,v))
-                  end do
-                end do
-              end do
-            else if (associated(fp4d)) then
-              do n = 1, size(fp4d, 4)
-                v = offset + n
-                do k = 1, nk
-                  kk = nk - k + 1
-                  do j = 1, nj
-                    do i = 1, ni
-                      fp4d(i,j,kk,n) = iscale * max(0._ESMF_KIND_R8, q(i,j,k,v))
+          if (tracerId > 0) then
+            select case (scaleOption)
+              case (0)
+                ! -- import
+                if (associated(fp3d)) then
+                  v = tracerId
+                  do k = 1, nk
+                    kk = nk - k + 1
+                    do j = 1, nj
+                      do i = 1, ni
+                        fp3d(i,j,kk) = scalefac * max(0._ESMF_KIND_R8, q(i,j,k,v))
+                      end do
                     end do
                   end do
-                end do
-              end do
-            end if
-          else if (stateintent == ESMF_STATEINTENT_EXPORT) then
-            if (associated(fp3d)) then
-              if (offset < 0) then
-                ! -- diagnostics
-                kk = size(fp3d, dim=3)
-                if (idiagn > 0) then
-                  if (associated(qd)) then
-                    do k = 1, kk
+                else if (associated(fp4d)) then
+                  v = tracerId
+                  do n = 1, size(fp4d, 4)
+                    do k = 1, nk
+                      kk = nk - k + 1
                       do j = 1, nj
                         do i = 1, ni
-                          qd(i,j,k-offset,idiagn) = escale * fp3d(i,j,k)
+                          fp4d(i,j,kk,n) = scalefac * max(0._ESMF_KIND_R8, q(i,j,k,v))
                         end do
                       end do
                     end do
-                  end if
-                else
-                  if (associated(qu)) then
-                    do k = 1, kk
-                      do j = 1, nj
-                        do i = 1, ni
-                          qu(i,j,k-offset) = escale * fp3d(i,j,k)
-                        end do
-                      end do
-                    end do
-                  end if
+                    v = v + 1
+                  end do
                 end if
-              else
-                v = offset + 1
-                do k = 1, nk
-                  kk = nk - k + 1
-                  do j = 1, nj
-                    do i = 1, ni
-                      q(i,j,k,v) = escale * max(0._ESMF_KIND_R4, fp3d(i,j,kk))
+              case (1)
+                ! -- export
+                if (associated(fp3d)) then
+                  v = tracerId
+                  do k = 1, nk
+                    kk = nk - k + 1
+                    do j = 1, nj
+                      do i = 1, ni
+                        q(i,j,k,v) = scalefac * max(0._ESMF_KIND_R4, fp3d(i,j,kk))
+                      end do
                     end do
                   end do
-                end do
-              end if
-            else if (associated(fp4d)) then
-              do n = 1, size(fp4d, 4)
-                v = offset + n
-                do k = 1, nk
-                  kk = nk - k + 1
-                  do j = 1, nj
-                    do i = 1, ni
-                      q(i,j,k,v) = escale * max(0._ESMF_KIND_R4, fp4d(i,j,kk,n))
+                else if (associated(fp4d)) then
+                  v = tracerId
+                  do n = 1, size(fp4d, 4)
+                    do k = 1, nk
+                      kk = nk - k + 1
+                      do j = 1, nj
+                        do i = 1, ni
+                          q(i,j,k,v) = scalefac * max(0._ESMF_KIND_R4, fp4d(i,j,kk,n))
+                        end do
+                      end do
                     end do
+                    v = v + 1
                   end do
-                end do
-              end do
-            end if
+                end if
+            end select
           end if
 
         end if

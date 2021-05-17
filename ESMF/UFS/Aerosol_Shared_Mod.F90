@@ -2,6 +2,7 @@ module Aerosol_Shared_Mod
 
   use ESMF
   use NUOPC
+  use NUOPC_Model, only: NUOPC_ModelGet
   use MAPL
 
   implicit none
@@ -31,6 +32,7 @@ module Aerosol_Shared_Mod
 
   public :: AerosolGetPtr
   public :: AerosolFieldDiagnostics
+  public :: AerosolModelGet
   public :: MAPLFieldDiagnostics
 
 contains
@@ -558,5 +560,91 @@ contains
     end if
 
   end subroutine MAPLFieldDiagnostics
+
+  ! -- Metadata methods
+
+  subroutine AerosolModelGet(model, grid, numLevels, tracerInfo, rc)
+
+    ! -- arguments
+    type(ESMF_GridComp)                     :: model
+    type(ESMF_Grid),  optional, intent(out) :: grid
+    integer,          optional, intent(out) :: numLevels
+    character(len=*), optional, intent(out) :: tracerInfo
+    integer,          optional, intent(out) :: rc
+
+    ! -- local variables
+    integer          :: localrc, stat
+    integer          :: item, rank, localDeCount
+    integer, dimension(2) :: lb, ub
+    type(ESMF_Array) :: array
+    type(ESMF_State) :: importState
+    type(ESMF_Field), pointer :: fieldList(:)
+
+    ! -- begin
+    if (present(rc)) rc = ESMF_SUCCESS
+
+    ! -- initialize output variables
+    if (present(numLevels))  numLevels  = 0
+    if (present(tracerInfo)) tracerInfo = ""
+
+    ! retrieve import state from gridded component
+    call NUOPC_ModelGet(model, importState=importState, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    ! retrieve member list from import state, if any
+    nullify(fieldList)
+    call NUOPC_GetStateMemberLists(importState, fieldList=fieldList, &
+      nestedFlag=.true., rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    ! retrieve number of vertical levels from imported fields
+    if (associated(fieldList)) then
+      do item = 1, size(fieldList)
+        call ESMF_FieldGet(fieldList(item), rank=rank, localDeCount=localDeCount, rc=rc)
+        if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+          line=__LINE__,  &
+          file=__FILE__,  &
+          rcToReturn=rc)) return  ! bail out
+        ! -- validate field data decomposition
+        if (localDeCount /= 1) then
+          call ESMF_LogSetError(ESMF_RC_INTNRL_BAD, msg="localDeCount must be 1", &
+            line=__LINE__,  &
+            file=__FILE__,  &
+            rcToReturn=rc)
+        end if
+        if (rank == 4) then
+          call ESMF_FieldGet(fieldList(item), array=array, grid=grid, &
+            ungriddedLBound=lb, ungriddedUBound=ub, rc=rc)
+          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+            line=__LINE__,  &
+            file=__FILE__)) &
+            return  ! bail out
+          ! -- populate remaining output arguments
+          if (present(numLevels)) numLevels = ub(1) - lb(1) + 1
+          if (present(tracerInfo)) then
+            call ESMF_ArrayGet(array, name=tracerInfo, rc=localrc)
+            if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+              line=__LINE__,  &
+              file=__FILE__)) &
+              return  ! bail out
+          end if
+        end if
+      end do
+      deallocate(fieldList, stat=stat)
+      if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
+        msg="Unable to deallocate internal memory", &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+      nullify(fieldList)
+    end if
+
+  end subroutine AerosolModelGet
 
 end module Aerosol_Shared_Mod

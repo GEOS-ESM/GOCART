@@ -15,6 +15,7 @@ module Aerosol_Cap
   use Aerosol_Comp_mod
   use Aerosol_Internal_mod
   use Aerosol_Shared_mod
+  use Aerosol_Tracer_mod
 
   use Aerosol_GridComp_mod, only : &
     aerosol_routine_SS          => SetServices
@@ -222,6 +223,7 @@ contains
     type(ESMF_Grid)  :: grid
     type(ESMF_State) :: importState, exportState
     type(ESMF_VM)    :: vm
+    character(ESMF_MAXSTR)    :: tracerInfo
     type(ESMF_Field), pointer :: fieldList(:)
     type(MAPL_Cap),   pointer :: cap
     type(MAPL_CapOptions)     :: maplCapOptions
@@ -248,39 +250,12 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
-    ! retrieve number of vertical levels from imported fields
-    nlev = 1
-    if (associated(fieldList)) then
-      do item = 1, size(fieldList)
-        call ESMF_FieldGet(fieldList(item), rank=rank, localDeCount=localDeCount, rc=rc)
-        if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-          line=__LINE__,  &
-          file=__FILE__)) &
-          return  ! bail out
-        if (localDeCount /= 1) then
-          call ESMF_LogSetError(ESMF_RC_INTNRL_BAD, msg="localDeCount must be 1", &
-            line=__LINE__,  &
-            file=__FILE__,  &
-            rcToReturn=rc)
-        end if
-        if (rank == 4) then
-          call ESMF_FieldGet(fieldList(item), grid=grid, &
-            ungriddedLBound=lb, ungriddedUBound=ub, rc=rc)
-          if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-            line=__LINE__,  &
-            file=__FILE__)) &
-            return  ! bail out
-          nlev = ub(1) - lb(1) + 1
-        end if
-      end do
-      deallocate(fieldList, stat=stat)
-      if (ESMF_LogFoundDeallocError(statusToCheck=stat, &
-        msg="Unable to deallocate internal memory", &
-        line=__LINE__,  &
-        file=__FILE__,  &
-        rcToReturn=rc)) return  ! bail out
-      nullify(fieldList)
-    end if
+    ! retrieve model's metadata from imported tracer field
+    call AerosolModelGet(model, grid=grid, numLevels=nlev, tracerInfo=tracerInfo, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg="Unable to retrieve model grid and metadata ", &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! retrieve model's MPI communicator
     call ESMF_GridCompGet(model, vm=vm, rc=rc)
@@ -353,6 +328,13 @@ contains
 
     ! initialize aerosol grid component
     call cap % cap_gc % initialize(rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
+
+    ! create tracer map
+    is % wrap % tracerMap = AerosolTracerMap(cap % get_cap_rc_file(), tracerInfo, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
