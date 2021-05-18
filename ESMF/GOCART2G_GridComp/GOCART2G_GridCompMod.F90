@@ -203,49 +203,6 @@ contains
        datatype   = MAPL_BundleItem, __RC__)
 
 
-!   Set children's variables as exports from GOCART2G
-!   to satisfy connections in GEOS_ChemGridComp.F90.
-!   Currently only supports one instance.
-!   -------------------------------------------------
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'DU',                         &
-        child_id   = self%DU%instances(1)%id, __RC__) 
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'SS',                         &
-        child_id   = self%SS%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'NO3an1',                     &
-        child_id   = self%NI%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'NO3an2',                     &
-        child_id   = self%NI%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'NO3an3',                     &
-        child_id   = self%NI%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'SO4',                        &
-        child_id   = self%SU%instances(1)%id, __RC__)
-
-!   CA %instances(n) pertains to the instances specified in GOCART2G_GridComp.rc
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'CAphobicCA.oc',              &
-        child_id   = self%CA%instances(1)%id, __RC__)
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'CAphilicCA.oc',              &
-        child_id   = self%CA%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'CAphobicCA.bc',              &
-        child_id   = self%CA%instances(2)%id, __RC__)
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'CAphilicCA.bc',              &
-        child_id   = self%CA%instances(2)%id, __RC__)
-
 #include "GOCART2G_Export___.h"
 
 
@@ -1371,9 +1328,9 @@ contains
 
     real, dimension(:,:,:), pointer :: f                 ! correction factor for sea salt
 
-    real, dimension(:,:,:), pointer :: q                 ! aerosol mass mixing ratio
-    real, dimension(:,:,:), pointer :: q_                ! aerosol mass mixing ratio (temporary)
-    real, dimension(:,:,:,:), pointer :: ptr_4d          ! aerosol mass mixing ratio (temporary)
+    real, dimension(:,:,:), allocatable :: q             ! aerosol mass mixing ratio
+    real, dimension(:,:,:,:), pointer   :: ptr_4d        ! aerosol mass mixing ratio (temporary)
+    real, dimension(:,:,:), pointer     :: ptr_3d        ! aerosol mass mixing ratio (temporary)
 
     real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
     real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
@@ -1506,9 +1463,8 @@ contains
     mode_ = trim(mode)
     mode_ = ESMF_UtilStringLowerCase(mode_, __RC__)
 
-    allocate(q(i2,j2,km), q_(i2,j2,km),  __STAT__)
+    allocate(q(i2,j2,km),  __STAT__)
     q = 0.0
-    q_ = 0.0
 
     if (index(mode_, 'du00') > 0) then ! Dust
        ! dust is mapped one-to-one
@@ -1517,8 +1473,10 @@ contains
              read (mode_(3:len(mode_)),*) aerosol_bin
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'DU', __RC__)
-             q_ = ptr_4d(:,:,:,aerosol_bin)
-             q = q + q_
+!             q_ = ptr_4d(:,:,:,aerosol_bin)
+!             q = q + q_
+             q = q + ptr_4d(:,:,:,aerosol_bin)
+             ptr_3d = ptr_4d(:,:,:,aerosol_bin)
 
              hygroscopicity = k_DU
              density = densDU
@@ -1532,8 +1490,10 @@ contains
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
              do j = 1, ubound(ptr_4d, 4)
-                q_ = ptr_4d(:,:,:,j)
-                q = q + q_
+!                q_ = ptr_4d(:,:,:,j)
+!                q = q + q_
+               q = q + ptr_4d(:,:,:,j)
+               ptr_3d = ptr_4d(:,:,:,j)
              end do
 
              ! temperature correction over the ocean
@@ -1556,24 +1516,24 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'SU') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'SO4', __RC__)
-             q = q + q_
-             hygroscopicity = k_SO4 * q_ + hygroscopicity
-             density = densSO4 * q_ + density
+             call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
+             q = q + ptr_3d
+             hygroscopicity = k_SO4 * ptr_3d + hygroscopicity
+             density = densSO4 * ptr_3d + density
           end if
 
           if (index(aeroList(i), 'CA.oc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.oc', __RC__)
-             q = q + q_
-             hygroscopicity = k_ORG * q_ + hygroscopicity
-             density = densORG * q_ + density
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilicCA.oc', __RC__)
+             q = q + ptr_3d
+             hygroscopicity = k_ORG * ptr_3d + hygroscopicity
+             density = densORG * ptr_3d + density
           end if
 
           ! required by the aap_(...)
           if((adjustl(cld_micro)/="2MOMENT") .and. (index(aeroList(i), 'SU') > 0)) then ! maintained for compatibility with the single moment
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'SO4', __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
           end if
        end do
 
@@ -1592,8 +1552,8 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.bc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.bc', __RC__)
-             q = q + q_
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilicCA.bc', __RC__)
+             q = q + ptr_3d
              hygroscopicity = k_BC
              density = densBC
           end if
@@ -1603,8 +1563,8 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.oc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.oc', __RC__)
-             q = q + q_
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilicCA.oc', __RC__)
+             q = q + ptr_3d
              hygroscopicity = k_OC
              density = densOC
           end if
@@ -1614,8 +1574,8 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.br') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.br', __RC__)
-             q = q + q_
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilicCA.br', __RC__)
+             q = q + ptr_3d
              hygroscopicity = k_BR
              density = densBR
           end if
@@ -1634,7 +1594,7 @@ contains
               f_soot,             &
               f_organic,          &
               density,            &
-              q_,                 &
+              ptr_3d,             &
               1, i2, 1, j2, km, &
               __RC__)
 
