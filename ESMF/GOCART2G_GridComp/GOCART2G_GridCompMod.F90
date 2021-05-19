@@ -1350,6 +1350,7 @@ contains
 
     integer                         :: i2, j2, km
     integer                         :: b, i, j, n, aerosol_bin
+    integer                         :: varNameLen
 
     character (len=ESMF_MAXSTR), allocatable  :: itemList(:), aeroList(:)
     type (ESMF_StateItem_Flag), allocatable   :: itemTypes(:)
@@ -1473,10 +1474,8 @@ contains
              read (mode_(3:len(mode_)),*) aerosol_bin
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'DU', __RC__)
-!             q_ = ptr_4d(:,:,:,aerosol_bin)
-!             q = q + q_
              q = q + ptr_4d(:,:,:,aerosol_bin)
-             ptr_3d = ptr_4d(:,:,:,aerosol_bin)
+             ptr_3d => ptr_4d(:,:,:,aerosol_bin)
 
              hygroscopicity = k_DU
              density = densDU
@@ -1490,10 +1489,8 @@ contains
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
              do j = 1, ubound(ptr_4d, 4)
-!                q_ = ptr_4d(:,:,:,j)
-!                q = q + q_
                q = q + ptr_4d(:,:,:,j)
-               ptr_3d = ptr_4d(:,:,:,j)
+               ptr_3d => ptr_4d(:,:,:,j)
              end do
 
              ! temperature correction over the ocean
@@ -1524,7 +1521,10 @@ contains
 
           if (index(aeroList(i), 'CA.oc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilicCA.oc', __RC__)
+             varNameLen = len_trim(aeroList(i))
+!            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
+             varNameLen = varNameLen - 5
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
              q = q + ptr_3d
              hygroscopicity = k_ORG * ptr_3d + hygroscopicity
              density = densORG * ptr_3d + density
@@ -1552,7 +1552,10 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.bc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilicCA.bc', __RC__)
+             varNameLen = len_trim(aeroList(i))
+!            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
+             varNameLen = varNameLen - 5
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
              q = q + ptr_3d
              hygroscopicity = k_BC
              density = densBC
@@ -1563,7 +1566,10 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.oc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilicCA.oc', __RC__)
+             varNameLen = len_trim(aeroList(i))
+!            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
+             varNameLen = varNameLen - 5
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
              q = q + ptr_3d
              hygroscopicity = k_OC
              density = densOC
@@ -1574,7 +1580,10 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.br') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilicCA.br', __RC__)
+             varNameLen = len_trim(aeroList(i))
+!            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
+             varNameLen = varNameLen - 5
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
              q = q + ptr_3d
              hygroscopicity = k_BR
              density = densBR
