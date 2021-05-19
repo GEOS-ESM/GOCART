@@ -129,6 +129,7 @@ contains
 
     ! -- local variables
     integer               :: logUnit
+    integer               :: nspc
     integer,      pointer :: idx
     character(:), pointer :: fld
     character(:), allocatable :: name, units
@@ -146,7 +147,8 @@ contains
       name  = unknown
       units = unknown
 
-      write(logUnit, '(38("-")/2x,a/38("-"))') trim(header)
+      nspc = max(0, (37 - len_trim(header))/2)
+      write(logUnit, '(38("-")/a/38("-"))') repeat(" ",nspc)//trim(header)
       iter = tracers%indexMap%begin()
       do while (iter /= tracers%indexMap%end())
         fld => iter%key()

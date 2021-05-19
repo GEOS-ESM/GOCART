@@ -354,7 +354,7 @@ contains
     trp => is % wrap % tracers
 
     ! print tracer maps
-    call AerosolTracerPrint(trp, 'Tracer map')
+    call AerosolTracerPrint(trp, 'GOCART2G Tracer Map')
 
     ! set component's internal state
     call ESMF_GridCompSetInternalState(model, is, rc)
