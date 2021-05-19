@@ -1,6 +1,16 @@
 /cmake@/
+/cmake/
+/@cmake/
 /.mepo/
 /ESMF/Shared/MAPL@/
+/ESMF/Shared/MAPL/
+/ESMF/Shared/@MAPL/
 /ESMF/Shared/GMAO_Shared@/
+/ESMF/Shared/GMAO_Shared/
+/ESMF/Shared/@GMAO_Shared/
 /ESMF/Shared/NCEP_Shared@/
+/ESMF/Shared/NCEP_Shared/
+/ESMF/Shared/@NCEP_Shared/
 /ESMF/HEMCO_GridComp@/
+/ESMF/HEMCO_GridComp/
+/ESMF/@HEMCO_GridComp/
