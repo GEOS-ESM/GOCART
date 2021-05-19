@@ -1,7 +1,17 @@
+GOCART:
+  fixture: true
+  develop: develop
+
+env:
+  local: ./env@
+  remote: ../ESMA_env.git
+  tag: v3.2.1
+  develop: main
+
 cmake:
   local: ./cmake@
   remote: ../ESMA_cmake.git
-  tag: v3.3.6
+  tag: v3.4.0
   develop: develop
 
 ecbuild:
@@ -17,11 +27,12 @@ HEMCO:
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
-  tag: v1.3.8
+  tag: v1.4.0
   sparse: ./config/GMAO_Shared.sparse
   develop: main
 
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  branch: develop
+  tag: v2.6.7
+  develop: develop

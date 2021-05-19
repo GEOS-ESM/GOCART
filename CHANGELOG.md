@@ -10,7 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updated `CODEOWNERS` to reflect changes in staffing
-- Updated `components.yaml` for latest MAPL
+- Updated `components.yaml`
+  - Added fixture block
+  - Added ESMA_env 3.2.1
+  - Updated ESMA_cmake to 3.4.0
+  - Updated GMAO_Shared to 1.4.0
+  - Updated MAPL to v2.6.7
+- Updated CircleCI to use `large` resource
 
 ### Fixed
 
