@@ -13,6 +13,7 @@ module Aerosol_Cap
     model_label_Finalize        => label_Finalize
 
   use Aerosol_Comp_mod
+  use Aerosol_Diag_mod
   use Aerosol_Internal_mod
   use Aerosol_Shared_mod
   use Aerosol_Tracer_mod
@@ -465,7 +466,7 @@ contains
         return  ! bail out
 
       ! -- export diagnostics
-      call AerosolDiagUpdate(model, cap, rc=rc)
+      call AerosolDiagUpdate(model, rc=rc)
       if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
         line=__LINE__, &
         file=__FILE__)) &

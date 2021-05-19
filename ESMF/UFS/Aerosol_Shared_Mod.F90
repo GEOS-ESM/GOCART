@@ -12,11 +12,6 @@ module Aerosol_Shared_Mod
   real(ESMF_KIND_R8), parameter :: con_g = 9.80665e+0_ESMF_KIND_R8
   ! inverse gravity (m/s2)
   real(ESMF_KIND_R8), parameter :: onebg = 1._ESMF_KIND_R8 / con_g
-  ! unit conversion
-  real(ESMF_KIND_R8), parameter :: kg2ug   = 1.e+09_ESMF_KIND_R8
-  real(ESMF_KIND_R8), parameter :: ug2kg   = 1.e-09_ESMF_KIND_R8
-  real(ESMF_KIND_R8), parameter :: one2ppm = 1.e+06_ESMF_KIND_R8
-  real(ESMF_KIND_R8), parameter :: ppm2one = 1.e-06_ESMF_KIND_R8
 
   ! -- Shared methods
   interface AerosolGetPtr
@@ -28,7 +23,6 @@ module Aerosol_Shared_Mod
   private
 
   public :: con_g, onebg
-  public :: kg2ug, ug2kg, one2ppm, ppm2one
 
   public :: AerosolGetPtr
   public :: AerosolFieldDiagnostics
