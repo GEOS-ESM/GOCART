@@ -223,11 +223,12 @@ contains
     type(ESMF_Grid)  :: grid
     type(ESMF_State) :: importState, exportState
     type(ESMF_VM)    :: vm
-    character(ESMF_MAXSTR)    :: tracerInfo
+    type(ESMF_Info)  :: tracerInfo
     type(ESMF_Field), pointer :: fieldList(:)
     type(MAPL_Cap),   pointer :: cap
     type(MAPL_CapOptions)     :: maplCapOptions
     type(Aerosol_InternalState_T) :: is
+    type(Aerosol_Tracer_T), pointer :: trp
 
     ! begin
     rc = ESMF_SUCCESS
@@ -279,6 +280,7 @@ contains
       rcToReturn=rc)) return  ! bail out
 
     nullify(is % wrap % maplCap)
+    nullify(is % wrap % tracers)
 
     ! set MAPL options
     maplCapOptions = MAPL_CapOptions(_RC)
@@ -333,12 +335,25 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
-    ! create tracer map
-    is % wrap % tracerMap = AerosolTracerMap(cap % get_cap_rc_file(), tracerInfo, rc=rc)
+    ! create maps linking imported aerosol tracers to MAPL fields
+    allocate(is % wrap % tracers, stat=stat)
+    if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+      msg="Unable to allocate tracers data structure", &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    ! initialize tracer datatype containing tracer names and mapping information
+    is % wrap % tracers = AerosolTracer(cap % get_cap_rc_file(), tracerInfo, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
+
+    trp => is % wrap % tracers
+
+    ! print tracer maps
+    call AerosolTracerPrint(trp, 'Tracer map')
 
     ! set component's internal state
     call ESMF_GridCompSetInternalState(model, is, rc)

@@ -7,64 +7,249 @@ module Aerosol_Tracer_Mod
 
   implicit none
 
-  interface AerosolTracerMap
-    module procedure AerosolTracerMapCreate
+  type Aerosol_Tracer_T
+    type(StringIntegerMap) :: indexMap
+    character(len=ESMF_MAXSTR), allocatable :: names(:)
+    character(len=ESMF_MAXSTR), allocatable :: units(:)
+  end type
+
+  interface AerosolTracer
+    module procedure AerosolTracerCreate
   end interface
   
-  interface AerosolTracerMapPrint
-    module procedure TracerStringStringMapPrint
-    module procedure TracerStringIntegerMapPrint
-  end interface
-
   private
-  public :: AerosolTracerMap
-  public :: AerosolTracerMapPrint
-  public :: AerosolTracerGetUnitConv
+
+  ! -- types
+  public :: Aerosol_Tracer_T
+
+  ! -- methods
+  public :: AerosolTracer
+  public :: AerosolTracerPrint
+  public :: AerosolTracerGetUnitsConv
 
 contains
 
-  function AerosolTracerInfoMapCreate(tracerInfo, separator, rc) result(map)
-   type(StringIntegerMap) :: map
-   ! -- interface variables
-   character(len=*),           intent(in)  :: tracerInfo
-   character(len=1), optional, intent(in)  :: separator
-   integer,          optional, intent(out) :: rc
+  ! ----- Type constructor -----
 
-   ! -- local variables
-   integer :: ib, ie, ix, item
-   character(len=1) :: sep
+  function AerosolTracerCreate(fileName, info, rc) result(tracers)
+    type(Aerosol_Tracer_T) :: tracers
+    ! -- interface variables
+    character(len=*),           intent(in)  :: fileName
+    type(ESMF_Info),            intent(in)  :: info
+    integer,          optional, intent(out) :: rc
 
-   ! -- local parameter
-   character(len=*), parameter :: default_separator = ':'
+    ! -- local variables
+    integer :: localrc
+    integer :: item, stat
+    type(StringIntegerMap) :: infoMap
+    type(StringStringMap)  :: configMap
 
-   ! -- begin
-   if (present(rc)) rc = ESMF_SUCCESS
+    ! -- begin
+    if (present(rc)) rc = ESMF_SUCCESS
 
-   if (present(separator)) then
-     sep = separator
-   else
-     sep = default_separator
-   end if
+    ! - import tracer names
+    call TracerInfoGet(info, 'tracerNames', tracers % names, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
 
-   ! -- create tracer->index map from input tracer info
-   ib = 1
-   ie = 0
-   ix = index(tracerInfo(ib:), sep)
-   item = 0
-   do while (ix > 0)
-     ie = ib + ix - 2
-     if (ie > ib) then
-       item = item + 1
-       call map%insert(tracerInfo(ib:ie), item)
-     end if
-     ib = ie + 2
-     ix = index(tracerInfo(ib:), sep)
-   end do
+    if (.not.allocated(tracers % names)) then
+      call ESMF_LogWrite("Unable to retrieve imported tracer list", &
+        ESMF_LOGMSG_WARNING, &
+        line=__LINE__, &
+        file=__FILE__, &
+        rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__, &
+        rcToReturn=rc)) return
+      return
+    end if
 
-  end function AerosolTracerInfoMapCreate
+    ! - import tracer units if available
+    call TracerInfoGet(info, 'tracerUnits', tracers % units, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
 
+    if (.not.allocated(tracers % units)) then
+      allocate(tracers % units(infoMap % size()), stat=stat)
+      if (ESMF_LogFoundAllocError(statusToCheck=stat, &
+        msg="Unable to allocate internal workspace", &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)) return  ! bail out
+      tracers % units = 'n/a'
+    end if
 
-  function AerosolTracerFieldMapCreate(fileName, rc) result(map)
+    ! -- create imported tracer map
+    do item = 1, size(tracers % names)
+      call infoMap % insert(trim(tracers % names(item)), item)
+    end do
+
+    ! -- create map between internal fields and imported tracers
+    ! -- according to the MAPL Cap configuration file
+    configMap = TracerConfigMapCreate(fileName, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    if (configMap%empty()) then
+      call ESMF_LogSetError(rcToCheck=ESMF_RC_CANNOT_GET, &
+        msg="Field not mapped to imported tracers in "//trim(fileName), &
+        line=__LINE__,  &
+        file=__FILE__,  &
+        rcToReturn=rc)
+      return  ! bail out
+    end if
+
+    ! -- map internal fields to tracer index in exported tracer array
+    tracers % indexMap = TracerIndexMapCreate(infoMap, configMap, rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__,  &
+      rcToReturn=rc)) return  ! bail out
+
+    ! -- free up memory
+    call infoMap%clear()
+    call configMap%clear()
+
+  end function AerosolTracerCreate
+
+  ! ----- Type print method -----
+
+  subroutine AerosolTracerPrint(tracers, header, unit)
+    ! -- arguments
+    type(Aerosol_Tracer_T), intent(in) :: tracers
+    character(len=*),       intent(in) :: header
+    integer, optional,      intent(in) :: unit
+
+    ! -- local variables
+    integer               :: logUnit
+    integer,      pointer :: idx
+    character(:), pointer :: fld
+    character(:), allocatable :: name, units
+    type(StringIntegerMapIterator) :: iter
+
+    ! -- local parameters
+    character(len=*), parameter :: unknown = 'unknown'
+
+    ! -- begin
+    if (am_I_Root()) then
+
+      logUnit = 6
+      if (present(unit)) logUnit = unit
+
+      name  = unknown
+      units = unknown
+
+      write(logUnit, '(38("-")/2x,a/38("-"))') trim(header)
+      iter = tracers%indexMap%begin()
+      do while (iter /= tracers%indexMap%end())
+        fld => iter%key()
+        idx => iter%value()
+        if (allocated(tracers%names)) name  = trim(tracers % names(idx))
+        if (allocated(tracers%units)) units = trim(tracers % units(idx))
+        write(logUnit, '(a15," -> ",a10,2x,"[",a,"]")') fld, name, units
+        call iter%next()
+      end do
+      write(logUnit, '(38("-"))')
+
+    end if
+
+  end subroutine AerosolTracerPrint
+
+  ! ----- Tracer metadata methods -----
+
+  subroutine TracerInfoGet(info, key, values, rc)
+    ! -- interface variables
+    type(ESMF_Info),               intent(in)  :: info
+    character(len=*),              intent(in)  :: key
+    character(len=*), allocatable, intent(out) :: values(:)
+    integer,          optional,    intent(out) :: rc
+
+    ! -- local variables
+    integer :: localrc
+    logical :: isKeyFound
+
+    ! -- begin
+    if (present(rc)) rc = ESMF_SUCCESS
+
+    ! -- check if metadata key is present in ESMF_Info object
+    isKeyFound = ESMF_InfoIsPresent(info, trim(key), rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__, &
+      rcToReturn=rc)) return
+
+    if (isKeyFound) then
+      isKeyFound = ESMF_InfoIsSet(info, trim(key), rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__, &
+        rcToReturn=rc)) return
+    end if
+
+    if (isKeyFound) then
+      call ESMF_InfoGetAlloc(info, trim(key), values, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__, &
+        rcToReturn=rc)) return
+    end if
+
+  end subroutine TracerInfoGet
+
+  ! ----- Maps create -----
+
+  function TracerInfoMapCreate(info, key, rc) result(map)
+    type(StringIntegerMap) :: map
+    ! -- interface variables
+    type(ESMF_Info),            intent(in)  :: info
+    character(len=*), optional, intent(in)  :: key
+    integer,          optional, intent(out) :: rc
+
+    ! -- local variables
+    integer :: localrc
+    integer :: item
+    logical :: isKeyFound
+    character(len=ESMF_MAXSTR), allocatable :: values(:)
+
+    ! -- begin
+    if (present(rc)) rc = ESMF_SUCCESS
+
+    ! -- check if metadata key is present in ESMF_Info object
+    isKeyFound = ESMF_InfoIsPresent(info, trim(key), rc=localrc)
+    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__, &
+      rcToReturn=rc)) return
+
+    if (isKeyFound) then
+      isKeyFound = ESMF_InfoIsSet(info, trim(key), rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__, &
+        rcToReturn=rc)) return
+    end if
+
+    if (isKeyFound) then
+      call ESMF_InfoGetAlloc(info, trim(key), values, rc=localrc)
+      if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+        line=__LINE__, &
+        file=__FILE__, &
+        rcToReturn=rc)) return
+      do item = 1, size(values)
+        call map%insert(trim(values(item)), item)
+      end do
+    end if
+
+  end function TracerInfoMapCreate
+
+  function TracerConfigMapCreate(fileName, rc) result(map)
     type(StringStringMap) :: map
     ! -- argument variables
     character(len=*),  intent(in)  :: fileName
@@ -105,7 +290,7 @@ contains
         rcToReturn=rc)) return  ! bail out
 
       if (columnCount > 1) then
-        call ESMF_ConfigFindLabel(config, trim(fieldTables(table)), rc=localrc)
+        call ESMF_ConfigFindLabel(config, trim(fieldTables(table))//':', rc=localrc)
         if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
           line=__LINE__,  &
           file=__FILE__,  &
@@ -143,10 +328,9 @@ contains
       file=__FILE__,  &
       rcToReturn=rc)) return  ! bail out
     
-  end function AerosolTracerFieldMapCreate
+  end function TracerConfigMapCreate
 
-
-  function AerosolTracerIndexMapCreate(infoMap, fieldMap, rc) result(map)
+  function TracerIndexMapCreate(infoMap, fieldMap, rc) result(map)
     type(StringIntegerMap) :: map
     ! -- interface variables
     type(StringIntegerMap), intent(in)  :: infoMap
@@ -172,101 +356,60 @@ contains
       call iter%next()
     end do
 
-  end function AerosolTracerIndexMapCreate
+  end function TracerIndexMapCreate
 
+  ! ----- Units conversion -----
 
-  function AerosolTracerMapCreate(fileName, tracerInfo, rc) result(map)
-    type(StringIntegerMap) :: map
-    ! -- interface variables
-    character(len=*),  intent(in)  :: fileName
-    character(len=*),  intent(in)  :: tracerInfo
-    integer, optional, intent(out) :: rc 
- 
-    ! -- local variables
-    integer :: localrc
-    type(StringIntegerMap) :: infoMap
-    type(StringStringMap)  :: fieldMap
+  real(ESMF_KIND_R8) function AerosolTracerGetUnitsConv(fromUnits, toUnits)
 
-    ! -- begin
-    if (present(rc)) rc = ESMF_SUCCESS
-
-    ! -- create imported tracer map
-    infoMap = AerosolTracerInfoMapCreate(tracerInfo, rc=localrc)
-    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__,  &
-      rcToReturn=rc)) return  ! bail out
-
-    if (infoMap%empty()) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_CANNOT_GET, &
-        msg="Imported tracer list is unavailable", &
-        line=__LINE__,  &
-        file=__FILE__,  &
-        rcToReturn=rc)
-      return  ! bail out
-    end if
-
-    ! -- create map between internal fields and imported tracers from the
-    ! -- MAPL Cap configuration file
-    fieldMap = AerosolTracerFieldMapCreate(fileName, rc=localrc)
-    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__,  &
-      rcToReturn=rc)) return  ! bail out
-
-    if (fieldMap%empty()) then
-      call ESMF_LogSetError(rcToCheck=ESMF_RC_CANNOT_GET, &
-        msg="Field not mapped to imported tracers in "//trim(fileName), &
-        line=__LINE__,  &
-        file=__FILE__,  &
-        rcToReturn=rc)
-      return  ! bail out
-    end if
-
-    ! -- map internal fields to tracer index in exported tracer array
-    map = AerosolTracerIndexMapCreate(infoMap, fieldMap, rc=localrc)
-    if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__,  &
-      rcToReturn=rc)) return  ! bail out
-
-    call AerosolTracerMapPrint(fieldMap, "GOCART2G Field Name    Export To")
-
-    ! -- free up memory
-    call infoMap%clear()
-    call fieldMap%clear()
-
-  end function AerosolTracerMapCreate
-
-  real(ESMF_KIND_R8) function AerosolTracerGetUnitConv(name, option)
-
-    ! Return conversion factors to/from kg kg-1 according to
-    ! the value of the option argument:
-    ! option = 0: (ppm, ug kg-1) to kg kg-1
-    ! option = 1: kg kg-1 to (ppm, ug kg-1)
+    ! Return conversion factors from 'fromUnits' to 'toUnits'.
 
     ! -- arguments
-    character(len=*), intent(in) :: name
-    integer,          intent(in) :: option
+    character(len=*), target, intent(in) :: fromUnits
+    character(len=*), target, intent(in) :: toUnits
+
+    ! -- local variables
+    integer :: n
+    integer :: ij(2)
+    character(len=:), pointer :: pUnits
 
     ! -- local parameters
-    real(ESMF_KIND_R8), dimension(0:1), parameter :: &
-      ppm = [ 1.e-06_ESMF_KIND_R8, 1.e+06_ESMF_KIND_R8 ], &
-      ug  = [ 1.e-09_ESMF_KIND_R8, 1.e+09_ESMF_KIND_R8 ]
+    real(ESMF_KIND_R8), dimension(3,3), parameter :: convTable = &
+      reshape( [ &
+      ! ---------------------------------------------------------------------------
+      !        kg/kg        |       ug/kg        |       ppm              | From/To
+      ! ---------------------------------------------------------------------------
+        1.e+00_ESMF_KIND_R8, 1.e+09_ESMF_KIND_R8, 1.e+06_ESMF_KIND_R8, &  ! kg/kg
+        1.e-09_ESMF_KIND_R8, 1.e+00_ESMF_KIND_R8, 1.e-03_ESMF_KIND_R8, &  ! ug/kg
+        1.e-06_ESMF_KIND_R8, 1.e+03_ESMF_KIND_R8, 1.e+00_ESMF_KIND_R8  &  ! ppm
+      ! ---------------------------------------------------------------------------
+      ], [3,3], order=[2,1])
     
     ! -- begin
-    AerosolTracerGetUnitConv = 1._ESMF_KIND_R8
+    AerosolTracerGetUnitsConv = 1._ESMF_KIND_R8
 
-    if (option < 0 .or. option > 1) return
+    ij = 0
+    pUnits => fromUnits
+    do n = 1, 2
+      select case (trim(pUnits))
+        case ("kg kg-1", "kg/kg")
+          ij(n) = 1
+        case ("ug kg-1", "ug/kg")
+          ij(n) = 2
+        case ("ppm")
+          ij(n) = 3
+        case default
+          ij(1) = -1
+          exit
+      end select
+      pUnits => toUnits
+    end do
 
-    select case (trim(name))
-      case ("DMS", "MSA", "SO2")
-        AerosolTracerGetUnitConv = ppm(option)
-      case default
-        AerosolTracerGetUnitConv = ug(option)
-    end select
-    
-  end function AerosolTracerGetUnitConv
+    if (ij(1) > 0) AerosolTracerGetUnitsConv = convTable(ij(1),ij(2))
+
+  end function AerosolTracerGetUnitsConv
+
+  ! ----- Map print methods -----
 
   subroutine TracerStringStringMapPrint(map, header, unit)
 
@@ -296,6 +439,44 @@ contains
     end if
     
   end subroutine TracerStringStringMapPrint
+
+  subroutine TracerStringStringMapPairPrint(map1, map2, header, unit)
+
+    ! -- arguments
+    type(StringStringMap), intent(in) :: map1
+    type(StringStringMap), intent(in) :: map2
+    character(len=*),      intent(in) :: header
+    integer, optional,     intent(in) :: unit
+
+    ! -- local variables
+    integer :: ounit
+    character(len=:), pointer :: pval1, pval2
+    type(StringStringMapIterator) :: iter
+
+    ! -- begin
+    if (am_I_Root()) then
+
+      ounit = 6
+      if (present(unit)) ounit = unit
+
+      write(ounit, '(a/32("-"))') trim(header)
+      iter = map1%begin()
+      do while (iter /= map1%end())
+        nullify(pval1,pval2)
+        pval1 => map1%at(trim(iter%key()))
+        pval2 => map2%at(trim(pval1))
+        if (associated(pval2)) then
+          write(ounit, '(a19," -> ",a10,2x,"[",a,"]")') trim(iter%key()), pval1, pval2
+        else
+          write(ounit, '(a19," -> ",a10,2x,"[n/a]")') trim(iter%key()), pval1
+        end if
+        call iter%next()
+      end do
+      write(ounit, '(32("-"))')
+
+    end if
+
+  end subroutine TracerStringStringMapPairPrint
 
   subroutine TracerStringIntegerMapPrint(map, header, unit)
 

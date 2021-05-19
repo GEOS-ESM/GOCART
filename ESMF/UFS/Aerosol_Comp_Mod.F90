@@ -6,7 +6,8 @@ module Aerosol_Comp_Mod
 
   use Aerosol_Internal_mod
   use Aerosol_Shared_mod
-  use Aerosol_Tracer_mod, only: AerosolTracerGetUnitConv
+  use Aerosol_Tracer_mod, only: AerosolTracerGetUnitsConv, &
+                                Aerosol_Tracer_T
 
   implicit none
 
@@ -434,8 +435,10 @@ contains
     integer :: item, itemCount
     integer :: rank
     integer :: i, j, k, kk, n, ni, nj, nk, v
-    integer :: tracerId
-    integer :: scaleOption
+    integer :: intentOption
+    integer, pointer :: tracerId
+    character(len=:), pointer :: pUnits
+    character(len=ESMF_MAXSTR) :: fieldUnits, tracerUnits
     real(ESMF_KIND_R4), dimension(:,:,:),   pointer :: fp3d
     real(ESMF_KIND_R4), dimension(:,:,:,:), pointer :: fp4d
     real(ESMF_KIND_R8), dimension(:,:,:,:), pointer :: q
@@ -446,9 +449,9 @@ contains
     type(ESMF_State) :: state
     type(ESMF_StateItem_flag),  pointer :: itemTypeList(:)
     character(len=ESMF_MAXSTR), pointer :: itemNameList(:)
-    type(MAPL_Cap), pointer :: cap
-    type(Aerosol_InternalState_T) :: is
-    type(Aerosol_InternalData_T), pointer :: this
+    type(MAPL_Cap),             pointer :: cap
+    type(Aerosol_Tracer_T),     pointer :: trp
+    type(Aerosol_InternalState_T)       :: is
 
     ! -- begin
     if (present(rc)) rc = ESMF_SUCCESS
@@ -456,14 +459,14 @@ contains
     ! -- retrieve model import/export states
     select case (trim(action))
       case ("import")
-        scaleOption = 0
+        intentOption = 0
         call ESMF_GridCompGet(model, importState=state, rc=localrc)
         if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
           line=__LINE__,  &
           file=__FILE__,  &
           rcToReturn=rc)) return  ! bail out
       case ("export")
-        scaleOption = 1
+        intentOption = 1
         call ESMF_GridCompGet(model, exportState=state, rc=localrc)
         if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
           line=__LINE__,  &
@@ -481,11 +484,12 @@ contains
       file=__FILE__,  &
       rcToReturn=rc)) return  ! bail out
 
-    nullify(cap, this)
+    nullify(cap, trp)
     if (.not.associated(is % wrap)) return
-    this => is % wrap
     cap  => is % wrap % maplCap
+    trp  => is % wrap % tracers
     if (.not.associated(cap)) return
+    if (.not.associated(trp)) return
 
     nullify(q)
     call AerosolGetPtr(state, "inst_tracer_mass_frac", q, rc=localrc)
@@ -563,13 +567,24 @@ contains
           end select
 
           ! -- get tracer location in coupled field
-          tracerId = this % tracerMap % at(trim(itemNameList(item)))
-          scalefac = AerosolTracerGetUnitConv(trim(itemNameList(item)), scaleOption)
+          tracerId => trp % indexMap % at(trim(itemNameList(item)))
 
-          if (tracerId > 0) then
-            select case (scaleOption)
+          if (associated(tracerId)) then
+
+            ! -- get units for automatic conversion
+            ! -- (a) tracer units
+            tracerUnits = trp % units(tracerId)
+            ! -- (b) MAPL field units
+            call ESMF_AttributeGet(field, name='UNITS', value=fieldUnits, rc=localrc)
+            if (ESMF_LogFoundError(rcToCheck=localrc, msg=ESMF_LOGERR_PASSTHRU, &
+              line=__LINE__,  &
+              file=__FILE__,  &
+              rcToReturn=rc)) return  ! bail out
+
+            select case (intentOption)
               case (0)
                 ! -- import
+                scalefac = AerosolTracerGetUnitsConv(tracerUnits, fieldUnits)
                 if (associated(fp3d)) then
                   v = tracerId
                   do k = 1, nk
@@ -596,6 +611,7 @@ contains
                 end if
               case (1)
                 ! -- export
+                scalefac = AerosolTracerGetUnitsConv(fieldUnits, tracerUnits)
                 if (associated(fp3d)) then
                   v = tracerId
                   do k = 1, nk

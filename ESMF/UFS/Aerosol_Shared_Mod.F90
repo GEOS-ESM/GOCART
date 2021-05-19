@@ -569,7 +569,7 @@ contains
     type(ESMF_GridComp)                     :: model
     type(ESMF_Grid),  optional, intent(out) :: grid
     integer,          optional, intent(out) :: numLevels
-    character(len=*), optional, intent(out) :: tracerInfo
+    type(ESMF_Info),  optional, intent(out) :: tracerInfo
     integer,          optional, intent(out) :: rc
 
     ! -- local variables
@@ -579,13 +579,13 @@ contains
     type(ESMF_Array) :: array
     type(ESMF_State) :: importState
     type(ESMF_Field), pointer :: fieldList(:)
+    type(ESMF_Info)  :: info
 
     ! -- begin
     if (present(rc)) rc = ESMF_SUCCESS
 
     ! -- initialize output variables
     if (present(numLevels))  numLevels  = 0
-    if (present(tracerInfo)) tracerInfo = ""
 
     ! retrieve import state from gridded component
     call NUOPC_ModelGet(model, importState=importState, rc=localrc)
@@ -628,7 +628,7 @@ contains
           ! -- populate remaining output arguments
           if (present(numLevels)) numLevels = ub(1) - lb(1) + 1
           if (present(tracerInfo)) then
-            call ESMF_ArrayGet(array, name=tracerInfo, rc=localrc)
+            call ESMF_InfoGetFromHost(array, tracerInfo, rc=localrc)
             if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
               line=__LINE__,  &
               file=__FILE__)) &
