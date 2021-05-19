@@ -3,7 +3,6 @@ module Aerosol_Shared_Mod
   use ESMF
   use NUOPC
   use NUOPC_Model, only: NUOPC_ModelGet
-  use MAPL
 
   implicit none
 

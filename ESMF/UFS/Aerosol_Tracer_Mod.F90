@@ -3,7 +3,7 @@ module Aerosol_Tracer_Mod
   use ESMF
   use gFTL_StringIntegerMap
   use gFTL_StringStringMap
-  use MAPL, only: am_I_root => MAPL_am_I_root
+  use Aerosol_Logger_mod, only: isAerosolLoggerOn
 
   implicit none
 
@@ -139,7 +139,7 @@ contains
     character(len=*), parameter :: unknown = 'unknown'
 
     ! -- begin
-    if (am_I_Root()) then
+    if (isAerosolLoggerOn()) then
 
       logUnit = 6
       if (present(unit)) logUnit = unit
@@ -425,7 +425,7 @@ contains
     type(StringStringMapIterator) :: iter
 
     ! -- begin
-    if (am_I_Root()) then
+    if (isAerosolLoggerOn()) then
 
       ounit = 6
       if (present(unit)) ounit = unit
@@ -456,7 +456,7 @@ contains
     type(StringStringMapIterator) :: iter
 
     ! -- begin
-    if (am_I_Root()) then
+    if (isAerosolLoggerOn()) then
 
       ounit = 6
       if (present(unit)) ounit = unit
@@ -492,7 +492,7 @@ contains
     type(StringIntegerMapIterator) :: iter
 
     ! -- begin
-    if (am_I_Root()) then
+    if (isAerosolLoggerOn()) then
 
       ounit = 6
       if (present(unit)) ounit = unit

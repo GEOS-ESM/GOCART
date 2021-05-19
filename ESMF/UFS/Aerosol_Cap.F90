@@ -15,6 +15,7 @@ module Aerosol_Cap
   use Aerosol_Comp_mod
   use Aerosol_Diag_mod
   use Aerosol_Internal_mod
+  use Aerosol_Logger_mod
   use Aerosol_Shared_mod
   use Aerosol_Tracer_mod
 
@@ -26,6 +27,9 @@ module Aerosol_Cap
   use mpi
 
   implicit none
+
+  ! -- model name
+  character(len=*), parameter :: modelName = "UFS Aerosols"
 
   ! -- import fields
   character(len=*), dimension(*), parameter :: &
@@ -146,6 +150,13 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+
+    ! startup
+    call AerosolLog(modelName//': Initializing ...', rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
 
    ! get component's info
     call NUOPC_CompGet(model, name=name, verbosity=verbosity, rc=rc)
@@ -372,6 +383,13 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+    ! log end of model's initialize
+    call AerosolLog(modelName//': Model initialized', rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
+
   end subroutine ModelDataInitialize
 
   subroutine ModelAdvance(model, rc)
@@ -381,6 +399,7 @@ contains
     ! local variables
     integer                       :: diagnostic
     character(len=ESMF_MAXSTR)    :: name
+    character(len=ESMF_MAXSTR)    :: msgString, timeString
     type(ESMF_State)              :: importState
     type(ESMF_State)              :: exportState
     type(ESMF_Clock)              :: clock
@@ -411,31 +430,17 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
-    ! get component's internal state
-    call ESMF_GridCompGetInternalState(model, is, rc)
+    ! log time step
+    call AerosolLogStep(clock, msg=modelName, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
 
-    ! print timestep details
-    call ESMF_ClockPrint(clock, options="currTime", &
-      preString="------>Advancing Aerosol from: ", rc=rc)
+    ! get component's internal state
+    call ESMF_GridCompGetInternalState(model, is, rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    call ESMF_ClockGet(clock, currTime=currTime, timeStep=timeStep, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    call ESMF_TimePrint(currTime + timeStep, &
-      preString="---------------------> to: ", rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
+      line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
 
@@ -509,6 +514,13 @@ contains
     ! begin
     rc = ESMF_SUCCESS
 
+    ! finalize
+    call AerosolLog(modelName//': Finalizing ...', rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
+
     ! get component's internal state
     call ESMF_GridCompGetInternalState(model, is, rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
@@ -548,6 +560,13 @@ contains
         return  ! bail out
       nullify(is % wrap, this)
     end if
+
+    ! log completion of model's finalize
+    call AerosolLog(modelName//': Model finalized', rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
 
   end subroutine ModelFinalize
 
