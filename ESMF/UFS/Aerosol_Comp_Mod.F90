@@ -14,7 +14,7 @@ module Aerosol_Comp_Mod
   character(len=*), dimension(*), parameter :: &
     fieldPairList = [ &
       "FROCEAN                         ", "ocean_fraction                  ", &
-      "FRACI                           ", "ice_fraction                    ", &
+      "FRACI                           ", "ice_fraction_in_atm             ", &
       "FRLAKE                          ", "lake_fraction                   ", &
       "FRSNOW                          ", "surface_snow_area_fraction      ", &
       "LWI                             ", "inst_land_sea_mask              ", &

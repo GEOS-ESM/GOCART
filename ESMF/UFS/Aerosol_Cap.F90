@@ -58,7 +58,7 @@ module Aerosol_Cap
       "inst_surface_roughness               ", &
       "inst_surface_soil_wetness            ", &
       "inst_soil_moisture_content           ", &
-      "ice_fraction                         ", &
+      "ice_fraction_in_atm                  ", &
       "lake_fraction                        ", &
       "ocean_fraction                       ", &
       "surface_snow_area_fraction           "  &
