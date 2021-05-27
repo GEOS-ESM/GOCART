@@ -37,6 +37,7 @@ if (UFS_GOCART)
   elseif (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     string (REPLACE "-fdefault-real-8" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
   endif()
+  list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/ESMF/UFS/cmake")
 endif()
 
 if (NOT COMMAND esma)
