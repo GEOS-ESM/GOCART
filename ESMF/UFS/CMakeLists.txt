@@ -1,4 +1,4 @@
-esma_set_this ()
+esma_set_this (OVERRIDE UFS_Aerosols)
 
 set (srcs
   Aerosol_Cap.F90
