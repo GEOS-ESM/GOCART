@@ -25,7 +25,7 @@ module Aerosol_Comp_Mod
       "TS                              ", "inst_temp_height_surface        ", &
       "AREA                            ", "surface_cell_area               ", &
       "ZPBL                            ", "inst_pbl_height                 ", &
-      "SH                              ", "inst_sensi_heat_flx             ", &
+      "SH                              ", "inst_up_sensi_heat_flx          ", &
       "T                               ", "inst_temp_levels                ", &
       "PLE                             ", "inst_pres_interface             ", &
       "U                               ", "inst_zonal_wind_levels          ", &

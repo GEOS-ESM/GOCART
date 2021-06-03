@@ -54,7 +54,7 @@ module Aerosol_Cap
       "inst_friction_velocity               ", &
       "inst_land_sea_mask                   ", &
       "inst_temp_height_surface             ", &
-      "inst_sensi_heat_flx                  ", &
+      "inst_up_sensi_heat_flx               ", &
       "inst_surface_roughness               ", &
       "inst_surface_soil_wetness            ", &
       "inst_soil_moisture_content           ", &
