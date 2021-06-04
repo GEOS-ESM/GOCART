@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated GMAO_Shared to 1.4.0
   - Updated MAPL to v2.6.7
 - Updated CircleCI to use `large` resource
+- Rename BUILD_UFS CMake flag as UFS_GOCART
+- Rename UFS target as UFS_Aerosols
+- Add CMake macros replacing ecBuild and ESMA_cmake for the UFS
+- Relax PFLOGGER dependency requirement outside Baselibs
+- Refactored UFS Aerosols: introduced dynamic tracer mapping and limited unit conversion
 
 ### Fixed
 

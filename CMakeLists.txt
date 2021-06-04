@@ -22,14 +22,14 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 # Set build options
-option (BUILD_UFS "Build GOCART component for UFS" OFF)
+option (UFS_GOCART "Build GOCART component for UFS" OFF)
 
 set (DOING_GEOS5 YES)
 
 # Should find a better place for this - used in Chem component
 set (ACG_FLAGS -v)
 
-if (BUILD_UFS)
+if (UFS_GOCART)
 # Ensure we build as 32-bit
   message ("Force 32-bit build for GOCART")
   if (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
@@ -37,6 +37,7 @@ if (BUILD_UFS)
   elseif (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     string (REPLACE "-fdefault-real-8" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
   endif()
+  list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/ESMF/UFS/cmake")
 endif()
 
 if (NOT COMMAND esma)
@@ -59,11 +60,11 @@ if (NOT Baselibs_FOUND)
 
   find_package (GFTL REQUIRED)
   find_package (GFTL_SHARED REQUIRED)
-  find_package (PFLOGGER REQUIRED)
+  find_package (PFLOGGER QUIET)
   find_package (YAFYAML REQUIRED)
 endif ()
 
-if (BUILD_UFS)
+if (UFS_GOCART)
   find_package (MAPL REQUIRED)
   include(mapl_acg)
 elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
