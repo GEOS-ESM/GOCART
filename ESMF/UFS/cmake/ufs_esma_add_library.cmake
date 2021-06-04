@@ -8,14 +8,14 @@ macro (esma_add_library this)
   set (options EXCLUDE_FROM_ALL NOINSTALL)
   set (oneValueArgs
     # shared with ecbuild
-    TYPE)	
+    TYPE)
   set (multiValueArgs
     # esma unique
     SUBCOMPONENTS SUBDIRS NEVER_STUB PRIVATE_DEFINITIONS PUBLIC_DEFINITIONS
     # shared with ecbuild (and not deprecated)
     SOURCES DEPENDS PUBLIC_LIBS
     # deprecated in esma (produces explicit warnings)
-    SRCS INCLUDES DEPENDENCIES 
+    SRCS INCLUDES DEPENDENCIES
     # deprecated in ecbuild
     PUBLIC_INCLUDES
     )
@@ -91,10 +91,10 @@ macro (esma_add_library this)
   target_include_directories(${this} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}> # stubs
-# modules and copied *.h, *.inc    
+# modules and copied *.h, *.inc
     $<BUILD_INTERFACE:${_ufs_esma_include}/${this}>
     $<INSTALL_INTERFACE:${install_dir}>
-    ) 
+    )
 
   if (ARGS_PUBLIC_INCLUDES)
     target_include_directories(${this} PUBLIC $<BUILD_INTERFACE:${ARGS_PUBLIC_INCLUDES}>)
