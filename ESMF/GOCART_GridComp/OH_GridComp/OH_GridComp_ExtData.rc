@@ -1,0 +1,31 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable In |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#
+# 3D
+#
+OH_NO           mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    NO            /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_NO2          mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    NO2           /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_N2O5         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    N2O5          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_NO3          mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    NO3           /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_HNO2         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    HNO2          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_HNO4         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    HNO4          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_ALK4         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    ALK4          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_ISOP         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    ISOP          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_ACET         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    ACET          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_PRPE         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    PRPE          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_C3H8         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    C3H8          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_C2H6         mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    C2H6          /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_O3           mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    O3            /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_CO           mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    CO            /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_CH4          mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    CH4           /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_OH           mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    OH            /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+OH_METWATER     mol/mol    Y        Y     %y4-%m2-%d2t12:00:00    none     none    METWATER      /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+ohRatio         NA         Y        N     %y4-%m2-%d2t12:00:00    none     none    ohRatio       /discover/nobackup/bnduncan/eyegorov/NOBACKUP/Tagged_CO_CH4_OH/inputFiles/gmic_MERRA_ohAllAerosolRatio_gmiLev_2005_2x2.5.nc
+#
+# 2D
+#
+OH_TRPPS        hPa        Y        Y     %y4-%m2-%d2t12:00:00    none     none    TRPPS         /discover/nobackup/projects/gmao/ccmdev/mmanyin/ECCOH/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+%%

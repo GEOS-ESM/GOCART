@@ -35,6 +35,7 @@
    use CFC_GridCompMod       ! CFCs
    use Rn_GridCompMod        ! Radon
    use CH4_GridCompMod       ! Methane
+   use OH_GridCompMod        ! Hydroxyl radical
 
    implicit none
 
@@ -88,6 +89,7 @@
         type(Rn_GridComp)  :: gcRn
         type(CH4_GridComp) :: gcCH4
         type(NI_GridComp)  :: gcNI
+        type(OH_GridComp)  :: gcOH
   end type Aero_GridComp
 
 CONTAINS
@@ -169,6 +171,11 @@ CONTAINS
       call NI_GridCompSetServices(GC, chemReg, __RC__)
    endif
 
+  IF ( chemReg%doing_OH ) THEN
+!#     include "OH_ExportSpec___.h"
+     call OH_GridCompSetServices(GC, chemReg, __RC__)
+   endif
+
    RETURN_(ESMF_SUCCESS)
 
    end subroutine Aero_GridCompSetServices
@@ -201,12 +208,12 @@ CONTAINS
 
 ! !OUTPUT PARAMETERS:
 
-   type(Aero_GridComp), intent(out) :: gcThis     ! Grid Component
-   type(ESMF_State), intent(inout)  :: impChem    ! Import State
-   type(ESMF_State), intent(inout)  :: expChem    ! Export State
-   integer, intent(out) ::  rc                    ! Error return code:
-                                                  !  0 - all is well
-                                                  !  1 -
+   type(Aero_GridComp), intent(inout) :: gcThis     ! Grid Component
+   type(ESMF_State),    intent(inout) :: impChem    ! Import State
+   type(ESMF_State),    intent(inout) :: expChem    ! Export State
+   integer, intent(out) ::  rc                      ! Error return code:
+                                                    !  0 - all is well
+                                                    !  1 -
 
 ! !DESCRIPTION: Initializes the GOCART Grid Component. It primarily sets
 !               the import state for each active constituent package.
@@ -248,6 +255,19 @@ CONTAINS
            if (MAPL_AM_I_ROOT()) print *, Iam//': MieCreate failed ', rc
            return
         end if
+   end if
+
+!  OH Parameterization
+!  -------------------
+
+   if ( w_c%reg%doing_OH ) then
+      call OH_GridCompInitialize ( gcThis%gcOH, w_c, gc, impChem, expChem, &
+                                   nymd, nhms, cdt, rc )
+      if ( rc /= 0 ) then  
+           if (MAPL_AM_I_ROOT()) print *, Iam//': OH failed to initialize ', rc
+           rc = 9100 + rc
+           return
+      end if
    end if
 
 !  Ozone & friends
@@ -685,6 +705,19 @@ CONTAINS
       end if
    end if
 
+!  OH Parameterization
+!  -------------------
+   if ( w_c%reg%doing_OH ) then
+      call MAPL_TimerOn(state,"OH")
+      call OH_GridCompRun ( gcThis%gcOH, w_c, gc, impChem, expChem, &
+                                nymd, nhms, cdt, rc )
+      call MAPL_TimerOff(state,"OH")
+      if ( rc /= 0 ) then  
+         rc = 9100 + rc
+         return
+      end if
+   end if
+
 !  Carbon Monoxide
 !  ---------------
    if ( w_c%reg%doing_CO ) then
@@ -1039,6 +1072,17 @@ CONTAINS
                                   nymd, nhms, cdt, rc )
       if ( rc /= 0 ) then  
            rc = 8900 + rc
+           return
+      end if
+   end if
+
+!  OH Parameterization
+!  -------------------
+   if ( w_c%reg%doing_OH ) then
+      call OH_GridCompFinalize ( gcThis%gcOH, w_c, impChem, expChem, &
+                                 nymd, nhms, cdt, rc )
+      if ( rc /= 0 ) then  
+           rc = 9100 + rc
            return
       end if
    end if

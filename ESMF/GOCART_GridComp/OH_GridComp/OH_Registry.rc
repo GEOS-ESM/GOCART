@@ -1,0 +1,46 @@
+#
+# This the GOCART Grid Component Registry. It defines Import,
+# Internal and Export states for this component as well as
+# any 
+#
+# !REVISION HISTORY:
+#  16Aug2006  da Silva  First Version
+#
+# -----------------------------------------------------------------
+
+  COMP_NAME: OH
+
+# Only change the Registry version when major structural changes
+# occurs, not changes in content
+# --------------------------------------------------------------
+  GEOS_REGISTRY_VERSION: 1.00  
+
+<OH::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
+# -----------|------------|-----|---|----|---|---|-----|---------------------------------
+#  Short     |            |     | V |Item|Intervl|# Sub|          Long
+#  Name      |   Units    | Dim |Loc|Type| R | A |Tiles|          Name
+# -----------|------------|-----|---|----|---|---|-----|---------------------------------
+  OH	     | molec/cm3  | xyz | C |    |   |   |     | OH from GOCART
+  OHVMR      | mol/mol    | xyz | C |    |   |   |     | OH from GOCART 
+  O3upIn     | DU  	  | xyz | C |    |   |   |     | Overhead ozone
+  DOSKIP     | none       | xyz | C |    |   |   |     | DOskip index     
+  NOyIn      | pptv	  | xyz | C |    |   |   |     | Total nitrogen oxides
+  ALK4In     | pptv	  | xyz | C |    |   |   |     | Alkanes
+  IsopreneIn | pptv	  | xyz | C |    |   |   |     | Isoprene
+  AcetoneIn  | pptv	  | xyz | C |    |   |   |     | Acetone
+  PropeneIn  | pptv	  | xyz | C |    |   |   |     | Propene
+  PropaneIn  | pptv	  | xyz | C |    |   |   |     | Propane
+  EthaneIn   | pptv	  | xyz | C |    |   |   |     | Ethane
+  OzoneIn    | ppbv	  | xyz | C |    |   |   |     | Ozone
+  SpecHumIn  | %   	  | xyz | C |    |   |   |     | Specific Humidity
+  COIn       | ppbv	  | xyz | C |    |   |   |     | CO input
+  CH4In      | ppbv  	  | xyz | C |    |   |   |     | CH4 input
+  PressIn    | hPa  	  | xyz | C |    |   |   |     | Pressure input
+  TempIn     | K	  | xyz | C |    |   |   |     | Temperature input
+  TRPPSIn    | hPa        | xy  | C |    |   |   |     | Tropopause pressure
+  AlbedoIn   | %          | xy  | C |    |   |   |     | Albedo
+  RavgaIn    | %  	  | xyz | C |    |   |   |     | Reflectance above grid box
+  RavgbIn    | %  	  | xyz | C |    |   |   |     | Reflectance below grid box
+  OHdiag     | none  	  | xyz | C |    |   |   |     | DOSKIP 
+# -----------|------------|-----|---|----|---|---|-----|--------------------------------
+</OH::ExportSpec>

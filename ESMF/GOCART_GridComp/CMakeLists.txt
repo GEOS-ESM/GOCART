@@ -14,6 +14,7 @@ set (alldirs
   CH4_GridComp
   NI_GridComp
   BRC_GridComp
+  OH_GridComp
   )
 
 set (srcs

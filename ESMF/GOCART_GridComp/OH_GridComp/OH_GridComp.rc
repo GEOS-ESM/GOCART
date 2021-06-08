@@ -1,0 +1,21 @@
+#
+#GMI_infile_name: /discover/nobackup/sstrode/inputs/ccm_ACCMIP_gmiLev_2000tsavg_2x2.5.nc
+Qscale_infile_name: /dev/null
+#GMI_infile_name: /discover/nobackup/eyegorov/Tagged_CO_CH4_old/inputFiles/gmic_MERRA_gmiLev_2005_2x2.5.nc
+#GMI_infile_name: /discover/nobackup/eyegorov/Tagged_CO_CH4_old/inputFiles/ccm_T1R1_2006_2x2.5.nc
+avgOH_inFileName: /discover/nobackup/bnduncan/eyegorov/NOBACKUP/Tagged_CO_CH4_OH/inputFiles/avgOH
+srefl_inFileName: /discover/nobackup/bnduncan/eyegorov/NOBACKUP/Tagged_CO_CH4_OH/inputFiles/Srefl.table
+ohStart_inFileName: /discover/nobackup/bnduncan/eyegorov/NOBACKUP/Tagged_CO_CH4_OH/inputFiles/start_information
+correctRatio_inFileName: /discover/nobackup/bnduncan/eyegorov/NOBACKUP/Tagged_CO_CH4_OH/inputFiles/CorrectRatio
+allAerosolRatio_inFileName: /discover/nobackup/bnduncan/eyegorov/NOBACKUP/Tagged_CO_CH4_OH/inputFiles/gmic_MERRA_ohAllAerosolRatio_gmiLev_2005_2x2.5.nc
+
+# Original setup provided this:
+##
+#GMI_infile_name: gmic_MERRA_2007_2x2.5.nc
+#
+##
+#avgOH_inFileName: avgOH
+#srefl_inFileName: Srefl.table
+#ohStart_inFileName: start_information
+#correctRatio_inFileName: CorrectRatio
+#allAerosolRatio_inFileName: oh.allaer.ratio_2x2.5.nc
