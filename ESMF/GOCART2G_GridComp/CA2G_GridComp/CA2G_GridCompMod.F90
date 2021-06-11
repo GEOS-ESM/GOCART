@@ -145,13 +145,7 @@ contains
 !   ----------------------------------------------
     call ESMF_ConfigGetAttribute (cfg, self%myDOW, label='my_day_of_week:', default=-1, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fhydrophobic, label='hydrophobic_fraction:', __RC__)
-
-    if (GCsuffix == 'OC') then
-      call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_oc_ratio:', default=1.0, __RC__)
-    else if (GCsuffix == 'BR') then
-      call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_brc_ratio:', default=1.0, __RC__)
-    end if
-
+    call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_ca_ratio:', default=1.0, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fMonoterpenes, label='monoterpenes_emission_fraction:', default=0.0, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fIsoprene, label='isoprene_emission_fraction:', default=0.0, __RC__)
 
