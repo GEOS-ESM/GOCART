@@ -964,7 +964,7 @@ contains
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
-          CAPSOA = CAPSOA+sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
+          CAPSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
 
     if (trim(comp_name) == 'CA.br') then
