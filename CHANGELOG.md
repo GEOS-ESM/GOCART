@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixes to CMake to build with UFS and with no Baselibs
 - Fixed return code handling
 - Fixed uninitialized rc in Cubic in process library
+- Fixed OH unit conversion
 
 ### Removed
 
