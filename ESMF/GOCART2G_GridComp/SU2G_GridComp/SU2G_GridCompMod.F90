@@ -919,10 +919,15 @@ contains
     if(self%doing_point_emissions) then
        call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                          nymd=nymd, nhms=120000 )
-       call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                 self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                 self%pEnd, label='source', __RC__)
-
+       inquire( file=fname, exist=fileExists)
+       if (fileExists) then
+          call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
+                                   self%pBase, self%pTop, self%pEmis, self%pStart, &
+                                   self%pEnd, label='source', __RC__)
+       else if (.not. fileExists) then
+         if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
+         self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
+       end if
     endif
 
 !   Get indices for point emissions
