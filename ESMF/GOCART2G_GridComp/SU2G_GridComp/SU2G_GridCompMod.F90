@@ -1071,11 +1071,12 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !if(mapl_am_i_root()) print*,'SU2G Run2 sum(self%h2o2_init) = ',sum(self%h2o2_init)
 !if(mapl_am_i_root()) print*,'SU2G Run2 sum(xoh) = ',sum(xoh)
 
-    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, self%km, self%cdt, &
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
-                                MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
-                                oh, no3, h2o2, &
+                                MAPL_PI, oh, no3, h2o2, &
                                 xoh, xno3, xh2o2, self%recycle_h2o2, __RC__)
+
+    call ConvertUnits (self%using_GMI_OH, 'OH', '#/cm3', airdens, xoh, __RC__)
 
 !if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(xh2o2) = ',sum(xh2o2)
 !if(mapl_am_i_root()) print*,'SU2G Run2 UpdateOxidants sum(self%h2o2_init) = ',sum(self%h2o2_init)
@@ -1173,6 +1174,60 @@ end if
        end if
 
   end subroutine GetOxidant
+
+!..................................................................
+
+  subroutine ConvertUnits (using_GMI, name, units, airdens, array, rc)
+
+    logical,                intent(in)    :: using_GMI
+    character(len=*),       intent(in)    :: name
+    character(len=*),       intent(in)    :: units
+    real, dimension(:,:,:), intent(in)    :: airdens
+    real, dimension(:,:,:), intent(inout) :: array
+    integer, optional,      intent(out)   :: rc
+
+    integer                    :: status
+    logical                    :: is_present
+    character(len=ESMF_MAXSTR) :: src_units
+    type(ESMF_Field)           :: field
+
+!   Begin...
+    rc = 0
+
+    src_units = ""
+
+    if (using_GMI) then
+       call ESMF_StateGet(import, trim(name), field, __RC__)
+    else
+       call ESMF_StateGet(import, 'SU_'//trim(name), field, __RC__)
+    end if
+
+    call ESMF_AttributeGet(field, name="UNITS", isPresent=is_present, __RC__)
+    if ( is_present ) then
+       call ESMF_AttributeGet(field, name="UNITS", value=src_units, __RC__)
+    endif
+
+    select case (trim(src_units))
+       case ("mol mol-1", "mol/mol")
+          select case (trim(units))
+             case ("molecules cm-3", "# cm-3", "#/cm3")
+               array = 1.e-06 * MAPL_AVOGAD * array * airdens / MAPL_AIRMW
+             case default
+               ! no conversion
+          end select
+       case ("molecules cm-3", "# cm-3", "#/cm3")
+          select case (trim(units))
+             case ("mol mol-1", "mol/mol")
+               array = 1.e+06 * MAPL_AIRMW * array / ( MAPL_AVOGAD * airdens )
+             case default
+               ! no conversion
+          end select
+       case default
+          ! no conversion if unsupported/unspecified
+    end select
+
+  end subroutine ConvertUnits
+
 !..................................................................
 
 

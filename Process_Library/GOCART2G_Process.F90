@@ -4480,8 +4480,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: SulfateUpdateOxidants
 
    subroutine SulfateUpdateOxidants (nymd_current, nhms_current, lonRad, latRad, &
-                                     rhoa, km, cdt, nymd_last, &
-                                     undefval, radToDeg, nAvogadro, pi, airMolWght, &
+                                     km, cdt, nymd_last, undefval, radToDeg, pi, &
                                      oh_clim, no3_clim, h2o2_clim, &
                                      xoh, xno3, xh2o2, recycle_h2o2, rc)
 ! !USES:
@@ -4491,15 +4490,12 @@ K_LOOP: do k = km, 1, -1
    integer, intent(in)    :: nymd_current, &   ! current model NYMD
                              nhms_current      ! current model NHMS
    real, dimension(:,:), intent(in)   :: lonRad, latRad ! model grid lon and lat
-   real, dimension(:,:,:), intent(in) :: rhoa           ! layer air density [kg/m^3]
    integer, intent(in)    :: km         ! number of model levels
    real, intent(in)       :: cdt        ! chemistry model time-step
    integer, intent(inout) :: nymd_last  ! NYMD of last emission update
    real, intent(in)       :: undefval   ! value for undefined values
    real, intent(in)       :: radToDeg   ! radian to degrees conversion
-   real, intent(in)       :: nAvogadro  ! Avogadro's number [molecules per mole of air]
    real, intent(in)       :: pi         ! pi constant
-   real, intent(in)       :: airMolWght ! air molecular weight [kg/Kmole]
    real, pointer, dimension(:,:,:) :: oh_clim, &   ! climatological OH
                                       no3_clim, &  ! climatological NO3
                                       h2o2_clim  ! climatological H2O2
@@ -4537,9 +4533,7 @@ K_LOOP: do k = km, 1, -1
 !**************************
 !data pi / 3.1415926 /
 !real, parameter :: radToDeg = 57.2957795
-!real, parameter :: nAvogadro  = 6.022e23 ! molecules per mole of air
 !real, parameter :: pi = 3.1415926
-!real, parameter :: airMolWght = 28.97 ! molecular weight of air
 !*************************
 
 
@@ -4548,8 +4542,8 @@ K_LOOP: do k = km, 1, -1
 !-------------------------------------------------------------------------
 !  Begin...
 
-    i2 = size(rhoa,1)
-    j2 = size(rhoa,2)
+    i2 = size(xoh,1)
+    j2 = size(xoh,2)
 
     allocate(cossza(i1:i2,j1:j2), sza(i1:i2,j1:j2), tcosz(i1:i2,j1:j2), &
              tday(i1:i2,j1:j2), tnight(i1:i2,j1:j2))
@@ -4633,10 +4627,6 @@ K_LOOP: do k = km, 1, -1
        end where
     end do
     where(xoh(i1:i2,j1:j2,1:km) < 0.00) xoh(i1:i2,j1:j2,1:km) = 0.00
-
-!   To go from volume mixing ratio to # cm-3 (expected in chemistry)
-!   include the following line
-    xoh = xoh * 1000.*rhoa / airMolWght * nAvogadro * 1.e-6
 
 !   NO3
     xno3 = no3_clim
