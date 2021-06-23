@@ -994,7 +994,7 @@ contains
 
     real, dimension(:,:), allocatable :: drydepositionf
     real, pointer, dimension(:,:,:) :: dummyMSA => null() ! this is so the model can run without MSA enabled
-    
+    logical :: alarm_is_ringing  
 
 #include "SU2G_DeclarePointer___.h"
 
@@ -1037,7 +1037,12 @@ contains
     self => wrap%ptr
 
     call ESMF_ClockGetAlarm(clock, 'H2O2_RECYCLE_ALARM', alarm, __RC__)
-    self%recycle_h2o2 = ESMF_AlarmIsRinging(alarm, __RC__)
+    alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
+!   recycle H2O2 every 3 hours
+    if (alarm_is_ringing) then
+       self%recycle_h2o2 = ESMF_AlarmIsRinging(alarm, __RC__)
+       call ESMF_AlarmRingerOff(alarm, __RC__)
+    end if
 
 !   Get oxidant pointers from specified provider
 !   ----------------------------------------------
