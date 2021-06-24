@@ -1049,12 +1049,6 @@ contains
        call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
 
-!   Get oxidant pointers from specified provider
-!   ----------------------------------------------
-    call GetOxidant (self%using_GMI_OH, oh, 'OH', __RC__)
-    call GetOxidant (self%using_GMI_OH, no3, 'NO3', __RC__)
-    call GetOxidant (self%using_GMI_OH, h2o2, 'H2O2', __RC__)
-
     allocate(xoh, mold=airdens, __STAT__)
     allocate(xno3, mold=airdens, __STAT__)
     allocate(xh2o2, mold=airdens, __STAT__)
@@ -1128,26 +1122,6 @@ contains
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
     RETURN_(ESMF_SUCCESS)
-
-  contains
-!..................................................................
-  subroutine GetOxidant (using_GMI, ptr, ptr_name, rc)
-
-     logical, intent(in) :: using_GMI
-     real, pointer, dimension(:,:,:), intent(inout) :: ptr
-     character(len=*), intent(in) :: ptr_name
-     integer, optional, intent(out) :: rc
-
-!      Begin...
-       rc = 0
-       if (using_GMI) then
-          call MAPL_GetPointer(import, ptr, trim(ptr_name), __RC__)
-       else
-          call MAPL_GetPointer(import, ptr, 'SU_'//trim(ptr_name), __RC__)
-       end if
-
-  end subroutine GetOxidant
-!..................................................................
 
 
   end subroutine Run2

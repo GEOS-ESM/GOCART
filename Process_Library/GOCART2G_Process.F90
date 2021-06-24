@@ -5568,18 +5568,6 @@ K_LOOP: do k = km, 1, -1
    integer :: n, ndystep
    integer :: i1=1, j1=1, i2, j2
 
-
-! REPLACE WITH MAPL!!!!!
-!**************************
-!data pi / 3.1415926 /
-!real, parameter :: radToDeg = 57.2957795
-!real, parameter :: nAvogadro  = 6.022e23 ! molecules per mole of air
-!real, parameter :: pi = 3.1415926
-!real, parameter :: airMolWght = 28.97 ! molecular weight of air
-!*************************
-
-
-
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...

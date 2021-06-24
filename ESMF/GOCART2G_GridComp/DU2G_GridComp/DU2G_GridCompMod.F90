@@ -796,6 +796,7 @@ contains
                                       self%pEnd, label='source', __RC__)
           else if (.not. fileExists) then
              if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
+             self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
           end if
        end if
     end if

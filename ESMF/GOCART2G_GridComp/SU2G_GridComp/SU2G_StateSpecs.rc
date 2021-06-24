@@ -32,9 +32,9 @@ category: IMPORT
  FCLD       | 1      | xyz  | C    | Cloud fraction for radiation
  pSO2_OCS    | 1      | xyz  | C    | source species
  SU_AIRCRAFT | 1      | xyz  | C    | fuel source species
-# SU_NO3      | 1      | xyz  | C    | climatological NO3 source
-# SU_OH       | 1      | xyz  | C    | climatological OH source
-# SU_H2O2     | 1      | xyz  | C    | climatological H2O2 source
+ SU_NO3      | 1      | xyz  | C    | climatological NO3 source
+ SU_OH       | 1      | xyz  | C    | climatological OH source
+ SU_H2O2     | 1      | xyz  | C    | climatological H2O2 source
 #........................................................................................
  SU_BIOMASS  | 1      | xy   | N   | biomass burning emissions
  SU_ANTHROL1 | 1      | xy   | N   | anthropogenic BF emissions
