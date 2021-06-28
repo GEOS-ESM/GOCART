@@ -4568,11 +4568,11 @@ K_LOOP: do k = km, 1, -1
             case (1)
                kan1 = kan1 + kan
             case (2)
-               kan2 = kan2 + kan
+               kan1 = kan1 + kan
             case (3)
                kan2 = kan2 + kan
             case (4)
-               kan3 = kan3 + kan
+               kan2 = kan2+ kan
             case (5)
                kan3 = kan3 + kan
          end select
