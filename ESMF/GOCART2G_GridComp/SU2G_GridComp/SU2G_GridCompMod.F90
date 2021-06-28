@@ -54,9 +54,6 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
 !  !Sulfer state
    type, extends(GA_Environment) :: SU2G_GridComp
       integer :: myDOW = -1     ! my Day of the week: Sun=1, Mon=2,...,Sat=7
-      logical :: using_GMI_OH
-      logical :: using_GMI_NO3
-      logical :: using_GMI_H2O2
       logical :: diurnal_bb     ! diurnal biomass burning
       integer :: nymd_last = -1 ! Previous nymd. Updated daily
       integer :: nymd_oxidants = -1 ! Update the oxidant files?
@@ -164,9 +161,6 @@ contains
     allocate(self%sigma(self%nbins), __STAT__)
 
 !   process SU-specific items
-    call ESMF_ConfigGetAttribute(cfg, self%using_GMI_H2O2, label='using_GMI_H2O2:', __RC__)
-    call ESMF_ConfigGetAttribute(cfg, self%using_GMI_OH,   label='using_GMI_OH:',   __RC__)
-    call ESMF_ConfigGetAttribute(cfg, self%using_GMI_NO3,  label='using_GMI_NO3:',  __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen, label='volcano_srcfilen:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', __RC__)
@@ -759,6 +753,7 @@ contains
     integer, dimension(:), allocatable  :: iPointVolc, jPointVolc, iPoint, jPoint
     real, dimension(:,:,:), allocatable :: emissions_point
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
+    logical :: fileExists
 
     real, pointer, dimension(:,:,:) :: dummyMSA => null() ! This is so the model can run without MSA enabled
 
@@ -994,7 +989,6 @@ contains
     character(len=ESMF_MAXSTR)        :: short_name
     real, pointer, dimension(:,:,:)   :: int_ptr
 
-    real, pointer, dimension(:,:,:)  ::  oh, no3, h2o2
     real, dimension(:,:,:), allocatable ::  xoh, xno3, xh2o2
 
     real, dimension(:,:), allocatable :: drydepositionf
@@ -1066,7 +1060,7 @@ contains
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
-                                oh, no3, h2o2, &
+                                SU_OH, SU_NO3, SU_H2O2, &
                                 xoh, xno3, xh2o2, self%recycle_h2o2, __RC__)
 
 !   SU Settling
