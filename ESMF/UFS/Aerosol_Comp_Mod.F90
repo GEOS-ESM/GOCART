@@ -35,8 +35,10 @@ module Aerosol_Comp_Mod
       "FCLD                            ", "inst_cloud_frac_levels          "  &
     ]
 
-  character(len=*), dimension(*,2), parameter :: &
-    fieldMap = reshape(fieldPairList, [size(fieldPairList)/2,2], order=[2,1])
+  integer, parameter :: fieldMapSize = size(fieldPairList)/2
+
+  character(len=*), dimension(fieldMapSize,2), parameter :: &
+    fieldMap = reshape(fieldPairList, [fieldMapSize,2], order=[2,1])
 
   private
 
@@ -57,7 +59,6 @@ contains
     integer :: localrc, stat
     integer :: imap, item, itemCount
     integer :: rank
-    integer :: fieldMapSize
     integer :: i,j, k, kk, n, ni, nj, nk, nlev, offset, v
     integer, dimension(1) :: plb, pub, rlb, rub
     real(ESMF_KIND_R4) :: blkevap, blkesat
@@ -198,7 +199,6 @@ contains
       ni = size(q, 1)
       nj = size(q, 2)
       nk = size(q, 3)
-      fieldMapSize = size(fieldMap, 1)
 
       do item = 1, itemCount
         if (itemTypeList(item) == ESMF_STATEITEM_FIELD) then
