@@ -12,11 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `CODEOWNERS` to reflect changes in staffing
 - Updated `components.yaml`
   - Added fixture block
-  - Added ESMA_env 3.2.1
-  - Updated ESMA_cmake to 3.4.0
-  - Updated GMAO_Shared to 1.4.0
-  - Updated MAPL to v2.6.7
-- Updated CircleCI to use `large` resource
+  - Added ESMA_env 3.3.0
+  - Updated ESMA_cmake to 3.5.0
+  - Updated GMAO_Shared to 1.4.3
+  - Updated MAPL to v2.7.0
+- Updated CircleCI to use `large` resource and v6.2.4 Baselibs
 - Rename BUILD_UFS CMake flag as UFS_GOCART
 - Rename UFS target as UFS_Aerosols
 - Add CMake macros replacing ecBuild and ESMA_cmake for the UFS
