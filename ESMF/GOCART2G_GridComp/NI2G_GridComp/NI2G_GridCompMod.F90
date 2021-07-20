@@ -656,7 +656,8 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=comp_name, __RC__)
+    call ESMF_GridCompGet (GC, NAME=comp_name, __RC__)
+    call MAPL_Get(mapl, grid=grid, __RC__)
     Iam = trim(comp_name) //'::'// Iam
 
 !   Get my internal MAPL_Generic state

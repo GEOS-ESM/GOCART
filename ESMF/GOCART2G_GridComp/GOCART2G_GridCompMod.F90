@@ -292,7 +292,8 @@ contains
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, name=COMP_NAME, __RC__)
+    call MAPL_Get(MAPL, grid=grid, __RC__)
     Iam = trim(COMP_NAME)//'::'//'Initialize'
 
     if (mapl_am_i_root()) then
@@ -479,6 +480,16 @@ contains
      end subroutine add_aero_states_
 
  end subroutine Initialize
+
+ recursive subroutine Run1(GC, import, export, clock, RC)
+   type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+   type (ESMF_State),    intent(inout) :: import ! Import state
+   type (ESMF_State),    intent(inout) :: export ! Export state
+   type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+   integer, optional,    intent(  out) :: RC     ! Error code:
+
+   call run_thread(GC, import, export, clock, RC)
+ end subroutine Run1
  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !BOP
@@ -487,7 +498,7 @@ contains
 
 ! !INTERFACE:
 
-  subroutine Run1 (GC, import, export, clock, RC)
+  subroutine run_thread (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
@@ -540,7 +551,7 @@ contains
 
     RETURN_(ESMF_SUCCESS)
 
-  end subroutine Run1
+  end subroutine run_thread
 
 !============================================================================
 !BOP

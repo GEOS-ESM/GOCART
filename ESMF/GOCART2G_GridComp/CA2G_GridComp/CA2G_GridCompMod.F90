@@ -709,7 +709,8 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    call MAPL_Get(mapl, grid=grid, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
@@ -837,6 +838,7 @@ contains
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
+    !$omp serial
     if(self%doing_point_emissions) then
        call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                         nymd=nymd, nhms=120000 )
@@ -850,6 +852,7 @@ contains
          self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
        end if
     end if
+    !$omp end serial
 
 !   Get indices for point emissions
 !   -------------------------------
