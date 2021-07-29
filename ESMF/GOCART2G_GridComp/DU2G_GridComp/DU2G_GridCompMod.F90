@@ -694,12 +694,14 @@ contains
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
-    call MAPL_Get(mapl, grid=grid, __RC__)
+   
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -785,7 +787,7 @@ contains
 
 !   Read point emissions file once per day
 !   --------------------------------------
-    !$omp serial
+    !$omp single
     if (self%doing_point_emissions) then
        if (self%day_save /= idd) then
           self%day_save = idd
@@ -802,7 +804,7 @@ contains
           end if
        end if
     end if
-    !$omp end serial
+    !$omp end single
 
 !   Get indices for point emissions
 !   -------------------------------

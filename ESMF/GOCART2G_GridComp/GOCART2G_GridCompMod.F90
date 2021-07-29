@@ -50,6 +50,7 @@ module GOCART2G_GridCompMod
      type(Constituent) :: NI
      real, allocatable :: wavelengths_profile(:) ! wavelengths for profile aop [nm]
      real, allocatable :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
+     logical :: use_threads = .FALSE.
   end type GOCART_State
 
   type wrap_
@@ -152,6 +153,7 @@ contains
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, self%use_threads, label='use_threads:', default=.FALSE., __RC__)
 
 !   Set wavelengths in universal config
 
@@ -292,8 +294,9 @@ contains
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, name=COMP_NAME, __RC__)
-    call MAPL_Get(MAPL, grid=grid, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, __RC__)
+    call MAPL_GridGet ( grid, localCellCountPerDim=dims, __RC__ )
+
     Iam = trim(COMP_NAME)//'::'//'Initialize'
 
     if (mapl_am_i_root()) then
@@ -305,12 +308,10 @@ contains
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
 
-    call MAPL_GridGet ( grid, localCellCountPerDim=dims, __RC__ )
-
 !   Call Generic Initialize
 !   ----------------------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
-
+ 
 !   Get my internal state
 !   ---------------------
     call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
@@ -482,13 +483,50 @@ contains
  end subroutine Initialize
 
  recursive subroutine Run1(GC, import, export, clock, RC)
+   !$ use omp_lib
    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
    type (ESMF_State),    intent(inout) :: import ! Import state
    type (ESMF_State),    intent(inout) :: export ! Export state
    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
    integer, optional,    intent(  out) :: RC     ! Error code:
 
-   call run_thread(GC, import, export, clock, RC)
+   type (MAPL_MetaComp), pointer :: MAPL
+   type(GOCART_State), pointer :: self
+   type(wrap_) :: wrap
+   integer :: thread
+   type(ESMF_State) :: subimport
+   type(ESMF_State) :: subexport
+   integer :: status
+   integer, allocatable :: statuses(:)
+   integer :: num_threads
+   character(len=ESMF_MAXSTR) :: Iam = "Run1" 
+
+   call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, status)
+   VERIFY_(status)
+   self => wrap%ptr
+
+   if(self%use_threads) then
+      call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+      if(MAPL%is_threading_active()) then
+         call run_thread(GC, import, export, clock, __RC__)
+      else
+         num_threads = 1
+         !$ num_threads = omp_get_max_threads()
+         call MAPL%activate_threading(num_threads)
+         allocate(statuses(num_threads), __STAT__)
+         !$omp parallel
+         thread = 0
+         !$ thread = omp_get_thread_num() 
+         subimport = MAPL%get_import_state()
+         subexport = MAPL%get_export_state()
+         call run_thread(GC, subimport, subexport, clock, RC=statuses(thread+1))
+         !$omp end parallel
+         call MAPL%deactivate_threading()
+      end if
+   else
+      call run_thread(GC, import, export, clock, __RC__)
+   end if
+   RETURN_(ESMF_SUCCESS)
  end subroutine Run1
  
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -521,6 +559,7 @@ contains
     type (ESMF_State)                   :: internal
 
     integer                             :: i
+    integer, allocatable :: status_array(:)
 
     __Iam__('Run1')
 
@@ -544,9 +583,15 @@ contains
 
 !   Run the children
 !   -----------------
+    allocate(status_array(size(gcs))) 
     do i = 1, size(gcs)
-      call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, __RC__)
+      call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, RC=status_array(i))
     end do
+
+    do i = 1, size(gcs) 
+       VERIFY_(status_array(i))
+    end do
+    deallocate(status_array)
 
 
     RETURN_(ESMF_SUCCESS)

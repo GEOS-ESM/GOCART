@@ -336,8 +336,8 @@ contains
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, name=COMP_NAME, config=universal_cfg, __RC__)
-    call MAPL_Get(MAPL, grid=grid, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
+   
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
 !   Get my internal MAPL_Generic state
@@ -652,12 +652,14 @@ contains
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
-    call MAPL_Get(mapl, grid=grid, __RC__)
+   
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------

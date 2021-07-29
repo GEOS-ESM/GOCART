@@ -409,8 +409,8 @@ contains
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, name=COMP_NAME, config=universal_cfg, __RC__)
-    call MAPL_Get(MAPL, grid=grid, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
+    
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
 !   Get my internal MAPL_Generic state
@@ -768,13 +768,14 @@ contains
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
-    call MAPL_Get(mapl, grid=grid, __RC__)
-
+   
     Iam = trim(comp_name) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -843,7 +844,7 @@ contains
 
 !   Update emissions/production if necessary (daily)
 !   -----------------------------------------------
-    !$omp serial
+    !$omp single
     if(self%nymd_last /= nymd) then
        self%nymd_last = nymd
 
@@ -859,7 +860,7 @@ contains
           if(self%volcano_srcfilen(1:9) == '/dev/null') self%nVolc = 0
        end if
     end if
-    !$omp end serial
+    !$omp end single
 
 !   Apply volcanic emissions
 !   ------------------------
@@ -916,7 +917,7 @@ contains
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
-    !$omp serial
+    !$omp single
     if(self%doing_point_emissions) then
        call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                          nymd=nymd, nhms=120000 )
@@ -930,7 +931,7 @@ contains
          self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
        end if
     endif
-    !$omp end serial
+    !$omp end single
 
 !   Get indices for point emissions
 !   -------------------------------

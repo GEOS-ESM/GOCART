@@ -31,3 +31,6 @@ esma_add_library (${this}
 mapl_acg (${this}   GOCART2G_StateSpecs.rc
           IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
           GET_POINTERS DECLARE_POINTERS)
+if (OMP) 
+target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
+endif()
