@@ -13,3 +13,4 @@ if (OMP)
   target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
 endif()
 target_link_libraries(${this} PRIVATE MAPL.profiler)
+

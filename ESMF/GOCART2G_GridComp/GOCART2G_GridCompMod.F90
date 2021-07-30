@@ -504,6 +504,8 @@ contains
    type(ESMF_VM) :: vm
    type(ESMF_GridComp) :: thread_gc
    integer :: i
+   
+   call ESMF_VmGetCurrent(vm, __RC__)
 
    call start_global_time_profiler('run1()')
    call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, status)
@@ -521,6 +523,7 @@ contains
          call MAPL%activate_threading(num_threads, __RC__)
          call stop_global_time_profiler('activate_threads')
          call start_global_time_profiler('parallel')
+
          allocate(statuses(num_threads), __STAT__)
          statuses=0
          !$omp parallel default(none), &
@@ -616,7 +619,6 @@ contains
        call stop_global_time_profiler(trim(gcNames(i)))
        VERIFY_(userstatus)
        VERIFY_(status)
-
     end do
     call stop_global_time_profiler('loop children')
 
@@ -741,7 +743,8 @@ contains
     do i = 1, size(gcs)
       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
       if ((index(child_name, 'data')) == 0) then ! only execute Run2 method if a computational instance
-         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, __RC__)
+         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, userRC=status)
+         VERIFY_(status)
       end if
     end do
 

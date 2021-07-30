@@ -11,6 +11,10 @@ if (OMP)
   target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
 endif()
 
+if (OMP)                                                                               
+   target_link_libraries (${this} PRIVATE OpenMP::OpenMP_Fortran)                     
+endif()              
+
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/@GSW )
     set (gsw_ECBUILD_SYSTEM_INCLUDED TRUE)
 endif()
