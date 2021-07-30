@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed return code handling
 - Fixed uninitialized rc in Cubic in process library
 - Fixed build issue with GNU 9.2.0
+- Fixed optical properties computation and set 'aerosol_monochromatic_optics_wavelength:' units as 'nm'.
 
 ### Removed
 
