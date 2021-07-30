@@ -1131,8 +1131,8 @@ if(mapl_am_i_root()) print*,trim(comp_name),'2G SetServices BEGIN'
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
-                            self%diag_MieTable(self%instance)%channels*1.0e-9, &
-                            self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
+                            self%diag_MieTable(self%instance)%channels, &
+                            self%wavelengths_profile, self%wavelengths_vertint, &
                             t, airdens, delp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &
                             MSASMASS, MSACMASS, &

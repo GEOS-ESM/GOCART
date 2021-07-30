@@ -110,7 +110,7 @@ contains
     type (wrap_)                                  :: wrap
 
     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
-    integer, allocatable, dimension(:) :: wavelengths_diagmie
+    real, allocatable, dimension(:) :: wavelengths_diagmie
 
     __Iam__('SetServices')
 
@@ -152,6 +152,12 @@ contains
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+
+!   Convert input wavelengths from nm to m for internal use
+
+    self%wavelengths_profile = 1.e-09 * self%wavelengths_profile
+    self%wavelengths_vertint = 1.e-09 * self%wavelengths_vertint
+    wavelengths_diagmie      = 1.e-09 * wavelengths_diagmie
 
 !   Set wavelengths in universal config
 

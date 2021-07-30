@@ -838,8 +838,8 @@ contains
 !   -------------------
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
-                             self%rup, self%diag_MieTable(self%instance)%channels*1.0e-9, self%wavelengths_profile*1.0e-9, &
-                             self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens, &
+                             self%rup, self%diag_MieTable(self%instance)%channels, self%wavelengths_profile, &
+                             self%wavelengths_vertint, SS, MAPL_GRAV, t, airdens, &
                              rh2, u, v, delp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSCATAU,     &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
