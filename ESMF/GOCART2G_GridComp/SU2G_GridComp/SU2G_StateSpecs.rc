@@ -9,6 +9,7 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
  FROCEAN    | 1      | xy   | N    | fraction_of_ocean
  LWI        | 1      | xy   | N   | land-ocean-ice_mask
+ TROPP      | Pa     | xy   | N   | tropopause_pressure_based_on_blended_estimate
  U10M       | m s-1  | xy   | N   | 10-meter_eastward_wind
  V10M       | m s-1  | xy   | N   | 10-meter_northward_wind
  AREA       | m^2    | xy   | N   | agrid_cell_area
@@ -90,7 +91,9 @@ category: EXPORT
  SUFLUXV   | kg m-1 s-1 | xy  | N    |            | SO4 column v-wind mass flux
  SO4MASS   | kg kg-1    | xyz | C    |            | SO4 Aerosol Mass Mixing Ratio
  SUEXTTAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT
+ SUSTEXTTAU|      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT Stratosphere
  SUSCATAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT
+ SUSTSCATAU|      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT Stratosphere
  SO4SAREA  | m2 m-3     | xyz | C    |            | SO4 Surface Area Density
  SO4SNUM   | m-3        | xyz | C    |            | SO4 Number Density
 

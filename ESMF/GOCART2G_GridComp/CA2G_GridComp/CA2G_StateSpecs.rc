@@ -10,6 +10,7 @@ category: IMPORT
  FROCEAN    | 1      | xy   | N   |      | fraction_of_ocean
  FRACI      | 1      | xy   | N   |      | ice_covered_fraction_of_tile
  LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
+ TROPP      | Pa     | xy   | N   |      | tropopause_pressure_based_on_blended_estimate
  U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
  V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
  USTAR      | m s-1  | xy   | N   |      | surface_velocity_scale
@@ -89,7 +90,9 @@ category: EXPORT
  CASMASS*   | kg m-3     | xy  | N   |       | Carbonaceous Aerosol Surface Mass Concentration    
  CACMASS*   | kg m-2     | xy  | N   |       | Carbonaceous Aerosol Column Mass Density           
  CAEXTTAU*  |      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT       
+ CASTEXTTAU*|      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT Stratosphere      
  CASCATAU*  |      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT       
+ CASTSCATAU*|      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT Stratosphere     
  CAANGSTR*  |      1     | xy  | N   |       | Carbonaceous Aerosol Angstrom parameter [470-870 nm] 
  CAFLUXU*   | kg m-1 s-1 | xy  | N   |       | Carbonaceous Aerosol column u-wind mass flux       
  CAFLUXV*   | kg m-1 s-1 | xy  | N   |       | Carbonaceous Aerosol column v-wind mass flux       

@@ -2918,8 +2918,8 @@ CONTAINS
 ! !INTERFACE:
    subroutine Aero_Compute_Diags (mie_table, km, klid, nbegin, nbins, rlow, rup, channels, &
                                   wavelengths_profile, wavelengths_vertint, aerosol, &
-                                  grav, tmpu, rhoa, rh, u, v, delp, &
-                                  sfcmass, colmass, mass, exttau, scatau, &
+                                  grav, tmpu, rhoa, rh, u, v, delp, ple,tropp, &
+                                  sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
                                   sfcmass25, colmass25, mass25, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, &
                                   exttaufm, scataufm, angstrom, aerindx, NO3nFlag, rc )
@@ -2945,6 +2945,8 @@ CONTAINS
    real, pointer, dimension(:,:,:), intent(in) :: rh    ! relative humidity [1] 
    real, pointer, dimension(:,:,:), intent(in) :: u     ! east-west wind [m/s]
    real, pointer, dimension(:,:,:), intent(in) :: v     ! north-south wind [m/s]
+   real, pointer, dimension(:,:,:), intent(in) :: ple   ! level edge air pressure [Pa]
+   real, pointer, dimension(:,:), intent(in)   :: tropp ! tropopause pressure [Pa]
    logical, optional, intent(in)               :: NO3nFlag
 
 ! !OUTPUT PARAMETERS:
@@ -2955,7 +2957,9 @@ CONTAINS
    real, pointer, dimension(:,:,:), intent(inout) :: conc      ! 3d mass concentration, kg/m3
 !  Total optical properties
    real, optional, pointer, dimension(:,:,:), intent(inout)   :: exttau    ! ext. AOT at 550 nm
+   real, optional, pointer, dimension(:,:,:), intent(inout)   :: stexttau  ! stratospheric ext. AOT at 550 nm
    real, optional, pointer, dimension(:,:,:), intent(inout)   :: scatau    ! sct. AOT at 550 nm
+   real, optional, pointer, dimension(:,:,:), intent(inout)   :: stscatau  ! stratospheric sct. AOT at 550 nm
    real, optional, pointer, dimension(:,:), intent(inout)   :: sfcmass25 ! sfc mass concentration kg/m3 (pm2.5)
    real, optional, pointer, dimension(:,:), intent(inout)   :: colmass25 ! col mass density kg/m2 (pm2.5)
    real, optional, pointer, dimension(:,:,:), intent(inout) :: mass25    ! 3d mass mixing ratio kg/kg (pm2.5)
@@ -3213,14 +3217,18 @@ CONTAINS
     end if !present(extcoef)...
 
    if( (present(exttau) .and. associated(exttau)) .or. &
+       (present(stexttau) .and. associated(stexttau)) .or. &
        (present(scatau) .and. associated(scatau)) .or. &
+       (present(stscatau) .and. associated(stscatau)) .or. &
        (present(exttau25) .and. associated(exttau25)) .or. &
        (present(exttaufm) .and. associated(exttaufm)) .or. &
        (present(scatau25) .and. associated(scatau25)) .or. &
        (present(scataufm) .and. associated(scataufm)) ) then
 
       if( present(exttau) .and. associated(exttau)) exttau = 0.
+      if( present(stexttau) .and. associated(stexttau)) stexttau = 0.
       if( present(scatau) .and. associated(scatau)) scatau = 0.
+      if( present(stscatau) .and. associated(stscatau)) stscatau = 0.
 
       if( present(exttau25) .and. associated(exttau25)) exttau25 = 0.
       if( present(scatau25) .and. associated(scatau25)) scatau25 = 0.
@@ -3242,6 +3250,14 @@ CONTAINS
 
 !                Integrate in the vertical
                  if( present(exttau) .and. associated(exttau) ) exttau(i,j,w) = exttau(i,j,w) + tau
+                 if( present(stexttau) .and. associated(stexttau) ) then
+                    if (ple(i,j,k) .le. tropp(i,j)) then
+                        stexttau(i,j,w) = stexttau(i,j,w) + tau
+                    elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
+                        stexttau(i,j,w) = stexttau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau
+                    endif
+                 endif
+  
                  if( present(exttaufm) .and. associated(exttaufm)) then
                     if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
                        exttaufm(i,j,w) = exttaufm(i,j,w) + tau
@@ -3259,6 +3275,13 @@ CONTAINS
                  end if
 
                  if( present(scatau) .and. associated(scatau) ) scatau(i,j,w) = scatau(i,j,w) + tau*ssa
+                 if( present(stscatau) .and. associated(stscatau) ) then
+                    if (ple(i,j,k) .le. tropp(i,j)) then
+                        stscatau(i,j,w) = stscatau(i,j,w) + tau*ssa
+                    elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
+                        stscatau(i,j,w) = stscatau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau*ssa
+                    endif 
+                 endif
                  if( present(scataufm) .and. associated(scataufm) ) then
                     if( present(NO3nFlag) .and. (NO3nFlag)) then
                        scataufm(i,j,w) = scataufm(i,j,w) + tau * ssa
@@ -6389,13 +6412,13 @@ K_LOOP: do k = km, 1, -1
 
    subroutine SU_Compute_Diags ( km, klid, rmed, sigma, rhop, grav, pi, nSO4, mie_table, channels, &
                                  wavelengths_profile, wavelengths_vertint, &
-                                 tmpu, rhoa, delp, rh, u, v, &
+                                 tmpu, rhoa, delp, ple, tropp,rh, u, v, &
                                  DMS, SO2, SO4, MSA, &
                                  dmssfcmass, dmscolmass, &
                                  msasfcmass, msacolmass, &
                                  so2sfcmass, so2colmass, &
                                  so4sfcmass, so4colmass, &
-                                 exttau, scatau, so4mass, so4conc, extcoef, &
+                                 exttau, stexttau,scatau, stscatau,so4mass, so4conc, extcoef, &
                                  scacoef, angstrom, fluxu, fluxv, sarea, snum, rc )
 
 ! !USES:
@@ -6417,6 +6440,8 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:,:), intent(in) :: tmpu    ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density [kg/m^3]
    real, pointer, dimension(:,:,:), intent(in) :: delp    ! pressure thickness [Pa]
+   real, pointer, dimension(:,:,:), intent(in) :: ple   ! level edge air pressure [Pa]
+   real, pointer, dimension(:,:), intent(in)   :: tropp ! tropopause pressure [Pa]   
    real, pointer, dimension(:,:,:), intent(in) :: rh      ! relative humidity [1]
    real, pointer, dimension(:,:,:), intent(in) :: u       ! east-west wind [m s-1]
    real, pointer, dimension(:,:,:), intent(in) :: v       ! north-south wind [m s-1]
@@ -6435,7 +6460,9 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:),   intent(inout)  :: so4sfcmass ! sfc mass concentration [kg/m3]
    real, pointer, dimension(:,:),   intent(inout)  :: so4colmass ! col mass density [kg/m2]
    real, pointer, dimension(:,:,:), intent(inout)  :: exttau     ! ext. AOT at 550 nm
+   real, pointer, dimension(:,:,:), intent(inout)  :: stexttau   ! Stratosphere ext. AOT at 550 nm
    real, pointer, dimension(:,:,:), intent(inout)  :: scatau     ! sct. AOT at 550 nm
+   real, pointer, dimension(:,:,:), intent(inout)  :: stscatau   ! Stratosphere sct. AOT at 550 nm
    real, pointer, dimension(:,:,:), intent(inout)  :: so4mass    ! 3D sulfate mass mr
    real, pointer, dimension(:,:,:), intent(inout)  :: so4conc    ! 3D mass concentration, [kg/m3]
    real, pointer, dimension(:,:,:,:), intent(inout)  :: extcoef    ! 3D ext. coefficient, [1/m]
@@ -6667,10 +6694,13 @@ K_LOOP: do k = km, 1, -1
       enddo
    endif
 
-   if( associated(exttau) .or. associated(scatau) ) then
+   if( associated(exttau) .or. associated(stexttau) .or. & 
+       associated(scatau) .or. associated(stscatau)) then
 
       if (associated(exttau)) exttau = 0.
+      if (associated(stexttau)) stexttau = 0.
       if (associated(scatau)) scatau = 0.
+      if (associated(stscatau)) stscatau = 0.
 
       do w = 1, size(wavelengths_vertint)
        do k = klid, km
@@ -6684,9 +6714,27 @@ K_LOOP: do k = km, 1, -1
           if( associated(exttau) ) then
            exttau(i,j,w) = exttau(i,j,w) + tau
           endif
-          if( associated(scatau) ) then
-           scatau(i,j,w) = scatau(i,j,w) + tau*ssa
-          endif
+
+          if(associated(stexttau) ) then
+             if (ple(i,j,k) .le. tropp(i,j)) then
+                 stexttau(i,j,w) = stexttau(i,j,w) + tau
+             elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
+                 stexttau(i,j,w) = stexttau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau
+             endif
+           endif
+
+           if( associated(scatau) ) then
+            scatau(i,j,w) = scatau(i,j,w) + tau*ssa
+           endif
+
+           if( associated(stscatau) ) then
+              if (ple(i,j,k) .le. tropp(i,j)) then
+                 stscatau(i,j,w) = stscatau(i,j,w) + tau*ssa
+              elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
+                 stscatau(i,j,w) = stscatau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau*ssa
+              endif 
+           endif
+
 
          enddo
         enddo

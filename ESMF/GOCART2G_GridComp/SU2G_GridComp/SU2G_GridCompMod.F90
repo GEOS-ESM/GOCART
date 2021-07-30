@@ -909,6 +909,10 @@ contains
                          fMassDMS, SU_DMSO, dms, SUEM, nDMS, __RC__)
     end if
 
+!   Add source of OCS-produced SO2
+!   ------------------------------
+    SO2 = SO2 + pSO2_OCS*self%cdt
+
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
     if(self%doing_point_emissions) then
@@ -989,10 +993,10 @@ contains
     character(len=ESMF_MAXSTR)        :: short_name
     real, pointer, dimension(:,:,:)   :: int_ptr
 
-    real, dimension(:,:,:), allocatable ::  xoh, xno3, xh2o2
+    real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
 
-    real, dimension(:,:), allocatable :: drydepositionf
-    real, pointer, dimension(:,:,:) :: dummyMSA => null() ! this is so the model can run without MSA enabled
+    real, dimension(:,:), allocatable   :: drydepositionf
+    real, pointer, dimension(:,:,:)     :: dummyMSA => null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing  
 
 #include "SU2G_DeclarePointer___.h"
@@ -1107,12 +1111,12 @@ contains
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
                             self%diag_MieTable(self%instance)%channels*1.0e-9, &
                             self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
-                            t, airdens, delp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
+                            t, airdens, delp, ple,tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &
                             MSASMASS, MSACMASS, &
                             SO2SMASS, SO2CMASS, &
                             SO4SMASS, SO4CMASS, &
-                            SUEXTTAU, SUSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
+                            SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
     RETURN_(ESMF_SUCCESS)

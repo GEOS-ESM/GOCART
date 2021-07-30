@@ -10,6 +10,7 @@ category: IMPORT
  FROCEAN    | 1      | xy   | N   |      | fraction_of_ocean
  FRACI      | 1      | xy   | N   |      | ice_covered_fraction_of_tile
  LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
+ TROPP      | Pa     | xy   | N   |      | tropopause_pressure_based_on_blended_estimate
  U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
  V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
  USTAR      | m s-1  | xy   | N   |      | surface_velocity_scale
@@ -54,7 +55,9 @@ category: EXPORT
  SSSMASS   | kg m-3     | xy  | N   |            | Sea Salt Surface Mass Concentration
  SSCMASS   | kg m-2     | xy  | N   |            | Sea Salt Column Mass Density
  SSEXTTAU  |    1       | xy  | N   | size(self%wavelengths_vertint) | Sea Salt Extinction AOT
+ SSSTEXTTAU|    1       | xy  | N   | size(self%wavelengths_vertint) | Sea Salt Extinction AOT Stratosphere
  SSSCATAU  |    1       | xy  | N   | size(self%wavelengths_vertint) | Sea Salt Scattering AOT
+ SSSTSCATAU|    1       | xy  | N   | size(self%wavelengths_vertint) | Sea Salt Scattering AOT Stratosphere
  SSSMASS25 | kg m-3     | xy  | N   |            | Sea Salt Surface Mass Concentration - PM 2.5
  SSCMASS25 | kg m-2     | xy  | N   |            | Sea Salt Column Mass Density - PM 2.5
  SSEXTT25  |    1       | xy  | N   | size(self%wavelengths_vertint) | Sea Salt Extinction AOT - PM 2.5

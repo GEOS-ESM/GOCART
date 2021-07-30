@@ -8,6 +8,7 @@ category: IMPORT
      NAME    | UNITS    | DIMS | VLOC | UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
  LWI         | 1        | xy   | N    |           | land-ocean-ice_mask
+ TROPP       | Pa       | xy   | N    |           | tropopause_pressure_based_on_blended_estimate
  USTAR       | m s-1    | xy   | N    |           | surface_velocity_scale
  ZPBL        | m        | xy   | N    |           | planetary_boundary_layer_height
  SH          | w m-2    | xy   | N    |           | sensible_heat_flux_from_turbulence
@@ -88,7 +89,9 @@ category: EXPORT
   NIEXTT25  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Extinction AOT - PM 2.5 um 
   NISCAT25  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Scattering AOT - PM 2.5 um 
   NIEXTTAU  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Extinction AOT 
+  NISTEXTTAU|      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Extinction AOT Stratosphere
   NISCATAU  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Scattering AOT
+  NISTSCATAU|      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Scattering AOT Stratosphere
   NIANGSTR  |      1     | xy  | N   |           | Nitrate Angstrom parameter [470-870 nm] 
   NIFLUXU   | kg m-1 s-1 | xy  | N   |           | Nitrate column u-wind mass flux 
   NIFLUXV   | kg m-1 s-1 | xy  | N   |           | Nitrate column v-wind mass flux 

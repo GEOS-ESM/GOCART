@@ -578,29 +578,33 @@ contains
     real, pointer, dimension(:,:)       :: LATS
     real, pointer, dimension(:,:)       :: LONS
 
-    real, pointer, dimension(:,:,:) :: duexttau, duscatau, &
+    real, pointer, dimension(:,:,:) :: duexttau, dustexttau, &
+                                       duscatau, dustscatau, &
                                        duextt25, duscat25, &
                                        duexttfm, duscatfm
     real, pointer, dimension(:,:)   :: duangstr, dusmass,  &
                                        dusmass25
-    real, pointer, dimension(:,:,:) :: ssexttau, ssscatau, &
+    real, pointer, dimension(:,:,:) :: ssexttau, ssstexttau, &
+                                       ssscatau, ssstscatau, &
                                        ssextt25, ssscat25, &
                                        ssexttfm, ssscatfm
     real, pointer, dimension(:,:)   :: ssangstr, sssmass,  &
                                        sssmass25
-    real, pointer, dimension(:,:,:) :: niexttau, niscatau, &
+    real, pointer, dimension(:,:,:) :: niexttau, nistexttau, &
+                                       niscatau, nistscatau, &
                                        niextt25, niscat25, &
                                        niexttfm, niscatfm
     real, pointer, dimension(:,:)   :: niangstr, nismass,  &
                                        nismass25
     real, pointer, dimension(:,:)   :: nh4smass
-    real, pointer, dimension(:,:,:) :: suexttau, suscatau
+    real, pointer, dimension(:,:,:) :: suexttau, sustexttau, &
+                                       suscatau, sustscatau
     real, pointer, dimension(:,:)   :: suangstr, so4smass
-    real, pointer, dimension(:,:,:) :: bcexttau, bcscatau
+    real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau 
     real, pointer, dimension(:,:)   :: bcangstr, bcsmass
-    real, pointer, dimension(:,:,:) :: ocexttau, ocscatau
+    real, pointer, dimension(:,:,:) :: ocexttau, ocstexttau, ocscatau, ocstscatau
     real, pointer, dimension(:,:)   :: ocangstr, ocsmass
-    real, pointer, dimension(:,:,:) :: brexttau, brscatau
+    real, pointer, dimension(:,:,:) :: brexttau, brstexttau, brscatau, brstscatau
     real, pointer, dimension(:,:)   :: brangstr, brsmass
     real, pointer, dimension(:,:,:) :: pso4
     real, allocatable               :: tau1(:,:), tau2(:,:)
@@ -638,7 +642,9 @@ contains
 #include "GOCART2G_GetPointer___.h"
 
     if(associated(totexttau)) totexttau = 0.
+    if(associated(totstexttau)) totstexttau = 0.
     if(associated(totscatau)) totscatau = 0.
+    if(associated(totstscatau)) totstscatau = 0.
     if(associated(totextt25)) totextt25 = 0.
     if(associated(totscat25)) totscat25 = 0.
     if(associated(totexttfm)) totexttfm = 0.
@@ -695,7 +701,9 @@ contains
     do n = 1, size(self%DU%instances)
        if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttau, 'DUEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustexttau, 'DUSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatau, 'DUSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustscatau, 'DUSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', __RC__)
@@ -705,7 +713,9 @@ contains
       !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(duexttau)) totexttau(:,:,w) = totexttau(:,:,w)+duexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(dustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+dustexttau(:,:,w)
              if(associated(totscatau) .and. associated(duscatau)) totscatau(:,:,w) = totscatau(:,:,w)+duscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(dustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+dustscatau(:,:,w)
              if(associated(totextt25) .and. associated(duextt25)) totextt25(:,:,w) = totextt25(:,:,w)+duextt25(:,:,w)
              if(associated(totscat25) .and. associated(duscat25)) totscat25(:,:,w) = totscat25(:,:,w)+duscat25(:,:,w)
              if(associated(totexttfm) .and. associated(duexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+duexttfm(:,:,w)
@@ -732,7 +742,9 @@ contains
     do n = 1, size(self%SS%instances)
        if ((self%SS%instances(n)%is_active) .and. (index(self%SS%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttau, 'SSEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstexttau, 'SSSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatau, 'SSSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstscatau, 'SSSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextt25, 'SSEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscat25, 'SSSCAT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttfm, 'SSEXTTFM', __RC__)
@@ -742,7 +754,9 @@ contains
       !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(ssexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ssexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(ssstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+ssstexttau(:,:,w)
              if(associated(totscatau) .and. associated(ssscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ssscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(ssstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+ssstscatau(:,:,w)
              if(associated(totextt25) .and. associated(ssextt25)) totextt25(:,:,w) = totextt25(:,:,w)+ssextt25(:,:,w)
              if(associated(totscat25) .and. associated(ssscat25)) totscat25(:,:,w) = totscat25(:,:,w)+ssscat25(:,:,w)
              if(associated(totexttfm) .and. associated(ssexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+ssexttfm(:,:,w)
@@ -769,7 +783,9 @@ contains
     do n = 1, size(self%NI%instances)
        if ((self%NI%instances(n)%is_active) .and. (index(self%NI%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', __RC__)
@@ -779,7 +795,9 @@ contains
       !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(niexttau)) totexttau(:,:,w) = totexttau(:,:,w)+niexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(nistexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+nistexttau(:,:,w)
              if(associated(totscatau) .and. associated(niscatau)) totscatau(:,:,w) = totscatau(:,:,w)+niscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(nistscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+nistscatau(:,:,w)
              if(associated(totextt25) .and. associated(niextt25)) totextt25(:,:,w) = totextt25(:,:,w)+niextt25(:,:,w)
              if(associated(totscat25) .and. associated(niscat25)) totscat25(:,:,w) = totscat25(:,:,w)+niscat25(:,:,w)
              if(associated(totexttfm) .and. associated(niexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+niexttfm(:,:,w)
@@ -807,13 +825,17 @@ contains
     do n = 1, size(self%SU%instances)
        if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(suexttau)) totexttau(:,:,w) = totexttau(:,:,w)+suexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(sustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+sustexttau(:,:,w)
              if(associated(totscatau) .and. associated(suscatau)) totscatau(:,:,w) = totscatau(:,:,w)+suscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(sustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+sustscatau(:,:,w)
              if(associated(totextt25) .and. associated(suexttau)) totextt25(:,:,w) = totextt25(:,:,w)+suexttau(:,:,w)
              if(associated(totscat25) .and. associated(suscatau)) totscat25(:,:,w) = totscat25(:,:,w)+suscatau(:,:,w)
              if(associated(totexttfm) .and. associated(suexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+suexttau(:,:,w)
@@ -854,13 +876,17 @@ contains
            .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CAEXTTAUCA.bc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CASTEXTTAUCA.bc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CASCATAUCA.bc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CASTSCATAUCA.bc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CAANGSTRCA.bc', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(bcexttau)) totexttau(:,:,w) = totexttau(:,:,w)+bcexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(bcstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+bcstexttau(:,:,w)
              if(associated(totscatau) .and. associated(bcscatau)) totscatau(:,:,w) = totscatau(:,:,w)+bcscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(bcstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+bcstscatau(:,:,w)
              if(associated(totextt25) .and. associated(bcexttau)) totextt25(:,:,w) = totextt25(:,:,w)+bcexttau(:,:,w)
              if(associated(totscat25) .and. associated(bcscatau)) totscat25(:,:,w) = totscat25(:,:,w)+bcscatau(:,:,w)
              if(associated(totexttfm) .and. associated(bcexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+bcexttau(:,:,w)
@@ -883,13 +909,17 @@ contains
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CAEXTTAUCA.oc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CASTEXTTAUCA.oc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CASCATAUCA.oc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CASTSCATAUCA.oc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CAANGSTRCA.oc', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(ocexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ocexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(ocstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+ocstexttau(:,:,w)
              if(associated(totscatau) .and. associated(ocscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ocscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(ocstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+ocstscatau(:,:,w)
              if(associated(totextt25) .and. associated(ocexttau)) totextt25(:,:,w) = totextt25(:,:,w)+ocexttau(:,:,w)
              if(associated(totscat25) .and. associated(ocscatau)) totscat25(:,:,w) = totscat25(:,:,w)+ocscatau(:,:,w)
              if(associated(totexttfm) .and. associated(ocexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+ocexttau(:,:,w)
@@ -912,13 +942,17 @@ contains
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CAEXTTAUCA.br', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CASTEXTTAUCA.br', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CASCATAUCA.br', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CASTSCATAUCA.br', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CAANGSTRCA.br', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(brexttau)) totexttau(:,:,w) = totexttau(:,:,w)+brexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(brstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+brstexttau(:,:,w)
              if(associated(totscatau) .and. associated(brscatau)) totscatau(:,:,w) = totscatau(:,:,w)+brscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(brstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+brstscatau(:,:,w)
              if(associated(totextt25) .and. associated(brexttau)) totextt25(:,:,w) = totextt25(:,:,w)+brexttau(:,:,w)
              if(associated(totscat25) .and. associated(brscatau)) totscat25(:,:,w) = totscat25(:,:,w)+brscatau(:,:,w)
              if(associated(totexttfm) .and. associated(brexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+brexttau(:,:,w)
