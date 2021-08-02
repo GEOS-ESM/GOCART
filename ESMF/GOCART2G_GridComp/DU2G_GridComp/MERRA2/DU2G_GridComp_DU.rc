@@ -5,7 +5,7 @@
 aerosol_radBands_optics_file: ExtData/MERRA2/x/opticsBands_DU.v15_3.RRTMG.nc 
 
 aerosol_monochromatic_optics_file:ExtData/AeroCom/x/optics_DU.v15_3.nc
-aerosol_monochromatic_optics_wavelength: 4.7e-7 5.5e-7 6.7e-7 8.7e-7 ! units: nm
+aerosol_monochromatic_optics_wavelength_in_nm: 470 550 670 870
 n_channels: 4
 
 particle_radius_microns: 0.73 1.4 2.4 4.5 8.0

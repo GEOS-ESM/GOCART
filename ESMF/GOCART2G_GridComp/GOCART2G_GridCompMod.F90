@@ -144,14 +144,14 @@ contains
 !   Retrieve wavelengths from GOCART2G_GridComp.rc
     n_wavelengths_profile = ESMF_ConfigGetLen (myCF, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     n_wavelengths_vertint = ESMF_ConfigGetLen (myCF, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-    n_wavelengths_diagmie = ESMF_ConfigGetLen (myCF, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    n_wavelengths_diagmie = ESMF_ConfigGetLen (myCF, label='aerosol_monochromatic_optics_wavelength_in_nm:', __RC__)
 
     allocate(self%wavelengths_profile(n_wavelengths_profile), self%wavelengths_vertint(n_wavelengths_vertint), &
              wavelengths_diagmie(n_wavelengths_diagmie), __STAT__)
 
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-    call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm:', __RC__)
 
 !   Convert input wavelengths from nm to m for internal use
 
@@ -163,7 +163,7 @@ contains
 
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm:', __RC__)
 
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------

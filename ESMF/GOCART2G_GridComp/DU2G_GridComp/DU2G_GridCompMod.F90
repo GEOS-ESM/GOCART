@@ -544,11 +544,11 @@ contains
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
 
-    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm:', __RC__)
     self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
-                                  label= "aerosol_monochromatic_optics_wavelength:", __RC__) 
+                                  label= "aerosol_monochromatic_optics_wavelength_in_nm:", __RC__) 
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
