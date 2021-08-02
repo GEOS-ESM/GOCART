@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Compute and export PM2.5 and PM10 diagnostic tracers in UFS interface
 - Add NOAA/ARL FENGSHA dust scheme
+- Enabled label enforcer
 
 ## [1.0.1] - 2021-03-22
 
