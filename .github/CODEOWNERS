@@ -16,8 +16,7 @@
 /ESMF/GOCART_GridComp/   @GEOS-ESM/aerosol-team
 
 # GOCART2G is Elliot for now
-#/ESMF/GOCART2G_GridComp/ @GEOS-ESM/aerosol-team
-/ESMF/GOCART2G_GridComp/ @gmao-esherman
+/ESMF/GOCART2G_GridComp/ @GEOS-ESM/aerosol-team
 
 # The CMake Team should know/approve these
 /.github/    @GEOS-ESM/cmake-team
