@@ -10096,7 +10096,7 @@ loop2: DO l = 1,nspecies_HL
       character(:), allocatable :: label_
       real, allocatable :: table(:,:)
       integer :: nCols
-      integer :: status
+      integer :: status, status1, status2, status3
 
       if (present(label)) then
          label_ = trim(label)
@@ -10105,9 +10105,14 @@ loop2: DO l = 1,nspecies_HL
       end if
 
       reader = EmissionReader()
-      call reader%open(filename, __RC__)
-      table = reader%read_table(label=label_, __RC__)
-      call reader%close(__RC__)
+      !$omp critical (process1)
+      call reader%open(filename,rc=status1)
+      table = reader%read_table(label=label_, rc=status2)
+      call reader%close(rc=status3)
+      !$omp end critical (process1)
+      __VERIFY__(status1)
+      __VERIFY__(status2)
+      __VERIFY__(status3)
 
       nCols = size(table,1)
       nPts = size(table,2)
@@ -10124,7 +10129,6 @@ loop2: DO l = 1,nspecies_HL
 
       where(vStart < 0) vStart = 000000
       where(vEnd < 0)   vEnd   = 240000
-      call reader%close()
 
       __RETURN__(__SUCCESS__)
    end subroutine ReadPointEmissions
