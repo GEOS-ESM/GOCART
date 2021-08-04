@@ -929,10 +929,6 @@ contains
 #include "DU2G_GetPointer___.h"
     end associate
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
-
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
 
