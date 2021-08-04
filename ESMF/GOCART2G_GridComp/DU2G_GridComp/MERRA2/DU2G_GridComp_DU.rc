@@ -16,13 +16,13 @@ particle_density: 2500. 2650. 2650. 2650. 2650.
 
 # Emission scheme
 # ---------------
-emission_scheme: 1 # Ginoux
+emission_scheme: ginoux
 source_fraction: 0.0435465   0.106903   0.220117   0.484606   0.144828
 Ch_DU: 0.2 0.2 0.08 0.15 0.08 0.067  # resolution dependent tuning constant for emissions (a,b,c,d,e,f)
 #Ch_DU: 0.2 0.2 0.07 0.07 0.07 0.056 #original values
 #source_fraction: 0.1 0.25 0.25 0.25 0.25
 #----------------
-#emission_scheme: 2 # K14
+#emission_scheme: k14 
 #source_fraction:  0.043 0.106 0.219 0.485 0.144
 #Ch_DU: 0.02 0.02 0.02 0.0161 0.015 0.015 # resolution dependent tuning constant for emissions (a,b,c,d,e,f)
 
