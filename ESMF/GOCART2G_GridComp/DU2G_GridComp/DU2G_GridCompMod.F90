@@ -710,14 +710,6 @@ contains
 !   -----------------------------------
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
-    associate (scheme => self%emission_scheme)
-#include "DU2G_GetPointer___.h"
-    end associate
-
-!   Set du_src to 0 where undefined
-!   --------------------------------
-    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
-
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
@@ -730,6 +722,14 @@ contains
     call ESMF_TimeGet (time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, __RC__)
     call MAPL_PackTime (nymd, iyr, imm , idd)
     call MAPL_PackTime (nhms, ihr, imn, isc)
+
+    associate (scheme => self%emission_scheme)
+#include "DU2G_GetPointer___.h"
+    end associate
+
+!   Set du_src to 0 where undefined
+!   --------------------------------
+    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
 
 !   Get dimensions
 !   ---------------
@@ -910,15 +910,15 @@ contains
 !   -----------------------------------
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
-    associate (scheme => self%emission_scheme)
-#include "DU2G_GetPointer___.h"
-    end associate
-
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+    associate (scheme => self%emission_scheme)
+#include "DU2G_GetPointer___.h"
+    end associate
 
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
