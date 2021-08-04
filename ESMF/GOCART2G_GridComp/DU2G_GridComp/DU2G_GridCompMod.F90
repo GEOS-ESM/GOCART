@@ -757,53 +757,53 @@ contains
 !   -----------------------------
     select case (self%emission_scheme)
 
-      case ('k14')
-        allocate(ustar_, mold=U10M,    __STAT__)
-        allocate(ustar_t_, mold=U10M,  __STAT__)
-        allocate(ustar_ts_, mold=U10M, __STAT__)
-        allocate(R_, mold=U10M,        __STAT__)
-        allocate(H_w_, mold=U10M,      __STAT__)
-        allocate(f_erod_, mold=U10M,   __STAT__)
-        allocate(z_, mold=U10M,        __STAT__)
+    case ('k14')
+       allocate(ustar_, mold=U10M,    __STAT__)
+       allocate(ustar_t_, mold=U10M,  __STAT__)
+       allocate(ustar_ts_, mold=U10M, __STAT__)
+       allocate(R_, mold=U10M,        __STAT__)
+       allocate(H_w_, mold=U10M,      __STAT__)
+       allocate(f_erod_, mold=U10M,   __STAT__)
+       allocate(z_, mold=U10M,        __STAT__)
 
-        z_ = 10.0 ! wind is at 10m
+       z_ = 10.0 ! wind is at 10m
 
-        call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
-                              du_z0, z_, u10n, v10n, ustar,    &
-                              frland, asnow,               &
-                              du_src,                       &
-                              du_sand, du_silt, du_clay,             &
-                              du_texture, du_veg, du_gvf,     &
-                              self%f_swc, self%f_scl, self%uts_gamma, &
-                              MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN,   &
-                              self%clayFlag, self%Ch_DU/1.e-9,  &
-                              emissions_surface,            &
-                              ustar_,                       &
-                              ustar_t_,                     &
-                              ustar_ts_,                    &
-                              R_, H_w_, f_erod_,            &
-                              __RC__ )
+       call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
+                             du_z0, z_, u10n, v10n, ustar,    &
+                             frland, asnow,               &
+                             du_src,                       &
+                             du_sand, du_silt, du_clay,             &
+                             du_texture, du_veg, du_gvf,     &
+                             self%f_swc, self%f_scl, self%uts_gamma, &
+                             MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN,   &
+                             self%clayFlag, self%Ch_DU/1.e-9,  &
+                             emissions_surface,            &
+                             ustar_,                       &
+                             ustar_t_,                     &
+                             ustar_ts_,                    &
+                             R_, H_w_, f_erod_,            &
+                             __RC__ )
 
 
-        if (associated(DU_UST)) DU_UST = ustar_
-        if (associated(DU_UST_T)) DU_UST_T = ustar_t_
-        if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
-        if (associated(DU_DPC)) DU_DPC = R_
-        if (associated(DU_SMC)) DU_SMC = H_w_
-        if (associated(DU_EROD)) DU_EROD = f_erod_
+       if (associated(DU_UST)) DU_UST = ustar_
+       if (associated(DU_UST_T)) DU_UST_T = ustar_t_
+       if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
+       if (associated(DU_DPC)) DU_DPC = R_
+       if (associated(DU_SMC)) DU_SMC = H_w_
+       if (associated(DU_EROD)) DU_EROD = f_erod_
 
-      case ('fengsha')
-        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
-                                  du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_uthres,  &
-                                  self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
-                                  self%rhop, self%sdist, emissions_surface, __RC__)
-      case ('ginoux')
+    case ('fengsha')
+       call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
+                                 du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_uthres,  &
+                                 self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
+                                 self%rhop, self%sdist, emissions_surface, __RC__)
+    case ('ginoux')
 
-        call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
-                                  self%Ch_DU, du_src, MAPL_GRAV, &
-                                  emissions_surface, __RC__)
-      case default
-        _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)
+       call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
+                                 self%Ch_DU, du_src, MAPL_GRAV, &
+                                 emissions_surface, __RC__)
+    case default
+       _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)
     end select
 
 !   Read point emissions file once per day
