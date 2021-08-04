@@ -35,8 +35,6 @@ rhFlag: 0
 # Maring settling velocity correction
 maringFlag: .true. 
 
-r_channels: 4.7e-7 5.5e-7 6.7e-7 8.7e-7
-
 nbins: 5
 
 #point_emissions_srcfilen:  /gpfsm/dnb32/esherman/GOCART_REFACTOR_develop1/RC/dust_point_src_test.rc
