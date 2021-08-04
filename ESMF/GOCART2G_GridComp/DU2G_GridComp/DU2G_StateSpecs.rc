@@ -7,10 +7,12 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
      NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
 #----------------------------------------------------------------------------------------
- DU_SRC     | 1      | xy   | N   | scheme == 'ginoux'  | erod - dust emissions
- DU_CLAY    | 1      | xy   | N   | scheme == 'fengsha' | volume_fraction_of_clay_in_soil
- DU_SAND    | 1      | xy   | N   | scheme == 'fengsha' | volume_fraction_of_sand_in_soil
- DU_SILT    | 1      | xy   | N   | scheme == 'fengsha' | volume_fraction_of_silt_in_soil
+ DU_SRC     | 1      | xy   | N   |      | erod - dust emissions
+ DU_Z0      | 1      | xy   | N   |      | aerodynamic_surface_roughness_for_aeolian_processes
+ DU_GVF     | 1      | xy   | N   |      | GVF
+ DU_CLAY    | 1      | xy   | N   |      | volume_fraction_of_clay_in_soil
+ DU_SAND    | 1      | xy   | N   |      | volume_fraction_of_sand_in_soil
+ DU_SILT    | 1      | xy   | N   |      | volume_fraction_of_silt_in_soil
  DU_RDRAG   | m-1    | xy   | N   | scheme == 'fengsha' | drag_partition
  DU_SSM     | 1      | xy   | N   | scheme == 'fengsha' | sediment_supply_map
  DU_UTHRES  | m s-1  | xy   | N   | scheme == 'fengsha' | surface_dry_threshold_velocity
@@ -18,8 +20,6 @@ category: IMPORT
  SLC        | 1      | xy   | N   | scheme == 'fengsha' | liquid_water_content_of_soil_layer
  WET1       | 1      | xy   | N   |      | surface_soil_wetness
  LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
- DU_Z0      | 1      | xy   | N   |      | aerodynamic_surface_roughness_for_aeolian_processes
- DU_GVF     | 1      | xy   | N   |      | GVF
  DU_TEXTURE | 1      | xy   | N   |      | soil_texture
  DU_VEG     | 1      | xy   | N   |      | vegetation_type
  FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
