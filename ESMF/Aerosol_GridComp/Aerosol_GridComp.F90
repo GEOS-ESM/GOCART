@@ -231,7 +231,7 @@ contains
        else
           call ESMF_ConfigFindLabel(cfg, label=num_bands, isPresent=is_present_in_config, __RC__)
           if (is_present_in_config) then
-             print*, "WARNING: falling back on MAPL NUM_BANDS"
+             if (MAPL_Am_I_Root()) print*, "WARNING: falling back on MAPL NUM_BANDS"
           else
              _ASSERT(0==1, "NUM_BANDS must be an attribute of grid or defined in config file of Aerosol_GridComp")
           end if

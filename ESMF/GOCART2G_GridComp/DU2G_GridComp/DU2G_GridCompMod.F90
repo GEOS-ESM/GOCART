@@ -38,19 +38,28 @@ module DU2G_GridCompMod
 
    integer, parameter         :: NHRES = 6
 
-   integer, parameter :: EMIS_SCHEME_GINOUX = 1
-   integer, parameter :: EMIS_SCHEME_K14    = 2
+!  !Supported dust schemes
+   enum, bind(C)
+     enumerator :: DUST_SCHEME_DATA    = 0
+     enumerator :: DUST_SCHEME_GOCART
+     enumerator :: DUST_SCHEME_FENGSHA
+     enumerator :: DUST_SCHEME_K14
+   end enum
 
 !  !Dust state
-   type, extends(GA_Environment) :: DU2G_GridComp
-       real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
-       real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
+   type, extends(GA_GridComp) :: DU2G_GridComp
+       real, allocatable      :: rlow(:)        ! particle radius lower bound [um]
+       real, allocatable      :: rup(:)         ! particle radius upper bound [um]
        real, allocatable      :: sfrac(:)       ! fraction of total source
+       real, allocatable      :: sdist(:)       ! aerosol fractional size distribution [1]
+       real                   :: alpha          ! FENGSHA scaling factor
+       real                   :: gamma          ! FENGSHA tuning exponent
+       real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
        integer                :: day_save = -1      
-       integer       :: emisFlag = EMIS_SCHEME_K14   ! 1 - Ginoux, 2 - K14, default is K14
+       character(len=:), allocatable :: emission_scheme     ! emission scheme selector
        integer       :: clayFlag       ! clay and silt term in K14
        real          :: f_swc          ! soil mosture scaling factor
        real          :: f_scl          ! clay content scaling factor
@@ -106,6 +115,7 @@ contains
     type (DU2G_GridComp), pointer      :: self
 
     character (len=ESMF_MAXSTR)        :: field_name
+    character (len=ESMF_MAXSTR)        :: emission_scheme
     integer                            :: i
     real                               :: DEFVAL
     logical                            :: data_driven = .true.
@@ -145,25 +155,12 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
+    self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%f_scl,      label='soil_clay_factor:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%uts_gamma,  label='uts_gamma:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%emisFlag,   label='emission_scheme:', __RC__)
-
-    select case(self%emisFlag)
-       case (EMIS_SCHEME_K14)
-          if (MAPL_AM_I_ROOT()) &
-             print *, trim(Iam)//': Dust emission scheme is K14'
-       case (EMIS_SCHEME_GINOUX)
-          if (MAPL_AM_I_ROOT()) &
-             print *, trim(Iam)//': Dust emission scheme is GINOUX'
-       case default
-          if (MAPL_AM_I_ROOT()) &
-             print *, trim(Iam)//': Unrecognized dust emission scheme!'
-          VERIFY_(900)
-          return
-    end select
 
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
@@ -171,6 +168,14 @@ contains
        self%doing_point_emissions = .false. ! disable it if no file specified
     else
        self%doing_point_emissions = .true.  ! we are good to go
+    end if
+
+!   read FENGSHA-specific parameters
+!   --------------------------------
+    if (self%emission_scheme == 'fengsha') then
+      call ESMF_ConfigGetAttribute (cfg, self%alpha,  label='alpha:', __RC__)
+      call ESMF_ConfigGetAttribute (cfg, self%gamma,  label='gamma:', __RC__)
+      call ESMF_ConfigGetAttribute (cfg, self%kvhmax, label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
     end if
 
 !   Is DU data driven?
@@ -275,8 +280,10 @@ contains
 !   ----------------------
     if (.not. data_driven) then
 #include "DU2G_Export___.h"
-#include "DU2G_Import___.h"
 #include "DU2G_Internal___.h"
+      associate (scheme => self%emission_scheme)
+#include "DU2G_Import___.h"
+      end associate
     end if
 
 !   This state holds fields needed by radiation
@@ -388,6 +395,13 @@ contains
 !   ---------------------------------------------------------------
     self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
     self%Ch_DU = self%Ch_DU * 1.0e-9
+
+!   Dust emission size distribution for FENGSHA
+!   ---------------------------------------------------------------
+    if (self%emission_scheme == 'fengsha') then
+      allocate(self%sdist(self%nbins), __STAT__)
+      call DustAerosolDistributionKok(self%radius, self%rup, self%rlow, self%sdist)
+    end if
 
 !   Get dimensions
 !   ---------------
@@ -704,12 +718,15 @@ contains
 !   -----------------------------------
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
+<<<<<<< HEAD
 #include "DU2G_GetPointer___.h"
 
 !   Set du_src to 0 where undefined
 !   --------------------------------
     where (1.01*du_src > MAPL_UNDEF) du_src = 0.
 
+=======
+>>>>>>> develop
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
@@ -722,6 +739,14 @@ contains
     call ESMF_TimeGet (time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, __RC__)
     call MAPL_PackTime (nymd, iyr, imm , idd)
     call MAPL_PackTime (nhms, ihr, imn, isc)
+
+    associate (scheme => self%emission_scheme)
+#include "DU2G_GetPointer___.h"
+    end associate
+
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
+end do
 
 !   Get dimensions
 !   ---------------
@@ -739,48 +764,57 @@ contains
 
 !   Get surface gridded emissions
 !   -----------------------------
-    select case(self%emisFlag)
+    select case (self%emission_scheme)
+      case ('k14')
+        allocate(ustar_, mold=U10M,    __STAT__)
+        allocate(ustar_t_, mold=U10M,  __STAT__)
+        allocate(ustar_ts_, mold=U10M, __STAT__)
+        allocate(R_, mold=U10M,        __STAT__)
+        allocate(H_w_, mold=U10M,      __STAT__)
+        allocate(f_erod_, mold=U10M,   __STAT__)
+        allocate(z_, mold=U10M,        __STAT__)
 
-    case (EMIS_SCHEME_K14)
-       allocate(ustar_, mold=U10M,    __STAT__)
-       allocate(ustar_t_, mold=U10M,  __STAT__)
-       allocate(ustar_ts_, mold=U10M, __STAT__)
-       allocate(R_, mold=U10M,        __STAT__)
-       allocate(H_w_, mold=U10M,      __STAT__)
-       allocate(f_erod_, mold=U10M,   __STAT__)
-       allocate(z_, mold=U10M,        __STAT__)
+        z_ = 10.0 ! wind is at 10m
 
-       z_ = 10.0 ! wind is at 10m
+        call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
+                              du_z0, z_, u10n, v10n, ustar,    &
+                              frland, asnow,               &
+                              du_src,                       &
+                              du_sand, du_silt, du_clay,             &
+                              du_texture, du_veg, du_gvf,     &
+                              self%f_swc, self%f_scl, self%uts_gamma, &
+                              MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN,   &
+                              self%clayFlag, self%Ch_DU/1.e-9,  &
+                              emissions_surface,            &
+                              ustar_,                       &
+                              ustar_t_,                     &
+                              ustar_ts_,                    &
+                              R_, H_w_, f_erod_,            &
+                              __RC__ )
 
-       call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
-                             du_z0, z_, u10n, v10n, ustar,    &
-                             frland, asnow,               &
-                             du_src,                       &
-                             du_sand, du_silt, du_clay,             &
-                             du_texture, du_veg, du_gvf,     &
-                             self%f_swc, self%f_scl, self%uts_gamma, &
-                             MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN,   &
-                             self%clayFlag, self%Ch_DU/1.e-9,  &
-                             emissions_surface,            &
-                             ustar_,                       &
-                             ustar_t_,                     &
-                             ustar_ts_,                    &
-                             R_, H_w_, f_erod_,            &
-                             __RC__ )
+        if (associated(DU_UST)) DU_UST = ustar_
+        if (associated(DU_UST_T)) DU_UST_T = ustar_t_
+        if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
+        if (associated(DU_DPC)) DU_DPC = R_
+        if (associated(DU_SMC)) DU_SMC = H_w_
+        if (associated(DU_EROD)) DU_EROD = f_erod_
 
+      case ('fengsha')
+        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
+                                  du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_uthres,  &
+                                  self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
+                                  self%rhop, self%sdist, emissions_surface, __RC__)
+      case ('ginoux')
+!       Set du_src to 0 where undefined
+!       --------------------------------
+        where (1.01*du_src > MAPL_UNDEF) du_src = 0.
 
-       if (associated(DU_UST)) DU_UST = ustar_
-       if (associated(DU_UST_T)) DU_UST_T = ustar_t_
-       if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
-       if (associated(DU_DPC)) DU_DPC = R_
-       if (associated(DU_SMC)) DU_SMC = H_w_
-       if (associated(DU_EROD)) DU_EROD = f_erod_
-
-    case (EMIS_SCHEME_GINOUX)
-       call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
-                                 self%Ch_DU, du_src, MAPL_GRAV, &
-                                 emissions_surface, __RC__)
-    end select !select case(self%emisFlag)
+        call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
+                                  self%Ch_DU, du_src, MAPL_GRAV, &
+                                  emissions_surface, __RC__)
+      case default
+        _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)
+    end select
 
 !   Read point emissions file once per day
 !   --------------------------------------
@@ -894,13 +928,24 @@ contains
 !   -----------------------------------
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
+<<<<<<< HEAD
 #include "DU2G_GetPointer___.h"
 
+=======
+>>>>>>> develop
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+    associate (scheme => self%emission_scheme)
+#include "DU2G_GetPointer___.h"
+    end associate
+
+do n=1,5
+   if(mapl_am_i_root()) print*,'n = ', n,' : Run2 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
+end do
 
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
