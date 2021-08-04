@@ -36,7 +36,7 @@ module GA_GridCompMod
     !LOCALS
      integer :: status
      integer :: nbins
-     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_channels
+     integer :: n_wavelengths_profile, n_wavelengths_vertint
 
  contains
 
