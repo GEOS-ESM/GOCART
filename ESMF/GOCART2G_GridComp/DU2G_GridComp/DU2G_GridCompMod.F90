@@ -155,12 +155,12 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
-    self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%f_scl,      label='soil_clay_factor:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%uts_gamma,  label='uts_gamma:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
+    self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
 
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
@@ -280,10 +280,10 @@ contains
 !   ----------------------
     if (.not. data_driven) then
 #include "DU2G_Export___.h"
-#include "DU2G_Internal___.h"
       associate (scheme => self%emission_scheme)
 #include "DU2G_Import___.h"
       end associate
+#include "DU2G_Internal___.h"
     end if
 
 !   This state holds fields needed by radiation
@@ -718,6 +718,14 @@ contains
 !   -----------------------------------
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
+    associate (scheme => self%emission_scheme)
+#include "DU2G_GetPointer___.h"
+    end associate
+
+!   Set du_src to 0 where undefined
+!   --------------------------------
+    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
+
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
@@ -730,14 +738,6 @@ contains
     call ESMF_TimeGet (time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, __RC__)
     call MAPL_PackTime (nymd, iyr, imm , idd)
     call MAPL_PackTime (nhms, ihr, imn, isc)
-
-    associate (scheme => self%emission_scheme)
-#include "DU2G_GetPointer___.h"
-    end associate
-
-!   Set du_src to 0 where undefined
-!   --------------------------------
-    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
 
 !   Get dimensions
 !   ---------------
@@ -784,6 +784,7 @@ contains
                               R_, H_w_, f_erod_,            &
                               __RC__ )
 
+
         if (associated(DU_UST)) DU_UST = ustar_
         if (associated(DU_UST_T)) DU_UST_T = ustar_t_
         if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
@@ -797,9 +798,6 @@ contains
                                   self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
                                   self%rhop, self%sdist, emissions_surface, __RC__)
       case ('ginoux')
-!       Set du_src to 0 where undefined
-!       --------------------------------
-        where (1.01*du_src > MAPL_UNDEF) du_src = 0.
 
         call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
                                   self%Ch_DU, du_src, MAPL_GRAV, &
