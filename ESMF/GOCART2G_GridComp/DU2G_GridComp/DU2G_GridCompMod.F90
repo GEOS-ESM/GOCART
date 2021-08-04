@@ -739,10 +739,6 @@ contains
 !   --------------------------------
     where (1.01*du_src > MAPL_UNDEF) du_src = 0.
 
-do n=1,5
-   if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
-end do
-
 !   Get dimensions
 !   ---------------
     import_shape = shape(wet1)
