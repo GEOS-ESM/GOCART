@@ -38,14 +38,6 @@ module DU2G_GridCompMod
 
    integer, parameter         :: NHRES = 6
 
-!  !Supported dust schemes
-   enum, bind(C)
-     enumerator :: DUST_SCHEME_DATA    = 0
-     enumerator :: DUST_SCHEME_GOCART
-     enumerator :: DUST_SCHEME_FENGSHA
-     enumerator :: DUST_SCHEME_K14
-   end enum
-
 !  !Dust state
    type, extends(GA_Environment) :: DU2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
