@@ -47,9 +47,9 @@ module DU2G_GridCompMod
    end enum
 
 !  !Dust state
-   type, extends(GA_GridComp) :: DU2G_GridComp
-       real, allocatable      :: rlow(:)        ! particle radius lower bound [um]
-       real, allocatable      :: rup(:)         ! particle radius upper bound [um]
+   type, extends(GA_Environment) :: DU2G_GridComp
+       real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
+       real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
        real, allocatable      :: sfrac(:)       ! fraction of total source
        real, allocatable      :: sdist(:)       ! aerosol fractional size distribution [1]
        real                   :: alpha          ! FENGSHA scaling factor
