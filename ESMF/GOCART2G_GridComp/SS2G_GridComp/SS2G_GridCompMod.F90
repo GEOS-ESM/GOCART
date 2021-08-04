@@ -56,7 +56,7 @@ real, parameter ::  cpd    = 1004.16
    end type SS2G_GridComp
 
    type wrap_
-      type (SS2G_GridComp), pointer     :: PTR => null()
+      type (SS2G_GridComp), pointer     :: PTR ! => null()
    end type wrap_
 
 contains
@@ -644,7 +644,8 @@ contains
 
 #include "SS2G_DeclarePointer___.h"
 
-   __Iam__('Run1')
+    integer :: status
+    character(len=255) :: Iam
 
 !*****************************************************************************
 !   Begin... 
@@ -653,7 +654,7 @@ contains
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
    
-    Iam = trim(COMP_NAME) //'::'// Iam
+    Iam = trim(COMP_NAME) //'::'// 'Run1'
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------

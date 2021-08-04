@@ -7,6 +7,9 @@ set (srcs
 esma_add_library(${this} 
   SRCS ${srcs} 
   DEPENDENCIES MAPL)
+if (OMP) 
+  target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
+endif()
 
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/@GSW )
     set (gsw_ECBUILD_SYSTEM_INCLUDED TRUE)

@@ -56,7 +56,7 @@ integer, parameter     :: DP = kind(1.0d0)
    end type NI2G_GridComp
 
    type wrap_
-      type (NI2G_GridComp), pointer     :: PTR => null()
+      type (NI2G_GridComp), pointer     :: PTR ! => null()
    end type wrap_
 
 contains
@@ -648,8 +648,8 @@ contains
     type (NI2G_GridComp), pointer     :: self
 
 #include "NI2G_DeclarePointer___.h"
-
-   __Iam__('Run1')
+    integer :: status
+    character(len=255) :: Iam
 
 !*****************************************************************************
 !   Begin... 
@@ -657,7 +657,7 @@ contains
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=comp_name, __RC__)
-    Iam = trim(comp_name) //'::'// Iam
+    Iam = trim(comp_name) //'::'// 'Run1'
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------

@@ -500,6 +500,13 @@ contains
    integer, allocatable :: statuses(:)
    integer :: num_threads
    character(len=ESMF_MAXSTR) :: Iam = "Run1" 
+   type(ESMF_VM) :: vm
+   integer :: myid
+   integer :: myunit
+   
+   call ESMF_VmGetCurrent(vm, __RC__)
+   call ESMF_VmGet(vm, localPet=myid, __RC__)
+   myunit = 100 + omp_get_max_threads()*myid + 0
 
    call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, status)
    VERIFY_(status)
@@ -508,23 +515,44 @@ contains
    if(self%use_threads) then
       call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
       if(MAPL%is_threading_active()) then
-         call run_thread(GC, import, export, clock, __RC__)
+         call run_thread(GC, import, export, clock, myid, __RC__)
       else
          num_threads = 1
          !$ num_threads = omp_get_max_threads()
+         write(myunit,*)__FILE__,__LINE__, 'attempting to run on ',num_threads,'threads'
          call MAPL%activate_threading(num_threads)
+         write(myunit,*)__FILE__,__LINE__, 'substates created'
+
          allocate(statuses(num_threads), __STAT__)
-         !$omp parallel
+         statuses=0
+
+         !$omp parallel default(none), &
+         !$omp& private(thread, subimport, subexport, myunit), &
+         !$omp& shared(gc, statuses, clock, MAPL, import, export, myid)
+
          thread = 0
          !$ thread = omp_get_thread_num() 
+         myunit = 100 + omp_get_num_threads()*myid + omp_get_thread_num()
+
+         !$omp critical
+         write(myunit,*)__FILE__,__LINE__, 'running on thread ',thread
+         !$omp end critical
+
          subimport = MAPL%get_import_state()
          subexport = MAPL%get_export_state()
-         call run_thread(GC, subimport, subexport, clock, RC=statuses(thread+1))
+
+         call run_thread(GC, subimport, subexport, clock, myid, rc=statuses(thread+1))
+
          !$omp end parallel
+
+         if (any(statuses /= ESMF_SUCCESS)) then
+            _FAIL('some thread failed')
+         end if
          call MAPL%deactivate_threading()
+         write(myunit,*)__FILE__,__LINE__,'deactivated threading'
       end if
    else
-      call run_thread(GC, import, export, clock, __RC__)
+      call run_thread(GC, import, export, clock, myid, __RC__)
    end if
    RETURN_(ESMF_SUCCESS)
  end subroutine Run1
@@ -536,13 +564,15 @@ contains
 
 ! !INTERFACE:
 
-  subroutine run_thread (GC, import, export, clock, RC)
+  subroutine run_thread (GC, import, export, clock, myid, RC)
+   !$ use omp_lib
 
 ! !ARGUMENTS:
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+    integer, intent(in) :: myid
     integer, optional,    intent(  out) :: RC     ! Error code:
 
 ! !DESCRIPTION: Run method 
@@ -559,40 +589,88 @@ contains
     type (ESMF_State)                   :: internal
 
     integer                             :: i
-    integer, allocatable :: status_array(:)
-
-    __Iam__('Run1')
+    character(len=ESMF_MAXSTR), pointer :: GCNames(:)
+    integer :: myunit
+    integer :: status, userstatus
+    character(len=255) :: Iam
 
 !****************************************************************************
 ! Begin... 
 
-
+    if(present(rc)) rc = 0
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet( GC, NAME=COMP_NAME, __RC__ )
-    Iam = trim(COMP_NAME)//'::'//Iam
+    Iam = trim(COMP_NAME)//'::'//'run_thread'
+    myunit = 100 + omp_get_num_threads()*myid + omp_get_thread_num()
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
-    VERIFY_(STATUS)
+    call MAPL_GetObjectFromGC ( GC, MAPL, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
+    call MAPL_Get ( MAPL, GCNames=GCNames, __RC__)
 
 !   Run the children
 !   -----------------
-    allocate(status_array(size(gcs))) 
     do i = 1, size(gcs)
-      call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, RC=status_array(i))
+       !$omp critical (AAB)
+       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
+       !$omp end critical (AAB)
+       VERIFY_(userstatus)
+       VERIFY_(status)
     end do
-
-    do i = 1, size(gcs) 
-       VERIFY_(status_array(i))
-    end do
-    deallocate(status_array)
-
+!!$    
+!!$    i = 1
+!!$    !$omp critical (child_1)
+!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
+!!$    VERIFY_(userstatus)
+!!$    VERIFY_(status)
+!!$    !$omp end critical (child_1)
+!!$
+!!$    i = 2
+!!$    !$omp critical (child_2)
+!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
+!!$    VERIFY_(userstatus)
+!!$    VERIFY_(status)
+!!$    !$omp end critical (child_2)
+!!$
+!!$    i = 3
+!!$    !$omp critical (child_3)
+!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
+!!$    VERIFY_(userstatus)
+!!$    VERIFY_(status)
+!!$    !$omp end critical (child_3)
+!!$
+!!$    i = 4
+!!$    !$omp critical (child_4)
+!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
+!!$    VERIFY_(userstatus)
+!!$    VERIFY_(status)
+!!$    !$omp end critical (child_4)
+!!$
+!!$    i = 5
+!!$    !$omp critical (child_5)
+!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
+!!$    VERIFY_(userstatus)
+!!$    VERIFY_(status)
+!!$    !$omp end critical (child_5)
+!!$
+!!$    i = 6
+!!$    !$omp critical (child_6)
+!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
+!!$    VERIFY_(userstatus)
+!!$    VERIFY_(status)
+!!$    !$omp end critical (child_6)
+!!$
+!!$    i = 7
+!!$    !$omp critical (child_7)
+!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
+!!$    VERIFY_(userstatus)
+!!$    VERIFY_(status)
+!!$    !$omp end critical (child_7)
 
     RETURN_(ESMF_SUCCESS)
 

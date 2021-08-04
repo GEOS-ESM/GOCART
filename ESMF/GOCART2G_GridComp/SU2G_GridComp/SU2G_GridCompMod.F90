@@ -18,7 +18,7 @@ module SU2G_GridCompMod
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
-
+   !$ use omp_lib
    implicit none
    private
 
@@ -51,7 +51,25 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
 
 !EOP
 !===========================================================================
-!  !Sulfer state
+!  !Sulfur state
+   type :: ThreadWorkspace
+      integer :: nVolc = 0
+      real, allocatable, dimension(:)  :: vLat, &
+                                          vLon, &
+                                          vSO2, &
+                                          vElev, &
+                                          vCloud
+      integer, allocatable, dimension(:) :: vStart, &
+                                            vEnd
+      integer                         :: nPts = -1
+      integer, allocatable, dimension(:)  :: pstart, pend
+      real, allocatable, dimension(:)     :: pLat, &
+                                             pLon, &
+                                             pBase, &
+                                             pTop, &
+                                             pEmis
+   end type ThreadWorkspace
+
    type, extends(GA_Environment) :: SU2G_GridComp
       integer :: myDOW = -1     ! my Day of the week: Sun=1, Mon=2,...,Sat=7
       logical :: diurnal_bb     ! diurnal biomass burning
@@ -67,28 +85,14 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
 
 !     Special handling for volcanic emissions
       character(len=255) :: volcano_srcfilen
-      integer :: nVolc = 0
-      real, allocatable, dimension(:)  :: vLat, &
-                                          vLon, &
-                                          vSO2, &
-                                          vElev, &
-                                          vCloud
-      integer, allocatable, dimension(:) :: vStart, &
-                                            vEnd
 !     !Workspae for point emissions
       logical                :: doing_point_emissions = .false.
       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
-      integer                         :: nPts = -1
-      integer, allocatable, dimension(:)  :: pstart, pend
-      real, allocatable, dimension(:)     :: pLat, &
-                                             pLon, &
-                                             pBase, &
-                                             pTop, &
-                                             pEmis
+      type(ThreadWorkspace), allocatable :: workspaces(:)
    end type SU2G_GridComp
 
    type wrap_
-      type (SU2G_GridComp), pointer     :: PTR => null()
+      type (SU2G_GridComp), pointer     :: PTR ! => null()
    end type wrap_
 
 contains
@@ -130,6 +134,7 @@ contains
     integer                                     :: i
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    integer :: num_threads
 
     __Iam__('SetServices')
 
@@ -145,6 +150,10 @@ contains
 !   -------------------------------------
     allocate (self, __STAT__)
     wrap%ptr => self
+
+    num_threads = 1
+    !$ num_threads = omp_get_max_threads()
+    allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file 
 !   -------------------
@@ -757,10 +766,12 @@ contains
     logical :: fileExists
 
     real, pointer, dimension(:,:,:) :: dummyMSA => null() ! This is so the model can run without MSA enabled
+    type(ThreadWorkspace), pointer :: workspace
+    integer :: thread
 
 #include "SU2G_DeclarePointer___.h"
-
-   __Iam__('Run1')
+    integer :: status
+    character(len=255) :: Iam
 
 !*****************************************************************************
 !   Begin... 
@@ -769,7 +780,7 @@ contains
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
    
-    Iam = trim(comp_name) //'::'// Iam
+    Iam = trim(comp_name) //'::'// 'Run1'
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
@@ -844,7 +855,10 @@ contains
 
 !   Update emissions/production if necessary (daily)
 !   -----------------------------------------------
-    !$omp single
+    thread = 0
+    !$ thread = omp_get_thread_num()
+    workspace => self%workspaces(thread)
+
     if(self%nymd_last /= nymd) then
        self%nymd_last = nymd
 
@@ -852,35 +866,34 @@ contains
        if(index(self%volcano_srcfilen,'volcanic_') /= 0) then
           call StrTemplate(fname, self%volcano_srcfilen, xid='unknown', &
                             nymd=nymd, nhms=120000 )
-          call ReadPointEmissions (nymd, fname, self%nVolc, self%vLat, self%vLon, &
-                                   self%vElev, self%vCloud, self%vSO2, self%vStart, &
-                                   self%vEnd, label='volcano', __RC__)
-          self%vSO2 = self%vSO2 * fMassSO2 / fMassSulfur
+          call ReadPointEmissions (nymd, fname, workspace%nVolc, workspace%vLat, workspace%vLon, &
+                                   workspace%vElev, workspace%vCloud, workspace%vSO2, workspace%vStart, &
+                                   workspace%vEnd, label='volcano', __RC__)
+          workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
 !         Special possible case
-          if(self%volcano_srcfilen(1:9) == '/dev/null') self%nVolc = 0
+          if(self%volcano_srcfilen(1:9) == '/dev/null') workspace%nVolc = 0
        end if
     end if
-    !$omp end single
 
 !   Apply volcanic emissions
 !   ------------------------
-    if (self%nVolc > 0) then
+    if (workspace%nVolc > 0) then
        if (associated(SO2EMVE)) SO2EMVE=0.0
        if (associated(SO2EMVN)) SO2EMVN=0.0
-       allocate(iPointVolc(self%nVolc), jPointVolc(self%nVolc),  __STAT__)
-       call MAPL_GetHorzIJIndex(self%nVolc, iPointVolc, jPointVolc, &
+       allocate(iPointVolc(workspace%nVolc), jPointVolc(workspace%nVolc),  __STAT__)
+       call MAPL_GetHorzIJIndex(workspace%nVolc, iPointVolc, jPointVolc, &
                                 grid = grid,               &
-                                lon  = self%vLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                lat  = self%vLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                lon  = workspace%vLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                lat  = workspace%vLat/real(MAPL_RADIANS_TO_DEGREES), &
                                 rc   = status)
            if ( status /= 0 ) then
               if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
               VERIFY_(status)
            end if
 
-       call SUvolcanicEmissions (self%nVolc, self%vStart, self%vEnd, self%vSO2, self%vElev, &
-                                 self%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SUEM, &
-                                 self%km, self%cdt, MAPL_GRAV, zle, delp, area, self%vLat, self%vLon, __RC__)
+       call SUvolcanicEmissions (workspace%nVolc, workspace%vStart, workspace%vEnd, workspace%vSO2, workspace%vElev, &
+                                 workspace%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SUEM, &
+                                 self%km, self%cdt, MAPL_GRAV, zle, delp, area, workspace%vLat, workspace%vLon, __RC__)
     end if
 
 !   Apply diurnal cycle if so desired
@@ -903,7 +916,7 @@ contains
                                       aircraft_fuel_src, &
                                       SO2, SO4, &
                                       lwi, u10m, v10m, zle, zpbl, &
-                                      t, airdens, delp, self%nVolc, &
+                                      t, airdens, delp, workspace%nVolc, &
                                       SUEM, SO4EMAN, SO2EMAN, SO2EMBB, &
                                       self%aviation_layers,   &
                                       aviation_lto_src, &
@@ -917,40 +930,38 @@ contains
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
-    !$omp single
     if(self%doing_point_emissions) then
        call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                          nymd=nymd, nhms=120000 )
        inquire( file=fname, exist=fileExists)
        if (fileExists) then
-          call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                   self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                   self%pEnd, label='source', __RC__)
+          call ReadPointEmissions (nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
+                                   workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
+                                   workspace%pEnd, label='source', __RC__)
        else if (.not. fileExists) then
          if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
-         self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
+         workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
        end if
     endif
-    !$omp end single
 
 !   Get indices for point emissions
 !   -------------------------------
-    if (self%nPts > 0) then
+    if (workspace%nPts > 0) then
        allocate(emissions_point, mold=delp,  __STAT__)
        emissions_point = 0.0
-       allocate(iPoint(self%nPts), jPoint(self%nPts),  __STAT__)
-       call MAPL_GetHorzIJIndex(self%nPts, iPoint, jPoint, &
+       allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
+       call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
                                 grid = grid,               &
-                                lon  = self%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                lat  = self%pLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
                                 rc   = status)
           if ( status /= 0 ) then
              if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
              VERIFY_(status)
           end if
 
-        call updatePointwiseEmissions (self%km, self%pBase, self%pTop, self%pEmis, self%nPts, &
-                                       self%pStart, self%pEnd, zle, &
+        call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
+                                       workspace%pStart, workspace%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
    
         SO4 = SO4 + self%cdt * MAPL_GRAV / delp * emissions_point
