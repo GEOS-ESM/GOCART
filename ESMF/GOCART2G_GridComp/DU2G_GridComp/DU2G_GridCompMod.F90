@@ -51,7 +51,7 @@ module DU2G_GridCompMod
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
        real, allocatable      :: sfrac(:)       ! fraction of total source
-       real, allocatable      :: sdist(:)       ! aerosol fractional size distribution [1]
+       real, allocatable      :: sdist(:)       ! FENGSHA aerosol fractional size distribution [1]
        real                   :: alpha          ! FENGSHA scaling factor
        real                   :: gamma          ! FENGSHA tuning exponent
        real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
@@ -756,6 +756,7 @@ contains
 !   Get surface gridded emissions
 !   -----------------------------
     select case (self%emission_scheme)
+
       case ('k14')
         allocate(ustar_, mold=U10M,    __STAT__)
         allocate(ustar_t_, mold=U10M,  __STAT__)
