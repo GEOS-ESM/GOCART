@@ -10,9 +10,9 @@ category: IMPORT
  DU_SRC     | 1      | xy   | N   |      | erod - dust emissions
  DU_Z0      | 1      | xy   | N   |      | aerodynamic_surface_roughness_for_aeolian_processes
  DU_GVF     | 1      | xy   | N   |      | GVF
- DU_CLAY    | 1      | xy   | N   |      | volume_fraction_of_clay_in_soil
- DU_SAND    | 1      | xy   | N   |      | volume_fraction_of_sand_in_soil
- DU_SILT    | 1      | xy   | N   |      | volume_fraction_of_silt_in_soil
+ DU_SAND    | 1      | xy   | N   |      | sand_fraction
+ DU_SILT    | 1      | xy   | N   |      | silt_fraction
+ DU_CLAY    | 1      | xy   | N   |      | clay_fraction
  DU_RDRAG   | m-1    | xy   | N   | scheme == 'fengsha' | drag_partition
  DU_SSM     | 1      | xy   | N   | scheme == 'fengsha' | sediment_supply_map
  DU_UTHRES  | m s-1  | xy   | N   | scheme == 'fengsha' | surface_dry_threshold_velocity
