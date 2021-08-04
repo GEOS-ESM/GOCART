@@ -18,8 +18,6 @@ category: IMPORT
  DU_UTHRES  | m s-1  | xy   | N   | scheme == 'fengsha' | surface_dry_threshold_velocity
  FRSNOW     | 1      | xy   | N   | scheme == 'fengsha' | surface_snow_area_fraction
  SLC        | 1      | xy   | N   | scheme == 'fengsha' | liquid_water_content_of_soil_layer
- WET1       | 1      | xy   | N   |      | surface_soil_wetness
- LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
  DU_TEXTURE | 1      | xy   | N   |      | soil_texture
  DU_VEG     | 1      | xy   | N   |      | vegetation_type
  FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
