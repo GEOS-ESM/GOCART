@@ -718,15 +718,6 @@ contains
 !   -----------------------------------
     call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
-<<<<<<< HEAD
-#include "DU2G_GetPointer___.h"
-
-!   Set du_src to 0 where undefined
-!   --------------------------------
-    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
-
-=======
->>>>>>> develop
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
@@ -743,6 +734,10 @@ contains
     associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
     end associate
+
+!   Set du_src to 0 where undefined
+!   --------------------------------
+    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
 
 do n=1,5
    if(mapl_am_i_root()) print*,'n = ', n,' : Run1 B DU2G sum(du00n) = ',sum(DU(:,:,:,n))
@@ -928,11 +923,6 @@ end do
 !   -----------------------------------
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
-<<<<<<< HEAD
-#include "DU2G_GetPointer___.h"
-
-=======
->>>>>>> develop
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
