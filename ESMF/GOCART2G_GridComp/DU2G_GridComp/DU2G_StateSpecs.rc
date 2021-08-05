@@ -2,104 +2,104 @@ schema_version: 2.0.0
 component: DU
 
 category: IMPORT
-#----------------------------------------------------------------------------------------
-#  VARIABLE          | DIMENSIONS|          Additional Metadata
-#----------------------------------------------------------------------------------------
-     NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
-#----------------------------------------------------------------------------------------
- DU_SRC     | 1      | xy   | N   |      | erod - dust emissions
- DU_Z0      | 1      | xy   | N   |      | aerodynamic_surface_roughness_for_aeolian_processes
- DU_GVF     | 1      | xy   | N   |      | GVF
- DU_SAND    | 1      | xy   | N   |      | volume_fraction_of_sand_in_soil
- DU_SILT    | 1      | xy   | N   |      | volume_fraction_of_silt_in_soil
- DU_CLAY    | 1      | xy   | N   |      | volume_fraction_of_clay_in_soil
- DU_RDRAG   | m-1    | xy   | N   | scheme == 'fengsha' | drag_partition
- DU_SSM     | 1      | xy   | N   | scheme == 'fengsha' | sediment_supply_map
- DU_UTHRES  | m s-1  | xy   | N   | scheme == 'fengsha' | surface_dry_threshold_velocity
- FRSNOW     | 1      | xy   | N   | scheme == 'fengsha' | surface_snow_area_fraction
- SLC        | 1      | xy   | N   | scheme == 'fengsha' | liquid_water_content_of_soil_layer
- DU_TEXTURE | 1      | xy   | N   |      | soil_texture
- DU_VEG     | 1      | xy   | N   |      | vegetation_type
- FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
- FRLAND     | 1      | xy   | N   |      | fraction_of_land
- ASNOW      | 1      | xy   | N   |      | snow_covered_fraction_of_land
- WET1       | 1      | xy   | N   |      | surface_soil_wetness
- LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
- TROPP      | Pa     | xy   | N   |      | tropopause_pressure_based_on_blended_estimate
- U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
- V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
- U10N       | m s-1  | xy   | N   |      | equivalent_neutral_10-meter_eastward_wind
- V10N       | m s-1  | xy   | N   |      | equivalent_neutral_10-meter_northward_wind
- AREA       | m^2    | xy   | N   |      | agrid_cell_area
- USTAR      | m s-1  | xy   | N   |      | equivalent_neutral_10-meter_northward_wind
- CN_PRCP    |kg/m^2/s| xy   | N   |      | surface_conv._rain_flux_needed_by_land
- NCN_PRCP   |kg/m^2/s| xy   | N   |      | Non-convective precipitation
- ZPBL       | m      | xy   | N   |      | planetary_boundary_layer_height
- SH         | w m-2  | xy   | N   |      | sensible_heat_flux_from_turbulence
- Z0H        | m      | xy   | N   |      | surface_roughness_for_heat
- WCSF       | m3 m-3 | xy   | N   |      | water_surface_layer
- TSOIL1     | K      | xy   | N   |      | soil_temperatures_layer_1
- RHOS       | kg m-3 | xy   | N   |      | air_density_at_surface
+#------------------------------------------------------------------------------------------
+#  VARIABLE            | DIMENSIONS  |          Additional Metadata
+#------------------------------------------------------------------------------------------
+     NAME   | UNITS    | DIMS | VLOC | COND                                     | LONG NAME
+#------------------------------------------------------------------------------------------
+ DU_SRC     | 1        | xy   | N    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DU_Z0      | 1        | xy   | N    | scheme == 'k14'                          | aerodynamic_surface_roughness_for_aeolian_processes
+ DU_GVF     | 1        | xy   | N    | scheme == 'k14'                          | GVF
+ DU_SAND    | 1        | xy   | N    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_sand_in_soil
+ DU_SILT    | 1        | xy   | N    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_silt_in_soil
+ DU_CLAY    | 1        | xy   | N    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_clay_in_soil
+ DU_RDRAG   | m-1      | xy   | N    | scheme == 'fengsha'                      | drag_partition
+ DU_SSM     | 1        | xy   | N    | scheme == 'fengsha'                      | sediment_supply_map
+ DU_UTHRES  | m s-1    | xy   | N    | scheme == 'fengsha'                      | surface_dry_threshold_velocity
+ FRSNOW     | 1        | xy   | N    | scheme == 'fengsha'                      | surface_snow_area_fraction
+ SLC        | 1        | xy   | N    | scheme == 'fengsha'                      | liquid_water_content_of_soil_layer
+ DU_TEXTURE | 1        | xy   | N    | scheme == 'k14'                          | soil_texture
+ DU_VEG     | 1        | xy   | N    | scheme == 'k14'                          | vegetation_type
+ FRLAKE     | 1        | xy   | N    |                                          | fraction_of_lake
+ FRLAND     | 1        | xy   | N    |                                          | fraction_of_land
+ ASNOW      | 1        | xy   | N    |                                          | snow_covered_fraction_of_land
+ WET1       | 1        | xy   | N    |                                          | surface_soil_wetness
+ LWI        | 1        | xy   | N    |                                          | land-ocean-ice_mask
+ TROPP      | Pa       | xy   | N    |                                          | tropopause_pressure_based_on_blended_estimate
+ U10M       | m s-1    | xy   | N    |                                          | 10-meter_eastward_wind
+ V10M       | m s-1    | xy   | N    |                                          | 10-meter_northward_wind
+ U10N       | m s-1    | xy   | N    | scheme == 'k14'                          | equivalent_neutral_10-meter_eastward_wind
+ V10N       | m s-1    | xy   | N    | scheme == 'k14'                          | equivalent_neutral_10-meter_northward_wind
+ AREA       | m^2      | xy   | N    |                                          | agrid_cell_area
+ USTAR      | m s-1    | xy   | N    |                                          | equivalent_neutral_10-meter_northward_wind
+ CN_PRCP    | kg/m^2/s | xy   | N    |                                          | surface_conv._rain_flux_needed_by_land
+ NCN_PRCP   | kg/m^2/s | xy   | N    |                                          | Non-convective precipitation
+ ZPBL       | m        | xy   | N    |                                          | planetary_boundary_layer_height
+ SH         | w m-2    | xy   | N    |                                          | sensible_heat_flux_from_turbulence
+ Z0H        | m        | xy   | N    |                                          | surface_roughness_for_heat
+ WCSF       | m3 m-3   | xy   | N    | scheme == 'k14'                          | water_surface_layer
+ TSOIL1     | K        | xy   | N    |                                          | soil_temperatures_layer_1
+ RHOS       | kg m-3   | xy   | N    |                                          | air_density_at_surface
 #........................................................................................
- AIRDENS    | kg/m^3 | xyz  | C   |      | moist_air_density
- DELP       | Pa     | xyz  | C   |      | pressure_thickness
- RH2        | 1      | xyz  | C   |      | Rel_Hum_after_moist
- T          | K      | xyz  | C   |      | air_temperature
- ZLE        | m      | xyz  | E   |      | geopotential_height
- PLE        | Pa     | xyz  | E   |      | air_pressure
- PFL_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_liquid_nonconvective_precipitation
- PFI_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_ice_nonconvective_precipitation
- U          | m s-1  | xyz  | C   |      | eastward_wind
- V          | m s-1  | xyz  | C   |      | northward_wind
+ AIRDENS    | kg/m^3   | xyz  | C    |                                          | moist_air_density
+ DELP       | Pa       | xyz  | C    |                                          | pressure_thickness
+ RH2        | 1        | xyz  | C    |                                          | Rel_Hum_after_moist
+ T          | K        | xyz  | C    |                                          | air_temperature
+ ZLE        | m        | xyz  | E    |                                          | geopotential_height
+ PLE        | Pa       | xyz  | E    |                                          | air_pressure
+ PFL_LSAN   | kg/m2/s  | xyz  | E    |                                          | 3D_flux_of_liquid_nonconvective_precipitation
+ PFI_LSAN   | kg/m2/s  | xyz  | E    |                                          | 3D_flux_of_ice_nonconvective_precipitation
+ U          | m s-1    | xyz  | C    |                                          | eastward_wind
+ V          | m s-1    | xyz  | C    |                                          | northward_wind
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
-#  VARIABLE              | DIMENSIONS |          Additional Metadata
+#  VARIABLE              | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
+ NAME       | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- DUMASS     | kg kg-1    | xyz | C  |                          | Dust Mass Mixing Ratio
- DUMASS25   | kg kg-1    | xyz | C  |                          | Dust Mass Mixing Ratio
- DUCONC     | kg m-3     | xyz | C  |                          | Dust Mass Concentration
- DUEXTCOEF  | m-1        | xyz | C  | size(self%wavelengths_profile) | Dust Extinction Coefficient
- DUSCACOEF  | m-1        | xyz | C  | size(self%wavelengths_profile) | Dust Scattering Coefficient
+ DUMASS     | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DUMASS25   | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DUCONC     | kg m-3     | xyz  | C    |                                | Dust Mass Concentration
+ DUEXTCOEF  | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient
+ DUSCACOEF  | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient
 #........................................................................................
- DUSMASS    | kg m-3     | xy  | N  |                          | Dust Surface Mass Concentration
- DUCMASS    | kg m-2     | xy  | N  |                          | Dust Column Mass Density
- DUEXTTAU   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Extinction AOT 
- DUSTEXTTAU |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Extinction AOT Stratosphere 
- DUSCATAU   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Scattering AOT 
- DUSTSCATAU |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Scattering AOT Stratosphere
- DUSMASS25  | kg m-3     | xy  | N  |                          | Dust Surface Mass Concentration - PM 2.5
- DUCMASS25  | kg m-2     | xy  | N  |                          | Dust Column Mass Density - PM 2.5
- DUEXTT25   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 2.5
- DUSCAT25   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 2.5
- DUAERIDX   |    1       | xy  | N  |                          | Dust TOMS UV Aerosol Index
- DUFLUXU    | kg m-1 s-1 | xy  | N  |                          | Dust column u-wind mass flux
- DUFLUXV    | kg m-1 s-1 | xy  | N  |                          | Dust column v-wind mass flux  
- DUEXTTFM   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 1.0 um  
- DUSCATFM   |    1       | xy  | N  | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 1.0 um  
- DUANGSTR   |    1       | xy  | N  |                          | Dust Angstrom parameter [470-870 nm]
- DUEM       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Emission (Bin %d)
- DUSD       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Sedimentation (Bin %d)
- DUDP       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Dry Deposition (Bin %d)
- DUWT       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Wet Deposition (Bin %d)
- DUSV       | kg m-2 s-1 | xy  | N  | self%nbins               | Dust Convective Scavenging (Bin %d)
- DU_UST     | 1          | xy  | N  |            | aeolian_friction_velocity
- DU_UST_T   | 1          | xy  | N  |            | aeolian_threshold_friction_velocity
- DU_UST_TS  | 1          | xy  | N  |            | aeolian_threshold_friction_velocity_over_smooth_surface
- DU_DPC     | 1          | xy  | N  |            | aeolian_drag_partition_correction
- DU_SMC     | 1          | xy  | N  |            | aeolian_soil_moisture_correction
- DU_EROD    | 1          | xy  | N  |            | aeolian_erodibilitiy
+ DUSMASS    | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration
+ DUCMASS    | kg m-2     | xy   | N    |                                | Dust Column Mass Density
+ DUEXTTAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT
+ DUSTEXTTAU | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT Stratosphere
+ DUSCATAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT
+ DUSTSCATAU | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT Stratosphere
+ DUSMASS25  | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration - PM 2.5
+ DUCMASS25  | kg m-2     | xy   | N    |                                | Dust Column Mass Density - PM 2.5
+ DUEXTT25   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 2.5
+ DUSCAT25   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 2.5
+ DUAERIDX   | 1          | xy   | N    |                                | Dust TOMS UV Aerosol Index
+ DUFLUXU    | kg m-1 s-1 | xy   | N    |                                | Dust column u-wind mass flux
+ DUFLUXV    | kg m-1 s-1 | xy   | N    |                                | Dust column v-wind mass flux
+ DUEXTTFM   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 1.0 um
+ DUSCATFM   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 1.0 um
+ DUANGSTR   | 1          | xy   | N    |                                | Dust Angstrom parameter [470-870 nm]
+ DUEM       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Emission (Bin %d)
+ DUSD       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Sedimentation (Bin %d)
+ DUDP       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Dry Deposition (Bin %d)
+ DUWT       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Wet Deposition (Bin %d)
+ DUSV       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Convective Scavenging (Bin %d)
+ DU_UST     | 1          | xy   | N    |                                | aeolian_friction_velocity
+ DU_UST_T   | 1          | xy   | N    |                                | aeolian_threshold_friction_velocity
+ DU_UST_TS  | 1          | xy   | N    |                                | aeolian_threshold_friction_velocity_over_smooth_surface
+ DU_DPC     | 1          | xy   | N    |                                | aeolian_drag_partition_correction
+ DU_SMC     | 1          | xy   | N    |                                | aeolian_soil_moisture_correction
+ DU_EROD    | 1          | xy   | N    |                                | aeolian_erodibilitiy
 
 
 category: INTERNAL
-#----------------------------------------------------------------------------------------
-#  VARIABLE                | DIMENSION        |          Additional Metadata
-#----------------------------------------------------------------------------------------
-  NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
-#----------------------------------------------------------------------------------------
- DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dust Mixing Ratio (Bin %d)
+#--------------------------------------------------------------------------------------------------------------------
+#  VARIABLE    | DIMENSION   |          Additional Metadata
+#--------------------------------------------------------------------------------------------------------------------
+ NAME  | UNITS | DIMS | VLOC | UNGRIDDED  | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
+#--------------------------------------------------------------------------------------------------------------------
+ DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Dust Mixing Ratio (Bin %d)
 
 
 
