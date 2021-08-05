@@ -151,8 +151,16 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%f_scl,      label='soil_clay_factor:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%uts_gamma,  label='uts_gamma:', __RC__)
+
     call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
     self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
+
+    ! Test if our scheme is allowed, if so, print it out
+    _ASSERT(any(self%emission_scheme == [character(len=7) :: 'ginoux','k14','fengsha']), &
+       "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha")
+    if (MAPL_AM_I_ROOT()) then
+       write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
+    end if
 
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
