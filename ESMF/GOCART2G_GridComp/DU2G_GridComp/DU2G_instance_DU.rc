@@ -56,3 +56,7 @@ nbins: 5
 
 pressure_lid_in_hPa: 0.01
 
+# FENGSHA settings
+alpha: 0.3
+gamma: 1.3
+vertical_to_horizontal_flux_ratio_limit: 2.e-04
