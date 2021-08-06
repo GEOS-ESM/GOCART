@@ -19,7 +19,9 @@ category: EXPORT
  PSO4TOT    | kg m-2 s-1 | xyz  | C    |            | Total Sulfate Produced in GOCART
 #........................................................................................
  TOTEXTTAU  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm]
+ TOTSTEXTTAU| 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] Stratosphere
  TOTSCATAU  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Scattering AOT [550 nm]
+ TOTSTSCATAU| 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Scattering AOT [550 nm] Stratosphere
  TOTEXTT25  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM2.5
  TOTSCAT25  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM2.5
  TOTEXTTFM  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM1.0

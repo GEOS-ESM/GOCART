@@ -1343,18 +1343,21 @@ RUN_ALARM: if (gcNI%run_alarm) then
    if(associated(NI_pnh4aq%data2d)) NI_pnh4aq%data2d(:,:) = 0.
    if(associated(NI_pnh3aq%data2d)) NI_pnh3aq%data2d(:,:) = 0.
 
+
 !  RPMARES - thermodynamic module
 !  ------------------------------
 !  Take as input GOCART provided SO4, model provided RH,
 !  and HNO3, NH3, NH4, and fine-mode nitrate (NO3an1).
 !  At present we update NH3, NH4, and NO3an1.
 !  Check we are running GOCART sulfate
+
    nSO4 = -1
    if(w_c%reg%doing_SU) then
     do n = w_c%reg%i_SU, w_c%reg%j_SU
      if(trim(w_c%reg%vname(n)) .eq. 'SO4') nSO4 = n
     enddo
    endif
+
    do k = 1, km
     do j = j1, j2
      do i = i1, i2
@@ -1531,7 +1534,6 @@ RUN_ALARM: if (gcNI%run_alarm) then
       end do
    endif
 
-
 !  NI Settling
 !  -----------
 !  Because different bins having different swelling coefficients I need to
@@ -1706,6 +1708,7 @@ RUN_ALARM: if (gcNI%run_alarm) then
    if(associated(NI_conv(1)%data2d)) NI_conv(1)%data2d = -bcnv_(:,:,nNO3an1)/area_/icdt
    if(associated(NI_conv(2)%data2d)) NI_conv(2)%data2d = -bcnv_(:,:,nNO3an2)/area_/icdt
    if(associated(NI_conv(3)%data2d)) NI_conv(3)%data2d = -bcnv_(:,:,nNO3an3)/area_/icdt
+
 
 !  Clean up
 !  --------

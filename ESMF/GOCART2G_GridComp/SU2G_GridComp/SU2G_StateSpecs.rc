@@ -9,6 +9,7 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
  FROCEAN    | 1      | xy   | N    | fraction_of_ocean
  LWI        | 1      | xy   | N   | land-ocean-ice_mask
+ TROPP      | Pa     | xy   | N   | tropopause_pressure_based_on_blended_estimate
  U10M       | m s-1  | xy   | N   | 10-meter_eastward_wind
  V10M       | m s-1  | xy   | N   | 10-meter_northward_wind
  AREA       | m^2    | xy   | N   | agrid_cell_area
@@ -32,9 +33,9 @@ category: IMPORT
  FCLD       | 1      | xyz  | C    | Cloud fraction for radiation
  pSO2_OCS    | 1      | xyz  | C    | source species
  SU_AIRCRAFT | 1      | xyz  | C    | fuel source species
-# SU_NO3      | 1      | xyz  | C    | climatological NO3 source
-# SU_OH       | 1      | xyz  | C    | climatological OH source
-# SU_H2O2     | 1      | xyz  | C    | climatological H2O2 source
+ SU_NO3      | 1      | xyz  | C    | climatological NO3 source
+ SU_OH       | 1      | xyz  | C    | climatological OH source
+ SU_H2O2     | 1      | xyz  | C    | climatological H2O2 source
 #........................................................................................
  SU_BIOMASS  | 1      | xy   | N   | biomass burning emissions
  SU_ANTHROL1 | 1      | xy   | N   | anthropogenic BF emissions
@@ -83,14 +84,16 @@ category: EXPORT
  MSASMASS  | kg m-3     | xy  | N    |            | MSA Surface Mass Concentration
  MSACMASS  | kg m-2     | xy  | N    |            | MSA Column Mass Density
  SUCONC    | kg m-3     | xyz | C    |            | SO4 Aerosol Mass Concentration
- SUEXTCOEF | m-1        | xyz | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient [550 nm]
- SUSCACOEF | m-1        | xyz | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient [550 nm]
+ SUEXTCOEF | m-1        | xyz | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient
+ SUSCACOEF | m-1        | xyz | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient
  SUANGSTR  |      1     | xy  | N    |            | SO4 Angstrom parameter [470-870 nm]
  SUFLUXU   | kg m-1 s-1 | xy  | N    |            | SO4 column u-wind mass flux
  SUFLUXV   | kg m-1 s-1 | xy  | N    |            | SO4 column v-wind mass flux
  SO4MASS   | kg kg-1    | xyz | C    |            | SO4 Aerosol Mass Mixing Ratio
- SUEXTTAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT [550 nm]
- SUSCATAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT [550 nm]
+ SUEXTTAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT
+ SUSTEXTTAU|      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT Stratosphere
+ SUSCATAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT
+ SUSTSCATAU|      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT Stratosphere
  SO4SAREA  | m2 m-3     | xyz | C    |            | SO4 Surface Area Density
  SO4SNUM   | m-3        | xyz | C    |            | SO4 Number Density
 

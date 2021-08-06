@@ -28,7 +28,7 @@ PASSIVE_INSTANCES_SS:
 ACTIVE_INSTANCES_SU:  SU   #SU.data 
 PASSIVE_INSTANCES_SU:
 
-ACTIVE_INSTANCES_CA:  CA.oc CA.bc #CA.br #CA.oc.data CA.bc.datac 
+ACTIVE_INSTANCES_CA:   CA.oc  CA.bc  CA.br  #CA.oc.data CA.bc.datac 
 PASSIVE_INSTANCES_CA:
 
 ACTIVE_INSTANCES_NI:  NI  #NI.data 
@@ -36,10 +36,8 @@ PASSIVE_INSTANCES_NI:
 
 # Set optics parameters
 # ---------------------
-aerosol_monochromatic_optics_wavelength: 470 550 670 870 # units:nm
+aerosol_monochromatic_optics_wavelength_in_nm_from_LUT: 470 550 670 870
 
-wavelengths_for_profile_aop_in_nm: 470 550 870
-wavelengths_for_vertically_integrated_aop_in_nm: 470 550 670 870
-
-
+wavelengths_for_profile_aop_in_nm: 550               # must be included in LUT
+wavelengths_for_vertically_integrated_aop_in_nm: 550 # must be included in LUT
 
