@@ -348,7 +348,6 @@ CONTAINS
    real                  :: h
    real                  :: kvh
    real                  :: q
-   real                  :: sepd
    real                  :: u_thresh
 
 ! !CONSTANTS:
@@ -387,10 +386,6 @@ CONTAINS
          fracland = max(0., min(1., 1.-fraclake(i,j))) &
                   * max(0., min(1., 1.-fracsnow(i,j)))
 
-         ! compute soil erosion potential distribution
-         ! -------------------------------------------
-         sepd = 0.08 * clay(i,j) + 0.8 * silt(i,j) + 0.12 * sand(i,j)
-
          ! Compute vertical-to-horizontal mass flux ratio
          ! ----------------------------------------------
          kvh = DustFluxV2HRatioMB95(clay(i,j), kvhmax)
@@ -398,7 +393,7 @@ CONTAINS
          ! Compute total emissions
          ! -----------------------
          emissions(i,j,nbins) = alpha * fracland * (ssm(i,j) ** gamma) &
-                              * sepd * airdens(i,j) * kvh / grav
+                              * airdens(i,j) * kvh / grav
        end if
 
      end do
