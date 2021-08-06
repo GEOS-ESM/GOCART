@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0-rc.1] - 2021-08-06
+
 ### Changed
 
 - Added callbacks needed for GAAS2G. Removed diagnostic prints statements. Fixed bug with
@@ -25,7 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add CMake macros replacing ecBuild and ESMA_cmake for the UFS
 - Relax PFLOGGER dependency requirement outside Baselibs
 - Refactored UFS Aerosols: introduced dynamic tracer mapping and limited unit conversion
-- Removed Soil Erosion Potential Distribution from FENGSHA dust scheme
 
 ### Fixed
 
@@ -35,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed build issue with GNU 9.2.0
 
 ### Removed
+
+- Removed Soil Erosion Potential Distribution from FENGSHA dust scheme
 
 ### Added
 
