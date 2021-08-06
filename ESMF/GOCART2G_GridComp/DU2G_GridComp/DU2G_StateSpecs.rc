@@ -21,8 +21,8 @@ category: IMPORT
  DU_TEXTURE | 1        | xy   | N    | scheme == 'k14'                          | soil_texture
  DU_VEG     | 1        | xy   | N    | scheme == 'k14'                          | vegetation_type
  FRLAKE     | 1        | xy   | N    |                                          | fraction_of_lake
- FRLAND     | 1        | xy   | N    |                                          | fraction_of_land
- ASNOW      | 1        | xy   | N    |                                          | snow_covered_fraction_of_land
+ FRLAND     | 1        | xy   | N    | scheme == 'k14'                          | fraction_of_land
+ ASNOW      | 1        | xy   | N    | scheme == 'k14'                          | snow_covered_fraction_of_land
  WET1       | 1        | xy   | N    |                                          | surface_soil_wetness
  LWI        | 1        | xy   | N    |                                          | land-ocean-ice_mask
  TROPP      | Pa       | xy   | N    |                                          | tropopause_pressure_based_on_blended_estimate
@@ -38,8 +38,8 @@ category: IMPORT
  SH         | w m-2    | xy   | N    |                                          | sensible_heat_flux_from_turbulence
  Z0H        | m        | xy   | N    |                                          | surface_roughness_for_heat
  WCSF       | m3 m-3   | xy   | N    | scheme == 'k14'                          | water_surface_layer
- TSOIL1     | K        | xy   | N    |                                          | soil_temperatures_layer_1
- RHOS       | kg m-3   | xy   | N    |                                          | air_density_at_surface
+ TSOIL1     | K        | xy   | N    | scheme == 'k14'                          | soil_temperatures_layer_1
+ RHOS       | kg m-3   | xy   | N    | scheme == 'k14'                          | air_density_at_surface
 #........................................................................................
  AIRDENS    | kg/m^3   | xyz  | C    |                                          | moist_air_density
  DELP       | Pa       | xyz  | C    |                                          | pressure_thickness

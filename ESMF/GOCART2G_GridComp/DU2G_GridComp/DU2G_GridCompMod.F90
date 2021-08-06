@@ -147,10 +147,6 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%f_scl,      label='soil_clay_factor:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%uts_gamma,  label='uts_gamma:', __RC__)
 
     call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
     self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
@@ -169,13 +165,23 @@ contains
        self%doing_point_emissions = .true.  ! we are good to go
     end if
 
-!   read FENGSHA-specific parameters
+!   read scheme-specific parameters
 !   --------------------------------
-    if (self%emission_scheme == 'fengsha') then
-      call ESMF_ConfigGetAttribute (cfg, self%alpha,  label='alpha:', __RC__)
-      call ESMF_ConfigGetAttribute (cfg, self%gamma,  label='gamma:', __RC__)
-      call ESMF_ConfigGetAttribute (cfg, self%kvhmax, label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
-    end if
+    select case (self%emission_scheme)
+    case ('fengsha')
+       call ESMF_ConfigGetAttribute (cfg, self%alpha,      label='alpha:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gamma,      label='gamma:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,     label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
+    case ('k14')
+       call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_scl,      label='soil_clay_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%uts_gamma,  label='uts_gamma:', __RC__)
+    case ('ginoux')
+       ! nothing to do
+    case default
+       _ASSERT_RC(.false., "Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha", ESMF_RC_NOT_IMPL)
+    end select
 
 !   Is DU data driven?
 !   ------------------
