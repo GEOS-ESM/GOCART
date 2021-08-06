@@ -30,6 +30,7 @@ module  Chem_AeroGeneric
    public setZeroKlid
    public setZeroKlid4d
    public findKlid
+   public get_mixR
 !
 ! !DESCRIPTION:
 !
@@ -75,7 +76,7 @@ contains
        field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
        if (trim(field_name) == 'PLE') then
           call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationEdge, typekind=typekind, hw=0, __RC__)
-       else if (trim(field_name) == 'FRLAND') then
+       else if ((trim(field_name) == 'FRLAND') .or. (trim(field_name) == 'monochromatic_EXT')) then
           call MAPL_FieldAllocCommit(field, dims=MAPL_DimsHorzOnly, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
        else
           call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
@@ -355,6 +356,53 @@ contains
    end do
 
    end subroutine findKlid
+
+!===================================================================================
+!BOP
+! !IROUTINE: get_mixR
+  subroutine get_mixR (state, rc)
+
+! !USES:
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !LOCALS:
+    real, dimension(:,:,:), pointer                  :: ptr3d
+    real, dimension(:,:,:,:), pointer                :: ptr4d
+    real, dimension(:,:,:), pointer                  :: aeroSum
+    character (len=ESMF_MAXSTR)                      :: fld_name
+    integer                                          :: aeroN, i
+    character (len=ESMF_MAXSTR), allocatable         :: aerosolNames(:)
+    integer                                          :: status
+
+!   Begin...
+
+    call ESMF_AttributeGet(state, name='internal_variable_name', itemCount=aeroN, __RC__)
+    allocate (aerosolNames(aeroN), __STAT__)
+    call ESMF_AttributeGet(state, name='internal_variable_name', valueList=aerosolNames, __RC__)
+
+!   Zero out previous aerosol sum value so it doesn't keep growing.
+    call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer (state, aeroSum, trim(fld_name), __RC__)
+       aeroSum = 0.0
+    end if
+
+    do i = 1, size(aerosolNames)
+       if ((aerosolNames(i) == 'DU') .or. (aerosolNames(i) == 'SS')) then
+          call MAPL_GetPointer (state, ptr4d, trim(aerosolNames(i)), __RC__)
+          aeroSum = sum(ptr4d, dim=4) !DU and SS only have 1 internal state variable so no need to =+
+       else
+          call MAPL_GetPointer (state, ptr3d, trim(aerosolNames(i)), __RC__)
+          aeroSum = aeroSum + ptr3d
+       end if
+    end do
+
+ end subroutine get_mixR
+
 
 end module  Chem_AeroGeneric
 

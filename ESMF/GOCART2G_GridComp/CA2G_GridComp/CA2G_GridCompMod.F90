@@ -16,7 +16,7 @@ module CA2G_GridCompMod
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
-   use GA_GridCompMod
+   use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
 
    implicit none
@@ -38,10 +38,11 @@ module CA2G_GridCompMod
 !===========================================================================
 
 !  !Carbonaceous aerosol state
-      type, extends(GA_GridComp) :: CA2G_GridComp
+      type, extends(GA_Environment) :: CA2G_GridComp
        integer            :: myDOW = -1   ! my Day of the week: Sun=1, Mon=2,...,Sat=7
        real               :: ratPOM = 1.0  ! Ratio of POM to OC mass
-       real               :: fTerpene = 0.0 ! Fraction of terpene emissions -> aerosol
+       real               :: fMonoterpenes = 0.0 ! Fraction of monoterpene emissions -> aerosol
+       real               :: fIsoprene = 0.0 ! Franction of isoprene emissions -> aerosol
        real               :: fHydrophobic ! Initially hydrophobic portion
        logical            :: diurnal_bb   ! diurnal biomass burning
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
@@ -127,15 +128,15 @@ contains
 !   Load resource file  
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'CA2G_GridComp_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', rc=status)
     if (status /= 0) then
-        if (mapl_am_i_root()) print*,'CA2G_GridComp_'//trim(COMP_NAME)//'.rc does not exist! &
-                                      Loading CA2G_GridComp_CA.oc.rc instead'
-        call ESMF_ConfigLoadFile (cfg, 'CA2G_GridComp_CA.oc.rc', __RC__)
+        if (mapl_am_i_root()) print*,'CA2G_instance_'//trim(comp_name)//'.rc does not exist! &
+                                      Loading CA2G_instance_'//trim(comp_name)//'.rc instead'
+        call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', __RC__)
     end if
 
 !   process generic config items
-    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
     call ESMF_ConfigGetAttribute (cfg, self%nbins, label='nbins:', __RC__)
     nbins = self%nbins
@@ -144,8 +145,9 @@ contains
 !   ----------------------------------------------
     call ESMF_ConfigGetAttribute (cfg, self%myDOW, label='my_day_of_week:', default=-1, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fhydrophobic, label='hydrophobic_fraction:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_oc_ratio:', default=1.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%fTerpene, label='terpene_emission_fraction:', default=0.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_ca_ratio:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%fMonoterpenes, label='monoterpenes_emission_fraction:', default=0.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%fIsoprene, label='isoprene_emission_fraction:', default=0.0, __RC__)
 
     call ESMF_ConfigFindLabel (cfg, 'aviation_vertical_layers:', __RC__)
     do i=1,size(self%aviation_layers)
@@ -290,16 +292,6 @@ contains
        vlocation  = MAPL_VLocationCenter,                    &
        datatype   = MAPL_StateItem, __RC__)
 
-!   This state is needed by MOIST - It will contain aerosols
-!   ----------------------------------------------------------
-    call MAPL_AddExportSpec (GC,                                                  &
-       short_name = trim(COMP_NAME)//'_AERO_ACI',                                 &
-       long_name  = 'aerosol_cloud_interaction_aerosols_from_'//trim(COMP_NAME),  &
-       units      = 'kg kg-1',                                                    &
-       dims       = MAPL_DimsHorzVert,                                            &
-       vlocation  = MAPL_VLocationCenter,                                         &
-       datatype   = MAPL_StateItem, __RC__)
-
 !   This bundle is needed by surface for snow albedo modification
 !   by aerosol settling and deposition
 !   ~~~DEVELOPERS NOTE~~~ Change to StateItem when possible
@@ -352,7 +344,7 @@ contains
     type (MAPL_MetaComp), pointer        :: MAPL
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
-    type (ESMF_State)                    :: aero, aero_aci
+    type (ESMF_State)                    :: aero
     type (ESMF_State)                    :: providerState
     type (ESMF_Config)                   :: cfg, universal_cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
@@ -427,9 +419,9 @@ contains
 !   Load resource file  
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'CA2G_GridComp_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
     if (status /= 0) then
-        if (mapl_am_i_root()) print*,'ERROR: CA2G_GridComp_'//trim(COMP_NAME)//'.rc does not exist!' 
+        if (mapl_am_i_root()) print*,'ERROR: CA2G_instance_'//trim(COMP_NAME)//'.rc does not exist!' 
         return
     end if
 
@@ -459,16 +451,13 @@ contains
 !   Fill AERO States with carbon fields
 !   ------------------------------------
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
-    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_ACI', aero_aci, __RC__)
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, 'CAphobic'//trim(comp_name), field, __RC__)
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), __RC__)
     fld = MAPL_FieldCreate (field, 'CAphobic'//trim(comp_name), __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-!    call MAPL_StateAdd (aero_aci, fld, __RC__)
 
-    self%klid = 1 ! temporary value
 !   Set internal CAphobic values to 0 where above klid
     call MAPL_GetPointer (internal, int_ptr, 'CAphobic'//trim(comp_name), __RC__)
     call setZeroKlid(self%km, self%klid, int_ptr)
@@ -477,7 +466,6 @@ contains
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
     fld = MAPL_FieldCreate (field, 'CAphilic'//trim(comp_name), __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-    call MAPL_StateAdd (aero_aci, fld, __RC__)
 
     if (.not. data_driven) then
 !      Set klid
@@ -556,16 +544,16 @@ contains
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
 
-    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
     self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
-                                  label= "aerosol_monochromatic_optics_wavelength:", __RC__)
+                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels*1.e-9, rc=status, nmom=self%diag_MieTable(instance)%nmom)
     VERIFY_(status)
 
 !   Finish creating AERO state
@@ -584,8 +572,12 @@ contains
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
+    call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
+                   label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
+    call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0.0, __RC__)
 
     mieTable_pointer = transfer(c_loc(self), [1])
     call ESMF_AttributeSet(aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
@@ -593,10 +585,12 @@ contains
     allocate(aerosol_names(self%nbins), __STAT__)
     aerosol_names(1) = 'CAphobic'//trim(comp_name)
     aerosol_names(2) = 'CAphilic'//trim(comp_name)
-    call ESMF_AttributeSet(aero, name='internal_varaible_name', valueList=aerosol_names, &
+    call ESMF_AttributeSet(aero, name='internal_variable_name', valueList=aerosol_names, &
                            itemCount=size(aerosol_names), __RC__)
 
     call ESMF_MethodAdd(AERO, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -695,13 +689,14 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)     :: lats
     real, pointer, dimension(:,:)     :: lons
-    real, dimension(:,:), allocatable :: biomass_src, terpene_src, biofuel_src, &
+    real, dimension(:,:), allocatable :: biomass_src, biofuel_src, biogvoc_src, &
           eocant1_src, eocant2_src, oc_ship_src, aviation_lto_src, aviation_cds_src, &
           aviation_crs_src, biomass_src_
     real, dimension(:,:,:), allocatable :: emissions_point
     integer, pointer, dimension(:)    :: iPoint, jPoint
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     character(len=2)  :: GCsuffix
+    logical :: fileExists
 
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
 
@@ -771,7 +766,6 @@ contains
 !   Implicit allocation with Fortran 2003
     if (trim(comp_name) == 'CA.oc') then
        biomass_src = OC_BIOMASS
-       terpene_src = OC_TERPENE
        biofuel_src = OC_BIOFUEL
        eocant1_src = OC_ANTEOC1
        eocant2_src = OC_ANTEOC2
@@ -779,6 +773,9 @@ contains
        aviation_lto_src = OC_AVIATION_LTO
        aviation_cds_src = OC_AVIATION_CDS
        aviation_crs_src = OC_AVIATION_CRS
+       allocate(biogvoc_src, mold=OC_MTPA, __STAT__)
+       biogvoc_src = 0.0
+       biogvoc_src = ((OC_MTPA + OC_MTPO + OC_LIMO) * self%fMonoterpenes) + (OC_ISOPRENE * self%fIsoprene)
     else if (trim(comp_name) == 'CA.bc') then
        biomass_src = BC_BIOMASS
        biofuel_src = BC_BIOFUEL
@@ -788,11 +785,14 @@ contains
        aviation_lto_src = BC_AVIATION_LTO
        aviation_cds_src = BC_AVIATION_CDS
        aviation_crs_src = BC_AVIATION_CRS
-       allocate(terpene_src, mold=BC_BIOMASS, __STAT__)
-       terpene_src = 1.0
+       allocate(biogvoc_src, mold=BC_BIOMASS, __STAT__)
+! Black carbon has no biogvoc_src, so we set it to zero. 
+! biogvoc_src is still needed for the call to CAEmissions, however it
+! effectivly does nothing since we set all its values to zero.
+       biogvoc_src = 0.0
     else if (trim(comp_name) == 'CA.br') then
        biomass_src = BRC_BIOMASS
-       terpene_src = BRC_TERPENE
+       biogvoc_src = BRC_TERPENE
        biofuel_src = BRC_BIOFUEL
        eocant1_src = BRC_ANTEBRC1
        eocant2_src = BRC_ANTEBRC2
@@ -804,7 +804,7 @@ contains
 
 !   As a safety check, where value is undefined set to 0
     where(1.01*biomass_src > MAPL_UNDEF) biomass_src = 0.
-    where(1.01*terpene_src > MAPL_UNDEF) terpene_src = 0.
+    where(1.01*biogvoc_src > MAPL_UNDEF) biogvoc_src = 0.
     where(1.01*biofuel_src > MAPL_UNDEF) biofuel_src = 0.
     where(1.01*eocant1_src > MAPL_UNDEF) eocant1_src = 0.
     where(1.01*eocant2_src > MAPL_UNDEF) eocant2_src = 0.
@@ -828,21 +828,28 @@ contains
                                  nhms, self%cdt)
     end if
 
-    call CAEmission (self%diag_MieTable(self%instance), self%km, self%nbins, self%cdt, MAPL_GRAV, GCsuffix, self%ratPOM, &
-                     self%fTerpene, aviation_lto_src, aviation_cds_src, aviation_crs_src, self%fHydrophobic, &
-                     zpbl, t, airdens, rh2, intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
-                     terpene_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
+    call CAEmission (self%diag_MieTable(self%instance), self%km, self%nbins, self%cdt, &
+                     MAPL_GRAV, GCsuffix, self%ratPOM, aviation_lto_src, aviation_cds_src, &
+                     aviation_crs_src, self%fHydrophobic, zpbl, t, airdens, rh2, &
+                     intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
+                     biogvoc_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
                      CAEM, CAEMAN, CAEMBB, CAEMBF, CAEMBG, __RC__ )
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
     if(self%doing_point_emissions) then
        call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
-                         nymd=nymd, nhms=120000 )
-       call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                 self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                 self%pEnd, label='source', __RC__)
-    endif
+                        nymd=nymd, nhms=120000 )
+       inquire( file=fname, exist=fileExists)
+       if (fileExists) then
+          call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
+                                   self%pBase, self%pTop, self%pEmis, self%pStart, &
+                                   self%pEnd, label='source', __RC__)
+       else if (.not. fileExists) then
+         if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
+         self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
+       end if
+    end if
 
 !   Get indices for point emissions
 !   -------------------------------
@@ -958,7 +965,7 @@ contains
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
-          CAPSOA = CAPSOA+sum(self%cdt*pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
+          CAPSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
 
     if (trim(comp_name) == 'CA.br') then
@@ -967,7 +974,7 @@ contains
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
        if (associated(CAPSOA)) &
-          CAPSOA = sum(self%cdt*pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
+          CAPSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
 
 !   Ad Hoc transfer of hydrophobic to hydrophilic aerosols
@@ -981,9 +988,9 @@ contains
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
 
-       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, int_ptr, MAPL_GRAV, delp, &
-                                 self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
-                                 rh2, zle, CASD, __RC__)
+       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
+                           self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
+                           rh2, zle, delp, CASD, __RC__)
     end do
 
 !   CA Deposition
@@ -1027,33 +1034,12 @@ contains
                              channels=self%diag_MieTable(self%instance)%channels*1.0e-9, &
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
-                             tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, sfcmass=CASMASS, colmass=CACMASS, &
-                             mass=CAMASS, exttau=CAEXTTAU, scatau=CASCATAU, fluxu=CAFLUXU, fluxv=CAFLUXV, &
+                             tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
+                             sfcmass=CASMASS, colmass=CACMASS, mass=CAMASS,&
+                             exttau=CAEXTTAU,stexttau=CASTEXTTAU, scatau=CASCATAU, stscatau=CASTSCATAU,&
+                             fluxu=CAFLUXU, fluxv=CAFLUXV, &
                              conc=CACONC, extcoef=CAEXTCOEF, scacoef=CASCACOEF, angstrom=CAANGSTR, aerindx=CAAERIDX,&
                              NO3nFlag=.false., __RC__)
-
-if (trim(comp_name) == 'CA.oc') then
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphobic) = ',sum(intPtr_phobic)
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(OCphilic) = ',sum(intPtr_philic)
-!  if(mapl_am_i_root()) print*,'CA2G Run2 E array OCphobic = ',CAphobic
-!  if(mapl_am_i_root()) print*,'CA2G Run2 E array OCphilic = ',CAphilic
-!if(mapl_am_i_root()) print*,'CA2G OC CASMASS = ',sum(CASMASS)
-!if(mapl_am_i_root()) print*,'CA2G OC CAMASS = ',sum(CAMASS)
-!if(mapl_am_i_root()) print*,'CA2G OC CAEXTTAU = ',sum(CAEXTTAU)
-!if(mapl_am_i_root()) print*,'CA2G OC CASCATAU = ',sum(CASCATAU)
-else if (trim(comp_name) == 'CA.bc') then
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BCphobic) = ',sum(intPtr_phobic)
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BCphilic) = ',sum(intPtr_philic)
-!  if(mapl_am_i_root()) print*,'CA2G Run2 E array BCphobic = ',CAphobic
-!  if(mapl_am_i_root()) print*,'CA2G Run2 E array BCphilic = ',CAphilic
-!if(mapl_am_i_root()) print*,'CA2G BC CASMASS = ',sum(CASMASS)
-!if(mapl_am_i_root()) print*,'CA2G BC CAMASS = ',sum(CAMASS)
-!if(mapl_am_i_root()) print*,'CA2G BC CAEXTTAU = ',sum(CAEXTTAU)
-!if(mapl_am_i_root()) print*,'CA2G BC CASCATAU = ',sum(CASCATAU)
-else if (trim(comp_name) == 'CA.br') then
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphobic) = ',sum(intPtr_phobic)
-  if(mapl_am_i_root()) print*,'CA2G Run2 E sum(BRphilic) = ',sum(intPtr_philic)
-end if
 
 
     RETURN_(ESMF_SUCCESS)
@@ -1172,9 +1158,9 @@ end if
 
 !   Get aerosol names
 !   -----------------
-    call ESMF_AttributeGet (state, name='internal_varaible_name', itemCount=nbins, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', itemCount=nbins, __RC__)
     allocate (aerosol_names(nbins), __STAT__)
-    call ESMF_AttributeGet (state, name='internal_varaible_name', valueList=aerosol_names, __RC__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', valueList=aerosol_names, __RC__)
 
 !   Radiation band
 !   --------------
@@ -1294,6 +1280,138 @@ end if
     end subroutine mie_
 
   end subroutine aerosol_optics
+
+!-------------------------------------------------------------------------------------
+  subroutine monochromatic_aerosol_optics(state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !Local
+    real, dimension(:,:,:), pointer                  :: ple, rh
+    real, dimension(:,:), pointer                    :: var
+    real, dimension(:,:,:), pointer                  :: q
+    real, dimension(:,:,:,:), pointer                :: q_4d
+    integer, allocatable                             :: opaque_self(:)
+    type(C_PTR)                                      :: address
+    type(CA2G_GridComp), pointer                     :: self
+
+    character (len=ESMF_MAXSTR)                      :: fld_name
+    type(ESMF_Field)                                 :: fld
+    character (len=ESMF_MAXSTR),allocatable          :: aerosol_names(:)
+
+    real, dimension(:,:,:), allocatable              :: tau_s, tau  ! (lon:,lat:,lev:)
+    real                                             :: x
+    integer                                          :: instance
+    integer                                          :: n, nbins
+    integer                                          :: i1, j1, i2, j2, km
+    real                                             :: wavelength, mieTable_index
+    integer                                          :: i, j, k
+
+    __Iam__('CA2G::monochromatic_aerosol_optics')
+
+!   Begin... 
+
+!   Mie Table instance/index
+!   ------------------------
+    call ESMF_AttributeGet(state, name='mie_table_instance', value=instance, __RC__)
+
+!   Get aerosol names
+!   -----------------
+    call ESMF_AttributeGet (state, name='internal_variable_name', itemCount=nbins, __RC__)
+    allocate (aerosol_names(nbins), __STAT__)
+    call ESMF_AttributeGet (state, name='internal_variable_name', valueList=aerosol_names, __RC__)
+
+!   Radiation wavelength
+!   --------------------
+    call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+
+!   Get wavelength index for Mie Table
+!   ----------------------------------
+!   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
+    if ((wavelength .ge. 4.69e-7) .and. (wavelength .le. 4.71e-7)) then
+       mieTable_index = 1.
+    else if ((wavelength .ge. 5.49e-7) .and. (wavelength .le. 5.51e-7)) then
+       mieTable_index = 2.
+    else if ((wavelength .ge. 6.69e-7) .and. (wavelength .le. 6.71e-7)) then
+       mieTable_index = 3.
+    else if ((wavelength .ge. 8.68e-7) .and. (wavelength .le. 8.71e-7)) then
+       mieTable_index = 4.
+    else
+       print*,trim(Iam),' : wavelengths of ',wavelength,' is an invalid value.'
+       return
+    end if
+
+!   Pressure at layer edges 
+!   ------------------------
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
+!    call MAPL_GetPointer (state, ple, 'PLE', __RC__)
+
+    i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+    j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+                         km = ubound(ple, 3)
+
+!   Relative humidity
+!   -----------------
+    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, rh, trim(fld_name), __RC__)
+!    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
+
+    allocate(tau_s(i1:i2, j1:j2, km), &
+               tau(i1:i2, j1:j2, km), __STAT__)
+    tau_s = 0.
+    tau   = 0.
+
+    allocate(q_4d(i1:i2, j1:j2, km, nbins), __STAT__)
+
+    do n = 1, nbins
+       call ESMF_StateGet (state, trim(aerosol_names(n)), field=fld, __RC__)
+       call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
+
+        do k = 1, km
+           do j = j1, j2
+              do i = i1, i2
+                 x = (ple(i,j,k) - ple(i,j,k-1))/MAPL_GRAV
+                 q_4d(i,j,k,n) = x * q(i,j,k)
+              end do
+           end do
+        end do
+    end do
+
+    call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)
+    allocate (opaque_self(n), __STAT__)
+    call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, __RC__)
+
+    address = transfer(opaque_self, address)
+    call c_f_pointer(address, self)
+
+    do n = 1, nbins
+      do i = 1, i2
+        do j = 1, j2
+          do k = 1, km
+            call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau(i,j,k), __RC__)
+            tau_s(i,j,k) = tau_s(i,j,k) + tau(i,j,k)
+          end do
+        end do
+      end do
+    end do
+
+    call ESMF_AttributeGet(state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+       var = sum(tau_s, dim=3)
+    end if
+
+    deallocate(q_4d, __STAT__)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine monochromatic_aerosol_optics
+
 
 end module CA2G_GridCompMod
 

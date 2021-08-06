@@ -16,7 +16,7 @@ module SS2G_GridCompMod
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
-   use GA_GridCompMod
+   use GA_EnvironmentMod
 
    implicit none
    private
@@ -41,7 +41,7 @@ real, parameter ::  cpd    = 1004.16
    integer, parameter         :: NHRES = 6
 
 !  !Sea Salt state
-   type, extends(GA_GridComp) :: SS2G_GridComp
+   type, extends(GA_Environment) :: SS2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
        real, allocatable      :: rmed(:)        ! number median radius [um]
@@ -115,14 +115,14 @@ contains
 !   Load resource file 
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SS2G_GridComp_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
     if (status /= 0) then
-       if (mapl_am_i_root()) print*,'SS2G_GridComp_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_GridComp_SS.data.rc instead'
-       call ESMF_ConfigLoadFile (cfg, 'SS2G_GridComp_SS.rc', __RC__)
+       if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
     ! process generic config items
-    call self%GA_GridComp%load_from_config( cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
     allocate(self%rlow(self%nbins), self%rup(self%nbins), self%rmed(self%nbins), __STAT__)
 
@@ -254,16 +254,6 @@ contains
        VLOCATION  = MAPL_VLocationCenter,                       &
        DATATYPE   = MAPL_StateItem, __RC__)
 
-!   This state is needed by MOIST - It will contain aerosols
-!   ----------------------------------------------------------
-    call MAPL_AddExportSpec(GC,                                                  &
-       SHORT_NAME = trim(COMP_NAME)//'_AERO_ACI',                                &
-       LONG_NAME  = 'aerosol_cloud_interaction_aerosols_from_'//trim(COMP_NAME),  &
-       UNITS      = 'kg kg-1',                                                   &
-       DIMS       = MAPL_DimsHorzVert,                                           &
-       VLOCATION  = MAPL_VLocationCenter,                                        &
-       DATATYPE   = MAPL_StateItem, __RC__)
-
 !   This bundle is needed by surface for snow albedo modification
 !   by aerosol settling and deposition
 !   DEVELOPMENT NOTE - Change to StateItem in future
@@ -317,7 +307,7 @@ contains
     type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
-    type (ESMF_State)                    :: aero, aero_aci
+    type (ESMF_State)                    :: aero
     type (ESMF_State)                    :: providerState
     type (ESMF_Config)                   :: cfg, universal_cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
@@ -379,11 +369,11 @@ contains
 !  Load resource file and get number of bins 
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SS2G_GridComp_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
     if (status /= 0) then
-      if (mapl_am_i_root()) print*,'SS2G_GridComp_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading SS2G_GridComp_SS.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'SS2G_GridComp_SS.rc', __RC__)
+      if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
+                                    loading SS2G_instance_SS.rc instead'
+      call ESMF_ConfigLoadFile( cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
 !   Call Generic Initialize 
@@ -419,14 +409,12 @@ contains
 !   Fill AERO State with sea salt fields
 !   ----------------------------------------
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
-    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_ACI', aero_aci, __RC__)
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, 'SS', field, __RC__)
     call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
     fld = MAPL_FieldCreate (field, 'SS', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-    call MAPL_StateAdd (aero_aci, fld, __RC__)
 
     if (.not. data_driven) then
 !      Set klid
@@ -506,16 +494,16 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%optics_file, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
     call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
-    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
     self%diag_MieTable(instance)%nch = i
     allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
-                                  label= "aerosol_monochromatic_optics_wavelength:", __RC__)
+                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
 
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels*1.e-9, rc=status, nmom=self%diag_MieTable(instance)%nmom)
     VERIFY_(status)
 
     ! Mie Table instance/index
@@ -532,15 +520,21 @@ contains
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
+    call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
+                   label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
 
-    call ESMF_AttributeSet(aero, name='band_for_aerosol_optics',             value=0,     __RC__)
+    call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
+    call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
 
     mieTable_pointer = transfer(c_loc(self), [1])
-    call ESMF_AttributeSet(aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
+    call ESMF_AttributeSet (aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
 
-    call ESMF_AttributeSet(aero, name='internal_varaible_name', value='SS', __RC__)
+    call ESMF_AttributeSet (aero, name='internal_variable_name', value='SS', __RC__)
 
-    call ESMF_MethodAdd(AERO, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
+    call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
 !   Mask to prevent emissions from the Great Lakes and the Caspian Sea
 !   ------------------------------------------------------------------
@@ -799,9 +793,9 @@ contains
 !   Sea Salt Settling
 !   -----------------
     do n = 1, self%nbins
-       call Chem_Settling2Gorig (self%km, self%klid, self%rhFlag, n, SS(:,:,:,n), MAPL_GRAV, delp, &
-                                 self%radius(n)*1.e-6, self%rhop(n), self%cdt, t, airdens, &
-                                 rh2, zle, SSSD, __RC__)
+       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
+                           self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
+                           rh2, zle, delp, SSSD, __RC__)
     end do
 
 !   Deposition
@@ -839,18 +833,12 @@ contains
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
                              self%rup, self%diag_MieTable(self%instance)%channels*1.0e-9, self%wavelengths_profile*1.0e-9, &
-                             self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens, &
-                             rh2, u, v, delp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSCATAU,     &
+                             self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
+                             delp, ple, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
  
-    if (mapl_am_i_root()) then
-      do n = 1, size(SS, 4)
-        print*,'n = ', n,' : Run2 E SS2G sum(ss00n) = ',sum(SS(:,:,:,n))
-      end do
-    end if
-
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2
@@ -985,7 +973,7 @@ contains
              asy_s(i1:i2, j1:j2, km), &
                  x(i1:i2, j1:j2, km), __STAT__)
 
-    call ESMF_AttributeGet(state, name='internal_varaible_name', value=int_fld_name, __RC__)
+    call ESMF_AttributeGet(state, name='internal_variable_name', value=int_fld_name, __RC__)
     call ESMF_StateGet (state, trim(int_fld_name), field=fld, __RC__) !add as attribute - dont hard code?
     call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
 
@@ -1074,6 +1062,132 @@ contains
     end subroutine mie_
 
   end subroutine aerosol_optics
+
+!-------------------------------------------------------------------------------------
+  subroutine monochromatic_aerosol_optics(state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !Local
+    real, dimension(:,:,:), pointer                  :: ple, rh
+    real, dimension(:,:), pointer                    :: var
+    real, dimension(:,:,:,:), pointer                :: q, q_4d
+    integer, allocatable                             :: opaque_self(:)
+    type(C_PTR)                                      :: address
+    type(SS2G_GridComp), pointer                     :: self
+
+    character (len=ESMF_MAXSTR)                      :: fld_name
+    type(ESMF_Field)                                 :: fld
+
+    real, dimension(:,:,:), allocatable              :: tau_s, tau, x ! (lon:,lat:,lev:)
+    integer                                          :: instance
+    integer                                          :: n, nbins, k
+    integer                                          :: i1, j1, i2, j2, km, i, j
+    real                                             :: wavelength, mieTable_index
+
+    __Iam__('SS2G::monochromatic_aerosol_optics')
+
+!   Begin... 
+
+!   Mie Table instance/index
+!   ------------------------
+    call ESMF_AttributeGet (state, name='mie_table_instance', value=instance, __RC__)
+
+!   Radiation band
+!   --------------
+    wavelength = 0.
+    call ESMF_AttributeGet (state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+
+!   Get wavelength index for Mie Table
+!   ----------------------------------
+!   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
+    if ((wavelength .ge. 4.69e-7) .and. (wavelength .le. 4.71e-7)) then
+       mieTable_index = 1.
+    else if ((wavelength .ge. 5.49e-7) .and. (wavelength .le. 5.51e-7)) then
+       mieTable_index = 2.
+    else if ((wavelength .ge. 6.69e-7) .and. (wavelength .le. 6.71e-7)) then
+       mieTable_index = 3.
+    else if ((wavelength .ge. 8.68e-7) .and. (wavelength .le. 8.71e-7)) then
+       mieTable_index = 4.
+    else
+       print*,trim(Iam),' : wavelength of ',wavelength,' is an invalid value.'
+       return
+    end if
+
+!   Pressure at layer edges 
+!   ------------------------
+    call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer (state, ple, trim(fld_name), __RC__)
+
+!    call MAPL_GetPointer (state, ple, 'PLE', __RC__)
+
+    i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+    j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+                         km = ubound(ple, 3)
+
+!   Relative humidity
+!   -----------------
+    call ESMF_AttributeGet (state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer (state, rh, trim(fld_name), __RC__)
+
+!    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
+
+    allocate(tau_s(i1:i2, j1:j2, km), &
+               tau(i1:i2, j1:j2, km), &
+                 x(i1:i2, j1:j2, km), __STAT__)
+    tau_s = 0.
+    tau   = 0.
+
+    call ESMF_StateGet (state, 'SS', field=fld, __RC__)
+    call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
+
+    nbins = size(q,4)
+
+    allocate(q_4d(i1:i2, j1:j2, km, nbins), __STAT__)
+    q_4d = 0.
+
+    do n = 1, nbins
+       do k = 1, km
+          x(:,:,k) = (PLE(:,:,k) - PLE(:,:,k-1)) / MAPL_GRAV
+          q_4d(:,:,k,n) = x(:,:,k) * q(:,:,k,n)
+       end do
+    end do
+
+    call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)
+    allocate (opaque_self(n), __STAT__)
+    call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, __RC__)
+
+    address = transfer(opaque_self, address)
+    call c_f_pointer(address, self)
+
+    do n = 1, nbins
+      do i = 1, i2
+        do j = 1, j2
+          do k = 1, km
+            call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau(i,j,k), __RC__)
+            tau_s = tau_s + tau
+            tau = 0.
+          end do
+        end do
+      end do
+    end do
+
+    call ESMF_AttributeGet (state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+        call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+        var = sum(tau_s, dim=3)
+    end if
+
+    deallocate(q_4d, __STAT__)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine monochromatic_aerosol_optics
+
 
 end module SS2G_GridCompMod
 

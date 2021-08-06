@@ -2200,7 +2200,7 @@ RUN_ALARM: if (gcOC%run_alarm) then
       w_c%qa(n2)%data3d(i,j,k) = w_c%qa(n2)%data3d(i,j,k) + cdt*gcOC%psoa_anthro_voc(i,j,k)/rhoa(i,j,k)  ! hydrophilic
       if ( associated(OC_pSOA%data2d)) &
           OC_pSOA%data2d(i,j) = OC_pSOA%data2d(i,j) &
-             + cdt*gcOC%psoa_anthro_voc(i,j,k)*w_c%delp(i,j,k)/rhoa(i,j,k)/grav
+             + gcOC%psoa_anthro_voc(i,j,k)*w_c%delp(i,j,k)/rhoa(i,j,k)/grav
      end do
     end do
    end do
