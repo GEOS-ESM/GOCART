@@ -61,7 +61,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
                                           vCloud
       integer, allocatable, dimension(:) :: vStart, &
                                             vEnd
-      integer                         :: nPts = -1
+      integer                         :: nPts! = -1
       integer, allocatable, dimension(:)  :: pstart, pend
       real, allocatable, dimension(:)     :: pLat, &
                                              pLon, &
@@ -765,7 +765,7 @@ contains
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     logical :: fileExists
 
-    real, pointer, dimension(:,:,:) :: dummyMSA => null() ! This is so the model can run without MSA enabled
+    real, pointer, dimension(:,:,:) :: dummyMSA ! This is so the model can run without MSA enabled
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread
 
@@ -773,8 +773,11 @@ contains
     integer :: status
     character(len=255) :: Iam
 
+
 !*****************************************************************************
 !   Begin... 
+
+    nullify(dummyMSA)
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -859,6 +862,7 @@ contains
     !$ thread = omp_get_thread_num()
     workspace => self%workspaces(thread)
 
+
     if(self%nymd_last /= nymd) then
        self%nymd_last = nymd
 
@@ -891,9 +895,14 @@ contains
               VERIFY_(status)
            end if
 
+!!$           !$omp critical (SU_write_index)
+!!$           print*,__FILE__,__LINE__, omp_get_thread_num(), pack(jPointVolc,jpointvolc /= -1)
+!!$           !$omp end critical (SU_write_index)
+
        call SUvolcanicEmissions (workspace%nVolc, workspace%vStart, workspace%vEnd, workspace%vSO2, workspace%vElev, &
                                  workspace%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SUEM, &
                                  self%km, self%cdt, MAPL_GRAV, zle, delp, area, workspace%vLat, workspace%vLon, __RC__)
+
     end if
 
 !   Apply diurnal cycle if so desired

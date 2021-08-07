@@ -503,7 +503,9 @@ contains
    type(ESMF_VM) :: vm
    integer :: myid
    integer :: myunit
-   
+   type(ESMF_GridComp) :: thread_gc
+   integer :: i
+
    call ESMF_VmGetCurrent(vm, __RC__)
    call ESMF_VmGet(vm, localPet=myid, __RC__)
    myunit = 100 + omp_get_max_threads()*myid + 0
@@ -520,36 +522,34 @@ contains
          num_threads = 1
          !$ num_threads = omp_get_max_threads()
          write(myunit,*)__FILE__,__LINE__, 'attempting to run on ',num_threads,'threads'
-         call MAPL%activate_threading(num_threads)
+         call MAPL%activate_threading(num_threads, __RC__)
          write(myunit,*)__FILE__,__LINE__, 'substates created'
 
          allocate(statuses(num_threads), __STAT__)
          statuses=0
-
          !$omp parallel default(none), &
-         !$omp& private(thread, subimport, subexport, myunit), &
-         !$omp& shared(gc, statuses, clock, MAPL, import, export, myid)
+         !$omp& private(thread, subimport, subexport, myunit, thread_gc), &
+         !$omp& shared(gc, statuses, clock, MAPL, myid)
 
          thread = 0
          !$ thread = omp_get_thread_num() 
-         myunit = 100 + omp_get_num_threads()*myid + omp_get_thread_num()
-
-         !$omp critical
-         write(myunit,*)__FILE__,__LINE__, 'running on thread ',thread
-         !$omp end critical
+         !$ myunit = 100 + omp_get_num_threads()*myid + omp_get_thread_num()
 
          subimport = MAPL%get_import_state()
          subexport = MAPL%get_export_state()
-
-         call run_thread(GC, subimport, subexport, clock, myid, rc=statuses(thread+1))
+         thread_gc = MAPL%get_gridcomp()
+         call run_thread(thread_gc, subimport, subexport, clock, myid, rc=statuses(thread+1))
 
          !$omp end parallel
 
          if (any(statuses /= ESMF_SUCCESS)) then
+!$omp critical (statuses_print)
+            print*,'myid: ',myid, statuses
+!$omp end critical (statuses_print)
             _FAIL('some thread failed')
          end if
-         call MAPL%deactivate_threading()
-         write(myunit,*)__FILE__,__LINE__,'deactivated threading'
+         call MAPL%deactivate_threading(__RC__)
+         !$ write(myunit,*)__FILE__,__LINE__,'deactivated threading'
       end if
    else
       call run_thread(GC, import, export, clock, myid, __RC__)
@@ -589,20 +589,18 @@ contains
     type (ESMF_State)                   :: internal
 
     integer                             :: i
-    character(len=ESMF_MAXSTR), pointer :: GCNames(:)
-    integer :: myunit
     integer :: status, userstatus
     character(len=255) :: Iam
-
+    
 !****************************************************************************
 ! Begin... 
+
 
     if(present(rc)) rc = 0
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet( GC, NAME=COMP_NAME, __RC__ )
     Iam = trim(COMP_NAME)//'::'//'run_thread'
-    myunit = 100 + omp_get_num_threads()*myid + omp_get_thread_num()
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
@@ -610,67 +608,18 @@ contains
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
-    call MAPL_Get ( MAPL, GCNames=GCNames, __RC__)
+    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, __RC__)
 
 !   Run the children
 !   -----------------
     do i = 1, size(gcs)
-       !$omp critical (AAB)
-       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
-       !$omp end critical (AAB)
+
+       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), &
+            & phase=1, clock=clock, userrc=userstatus,rc=status)
        VERIFY_(userstatus)
        VERIFY_(status)
+
     end do
-!!$    
-!!$    i = 1
-!!$    !$omp critical (child_1)
-!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
-!!$    VERIFY_(userstatus)
-!!$    VERIFY_(status)
-!!$    !$omp end critical (child_1)
-!!$
-!!$    i = 2
-!!$    !$omp critical (child_2)
-!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
-!!$    VERIFY_(userstatus)
-!!$    VERIFY_(status)
-!!$    !$omp end critical (child_2)
-!!$
-!!$    i = 3
-!!$    !$omp critical (child_3)
-!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
-!!$    VERIFY_(userstatus)
-!!$    VERIFY_(status)
-!!$    !$omp end critical (child_3)
-!!$
-!!$    i = 4
-!!$    !$omp critical (child_4)
-!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
-!!$    VERIFY_(userstatus)
-!!$    VERIFY_(status)
-!!$    !$omp end critical (child_4)
-!!$
-!!$    i = 5
-!!$    !$omp critical (child_5)
-!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
-!!$    VERIFY_(userstatus)
-!!$    VERIFY_(status)
-!!$    !$omp end critical (child_5)
-!!$
-!!$    i = 6
-!!$    !$omp critical (child_6)
-!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
-!!$    VERIFY_(userstatus)
-!!$    VERIFY_(status)
-!!$    !$omp end critical (child_6)
-!!$
-!!$    i = 7
-!!$    !$omp critical (child_7)
-!!$    call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userrc=userstatus,rc=status)
-!!$    VERIFY_(userstatus)
-!!$    VERIFY_(status)
-!!$    !$omp end critical (child_7)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1188,7 +1137,10 @@ contains
           n=size(species%instances)
 
           do i = 1, n
-             species%instances(i)%id = MAPL_AddChild(gc, name=species%instances(i)%name, SS=SetServices, __RC__)
+!!$             species%instances(i)%id = MAPL_AddChild(gc, name=species%instances(i)%name, SS=SetServices, &
+!!$                  & subgcs=.true., __RC__)
+             species%instances(i)%id = MAPL_AddChild(gc, name=species%instances(i)%name, SS=SetServices, &
+                  & __RC__)
           end do
 
         RETURN_(ESMF_SUCCESS)

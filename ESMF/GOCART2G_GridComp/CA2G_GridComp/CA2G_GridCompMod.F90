@@ -313,7 +313,7 @@ contains
 
 !   Store internal state in GC
 !   --------------------------
-    call ESMF_UserCompSetInternalState ( GC, 'CA2G_GridComp', wrap, STATUS )
+    call ESMF_UserCompSetInternalState ( GC, trim(comp_name)//'2G_GridComp', wrap, STATUS )
     VERIFY_(STATUS)
 
 !   Set generic services
@@ -397,7 +397,7 @@ contains
 
 !   Get my internal private state
 !   -----------------------------
-    call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
+    call ESMF_UserCompGetInternalState(GC, trim(comp_name)//'2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
 
@@ -751,7 +751,7 @@ contains
 
 !   Get my private internal state
 !   ------------------------------
-    call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
+    call ESMF_UserCompGetInternalState(GC, trim(comp_name)//'2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
 
@@ -972,7 +972,7 @@ contains
 
 !   Get my private internal state
 !   ------------------------------
-    call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
+    call ESMF_UserCompGetInternalState(GC, trim(comp_name)//'2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
 
@@ -1113,7 +1113,7 @@ contains
 
 !   Get my private internal state
 !   ------------------------------
-    call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
+    call ESMF_UserCompGetInternalState(GC, trim(comp_name)//'2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
 

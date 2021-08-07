@@ -616,15 +616,19 @@ contains
 
     logical                           :: data_driven
 
-    __Iam__('Run')
+!    __Iam__('Run')
+    integer :: status
+    character(len=256) :: Iam
 
 !*****************************************************************************
 !   Begin... 
 
+!!$    RETURN_(ESMF_SUCCESS)
+
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
-    Iam = trim(COMP_NAME) //'::'// Iam
+    Iam = trim(COMP_NAME) //'::'// 'Run'
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
@@ -705,6 +709,7 @@ contains
 !*****************************************************************************
 !   Begin... 
 
+   if (present(rc)) rc = 0
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
