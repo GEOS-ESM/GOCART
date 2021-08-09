@@ -3325,13 +3325,27 @@ CONTAINS
    real, dimension(:), allocatable :: fPM25  ! fraction of bin with particles diameter < 2.5 um
    logical :: do_angstrom
    real, dimension(:,:), allocatable :: tau470, tau870
-   logical   :: NO3nFlag_ = .false. !local version of the input
+   logical   :: NO3nFlag_  !local version of the input
+
+   logical :: has_extcoef
+   logical :: has_scacoef
+   logical :: has_exttau
+   logical :: has_stexttau
+   logical :: has_scatau
+   logical :: has_stscatau
+   logical :: has_exttau25
+   logical :: has_exttaufm
+   logical :: has_scatau25
+   logical :: has_scataufm
 
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...
 
-   if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) NO3nFlag_ = .true.
+   NO3nFlag_ = .false.
+   if( present(NO3nFlag) ) then
+      if (NO3nFlag .eqv. .true.) NO3nFlag_ = .true.
+   end if
 
 !  Initialize local variables
 !  --------------------------
@@ -3403,7 +3417,7 @@ CONTAINS
       ilam870 .ne. 0. .and. &
       ilam470 .ne. ilam870) do_angstrom = .true.
 
-   if( present(angstrom) .and. associated(angstrom) .and. do_angstrom ) then
+   if( present_and_associated(angstrom) .and. do_angstrom ) then
       allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2))
    end if
 
@@ -3414,12 +3428,12 @@ CONTAINS
       call Aero_Binwise_PM_Fractions(fPM25, 1.25, rlow, rup, nbins)   ! 2*r < 2.5 um
    end if
 
-   if (present(aerindx) .and. associated(aerindx))  aerindx = 0.0  ! for now
+   if ( present_and_associated(aerindx) )  aerindx = 0.0  ! for now
 
 !  Calculate the diagnostic variables if requested
 !  -----------------------------------------------
 !  Calculate the surface mass concentration
-   if( present(sfcmass) .and. associated(sfcmass) ) then
+   if( present_and_associated(sfcmass) ) then
       sfcmass(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          sfcmass(i1:i2,j1:j2) &
@@ -3427,7 +3441,7 @@ CONTAINS
               + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)
       end do
    endif
-   if( present(sfcmass25) .and. associated(sfcmass25) ) then
+   if( present_and_associated(sfcmass25) ) then
       sfcmass25(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          sfcmass25(i1:i2,j1:j2) &
@@ -3437,7 +3451,7 @@ CONTAINS
    endif
 
 !  Calculate the aerosol column loading
-   if( present(colmass) .and. associated(colmass) ) then
+   if( present_and_associated(colmass) ) then
       colmass(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
        do k = klid, km
@@ -3447,7 +3461,7 @@ CONTAINS
        end do
       end do
    endif
-   if( present(colmass25) .and. associated(colmass25)) then
+   if( present_and_associated(colmass25) ) then
       colmass25(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          do k = klid, km
@@ -3477,7 +3491,7 @@ CONTAINS
            + aerosol(i1:i2,j1:j2,1:km,n)
       end do
    endif
-   if( present(mass25) .and. associated(mass25) ) then
+   if( present_and_associated(mass25) ) then
       mass25(i1:i2,j1:j2,1:km) = 0.
       do n = nbegin, nbins
        mass25(i1:i2,j1:j2,1:km) &
@@ -3487,7 +3501,7 @@ CONTAINS
    endif
 
 !  Calculate the column mass flux in x direction
-   if( present(fluxu) .and. associated(fluxu) ) then
+   if( present_and_associated(fluxu) ) then
       fluxu(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          do k = klid, km
@@ -3499,7 +3513,7 @@ CONTAINS
    endif
 
 !  Calculate the column mass flux in y direction
-   if( present(fluxv) .and. associated(fluxv) ) then
+   if( present_and_associated(fluxv) ) then
       fluxv(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          do k = klid, km
@@ -3511,11 +3525,14 @@ CONTAINS
    endif
 
 !  Calculate the extinction and/or scattering AOD
-   if( (present(extcoef) .and. associated(extcoef)) .or. &
-       (present(scacoef) .and. associated(scacoef)) ) then
 
-      if( present(extcoef) .and. associated(extcoef)) extcoef = 0.
-      if( present(scacoef) .and. associated(scacoef)) scacoef = 0.
+   has_extcoef = present_and_associated(extcoef)
+   has_scacoef = present_and_associated(scacoef)
+
+   if( has_extcoef .or. has_scacoef ) then
+
+      if( has_extcoef ) extcoef = 0.
+      if( has_scacoef ) scacoef = 0.
 
       do n = nbegin, nbins
        do w = 1, size(wavelengths_profile)
@@ -3528,11 +3545,11 @@ CONTAINS
                  rh(i,j,k), tau=tau, ssa=ssa)
 
 !                Calculate the total ext. and scat. coefficients
-                 if( present(extcoef) .and. associated(extcoef) ) then
+                 if( has_extcoef ) then
                      extcoef(i,j,k,w) = extcoef(i,j,k,w) + &
                                       tau * (grav * rhoa(i,j,k) / delp(i,j,k))
                  endif
-                 if( present(scacoef) .and. associated(scacoef) ) then
+                 if( has_scacoef ) then
                     scacoef(i,j,k,w) = scacoef(i,j,k,w) + &
                                      ssa * tau * (grav * rhoa(i,j,k) / delp(i,j,k))
                  endif
@@ -3543,25 +3560,29 @@ CONTAINS
       enddo !nbins
     end if !present(extcoef)...
 
-   if( (present(exttau) .and. associated(exttau)) .or. &
-       (present(stexttau) .and. associated(stexttau)) .or. &
-       (present(scatau) .and. associated(scatau)) .or. &
-       (present(stscatau) .and. associated(stscatau)) .or. &
-       (present(exttau25) .and. associated(exttau25)) .or. &
-       (present(exttaufm) .and. associated(exttaufm)) .or. &
-       (present(scatau25) .and. associated(scatau25)) .or. &
-       (present(scataufm) .and. associated(scataufm)) ) then
+   has_exttau   = present_and_associated(exttau)
+   has_stexttau = present_and_associated(stexttau)
+   has_scatau   = present_and_associated(scatau)
+   has_stscatau = present_and_associated(stscatau)
+   has_exttau25 = present_and_associated(exttau25)
+   has_exttaufm = present_and_associated(exttaufm)
+   has_scatau25 = present_and_associated(scatau25)
+   has_scataufm = present_and_associated(scataufm)
 
-      if( present(exttau) .and. associated(exttau)) exttau = 0.
-      if( present(stexttau) .and. associated(stexttau)) stexttau = 0.
-      if( present(scatau) .and. associated(scatau)) scatau = 0.
-      if( present(stscatau) .and. associated(stscatau)) stscatau = 0.
+   if( has_exttau   .or. has_stexttau .or. has_scatau   .or. &
+       has_stscatau .or. has_exttau25 .or. has_exttaufm .or. &
+       has_scatau25 .or. has_scataufm ) then
 
-      if( present(exttau25) .and. associated(exttau25)) exttau25 = 0.
-      if( present(scatau25) .and. associated(scatau25)) scatau25 = 0.
+      if(has_exttau)   exttau   = 0.
+      if(has_stexttau) stexttau = 0.
+      if(has_scatau)   scatau   = 0.
+      if(has_stscatau) stscatau = 0.
 
-      if( present(exttaufm) .and. associated(exttaufm)) exttaufm = 0.
-      if( present(scataufm) .and. associated(scataufm)) scataufm = 0.
+      if(has_exttau25) exttau25 = 0.
+      if(has_scatau25) scatau25 = 0.
+
+      if(has_exttaufm) exttaufm = 0.
+      if(has_scataufm) scataufm = 0.
 
        do w = 1, size(wavelengths_vertint)
       do n = nbegin, nbins
@@ -3576,8 +3597,8 @@ CONTAINS
                  rh(i,j,k), tau=tau, ssa=ssa)
 
 !                Integrate in the vertical
-                 if( present(exttau) .and. associated(exttau) ) exttau(i,j,w) = exttau(i,j,w) + tau
-                 if( present(stexttau) .and. associated(stexttau) ) then
+                 if( has_exttau ) exttau(i,j,w) = exttau(i,j,w) + tau
+                 if( has_stexttau ) then
                     if (ple(i,j,k) .le. tropp(i,j)) then
                         stexttau(i,j,w) = stexttau(i,j,w) + tau
                     elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
@@ -3585,40 +3606,40 @@ CONTAINS
                     endif
                  endif
   
-                 if( present(exttaufm) .and. associated(exttaufm)) then
-                    if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
+                 if( has_exttaufm ) then
+                    if( NO3nFlag_ ) then
                        exttaufm(i,j,w) = exttaufm(i,j,w) + tau
                     else
                        exttaufm(i,j,w) = exttaufm(i,j,w) + tau * fPMfm(n)
                     end if
                  end if
 
-                 if( present(exttau25) .and. associated(exttau25)) then
-                    if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
+                 if( has_exttau25 ) then
+                    if( NO3nFlag_ ) then
                        exttau25(i,j,w) = exttau25(i,j,w) + tau
                     else
                        exttau25(i,j,w) = exttau25(i,j,w) + tau * fPM25(n)
                     end if
                  end if
 
-                 if( present(scatau) .and. associated(scatau) ) scatau(i,j,w) = scatau(i,j,w) + tau*ssa
-                 if( present(stscatau) .and. associated(stscatau) ) then
+                 if( has_scatau ) scatau(i,j,w) = scatau(i,j,w) + tau*ssa
+                 if( has_stscatau ) then
                     if (ple(i,j,k) .le. tropp(i,j)) then
                         stscatau(i,j,w) = stscatau(i,j,w) + tau*ssa
                     elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
                         stscatau(i,j,w) = stscatau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau*ssa
                     endif 
                  endif
-                 if( present(scataufm) .and. associated(scataufm) ) then
-                    if( present(NO3nFlag) .and. (NO3nFlag)) then
+                 if( has_scataufm ) then
+                    if( NO3nFlag_ ) then
                        scataufm(i,j,w) = scataufm(i,j,w) + tau * ssa
                     else
                        scataufm(i,j,w) = scataufm(i,j,w) + tau * ssa * fPMfm(n)
                     end if
                  end if
 
-                 if( present(scatau25) .and. associated(scatau25) ) then
-                    if( present(NO3nFlag) .and. (NO3nFlag .eqv. .true.)) then
+                 if( has_scatau25 ) then
+                    if( NO3nFlag_ ) then
                        scatau25(i,j,w) = scatau25(i,j,w) + tau * ssa
                     else
                        scatau25(i,j,w) = scatau25(i,j,w) + tau * ssa * fPM25(n)
@@ -3633,7 +3654,7 @@ CONTAINS
    endif !present(exttau)...
 
 !  Calculate the 470-870 Angstrom parameter
-   if( present(angstrom) .and. associated(angstrom) .and. do_angstrom ) then
+   if( present_and_associated(angstrom) .and. do_angstrom ) then
 
       angstrom(i1:i2,j1:j2) = 0.
 !     Set tau to small number by default
@@ -3667,6 +3688,20 @@ CONTAINS
    endif
 
    __RETURN__(__SUCCESS__)
+
+   contains
+
+      logical function present_and_associated(p)
+         real, pointer, dimension(..), optional, intent(in) :: p
+
+         present_and_associated = .false.
+         if (present(p)) then
+            if (associated(p)) then
+               present_and_associated = .true.
+            end if
+         end if
+      end function present_and_associated
+
    end subroutine Aero_Compute_Diags
 !====================================================================
 
