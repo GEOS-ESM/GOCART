@@ -979,8 +979,8 @@ contains
 !  -------------------
 !  Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
    call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
-                            self%rup, self%diag_MieTable(self%instance)%channels*1.0e-9, self%wavelengths_profile*1.0e-9, &
-                            self%wavelengths_vertint*1.0e-9, DU, MAPL_GRAV, t, airdens, &
+                            self%rup, self%diag_MieTable(self%instance)%channels*1.0e-9, self%wavelengths_profile, &
+                            self%wavelengths_vertint, DU, MAPL_GRAV, t, airdens, &
                             rh2, u, v, delp, ple,tropp, &
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
                             DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &

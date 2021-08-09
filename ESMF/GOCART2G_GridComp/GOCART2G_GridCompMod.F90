@@ -159,6 +159,11 @@ contains
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
 
+!   Convert input wavelengths from nm to m for internal use
+
+    self%wavelengths_profile = 1.0e-9 * self%wavelengths_profile
+    self%wavelengths_vertint = 1.0e-9 * self%wavelengths_vertint
+
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------
     call getInstances_('DU', myCF, species=self%DU, __RC__)
@@ -673,8 +678,8 @@ contains
     if(associated(totangstr)) then
     ind550 = 0
        do w = 1, size(self%wavelengths_vertint) ! find index for 550nm to compute total angstrom
-          if ((self%wavelengths_vertint(w)*1.e-9 .ge. 5.49e-7) .and. &
-              (self%wavelengths_vertint(w)*1.e-9 .le. 5.51e-7)) then
+          if ((self%wavelengths_vertint(w) .ge. 5.49e-7) .and. &
+              (self%wavelengths_vertint(w) .le. 5.51e-7)) then
              ind550 = w
              exit
           end if

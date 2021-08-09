@@ -1110,7 +1110,7 @@ contains
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
                             self%diag_MieTable(self%instance)%channels*1.0e-9, &
-                            self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
+                            self%wavelengths_profile, self%wavelengths_vertint, &
                             t, airdens, delp, ple,tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &
                             MSASMASS, MSACMASS, &

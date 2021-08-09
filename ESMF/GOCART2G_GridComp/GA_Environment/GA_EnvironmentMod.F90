@@ -72,6 +72,11 @@ module GA_EnvironmentMod
        call ESMF_ConfigGetAttribute (universal_cfg, self%wavelengths_vertint, &
                                      label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
 
+       !   Convert input wavelengths from nm to m for internal use
+
+       self%wavelengths_profile = 1.0e-9 * self%wavelengths_profile
+       self%wavelengths_vertint = 1.0e-9 * self%wavelengths_vertint
+
     end subroutine load_from_config
 
 end module GA_EnvironmentMod

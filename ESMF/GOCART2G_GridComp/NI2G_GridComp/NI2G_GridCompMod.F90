@@ -957,8 +957,8 @@ contains
    aerosol(:,:,:,1) = NH4a
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels*1.0e-9, &
-                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
-                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            wavelengths_profile=self%wavelengths_profile, &
+                            wavelengths_vertint=self%wavelengths_vertint, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,&
                             sfcmass=NH4SMASS, colmass=NH4CMASS, mass=NH4MASS, conc=NH4CONC, __RC__)
@@ -966,8 +966,8 @@ contains
    aerosol(:,:,:,1) = NH3
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels*1.0e-9, &
-                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
-                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            wavelengths_profile=self%wavelengths_profile, &
+                            wavelengths_vertint=self%wavelengths_vertint, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,&
                             sfcmass=NH3SMASS, colmass=NH3CMASS, mass=NH3MASS, conc=NH3CONC, __RC__)
@@ -975,8 +975,8 @@ contains
    aerosol(:,:,:,1) = NO3an1
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, channels=self%diag_MieTable(self%instance)%channels*1.0e-9, &
-                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
-                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            wavelengths_profile=self%wavelengths_profile, &
+                            wavelengths_vertint=self%wavelengths_vertint, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,&
                             sfcmass=NISMASS25, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, &
@@ -988,8 +988,8 @@ contains
    aerosol(:,:,:,3) = NO3an3
    call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, &
                             nbins=3, channels=self%diag_MieTable(self%instance)%channels*1.0e-9, &
-                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
-                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            wavelengths_profile=self%wavelengths_profile, &
+                            wavelengths_vertint=self%wavelengths_vertint, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,sfcmass=NISMASS, colmass=NICMASS, mass=NIMASS, conc=NICONC, &
                             exttau=NIEXTTAU, stexttau=NISTEXTTAU,scatau=NISCATAU, stscatau=NISTSCATAU,&
