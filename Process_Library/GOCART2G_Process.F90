@@ -10081,6 +10081,7 @@ loop2: DO l = 1,nspecies_HL
 !==================================================================================
 
    subroutine ReadPointEmissions( nymd, filename, nPts, vLat, vLon, vBase, vTop, vEmis, vStart, vEnd, unusable, label, rc)
+      use MAPL_Profiler
       integer, intent(in)            :: nymd
       character(*), intent(in) :: filename
       integer, intent(out)           :: nPts
@@ -10105,11 +10106,13 @@ loop2: DO l = 1,nspecies_HL
       end if
 
       reader = EmissionReader()
+      call start_global_time_profiler('ReadPointEmissions()')
       !$omp critical (process1)
       call reader%open(filename,rc=status1)
       table = reader%read_table(label=label_, rc=status2)
       call reader%close(rc=status3)
       !$omp end critical (process1)
+      call stop_global_time_profiler('ReadPointEmissions()')
       __VERIFY__(status1)
       __VERIFY__(status2)
       __VERIFY__(status3)
