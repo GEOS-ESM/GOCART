@@ -550,10 +550,13 @@ contains
     call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
                                   label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
 
+!   Convert input wavelengths from nm to m for internal use
+    self%diag_MieTable(instance)%channels = self%diag_MieTable(instance)%channels * 1.0e-9
+
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels*1.e-9, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
     VERIFY_(status)
 
 !   Finish creating AERO state
@@ -1031,7 +1034,7 @@ contains
     int_arr(:,:,:,2) = intPtr_philic
 
     call Aero_Compute_Diags (mie_table=self%diag_MieTable(self%instance), km=self%km, klid=self%klid, nbegin=1, nbins=2, &
-                             channels=self%diag_MieTable(self%instance)%channels*1.0e-9, &
+                             channels=self%diag_MieTable(self%instance)%channels, &
                              wavelengths_profile=self%wavelengths_profile, &
                              wavelengths_vertint=self%wavelengths_vertint, aerosol=int_arr, grav=MAPL_GRAV, &
                              tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &

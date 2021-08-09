@@ -613,10 +613,13 @@ contains
     call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
                                   label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
 
+!   Convert input wavelengths from nm to m for internal use
+    self%diag_MieTable(instance)%channels = self%diag_MieTable(instance)%channels * 1.0e-9
+
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels*1.e-9, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
     VERIFY_(status)
 
     ! Mie Table instance/index
@@ -1106,10 +1109,9 @@ contains
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
-!   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_MieTable(self%instance), &
-                            self%diag_MieTable(self%instance)%channels*1.0e-9, &
+                            self%diag_MieTable(self%instance)%channels, &
                             self%wavelengths_profile, self%wavelengths_vertint, &
                             t, airdens, delp, ple,tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
                             DMSSMASS, DMSCMASS, &

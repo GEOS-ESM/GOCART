@@ -553,10 +553,13 @@ contains
     call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
                                   label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__) 
 
+!   Convert input wavelengths from nm to m for internal use
+    self%diag_MieTable(instance)%channels = self%diag_MieTable(instance)%channels * 1.0e-9
+
     allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
     self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
     call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels*1.e-9, rc=status, nmom=self%diag_MieTable(instance)%nmom)
+                            self%diag_MieTable(instance)%channels, rc=status, nmom=self%diag_MieTable(instance)%nmom)
     VERIFY_(status)
 
 
@@ -977,9 +980,8 @@ contains
 
 !  Compute diagnostics
 !  -------------------
-!  Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
    call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
-                            self%rup, self%diag_MieTable(self%instance)%channels*1.0e-9, self%wavelengths_profile, &
+                            self%rup, self%diag_MieTable(self%instance)%channels, self%wavelengths_profile, &
                             self%wavelengths_vertint, DU, MAPL_GRAV, t, airdens, &
                             rh2, u, v, delp, ple,tropp, &
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &

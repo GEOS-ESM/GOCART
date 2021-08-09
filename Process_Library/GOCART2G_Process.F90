@@ -3261,9 +3261,9 @@ CONTAINS
    integer,    intent(in)    :: klid   ! index for pressure lid
    real, optional, dimension(:), intent(in)    :: rlow   ! bin radii - low bounds
    real, optional, dimension(:), intent(in)    :: rup    ! bin radii - upper bounds
-   real, dimension(:), intent(in)    :: channels
-   real, dimension(:), intent(in)    :: wavelengths_profile
-   real, dimension(:), intent(in)    :: wavelengths_vertint
+   real, dimension(:), intent(in)    :: channels   ! [m]
+   real, dimension(:), intent(in)    :: wavelengths_profile ! [m]
+   real, dimension(:), intent(in)    :: wavelengths_vertint ! [m]
    real, dimension(:,:,:,:), intent(in) :: aerosol     ! 
    real, intent(in) :: grav
    real, pointer, dimension(:,:,:), intent(in) :: tmpu  ! temperature [K]
@@ -6761,9 +6761,9 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)    :: pi    ! pi constant
    integer, intent(in) :: nSO4  ! index of SO4 relative to other internal variables
    type(Chem_Mie), intent(in) :: mie_table   ! mie table
-   real, dimension(:), intent(in)  :: channels
-   real, dimension(:), intent(in)  :: wavelengths_profile
-   real, dimension(:), intent(in)  :: wavelengths_vertint
+   real, dimension(:), intent(in)  :: channels ! [m]
+   real, dimension(:), intent(in)  :: wavelengths_profile ! [m]
+   real, dimension(:), intent(in)  :: wavelengths_vertint ! [m]
    real, pointer, dimension(:,:,:), intent(in) :: tmpu    ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density [kg/m^3]
    real, pointer, dimension(:,:,:), intent(in) :: delp    ! pressure thickness [Pa]
