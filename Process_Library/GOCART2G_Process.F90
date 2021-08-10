@@ -8,6 +8,7 @@
 #define __IOSTAT__ iostat=status); __VERIFY__(status
 #define __RETURN__(x) if (present(rc)) rc=x; return
 #define __ASSERT__(expr) if(.not. (expr)) then; if (present(rc)) rc=-1; return; endif
+#define __PRESENT_AND_ASSOCIATED__(ptr,res) if(present(ptr)) then; res=associated(ptr); else; res=.false.; endif
 !-------------------------------------------------------------------------
 !
 ! !MODULE: GOCART2G_Process -- GOCART2G process library
@@ -3327,6 +3328,15 @@ CONTAINS
    real, dimension(:,:), allocatable :: tau470, tau870
    logical   :: NO3nFlag_  !local version of the input
 
+   logical :: has_angstrom
+   logical :: has_aerindx
+   logical :: has_sfcmass
+   logical :: has_sfcmass25
+   logical :: has_colmass
+   logical :: has_colmass25
+   logical :: has_mass25
+   logical :: has_fluxu
+   logical :: has_fluxv
    logical :: has_extcoef
    logical :: has_scacoef
    logical :: has_exttau
@@ -3417,7 +3427,8 @@ CONTAINS
       ilam870 .ne. 0. .and. &
       ilam470 .ne. ilam870) do_angstrom = .true.
 
-   if( present_and_associated(angstrom) .and. do_angstrom ) then
+   __PRESENT_AND_ASSOCIATED__(angstrom,has_angstrom)
+   if( has_angstrom .and. do_angstrom ) then
       allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2))
    end if
 
@@ -3428,12 +3439,15 @@ CONTAINS
       call Aero_Binwise_PM_Fractions(fPM25, 1.25, rlow, rup, nbins)   ! 2*r < 2.5 um
    end if
 
-   if ( present_and_associated(aerindx) )  aerindx = 0.0  ! for now
+   __PRESENT_AND_ASSOCIATED__(aerindx,has_aerindx)
+   if ( has_aerindx )  aerindx = 0.0  ! for now
 
 !  Calculate the diagnostic variables if requested
 !  -----------------------------------------------
 !  Calculate the surface mass concentration
-   if( present_and_associated(sfcmass) ) then
+
+   __PRESENT_AND_ASSOCIATED__(sfcmass,has_sfcmass)
+   if( has_sfcmass ) then
       sfcmass(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          sfcmass(i1:i2,j1:j2) &
@@ -3441,7 +3455,9 @@ CONTAINS
               + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)
       end do
    endif
-   if( present_and_associated(sfcmass25) ) then
+
+   __PRESENT_AND_ASSOCIATED__(sfcmass25,has_sfcmass25)
+   if( has_sfcmass25 ) then
       sfcmass25(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          sfcmass25(i1:i2,j1:j2) &
@@ -3450,8 +3466,9 @@ CONTAINS
       end do
    endif
 
+   __PRESENT_AND_ASSOCIATED__(colmass,has_colmass)
 !  Calculate the aerosol column loading
-   if( present_and_associated(colmass) ) then
+   if( has_colmass ) then
       colmass(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
        do k = klid, km
@@ -3461,7 +3478,9 @@ CONTAINS
        end do
       end do
    endif
-   if( present_and_associated(colmass25) ) then
+
+   __PRESENT_AND_ASSOCIATED__(colmass25,has_colmass25)
+   if( has_colmass25 ) then
       colmass25(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          do k = klid, km
@@ -3491,7 +3510,9 @@ CONTAINS
            + aerosol(i1:i2,j1:j2,1:km,n)
       end do
    endif
-   if( present_and_associated(mass25) ) then
+
+   __PRESENT_AND_ASSOCIATED__(mass25,has_mass25)
+   if( has_mass25 ) then
       mass25(i1:i2,j1:j2,1:km) = 0.
       do n = nbegin, nbins
        mass25(i1:i2,j1:j2,1:km) &
@@ -3501,7 +3522,8 @@ CONTAINS
    endif
 
 !  Calculate the column mass flux in x direction
-   if( present_and_associated(fluxu) ) then
+   __PRESENT_AND_ASSOCIATED__(fluxu,has_fluxu)
+   if( has_fluxu ) then
       fluxu(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          do k = klid, km
@@ -3512,8 +3534,9 @@ CONTAINS
       end do
    endif
 
+   __PRESENT_AND_ASSOCIATED__(fluxv,has_fluxv)
 !  Calculate the column mass flux in y direction
-   if( present_and_associated(fluxv) ) then
+   if( has_fluxv ) then
       fluxv(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          do k = klid, km
@@ -3526,8 +3549,8 @@ CONTAINS
 
 !  Calculate the extinction and/or scattering AOD
 
-   has_extcoef = present_and_associated(extcoef)
-   has_scacoef = present_and_associated(scacoef)
+   __PRESENT_AND_ASSOCIATED__(extcoef,has_extcoef)
+   __PRESENT_AND_ASSOCIATED__(scacoef,has_scacoef)
 
    if( has_extcoef .or. has_scacoef ) then
 
@@ -3560,14 +3583,14 @@ CONTAINS
       enddo !nbins
     end if !present(extcoef)...
 
-   has_exttau   = present_and_associated(exttau)
-   has_stexttau = present_and_associated(stexttau)
-   has_scatau   = present_and_associated(scatau)
-   has_stscatau = present_and_associated(stscatau)
-   has_exttau25 = present_and_associated(exttau25)
-   has_exttaufm = present_and_associated(exttaufm)
-   has_scatau25 = present_and_associated(scatau25)
-   has_scataufm = present_and_associated(scataufm)
+   __PRESENT_AND_ASSOCIATED__(exttau,has_exttau)
+   __PRESENT_AND_ASSOCIATED__(stexttau,has_stexttau)
+   __PRESENT_AND_ASSOCIATED__(scatau,has_scatau)
+   __PRESENT_AND_ASSOCIATED__(stscatau,has_stscatau)
+   __PRESENT_AND_ASSOCIATED__(exttau25,has_exttau25)
+   __PRESENT_AND_ASSOCIATED__(exttaufm,has_exttaufm)
+   __PRESENT_AND_ASSOCIATED__(scatau25,has_scatau25)
+   __PRESENT_AND_ASSOCIATED__(scataufm,has_scataufm)
 
    if( has_exttau   .or. has_stexttau .or. has_scatau   .or. &
        has_stscatau .or. has_exttau25 .or. has_exttaufm .or. &
@@ -3654,7 +3677,7 @@ CONTAINS
    endif !present(exttau)...
 
 !  Calculate the 470-870 Angstrom parameter
-   if( present_and_associated(angstrom) .and. do_angstrom ) then
+   if( has_angstrom .and. do_angstrom ) then
 
       angstrom(i1:i2,j1:j2) = 0.
 !     Set tau to small number by default
@@ -3688,20 +3711,6 @@ CONTAINS
    endif
 
    __RETURN__(__SUCCESS__)
-
-   contains
-
-      logical function present_and_associated(p)
-         real, pointer, dimension(..), optional, intent(in) :: p
-
-         present_and_associated = .false.
-         if (present(p)) then
-            if (associated(p)) then
-               present_and_associated = .true.
-            end if
-         end if
-      end function present_and_associated
-
    end subroutine Aero_Compute_Diags
 !====================================================================
 
