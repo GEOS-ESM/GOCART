@@ -49,6 +49,7 @@ module CA2G_GridCompMod
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
+       character(len=255)     :: plumerise                  ! plumerise scheme
        integer                         :: nPts = -1
        integer, allocatable, dimension(:)  :: pstart, pend
        real, allocatable, dimension(:)     :: pLat, &
@@ -161,6 +162,8 @@ contains
     else
        self%doing_point_emissions = .true.  ! we are good to go
     end if
+
+    call ESMF_ConfigGetAttribute (cfg, self%plumerise, label='plumerise:', default='none', __RC__)
 
 !   Is CA data driven?
 !   ------------------
@@ -278,7 +281,9 @@ contains
 !   --------------------------------------
     if (.not. data_driven) then
 #include "CA2G_Export___.h"
+      associate (plumerise => self%plumerise)
 #include "CA2G_Import___.h"
+      end associate
 #include "CA2G_Internal___.h"
     end if
 
@@ -689,6 +694,7 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)     :: lats
     real, pointer, dimension(:,:)     :: lons
+    real, pointer, dimension(:,:)     :: biomass_frp
     real, dimension(:,:), allocatable :: biomass_src, biofuel_src, biogvoc_src, &
           eocant1_src, eocant2_src, oc_ship_src, aviation_lto_src, aviation_cds_src, &
           aviation_crs_src, biomass_src_
@@ -722,8 +728,6 @@ contains
                         LONS = LONS, &
                         LATS = LATS, __RC__ )
 
-#include "CA2G_GetPointer___.h"
-
     if (comp_name(1:5) == 'CA.oc') then
        GCsuffix = 'OC'
     else if (comp_name(1:5) == 'CA.bc') then
@@ -740,6 +744,10 @@ contains
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+    associate (plumerise => self%plumerise)
+#include "CA2G_GetPointer___.h"
+    end associate
 
     allocate(emissions_point, mold=delp,  __STAT__)
     emissions_point = 0.0
@@ -766,6 +774,7 @@ contains
 !   Implicit allocation with Fortran 2003
     if (trim(comp_name) == 'CA.oc') then
        biomass_src = OC_BIOMASS
+       biomass_frp => OC_FRP
        biofuel_src = OC_BIOFUEL
        eocant1_src = OC_ANTEOC1
        eocant2_src = OC_ANTEOC2
@@ -778,6 +787,7 @@ contains
        biogvoc_src = ((OC_MTPA + OC_MTPO + OC_LIMO) * self%fMonoterpenes) + (OC_ISOPRENE * self%fIsoprene)
     else if (trim(comp_name) == 'CA.bc') then
        biomass_src = BC_BIOMASS
+       biomass_frp => BC_FRP
        biofuel_src = BC_BIOFUEL
        eocant1_src = BC_ANTEBC1
        eocant2_src = BC_ANTEBC2
@@ -833,6 +843,7 @@ contains
                      aviation_crs_src, self%fHydrophobic, zpbl, t, airdens, rh2, &
                      intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
                      biogvoc_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
+                     self%plumerise, biomass_frp, MAPL_KAPPA, &
                      CAEM, CAEMAN, CAEMBB, CAEMBF, CAEMBG, __RC__ )
 
 !   Read any pointwise emissions, if requested
@@ -941,8 +952,6 @@ contains
     call MAPL_GetPointer (internal, intPtr_phobic, 'CAphobic'//trim(comp_name), __RC__)
     call MAPL_GetPointer (internal, intPtr_philic, 'CAphilic'//trim(comp_name), __RC__)
 
-#include "CA2G_GetPointer___.h"
-
     if (comp_name(1:5) == 'CA.oc') then
        GCsuffix = 'OC'
     else if (comp_name(1:5) == 'CA.bc') then
@@ -956,6 +965,10 @@ contains
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+    associate (plumerise => self%plumerise)
+#include "CA2G_GetPointer___.h"
+    end associate
 
 !   Add on SOA from Anthropogenic VOC oxidation
 !   -------------------------------------------

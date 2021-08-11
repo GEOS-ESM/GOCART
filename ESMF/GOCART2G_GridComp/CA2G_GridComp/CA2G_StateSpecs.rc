@@ -36,6 +36,7 @@ category: IMPORT
  pSOA_BIOB_VOC   | kg m-3 s-1 | xyz | C |   | SOA from Anthropogenic and biomass burning VOC
 #........................................................................................
  OC_BIOMASS  | 1      | xy   | N   |      | biomass burning emissions
+ OC_FRP      | 1      | xy   | N   | plumerise == 'sofiev' | biomass burning fire radiative power
  OC_ISOPRENE | 1      | xy   | N   |      | source species
  OC_MTPA     | 1      | xy   | N   |      | source species
  OC_MTPO     | 1      | xy   | N   |      | source species
@@ -48,6 +49,7 @@ category: IMPORT
  OC_AVIATION_CDS | 1  | xy   | N   |      | Climb/Descent aircraft emissions
  OC_AVIATION_CRS | 1  | xy   | N   |      | Cruise aircraft source species
  BC_BIOMASS  | 1      | xy   | N   |      | biomass burning emissions
+ BC_FRP      | 1      | xy   | N   | plumerise == 'sofiev' | biomass burning fire radiative power
  BC_BIOFUEL  | 1      | xy   | N   |      | biofuel emissions
  BC_ANTEBC1  | 1      | xy   | N   |      | anthropogenic BF emissions
  BC_ANTEBC2  | 1      | xy   | N   |      | anthropogenic FF emissions

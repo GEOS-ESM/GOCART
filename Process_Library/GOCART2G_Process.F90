@@ -4264,7 +4264,8 @@ CONTAINS
    subroutine CAEmission (mie_table, km, nbins, cdt, grav, prefix, ratPOM, aviation_lto_src, aviation_cds_src,&
                            aviation_crs_src, fHydrophobic, pblh, tmpu, rhoa, rh, aerosolPhilic, aerosolPhobic, &
                            delp, aviation_layers, &
-                            biomass_src, terpene_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
+                           biomass_src, terpene_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
+                           plumerise, biomass_frp, kappa, &
                            OC_emis, OC_emisAN, OC_emisBB, OC_emisBF, OC_emisBG, rc )
 
 ! !USES:
@@ -4294,6 +4295,9 @@ CONTAINS
    real, dimension(:,:), intent(in) :: eocant2_src  ! anthropogenic emissions
    real, dimension(:,:), intent(in) :: oc_ship_src  ! ship emissions
    real, dimension(:,:), intent(in) :: biofuel_src  ! biofuel emissions
+   character(len=*),     intent(in) :: plumerise
+   real, pointer, dimension(:,:), intent(in) :: biomass_frp  ! fire radiative power
+   real, intent(in) :: kappa
    real, intent(in) :: fHydrophobic
 
 ! !OUTPUT PARAMETERS:
@@ -4323,11 +4327,14 @@ CONTAINS
    integer  ::  i, j, k, n, ios, ijl
    integer  ::  n1, n2
    integer  :: i1=1, i2, j1=1, j2
+   logical  :: do_plumerise
 !  pressure at 100m, 500m, & PBLH
-   real, dimension(:,:), allocatable :: p100, p500, pPBL
+   real, dimension(:,:), allocatable :: p100, p500, pPBL, pHeight
    real, dimension(:,:), allocatable :: p0, z0, ps
    real :: p1, z1, dz, delz, delp_, f100, f500, fPBL, fBot
    real :: qmax, qmin, eBiofuel, eBiomass, eTerpene, eAnthro
+   real :: th0, th1
+   real :: p2, z2
 
    real, dimension(:,:), allocatable :: factor, srcHydrophobic, srcHydrophilic
    real, dimension(:,:), allocatable :: srcBiofuel, srcBiomass, srcAnthro, srcBiogenic
@@ -4348,6 +4355,8 @@ CONTAINS
    real                                  :: tau, ssa
    character(len=255)                    :: qname
    real, parameter                       :: max_bb_exttau = 30.0
+   real, parameter                       :: p_ref = 1.e+05
+
 
 !  Indices for point emissions
    real, dimension(km)          :: point_column_emissions
@@ -4456,6 +4465,28 @@ CONTAINS
     allocate(qa_bb_(nbins,i1:i2,j1:j2,km))
     qa_bb_ = 0.0
 
+!   Run plumerise if needed
+!   -------------------------------
+    do_plumerise = (plumerise == 'sofiev' .and. associated(biomass_frp))
+
+    if (do_plumerise) then
+     allocate(pHeight, mold=pblh)
+     do j = j1, j2
+      do i = i1, i2
+       zpbl = 2 * pblh(i,j)
+       k = get_pressure_level(zpbl, z1, z2, p1, p2)
+       th0 = tmpu(i,j,k  ) * (p_ref / p1) ** kappa
+       th1 = tmpu(i,j,k-1) * (p_ref / p2) ** kappa
+
+       ! -- call Sofiev's algorithm to compute height of plume top
+       call plumeRiseSofiev(th0, th1, dz, biomass_frp(i,j), pblh(i,j), grav, zpbl)
+
+       k = get_pressure_level(zpbl, z1, z2, p1, p2)
+       pHeight(i,j) = p1
+      end do
+     end do
+    end if
+
     p0 = ps
 K_LOOP_BB: do k = km, 1, -1
 
@@ -4467,11 +4498,15 @@ K_LOOP_BB: do k = km, 1, -1
 
       p1 = p0(i,j) - delp(i,j,k)
 
-!     Pressure @ PBL height
-!     ---------------------
       fPBL = 0.
-      if(p1 .ge. pPBL(i,j)) fPBL = delp(i,j,k)/(ps(i,j)-pPBL(i,j))
-      if(p1 .lt. pPBL(i,j) .and. p0(i,j) .ge. pPBL(i,j)) fPBL = (p0(i,j)-pPBL(i,j))/(ps(i,j)-pPBL(i,j))
+      if (do_plumerise) then
+       if (p1 >= pHeight(i,j)) fPBL = delp(i,j,k)/(ps(i,j)-pHeight(i,j))
+      else
+!      Pressure @ PBL height
+!     ---------------------
+       if(p1 .ge. pPBL(i,j)) fPBL = delp(i,j,k)/(ps(i,j)-pPBL(i,j))
+       if(p1 .lt. pPBL(i,j) .and. p0(i,j) .ge. pPBL(i,j)) fPBL = (p0(i,j)-pPBL(i,j))/(ps(i,j)-pPBL(i,j))
+      endif
 
 !     Sources by class in kg m-2 s-1
 !     ------------------------------
@@ -4653,6 +4688,41 @@ K_LOOP: do k = km, 1, -1
    end do K_LOOP
 
    __RETURN__(__SUCCESS__)
+   contains
+
+     integer function get_pressure_level(z, zbelow, zabove, pbelow, pabove)
+       real, intent(in)  :: z
+       real, intent(out) :: zbelow, zabove
+       real, intent(out) :: pbelow, pabove
+
+       ! -- local variables
+       integer :: k
+       real    :: dz
+
+       ! Find pressure level
+       zabove = 0.
+       pabove = ps(i,j)
+       k = km
+       do while (zabove <= z .and. k > 1)
+         pabove = pabove - delp(i,j,k)
+         dz = delp(i,j,k)/rhoa(i,j,k)/grav
+         zabove = zabove + dz
+         k = k - 1
+       end do
+       k = min(k + 1,km)
+       if (k < km) then
+         pbelow = pabove + delp(i,j,k)
+         zbelow = zabove - dz
+       else
+         pbelow = ps(i,j)
+         pabove = pbelow - delp(i,j,k)
+         zbelow = 0.
+         zabove = zbelow + delp(i,j,k)/rhoa(i,j,k)/grav
+       end if
+       get_pressure_level = k
+
+     end function get_pressure_level
+
    end subroutine CAEmission
 
    subroutine distribute_aviation_emissions(delp, rhoa, z_bot, z_top, emissions_layer, emissions, i1, i2, j1, j2, km, grav)
