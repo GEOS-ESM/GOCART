@@ -646,6 +646,7 @@ contains
 
     integer :: status
     character(len=255) :: Iam
+    integer :: dims(3)
 
 !*****************************************************************************
 !   Begin... 
@@ -727,6 +728,9 @@ contains
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
+
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    call expensive(dims(2))
 
     RETURN_(ESMF_SUCCESS)
 

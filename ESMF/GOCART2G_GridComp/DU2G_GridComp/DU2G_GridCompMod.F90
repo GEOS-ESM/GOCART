@@ -877,6 +877,8 @@ contains
         deallocate(iPoint, jPoint, __STAT__)
     end if
 
+    call expensive(j2)
+
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run1

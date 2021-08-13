@@ -62,6 +62,7 @@
    public Chem_BiomassDiurnal
    public ReadPointEmissions
    public EmissionReader
+   public expensive
 
 
    real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
@@ -10324,4 +10325,22 @@ loop2: DO l = 1,nspecies_HL
 
       __RETURN__(__SUCCESS__)
    end subroutine scan_to_label
+
+   subroutine expensive(jm)
+     use omp_lib
+      integer, intent(in) :: jm
+      integer :: i
+      real :: x(100)
+      real :: s
+      s =0
+      call random_number(x)
+      do i = 1, 150000*jm
+         x = exp(x /maxval(x))
+         s = s + sum(x)
+      end do
+      !$omp master                                                                                                                                          
+      print*, s, omp_get_thread_num()
+      !$omp end master                                                                                                                                      
+   end subroutine expensive
+
  end module GOCART2G_Process

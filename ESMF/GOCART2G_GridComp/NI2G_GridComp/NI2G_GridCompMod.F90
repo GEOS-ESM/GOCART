@@ -650,6 +650,7 @@ contains
 #include "NI2G_DeclarePointer___.h"
     integer :: status
     character(len=255) :: Iam
+    integer :: dims(3)
 
 !*****************************************************************************
 !   Begin... 
@@ -704,6 +705,9 @@ contains
        NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_TR
     if (associated(EMI_NH3_OC)) &
        NH3(:,:,self%km) = NH3(:,:,self%km)+self%cdt*MAPL_GRAV/delp(:,:,self%km)*EMI_NH3_OC
+
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    call expensive(dims(2))
 
     RETURN_(ESMF_SUCCESS)
 

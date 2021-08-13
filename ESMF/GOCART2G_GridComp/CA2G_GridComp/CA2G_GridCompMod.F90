@@ -714,6 +714,7 @@ contains
 
     integer :: status
     character(len=255) :: Iam
+    integer :: dims(3)
 
 !*****************************************************************************
 !   Begin... 
@@ -891,6 +892,9 @@ contains
        intPtr_phobic = intPtr_phobic + self%fHydrophobic * self%cdt * MAPL_GRAV / delp * emissions_point
        intPtr_philic = intPtr_philic + (1-self%fHydrophobic) * self%cdt * MAPL_GRAV / delp * emissions_point
     end if
+
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    call expensive(dims(2))
 
     RETURN_(ESMF_SUCCESS)
 

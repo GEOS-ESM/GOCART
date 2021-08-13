@@ -504,8 +504,6 @@ contains
    type(ESMF_VM) :: vm
    type(ESMF_GridComp) :: thread_gc
    integer :: i
-   
-   call ESMF_VmGetCurrent(vm, __RC__)
 
    call start_global_time_profiler('run1()')
    call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, status)
@@ -615,7 +613,7 @@ contains
     do i = 1, size(gcs)
        call start_global_time_profiler(trim(gcNames(i)))
        call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), &
-            & phase=1, clock=clock, userrc=userstatus,rc=status)
+            phase=1, clock=clock, userrc=userstatus,rc=status)
        call stop_global_time_profiler(trim(gcNames(i)))
        VERIFY_(userstatus)
        VERIFY_(status)

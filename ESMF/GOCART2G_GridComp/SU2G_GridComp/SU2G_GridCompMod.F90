@@ -754,6 +754,7 @@ contains
     character(len=3) :: cdow
     integer          :: idow
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
+    integer :: dims(3)
     real, pointer, dimension(:,:)        :: lats
     real, pointer, dimension(:,:)        :: lons
     real, dimension(:,:,:), allocatable  :: aircraft_fuel_src
@@ -975,6 +976,9 @@ contains
    
         SO4 = SO4 + self%cdt * MAPL_GRAV / delp * emissions_point
      end if
+
+     call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+     call expensive(dims(2))
 
     RETURN_(ESMF_SUCCESS)
 
