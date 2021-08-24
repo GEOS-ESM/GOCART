@@ -5,15 +5,8 @@ set (alldirs
   CO_GridComp
   CO2_GridComp
   CFC_GridComp
-  DU_GridComp
-  SS_GridComp  
-  BC_GridComp
-  OC_GridComp
-  SU_GridComp
   Rn_GridComp
   CH4_GridComp
-  NI_GridComp
-  BRC_GridComp
   )
 
 set (srcs
