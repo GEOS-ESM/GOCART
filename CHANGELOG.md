@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- Removed all legacy GOCART code
+
 ## [2.0.0-rc.1] - 2021-08-06
 
 ### Changed
