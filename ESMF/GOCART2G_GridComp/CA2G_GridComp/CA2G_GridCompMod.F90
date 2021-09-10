@@ -45,6 +45,7 @@ module CA2G_GridCompMod
        real               :: fIsoprene = 0.0 ! Franction of isoprene emissions -> aerosol
        real               :: fHydrophobic ! Initially hydrophobic portion
        logical            :: diurnal_bb   ! diurnal biomass burning
+       real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
@@ -148,6 +149,8 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_ca_ratio:', default=1.0, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fMonoterpenes, label='monoterpenes_emission_fraction:', default=0.0, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fIsoprene, label='isoprene_emission_fraction:', default=0.0, __RC__)
+
+    call ESMF_ConfigGetAttribute (cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
 
     call ESMF_ConfigFindLabel (cfg, 'aviation_vertical_layers:', __RC__)
     do i=1,size(self%aviation_layers)
@@ -689,6 +692,7 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)     :: lats
     real, pointer, dimension(:,:)     :: lons
+    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src
     real, dimension(:,:), allocatable :: biomass_src, biofuel_src, biogvoc_src, &
           eocant1_src, eocant2_src, oc_ship_src, aviation_lto_src, aviation_cds_src, &
           aviation_crs_src, biomass_src_
@@ -765,6 +769,7 @@ contains
 
 !   Implicit allocation with Fortran 2003
     if (trim(comp_name) == 'CA.oc') then
+       aircraft_fuel_src = OC_AIRCRAFT
        biomass_src = OC_BIOMASS
        biofuel_src = OC_BIOFUEL
        eocant1_src = OC_ANTEOC1
@@ -777,6 +782,7 @@ contains
        biogvoc_src = 0.0
        biogvoc_src = ((OC_MTPA + OC_MTPO + OC_LIMO) * self%fMonoterpenes) + (OC_ISOPRENE * self%fIsoprene)
     else if (trim(comp_name) == 'CA.bc') then
+       aircraft_fuel_src = BC_AIRCRAFT
        biomass_src = BC_BIOMASS
        biofuel_src = BC_BIOFUEL
        eocant1_src = BC_ANTEBC1
@@ -791,6 +797,7 @@ contains
 ! effectivly does nothing since we set all its values to zero.
        biogvoc_src = 0.0
     else if (trim(comp_name) == 'CA.br') then
+       aircraft_fuel_src = BRC_AIRCRAFT
        biomass_src = BRC_BIOMASS
        biogvoc_src = BRC_TERPENE
        biofuel_src = BRC_BIOFUEL
@@ -809,6 +816,7 @@ contains
     where(1.01*eocant1_src > MAPL_UNDEF) eocant1_src = 0.
     where(1.01*eocant2_src > MAPL_UNDEF) eocant2_src = 0.
     where(1.01*oc_ship_src > MAPL_UNDEF) oc_ship_src = 0.
+    where(1.01*aircraft_fuel_src > MAPL_UNDEF) aircraft_fuel_src = 0.
     where(1.01*aviation_lto_src > MAPL_UNDEF) aviation_lto_src = 0.
     where(1.01*aviation_cds_src > MAPL_UNDEF) aviation_cds_src = 0.
     where(1.01*aviation_crs_src > MAPL_UNDEF) aviation_crs_src = 0.
@@ -829,7 +837,9 @@ contains
     end if
 
     call CAEmission (self%diag_MieTable(self%instance), self%km, self%nbins, self%cdt, &
-                     MAPL_GRAV, GCsuffix, self%ratPOM, aviation_lto_src, aviation_cds_src, &
+                     MAPL_GRAV, GCsuffix, self%ratPOM, &
+                     self%eAircraftfuel, aircraft_fuel_src, &
+                     aviation_lto_src, aviation_cds_src, &
                      aviation_crs_src, self%fHydrophobic, zpbl, t, airdens, rh2, &
                      intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
                      biogvoc_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
