@@ -16,7 +16,6 @@ set (srcs
 
 set (resource_files
    GOCARTdata_AerRegistry.rc
-   GOCARTdata_ExtData.rc
    ) 
 
 install( FILES ${resource_files} 
