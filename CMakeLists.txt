@@ -66,6 +66,7 @@ endif ()
 
 if (UFS_GOCART)
   find_package (MAPL REQUIRED)
+  list(APPEND CMAKE_MODULE_PATH ${MAPL_BASE_DIR}/share/MAPL/cmake)
   include(mapl_acg)
 elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
   message (STATUS "Using local MAPL source tree: ${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
