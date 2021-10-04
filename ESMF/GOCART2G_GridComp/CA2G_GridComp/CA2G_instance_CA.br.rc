@@ -2,8 +2,8 @@
 # Resource file for Brown Carbon parameters.
 #
 
-aerosol_radBands_optics_file: ExtData/PIESA/x/opticsBands_BRC.v1_5.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/PIESA/x/optics_BRC.v1_5.nc
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BRC.v1_5.RRTMG.nc
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_BRC.v1_5.nc
 
 # Aircraft emission factor: convert input unit to kg C
 aircraft_fuel_emission_factor: 1.0000
