@@ -8,7 +8,7 @@ aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opti
 nbins: 4
 
 # Volcanic pointwise sources
-volcano_srcfilen: ExtData/chemistry/CARNS/v202106/sfc/volcanic_CARN_1978-2021_v202106/so2_volcanic_emissions_CARN_v202106.degassing_only.rc
+volcano_srcfilen: ExtData/chemistry/CARN/v202106/sfc/so2_volcanic_emissions_CARN_v202106.degassing_only.rc
 
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
