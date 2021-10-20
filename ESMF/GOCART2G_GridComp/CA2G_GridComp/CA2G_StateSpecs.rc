@@ -32,6 +32,9 @@ category: IMPORT
  PFI_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_ice_nonconvective_precipitation
  U          | m s-1  | xyz  | C   |      | eastward_wind
  V          | m s-1  | xyz  | C   |      | northward_wind
+ OC_AIRCRAFT  | 1      | xyz  | C   |      | aircraft emissions
+ BC_AIRCRAFT  | 1      | xyz  | C   |      | aircraft emissions
+ BRC_AIRCRAFT | 1      | xyz  | C   |      | aircraft emissions
  pSOA_ANTHRO_VOC | kg m-3 s-1 | xyz | C |   | SOA from Anthropogenic and biomass burning VOC
  pSOA_BIOB_VOC   | kg m-3 s-1 | xyz | C |   | SOA from Anthropogenic and biomass burning VOC
 #........................................................................................

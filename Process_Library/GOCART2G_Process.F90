@@ -4260,8 +4260,9 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine CAEmission (mie_table, km, nbins, cdt, grav, prefix, ratPOM, aviation_lto_src, aviation_cds_src,&
-                           aviation_crs_src, fHydrophobic, pblh, tmpu, rhoa, rh, aerosolPhilic, aerosolPhobic, &
+   subroutine CAEmission (mie_table, km, nbins, cdt, grav, prefix, ratPOM, eAircraftfuel, aircraft_fuel_src, &
+                           aviation_lto_src, aviation_cds_src, aviation_crs_src, &
+                           fHydrophobic, pblh, tmpu, rhoa, rh, aerosolPhilic, aerosolPhobic, &
                            delp, aviation_layers, &
                             biomass_src, terpene_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
                            OC_emis, OC_emisAN, OC_emisBB, OC_emisBF, OC_emisBG, rc )
@@ -4278,12 +4279,14 @@ CONTAINS
    real, intent(in)    :: grav   ! gravity [m/sec^2]
    character(len=2), intent(in)  :: prefix ! varaible name prefix
    real, intent(in)    :: ratPOM
+   real, intent(in)    :: eAircraftFuel ! Aircraft emission factor: go from kg fuel to kg C
    real, dimension(:), intent(in)  :: aviation_layers ! Heights [m] of LTO, CDS and CRS aviation emissions layers
    real, pointer, dimension(:,:), intent(in)    :: pblh  ! PBL height [m]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu  ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in)  :: rhoa  ! air density [kg m-3]
    real, pointer, dimension(:,:,:), intent(in)  :: rh    ! relative humidity [1]
    real, pointer, dimension(:,:,:), intent(in)  :: delp  ! pressure level thickness [Pa]
+   real, dimension(:,:,:), intent(in) :: aircraft_fuel_src ! aircraft fuel source [1]
    real, dimension(:,:), intent(in) :: aviation_cds_src ! Climb/Descent aircraft fuel emission [1]
    real, dimension(:,:), intent(in) :: aviation_crs_src ! Cruise aircraft fuel emission [1]
    real, dimension(:,:), intent(in) :: aviation_lto_src ! Landing/Take-off aircraft fuel emission [1]
@@ -4597,7 +4600,8 @@ K_LOOP: do k = km, 1, -1
       srcAnthro(i,j)   = f100 * eAnthro  * eocant1_src(i,j) &
                        + f500 * eAnthro  * eocant2_src(i,j) &
                        + f100 * eAnthro  * oc_ship_src(i,j) &
-                       +        eAnthro  * srcAviation(i,j,k)
+                       +        eAnthro  * srcAviation(i,j,k) &
+                       +        eAnthro  * eAircraftFuel * aircraft_fuel_src(i,j,k)
       if ((prefix == 'OC') .or. (prefix == 'BR')) then
          srcBiomass(i,j)  = fPBL * eBiomass * biomass_src(i,j) * f_bb_(i,j)
       else

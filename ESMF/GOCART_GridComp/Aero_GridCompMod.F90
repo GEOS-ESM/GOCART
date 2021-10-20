@@ -25,13 +25,6 @@
    use O3_GridCompMod        ! Ozone
    use CO_GridCompMod        ! Carbon monoxide
    use CO2_GridCompMod       ! Carbon dioxide
-   use BC_GridCompMod        ! Black Carbon
-   use DU_GridCompMod        ! Dust
-   use OC_GridCompMod        ! Organic Carbon
-   use BRC_GridCompMod       ! Brown Carbon
-   use SS_GridCompMod        ! Sea Salt
-   use SU_GridCompMod        ! Sulfates
-   use NI_GridCompMod        ! Nitrate
    use CFC_GridCompMod       ! CFCs
    use Rn_GridCompMod        ! Radon
    use CH4_GridCompMod       ! Methane
@@ -78,16 +71,9 @@
         type(O3_GridComp)  :: gcO3
         type(CO_GridComp)  :: gcCO
         type(CO2_GridComp) :: gcCO2
-        type(DU_GridComp)  :: gcDU
-        type(SS_GridComp)  :: gcSS
-        type(BC_GridComp)  :: gcBC
-        type(OC_GridComp)  :: gcOC
-        type(BRC_GridComp) :: gcBRC
-        type(SU_GridComp)  :: gcSU
         type(CFC_GridComp) :: gcCFC
         type(Rn_GridComp)  :: gcRn
         type(CH4_GridComp) :: gcCH4
-        type(NI_GridComp)  :: gcNI
   end type Aero_GridComp
 
 CONTAINS
@@ -105,38 +91,9 @@ CONTAINS
  
 !  Carbon Monoxide
 !  ---------------
-   if ( chemReg%doing_DU ) then
-#     include "DU_ExportSpec___.h"
-      call DU_GridCompSetServices(GC, chemReg, __RC__)
-   end if
-
    if ( chemReg%doing_CO ) then
 #     include "CO_ExportSpec___.h"
       call CO_GridCompSetServices(GC,chemReg, __RC__)
-   end if
-
-   if ( chemReg%doing_BC ) then
-#     include "BC_ExportSpec___.h"
-      call BC_GridCompSetServices(GC,chemReg, __RC__)
-   end if
-
-   if ( chemReg%doing_OC ) then
-#     include "OC_ExportSpec___.h"
-      call OC_GridCompSetServices(GC,chemReg, __RC__)
-   end if
-
-   if ( chemReg%doing_BRC ) then
-#     include "BRC_ExportSpec___.h"
-      call BRC_GridCompSetServices(GC,chemReg, __RC__)
-   end if
-
-   if ( chemReg%doing_SS ) then
-#     include "SS_ExportSpec___.h"
-   end if
-
-   if ( chemReg%doing_SU ) then
-#     include "SU_ExportSpec___.h"
-      call SU_GridCompSetServices(GC, chemReg, __RC__)
    end if
 
    if ( chemReg%doing_CO2 ) then
@@ -162,11 +119,6 @@ CONTAINS
    if ( chemReg%doing_CH4 ) then
 #     include "CH4_ExportSpec___.h"
       call CH4_GridCompSetServices(GC, chemReg, __RC__)
-   endif
-
-   if ( chemReg%doing_NI ) then
-#     include "NI_ExportSpec___.h"
-      call NI_GridCompSetServices(GC, chemReg, __RC__)
    endif
 
    RETURN_(ESMF_SUCCESS)
@@ -231,25 +183,6 @@ CONTAINS
       return
    end if
 
-!  Initialize AOD tables
-!  ---------------------
-   if ( w_c%reg%doing_DU .or. w_c%reg%doing_SS .or. w_c%reg%doing_SU .or. &
-        w_c%reg%doing_BC .or. w_c%reg%doing_OC .or. w_c%reg%doing_NI .or. &
-        w_C%reg%doing_BRC ) then
-        allocate ( gcThis%mie_tables, stat = rc )
-        if ( rc /= 0 ) then
-           if (MAPL_AM_I_ROOT()) print *, Iam//': cannot allocate Mie tables'
-           return
-        end if
-!       Here we are assuming the mie tables to use
-!       In future, pass a registry file
-        gcThis%mie_tables = Chem_MieCreate ( 'Aod_Registry.rc', rc )
-        if ( rc /= 0 ) then
-           if (MAPL_AM_I_ROOT()) print *, Iam//': MieCreate failed ', rc
-           return
-        end if
-   end if
-
 !  Ozone & friends
 !  ---------------
    if ( w_c%reg%doing_O3 ) then
@@ -290,102 +223,6 @@ CONTAINS
       end if   
    end if
 
-!  Dust
-!  ----
-   if ( w_c%reg%doing_DU ) then
-      gcThis%gcDU%mie_tables => gcThis%mie_tables
-
-      if (.not. data_driven) then
-         call DU_GridCompInitialize ( gcThis%gcDU, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
-            if (MAPL_AM_I_ROOT()) print *, Iam//': DU failed to initialize ', rc
-            rc = 3000 + rc
-            return
-         end if
-      end if
-   end if
-
-!  Sea Salt
-!  --------
-   if ( w_c%reg%doing_SS ) then
-      gcThis%gcSS%mie_tables => gcThis%mie_tables
-
-      if (.not. data_driven) then
-         call SS_GridCompInitialize ( gcThis%gcSS, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
-            if (MAPL_AM_I_ROOT()) print *, Iam//': SS failed to initialize ', rc
-            rc = 4000 + rc
-            return
-         end if
-      end if
-   end if
-
-!  Black carbon
-!  ------------
-   if ( w_c%reg%doing_BC ) then
-      gcThis%gcBC%mie_tables => gcThis%mie_tables
-
-      if (.not. data_driven) then
-         call BC_GridCompInitialize ( gcThis%gcBC, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
-            if (MAPL_AM_I_ROOT()) print *, Iam//': BC failed to initialize ', rc
-            rc = 5000 + rc
-            return
-         end if
-      end if
-   end if
-
-!  Organic Carbon
-!  --------------
-   if ( w_c%reg%doing_OC ) then
-      gcThis%gcOC%mie_tables => gcThis%mie_tables
-
-      if (.not. data_driven) then
-         call OC_GridCompInitialize ( gcThis%gcOC, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
-            if (MAPL_AM_I_ROOT()) print *, Iam//': OC failed to initialize ', rc
-            rc = 6000 + rc
-            return
-         end if
-      end if   
-   end if
-
-!  Brown Carbon
-!  ------------
-   if ( w_c%reg%doing_BRC ) then
-      gcThis%gcBRC%mie_tables => gcThis%mie_tables
-
-      if (.not. data_driven) then
-         call BRC_GridCompInitialize ( gcThis%gcBRC, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
-            if (MAPL_AM_I_ROOT()) print *, Iam//': BRC failed to initialize ', rc
-            rc = 6000 + rc
-            return
-         end if
-      end if   
-   end if
-
-!  Sulfates
-!  --------
-   if ( w_c%reg%doing_SU ) then
-      gcThis%gcSU%mie_tables => gcThis%mie_tables
-
-      if (.not. data_driven) then
-         call SU_GridCompInitialize ( gcThis%gcSU, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
-            if (MAPL_AM_I_ROOT()) print *, Iam//': SU failed to initialize ', rc
-            rc = 7000 + rc
-            return
-         end if
-      end if
-   end if
-
 !  CFCs
 !  ----
    if ( w_c%reg%doing_CFC ) then
@@ -422,21 +259,6 @@ CONTAINS
       end if
    end if
 
-!  Nitrate
-!  -------
-   if ( w_c%reg%doing_NI ) then
-      gcThis%gcNI%mie_tables => gcThis%mie_tables
-
-      if (.not. data_driven) then
-         call NI_GridCompInitialize ( gcThis%gcNI, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
-            if (MAPL_AM_I_ROOT()) print *, Iam//': NI failed to initialize ', rc
-            rc = 8900 + rc
-            return
-         end if
-      end if
-   end if
 
    call print_init_()
 
@@ -521,96 +343,6 @@ CONTAINS
 !-------------------------------------------------------------------------
 
    call MAPL_GetObjectFromGC(gc,state,rc)
-!  Dust
-!  ----
-   if ( w_c%reg%doing_DU ) then
-      call MAPL_TimerOn(state,"DU")
-      call DU_GridCompRun1 ( gcThis%gcDU, w_c, impChem, expChem, &
-                             nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"DU")
-      if ( rc /= 0 ) then  
-           rc = 3000 + rc
-           return
-      end if
-   end if
-
-!  Sea Salt
-!  --------
-   if ( w_c%reg%doing_SS ) then
-      call MAPL_TimerOn(state,"SS")
-      call SS_GridCompRun1 ( gcThis%gcSS, w_c, impChem, expChem, &
-                             nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"SS")
-      if ( rc /= 0 ) then  
-           rc = 4000 + rc
-           return
-      end if
-   end if
-
-!  Black carbon
-!  ------------
-   if ( w_c%reg%doing_BC ) then
-      call MAPL_TimerOn(state,"BC")
-      call BC_GridCompRun1 ( gcThis%gcBC, w_c, impChem, expChem, &
-                            nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"BC")
-      if ( rc /= 0 ) then  
-           rc = 5000 + rc
-           return
-      end if
-   end if
-
-!  Organic Carbon
-!  --------------
-   if ( w_c%reg%doing_OC ) then
-      call MAPL_TimerOn(state,"OC")
-      call OC_GridCompRun1 ( gcThis%gcOC, w_c, impChem, expChem, &
-                            nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"OC")
-      if ( rc /= 0 ) then  
-           rc = 6000 + rc
-           return
-      end if
-   end if
-
-!  Brown Carbon
-!  ------------
-   if ( w_c%reg%doing_BRC ) then
-      call MAPL_TimerOn(state,"BRC")
-      call BRC_GridCompRun1 ( gcThis%gcBRC, w_c, impChem, expChem, &
-                            nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"BRC")
-      if ( rc /= 0 ) then  
-           rc = 6100 + rc
-           return
-      end if
-   end if
-
-!  Sulfates
-!  --------
-   if ( w_c%reg%doing_SU ) then
-      call MAPL_TimerOn(state,"SU")
-      call SU_GridCompRun1 ( gcThis%gcSU, w_c, impChem, expChem, &
-                            nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"SU")
-      if ( rc /= 0 ) then  
-           rc = 7000 + rc
-           return
-      end if
-   end if
-
-!  Nitrate
-!  -------
-   if ( w_c%reg%doing_NI ) then
-      call MAPL_TimerOn(state,"NI")
-      call NI_GridCompRun1 ( gcThis%gcNI, w_c, impChem, expChem, &
-                             nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"NI")
-      if ( rc /= 0 ) then  
-           rc = 8900 + rc
-           return
-      end if
-   end if
 
 
    return
@@ -711,84 +443,6 @@ CONTAINS
       end if
    end if
 
-!  Dust
-!  ----
-   if ( w_c%reg%doing_DU ) then
-      call MAPL_TimerOn(state,"DU")
-      call DU_GridCompRun2 ( gcThis%gcDU, w_c, impChem, expChem, &
-                             run_alarm, nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"DU")
-      if ( rc /= 0 ) then  
-           rc = 3000 + rc
-           return
-      end if
-   end if
-
-!  Sea Salt
-!  --------
-   call MAPL_TimerOn(state,"SS")
-   if ( w_c%reg%doing_SS ) then
-      call SS_GridCompRun2 ( gcThis%gcSS, w_c, impChem, expChem, &
-                             run_alarm, nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
-           rc = 4000 + rc
-           return
-      end if
-   end if
-   call MAPL_TimerOff(state,"SS")
-
-!  Black carbon
-!  ------------
-   if ( w_c%reg%doing_BC ) then
-      call MAPL_TimerOn(state,"BC")
-      call BC_GridCompRun2 ( gcThis%gcBC, w_c, impChem, expChem, &
-                             run_alarm, nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"BC")
-      if ( rc /= 0 ) then  
-           rc = 5000 + rc
-           return
-      end if
-   end if
-
-!  Organic Carbon
-!  --------------
-   if ( w_c%reg%doing_OC ) then
-      call MAPL_TimerOn(state,"OC")
-      call OC_GridCompRun2 ( gcThis%gcOC, w_c, impChem, expChem, &
-                             run_alarm, nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"OC")
-      if ( rc /= 0 ) then  
-           rc = 6000 + rc
-           return
-      end if
-   end if
-
-!  Brown Carbon
-!  ------------
-   if ( w_c%reg%doing_BRC ) then
-      call MAPL_TimerOn(state,"BRC")
-      call BRC_GridCompRun2 ( gcThis%gcBRC, w_c, impChem, expChem, &
-                             run_alarm, nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"BRC")
-      if ( rc /= 0 ) then  
-           rc = 6100 + rc
-           return
-      end if
-   end if
-
-!  Sulfates
-!  --------
-   if ( w_c%reg%doing_SU ) then
-      call MAPL_TimerOn(state,"SU")
-      call SU_GridCompRun2 ( gcThis%gcSU, w_c, impChem, expChem, &
-                             run_alarm, nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"SU")
-      if ( rc /= 0 ) then  
-           rc = 7000 + rc
-           return
-      end if
-   end if
-
 !  CFCs
 !  ----
    if ( w_c%reg%doing_CFC ) then
@@ -822,19 +476,6 @@ CONTAINS
       call MAPL_TimerOff(state,"CH4")
       if ( rc /= 0 ) then  
            rc = 8800 + rc
-           return
-      end if
-   end if
-
-!  Nitrate
-!  -------
-   if ( w_c%reg%doing_NI ) then
-      call MAPL_TimerOn(state,"NI")
-      call NI_GridCompRun2 ( gcThis%gcNI, w_c, impChem, expChem, &
-                             run_alarm, nymd, nhms, cdt, rc )
-      call MAPL_TimerOff(state,"NI")
-      if ( rc /= 0 ) then  
-           rc = 8900 + rc
            return
       end if
    end if
@@ -888,18 +529,6 @@ CONTAINS
 !-------------------------------------------------------------------------
 
 
-!  Finalize AOD tables
-!  -------------------
-   if ( w_c%reg%doing_DU .or. w_c%reg%doing_SS .or. w_c%reg%doing_SU .or. &
-        w_c%reg%doing_BC .or. w_c%reg%doing_OC .or. w_c%reg%doing_NI .or. &
-        w_c%reg%doing_BRC ) then
-        call Chem_MieDestroy ( gcThis%mie_tables, rc )
-        if ( rc /= 0 ) return
-        deallocate ( gcThis%mie_tables, stat = rc )
-        if ( rc /= 0 ) return
-   end if
-
-
 !  Ozone & friends
 !  ---------------
    if ( w_c%reg%doing_O3 ) then
@@ -929,72 +558,6 @@ CONTAINS
                                   nymd, nhms, cdt, rc )
       if ( rc /= 0 ) then  
            rc = 2500 + rc
-           return
-      end if
-   end if
-
-!  Dust
-!  ----
-   if ( w_c%reg%doing_DU ) then
-      call DU_GridCompFinalize ( gcThis%gcDU, w_c, impChem, expChem, &
-                                 nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
-           rc = 3000 + rc
-           return
-      end if
-   end if
-
-!  Sea Salt
-!  --------
-   if ( w_c%reg%doing_SS ) then
-      call SS_GridCompFinalize ( gcThis%gcSS, w_c, impChem, expChem, &
-                                 nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
-           rc = 4000 + rc
-           return
-      end if
-   end if
-
-!  Black carbon
-!  ------------
-   if ( w_c%reg%doing_BC ) then
-      call BC_GridCompFinalize ( gcThis%gcBC, w_c, impChem, expChem, &
-                                 nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
-           rc = 5000 + rc
-           return
-      end if
-   end if
-
-!  Organic Carbon
-!  --------------
-   if ( w_c%reg%doing_OC ) then
-      call OC_GridCompFinalize ( gcThis%gcOC, w_c, impChem, expChem, &
-                                 nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
-           rc = 6000 + rc
-           return
-      end if
-   end if
-
-!  Brown Carbon
-!  ------------
-   if ( w_c%reg%doing_BRC ) then
-      call BRC_GridCompFinalize ( gcThis%gcBRC, w_c, impChem, expChem, &
-                                 nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
-           rc = 6000 + rc
-           return
-      end if
-   end if
-
-!  Sulfates
-!  --------
-   if ( w_c%reg%doing_SU ) then
-      call SU_GridCompFinalize ( gcThis%gcSU, w_c, impChem, expChem, &
-                                 nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
-           rc = 7000 + rc
            return
       end if
    end if
@@ -1032,16 +595,6 @@ CONTAINS
       end if
    end if
 
-!  Nitrate
-!  -------
-   if ( w_c%reg%doing_NI ) then
-      call NI_GridCompFinalize ( gcThis%gcNI, w_c, impChem, expChem, &
-                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
-           rc = 8900 + rc
-           return
-      end if
-   end if
 
    return
 
