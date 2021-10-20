@@ -1,7 +1,7 @@
 esma_set_this ()
 
 set (alldirs
-  GA_GridComp
+  GA_Environment
   DU2G_GridComp
   SS2G_GridComp
   CA2G_GridComp
@@ -21,13 +21,13 @@ install( FILES ${resource_files}
    DESTINATION etc
    )
 
-set (dependencies MAPL Chem_Shared2G Process_Library)
+set (dependencies MAPL Chem_Shared2G Process_Library esmf)
 esma_add_library (${this}
   SRCS ${srcs}
   SUBCOMPONENTS ${alldirs}
   DEPENDENCIES ${dependencies}
-  INCLUDES ${INC_ESMF})
+  )
 
-mapl_acg (${this}   GOCART2G_StateSpecs.rc 
-          IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS 
+mapl_acg (${this}   GOCART2G_StateSpecs.rc
+          IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
           GET_POINTERS DECLARE_POINTERS)

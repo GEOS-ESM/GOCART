@@ -8,6 +8,7 @@ category: IMPORT
      NAME    | UNITS    | DIMS | VLOC | UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
  LWI         | 1        | xy   | N    |           | land-ocean-ice_mask
+ TROPP       | Pa       | xy   | N    |           | tropopause_pressure_based_on_blended_estimate
  USTAR       | m s-1    | xy   | N    |           | surface_velocity_scale
  ZPBL        | m        | xy   | N    |           | planetary_boundary_layer_height
  SH          | w m-2    | xy   | N    |           | sensible_heat_flux_from_turbulence
@@ -54,8 +55,8 @@ category: EXPORT
   NH4CONC   | kg m-3     | xyz | C   |           | Ammonium Mass Concentration 
   NICONC    | kg m-3     | xyz | C   |           | Nitrate Mass Concentration 
   NICONC25  | kg m-3     | xyz | C   |           | Nitrate Mass Concentration [PM2.5] 
-  NIEXTCOEF | m-1        | xyz | C   | size(self%wavelengths_profile)          | Nitrate Extinction Coefficient [550 nm] 
-  NISCACOEF | m-1        | xyz | C   | size(self%wavelengths_profile)          | Nitrate Scattering Coefficient [550 nm] 
+  NIEXTCOEF | m-1        | xyz | C   | size(self%wavelengths_profile) | Nitrate Extinction Coefficient 
+  NISCACOEF | m-1        | xyz | C   | size(self%wavelengths_profile) | Nitrate Scattering Coefficient 
 # ..........|............|.....|.....|...........|..................................
   NIPNO3AQ  | kg m-2 s-1 | xy  | N   |           | Nitrate Production from Aqueous Chemistry  
   NIPNH4AQ  | kg m-2 s-1 | xy  | N   |           | Ammonium Production from Aqueous Chemistry 
@@ -83,12 +84,14 @@ category: EXPORT
   NH4CMASS  | kg m-3     | xy  | N   |           | Ammonium Column Mass Density 
   NICMASS   | kg m-2     | xy  | N   |           | Nitrate Column Mass Density 
   NICMASS25 | kg m-2     | xy  | N   |           | Nitrate Column Mass Density [PM2.5] 
-  NIEXTTFM  |      1     | xy  | N   | size(self%wavelengths_vertint)          | Nitrate Extinction AOT [550 nm] - PM 1.0 um 
-  NISCATFM  |      1     | xy  | N   | size(self%wavelengths_vertint)          | Nitrate Scattering AOT [550 nm] - PM 1.0 um 
-  NIEXTT25  |      1     | xy  | N   | size(self%wavelengths_vertint)          | Nitrate Extinction AOT [550 nm] - PM 2.5 um 
-  NISCAT25  |      1     | xy  | N   | size(self%wavelengths_vertint)          | Nitrate Scattering AOT [550 nm] - PM 2.5 um 
-  NIEXTTAU  |      1     | xy  | N   | size(self%wavelengths_vertint)          | Nitrate Extinction AOT [550 nm] 
-  NISCATAU  |      1     | xy  | N   | size(self%wavelengths_vertint)          | Nitrate Scattering AOT [550 nm] 
+  NIEXTTFM  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Extinction AOT - PM 1.0 um 
+  NISCATFM  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Scattering AOT - PM 1.0 um 
+  NIEXTT25  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Extinction AOT - PM 2.5 um 
+  NISCAT25  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Scattering AOT - PM 2.5 um 
+  NIEXTTAU  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Extinction AOT 
+  NISTEXTTAU|      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Extinction AOT Stratosphere
+  NISCATAU  |      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Scattering AOT
+  NISTSCATAU|      1     | xy  | N   | size(self%wavelengths_vertint) | Nitrate Scattering AOT Stratosphere
   NIANGSTR  |      1     | xy  | N   |           | Nitrate Angstrom parameter [470-870 nm] 
   NIFLUXU   | kg m-1 s-1 | xy  | N   |           | Nitrate column u-wind mass flux 
   NIFLUXV   | kg m-1 s-1 | xy  | N   |           | Nitrate column v-wind mass flux 

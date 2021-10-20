@@ -4,7 +4,7 @@ cmake_policy (SET CMP0054 NEW)
 
 project (
         GOCART
-        VERSION 1.0.1
+        VERSION 2.0.1
         LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -21,18 +21,56 @@ if (NOT CMAKE_BUILD_TYPE)
             "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif ()
 
+# Set build options
+option (UFS_GOCART "Build GOCART component for UFS" OFF)
+
 set (DOING_GEOS5 YES)
 
 # Should find a better place for this - used in Chem component
 set (ACG_FLAGS -v)
-set (FV_PRECISION R4R8)
+
+if (UFS_GOCART)
+# Ensure we build as 32-bit
+  message ("Force 32-bit build for GOCART")
+  if (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
+    string (REPLACE "-real-size 64" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+  elseif (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
+    string (REPLACE "-fdefault-real-8" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+  endif()
+  list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/ESMF/UFS/cmake")
+endif()
 
 if (NOT COMMAND esma)
     list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake@")
     include (esma)
 endif()
 
-    ecbuild_declare_project()
+ecbuild_declare_project()
+
+if (NOT Baselibs_FOUND)
+  # Find dependencies
+  if (NOT NetCDF_Fortran_FOUND)
+    find_package (NetCDF REQUIRED Fortran)
+  endif ()
+  add_definitions(-DHAS_NETCDF3)
+
+  if (NOT ESMF_FOUND)
+    find_package (ESMF REQUIRED)
+  endif ()
+
+  find_package (GFTL REQUIRED)
+  find_package (GFTL_SHARED REQUIRED)
+  find_package (PFLOGGER QUIET)
+  find_package (YAFYAML REQUIRED)
+endif ()
+
+if (UFS_GOCART)
+  find_package (MAPL REQUIRED)
+  include(mapl_acg)
+elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
+  message (STATUS "Using local MAPL source tree: ${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
+endif ()
+
 
 # This is a KLUDGE to emulate paths used in GEOSgcm so that GOCART Legacy code generation works
 file (MAKE_DIRECTORY ${esma_include}/GEOSchem_GridComp)

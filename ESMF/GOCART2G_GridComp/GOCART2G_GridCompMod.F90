@@ -40,7 +40,7 @@ module GOCART2G_GridCompMod
      type(Instance), allocatable :: instances(:)
      integer :: n_active
   end type Constituent
-     
+
   type GOCART_State
      private
      type(Constituent) :: DU
@@ -60,6 +60,7 @@ module GOCART2G_GridCompMod
 !
 !   {\tt GOCART} is a gridded component from the GOCART model and includes 
 !  dust, sea salt, sulfates, nitrate, organic and black carbon. 
+
 !
 !
 ! !REVISION HISTORY:
@@ -67,6 +68,7 @@ module GOCART2G_GridCompMod
 !  25feb2005  da Silva   First crack.
 !  19jul2006  da Silva   First separate GOCART component.
 !  14Oct2019  E.Sherman, A.Darmenov, A. da Silva, T. Clune  First attempt at refactoring. 
+
 !
 !EOP
 !============================================================================
@@ -93,6 +95,7 @@ contains
 !   declare the data services.
 
 ! !REVISION HISTORY: 
+
 !  14oct2019  Sherman, da Silva, Darmenov, Clune - First attempt at refactoring for ESMF compatibility
 
 
@@ -141,24 +144,20 @@ contains
 !   Retrieve wavelengths from GOCART2G_GridComp.rc
     n_wavelengths_profile = ESMF_ConfigGetLen (myCF, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     n_wavelengths_vertint = ESMF_ConfigGetLen (myCF, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-    n_wavelengths_diagmie = ESMF_ConfigGetLen (myCF, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    n_wavelengths_diagmie = ESMF_ConfigGetLen (myCF, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
 
     allocate(self%wavelengths_profile(n_wavelengths_profile), self%wavelengths_vertint(n_wavelengths_vertint), &
              wavelengths_diagmie(n_wavelengths_diagmie), __STAT__)
-!    allocate(wavelengths_profile(n_wavelengths_profile), wavelengths_vertint(n_wavelengths_vertint), __STAT__)
+
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-    call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
 
 !   Set wavelengths in universal config
-    call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile(1), label='wavelengths_for_profile_aop_in_nm:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint(1), label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie(1), label='aerosol_monochromatic_optics_wavelength:', __RC__)
 
-!call ESMF_ConfigGetAttribute(cf, wave_prof, label='wavelengths_for_profile_aop_in_nm:', __RC__)
-!if(mapl_am_i_root()) print*,'GOCART2G wave_prof = ',wave_prof
-!call ESMF_ConfigGetAttribute(cf, wave_vert, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
-!if(mapl_am_i_root()) print*,'GOCART2G wave_vert = ',wave_vert
+    call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
 
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------
@@ -181,23 +180,13 @@ contains
     call createInstances_(self, GC, __RC__)
 
 !   Define EXPORT states
-!   This state is needed by radiation - It will contain 
-!   aerosols and aerosol optics
-!   --------------------------------------------------------
-    call MAPL_AddExportSpec(GC,                       &
-       short_name = 'AERO_RAD',                         &
-       long_name  = 'aerosol_mass_mixing_ratios_ng',  &
-       units      = 'kg kg-1',                        &
-       dims       = MAPL_DimsHorzVert,                &
-       vlocation  = MAPL_VLocationCenter,             &
-       datatype   = MAPL_StateItem, __RC__)
 
-!   This state is needed by MOIST - It will contain
-!   aerosols
+!   This state is needed by radiation and moist. It contains 
+!   aerosols and callback methods
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                       &
-       short_name = 'AERO_ACI',                     &
-       long_name  = 'aerosol_cloud_interaction_ng',   &
+       short_name = 'AERO',                           &
+       long_name  = 'aerosol_mass_mixing_ratios_ng',  &
        units      = 'kg kg-1',                        &
        dims       = MAPL_DimsHorzVert,                &
        vlocation  = MAPL_VLocationCenter,             &
@@ -213,49 +202,6 @@ contains
        dims       = MAPL_DimsHorzOnly,                &
        datatype   = MAPL_BundleItem, __RC__)
 
-
-!   Set children's variables as exports from GOCART2G
-!   to satisfy connections in GEOS_ChemGridComp.F90.
-!   Currently only supports one instance.
-!   -------------------------------------------------
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'DU',                         &
-        child_id   = self%DU%instances(1)%id, __RC__) 
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'SS',                         &
-        child_id   = self%SS%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'NO3an1',                     &
-        child_id   = self%NI%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'NO3an2',                     &
-        child_id   = self%NI%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'NO3an3',                     &
-        child_id   = self%NI%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'SO4',                        &
-        child_id   = self%SU%instances(1)%id, __RC__)
-
-!   CA %instances(n) pertains to the instances specified in GOCART2G_GridComp.rc
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'CAphobicCA.oc',              &
-        child_id   = self%CA%instances(1)%id, __RC__)
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'CAphilicCA.oc',              &
-        child_id   = self%CA%instances(1)%id, __RC__)
-
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'CAphobicCA.bc',              &
-        child_id   = self%CA%instances(2)%id, __RC__)
-    call MAPL_AddExportSpec(GC,                    &
-        short_name = 'CAphilicCA.bc',              &
-        child_id   = self%CA%instances(2)%id, __RC__)
 
 #include "GOCART2G_Export___.h"
 
@@ -287,7 +233,6 @@ contains
 !   ----------------------------------
     call MAPL_GenericSetServices (GC, __RC__)
 
-
     RETURN_(ESMF_SUCCESS)
 
   end subroutine SetServices
@@ -299,11 +244,9 @@ contains
 ! !IROUTINE: Initialize -- Initialize method for the composite Gridded Component
 
 ! !INTERFACE:
-
   subroutine Initialize (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
-
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
@@ -328,14 +271,16 @@ contains
     type (ESMF_Grid)                       :: grid
     type (ESMF_Config)                     :: CF
 
-    type (ESMF_State)                      :: aero, aero_aci
+    type (ESMF_State)                      :: aero
     type (ESMF_FieldBundle)                :: aero_dp
 
     type (GOCART_State),      pointer      :: self
     type (wrap_)                           :: wrap
 
     integer                                :: n_modes
-    integer, parameter                     :: n_gocart_modes = 13 
+    integer, parameter                     :: n_gocart_modes = 14 
+    integer                                :: dims(3)
+
     character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
     real                                   :: f_aci_seasalt, maxclean, ccntuning
     character(LEN=ESMF_MAXSTR)             :: CLDMICRO
@@ -359,6 +304,8 @@ contains
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
 
+    call MAPL_GridGet ( grid, localCellCountPerDim=dims, __RC__ )
+
 !   Call Generic Initialize
 !   ----------------------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
@@ -379,9 +326,8 @@ contains
 
 !   Fill AERO_RAD, AERO_ACI, and AERO_DP with the children's states
 !   ---------------------------------------------------------------
-    call ESMF_StateGet (export, 'AERO_RAD' , aero     , __RC__)
-    call ESMF_StateGet (export, 'AERO_ACI' , aero_aci , __RC__)
-    call ESMF_StateGet (export, 'AERO_DP'  , aero_dp  , __RC__)
+    call ESMF_StateGet (export, 'AERO', aero, __RC__)
+    call ESMF_StateGet (export, 'AERO_DP', aero_dp, __RC__)
 
 
 !   Add children's AERO states to GOCART2G's AERO states
@@ -396,18 +342,53 @@ contains
 !   Begin AERO_RAD
 !   --------------
 !   Add variables to AERO_RAD state. Used in aerosol optics calculations
-    call add_aero (aero, label='air_pressure_for_aerosol_optics',             label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='relative_humidity_for_aerosol_optics',        label2='RH',  grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='air_pressure_for_aerosol_optics', label2='PLE', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
+                   label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
 
-    call ESMF_AttributeSet(aero, name='band_for_aerosol_optics',             value=0,     __RC__)
+!   Used in get_mixRatioSum
+    call add_aero (aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_CA.oc', label2='aerosolSumCA.oc', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_CA.bc', label2='aerosolSumCA.bc', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_CA.br', label2='aerosolSumCA.br', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='sum_of_internalState_aerosol_SU', label2='aerosolSumSU', &
+                   grid=grid, typekind=MAPL_R4, __RC__)
 
-!   Attach method to create a Bundle of aerosol fields used in GAAS
+    call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
+    call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
+    call ESMF_AttributeSet(aero, name='aerosolName', value='', __RC__)
+    call ESMF_AttributeSet(aero, name='im', value=dims(1), __RC__)
+    call ESMF_AttributeSet(aero, name='jm', value=dims(2), __RC__)
+    call ESMF_AttributeSet(aero, name='km', value=dims(3), __RC__)
+
+!   Attach method to return sum of aerosols. Used in GAAS.
+    call ESMF_MethodAdd (aero, label='get_mixRatioSum', userRoutine=get_mixRatioSum, __RC__)
+
+!   Attach method to create a Bundle of aerosol fields. Used in GAAS.
     call ESMF_MethodAdd (aero, label='serialize_bundle', userRoutine=serialize_bundle, __RC__)
 
-!   Attach the aerosol optics method used in Radiation
+!   Attach the monochromatic aerosol optics method. Used in GAAS.
+    call ESMF_MethodAdd (aero, label='get_monochromatic_aop', &
+                         userRoutine=get_monochromatic_aop, __RC__)
+
+!   Attach the aerosol optics method. Used in Radiation.
     call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, __RC__)
 
     ! This attribute indicates if the aerosol optics method is implemented or not. 
@@ -415,62 +396,59 @@ contains
     ! explicitly set to true.
     call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., __RC__)
 
-!   Begin AERO_ACI
-!   --------------
+!   Begin adding necessary aerosol cloud interaction information
+!   ------------------------------------------------------------
     aero_aci_modes =  (/'du001    ', 'du002    ', 'du003    ', &
                         'du004    ', 'du005    ',              &
                         'ss001    ', 'ss002    ', 'ss003    ', &  
                         'sulforg01', 'sulforg02', 'sulforg03', &
-                        'bcphilic ', 'ocphilic '/)
+                        'bcphilic ', 'ocphilic ', 'brcphilic'/)
 
     n_modes = size(aero_aci_modes)
 
-    call ESMF_AttributeSet(aero_aci, name='number_of_aerosol_modes', value=n_modes, __RC__)
-    call ESMF_AttributeSet(aero_aci, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, __RC__)
+    call ESMF_AttributeSet(aero, name='number_of_aerosol_modes', value=n_modes, __RC__)
+    call ESMF_AttributeSet(aero, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, __RC__)
 
     ! max mixing ratio before switching to "polluted" size distributions
     call ESMF_ConfigGetAttribute(CF, maxclean, default=1.0e-9, label='MAXCLEAN:', __RC__)
-    call ESMF_AttributeSet(aero_aci, name='max_q_clean', value=maxclean, __RC__)
+    call ESMF_AttributeSet(aero, name='max_q_clean', value=maxclean, __RC__)
 
     call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)
-    call ESMF_AttributeSet(aero_aci, name='ccn_tuning', value=CCNtuning, __RC__)
+    call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, __RC__)
 
     call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICRO:',  default="1MOMENT", RC=STATUS)
-    call ESMF_AttributeSet(aero_aci, name='cldmicro', value=CLDMICRO, __RC__)
+    call ESMF_AttributeSet(aero, name='cldmicro', value=CLDMICRO, __RC__)
 
     ! scaling factor for sea salt
     if(adjustl(CLDMICRO)=="2MOMENT") then
        call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=4.0, label='SS_SCALE:', __RC__)
-       call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
+       call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
     else
-       ! scaling factor for sea salt
        call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=14.0, label='SS_SCALE:', __RC__)
-       call ESMF_AttributeSet(aero_aci, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
+       call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
     endif
 
-!   Add variables to AERO_ACI state.
-    call add_aero (aero_aci, label='air_pressure',                label2='PLE',      grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='air_temperature',             label2='T',        grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='fraction_of_land_type',       label2='FRLAND',   grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='width_of_aerosol_mode',       label2='SIGMA',    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='aerosol_number_concentration',label2='NUM',      grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='aerosol_dry_size',            label2='DGN',      grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='aerosol_density',             label2='density',  grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='aerosol_hygroscopicity',      label2='KAPPA',    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='fraction_of_dust_aerosol',    label2='FDUST',    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='fraction_of_soot_aerosol',    label2='FSOOT',    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero_aci, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, __RC__)
+!   Add variables to AERO state
+    call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='width_of_aerosol_mode', label2='SIGMA', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='aerosol_number_concentration', label2='NUM', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='aerosol_dry_size', label2='DGN', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='aerosol_density', label2='density', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='aerosol_hygroscopicity', label2='KAPPA', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='fraction_of_dust_aerosol', label2='FDUST', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='fraction_of_soot_aerosol', label2='FSOOT', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero (aero, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, __RC__)
 
 !   Attach the aerosol optics method
-    call ESMF_MethodAdd(aero_aci, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
+    call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
   contains
 
      subroutine add_aero_states_(instances)
-        type(Instance), intent(in) :: instances(:)
-        
+        type(Instance), intent(in) :: instances(:)      
         type (ESMF_State)       :: child_state
         type (ESMF_FieldBundle) :: child_bundle
         type (ESMF_Field), allocatable :: fieldList(:)
@@ -478,21 +456,17 @@ contains
         integer :: i
         integer :: id
         integer :: fieldCount
-        __Iam__('Initialize::ad_aero_states_')
+        __Iam__('Initialize::add_aero_states_')
         
         do i = 1, size(instances)
            if (.not. instances(i)%is_active) cycle
            id = instances(i)%id
            
            call ESMF_GridCompGet (gcs(id), __RC__ )
-           
            call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO', child_state, __RC__)
            call ESMF_StateAdd (aero, [child_state], __RC__)
            
            if (instances(i)%name(1:2) /= 'NI') then
-              call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_ACI', child_state, __RC__)
-              call ESMF_StateAdd (aero_ACI, [child_state], __RC__)
-
               call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_DP', child_bundle, __RC__)
               call ESMF_FieldBundleGet (child_bundle, fieldCount=fieldCount, __RC__)
               allocate (fieldList(fieldCount), __STAT__)
@@ -509,6 +483,7 @@ contains
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !BOP
 ! !IROUTINE: RUN -- Run method for GOCART2G 
+
 
 ! !INTERFACE:
 
@@ -540,6 +515,7 @@ contains
 
 !****************************************************************************
 ! Begin... 
+
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -602,33 +578,38 @@ contains
     real, pointer, dimension(:,:)       :: LATS
     real, pointer, dimension(:,:)       :: LONS
 
-    real, pointer, dimension(:,:,:) :: duexttau, duscatau, &
+    real, pointer, dimension(:,:,:) :: duexttau, dustexttau, &
+                                       duscatau, dustscatau, &
                                        duextt25, duscat25, &
                                        duexttfm, duscatfm
     real, pointer, dimension(:,:)   :: duangstr, dusmass,  &
                                        dusmass25
-    real, pointer, dimension(:,:,:) :: ssexttau, ssscatau, &
+    real, pointer, dimension(:,:,:) :: ssexttau, ssstexttau, &
+                                       ssscatau, ssstscatau, &
                                        ssextt25, ssscat25, &
                                        ssexttfm, ssscatfm
     real, pointer, dimension(:,:)   :: ssangstr, sssmass,  &
                                        sssmass25
-    real, pointer, dimension(:,:,:) :: niexttau, niscatau, &
+    real, pointer, dimension(:,:,:) :: niexttau, nistexttau, &
+                                       niscatau, nistscatau, &
                                        niextt25, niscat25, &
                                        niexttfm, niscatfm
     real, pointer, dimension(:,:)   :: niangstr, nismass,  &
                                        nismass25
     real, pointer, dimension(:,:)   :: nh4smass
-    real, pointer, dimension(:,:,:) :: suexttau, suscatau
+    real, pointer, dimension(:,:,:) :: suexttau, sustexttau, &
+                                       suscatau, sustscatau
     real, pointer, dimension(:,:)   :: suangstr, so4smass
-    real, pointer, dimension(:,:,:) :: bcexttau, bcscatau
+    real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau 
     real, pointer, dimension(:,:)   :: bcangstr, bcsmass
-    real, pointer, dimension(:,:,:) :: ocexttau, ocscatau
+    real, pointer, dimension(:,:,:) :: ocexttau, ocstexttau, ocscatau, ocstscatau
     real, pointer, dimension(:,:)   :: ocangstr, ocsmass
-    real, pointer, dimension(:,:,:) :: brexttau, brscatau
+    real, pointer, dimension(:,:,:) :: brexttau, brstexttau, brscatau, brstscatau
     real, pointer, dimension(:,:)   :: brangstr, brsmass
     real, pointer, dimension(:,:,:) :: pso4
     real, allocatable               :: tau1(:,:), tau2(:,:)
     real                            :: c1, c2, c3
+    integer                         :: ind550
 
 #include "GOCART2G_DeclarePointer___.h"
 
@@ -661,7 +642,9 @@ contains
 #include "GOCART2G_GetPointer___.h"
 
     if(associated(totexttau)) totexttau = 0.
+    if(associated(totstexttau)) totstexttau = 0.
     if(associated(totscatau)) totscatau = 0.
+    if(associated(totstscatau)) totstscatau = 0.
     if(associated(totextt25)) totextt25 = 0.
     if(associated(totscat25)) totscat25 = 0.
     if(associated(totexttfm)) totexttfm = 0.
@@ -685,11 +668,25 @@ contains
       end if
     end do
 
-
 !   Compute total aerosol diagnostic values for export
 !   --------------------------------------------------
     if(associated(totangstr)) then
-       totangstr(:,:) = 0.0
+    ind550 = 0
+       do w = 1, size(self%wavelengths_vertint) ! find index for 550nm to compute total angstrom
+          if ((self%wavelengths_vertint(w)*1.e-9 .ge. 5.49e-7) .and. &
+              (self%wavelengths_vertint(w)*1.e-9 .le. 5.51e-7)) then
+             ind550 = w
+             exit
+          end if
+       end do
+
+       if (ind550 == 0) then
+          print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',& 
+                           ' Cannot produce TOTANGSTR variable without 550nm wavelength.'
+          VERIFY_(100)
+       end if
+
+       totangstr = 0.0
        allocate(tau1(SIZE(LATS,1), SIZE(LATS,2)), &
                 tau2(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
 
@@ -704,7 +701,9 @@ contains
     do n = 1, size(self%DU%instances)
        if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttau, 'DUEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustexttau, 'DUSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatau, 'DUSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustscatau, 'DUSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', __RC__)
@@ -714,7 +713,9 @@ contains
       !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(duexttau)) totexttau(:,:,w) = totexttau(:,:,w)+duexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(dustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+dustexttau(:,:,w)
              if(associated(totscatau) .and. associated(duscatau)) totscatau(:,:,w) = totscatau(:,:,w)+duscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(dustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+dustscatau(:,:,w)
              if(associated(totextt25) .and. associated(duextt25)) totextt25(:,:,w) = totextt25(:,:,w)+duextt25(:,:,w)
              if(associated(totscat25) .and. associated(duscat25)) totscat25(:,:,w) = totscat25(:,:,w)+duscat25(:,:,w)
              if(associated(totexttfm) .and. associated(duexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+duexttfm(:,:,w)
@@ -731,8 +732,8 @@ contains
           if(associated(pm25_rh50) .and. associated(dusmass25)) pm25_rh50 = pm25_rh50 + dusmass25
 
           if(associated(totangstr) .and. associated(duexttau) .and. associated(duangstr)) then
-             tau1 = tau1 + duexttau(:,:,2)*exp(c1*duangstr)
-             tau2 = tau2 + duexttau(:,:,2)*exp(c2*duangstr)
+             tau1 = tau1 + duexttau(:,:,ind550)*exp(c1*duangstr)
+             tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
           end if
        end if   
     end do
@@ -741,7 +742,9 @@ contains
     do n = 1, size(self%SS%instances)
        if ((self%SS%instances(n)%is_active) .and. (index(self%SS%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttau, 'SSEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstexttau, 'SSSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatau, 'SSSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstscatau, 'SSSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextt25, 'SSEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscat25, 'SSSCAT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttfm, 'SSEXTTFM', __RC__)
@@ -751,7 +754,9 @@ contains
       !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(ssexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ssexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(ssstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+ssstexttau(:,:,w)
              if(associated(totscatau) .and. associated(ssscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ssscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(ssstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+ssstscatau(:,:,w)
              if(associated(totextt25) .and. associated(ssextt25)) totextt25(:,:,w) = totextt25(:,:,w)+ssextt25(:,:,w)
              if(associated(totscat25) .and. associated(ssscat25)) totscat25(:,:,w) = totscat25(:,:,w)+ssscat25(:,:,w)
              if(associated(totexttfm) .and. associated(ssexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+ssexttfm(:,:,w)
@@ -768,8 +773,8 @@ contains
           if(associated(pm25_rh50) .and. associated(sssmass25)) pm25_rh50 = pm25_rh50 + 2.42*sssmass25
 
           if(associated(totangstr) .and. associated(ssexttau) .and. associated(ssangstr)) then
-             tau1 = tau1 + ssexttau(:,:,2)*exp(c1*ssangstr)
-             tau2 = tau2 + ssexttau(:,:,2)*exp(c2*ssangstr)
+             tau1 = tau1 + ssexttau(:,:,ind550)*exp(c1*ssangstr)
+             tau2 = tau2 + ssexttau(:,:,ind550)*exp(c2*ssangstr)
           end if
        end if
     end do
@@ -778,7 +783,9 @@ contains
     do n = 1, size(self%NI%instances)
        if ((self%NI%instances(n)%is_active) .and. (index(self%NI%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', __RC__)
@@ -788,7 +795,9 @@ contains
       !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(niexttau)) totexttau(:,:,w) = totexttau(:,:,w)+niexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(nistexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+nistexttau(:,:,w)
              if(associated(totscatau) .and. associated(niscatau)) totscatau(:,:,w) = totscatau(:,:,w)+niscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(nistscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+nistscatau(:,:,w)
              if(associated(totextt25) .and. associated(niextt25)) totextt25(:,:,w) = totextt25(:,:,w)+niextt25(:,:,w)
              if(associated(totscat25) .and. associated(niscat25)) totscat25(:,:,w) = totscat25(:,:,w)+niscat25(:,:,w)
              if(associated(totexttfm) .and. associated(niexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+niexttfm(:,:,w)
@@ -806,8 +815,8 @@ contains
           if(associated(pm25_rh50) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh50 = pm25_rh50 + 1.51*(nismass25 + nh4smass)
 
           if(associated(totangstr) .and. associated(niexttau) .and. associated(niangstr)) then
-             tau1 = tau1 + niexttau(:,:,2)*exp(c1*niangstr)
-             tau2 = tau2 + niexttau(:,:,2)*exp(c2*niangstr)
+             tau1 = tau1 + niexttau(:,:,ind550)*exp(c1*niangstr)
+             tau2 = tau2 + niexttau(:,:,ind550)*exp(c2*niangstr)
           end if
        end if
     end do
@@ -816,13 +825,17 @@ contains
     do n = 1, size(self%SU%instances)
        if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(suexttau)) totexttau(:,:,w) = totexttau(:,:,w)+suexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(sustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+sustexttau(:,:,w)
              if(associated(totscatau) .and. associated(suscatau)) totscatau(:,:,w) = totscatau(:,:,w)+suscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(sustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+sustscatau(:,:,w)
              if(associated(totextt25) .and. associated(suexttau)) totextt25(:,:,w) = totextt25(:,:,w)+suexttau(:,:,w)
              if(associated(totscat25) .and. associated(suscatau)) totscat25(:,:,w) = totscat25(:,:,w)+suscatau(:,:,w)
              if(associated(totexttfm) .and. associated(suexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+suexttau(:,:,w)
@@ -833,7 +846,7 @@ contains
           if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', __RC__)
-          if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) then ! Nitrates currently only support one active instance. We check the NI gridded component because SO4MASS can be altered by NI chemistry.
+          if ((self%SU%instances(1)%is_active) .and. (index(self%SU%instances(1)%name, 'data') == 0 )) then ! Nitrates currently only support one active instance. We check the NI gridded component because SO4MASS can be altered by NI chemistry.
              if(associated(pm)        .and. associated(so4smass)) pm        = pm        + so4smass
              if(associated(pm25)      .and. associated(so4smass)) pm25      = pm25      + so4smass
              if(associated(pm_rh35)   .and. associated(so4smass)) pm_rh35   = pm_rh35   + 1.33*so4smass
@@ -850,8 +863,8 @@ contains
           end if
 
           if(associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
-!             tau1 = tau1 + suexttau(:,:,2)*exp(c1*suangstr)
-!             tau2 = tau2 + suexttau(:,:,2)*exp(c2*suangstr)
+             tau1 = tau1 + suexttau(:,:,ind550)*exp(c1*suangstr)
+             tau2 = tau2 + suexttau(:,:,ind550)*exp(c2*suangstr)
           end if
        end if
     end do
@@ -863,13 +876,17 @@ contains
            .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CAEXTTAUCA.bc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CASTEXTTAUCA.bc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CASCATAUCA.bc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CASTSCATAUCA.bc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CAANGSTRCA.bc', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(bcexttau)) totexttau(:,:,w) = totexttau(:,:,w)+bcexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(bcstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+bcstexttau(:,:,w)
              if(associated(totscatau) .and. associated(bcscatau)) totscatau(:,:,w) = totscatau(:,:,w)+bcscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(bcstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+bcstscatau(:,:,w)
              if(associated(totextt25) .and. associated(bcexttau)) totextt25(:,:,w) = totextt25(:,:,w)+bcexttau(:,:,w)
              if(associated(totscat25) .and. associated(bcscatau)) totscat25(:,:,w) = totscat25(:,:,w)+bcscatau(:,:,w)
              if(associated(totexttfm) .and. associated(bcexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+bcexttau(:,:,w)
@@ -885,20 +902,24 @@ contains
           if(associated(pm25_rh50) .and. associated(bcsmass)) pm25_rh50 = pm25_rh50 + bcsmass
 
           if(associated(totangstr) .and. associated(bcexttau) .and. associated(bcangstr)) then
-             tau1 = tau1 + bcexttau(:,:,2)*exp(c1*bcangstr)
-             tau2 = tau2 + bcexttau(:,:,2)*exp(c2*bcangstr)
+             tau1 = tau1 + bcexttau(:,:,ind550)*exp(c1*bcangstr)
+             tau2 = tau2 + bcexttau(:,:,ind550)*exp(c2*bcangstr)
           end if
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CAEXTTAUCA.oc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CASTEXTTAUCA.oc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CASCATAUCA.oc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CASTSCATAUCA.oc', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CAANGSTRCA.oc', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(ocexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ocexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(ocstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+ocstexttau(:,:,w)
              if(associated(totscatau) .and. associated(ocscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ocscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(ocstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+ocstscatau(:,:,w)
              if(associated(totextt25) .and. associated(ocexttau)) totextt25(:,:,w) = totextt25(:,:,w)+ocexttau(:,:,w)
              if(associated(totscat25) .and. associated(ocscatau)) totscat25(:,:,w) = totscat25(:,:,w)+ocscatau(:,:,w)
              if(associated(totexttfm) .and. associated(ocexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+ocexttau(:,:,w)
@@ -914,20 +935,24 @@ contains
           if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
 
           if(associated(totangstr) .and. associated(ocexttau) .and. associated(ocangstr)) then
-             tau1 = tau1 + ocexttau(:,:,2)*exp(c1*ocangstr)
-             tau2 = tau2 + ocexttau(:,:,2)*exp(c2*ocangstr)
+             tau1 = tau1 + ocexttau(:,:,ind550)*exp(c1*ocangstr)
+             tau2 = tau2 + ocexttau(:,:,ind550)*exp(c2*ocangstr)
           end if
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CAEXTTAUCA.br', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CASTEXTTAUCA.br', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CASCATAUCA.br', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CASTSCATAUCA.br', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CAANGSTRCA.br', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
              if(associated(totexttau) .and. associated(brexttau)) totexttau(:,:,w) = totexttau(:,:,w)+brexttau(:,:,w)
+             if(associated(totstexttau) .and. associated(brstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+brstexttau(:,:,w)
              if(associated(totscatau) .and. associated(brscatau)) totscatau(:,:,w) = totscatau(:,:,w)+brscatau(:,:,w)
+             if(associated(totstscatau) .and. associated(brstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+brstscatau(:,:,w)
              if(associated(totextt25) .and. associated(brexttau)) totextt25(:,:,w) = totextt25(:,:,w)+brexttau(:,:,w)
              if(associated(totscat25) .and. associated(brscatau)) totscat25(:,:,w) = totscat25(:,:,w)+brscatau(:,:,w)
              if(associated(totexttfm) .and. associated(brexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+brexttau(:,:,w)
@@ -943,8 +968,8 @@ contains
           if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
 
           if(associated(totangstr) .and. associated(brexttau) .and. associated(brangstr)) then
-             tau1 = tau1 + brexttau(:,:,2)*exp(c1*brangstr)
-             tau2 = tau2 + brexttau(:,:,2)*exp(c2*brangstr)
+             tau1 = tau1 + brexttau(:,:,ind550)*exp(c1*brangstr)
+             tau2 = tau2 + brexttau(:,:,ind550)*exp(c2*brangstr)
           end if
        end if
     end do
@@ -1047,7 +1072,7 @@ contains
     RETURN_(ESMF_SUCCESS)
 
     contains
-        
+    
         subroutine addChildren__ (gc, species, setServices, rc)
         
           type (ESMF_GridComp),            intent(inout)     :: gc
@@ -1119,9 +1144,9 @@ contains
    do i = 1, n
       if (itemTypes(i) /= ESMF_StateItem_State) cycle ! exclude non-states
       call ESMF_StateGet (state, trim(itemList(i)), child_state, __RC__)
-      call ESMF_AttributeGet (child_state, name='internal_varaible_name', itemCount=nbins, __RC__)
+      call ESMF_AttributeGet (child_state, name='internal_variable_name', itemCount=nbins, __RC__)
       allocate (aeroName(nbins), __STAT__)
-      call ESMF_AttributeGet (child_state, name='internal_varaible_name', valueList=aeroName, __RC__)
+      call ESMF_AttributeGet (child_state, name='internal_variable_name', valueList=aeroName, __RC__)
 
 
       do b = 1, size(aeroName)
@@ -1139,7 +1164,7 @@ contains
                ptr3d => orig_ptr(:,:,:,j)
                serializedField = ESMF_FieldCreate (grid=grid, datacopyFlag=ESMF_DATACOPY_REFERENCE, &
                                               farrayPtr=ptr3d, name=trim(aeroName(b))//trim(binIndexstr), __RC__)
-               call MAPL_FieldBundleAdd (bundle, serializedField, __RC__)
+               call MAPL_FieldBundleAdd (bundle, serializedField, __RC__) ! probably need to add a flag to allow for adding multilple fields of the same name.
             end do ! do j
          end if ! if (rank
       end do ! do b
@@ -1202,11 +1227,9 @@ contains
     j1 = lbound(ple, 2); j2 = ubound(ple, 2)
                          km = ubound(ple, 3)
 
-
     allocate(ext(i1:i2,j1:j2,km),  &
              ssa(i1:i2,j1:j2,km),  &
              asy(i1:i2,j1:j2,km), __STAT__)
-
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
@@ -1317,8 +1340,6 @@ contains
 
 !=====================================================================================================
 
-!#if 0
-
   subroutine aerosol_activation_properties(state, rc)
 
     implicit none
@@ -1328,11 +1349,11 @@ contains
     type(ESMF_State)     :: state
     integer, intent(out) :: rc
 
-
 !   Local
 !   ---------
     character(len=ESMF_MAXSTR)      :: mode              ! mode name
     character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name 
+
     type(ESMF_State)                :: child_state
 
     real, dimension(:,:,:), pointer :: ple               ! pressure at the edges of model layers
@@ -1341,9 +1362,9 @@ contains
 
     real, dimension(:,:,:), pointer :: f                 ! correction factor for sea salt
 
-    real, dimension(:,:,:), pointer :: q                 ! aerosol mass mixing ratio
-    real, dimension(:,:,:), pointer :: q_                ! aerosol mass mixing ratio (temporary)
-    real, dimension(:,:,:,:), pointer :: ptr_4d          ! aerosol mass mixing ratio (temporary)
+    real, dimension(:,:,:), allocatable :: q             ! aerosol mass mixing ratio
+    real, dimension(:,:,:,:), pointer   :: ptr_4d        ! aerosol mass mixing ratio (temporary)
+    real, dimension(:,:,:), pointer     :: ptr_3d        ! aerosol mass mixing ratio (temporary)
 
     real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
     real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
@@ -1363,6 +1384,7 @@ contains
 
     integer                         :: i2, j2, km
     integer                         :: b, i, j, n, aerosol_bin
+    integer                         :: varNameLen
 
     character (len=ESMF_MAXSTR), allocatable  :: itemList(:), aeroList(:)
     type (ESMF_StateItem_Flag), allocatable   :: itemTypes(:)
@@ -1375,7 +1397,7 @@ contains
     real, parameter :: densDU  = 1700.0
     real, parameter :: densBC  = 1600.0
     real, parameter :: densOC  =  900.0
-    real, parameter :: densBRC =  900.0
+    real, parameter :: densBR  =  900.0
 
     real, parameter :: k_SO4   = 0.65
     real, parameter :: k_ORG   = 0.20
@@ -1383,7 +1405,7 @@ contains
     real, parameter :: k_DU    = 0.0001
     real, parameter :: k_BC    = 0.0001
     real, parameter :: k_OC    = 0.0001
-    real, parameter :: k_BRC   = 0.0001
+    real, parameter :: k_BR    = 0.0001
 
     integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015
 
@@ -1400,19 +1422,19 @@ contains
 
     b=0
     do i = 1, n
-        if (itemTypes(i) == ESMF_StateItem_State) then
-            b = b + 1
-        end if
+       if ((itemTypes(i) == ESMF_StateItem_State) .and. (trim(itemList(i)(1:2)) /= 'NI')) then
+          b = b + 1
+       end if
     end do
 
     allocate (aeroList(b), __STAT__)
 
     j = 1
     do i = 1, n
-        if (itemTypes(i) == ESMF_StateItem_State) then
-            aeroList(j) = trim(itemList(i))
-            j = j + 1
-        end if
+       if ((itemTypes(i) == ESMF_StateItem_State) .and. (trim(itemList(i)(1:2)) /= 'NI')) then
+          aeroList(j) = trim(itemList(i))
+          j = j + 1
+       end if
     end do
 
 !   Aerosol mode
@@ -1426,7 +1448,7 @@ contains
 
 !   Pressure at layer edges 
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure', value=fld_name, __RC__)
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
 
 !   Temperature
@@ -1476,9 +1498,8 @@ contains
     mode_ = trim(mode)
     mode_ = ESMF_UtilStringLowerCase(mode_, __RC__)
 
-    allocate(q(i2,j2,km), q_(i2,j2,km),  __STAT__)
+    allocate(q(i2,j2,km),  __STAT__)
     q = 0.0
-    q_ = 0.0
 
     if (index(mode_, 'du00') > 0) then ! Dust
        ! dust is mapped one-to-one
@@ -1487,8 +1508,8 @@ contains
              read (mode_(3:len(mode_)),*) aerosol_bin
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'DU', __RC__)
-             q_ = ptr_4d(:,:,:,aerosol_bin)
-             q = q + q_
+             q = q + ptr_4d(:,:,:,aerosol_bin)
+             ptr_3d => ptr_4d(:,:,:,aerosol_bin)
 
              hygroscopicity = k_DU
              density = densDU
@@ -1502,8 +1523,8 @@ contains
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
              do j = 1, ubound(ptr_4d, 4)
-                q_ = ptr_4d(:,:,:,j)
-                q = q + q_
+               q = q + ptr_4d(:,:,:,j)
+               ptr_3d => ptr_4d(:,:,:,j)
              end do
 
              ! temperature correction over the ocean
@@ -1526,24 +1547,27 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'SU') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'SO4', __RC__)
-             q = q + q_
-             hygroscopicity = k_SO4 * q_ + hygroscopicity
-             density = densSO4 * q_ + density
+             call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
+             q = q + ptr_3d
+             hygroscopicity = k_SO4 * ptr_3d + hygroscopicity
+             density = densSO4 * ptr_3d + density
           end if
 
           if (index(aeroList(i), 'CA.oc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.oc', __RC__)
-             q = q + q_
-             hygroscopicity = k_ORG * q_ + hygroscopicity
-             density = densORG * q_ + density
+             varNameLen = len_trim(aeroList(i))
+!            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
+             varNameLen = varNameLen - 5
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
+             q = q + ptr_3d
+             hygroscopicity = k_ORG * ptr_3d + hygroscopicity
+             density = densORG * ptr_3d + density
           end if
 
           ! required by the aap_(...)
           if((adjustl(cld_micro)/="2MOMENT") .and. (index(aeroList(i), 'SU') > 0)) then ! maintained for compatibility with the single moment
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'SO4', __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
           end if
        end do
 
@@ -1562,8 +1586,11 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.bc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.bc', __RC__)
-             q = q + q_
+             varNameLen = len_trim(aeroList(i))
+!            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
+             varNameLen = varNameLen - 5
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
+             q = q + ptr_3d
              hygroscopicity = k_BC
              density = densBC
           end if
@@ -1573,12 +1600,30 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.oc') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, q_, 'CAphilicCA.oc', __RC__)
-             q = q + q_
+             varNameLen = len_trim(aeroList(i))
+!            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
+             varNameLen = varNameLen - 5
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
+             q = q + ptr_3d
              hygroscopicity = k_OC
              density = densOC
           end if
        end do
+
+    else if (index(mode_, 'brcphilic') > 0) then ! Organic Carbon
+       do i = 1, size(aeroList)
+          if (index(aeroList(i), 'CA.br') > 0) then
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+             varNameLen = len_trim(aeroList(i))
+!            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
+             varNameLen = varNameLen - 5
+             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
+             q = q + ptr_3d
+             hygroscopicity = k_BR
+             density = densBR
+          end if
+       end do
+
     end if !(index(mode_, 'du00') > 0) then
 
 !   Obtain aerosol activation properties of this aerosol mode
@@ -1592,7 +1637,7 @@ contains
               f_soot,             &
               f_organic,          &
               density,            &
-              q_,                 &
+              ptr_3d,             &
               1, i2, 1, j2, km, &
               __RC__)
 
@@ -1615,7 +1660,6 @@ contains
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: q              ! aerosol mass mixing ratio, kg kg-1
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: q_             ! auxiliary mass
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: dens_          ! density
-
 
      real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles 
      real, intent(out), dimension(i1:i2,j1:j2,km) :: diameter       ! dry size of aerosol
@@ -1807,8 +1851,14 @@ contains
          f_soot   = 1.0
          diameter = 0.0118*2e-6
          num = q / ((MAPL_PI/6.0) * densBC * diameter*diameter*diameter * exp(4.5*sigma*sigma))
-     
+
      case ('ocphilic')
+         sigma     = log(2.2)
+         f_organic = 1.0
+         diameter  = 0.0212*2.0e-6
+         num = q / ((MAPL_PI/6.0) * densOrg * diameter*diameter*diameter * exp(4.5*sigma*sigma))
+
+     case ('brcphilic')
          sigma     = log(2.2)
          f_organic = 1.0
          diameter  = 0.0212*2.0e-6
@@ -1823,8 +1873,6 @@ contains
      RETURN_(ESMF_SUCCESS)
 
     end subroutine aap_
-
-
 
     subroutine ocean_correction_(f, f_land, t_air_sfc, ss_scale, i1, i2, j1, j2, km)
 
@@ -1866,10 +1914,304 @@ contains
 
   end subroutine aerosol_activation_properties
 
+
+!===================================================================================
+  subroutine get_monochromatic_aop (state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !Local
+    real, dimension(:,:,:), pointer                  :: ple
+    real, dimension(:,:,:), pointer                  :: rh
+    real, dimension(:,:), pointer                    :: var
+
+    character (len=ESMF_MAXSTR)                      :: fld_name
+
+    real, dimension(:,:),pointer                     :: tau_      ! (lon:,lat:,lev:)
+    real, dimension(:,:), allocatable                :: tau       ! (lon:,lat:,lev:)
+
+    integer                                          :: i, n, b, j
+    integer                                          :: i1, j1, i2, j2, km
+    real                                             :: wavelength
+
+    character (len=ESMF_MAXSTR), allocatable         :: itemList(:), aeroList(:)
+    type (ESMF_State)                                :: child_state
+    real, pointer,     dimension(:,:,:)              :: as_ptr_3d
+
+    type (ESMF_StateItem_Flag), allocatable          :: itemTypes(:)
+
+    __Iam__('GOCART2G::get_monochromatic_aop')
+
+!   Description: Used in GAAS gridded component to provide aerosol properties
+!-----------------------------------------------------------------------------------
+!   Begin... 
+
+!   Radiation band
+!   --------------
+    call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+
+!   Relative humidity
+!   -----------------
+    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
+
+!   Pressure at layer edges 
+!   ------------------------
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
+
+    i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+    j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+                         km = ubound(ple, 3)
+
+    allocate(tau(i1:i2,j1:j2), __STAT__)
+    tau = 0.0
+
+!   Get list of child states within state and add to aeroList
+!   ---------------------------------------------------------
+    call ESMF_StateGet (state, itemCount=n, __RC__)
+    allocate (itemList(n), __STAT__)
+    allocate (itemTypes(n), __STAT__)
+    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+
+    b=0
+    do i = 1, n
+        if (itemTypes(i) == ESMF_StateItem_State) then
+            b = b + 1
+        end if
+    end do
+
+    allocate (aeroList(b), __STAT__)
+
+    j = 1
+    do i = 1, n
+        if (itemTypes(i) == ESMF_StateItem_State) then
+            aeroList(j) = trim(itemList(i))
+            j = j + 1
+        end if
+    end do
+
+!   ! Get aerosol optic properties from children
+    do i = 1, size(aeroList)
+       call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+
+!      ! set RH in child's aero state
+       call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+
+       if (fld_name /= '') then
+          call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+          as_ptr_3d = rh
+       end if
+
+!      ! set PLE in child's aero state
+       call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+
+       if (fld_name /= '') then
+          call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+          as_ptr_3d = ple
+       end if
+
+!      ! set wavelength in child's aero state
+       call ESMF_AttributeSet(child_state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+
+!      ! execute the aerosol optics method
+       call ESMF_MethodExecute(child_state, label="monochromatic_aerosol_optics", __RC__)
+
+!      ! Retrieve extinction from each child
+       call ESMF_AttributeGet(child_state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+          call MAPL_GetPointer(child_state, tau_, trim(fld_name), __RC__)
+       end if
+
+!      ! Sum aerosol optic properties from each child
+       tau = tau + tau_
+    end do
+
+!   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
+    call ESMF_AttributeGet(state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+       var = tau
+    end if
+
+    deallocate(tau, __STAT__)
+
+   RETURN_(ESMF_SUCCESS)
+
+  end subroutine get_monochromatic_aop
+
+
+!===================================================================================
+  subroutine get_mixRatioSum (state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !Local
+    character (len=ESMF_MAXSTR), allocatable         :: itemList(:), aeroList(:)
+    character (len=ESMF_MAXSTR)                      :: aeroName
+    character (len=ESMF_MAXSTR)                      :: fld_name
+
+    real, pointer, dimension(:,:,:)                  :: var
+    real, dimension(:,:,:), allocatable              :: aeroOut
+    type (ESMF_StateItem_Flag), allocatable          :: itemTypes(:)
+
+    integer  :: b, i, n, j, im, jm, km
+
+    __Iam__('GOCART2G::get_mixRatioSum')
+
+!   Description: Used in GAAS gridded component to provide sum of aerosol mixing ratio
+!--------------------------------------------------------------------------------------
+!   Begin... 
+
+    call ESMF_AttributeGet(state, name='aerosolName', value=aeroName, __RC__)
+    call ESMF_AttributeGet(state, name='im', value=im, __RC__)
+    call ESMF_AttributeGet(state, name='jm', value=jm, __RC__)
+    call ESMF_AttributeGet(state, name='km', value=km, __RC__)
+
+    allocate(aeroOut(im,jm,km), __STAT__)
+    aeroOut = 0.0
+
+!   Get list of child states within state and add to aeroList
+!   ---------------------------------------------------------
+    call ESMF_StateGet (state, itemCount=n, __RC__)
+    allocate (itemList(n), __STAT__)
+    allocate (itemTypes(n), __STAT__)
+    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+
+    b=0
+    do i = 1, n
+        if (itemTypes(i) == ESMF_StateItem_State) then
+            b = b + 1
+        end if
+    end do
+
+    allocate (aeroList(b), __STAT__)
+
+    j = 1
+    do i = 1, n
+        if (itemTypes(i) == ESMF_StateItem_State) then
+            aeroList(j) = trim(itemList(i))
+            j = j + 1
+        end if
+    end do
+
+
+!   Retrieve summed aerosol mixing ratios from active instances
+    select case (trim(aeroName))
+       case ('dust')
+          call getAerosolSum ('DU', state, aeroList, aeroOut, __RC__)
+
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_DU', value=fld_name, __RC__)
+          if (fld_name /= '') then
+             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             var = aeroOut
+          end if
+
+       case ('seasalt')
+          call getAerosolSum ('SS', state, aeroList, aeroOut, __RC__)
+
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_SS', value=fld_name, __RC__)
+          if (fld_name /= '') then
+             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             var = aeroOut
+          end if
+
+       case ('organicCarbon')
+          call getAerosolSum ('CA.oc', state, aeroList, aeroOut, __RC__)
+
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.oc', value=fld_name, __RC__)
+          if (fld_name /= '') then
+             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             var = aeroOut
+          end if
+
+       case ('blackCarbon')
+          call getAerosolSum ('CA.bc', state, aeroList, aeroOut, __RC__)
+
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.bc', value=fld_name, __RC__)
+          if (fld_name /= '') then
+             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             var = aeroOut
+          end if
+
+       case ('brownCarbon')
+          call getAerosolSum ('CA.br', state, aeroList, aeroOut, __RC__)
+
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.br', value=fld_name, __RC__)
+          if (fld_name /= '') then
+             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             var = aeroOut
+          end if
+
+       case ('sulfate')
+          call getAerosolSum ('SU', state, aeroList, aeroOut, __RC__)
+
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_SU', value=fld_name, __RC__)
+          if (fld_name /= '') then
+             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             var = aeroOut
+          end if
+
+       case ('nitrate')
+          call getAerosolSum ('NI', state, aeroList, aeroOut, __RC__)
+
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_NI', value=fld_name, __RC__)
+          if (fld_name /= '') then
+             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             var = aeroOut
+          end if
+
+       case default
+          print *,"Invalid aerosolName of '",trim(aeroName), "' in GOCART2G::get_mixRatioSum"
+    end select
+
+contains
+    subroutine getAerosolSum (aeroToken, state, aeroList, aeroOut, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    character (len=*), intent(in)                  :: aeroToken
+    type (ESMF_State),           intent(in)        :: state
+    character (len=ESMF_MAXSTR), intent(in)        :: aeroList(:)
+    real, dimension(:,:,:),      intent(out)       :: aeroOut
+    integer, optional,           intent(out)       :: rc
+
+!   !LOCALS:
+    integer                               :: i, endInd
+    character (len=ESMF_MAXSTR)           :: fld_name
+    type (ESMF_State)                     :: child_state
+    real, pointer, dimension(:,:,:)       :: ptr3d
+
+
+!   Begin...
+
+    endInd = len_trim(aeroToken)
+
+    do i = 1, size(aeroList)
+       if (trim(aeroList(i)(1:endInd)) == trim(aeroToken)) then
+          call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+          call ESMF_MethodExecute(child_state, label="get_mixR", __RC__)
+          call ESMF_AttributeGet(child_state, name='sum_of_internalState_aerosol', &
+                                 value=fld_name, __RC__)
+          if (fld_name /= '') then
+             call MAPL_GetPointer(child_state, ptr3d, trim(fld_name), __RC__)
+          end if
+          aeroOut = aeroOut + ptr3d
+       end if
+    end do
+
+    end subroutine getAerosolSum
+
+  end subroutine get_mixRatioSum
+
+
 end module GOCART2G_GridCompMod
-
-
-
-
-
-

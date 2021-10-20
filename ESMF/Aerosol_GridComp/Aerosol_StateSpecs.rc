@@ -12,6 +12,7 @@ category: IMPORT
 #FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
 #WET1       | 1      | xy   | N   |      | surface_soil_wetness
 #LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
+#TROPP      | Pa     | xy   | N   |      | tropopause_pressure_based_on_blended_estimate
 #U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
 #V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
 #AREA       | m^2    | xy   | N   |      | agrid_cell_area
@@ -39,7 +40,6 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG_NAME
 #----------------------------------------------------------------------------------------
-ZLE | m | xyz | E | | Geopotential Height
 #DUMASS     | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
 #DUMASS25   | kg kg-1    | xyz | C  |            | Dust Mass Mixing Ratio                      __ENSEMBLE__
 #DUCONC     | kg m-3     | xyz | C  |            | Dust Mass Concentration                     __ENSEMBLE__
