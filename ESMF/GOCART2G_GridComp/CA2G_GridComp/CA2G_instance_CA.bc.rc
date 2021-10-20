@@ -2,10 +2,11 @@
 # Resource file for Black Carbon parameters. 
 #
 
-nbins:  2 
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BC.v1_3.RRTMG.nc
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_BC.v1_3.nc
 
-aerosol_radBands_optics_file: ExtData/MERRA2/x/opticsBands_BC.v1_3.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/AeroCom/x/optics_BC.v1_3.nc
+# Aircraft emission factor: convert input unit to kg C
+aircraft_fuel_emission_factor: 1.0000
 
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
@@ -29,10 +30,12 @@ fnum: 1.50e19  1.50e19
 particle_radius_microns: 0.35 0.35
 
 rhFlag: 0
-particle_density: 1800   1800
 
 # Sigma of lognormal number distribution
 sigma: 2.0  2.0
 
 pressure_lid_in_hPa: 0.01
 
+nbins: 2
+
+point_emissions_srcfilen: /dev/null

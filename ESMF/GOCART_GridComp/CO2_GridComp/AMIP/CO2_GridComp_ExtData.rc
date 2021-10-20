@@ -1,0 +1,19 @@
+PrimaryExports%%
+# A = Climatology? Y/N; B = Conservative regridding? Y/N
+#---------------+-------------------+-+-+---------------------+--------+--------+------------------------------------   
+# Export        |                   | | |_______ Refresh _____|____ Factors ____|_______ External File __________
+# Name          | Units             |A|B|     Time Template   | Offset | Scale  |  Variable   |      Template
+#---------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------   
+ CO2_BIOMASS     'kg CO2 m-2 s-1'    Y Y F%y4-%m2-%d2t12:00:00 none     none     biomass       ExtData/PIESA/sfc/QFED/v2.4r6/climatology/qfed2.emis_co2.005.x1152_y721_t12.2003_2012.2007.nc4
+ CO2_FF          'kg C m-2 s-1'      Y Y F%y4-%m2-%d2t12:00:00 none     none     emco2ff       ExtData/PIESA/sfc/bian.co2.x288_y181_t12.2001.nc
+ CO2_NEP         'kg C m-2 s-1'      Y Y F%y4-%m2-%d2t12:00:00 none     none     emco2nep      ExtData/PIESA/sfc/bian.co2.x288_y181_t12.2001.nc
+ CO2_OCN         'kg C m-2 s-1'      Y Y F%y4-%m2-%d2t12:00:00 none     none     emco2ocn      ExtData/PIESA/sfc/bian.co2.x288_y181_t12.2001.nc
+
+ CO2_CMS_BIOMASS 'kg C m-2 s-1'      N Y F%y4-%m2-%d2t12:00:00 none     none     biomass       ExtData/PIESA/sfc/CMS/em.daily.1x1.25.%y4.nc
+ CO2_CMS_FF      'kg C m-2 s-1'      N Y F%y4-%m2-%d2t12:00:00 none     none     emco2ff       ExtData/PIESA/sfc/CMS/ORNL_TRANSCOM.co2_ff_nep_ocn.x288_y181_t12.%y4.nc
+ CO2_CMS_NEP     'kg C m-2 s-1'      N Y  P0000-00-00T03:00    none     none     emco2nep      ExtData/PIESA/sfc/CMS/casa.3hr.1x1.25.%y4.nc
+ CO2_CMS_OCN     'kg C m-2 s-1'      N Y F%y4-%m2-%d2t12:00:00 none     none     emco2ocn      ExtData/PIESA/sfc/CMS/NOBM_fco2.daily.1x1.25.%y4.nc
+
+ CO2_regionMask  NA                  N v   -                   none     none     REGION_MASK   ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+#---------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------   
+%%

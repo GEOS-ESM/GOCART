@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+N/A
+
+## [2.0.1] - 2021-10-20 
+
+### Changed
+
+- Several updates in preparation for release for GEOS-FP, x-experiments,
+etc.
+- Updated rc files to reflect new ExtData structure
+
+## Removed
+- Removed aerosols from legacy GOCART
+
 ### Fixed
 
 - Added `CONFIGURE_DEPENDS` to the `GLOB` calls in GOCART2G
