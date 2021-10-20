@@ -20,6 +20,10 @@ etc.
 ## Removed
 - Removed aerosols from legacy GOCART
 
+### Fixed
+
+- Added `CONFIGURE_DEPENDS` to the `GLOB` calls in GOCART2G
+
 ## [2.0.0-rc.1] - 2021-08-06
 
 ### Changed
