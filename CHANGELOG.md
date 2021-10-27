@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+### Changed
+
+- Update CI to Baselibs 6.2.8 and GCC 11.2
 
 ## [2.0.1] - 2021-10-20 
 
@@ -18,6 +20,7 @@ etc.
 - Updated rc files to reflect new ExtData structure
 
 ## Removed
+
 - Removed aerosols from legacy GOCART
 
 ### Fixed
