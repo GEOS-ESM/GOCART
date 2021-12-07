@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Update CI to Baselibs 6.2.8 and GCC 11.2
 - Updated dust emissions tuning to be consistent with current Ginoux default.
 
 ## [2.0.1] - 2021-10-20 
@@ -18,6 +21,7 @@ etc.
 - Updated rc files to reflect new ExtData structure
 
 ## Removed
+
 - Removed aerosols from legacy GOCART
 
 ### Fixed
