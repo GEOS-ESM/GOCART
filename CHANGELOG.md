@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-N/A
+- Updated dust emissions tuning to be consistent with current Ginoux default.
 
 ## [2.0.1] - 2021-10-20 
 
