@@ -103,6 +103,8 @@
         real, pointer :: xhno3(:,:,:)
         logical       :: first
         logical       :: recycle_HNO3 = .false.
+        logical       :: using_GMI_HNO3    ! Are we using GMI HNO3
+        logical       :: export_HNO3       ! Do we want to export modified HNO3 back to GMI
   end type NI_GridComp1
 
   type NI_GridComp
@@ -552,10 +554,28 @@ CONTAINS
    character(len=*),    intent(IN   ) :: iname
    integer,             intent(OUT  ) :: rc
 
+  CHARACTER(LEN=255) :: rcbasen = 'NI_GridComp'   ! elf
+   
+   CHARACTER(LEN=255) :: rcname    ! elf
+   type(ESMF_Config)  :: cfg       ! elf
+   
+   logical :: using_GMI_HNO3       ! elf
+
    integer :: Status
    character(len=ESMF_MAXSTR) :: Iam
 
    Iam ="NI_GridCOmpSetServices1_"
+
+   if (trim(iname) == "") then
+    rcname = trim(rcbasen)//'---full.rc'
+   else
+    rcname = trim(rcbasen)//'---'//trim(iname)//'.rc'
+   end if
+ 
+   cfg = ESMF_ConfigCreate(__RC__)
+   call ESMF_ConfigLoadFile(cfg, rcname, __RC__)
+ 
+   call ESMF_ConfigGetAttribute(cfg, using_GMI_HNO3, Default=.false., label='using_GMI_HNO3:', __RC__)   ! elf 
 
    call MAPL_AddImportSpec(GC, &
         SHORT_NAME = 'EMI_NH3_AG'//trim(iname), &
@@ -627,6 +647,7 @@ CONTAINS
         RC         = STATUS)
    VERIFY_(STATUS)
 
+  if (.not. using_GMI_HNO3) then
    call MAPL_AddImportSpec(GC, &
         SHORT_NAME = 'NITRATE_HNO3'//trim(iname), &
         LONG_NAME  = ''  , &
@@ -636,6 +657,7 @@ CONTAINS
         RESTART    = MAPL_RestartSkip,     &
         RC         = STATUS)
    VERIFY_(STATUS)
+  end if
 
    RETURN_(ESMF_SUCCESS)
 
@@ -696,6 +718,7 @@ CONTAINS
    integer :: i1, i2, im, j1, j2, jm, km, nbins, n1, n2
    integer, allocatable :: ier(:)
    real :: qmax, qmin
+   character(len=255) :: token_string
    LOGICAL :: NoRegionalConstraint 
 
 
@@ -822,6 +845,45 @@ CONTAINS
       return
    end if
 !                          -------
+
+! Switches to select predicted HNO3 from the                      
+! GMI Combined Stratosphere Troposphere Chemical Mechanism
+! --------------------------------------------------------
+   gcNI%using_GMI_HNO3 = .FALSE.
+   CALL I90_Label("using_GMI_HNO3:",ier(1))
+   IF(ier(1) /= 0) THEN
+    CALL final_(85)
+    RETURN
+   ELSE
+    CALL I90_GToken(token_string,ier(1))
+    IF(ier(1) /= 0) THEN
+     CALL final_(86)
+     RETURN
+    END IF
+    IF(TRIM(token_string) == "yes" .AND. w_c%reg%doing_GMI) gcNI%using_GMI_HNO3 = .TRUE.
+   END IF
+
+   gcNI%export_HNO3 = .FALSE.
+   CALL I90_Label("export_HNO3:",ier(1))
+   IF(ier(1) /= 0) THEN
+    CALL final_(87)
+    RETURN
+   ELSE
+    CALL I90_GToken(token_string,ier(1))
+    IF(ier(1) /= 0) THEN
+     CALL final_(88)
+     RETURN
+    END IF
+    IF(TRIM(token_string) == "yes" .AND. w_c%reg%doing_GMI) gcNI%export_HNO3 = .TRUE.
+   END IF
+ 
+   IF(MAPL_AM_I_ROOT()) THEN            ! elf
+   PRINT *," "
+   PRINT *,TRIM(myname)//":"
+   PRINT *," Using GMI HNO3: ",gcNI%using_GMI_HNO3
+   PRINT *," Exporting updated HNO3 to GMI: ",gcNI%export_HNO3
+   PRINT *," "
+   END IF
 
 !  Grab the region string.
 !  -----------------------
@@ -1307,23 +1369,6 @@ CONTAINS
 
 
 
-!  Nitric Acid
-!  -----------
-   call MAPL_GetPointer ( impChem, hno3, 'NITRATE_HNO3'//iNAME, __RC__ )
-
-!  Save local copy of HNO3 for first pass through run method regardless
-   if (gcNI%first) then
-       gcNI%xhno3 = MAPL_UNDEF
-       gcNI%first = .False.
-   end if
-
-   ! Recycle HNO3 every 3 hours
-   if (gcNI%recycle_HNO3) then
-       gcNI%xhno3 = hno3
-       gcNI%recycle_HNO3 = .false.
-   end if
-
-
 RUN_ALARM: if (gcNI%run_alarm) then
 
    allocate( fluxout )
@@ -1331,6 +1376,29 @@ RUN_ALARM: if (gcNI%run_alarm) then
              drydepositionfrequency(i1:i2,j1:j2), stat=STATUS)
    VERIFY_(STATUS)
 
+!  Nitric Acid
+!  -----------
+  if (gcNI%using_GMI_HNO3) then
+     call MAPL_GetPointer(impChem, hno3, 'HNO3', __RC__)
+     gcNI%xhno3 = hno3
+  else
+!  Save local copy of HNO3 for first pass through run method regardless
+     if (gcNI%first) then
+       call MAPL_GetPointer ( impChem, hno3, 'NITRATE_HNO3'//trim(iNAME), __RC__ )
+       gcNI%xhno3 = hno3 
+       gcNI%first = .FALSE.
+     endif
+!  Recycle HNO3 on 3 hour boundaries  (flag is set by GOCART_GridCompMod)
+     if (gcNI%recycle_HNO3) then
+       call MAPL_GetPointer ( impChem, hno3, 'NITRATE_HNO3'//trim(iNAME), __RC__ )
+       gcNI%xhno3 = hno3 
+       gcNI%recycle_HNO3 = .FALSE.
+     endif
+  endif
+
+#ifdef DEBUG
+   call pmaxmin('NI: hno3', gcNI%xhno3(i1:i2,j1:j2,1:km), qmin, qmax, ijkl, 1, 1. )
+#endif
 
 !  Unlike GEOS-4 hghte is defined for km+1
 !  ---------------------------------------
@@ -1706,6 +1774,11 @@ RUN_ALARM: if (gcNI%run_alarm) then
    if(associated(NI_conv(1)%data2d)) NI_conv(1)%data2d = -bcnv_(:,:,nNO3an1)/area_/icdt
    if(associated(NI_conv(2)%data2d)) NI_conv(2)%data2d = -bcnv_(:,:,nNO3an2)/area_/icdt
    if(associated(NI_conv(3)%data2d)) NI_conv(3)%data2d = -bcnv_(:,:,nNO3an3)/area_/icdt
+
+! Update GMI Combo HNO3 before exiting.
+! -------------------------------------------------------
+   IF(gcNI%using_GMI_HNO3 .AND. gcNI%export_HNO3) &           ! elf, make sure gcNI%xhno3 is updated and units correct
+       hno3(i1:i2,j1:j2,1:km) = gcNI%xhno3(i1:i2,j1:j2,1:km) 
 
 !  Clean up
 !  --------

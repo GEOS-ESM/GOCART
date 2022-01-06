@@ -22,6 +22,10 @@
 
    use ConvectionMod, only: Disable_Convection
 
+!!!! >>>>>>>>>>>>>>>>  OVP
+   use OVP,          only:  OVP_init, OVP_end_of_timestep_hms, OVP_mask, OVP_apply_mask
+!!!! <<<<<<<<<<<<<<<<  OVP
+
    implicit none
    private
 
@@ -31,6 +35,15 @@
 
    character(len=*), parameter :: H2O2_RECYCLE_ALARM = 'GOCART::RECYCLE_H2O2'
    character(len=*), parameter :: HNO3_RECYCLE_ALARM = 'GOCART::RECYCLE_HNO3'
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+   INTEGER, SAVE, ALLOCATABLE :: MASK_10AM(:,:)
+   INTEGER, SAVE, ALLOCATABLE :: MASK_2PM(:,:)
+   INTEGER, SAVE              :: OVP_FIRST_HMS
+   INTEGER, SAVE              :: OVP_RUN_DT
+   INTEGER, SAVE              :: OVP_GC_DT
+   INTEGER, SAVE              :: OVP_MASK_DT
+!!!! <<<<<<<<<<<<<<<<  OVP
 
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -555,6 +568,14 @@ else
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'NO3',                                &
         LONG_NAME  = 'Nitrogen_trioxide',                  &
+        UNITS      = 'mol/mol',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+        RESTART    = MAPL_RestartSkip,     __RC__)
+
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'HNO3',                               &
+        LONG_NAME  = 'Nitric_acid',                        &
         UNITS      = 'mol/mol',                            &
         DIMS       = MAPL_DimsHorzVert,                    &
         VLOCATION  = MAPL_VLocationCenter,                 &
@@ -1265,6 +1286,82 @@ GOCART_COMPUTATIONAL_EXPORTS: if (.not. state%data_driven) then
        UNITS      = 'kg m-3',                 &
        DIMS       = MAPL_DimsHorzOnly,        &
        VLOCATION  = MAPL_VLocationNone, __RC__)
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+    call MAPL_AddExportSpec(GC,  &
+        SHORT_NAME         = 'OVP10_GOCART_SO2_VMR',  &
+        LONG_NAME          = 'Sulphur_dioxide_10am_local',  &
+        UNITS              = 'mol mol-1', &
+        DIMS               = MAPL_DimsHorzVert,    &
+        VLOCATION          = MAPL_VLocationCenter,    &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+
+    call MAPL_AddExportSpec(GC,  &
+        SHORT_NAME         = 'OVP14_GOCART_SO2_VMR',  &
+        LONG_NAME          = 'Sulphur_dioxide_2pm_local',  &
+        UNITS              = 'mol mol-1', &
+        DIMS               = MAPL_DimsHorzVert,    &
+        VLOCATION          = MAPL_VLocationCenter,    &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+
+    call MAPL_AddExportSpec(GC,  &
+        SHORT_NAME         = 'OVP10_GOCART_SO2v_VMR',  &
+        LONG_NAME          = 'Sulphur_dioxide_volcanic_10am_local',  &
+        UNITS              = 'mol mol-1', &
+        DIMS               = MAPL_DimsHorzVert,    &
+        VLOCATION          = MAPL_VLocationCenter,    &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+
+    call MAPL_AddExportSpec(GC,  &
+        SHORT_NAME         = 'OVP14_GOCART_SO2v_VMR',  &
+        LONG_NAME          = 'Sulphur_dioxide_volcanic_2pm_local',  &
+        UNITS              = 'mol mol-1', &
+        DIMS               = MAPL_DimsHorzVert,    &
+        VLOCATION          = MAPL_VLocationCenter,    &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+
+   call MAPL_AddExportSpec(GC,  &
+        SHORT_NAME         = 'OVP10_GOCART_NH3_VMR',  &
+        LONG_NAME          = 'Ammonia_10am_local',  &
+        UNITS              = 'mol mol-1', &
+        DIMS               = MAPL_DimsHorzVert,    &
+        VLOCATION          = MAPL_VLocationCenter,    &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+
+   call MAPL_AddExportSpec(GC,  &
+        SHORT_NAME         = 'OVP14_GOCART_NH3_VMR',  &
+        LONG_NAME          = 'Ammonia_2pm_local',  &
+        UNITS              = 'mol mol-1', &
+        DIMS               = MAPL_DimsHorzVert,    &
+        VLOCATION          = MAPL_VLocationCenter,    &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+
+    call MAPL_AddExportSpec(GC,  &
+        SHORT_NAME         = 'OVP10_TOTEXTTAU',  &
+        LONG_NAME          = 'Total Aerosol Extinction AOT [550 nm] 10am local',  &
+        UNITS              = '1', &
+        DIMS               = MAPL_DimsHorzOnly,    &
+        VLOCATION          = MAPL_VLocationNone,    &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+
+    call MAPL_AddExportSpec(GC,  &
+        SHORT_NAME         = 'OVP14_TOTEXTTAU',  &
+        LONG_NAME          = 'Total Aerosol Extinction AOT [550 nm] 2pm local',  &
+        UNITS              = '1', &
+        DIMS               = MAPL_DimsHorzOnly,    &
+        VLOCATION          = MAPL_VLocationNone,    &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+
+!!!! <<<<<<<<<<<<<<<<  OVP
 
 end if GOCART_COMPUTATIONAL_EXPORTS
 
@@ -2140,6 +2237,23 @@ end if ! doing GOCART
 
 #endif
 
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+!   Set up Overpass Masks
+!   --------------------
+    CALL OVP_init ( GC, "GOCART_DT:", LONS, OVP_RUN_DT, OVP_GC_DT, __RC__ ) !  Get LONS, timesteps
+
+    ! In this case we update the Exports only after each GOCART timestep:
+    OVP_MASK_DT = OVP_GC_DT
+
+    OVP_FIRST_HMS = OVP_end_of_timestep_hms( CLOCK, OVP_MASK_DT )
+    IF(MAPL_AM_I_ROOT()) PRINT*,'GOCART FIRST_HMS =',OVP_FIRST_HMS
+
+    CALL OVP_mask ( LONS=LONS, DELTA_TIME=OVP_MASK_DT, OVERPASS_HOUR=10, MASK=MASK_10AM )
+    CALL OVP_mask ( LONS=LONS, DELTA_TIME=OVP_MASK_DT, OVERPASS_HOUR=14, MASK=MASK_2PM  )
+
+!!!! <<<<<<<<<<<<<<<<  OVP
+
     call MAPL_TimerOff(ggState, 'TOTAL')
     call MAPL_TimerOff(ggState, 'INITIALIZE')
 
@@ -2437,6 +2551,23 @@ CONTAINS
    real, pointer, dimension(:,:,:) :: pso4, pso4v, pso4t
    real, allocatable               :: tau1(:,:), tau2(:,:)
    real                            :: c1, c2, c3
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+   REAL, POINTER, DIMENSION(:,:)   :: DATA_FOR_OVP_2D => NULL()
+   REAL, POINTER, DIMENSION(:,:)   :: OVP10_OUTPUT_2D => NULL()
+   REAL, POINTER, DIMENSION(:,:)   :: OVP14_OUTPUT_2D => NULL()
+
+   REAL, POINTER, DIMENSION(:,:,:) :: DATA_FOR_OVP_3D => NULL()
+   REAL, POINTER, DIMENSION(:,:,:) :: OVP10_OUTPUT_3D => NULL()
+   REAL, POINTER, DIMENSION(:,:,:) :: OVP14_OUTPUT_3D => NULL()
+
+   REAL, PARAMETER                 :: MW_AIR = 28.97
+   REAL, PARAMETER                 :: MW_SO2 = 64.06
+   REAL, PARAMETER                 :: MW_NH3 = 17.03
+   INTEGER                         :: CURRENT_HMS  !  for the end of the timestep
+
+!!!! <<<<<<<<<<<<<<<<  OVP
 
 !                               ---
 
@@ -2854,6 +2985,67 @@ CONTAINS
    deallocate(ZTH,   __STAT__)
    deallocate(r4ZTH, __STAT__)
 
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+!  Record the Overpass values
+!  -------------------------------------------------------------------
+
+   CURRENT_HMS = OVP_end_of_timestep_hms( CLOCK, OVP_RUN_DT )
+!  IF(MAPL_AM_I_ROOT()) PRINT*,'GOCART CURRENT_HMS =',CURRENT_HMS
+
+!  GOCART_SO2_VMR overpass
+
+   CALL secure_GOCART_species_ptr3( ChemReg, w_c, 'SO2', DATA_FOR_OVP_3D )
+
+   CALL MAPL_GetPointer(expChem, OVP10_OUTPUT_3D, 'OVP10_GOCART_SO2_VMR', __RC__)
+   CALL MAPL_GetPointer(expChem, OVP14_OUTPUT_3D, 'OVP14_GOCART_SO2_VMR', __RC__)
+
+!  Note: Convert from Mass Mixing Ratio  to  Volume Mixing Ratio
+
+   CALL OVP_apply_mask( DATA_FOR_OVP_3D, OVP10_OUTPUT_3D, MASK_10AM, OVP_FIRST_HMS, CURRENT_HMS, K_EDGES=.FALSE., &
+                        SCALE=(MW_AIR / MW_SO2), __RC__ )
+   CALL OVP_apply_mask( DATA_FOR_OVP_3D, OVP14_OUTPUT_3D, MASK_2PM,  OVP_FIRST_HMS, CURRENT_HMS, K_EDGES=.FALSE., &
+                        SCALE=(MW_AIR / MW_SO2), __RC__ )
+
+!  GOCART_SO2v_VMR overpass
+
+   CALL secure_GOCART_species_ptr3( ChemReg, w_c, 'SO2v', DATA_FOR_OVP_3D )
+
+   CALL MAPL_GetPointer(expChem, OVP10_OUTPUT_3D, 'OVP10_GOCART_SO2v_VMR', __RC__)
+   CALL MAPL_GetPointer(expChem, OVP14_OUTPUT_3D, 'OVP14_GOCART_SO2v_VMR', __RC__)
+
+!  Note: Convert from Mass Mixing Ratio  to  Volume Mixing Ratio
+
+   CALL OVP_apply_mask( DATA_FOR_OVP_3D, OVP10_OUTPUT_3D, MASK_10AM, OVP_FIRST_HMS, CURRENT_HMS, K_EDGES=.FALSE., &
+                        SCALE=(MW_AIR / MW_SO2), __RC__ )
+   CALL OVP_apply_mask( DATA_FOR_OVP_3D, OVP14_OUTPUT_3D, MASK_2PM,  OVP_FIRST_HMS, CURRENT_HMS, K_EDGES=.FALSE., &
+                        SCALE=(MW_AIR / MW_SO2), __RC__ )
+
+!  GOCART_NH3_VMR overpass
+
+   CALL secure_GOCART_species_ptr3( ChemReg, w_c, 'NH3', DATA_FOR_OVP_3D )
+
+   CALL MAPL_GetPointer(expChem, OVP10_OUTPUT_3D, 'OVP10_GOCART_NH3_VMR', __RC__)
+   CALL MAPL_GetPointer(expChem, OVP14_OUTPUT_3D, 'OVP14_GOCART_NH3_VMR', __RC__)
+
+!  Note: Convert from Mass Mixing Ratio  to  Volume Mixing Ratio
+
+   CALL OVP_apply_mask( DATA_FOR_OVP_3D, OVP10_OUTPUT_3D, MASK_10AM, OVP_FIRST_HMS, CURRENT_HMS, K_EDGES=.FALSE., &
+                        SCALE=(MW_AIR / MW_NH3), __RC__ )
+   CALL OVP_apply_mask( DATA_FOR_OVP_3D, OVP14_OUTPUT_3D, MASK_2PM,  OVP_FIRST_HMS, CURRENT_HMS, K_EDGES=.FALSE., &
+                        SCALE=(MW_AIR / MW_NH3), __RC__ )
+
+!  TOTEXTTAU overpass
+
+   DATA_FOR_OVP_2D => totexttau
+   CALL MAPL_GetPointer(expChem, OVP10_OUTPUT_2D, 'OVP10_TOTEXTTAU', __RC__)
+   CALL MAPL_GetPointer(expChem, OVP14_OUTPUT_2D, 'OVP14_TOTEXTTAU', __RC__)
+
+   CALL OVP_apply_mask( DATA_FOR_OVP_2D, OVP10_OUTPUT_2D, MASK_10AM, OVP_FIRST_HMS, CURRENT_HMS, __RC__ )
+   CALL OVP_apply_mask( DATA_FOR_OVP_2D, OVP14_OUTPUT_2D, MASK_2PM,  OVP_FIRST_HMS, CURRENT_HMS, __RC__ )
+
+!!!! <<<<<<<<<<<<<<<<  OVP
+
    call MAPL_TimerOff(ggState, 'RUN')
    call MAPL_TimerOff(ggState, 'TOTAL')
 
@@ -2954,6 +3146,15 @@ CONTAINS
 !  --------------------
    deallocate ( state%chemReg, state%gcChem, state%w_c, stat = STATUS )
    VERIFY_(STATUS)
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+!  Free the masks
+!  --------------------
+   deallocate ( MASK_10AM, MASK_2PM, stat = STATUS )
+   VERIFY_(STATUS)
+
+!!!! <<<<<<<<<<<<<<<<  OVP
 
    call MAPL_TimerOff(ggState, 'FINALIZE')
    call MAPL_TimerOff(ggState, 'TOTAL')
@@ -3836,6 +4037,40 @@ contains
     end subroutine ocean_correction_
 
 end subroutine aerosol_activation_properties
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+SUBROUTINE secure_GOCART_species_ptr3( ChemReg, w_c, SPECIES_NAME, DATA_PTR )
+
+! !ARGUMENTS
+
+     TYPE(Chem_Registry), POINTER,    INTENT(in)  :: chemReg
+     TYPE(Chem_Bundle),   POINTER,    INTENT(in)  :: w_c
+     CHARACTER(len=*),                INTENT(in)  :: SPECIES_NAME
+     REAL, POINTER, DIMENSION(:,:,:), INTENT(out) :: DATA_PTR
+
+! Locals
+
+     INTEGER                         :: i, iSpecies
+
+    iSpecies = -1
+
+    DO i = ChemReg%i_GOCART,ChemReg%j_GOCART
+     IF(TRIM(chemReg%vname(i)) == SPECIES_NAME) iSpecies = i
+!    IF(iSpecies > 0) EXIT
+    END DO
+
+    IF(iSpecies < 1) THEN
+      NULLIFY(DATA_PTR)
+    ELSE
+      DATA_PTR => w_c%qa(iSpecies)%data3d
+    END IF
+
+    RETURN
+
+END SUBROUTINE secure_GOCART_species_ptr3
+
+!!!! <<<<<<<<<<<<<<<<  OVP
 
 end module GOCART_GridCompMod
 
