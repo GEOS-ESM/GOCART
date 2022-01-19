@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed - PRC, 2022-01-19
+### Changed
 - Cleaned up optional keyword arguments in call to Mie calculator for aerosol
   radiative forcing calculation; zero diff change
 
