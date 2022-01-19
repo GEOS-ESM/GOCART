@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Changed - PRC, 2022-01-19
+- Cleaned up optional keyword arguments in call to Mie calculator for aerosol
+  radiative forcing calculation; zero diff change
+
 ## [Unreleased]
 
 ## [2.0.0-rc.1] - 2021-08-06
