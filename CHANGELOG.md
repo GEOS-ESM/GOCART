@@ -5,11 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
 ### Changed - PRC, 2022-01-19
 - Cleaned up optional keyword arguments in call to Mie calculator for aerosol
   radiative forcing calculation; zero diff change
 
-## [Unreleased]
+## [2.0.2] - 2021-1-07
+
+### Changed
+
+- Update CI to Baselibs 6.2.8 and GCC 11.2
+- Updated dust emissions tuning to be consistent with current Ginoux default.
+
+## [2.0.1] - 2021-10-20 
+
+### Changed
+
+- Several updates in preparation for release for GEOS-FP, x-experiments,
+etc.
+- Updated rc files to reflect new ExtData structure
+
+## Removed
+
+- Removed aerosols from legacy GOCART
+
+### Fixed
+
+- Added `CONFIGURE_DEPENDS` to the `GLOB` calls in GOCART2G
 
 ## [2.0.0-rc.1] - 2021-08-06
 
