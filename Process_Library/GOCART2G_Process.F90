@@ -394,17 +394,10 @@ CONTAINS
          ! -----------------------
          emissions(i,j,nbins) = alpha * fracland * (ssm(i,j) ** gamma) &
                               * airdens(i,j) * kvh / grav
-       end if
 
-     end do
-   end do
-
-!  Now compute size-dependent total emission flux
-!  ----------------------------------------------
-   do n = 1, nbins
-     do j = ilb(2), iub(2)
-       do i = ilb(1), iub(1)
-         if (emissions(i,j,nbins) > 0.) then
+         !  Now compute size-dependent total emission flux
+         !  ----------------------------------------------
+         do n = 1, nbins
            ! Fecan moisture correction
            ! -------------------------
            h = moistureCorrectionFecan(slc(i,j), sand(i,j), clay(i,j), rhop(n))
@@ -420,8 +413,10 @@ CONTAINS
            ! Distribute emissions to bins and convert to mass flux (kg s-1)
            ! --------------------------------------------------------------
            emissions(i,j,n) = distribution(n) * emissions(i,j,nbins) * q
-         end if
-       end do
+         end do
+
+       end if
+
      end do
    end do
 
