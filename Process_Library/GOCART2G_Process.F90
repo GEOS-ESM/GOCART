@@ -344,11 +344,13 @@ CONTAINS
    logical               :: skip
    integer               :: i, j, n, nbins
    integer, dimension(2) :: ilb, iub
+   real                  :: alpha_grav
    real                  :: fracland
    real                  :: h
    real                  :: kvh
    real                  :: q
-   real                  :: u_thresh
+   real                  :: total_emissions
+   real                  :: u_thrs, u_thresh
 
 ! !CONSTANTS:
    real, parameter       :: ssm_thresh = 1.e-02    ! emit above this erodibility threshold [1]
@@ -368,6 +370,10 @@ CONTAINS
 !  Initialize emissions
 !  --------------------
    emissions = 0.
+
+!  Prepare scaling factor
+!  ----------------------
+   alpha_grav = alpha / grav
 
 !  Compute size-independent factors for emission flux
 !  ---------------------------
@@ -392,8 +398,12 @@ CONTAINS
 
          ! Compute total emissions
          ! -----------------------
-         emissions(i,j,nbins) = alpha * fracland * (ssm(i,j) ** gamma) &
-                              * airdens(i,j) * kvh / grav
+         total_emissions = alpha_grav * fracland * (ssm(i,j) ** gamma) &
+                         * airdens(i,j) * kvh
+
+         !  Compute threshold wind friction velocity using drag partition
+         !  -------------------------------------------------------------
+         u_thrs = uthrs(i,j) / rdrag(i,j)
 
          !  Now compute size-dependent total emission flux
          !  ----------------------------------------------
@@ -404,15 +414,16 @@ CONTAINS
 
            ! Adjust threshold
            ! ----------------
-           u_thresh = uthrs(i,j) * h / rdrag(i,j)
+           u_thresh = u_thrs * h
 
            ! Compute Horizontal Saltation Flux
            ! ---------------------------------
-           q = max(0., ustar(i,j) * (ustar(i,j) * ustar(i,j) - u_thresh * u_thresh))
+           q = max(0., ustar(i,j) * (ustar(i,j) - u_thresh) &
+                                  * (ustar(i,j) + u_thresh))
 
            ! Distribute emissions to bins and convert to mass flux (kg s-1)
            ! --------------------------------------------------------------
-           emissions(i,j,n) = distribution(n) * emissions(i,j,nbins) * q
+           emissions(i,j,n) = distribution(n) * total_emissions * q
          end do
 
        end if
