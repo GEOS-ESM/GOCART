@@ -349,8 +349,9 @@ CONTAINS
    real                  :: h
    real                  :: kvh
    real                  :: q
+   real                  :: rustar
    real                  :: total_emissions
-   real                  :: u_thrs, u_thresh
+   real                  :: u_sum, u_thresh
 
 ! !CONSTANTS:
    real, parameter       :: ssm_thresh = 1.e-02    ! emit above this erodibility threshold [1]
@@ -403,7 +404,7 @@ CONTAINS
 
          !  Compute threshold wind friction velocity using drag partition
          !  -------------------------------------------------------------
-         u_thrs = uthrs(i,j) / rdrag(i,j)
+         rustar = rdrag(i,j) * ustar(i,j)
 
          !  Now compute size-dependent total emission flux
          !  ----------------------------------------------
@@ -414,12 +415,13 @@ CONTAINS
 
            ! Adjust threshold
            ! ----------------
-           u_thresh = u_thrs * h
+           u_thresh = uthrs(i,j) * h
 
-           ! Compute Horizontal Saltation Flux
-           ! ---------------------------------
-           q = max(0., ustar(i,j) * (ustar(i,j) - u_thresh) &
-                                  * (ustar(i,j) + u_thresh))
+           u_sum = rustar + u_thresh
+
+           ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
+           ! ---------------------------------------------------------------------------
+           q = max(0., rustar - u_thresh) * u_sum * u_sum
 
            ! Distribute emissions to bins and convert to mass flux (kg s-1)
            ! --------------------------------------------------------------
