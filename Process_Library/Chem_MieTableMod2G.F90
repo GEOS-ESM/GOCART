@@ -23,6 +23,7 @@
    public  Chem_MieTableCreate  ! Constructor 
    public  Chem_MieTableRead    ! Read the mie table from the file
    public  Chem_MieQuery
+   public  Chem_MieTableIndex
 !
 ! !DESCRIPTION:
 !
@@ -859,8 +860,28 @@ END SUBROUTINE Chem_MieTableRead
 !----------
   end subroutine Chem_MieQueryByIntWithpmom
 
+  function Chem_MieTableIndex(wavelength, channels, rc) result (mieTable_index)
+    real :: mieTable_index
+    real, intent(in) :: wavelength
+    real, intent(in) :: channels(:)
+    integer, optional, intent(out) :: rc
+    real, parameter :: width = 1.e-9
+    integer :: i
+    
+    mieTable_index = -1.
+    do i = 1, size(channels)
+       if (channels[i]-width <= wavelength .and. wavelength <= channels[i]+width) then
+          mieTable_index = i
+          exit
+       endif
+    enddo
+    if (present(rc)) rc = 0
+    if (mieTable_index < 0)
+       print*, "wavelength of ",wavelength, " is an invalid value."
+       if (present(rc)) rc = -1
+    endif
 
+  end function Chem_MieTableIndex
 
-
-   end module Chem_MieTableMod2G
+ end module Chem_MieTableMod2G
 

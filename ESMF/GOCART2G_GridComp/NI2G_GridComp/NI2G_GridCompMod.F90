@@ -1277,21 +1277,6 @@ contains
 !   --------------
     call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
-!   Get wavelength index for Mie Table
-!   ----------------------------------
-!   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-    if ((wavelength .ge. 4.69e-7) .and. (wavelength .le. 4.71e-7)) then
-       mieTable_index = 1.
-    else if ((wavelength .ge. 5.49e-7) .and. (wavelength .le. 5.51e-7)) then
-       mieTable_index = 2.
-    else if ((wavelength .ge. 6.69e-7) .and. (wavelength .le. 6.71e-7)) then
-       mieTable_index = 3.
-    else if ((wavelength .ge. 8.68e-7) .and. (wavelength .le. 8.71e-7)) then
-       mieTable_index = 4.
-    else
-       print*,trim(Iam),' : wavelength of ',wavelength,' is an invalid value.'
-       return
-    end if
 
 !   Pressure at layer edges 
 !   ------------------------
@@ -1336,7 +1321,11 @@ contains
 
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
+    
+!   Get wavelength index for Mie Table
+!   ----------------------------------
 
+    mieTable_index = Chem_MieTableIndex(wavelength, self%diag_MieTable(instance)%channels*1.e-9, __RC__)
     do n = 1, nbins
       do i = 1, i2
         do j = 1, j2
