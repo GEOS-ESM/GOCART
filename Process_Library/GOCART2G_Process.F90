@@ -3325,14 +3325,16 @@ CONTAINS
    real, dimension(:), allocatable :: fPM25  ! fraction of bin with particles diameter < 2.5 um
    logical :: do_angstrom
    real, dimension(:,:), allocatable :: tau470, tau870
-   logical   :: NO3nFlag_ = .false. !local version of the input
+   logical   :: NO3nFlag_ !local version of the input
 
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...
 
    if( present(NO3nFlag) ) then
-      if (NO3nFlag) NO3nFlag_ = .true.
+      NO3nFlag_ = NO3nFlag
+   else
+      NO3nFlag_ = .false.
    end if
 
 !  Initialize local variables
