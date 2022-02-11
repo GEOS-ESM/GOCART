@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixes to allow GNU to run GOCART2G
   - Changes to `if (present(foo)) .and. associated(foo))` construct which is ambiguous Fortarn
+- Updated FENGSHA dust flux according to Webb et al., Aeolian Res. 42 (2020) 100560
 
 ## [2.0.2] - 2021-1-07
 
