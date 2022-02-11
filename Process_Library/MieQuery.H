@@ -23,16 +23,6 @@
                   + this%rEff(irhp1,TYPE) * arh
       endif
 
-!      if(present(pmom)) then
-!         pmom(:,:) = TABLE%pmom(irh  ,ichannel,TYPE,:,:) * (1.-arh) &
-!                   + TABLE%pmom(irhp1,ichannel,TYPE,:,:) * arh
-!      endif
-
-!      if(present(pmom)) then
-!         call Chem_MieQueryByIntWithpmom(this, idx, channel, q_mass, rh, pmom)
-!      endif
-
-
       if(present(p11) ) then
          p11In =   this%pback(irh  ,ichannel,TYPE,1) * (1.-arh) &
                  + this%pback(irhp1,ichannel,TYPE,1) * arh

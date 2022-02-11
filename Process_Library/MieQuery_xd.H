@@ -1,10 +1,10 @@
       integer                      :: ICHANNEL, TYPE
       integer, allocatable, dimension(:)   :: irh, irhp1, isnap
-      real, allocatable, dimension(:)      :: rhUse, arh
+      real, allocatable, dimension(:)      :: rh_, arh
       real, allocatable, dimension(:)      :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
                                               gfIn, rhopIn, rhodIn, volIn, areaIn, &
                                               refrIn, refiIn, rEffIn
-
+      real, allocatable, dimension(:,:,:) :: pmomIn
       if ( present(rc) ) rc = 0
 
       ICHANNEL = nint(CHANNEL)
@@ -12,9 +12,8 @@
 
 !     Now map the input RH to the high resolution hash table for RH
 
-      rhUse = reshape(max(rh,0.), [product(shape(rh))])
-      rhUse = reshape(min(rh,0.99), [product(shape(rh))])
-      isnap = int((rhUse+0.001)*1000.)
+      rh_ = reshape(max(min(rh,0.99),0.), [product(shape(rh))])
+      isnap = int((rh_+0.001)*1000.)
       where(isnap .lt. 1) isnap = 1
       arh   = this%rha( isnap )
       irh   = this%rhi( isnap )
@@ -26,6 +25,24 @@
 
 include "MieQuery.H"
 
+      if (present(pmom)) then
+        block
+          integer :: i, j
+          real, allocatable :: momIn1(:,:,:), momIn2(:,:,:)
+          allocate(momIn1(size(irh),size(this%pmom,4),size(this%pmom,5)))
+          allocate(momIn2(size(irh),size(this%pmom,4),size(this%pmom,5)))
+          momIn1 = this%pmom(irh   ,ichannel,TYPE,:,:)
+          momIn2 = this%pmom(irhp1 ,ichannel,TYPE,:,:)
+          pmomIn = momIn1 ! for allocation only
+          do j = 1, size(momIn1,3)
+             do i = 1, size(momIn1,2)
+                pmomIn(:,i,j)  =  momIn1(:,i,j) * (1.-arh) &
+                                + momIn2(:,i,j) * arh
+             enddo
+          enddo
+        end block
+      endif
+
 !     Fill the requested outputs
       if(present(tau  )) tau   = reshape(bextIn,shape(q_mass)) * q_mass
       if(present(ssa  )) ssa   = reshape(bscaIn/bextIn,shape(q_mass))
@@ -34,6 +51,7 @@ include "MieQuery.H"
       if(present(bbck )) bbck  = reshape(bbckIn,shape(q_mass))
       if(present(gasym)) gasym = reshape(gasymIn,shape(q_mass))
       if(present(rEff )) rEff  = reshape(1.E6*rEffIn,shape(q_mass)) ! convert to microns
+      if(present(pmom )) pmom  = reshape(pmomIn, [shape(q_mass),size(pmomIn,2),size(pmomIn,3)])
       if(present(p11  )) p11   = reshape(p11In,shape(q_mass))
       if(present(p22  )) p22   = reshape(p22In, shape(q_mass))
       if(present(gf   )) gf    = reshape(gfIn, shape(q_mass))
