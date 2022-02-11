@@ -7,8 +7,9 @@
 
 module Chem_Mie2GMod
 ! !USES:
+   use netcdf
    implicit none
-   include "netcdf.inc"
+
 ! !PUBLIC TYPES:
 !
    private
@@ -77,11 +78,6 @@ module Chem_Mie2GMod
    interface Chem_Mie2G
       module procedure new_Chem_Mie
    end interface Chem_Mie2G
-
-# ifndef HAS_NETCDF3
-   external nf_open, nf_inq_dimid, nf_inq_dimlen, nf_inq_varid, &
-            nf_get_var_double, nf_close
-#endif
 
 CONTAINS
 
@@ -164,39 +160,39 @@ CONTAINS
 
 !     Open the table and get the dimensions
 !     -------------------------------------
-      rc = nf_open(this%table_name, NF_NOWRITE, ncid)
+      rc = nf90_open(this%table_name, NF90_NOWRITE, ncid)
       IF ( rc /= 0 ) THEN
-        print *, 'nf_open '//this%table_name//'  RETURN CODE=', rc
+        print *, 'nf90_open '//this%table_name//'  RETURN CODE=', rc
         NF_VERIFY_(rc)
       END IF
 
 !     RH
 !     --
-      NF_VERIFY_(nf_inq_dimid(ncid,'rh',idimid))
-      NF_VERIFY_(nf_inq_dimlen(ncid,idimid,nrh_table))
+      NF_VERIFY_(nf90_inq_dimid(ncid,'rh',idimid))
+      NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nrh_table))
 
 !     Channels
 !     --------
-      NF_VERIFY_(nf_inq_dimid(ncid,'lambda',idimid))
-      NF_VERIFY_(nf_inq_dimlen(ncid,idimid,nch_table))
+      NF_VERIFY_(nf90_inq_dimid(ncid,'lambda',idimid))
+      NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nch_table))
 
 !     Dry Effective radius
 !     --------------------
-      NF_VERIFY_(nf_inq_dimid(ncid,'radius',idimid))
-      NF_VERIFY_(nf_inq_dimlen(ncid,idimid,nbin_table))
+      NF_VERIFY_(nf90_inq_dimid(ncid,'radius',idimid))
+      NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nbin_table))
 
 !     Moments of phase function
 !     -------------------------
       if ( nmom_ > 0 ) then
-         NF_VERIFY_(nf_inq_dimid(ncid,'nMom',idimid))
-         NF_VERIFY_(nf_inq_dimlen(ncid,idimid,nmom_table))
+         NF_VERIFY_(nf90_inq_dimid(ncid,'nMom',idimid))
+         NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nmom_table))
          if ( nmom_ > nmom_table ) then
 !            rc = 99
             print*,'Error: nmom_ > nmom_table, see:'//myname
             NF_VERIFY_(1)
          end if
-         NF_VERIFY_(nf_inq_dimid(ncid,'nPol',idimid))
-         NF_VERIFY_(nf_inq_dimlen(ncid,idimid,nPol_table))
+         NF_VERIFY_(nf90_inq_dimid(ncid,'nPol',idimid))
+         NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nPol_table))
       endif
 
 !     Get the table contents
@@ -226,59 +222,59 @@ CONTAINS
       if ( nmom_ > 0 ) then
          allocate(pmom_table(nch_table,nrh_table,nbin_table,nmom_table,nPol_table), __NF_STAT__)
       end if
-      NF_VERIFY_(nf_inq_varid(ncid,'lambda',ivarid))
-      NF_VERIFY_(nf_get_var_double(ncid,ivarid,channels_table))
-      NF_VERIFY_(nf_inq_varid(ncid,'rEff',ivarid))
-      NF_VERIFY_(nf_get_var_double(ncid,ivarid,reff_table))
-      NF_VERIFY_(nf_inq_varid(ncid,'bext',ivarid))
-      NF_VERIFY_(nf_get_var_double(ncid,ivarid,bext_table))
-      NF_VERIFY_(nf_inq_varid(ncid,'bsca',ivarid))
-      NF_VERIFY_(nf_get_var_double(ncid,ivarid,bsca_table))
-      NF_VERIFY_(nf_inq_varid(ncid,'bbck',ivarid))
-      NF_VERIFY_(nf_get_var_double(ncid,ivarid,bbck_table))
-      NF_VERIFY_(nf_inq_varid(ncid,'g',ivarid))
-      NF_VERIFY_(nf_get_var_double(ncid,ivarid,g_table))
-      NF_VERIFY_(nf_inq_varid(ncid,'rh',ivarid))
-      NF_VERIFY_(nf_get_var_double(ncid,ivarid,rh_table))
+      NF_VERIFY_(nf90_inq_varid(ncid,'lambda',ivarid))
+      NF_VERIFY_(nf90_get_var(ncid,ivarid,channels_table))
+      NF_VERIFY_(nf90_inq_varid(ncid,'rEff',ivarid))
+      NF_VERIFY_(nf90_get_var(ncid,ivarid,reff_table))
+      NF_VERIFY_(nf90_inq_varid(ncid,'bext',ivarid))
+      NF_VERIFY_(nf90_get_var(ncid,ivarid,bext_table))
+      NF_VERIFY_(nf90_inq_varid(ncid,'bsca',ivarid))
+      NF_VERIFY_(nf90_get_var(ncid,ivarid,bsca_table))
+      NF_VERIFY_(nf90_inq_varid(ncid,'bbck',ivarid))
+      NF_VERIFY_(nf90_get_var(ncid,ivarid,bbck_table))
+      NF_VERIFY_(nf90_inq_varid(ncid,'g',ivarid))
+      NF_VERIFY_(nf90_get_var(ncid,ivarid,g_table))
+      NF_VERIFY_(nf90_inq_varid(ncid,'rh',ivarid))
+      NF_VERIFY_(nf90_get_var(ncid,ivarid,rh_table))
 
-      ! TODO: we need to look at these NF_NOERR checks
+      ! TODO: we need to look at these NF90_NOERR checks
 !     Get the backscatter phase function values
-      rc = nf_inq_varid(ncid,'pback',ivarid)
-      if(rc .ne. NF_NOERR) then   ! pback not in table, fill in dummy variable
+      rc = nf90_inq_varid(ncid,'pback',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! pback not in table, fill in dummy variable
         pback_table = 1.
       else
-        NF_VERIFY_(nf_get_var_double(ncid,ivarid,pback_table))
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,pback_table))
       endif
 
       if ( nmom_ > 0 ) then
-         NF_VERIFY_(nf_inq_varid(ncid,'pmom',ivarid))
-         NF_VERIFY_(nf_get_var_double(ncid,ivarid,pmom_table))
+         NF_VERIFY_(nf90_inq_varid(ncid,'pmom',ivarid))
+         NF_VERIFY_(nf90_get_var(ncid,ivarid,pmom_table))
       end if
 
 !     Aerosol optical properties not necessarily stored in all versions of the tables
 !     ----------------------
 !     Particle growth factor
-      rc = nf_inq_varid(ncid,'growth_factor',ivarid)
-      if(rc .ne. NF_NOERR) then   ! not in table, fill in dummy variable
+      rc = nf90_inq_varid(ncid,'growth_factor',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
         gf_table = -999.
       else
-        NF_VERIFY_(nf_get_var_double(ncid,ivarid,gf_table))
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,gf_table))
       endif
 
 !     Wet particle density
-      rc = nf_inq_varid(ncid,'rhop',ivarid)
-      if(rc .ne. NF_NOERR) then   ! not in table, fill in dummy variable
+      rc = nf90_inq_varid(ncid,'rhop',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
         rhop_table = -999.
       else
-        NF_VERIFY_(nf_get_var_double(ncid,ivarid,rhop_table))
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,rhop_table))
       endif
 
 !     Dry particle density (will be pulled from wet particle radius)
-      rc = nf_inq_varid(ncid,'rhop',ivarid)
-      if(rc .ne. NF_NOERR) then   ! not in table, fill in dummy variable
+      rc = nf90_inq_varid(ncid,'rhop',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
         rhod_table = -999.
       else
-        rc = nf_get_var_double(ncid,ivarid,rhod_table)
+        rc = nf90_get_var(ncid,ivarid,rhod_table)
         do i = 1, nrh_table
           rhod_table(i,:) = rhod_table(1,:)
         enddo
@@ -286,19 +282,19 @@ CONTAINS
       endif
 
 !     Wet particle real part of refractive index
-      rc = nf_inq_varid(ncid,'refreal',ivarid)
-      if(rc .ne. NF_NOERR) then   ! not in table, fill in dummy variable
+      rc = nf90_inq_varid(ncid,'refreal',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
         refr_table = -999.
       else
-        NF_VERIFY_(nf_get_var_double(ncid,ivarid,refr_table))
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,refr_table))
       endif
 
 !     Wet particle imaginary part of refractive index (ensure positive)
-      rc = nf_inq_varid(ncid,'refimag',ivarid)
-      if(rc .ne. NF_NOERR) then   ! not in table, fill in dummy variable
+      rc = nf90_inq_varid(ncid,'refimag',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
         refi_table = -999.
       else
-        NF_VERIFY_(nf_get_var_double(ncid,ivarid,refi_table))
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,refi_table))
         refi_table = abs(refi_table)
       endif
 
@@ -312,7 +308,7 @@ CONTAINS
 
 !     Close the table file
 !     -------------------------------------
-      NF_VERIFY_(nf_close(ncid))
+      NF_VERIFY_(nf90_close(ncid))
 
 
 !     Setup the table to be returned
