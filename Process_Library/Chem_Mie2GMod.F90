@@ -73,6 +73,7 @@ module Chem_Mie2GMod
       generic   :: Query => Query_0d, Query_1d, Query_2d, Query_3d
       !generic   :: Query => QueryScalar, QueryVector
       procedure :: get_index
+      procedure :: get_wavelengths
    end type Chem_Mie2G
 
    interface Chem_Mie2G
@@ -1029,6 +1030,15 @@ include "MieQuery_xd.H"
     endif
 
   end function get_Index
+ 
+  function get_wavelengths(this) result(wavelengths)
+    real, allocatable :: wavelengths(:)
+    class (Chem_Mie2G), intent(in) :: this
+
+    if (.not. allocated) return
+
+    wavelengths = this%wavelengths
+  end function get_wavelengths
 
 end module Chem_Mie2GMod
 
