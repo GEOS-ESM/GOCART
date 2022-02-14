@@ -2,8 +2,8 @@
 # Resource file Dust parameters. 
 #
 
-aerosol_radBands_optics_file: ExtData/MERRA2/x/opticsBands_DU.v15_3.RRTMG.nc 
-aerosol_monochromatic_optics_file:ExtData/AeroCom/x/optics_DU.v15_3.nc
+aerosol_radBands_optics_file:      ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_DU.v15_3.RRTMG.nc 
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_DU.v15_3.nc
 
 particle_radius_microns: 0.73 1.4 2.4 4.5 8.0
 
@@ -14,14 +14,17 @@ radius_upper: 1.0 1.8 3.0 6.0 10.0
 # units [kg/m-3]
 particle_density: 2500. 2650. 2650. 2650. 2650.
 
-# Emission scheme
-# ---------------
+# Ginoux emission scheme
+# -----------------------
 emission_scheme: ginoux
-source_fraction: 0.0435465   0.106903   0.220117   0.484606   0.144828
-Ch_DU: 0.2 0.2 0.08 0.15 0.08 0.067  # resolution dependent tuning constant for emissions (a,b,c,d,e,f)
-#Ch_DU: 0.2 0.2 0.07 0.07 0.07 0.056 #original values
-#source_fraction: 0.1 0.25 0.25 0.25 0.25
-#----------------
+#Ch_DU: 0.2 0.2 0.07 0.07 0.07 0.056 #original values for (a,b,c,d,e,f)
+Ch_DU:  0.3 0.3 0.11 0.11 0.11 0.088 
+
+# source_fraction: 0.0435465   0.106903   0.220117   0.484606   0.144828
+source_fraction: 0.1 0.25 0.25 0.25 0.25
+
+# K14 emission scheme
+# -------------------
 #emission_scheme: k14
 #source_fraction:  0.043 0.106 0.219 0.485 0.144
 #Ch_DU: 0.02 0.02 0.02 0.0161 0.015 0.015 # resolution dependent tuning constant for emissions (a,b,c,d,e,f)
