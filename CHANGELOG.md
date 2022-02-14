@@ -10,8 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Fixed
 
 - Fixes to allow GNU to run GOCART2G
-  - Changes to `if (present(foo)) .and. associated(foo))` construct which is ambiguous Fortarn
+  - Changes to `if (present(foo)) .and. associated(foo))` construct which is ambiguous Fortran
+
 ### Changed
+
 - Cleaned up optional keyword arguments in call to Mie calculator for aerosol
   radiative forcing calculation; zero diff change
 - Updated FENGSHA dust flux according to Webb et al., Aeolian Res. 42 (2020) 100560
