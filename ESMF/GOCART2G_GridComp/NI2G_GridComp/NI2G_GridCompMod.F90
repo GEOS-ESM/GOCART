@@ -1214,7 +1214,7 @@ contains
      basym_s = 0.0d0
 
     do l = 1, nbins
-       call Chem_MieQuery(mie_table, l, real(offset+1.), q(:,:,:,l), rh, bext, gasym=gasym, ssa=bssa)
+       call Chem_MieQuery(mie_table, l, real(offset+1.), q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
@@ -1341,7 +1341,7 @@ contains
       do i = 1, i2
         do j = 1, j2
           do k = 1, km
-            call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau(i,j,k), __RC__)
+            call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau=tau(i,j,k), __RC__)
             tau_s(i,j,k) = tau_s(i,j,k) + tau(i,j,k)
           end do
         end do
