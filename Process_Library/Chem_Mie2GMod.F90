@@ -1035,7 +1035,7 @@ include "MieQuery_xd.H"
     real, allocatable :: wavelengths(:)
     class (Chem_Mie2G), intent(in) :: this
 
-    if (.not. allocated) return
+    if (.not. allocated(this%wavelengths)) return
 
     wavelengths = this%wavelengths
   end function get_wavelengths

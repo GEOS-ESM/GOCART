@@ -11,7 +11,7 @@ module DU2G_GridCompMod
 !  !USES:
    use ESMF
    use MAPL
-   use Chem_MieTableMod2G
+   use Chem_Mie2GMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -373,7 +373,7 @@ contains
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
-    integer, allocatable                 :: channels_
+    integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=:), allocatable        :: file_
     __Iam__('Initialize')
@@ -1159,11 +1159,11 @@ contains
 
   contains
 
-    subroutine mie_(mie_table, nbins, nb, offset, q, rh, bext_s, bssa_s, basym_s, rc)
+    subroutine mie_(mie, nbins, nb, offset, q, rh, bext_s, bssa_s, basym_s, rc)
 
     implicit none
 
-    type(Chem_Mie2g),                intent(inout) :: mie2g          ! mie table
+    type(Chem_Mie2g),              intent(inout) :: mie          ! mie table
     integer,                       intent(in   ) :: nbins            ! number of bins
     integer,                       intent(in )   :: nb               ! number of bands
     integer,                       intent(in )   :: offset           ! bands offset 
@@ -1187,7 +1187,7 @@ contains
      basym_s = 0.0d0
 
      do l = 1, nbins
-        call mie2g%Query(l, real(offset+1.), q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
+        call mie%Query(l, offset+1., q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
         bext_s  = bext_s  +             bext     ! extinction
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
         basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
@@ -1237,22 +1237,9 @@ contains
 !   --------------
     wavelength = 0.
     call ESMF_AttributeGet (state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
-    mieTable_index = self%diag_Mie(instance)%get_index(wavelength,__RC__)
-
 !   Get wavelength index for Mie Table
 !   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-    !if ((wavelength .ge. 4.69e-7) .and. (wavelength .le. 4.71e-7)) then
-    !   mieTable_index = 1.
-    !else if ((wavelength .ge. 5.49e-7) .and. (wavelength .le. 5.51e-7)) then
-    !   mieTable_index = 2.
-    !else if ((wavelength .ge. 6.69e-7) .and. (wavelength .le. 6.71e-7)) then
-    !   mieTable_index = 3.
-    !else if ((wavelength .ge. 8.68e-7) .and. (wavelength .le. 8.71e-7)) then
-    !   mieTable_index = 4.
-    !else
-    !   print*,trim(Iam),' : wavelength of ',wavelength,' is an invalid value.'
-    !   return
-    !end if
+    mieTable_index = self%diag_Mie(instance)%get_index(wavelength,__RC__)
 
 !   Pressure at layer edges 
 !   ------------------------
@@ -1301,16 +1288,8 @@ contains
     call c_f_pointer(address, self)
 
     do n = 1, nbins
-      self%diag_Mie(instance)%Querry(n, mieTable_index, q_4d(:,:,:,n), rh, tau=tau, __RC__)
+      call self%diag_Mie(instance)%Query(n, mieTable_index, q_4d(:,:,:,n), rh, tau=tau, __RC__)
       tau_s = tau_s + tau
-      !do i = 1, i2
-      !  do j = 1, j2
-      !    do k = 1, km
-      !      call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau=tau(i,j,k), __RC__)
-      !      tau_s(i,j,k) = tau_s(i,j,k) + tau(i,j,k)
-      !    end do
-      !  end do
-      !end do
     end do
 
     call ESMF_AttributeGet (state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
