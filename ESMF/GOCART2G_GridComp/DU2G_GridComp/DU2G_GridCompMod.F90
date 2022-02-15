@@ -518,40 +518,41 @@ contains
 
 !   Create Radiation Mie Table
 !   --------------------------
+    call MAPL_GetResource (MAPL, NUM_BANDS, 'NUM_BANDS:', __RC__)
 
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, file_, &
                                   label="aerosol_radBands_optics_file:", __RC__ )
 
+    allocate (channels_(NUM_BANDS), __STAT__ )
+
     call ESMF_ConfigFindLabel(cfg, label="BANDS:", isPresent=bands_are_present, __RC__)
 
     if (bands_are_present) then
-       NUM_BANDS = ESMF_ConfigGetLen(cfg, label= "BANDS:", __RC__)
-       allocate (channels_(NUM_BANDS), __STAT__ )
-       call ESMF_ConfigGetAttribute (cfg, channels_, count=NUM_BANDS, label= "BANDS:", __RC__)
+       call ESMF_ConfigGetAttribute (cfg, channels_, label= "BANDS:", &
+                                    count=NUM_BANDS, __RC__)
     else
-       call MAPL_GetResource (MAPL, NUM_BANDS, 'NUM_BANDS:', __RC__)
-       allocate (channels_(NUM_BANDS), __STAT__ )
        do i = 1, NUM_BANDS
           channels_(i) = i
        end do
     endif
     self%rad_Mie(instance) = Chem_Mie2G(file_, channels_*1.e-9, __RC__)
- 
+    VERIFY_(status)
+    deallocate(channels_)
+
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, file_, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
     call ESMF_ConfigGetAttribute (cfg, nmom_, label="n_moments:", default=0,  __RC__)
-
-    NUM_BANDS = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
-    deallocate(channels_)
-    allocate (channels_(NUM_BANDS))
-    call ESMF_ConfigGetAttribute (universal_cfg, channels_, count=NUM_BANDS, &
-                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__) 
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
+    allocate (channels_(i), __STAT__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
+                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
     self%diag_Mie(instance) = Chem_Mie2G(file_, channels_*1.e-9, nmom=nmom_, __RC__)
     VERIFY_(status)
+    deallocate(channels_)
 
 !   Mie Table instance/index
     call ESMF_AttributeSet (aero, name='mie_table_instance', value=instance, __RC__)
@@ -972,7 +973,7 @@ contains
 !  -------------------
 !  Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
    call Aero_Compute_Diags (self%diag_Mie(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
-                            self%rup, self%diag_Mie%get_wavelengths, self%wavelengths_profile*1.0e-9, &
+                            self%rup, self%wavelengths_profile*1.0e-9, &
                             self%wavelengths_vertint*1.0e-9, DU, MAPL_GRAV, t, airdens, &
                             rh2, u, v, delp, ple,tropp, &
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
@@ -1187,6 +1188,7 @@ contains
      basym_s = 0.0d0
 
      do l = 1, nbins
+        ! tau is converted to bext
         call mie%Query(l, offset+1., q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
         bext_s  = bext_s  +             bext     ! extinction
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
@@ -1237,9 +1239,6 @@ contains
 !   --------------
     wavelength = 0.
     call ESMF_AttributeGet (state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
-!   Get wavelength index for Mie Table
-!   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-    mieTable_index = self%diag_Mie(instance)%get_index(wavelength,__RC__)
 
 !   Pressure at layer edges 
 !   ------------------------
@@ -1286,6 +1285,10 @@ contains
 
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
+
+!   Get wavelength index for Mie Table
+!   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
+    mieTable_index = self%diag_Mie(instance)%get_index(wavelength,__RC__)
 
     do n = 1, nbins
       call self%diag_Mie(instance)%Query(n, mieTable_index, q_4d(:,:,:,n), rh, tau=tau, __RC__)
