@@ -1187,8 +1187,7 @@ contains
      basym_s = 0.0d0
 
      do l = 1, nbins
-        call mie2g%Query( l, real(offset+1.), q(:,:,:,l), rh, bext=bext, gasym=gasym, ssa=bssa)
-
+        call mie2g%Query(l, real(offset+1.), q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
         bext_s  = bext_s  +             bext     ! extinction
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
         basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
@@ -1302,12 +1301,12 @@ contains
     call c_f_pointer(address, self)
 
     do n = 1, nbins
-      self%diag_Mie(instance)%Querry(n, mieTable_index, q_4d(:,:,:,n), rh, tau = tau, __RC__)
+      self%diag_Mie(instance)%Querry(n, mieTable_index, q_4d(:,:,:,n), rh, tau=tau, __RC__)
       tau_s = tau_s + tau
       !do i = 1, i2
       !  do j = 1, j2
       !    do k = 1, km
-      !      call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau(i,j,k), __RC__)
+      !      call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau=tau(i,j,k), __RC__)
       !      tau_s(i,j,k) = tau_s(i,j,k) + tau(i,j,k)
       !    end do
       !  end do

@@ -5,14 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.2] - 2021-1-07
+## [Unreleased]
+
+## [2.0.3] - 2021-02-14
+
+### Fixed
+
+- Fixes to allow GNU to run GOCART2G
+  - Changes to `if (present(foo)) .and. associated(foo))` construct which is ambiguous Fortran
+
+### Changed
+
+- Cleaned up optional keyword arguments in call to Mie calculator for aerosol
+  radiative forcing calculation; zero diff change
+- Updated FENGSHA dust flux according to Webb et al., Aeolian Res. 42 (2020) 100560
+
+## [2.0.2] - 2021-01-07
 
 ### Changed
 
 - Update CI to Baselibs 6.2.8 and GCC 11.2
 - Updated dust emissions tuning to be consistent with current Ginoux default.
 
-## [2.0.1] - 2021-10-20 
+## [2.0.1] - 2021-10-20
 
 ### Changed
 
@@ -34,7 +49,7 @@ etc.
 
 - Added callbacks needed for GAAS2G. Removed diagnostic prints statements. Fixed bug with
   the creation of Diagnostic Mie tables.
-  
+
 - Updated `CODEOWNERS` to reflect changes in staffing
 - Updated `components.yaml`
   - Added fixture block
@@ -79,7 +94,7 @@ This release of GOCART is aimed at moving GOCART from GEOSchem_GridComp to its o
 To use this release, you need to use GEOSchem_GridComp v1.4.4 which has the changes necessary to move GOCART Legacy to this separate repository.
 
 Identical in code to v1.0.0-beta.1
- 
+
 ## [1.0.0-beta.1] - 2021-03-01
 
 ### Changed
@@ -102,11 +117,11 @@ Identical in code to v1.0.0-beta.1
 
 - Fixed bugs in the process library
 - Bug with how some optional `rc` arguments where handled in the Process Library.
- 
+
 ### Added
 
 - CircleCI configuration added
- 
+
 ## [0.9.0] - 2020-09-03
 
 ### Added
