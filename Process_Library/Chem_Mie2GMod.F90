@@ -68,7 +68,7 @@ module Chem_Mie2GMod
       procedure :: Query_1d
       procedure :: Query_2d
       procedure :: Query_3d
-      procedure :: QueryScalar
+      procedure :: QueryScalarRT
       procedure :: QueryVector
       generic   :: Query => Query_0d, Query_1d, Query_2d, Query_3d
       !generic   :: Query => QueryScalar, QueryVector
