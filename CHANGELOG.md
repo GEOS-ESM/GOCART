@@ -16,7 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Add Chem_Mie2gMod.F90. It will replace Chem_MieTableMod2G.F90 
+- Major refactoring of Mie table class.
+   - Renamed Chem_MieTableMod.F90 --> Chem_Mie2GMod.F90
+   - Renamed module Chem_MieTableMod2G --> Chem_Mie2GMod
+   - Introduced object oriented design with type-bound methods
+   - renamed some components/arguments for clarity
+   - eliminated extraneous container data type that is not needed under new GOCART design.
 - Cleaned up optional keyword arguments in call to Mie calculator for aerosol
   radiative forcing calculation; zero diff change
 - Updated FENGSHA dust flux according to Webb et al., Aeolian Res. 42 (2020) 100560
