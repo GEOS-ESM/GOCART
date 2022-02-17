@@ -1,4 +1,4 @@
-      integer                      :: ICHANNEL, TYPE
+      integer                      :: ch
       integer, allocatable, dimension(:)   :: irh, irhp1, isnap
       real, allocatable, dimension(:)      :: rh_, arh
       real, allocatable, dimension(:)      :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
@@ -7,8 +7,7 @@
       real, allocatable, dimension(:,:,:) :: pmomIn
       if ( present(rc) ) rc = 0
 
-      ICHANNEL = nint(CHANNEL)
-      TYPE = idx
+      ch = this%getChannel(wavelength, rc=rc)
 
 !     Now map the input RH to the high resolution hash table for RH
 
@@ -31,8 +30,8 @@ include "MieQuery.H"
           real, allocatable :: momIn1(:,:,:), momIn2(:,:,:)
           allocate(momIn1(size(irh),size(this%pmom,4),size(this%pmom,5)))
           allocate(momIn2(size(irh),size(this%pmom,4),size(this%pmom,5)))
-          momIn1 = this%pmom(irh   ,ichannel,TYPE,:,:)
-          momIn2 = this%pmom(irhp1 ,ichannel,TYPE,:,:)
+          momIn1 = this%pmom(irh   ,ch,bin,:,:)
+          momIn2 = this%pmom(irhp1 ,ch,bin,:,:)
           pmomIn = momIn1 ! for allocation only
           do j = 1, size(momIn1,3)
              do i = 1, size(momIn1,2)

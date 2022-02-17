@@ -54,33 +54,38 @@ module GOCART2G_MieMod
       real, allocatable  :: rh(:)           ! (r) RH values   [fraction]
       real, allocatable  :: reff(:,:)       ! (r,b) effective radius [m]
       real, allocatable  :: bext(:,:,:)     ! (c,r,b) bext values [m2 kg-1]
-      real, allocatable  :: bsca(:,:,:)     ! bsca values [m2 kg-1]
-      real, allocatable  :: bbck(:,:,:)     ! bbck values [m2 kg-1]
-      real, allocatable  :: g(:,:,:)        ! asymmetry parameter
-      real, allocatable  :: pback(:,:,:,:)  ! Backscatter phase function
+      real, allocatable  :: bsca(:,:,:)     ! (c,r,b) bsca values [m2 kg-1]
+      real, allocatable  :: bbck(:,:,:)     ! (c,r,b) bbck values [m2 kg-1]
+      real, allocatable  :: g(:,:,:)        ! (c,r,b) asymmetry parameter
+      real, allocatable  :: pback(:,:,:,:)  ! (c,r,b,p) Backscatter phase function
       real, allocatable  :: pmom(:,:,:,:,:) ! (c,r,b,m,p) moments of phase function
-      real, allocatable  :: gf(:,:)         ! hygroscopic growth factor
-      real, allocatable  :: rhop(:,:)       ! wet particle density [kg m-3]
-      real, allocatable  :: rhod(:,:)       ! wet particle density [kg m-3]
-      real, allocatable  :: vol(:,:)        ! wet particle volume [m3 kg-1]
-      real, allocatable  :: area(:,:)       ! wet particle cross section [m2 kg-1]
-      real, allocatable  :: refr(:,:,:)     ! real part of refractive index
-      real, allocatable  :: refi(:,:,:)     ! imaginary part of refractive index
+      real, allocatable  :: gf(:,:)         ! (r,b) hygroscopic growth factor
+      real, allocatable  :: rhop(:,:)       ! (r,b) wet particle density [kg m-3]
+      real, allocatable  :: rhod(:,:)       ! (r,b) wet particle density [kg m-3]
+      real, allocatable  :: vol(:,:)        ! (r,b) wet particle volume [m3 kg-1]
+      real, allocatable  :: area(:,:)       ! (r,b) wet particle cross section [m2 kg-1]
+      real, allocatable  :: refr(:,:,:)     ! (c,r,b) real part of refractive index
+      real, allocatable  :: refi(:,:,:)     ! (c,r,b) imaginary part of refractive index
 
-      integer          :: rhi(NRH_BINS)     ! pointer to rh LUT
-      real             :: rha(NRH_BINS)     ! slope on rh LUT
+      integer            :: rhi(NRH_BINS)   ! pointer to rh LUT
+      real               :: rha(NRH_BINS)   ! slope on rh LUT
       
-    CONTAINS
+   CONTAINS
       
       procedure :: Query_0d
       procedure :: Query_1d
       procedure :: Query_2d
       procedure :: Query_3d
       procedure :: QueryScalarRT
-      procedure :: QueryVectorRT
-      generic   :: Query => Query_0d, Query_1d, Query_2d, Query_3d
-      !generic   :: Query => QueryScalarRT, QueryVectorRT
-      @@@ procedure :: get_index
+      procedure :: QueryVectorRT_0d
+      procedure :: QueryVectorRT_1d
+      procedure :: QueryVectorRT_2d
+      procedure :: QueryVectorRT_3d
+      !generic   :: Query => Query_0d, Query_1d, Query_2d, Query_3d
+      generic   :: Query => QueryScalarRT, QueryVectorRT_0d, QueryVectorRT_1d, &
+                                           QueryVectorRT_2d, QueryVectorRT_3d
+      procedure :: getChannel
+      procedure :: getWavelength
       
    end type GOCART2G_Mie
 
@@ -135,13 +140,13 @@ CONTAINS
      integer :: ncid, idimid, ivarid, n, i, j, ip1
      integer :: nch_table, nrh_table, nbin_table, nmom_table, nPol_table
 !    Tables are hard-wired as single precision
-     real*8, pointer :: channels_table(:), rh_table(:), reff_table(:,:), &
-                         bext_table(:,:,:), bsca_table(:,:,:), &
-                         bbck_table(:,:,:), g_table(:,:,:), &
-                         pmom_table(:,:,:,:,:), pback_table(:,:,:,:), &
-                         gf_table(:,:), rhop_table(:,:), rhod_table(:,:), &
-                         vol_table(:,:), area_table(:,:), &
-                         refr_table(:,:,:), refi_table(:,:,:)
+     real*8, allocatable :: channels_table(:),    rh_table(:), reff_table(:,:),    &
+                            bext_table(:,:,:),    bsca_table(:,:,:),               &
+                            bbck_table(:,:,:),    g_table(:,:,:),                  &
+                            pmom_table(:,:,:,:,:),pback_table(:,:,:,:),            &
+                            gf_table(:,:),        rhop_table(:,:), rhod_table(:,:),&
+                            vol_table(:,:),       area_table(:,:),                 &
+                            refr_table(:,:,:),    refi_table(:,:,:)
 
      real :: yerr
      integer :: nmom_, imom, ipol
@@ -206,11 +211,6 @@ CONTAINS
 
 !     Get the table contents
 !     -------------------------------------
-!      allocate ( channels_table(nch_table), rh_table(nrh_table), &
-!                bext_table(nch_table,nrh_table,nbin_table), &
-!                bsca_table(nch_table,nrh_table,nbin_table), &
-!                bbck_table(nch_table,nrh_table,nbin_table), &
-!                g_table(nch_table,nrh_table,nbin_table), stat = rc )
 
       allocate(channels_table(nch_table), __NF_STAT__)
       allocate(rh_table(nrh_table), __NF_STAT__)
@@ -322,23 +322,12 @@ CONTAINS
 
 !     Setup the table to be returned
 !     -------------------------------------
-      this%nch = nch
-      this%nrh = nrh_table
+      this%nch  = nch
+      this%nrh  = nrh_table
       this%nbin = nbin_table
       this%nMom = nmom_
-!      if ( nmom_ > 0 ) this%nPol = nPol_table
       this%nPol = nPol_table
 
-!      allocate ( this%lambda(this%nLambda), this%rh(this%nrh), &
-!                 this%bext(this%nLambda,this%nrh,this%nbin),   &
-!                 this%bsca(this%nLambda,this%nrh,this%nbin),   &
-!                 this%bbck(this%nLambda,this%nrh,this%nbin),   &
-!                 this%g(this%nLambda,this%nrh,this%nbin),      &
-!                 stat = rc )
-
-      allocate (this%wavelengths(this%nch), __NF_STAT__)
-      allocate (this%rh(this%nrh), __NF_STAT__)
-      allocate (this%reff(this%nrh,this%nbin), __NF_STAT__)
       allocate (this%bext(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%bsca(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%bbck(this%nrh,this%nch,this%nbin), __NF_STAT__)
@@ -347,22 +336,17 @@ CONTAINS
       if ( nmom_ > 0 ) then
          allocate (this%pmom(this%nrh,this%nch,this%nbin,this%nMom,this%nPol),    __NF_STAT__)
       end if
-      allocate (this%gf(this%nrh,this%nbin),    __NF_STAT__)
-      allocate (this%rhop(this%nrh,this%nbin),    __NF_STAT__)
-      allocate (this%rhod(this%nrh,this%nbin),    __NF_STAT__)
-      allocate (this%vol(this%nrh,this%nbin),    __NF_STAT__)
-      allocate (this%area(this%nrh,this%nbin),    __NF_STAT__)
       allocate (this%refr(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%refi(this%nrh,this%nch,this%nbin), __NF_STAT__)
 
 !     Preserve the full RH structure of the input table
-      this%rh(:) = rh_table(:)
+      this%rh = rh_table ! assignment does allocation
 
 !     Insert the requested channels in the output table
-      this%wavelengths(:) = wavelengths(:)
+      this%wavelengths = wavelengths
 
 !     Insert rEff (moist effective radius)
-      this%reff(:,:) = reff_table(:,:)
+      this%reff = reff_table
 
 !     Now we linearly interpolate the input table to the output table grid
 !     of requested channels
@@ -375,14 +359,14 @@ CONTAINS
                      this%wavelengths(n),this%bsca(i,n,j),yerr)
          call polint(channels_table,bbck_table(:,i,j),nch_table, &
                      this%wavelengths(n),this%bbck(i,n,j),yerr)
-         call polint(channels_table,g_table(:,i,j),nch_table, &
+         call polint(channels_table,g_table(:,i,j),nch_table,    &
                      this%wavelengths(n),this%g(i,n,j),yerr)
          call polint(channels_table,refr_table(:,i,j),nch_table, &
                      this%wavelengths(n),this%refr(i,n,j),yerr)
          call polint(channels_table,refi_table(:,i,j),nch_table, &
                      this%wavelengths(n),this%refi(i,n,j),yerr)
          do ipol = 1, this%nPol
-                  call polint(channels_table,pback_table(:,i,j,ipol),nch_table, &
+                  call polint(channels_table,pback_table(:,i,j,ipol),nch_table,    &
                        this%wavelengths(n),this%pback(i,n,j,ipol),yerr)
          end do
          if ( nmom_ > 0 ) then
@@ -398,19 +382,19 @@ CONTAINS
       enddo
 
 !     Insert growth factor
-      this%gf(:,:) = gf_table(:,:)
+      this%gf = gf_table
 
 !     Wet particle density [kg m-3]
-      this%rhop(:,:) = rhop_table(:,:)
+      this%rhop = rhop_table
 
 !     Dry particle density [kg m-3]
-      this%rhod(:,:) = rhod_table(:,:)
+      this%rhod = rhod_table
 
 !     Volume [m3 kg-1]
-      this%vol(:,:) = vol_table(:,:)
+      this%vol  = vol_table
 
 !     Area [m2 kg-1]
-      this%area(:,:) = area_table(:,:)
+      this%area = area_table
 
 !     Now we do a mapping of the RH from the input table to some high
 !     resolution representation.  This is to spare us the need to
@@ -418,43 +402,21 @@ CONTAINS
 !     RH input from the table is scaled 0 - 0.99
 !     We resolve the map to 0 - 0.990 in steps of 0.001 (991 total steps)
       do j = 1, NRH_BINS
-       do i = this%nrh, 1, -1
-        if( (j-1) .ge. int(this%rh(i)*1000)) then
-         ip1 = i + 1
-         this%rhi(j) = i
-         if(ip1 .gt. this%nrh) then
-          this%rha(j) = 0.
-         else
-          this%rha(j) =   ( (j-1)/1000. - this%rh(i)) &
-                       /  ( this%rh(ip1)- this%rh(i))
-         endif
-         exit
-        endif
-       enddo
+         do i = this%nrh, 1, -1
+            if ((j-1) .ge. int(this%rh(i)*1000)) then
+               ip1 = i + 1
+               this%rhi(j) = i
+               if (ip1 .gt. this%nrh) then
+                  this%rha(j) = 0.
+               else
+                  this%rha(j) =  ( (j-1)/1000. - this%rh(i)) &
+                                /  ( this%rh(ip1)- this%rh(i))
+               endif
+               exit
+            endif
+         enddo
 !       print *, j, this%rhi(j), this%rha(j), this%rh(this%rhi(j))
       enddo
-
-!      deallocate (channels_table, rh_table, bext_table, bsca_table, &
-!                  bbck_table, g_table, stat = rc )
-
-      deallocate (channels_table, __NF_STAT__)
-      deallocate (rh_table, __NF_STAT__)
-      deallocate (reff_table, __NF_STAT__)
-      deallocate (bext_table, __NF_STAT__)
-      deallocate (bsca_table, __NF_STAT__)
-      deallocate (bbck_table, __NF_STAT__)
-      deallocate (g_table, __NF_STAT__)
-      deallocate (pback_table, __NF_STAT__)
-      if ( nmom_ > 0 ) then
-         deallocate (pmom_table, __NF_STAT__)
-      endif
-      deallocate (gf_table, __NF_STAT__)
-      deallocate (rhop_table, __NF_STAT__)
-      deallocate (rhod_table, __NF_STAT__)
-      deallocate (vol_table, __NF_STAT__)
-      deallocate (area_table, __NF_STAT__)
-      deallocate (refr_table, __NF_STAT__)
-      deallocate (refi_table, __NF_STAT__)
 
       return
 
@@ -521,7 +483,7 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  subroutine Query_0d ( this, idx, channel, q_mass, rh,      &
+  subroutine Query_0d ( this, wavelength, bin, q_mass, rh,   &
                         tau, ssa, gasym, bext, bsca, bbck,   &
                         reff,pmom, p11, p22, gf, rhop, rhod, &
                         vol, area, refr, refi, rc )
@@ -529,31 +491,31 @@ CONTAINS
 ! !INPUT PARAMETERS:
     
      class (GOCART2G_Mie),   intent(in ) :: this
-     integer,                intent(in ) :: idx     ! variable index on Chem_Mie
-     real,                   intent(in ) :: channel ! channel number 
-     real,                   intent(in ) :: q_mass  ! aerosol mass [kg/m2],
-     real,                   intent(in ) :: rh      ! relative himidity
+     real,                   intent(in ) :: wavelength ! wave length [m] 
+     integer,                intent(in ) :: bin        ! bin number
+     real,                   intent(in ) :: q_mass     ! aerosol mass [kg/m2],
+     real,                   intent(in ) :: rh         ! relative himidity
 
 ! !OUTPUT PARAMETERS:
 
-     real,    optional,      intent(out) :: tau   ! aerol extinction optical depth
-     real,    optional,      intent(out) :: ssa   ! single scattering albedo
-     real,    optional,      intent(out) :: gasym ! asymmetry parameter
-     real,    optional,      intent(out) :: bext  ! mass extinction efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bsca  ! mass scattering efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bbck  ! mass backscatter efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: reff  ! effective radius (micron)
-     real,    optional,      intent(out) :: pmom(:,:)
-     real,    optional,      intent(out) :: p11   ! P11 phase function at backscatter
-     real,    optional,      intent(out) :: p22   ! P22 phase function at backscatter
-     real,    optional,      intent(out) :: gf    ! Growth factor (ratio of wet to dry radius)
-     real,    optional,      intent(out) :: rhop  ! Wet particle density [kg m-3]
-     real,    optional,      intent(out) :: rhod  ! Dry particle density [kg m-3]
-     real,    optional,      intent(out) :: vol   ! Wet particle volume [m3 kg-1]
-     real,    optional,      intent(out) :: area  ! Wet particle cross section [m2 kg-1]
-     real,    optional,      intent(out) :: refr  ! Wet particle real part of ref. index
-     real,    optional,      intent(out) :: refi  ! Wet particle imag. part of ref. index
-     integer, optional,      intent(out) :: rc    ! error code
+     real,    optional,      intent(out) :: tau        ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa        ! single scattering albedo
+     real,    optional,      intent(out) :: gasym      ! asymmetry parameter
+     real,    optional,      intent(out) :: bext       ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca       ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck       ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff       ! effective radius (micron)
+     real,    optional,      intent(out) :: pmom(:,:)  ! moments of phase function 
+     real,    optional,      intent(out) :: p11        ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22        ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf         ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop       ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod       ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol        ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area       ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr       ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi       ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc         ! error code
 
 ! !DESCRIPTION:
 !
@@ -572,19 +534,18 @@ CONTAINS
 !-------------------------------------------------------------------------
 
 
-     integer                      :: ICHANNEL, TYPE
+     integer                      :: ch, status
      integer                      :: irh, irhp1, isnap
      real                         :: rh_, arh
      real                         :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
                                      gfIn, rhopIn, rhodIn, volIn, areaIn, &
                                      refrIn, refiIn, rEffIn
      real, allocatable :: pmomIn(:,:)
-     character(len=*), parameter  :: Iam = 'Chem_Query_0d'
+     character(len=*), parameter  :: Iam = 'Query_0d'
 
      if ( present(rc) ) rc = 0
 
-     ICHANNEL = nint(CHANNEL)
-     TYPE = idx
+     ch = this%getChannel(wavelength, rc)
 
 !    ASSERT_(TYPE>0)
 !    ASSERT_(ICHANNEL>=LBOUND(TABLE%bext,1))
@@ -603,8 +564,8 @@ CONTAINS
 include "MieQuery.H"
 !     Fill the requested outputs
      if (present(pmom)) then
-        pmomIn  = this%pmom(irh  ,ichannel,TYPE,:,:) * (1.-arh) &
-                + this%pmom(irhp1,ichannel,TYPE,:,:) * arh
+        pmomIn  = this%pmom(irh  ,ch, bin,:,:) * (1.-arh) &
+                + this%pmom(irhp1,ch, bin,:,:) * arh
      endif
 
      if(present(tau  )) tau   = bextIn * q_mass
@@ -627,114 +588,114 @@ include "MieQuery.H"
 
   end subroutine Query_0d
 
-  subroutine Query_1d ( this, idx, channel, q_mass, rh,     &
-                           tau, ssa, gasym, bext, bsca, bbck,  &
-                           reff, pmom, p11, p22, gf, rhop, rhod,     &
-                           vol, area, refr, refi, rc )
+  subroutine Query_1d ( this, wavelength, bin, q_mass, rh,   &
+                        tau, ssa, gasym, bext, bsca, bbck,   &
+                        reff, pmom, p11, p22, gf, rhop, rhod,&
+                        vol, area, refr, refi, rc )
      class (GOCART2G_Mie),     intent(in ) :: this
-     integer,                intent(in ) :: idx     ! variable index on Chem_Mie
-     real,                   intent(in ) :: channel ! channel number 
+     real,                   intent(in ) :: wavelength ! wave length [m] 
+     integer,                intent(in ) :: bin        ! bin number
      real,                   intent(in ) :: q_mass(:)  ! aerosol mass [kg/m2],
      real,                   intent(in ) :: rh(:)      ! relative himidity
 
 ! !OUTPUT PARAMETERS:
 
-     real,    optional,      intent(out) :: tau(:)   ! aerol extinction optical depth
-     real,    optional,      intent(out) :: ssa(:)   ! single scattering albedo
-     real,    optional,      intent(out) :: gasym(:) ! asymmetry parameter
-     real,    optional,      intent(out) :: bext(:)  ! mass extinction efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bsca(:)  ! mass scattering efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bbck(:)  ! mass backscatter efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: reff(:)  ! effective radius (micron)
-     real,    optional,      intent(out) :: pmom(:,:,:)   
-     real,    optional,      intent(out) :: p11(:)   ! P11 phase function at backscatter
-     real,    optional,      intent(out) :: p22(:)   ! P22 phase function at backscatter
-     real,    optional,      intent(out) :: gf(:)    ! Growth factor (ratio of wet to dry radius)
-     real,    optional,      intent(out) :: rhop(:)  ! Wet particle density [kg m-3]
-     real,    optional,      intent(out) :: rhod(:)  ! Dry particle density [kg m-3]
-     real,    optional,      intent(out) :: vol(:)   ! Wet particle volume [m3 kg-1]
-     real,    optional,      intent(out) :: area(:)  ! Wet particle cross section [m2 kg-1]
-     real,    optional,      intent(out) :: refr(:)  ! Wet particle real part of ref. index
-     real,    optional,      intent(out) :: refi(:)  ! Wet particle imag. part of ref. index
-     integer, optional,      intent(out) :: rc    ! error code
+     real,    optional,      intent(out) :: tau(:)     ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa(:)     ! single scattering albedo
+     real,    optional,      intent(out) :: gasym(:)   ! asymmetry parameter
+     real,    optional,      intent(out) :: bext(:)    ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca(:)    ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck(:)    ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff(:)    ! effective radius (micron)
+     real,    optional,      intent(out) :: pmom(:,:,:)! moments of phase function    
+     real,    optional,      intent(out) :: p11(:)     ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22(:)     ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf(:)      ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop(:)    ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod(:)    ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol(:)     ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area(:)    ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr(:)    ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi(:)    ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc         ! error code
 
-     character(len=*), parameter  :: Iam = 'Chem_Query_1d'
+     character(len=*), parameter  :: Iam = 'Query_1d'
 
 include "MieQuery_xd.H"
 
   end subroutine Query_1d
 
-  subroutine Query_2d ( this, idx, channel, q_mass, rh,     &
-                           tau, ssa, gasym, bext, bsca, bbck,  &
-                           reff, pmom, p11, p22, gf, rhop, rhod,     &
-                           vol, area, refr, refi, rc )
+  subroutine Query_2d ( this, wavelength, bin, q_mass, rh,    &
+                        tau, ssa, gasym, bext, bsca, bbck,    &
+                        reff, pmom, p11, p22, gf, rhop, rhod, &
+                        vol, area, refr, refi, rc )
 ! !INPUT PARAMETERS:
-     class (GOCART2G_Mie),     intent(in ) :: this
-     integer,                intent(in ) :: idx     ! variable index on Chem_Mie
-     real,                   intent(in ) :: channel ! channel number 
+     class (GOCART2G_Mie),   intent(in ) :: this
+     real,                   intent(in ) :: wavelength   ! wave length [m] 
+     integer,                intent(in ) :: bin          ! bin number
      real,                   intent(in ) :: q_mass(:,:)  ! aerosol mass [kg/m2],
      real,                   intent(in ) :: rh(:,:)      ! relative himidity
 
 ! !OUTPUT PARAMETERS:
 
-     real,    optional,      intent(out) :: tau(:,:)   ! aerol extinction optical depth
-     real,    optional,      intent(out) :: ssa(:,:)   ! single scattering albedo
-     real,    optional,      intent(out) :: gasym(:,:) ! asymmetry parameter
-     real,    optional,      intent(out) :: bext(:,:)  ! mass extinction efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bsca(:,:)  ! mass scattering efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bbck(:,:)  ! mass backscatter efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: reff(:,:)  ! effective radius (micron)
-     real,    optional,      intent(out) :: pmom(:,:,:,:)   
-     real,    optional,      intent(out) :: p11(:,:)   ! P11 phase function at backscatter
-     real,    optional,      intent(out) :: p22(:,:)   ! P22 phase function at backscatter
-     real,    optional,      intent(out) :: gf(:,:)    ! Growth factor (ratio of wet to dry radius)
-     real,    optional,      intent(out) :: rhop(:,:)  ! Wet particle density [kg m-3]
-     real,    optional,      intent(out) :: rhod(:,:)  ! Dry particle density [kg m-3]
-     real,    optional,      intent(out) :: vol(:,:)   ! Wet particle volume [m3 kg-1]
-     real,    optional,      intent(out) :: area(:,:)  ! Wet particle cross section [m2 kg-1]
-     real,    optional,      intent(out) :: refr(:,:)  ! Wet particle real part of ref. index
-     real,    optional,      intent(out) :: refi(:,:)  ! Wet particle imag. part of ref. index
-     integer, optional,      intent(out) :: rc    ! error code
+     real,    optional,      intent(out) :: tau(:,:)     ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa(:,:)     ! single scattering albedo
+     real,    optional,      intent(out) :: gasym(:,:)   ! asymmetry parameter
+     real,    optional,      intent(out) :: bext(:,:)    ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca(:,:)    ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck(:,:)    ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff(:,:)    ! effective radius (micron)
+     real,    optional,      intent(out) :: pmom(:,:,:,:)! moments of phase function    
+     real,    optional,      intent(out) :: p11(:,:)     ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22(:,:)     ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf(:,:)      ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop(:,:)    ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod(:,:)    ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol(:,:)     ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area(:,:)    ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr(:,:)    ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi(:,:)    ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc           ! error code
 
-     character(len=*), parameter  :: Iam = 'Chem_MieQuery_2d'
+     character(len=*), parameter  :: Iam = 'Query_2d'
 
 include "MieQuery_xd.H"
 
   end subroutine Query_2d
 
-  subroutine Query_3d ( this, idx, channel, q_mass, rh,     &
-                           tau, ssa, gasym, bext, bsca, bbck,  &
-                           reff,pmom, p11, p22, gf, rhop, rhod,     &
-                           vol, area, refr, refi, rc )
+  subroutine Query_3d ( this, wavelength, bin, q_mass, rh,   &
+                        tau, ssa, gasym, bext, bsca, bbck,   &
+                        reff,pmom, p11, p22, gf, rhop, rhod, &
+                        vol, area, refr, refi, rc )
 ! !INPUT PARAMETERS:
-     class (GOCART2G_Mie),     intent(in ) :: this
-     integer,                intent(in ) :: idx     ! variable index on Chem_Mie
-     real,                   intent(in ) :: channel ! channel number 
+     class (GOCART2G_Mie),   intent(in ) :: this
+     real,                   intent(in ) :: wavelength     ! wave length [m] 
+     integer,                intent(in ) :: bin            ! bin number
      real,                   intent(in ) :: q_mass(:,:,:)  ! aerosol mass [kg/m2],
      real,                   intent(in ) :: rh(:,:,:)      ! relative himidity
 
 ! !OUTPUT PARAMETERS:
 
-     real,    optional,      intent(out) :: tau(:,:,:)   ! aerol extinction optical depth
-     real,    optional,      intent(out) :: ssa(:,:,:)   ! single scattering albedo
-     real,    optional,      intent(out) :: gasym(:,:,:) ! asymmetry parameter
-     real,    optional,      intent(out) :: bext(:,:,:)  ! mass extinction efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bsca(:,:,:)  ! mass scattering efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bbck(:,:,:)  ! mass backscatter efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: reff(:,:,:)  ! effective radius (micron)
-     real,    optional,      intent(out) :: pmom(:,:,:,:,:)   
-     real,    optional,      intent(out) :: p11(:,:,:)   ! P11 phase function at backscatter
-     real,    optional,      intent(out) :: p22(:,:,:)   ! P22 phase function at backscatter
-     real,    optional,      intent(out) :: gf(:,:,:)    ! Growth factor (ratio of wet to dry radius)
-     real,    optional,      intent(out) :: rhop(:,:,:)  ! Wet particle density [kg m-3]
-     real,    optional,      intent(out) :: rhod(:,:,:)  ! Dry particle density [kg m-3]
-     real,    optional,      intent(out) :: vol(:,:,:)   ! Wet particle volume [m3 kg-1]
-     real,    optional,      intent(out) :: area(:,:,:)  ! Wet particle cross section [m2 kg-1]
-     real,    optional,      intent(out) :: refr(:,:,:)  ! Wet particle real part of ref. index
-     real,    optional,      intent(out) :: refi(:,:,:)  ! Wet particle imag. part of ref. index
-     integer, optional,      intent(out) :: rc    ! error code
+     real,    optional,      intent(out) :: tau(:,:,:)     ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa(:,:,:)     ! single scattering albedo
+     real,    optional,      intent(out) :: gasym(:,:,:)   ! asymmetry parameter
+     real,    optional,      intent(out) :: bext(:,:,:)    ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca(:,:,:)    ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck(:,:,:)    ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff(:,:,:)    ! effective radius (micron)
+     real,    optional,      intent(out) :: pmom(:,:,:,:,:)! moments of phase function    
+     real,    optional,      intent(out) :: p11(:,:,:)     ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22(:,:,:)     ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf(:,:,:)      ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop(:,:,:)    ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod(:,:,:)    ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol(:,:,:)     ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area(:,:,:)    ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr(:,:,:)    ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi(:,:,:)    ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc             ! error code
 
-     character(len=*), parameter  :: Iam = 'Chem_Query_3d'
+     character(len=*), parameter  :: Iam = 'Query_3d'
 
 include "MieQuery_xd.H"
 
@@ -747,37 +708,37 @@ include "MieQuery_xd.H"
 !
   impure elemental &
          subroutine QueryScalarRT ( this, wavelength, bin, q_mass, rh,  &
-                                    tau, ssa, gasym, bext, bsca, bbck,  &
+                                    tau,  ssa, gasym, bext, bsca, bbck, &
                                     reff, p11, p22, gf, rhop, rhod,     &
-                                    vol, area, refr, refi, rc )
+                                    vol,  area, refr, refi, rc )
 
 ! !INPUT PARAMETERS:
 
-   class (GOCART2G_Mie), target, intent(in ) :: this
-   real,                   intent(in)  :: wavelength ! wavelength [m]
-   integer,                intent(in)  :: bin number
-   real,                   intent(in)  :: q_mass  ! aerosol mass [kg/m2],
-   real,                   intent(in)  :: rh      ! relative himidity
-
+     class (GOCART2G_Mie), target, intent(in ) :: this
+     real,                   intent(in)  :: wavelength ! wavelength [m]
+     integer,                intent(in)  :: bin        ! bin number
+     real,                   intent(in)  :: q_mass     ! aerosol mass [kg/m2],
+     real,                   intent(in)  :: rh         ! relative himidity
+  
 ! !OUTPUT PARAMETERS:
-
-   real,    optional,      intent(out) :: tau   ! aerol extinction optical depth
-   real,    optional,      intent(out) :: ssa   ! single scattering albedo
-   real,    optional,      intent(out) :: gasym ! asymmetry parameter
-   real,    optional,      intent(out) :: bext  ! mass extinction efficiency [m2 (kg dry mass)-1]
-   real,    optional,      intent(out) :: bsca  ! mass scattering efficiency [m2 (kg dry mass)-1]
-   real,    optional,      intent(out) :: bbck  ! mass backscatter efficiency [m2 (kg dry mass)-1]
-   real,    optional,      intent(out) :: reff  ! effective radius (micron)
-   real,    optional,      intent(out) :: p11   ! P11 phase function at backscatter
-   real,    optional,      intent(out) :: p22   ! P22 phase function at backscatter
-   real,    optional,      intent(out) :: gf    ! Growth factor (ratio of wet to dry radius)
-   real,    optional,      intent(out) :: rhop  ! Wet particle density [kg m-3]
-   real,    optional,      intent(out) :: rhod  ! Dry particle density [kg m-3]
-   real,    optional,      intent(out) :: vol   ! Wet particle volume [m3 kg-1]
-   real,    optional,      intent(out) :: area  ! Wet particle cross section [m2 kg-1]
-   real,    optional,      intent(out) :: refr  ! Wet particle real part of ref. index
-   real,    optional,      intent(out) :: refi  ! Wet particle imag. part of ref. index
-   integer, optional,      intent(out) :: rc    ! error code
+  
+     real,    optional,      intent(out) :: tau        ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa        ! single scattering albedo
+     real,    optional,      intent(out) :: gasym      ! asymmetry parameter
+     real,    optional,      intent(out) :: bext       ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca       ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck       ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff       ! effective radius (micron)
+     real,    optional,      intent(out) :: p11        ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22        ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf         ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop       ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod       ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol        ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area       ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr       ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi       ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc         ! error code
 
 ! !DESCRIPTION:
 !
@@ -795,124 +756,113 @@ include "MieQuery_xd.H"
 !EOP
 !-------------------------------------------------------------------------
 
-
-      integer                      :: ch
-      integer                      :: irh, irhp1, isnap
-      real                         :: rh_, arh
-      real                         :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
+     integer                      :: ch
+     integer                      :: irh, irhp1, isnap
+     real                         :: rh_, arh
+     real                         :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
                                       gfIn, rhopIn, rhodIn, volIn, areaIn,           &
                                       refrIn, refiIn
 
-      character(len=*), parameter  :: Iam = 'QueryScalarRT'
+     character(len=*), parameter  :: Iam = 'QueryScalarRT'
 
-      if ( present(rc) ) rc = 0
+     if ( present(rc) ) rc = 0
 
-      ch = this%getChannel(wavelength) ! wavelength index in LUT
+     ch = this%getChannel(wavelength) ! wavelength index in LUT
       
 !     Now map the input RH to the high resolution hash table for RH
 !     -------------------------------------------------------------
-      rh_ = max(min(rh,0.99),0.)
-      isnap = int((rh_+0.001)*1000.)
-      if(isnap .lt. 1) isnap = 1
-      arh   = this%rha( isnap )
-      irh   = this%rhi( isnap )
-      irhp1 = irh+1
-      if(irhp1 .gt. this%nrh) irhp1 = this%nrh
+     rh_ = max(min(rh,0.99),0.)
+     isnap = int((rh_+0.001)*1000.)
+     if(isnap .lt. 1) isnap = 1
+     arh   = this%rha( isnap )
+     irh   = this%rhi( isnap )
+     irhp1 = irh+1
+     if(irhp1 .gt. this%nrh) irhp1 = this%nrh
 
 !     Now linearly interpolate the input table for the requested aerosol and
 !     channel; rh is the relative humidity.
 
-      if(present(bext) .or. present(tau) .or. present(ssa) ) then
+     if(present(bext) .or. present(tau) .or. present(ssa) ) then
          bextIn =   this%bext(irh  ,ch,bin) * (1.-arh) &
                   + this%bext(irhp1,ch,bin) * arh
-      endif
+     endif
 
-      if(present(bsca) .or. present(ssa) ) then
+     if(present(bsca) .or. present(ssa) ) then
          bscaIn =   this%bsca(irh  ,ch,bin) * (1.-arh) &
                   + this%bsca(irhp1,ch,bin) * arh
-      endif
+     endif
 
-      if(present(bbck)) then
+     if(present(bbck)) then
          bbckIn =   this%bbck(irh  ,ch,bin) * (1.-arh) &
                   + this%bbck(irhp1,ch,bin) * arh
-      endif
+     endif
 
-      if(present(gasym)) then
+     if(present(gasym)) then
          gasymIn =  this%g(irh  ,ch,bin) * (1.-arh) &
                   + this%g(irhp1,ch,bin) * arh
-      endif
+     endif
 
-      if(present(rEff) ) then
+     if(present(rEff) ) then
          rEff =     this%rEff(irh  ,bin) * (1.-arh) &
                   + this%rEff(irhp1,bin) * arh
          rEff = 1.E6 * rEff ! convert to microns
-      endif
+     endif
 
-!      if(present(pmom)) then
-!         pmom(:,:) = this%pmom(irh  ,ch,TYPE,:,:) * (1.-arh) &
-!                   + this%pmom(irhp1,ch,TYPE,:,:) * arh
-!      endif
-
-!      if(present(pmom)) then
-!         call Chem_MieQueryByIntWithpmom(this, idx, channel, q_mass, rh, pmom)
-!      endif
-
-
-      if(present(p11) ) then
+     if(present(p11) ) then
          p11In =   this%pback(irh  ,ch,bin,1) * (1.-arh) &
                  + this%pback(irhp1,ch,bin,1) * arh
-      endif
+     endif
 
-      if(present(p22) ) then
+     if(present(p22) ) then
          p22In =   this%pback(irh  ,ch,bin,5) * (1.-arh) &
                  + this%pback(irhp1,ch,bin,5) * arh
-      endif
+     endif
 
-      if(present(gf) ) then
+     if(present(gf) ) then
          gfIn =     this%gf(irh  ,bin) * (1.-arh) &
                   + this%gf(irhp1,bin) * arh
-      endif
+     endif
 
-      if(present(rhod) ) then
+     if(present(rhod) ) then
          rhodIn =   this%rhod(1  ,bin)
-      endif
+     endif
 
-      if(present(vol) ) then
+     if(present(vol) ) then
          volIn  =   this%vol(irh  ,bin) * (1.-arh) &
                   + this%vol(irhp1,bin) * arh
-      endif
+     endif
 
-      if(present(area) ) then
+     if(present(area) ) then
          areaIn  =   this%area(irh  ,bin) * (1.-arh) &
                   + this%area(irhp1,bin) * arh
-      endif
+     endif
 
-      if(present(refr) .or. present(tau) .or. present(ssa) ) then
+     if(present(refr) .or. present(tau) .or. present(ssa) ) then
          refrIn =   this%refr(irh  ,ch,bin) * (1.-arh) &
                   + this%refr(irhp1,ch,bin) * arh
-      endif
+     endif
 
-      if(present(refi) .or. present(tau) .or. present(ssa) ) then
+     if(present(refi) .or. present(tau) .or. present(ssa) ) then
          refiIn =   this%refi(irh  ,ch,bin) * (1.-arh) &
                   + this%refi(irhp1,ch,bin) * arh
-      endif
+     endif
 
-!     Fill the requested outputs
-      if(present(tau  )) tau   = bextIn * q_mass
-      if(present(ssa  )) ssa   = bscaIn/bextIn
-      if(present(bext )) bext  = bextIn
-      if(present(bsca )) bsca  = bscaIn
-      if(present(bbck )) bbck  = bbckIn
-      if(present(gasym)) gasym = gasymIn
-      if(present(p11  )) p11   = p11In
-      if(present(p22  )) p22   = p22In
-      if(present(gf   )) gf    = gfIn
-      if(present(rhop )) rhop  = rhopIn
-      if(present(rhod )) rhod  = rhodIn
-      if(present(vol ))  vol   = volIn
-      if(present(area )) area  = areaIn
-      if(present(refr )) refr  = refrIn
-      if(present(refi )) refi  = refiIn
+!    Fill the requested outputs
+     if(present(tau  )) tau   = bextIn * q_mass
+     if(present(ssa  )) ssa   = bscaIn/bextIn
+     if(present(bext )) bext  = bextIn
+     if(present(bsca )) bsca  = bscaIn
+     if(present(bbck )) bbck  = bbckIn
+     if(present(gasym)) gasym = gasymIn
+     if(present(p11  )) p11   = p11In
+     if(present(p22  )) p22   = p22In
+     if(present(gf   )) gf    = gfIn
+     if(present(rhop )) rhop  = rhopIn
+     if(present(rhod )) rhod  = rhodIn
+     if(present(vol ))  vol   = volIn
+     if(present(area )) area  = areaIn
+     if(present(refr )) refr  = refrIn
+     if(present(refi )) refi  = refiIn
 
 !  All Done
 !----------
@@ -923,39 +873,41 @@ include "MieQuery_xd.H"
 !
 ! !INTERFACE:
 !
-   subroutine QueryVectorRT ( this, idx, channel, q_mass, rh,     &
-                                   tau, ssa, gasym, bext, bsca, bbck,  &
-                                   reff, pmom, p11, p22, gf, rhop, rhod, &
-                                   vol, area, refr, refi, rc )
+   subroutine QueryVectorRT_0d ( this, wavelength, bin,  q_mass,  rh,   &
+                                 tau,  ssa, gasym, bext, bsca,    bbck, &
+                                 reff, pmom,p11,   p22,  gf, rhop,rhod, &
+                                 vol,  area, refr, refi, rc )
 
 ! !INPUT PARAMETERS:
 
-   class(GOCART2G_Mie), target, intent(in ) :: this
-   integer,                intent(in ) :: idx     ! variable index on Chem_Mie
-   real,                   intent(in ) :: channel ! channel number
-   real,                   intent(in ) :: q_mass  ! aerosol mass [kg/m2],
-   real,                   intent(in ) :: rh      ! relative himidity
+     class(GOCART2G_Mie), target, intent(in ) :: this
+     real,                   intent(in ) :: wavelength ! wave length [m]
+     integer,                intent(in ) :: bin        ! bin number
+     real,                   intent(in ) :: q_mass     ! aerosol mass [kg/m2],
+     real,                   intent(in ) :: rh         ! relative himidity
 
 ! !OUTPUT PARAMETERS:
 
-   real,    optional,      intent(out) :: tau   ! aerol extinction optical depth
-   real,    optional,      intent(out) :: ssa   ! single scattering albedo
-   real,    optional,      intent(out) :: gasym ! asymmetry parameter
-   real,    optional,      intent(out) :: bext  ! mass extinction efficiency [m2 (kg dry mass)-1]
-   real,    optional,      intent(out) :: bsca  ! mass scattering efficiency [m2 (kg dry mass)-1]
-   real,    optional,      intent(out) :: bbck  ! mass backscatter efficiency [m2 (kg dry mass)-1]
-   real,    optional,      intent(out) :: reff  ! effective radius (micron)
-   real,    optional,      intent(out) :: p11   ! P11 phase function at backscatter
-   real,    optional,      intent(out) :: p22   ! P22 phase function at backscatter
-   real,    optional,      intent(out) :: gf    ! Growth factor (ratio of wet to dry radius)
-   real,    optional,      intent(out) :: rhop  ! Wet particle density [kg m-3]
-   real,    optional,      intent(out) :: rhod  ! Dry particle density [kg m-3]
-   real,    optional,      intent(out) :: vol   ! Wet particle volume [m3 kg-1]
-   real,    optional,      intent(out) :: area  ! Wet particle cross section [m2 kg-1]
-   real,    optional,      intent(out) :: refr  ! Wet particle real part of ref. index
-   real,    optional,      intent(out) :: refi  ! Wet particle imag. part of ref. index
-   integer, optional,      intent(out) :: rc    ! error code
+     real,    optional,      intent(out) :: tau        ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa        ! single scattering albedo
+     real,    optional,      intent(out) :: gasym      ! asymmetry parameter
+     real,    optional,      intent(out) :: bext       ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca       ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck       ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff       ! effective radius (micron)
+     real,                   intent(out) :: pmom(:,:)  ! moments of phase function 
+     real,    optional,      intent(out) :: p11        ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22        ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf         ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop       ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod       ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol        ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area       ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr       ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi       ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc         ! error code
 
+     character(len=*), parameter  :: Iam = 'QueryVectorRT'
 ! !DESCRIPTION:
 !
 !   Returns requested parameters from the Mie tables, as a function 
@@ -973,70 +925,205 @@ include "MieQuery_xd.H"
 !-------------------------------------------------------------------------
 
 
-      integer                      :: CH, TYPE
-      integer                      :: irh, irhp1, isnap
-      real                         :: rh_, arh
+     integer                      :: ch
+     integer                      :: irh, irhp1, isnap
+     real                         :: rh_, arh
 
-      character(len=*), parameter  :: Iam = 'QueryVectorRT'
+     if ( present(rc) ) rc = 0
 
-      if ( present(rc) ) rc = 0
-
-      CH = nint(CHANNEL)
-      TYPE = idx
-
-!     Now map the input RH to the high resolution hash table for RH
-      rh_ = max(min(rh,0.99),0.)
-      isnap = int((rh_+0.001)*1000.)
-      if(isnap .lt. 1) isnap = 1
-      arh   = this%rha( isnap )
-      irh   = this%rhi( isnap )
-      irhp1 = irh+1
-      if(irhp1 .gt. this%nrh) irhp1 = this%nrh
+     ch = this%getChannel(wavelength, rc)
+     NF_VERIFY_(rc)
 
 !     Now linearly interpolate the input table for the requested aerosol and
 !     channel; rh is the relative humidity.
-    call Query ( this, idx, channel, q_mass, rh, &
-                         tau, ssa, gasym, bext, bsca, bbck, &
-                         reff, p11, p22, gf, rhop, rhod, &
-                         vol, area, refr, refi, rc )
-    NF_VERIFY_(rc)
+     call this%Query( wavelength, bin, q_mass, rh,       &
+                      tau,  ssa, gasym, bext,bsca, bbck, &
+                      reff, p11, p22,   gf,  rhop, rhod, &
+                      vol,  area, refr, refi, rc )
 
-         pmom(:,:) = this%pmom(irh  ,ch,TYPE,:,:) * (1.-arh) &
-                   + this%pmom(irhp1,ch,TYPE,:,:) * arh
+!     Now map the input RH to the high resolution hash table for RH
+     rh_ = max(min(rh,0.99),0.)
+     isnap = int((rh_+0.001)*1000.)
+     if(isnap .lt. 1) isnap = 1
+     arh   = this%rha( isnap )
+     irh   = this%rhi( isnap )
+     irhp1 = irh+1
+     if(irhp1 .gt. this%nrh) irhp1 = this%nrh
 
+     NF_VERIFY_(rc)
 
-
+     pmom(:,:) =  this%pmom(irh  ,ch, bin,:,:) * (1.-arh) &
+                 + this%pmom(irhp1,ch, bin,:,:) * arh
 !  All Done
 !  --------
-         
-  end subroutine QueryVectorRT
+  end subroutine QueryVectorRT_0d
 
-  function getChanel(this, wavelength, rc) result (idx)
-     integer :: idx
+  subroutine QueryVectorRT_1d ( this, wavelength, bin,  q_mass,  rh,   &
+                                tau,  ssa, gasym, bext, bsca,    bbck, &
+                                reff, pmom,p11,   p22,  gf, rhop,rhod, &
+                                vol,  area, refr, refi, rc )
+
+! !INPUT PARAMETERS:
+
+     class(GOCART2G_Mie), target, intent(in ) :: this
+     real,                   intent(in ) :: wavelength    ! wave length [m]
+     integer,                intent(in ) :: bin           ! bin number
+     real,                   intent(in ) :: q_mass(:)     ! aerosol mass [kg/m2],
+     real,                   intent(in ) :: rh(:)         ! relative himidity
+  
+! !OUTPUT PARAMETERS:
+  
+     real,    optional,      intent(out) :: tau(:)        ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa(:)        ! single scattering albedo
+     real,    optional,      intent(out) :: gasym(:)      ! asymmetry parameter
+     real,    optional,      intent(out) :: bext(:)       ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca(:)       ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck(:)       ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff(:)       ! effective radius (micron)
+     real,                   intent(out) :: pmom(:,:,:)   ! moments of phase function 
+     real,    optional,      intent(out) :: p11(:)        ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22(:)        ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf(:)         ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop(:)       ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod(:)       ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol(:)        ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area(:)       ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr(:)       ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi(:)       ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc(:)         ! error code
+  
+     character(len=*), parameter  :: Iam = 'QueryVectorRT_1d'
+  
+include "QueryVectorRT_xd.H"
+
+  end subroutine QueryVectorRT_1d
+
+  subroutine QueryVectorRT_2d ( this, wavelength, bin,  q_mass,  rh,   &
+                                tau,  ssa, gasym, bext, bsca,    bbck, &
+                                reff, pmom,p11,   p22,  gf, rhop,rhod, &
+                                vol,  area, refr, refi, rc )
+
+! !INPUT PARAMETERS:
+
+     class(GOCART2G_Mie), target, intent(in ) :: this
+     real,                   intent(in ) :: wavelength      ! wave length [m]
+     integer,                intent(in ) :: bin             ! bin number
+     real,                   intent(in ) :: q_mass(:,:)     ! aerosol mass [kg/m2],
+     real,                   intent(in ) :: rh(:,:)         ! relative himidity
+  
+! !OUTPUT PARAMETERS:
+  
+     real,    optional,      intent(out) :: tau(:,:)        ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa(:,:)        ! single scattering albedo
+     real,    optional,      intent(out) :: gasym(:,:)      ! asymmetry parameter
+     real,    optional,      intent(out) :: bext(:,:)       ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca(:,:)       ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck(:,:)       ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff(:,:)       ! effective radius (micron)
+     real,                   intent(out) :: pmom(:,:,:,:)   ! moments of phase function 
+     real,    optional,      intent(out) :: p11(:,:)        ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22(:,:)        ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf(:,:)         ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop(:,:)       ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod(:,:)       ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol(:,:)        ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area(:,:)       ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr(:,:)       ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi(:,:)       ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc(:,:)         ! error code
+  
+     character(len=*), parameter  :: Iam = 'QueryVectorRT_2d'
+  
+include "QueryVectorRT_xd.H"
+
+  end subroutine QueryVectorRT_2d
+
+  subroutine QueryVectorRT_3d ( this, wavelength, bin,  q_mass,  rh,   &
+                                tau,  ssa, gasym, bext, bsca,    bbck, &
+                                reff, pmom,p11,   p22,  gf, rhop,rhod, &
+                                vol,  area, refr, refi, rc )
+
+! !INPUT PARAMETERS:
+
+     class(GOCART2G_Mie), target, intent(in ) :: this
+     real,                   intent(in ) :: wavelength        ! wave length [m]
+     integer,                intent(in ) :: bin               ! bin number
+     real,                   intent(in ) :: q_mass(:,:,:)     ! aerosol mass [kg/m2],
+     real,                   intent(in ) :: rh(:,:,:)         ! relative himidity
+  
+! !OUTPUT PARAMETERS:
+  
+     real,    optional,      intent(out) :: tau(:,:,:)        ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa(:,:,:)        ! single scattering albedo
+     real,    optional,      intent(out) :: gasym(:,:,:)      ! asymmetry parameter
+     real,    optional,      intent(out) :: bext(:,:,:)       ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca(:,:,:)       ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck(:,:,:)       ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff(:,:,:)       ! effective radius (micron)
+     real,                   intent(out) :: pmom(:,:,:,:,:)   ! moments of phase function 
+     real,    optional,      intent(out) :: p11(:,:,:)        ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22(:,:,:)        ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf(:,:,:)         ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop(:,:,:)       ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod(:,:,:)       ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol(:,:,:)        ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area(:,:,:)       ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr(:,:,:)       ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi(:,:,:)       ! Wet particle imag. part of ref. index
+     integer, optional,      intent(out) :: rc(:,:,:)         ! error code
+  
+     character(len=*), parameter  :: Iam = 'QueryVectorRT_3d'
+  
+include "QueryVectorRT_xd.H"
+
+  end subroutine QueryVectorRT_3d
+
+  function getChannel(this, wavelength, rc) result (ch)
+     integer :: ch
      class (GOCART2G_Mie), intent(in) :: this
      real, intent(in) :: wavelength
      integer, optional, intent(out) :: rc
      real, parameter :: w_tol = 1.e-9
      integer :: i
 
-     idx = -1
+     ch = -1
      do i = 1, this%nch
        if (abs(this%wavelengths(i)-wavelength) <= w_tol) then
-          idx = i
+          ch = i
           exit
        endif
     enddo
 
     if (present(rc)) rc = 0
 
-    if (idx < 0) then
+    if (ch < 0) then
        !$omp critical
        print*, "wavelength of ",wavelength, " is an invalid value."
        !$omp end critical
        if (present(rc)) rc = -1
     endif
 
-  end function get_Index
+  end function getChannel
+
+  function getWavelength(this, ith_channel, rc) result (wavelength)
+     real :: wavelength
+     class (GOCART2G_Mie), intent(in) :: this
+     integer, intent(in) :: ith_channel
+     integer, optional, intent(out) :: rc
+     real, parameter :: w_tol = 1.e-9
+     integer :: i
+
+     if (present(rc)) rc = 0
+     if (ith_channel <=0 .or. ith_channel > this%nch ) then
+       !$omp critical
+       print*, "The channel of ",ith_channel, " is an invalid channel number."
+       !$omp end critical
+       if (present(rc)) rc = -1
+     endif
+
+     wavelength = this%wavelengths(ith_channel)
+
+  end function getWavelength
  
 end module GOCART2G_MieMod
 

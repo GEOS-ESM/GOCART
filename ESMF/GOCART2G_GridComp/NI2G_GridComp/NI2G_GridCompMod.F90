@@ -498,8 +498,7 @@ contains
           channels_(i) = i
        end do
     endif
-    self%rad_Mie(instance) = Chem_Mie2G(trim(file_), channels_*1.e-9, __RC__)
-    VERIFY_(status)
+    self%rad_Mie(instance) = GOCART2G_Mie(trim(file_), channels_*1.e-9, __RC__)
     deallocate(channels_)
 
 !   Create Diagnostics Mie Table
@@ -512,7 +511,7 @@ contains
     allocate (channels_(i), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
                                   label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
-    self%diag_Mie(instance) = Chem_Mie2G(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    self%diag_Mie(instance) = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
     deallocate(channels_)
 
     ! Mie Table instance/index
@@ -1185,7 +1184,7 @@ contains
 
     implicit none
 
-    type(Chem_Mie2G) ,             intent(inout) :: mie              ! mie table
+    type(GOCART2G_Mie) ,           intent(inout) :: mie              ! mie table
     integer,                       intent(in   ) :: nbins            ! number of bins
     integer,                       intent(in )   :: nb               ! number of bands
     integer,                       intent(in )   :: offset           ! bands offset 
@@ -1200,16 +1199,18 @@ contains
     real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
     real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
     real                              :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
+    real                              :: wavelength
 
     __Iam__('NI2G::aerosol_optics::mie_')
 
-     bext_s  = 0.0d0
-     bssa_s  = 0.0d0
-     basym_s = 0.0d0
+    bext_s  = 0.0d0
+    bssa_s  = 0.0d0
+    basym_s = 0.0d0
 
+    wavelength = mie%getWavelength(offset+1, __RC__)
     do l = 1, nbins
        !tau is converted to bext
-       call mie%Query(l, offset+1., q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
+       call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
@@ -1251,7 +1252,7 @@ contains
     integer                                          :: instance
     integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
-    real                                             :: wavelength, mieTable_index
+    real                                             :: wavelength
     integer :: i, j, k
 
     __Iam__('NI2G:: monochromatic_aerosol_optics')
@@ -1317,13 +1318,8 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-!   Get wavelength index for Mie Table
-!   ----------------------------------
-!   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-    mieTable_index = self%diag_Mie(instance)%get_index(wavelength, __RC__)
-
     do n = 1, nbins
-       call self%diag_Mie(instance)%Query(n, mieTable_index, q_4d(:,:,:,n), rh, tau=tau, __RC__)
+       call self%diag_Mie(instance)%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau)
        tau_s = tau_s + tau
     end do
 

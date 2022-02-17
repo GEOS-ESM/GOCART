@@ -17,7 +17,7 @@
 
 ! !USES:
 !  Only instrinsic fortran types and functions are allowed.
-   use Chem_Mie2GMod
+   use GOCART2G_MieMod
    use, intrinsic :: iso_fortran_env, only: IOSTAT_END
 
    implicit none
@@ -3264,7 +3264,7 @@ CONTAINS
   implicit NONE
 
 ! !INPUT PARAMETERS:
-   type(Chem_Mie2G),  intent(in) :: mie        ! mie table
+   type(GOCART2G_Mie),  intent(in) :: mie        ! mie table
    integer, intent(in) :: km, nbegin, nbins
    integer,    intent(in)    :: klid   ! index for pressure lid
    real, optional, dimension(:), intent(in)    :: rlow   ! bin radii - low bounds
@@ -3324,7 +3324,6 @@ CONTAINS
    integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
    real :: ilam550, ilam470, ilam870
-   real, allocatable, dimension(:) :: wavelengths_index_profile, wavelengths_index_vertint
    real, allocatable, dimension(:,:,:) :: tau, ssa
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
@@ -3353,30 +3352,15 @@ CONTAINS
 
 !  Get the wavelength indices
 !  --------------------------
-!  Must provide ilam550 for AOT calculation
-   allocate(wavelengths_index_profile(size(wavelengths_profile)))
-   allocate(wavelengths_index_vertint(size(wavelengths_vertint)))
-   wavelengths_index_profile = 0.
-   wavelengths_index_vertint = 0.
 
-   ilam470 = mie%get_index(4.70e-7)
+   ilam470 = mie%getChannel(4.70e-7)
    if(ilam470 <= 0) ilam470 = 0.
 
-   ilam550 = mie%get_index(5.50e-7)
+   ilam550 = mie%getChannel(5.50e-7)
    if(ilam550 <= 0) ilam550 = 1.
 
-   ilam870 = mie%get_index(8.70e-7)
+   ilam870 = mie%getChannel(8.70e-7)
    if(ilam870 <= 0) ilam870 = 0.
-
-   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-   do i = 1, size(wavelengths_profile)
-      wavelengths_index_profile(i) = mie%get_index(wavelengths_profile(i), __RC__)
-   end do
-
-   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-   do i = 1, size(wavelengths_vertint)
-      wavelengths_index_vertint(i) = mie%get_index(wavelengths_vertint(i), __RC__)
-   end do
 
 !  Determine if going to do Angstrom parameter calculation
 !  -------------------------------------------------------
@@ -3505,7 +3489,7 @@ CONTAINS
 
       do n = nbegin, nbins
         do w = 1, size(wavelengths_profile)
-          call mie%Query(n, wavelengths_index_profile(w), &
+          call mie%Query(wavelengths_profile(w),n, &
                  aerosol(:,:,:,n)*delp/grav, &
                  rh, tau=tau, ssa=ssa)
 !         Calculate the total ext. and scat. coefficients
@@ -3543,7 +3527,7 @@ CONTAINS
 
       do w = 1, size(wavelengths_vertint)
         do n = nbegin, nbins
-           call mie%Query(n, wavelengths_index_vertint(w), &
+           call mie%Query(wavelengths_vertint(w), n, &
                 aerosol(:,:,:,n)*delp/grav, &
                 rh, tau=tau, ssa=ssa)
            do k = klid, km
@@ -3612,14 +3596,14 @@ CONTAINS
       do n = nbegin, nbins
 
 !       Select the name for species
-        call mie%Query(n, ilam470, &
+        call mie%Query(4.70E-7, n,        &
               aerosol(:,:,:,n)*delp/grav, &
               rh, tau=tau)
         do k = klid, km
           tau470 = tau470 + tau(:,:,k)
         enddo
 
-        call mie%Query(n, ilam870, &
+        call mie%Query(8.70E-7, n,        &
               aerosol(:,:,:,n)*delp/grav, &
               rh, tau=tau)
         do k = klid, km
@@ -4238,7 +4222,7 @@ CONTAINS
   implicit NONE
 
 ! !INPUT PARAMETERS:
-   type(Chem_Mie2G),  intent(in) :: mie        ! mie table
+   type(GOCART2G_Mie),  intent(in) :: mie        ! mie table
    integer, intent(in) :: km     ! total model levels
    integer, intent(in) :: nbins  ! number of aerosol size bins
    real, intent(in)    :: cdt    ! chemistry model time-step [sec]
@@ -4470,7 +4454,7 @@ K_LOOP_BB: do k = km, 1, -1
 !   Get the wavelength indices
 !   --------------------------
 !   Must provide ilam550 for AOT calculation
-    ilam550 = mie%get_index(5.50e-7)
+    ilam550 = mie%getChannel(5.50e-7)
     if (ilam550 <=0) ilam550 = 1.
 !  Calculate the extinction and/or scattering AOD
 
@@ -4478,7 +4462,7 @@ K_LOOP_BB: do k = km, 1, -1
    allocate(tau(i1:i2,j1:j2,km), source = 0.)
    do n = 1, nbins
 !     Select the name for species and the index
-     call mie%Query(n, ilam550, &
+     call mie%Query(5.50E-7, n,                 &
               qa_bb_(:,:,:,n)*delp(:,:,:)/grav, &
               rh, tau=tau)
      do k = 1, km
@@ -6715,7 +6699,7 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)    :: grav  ! gravity [m/sec]
    real, intent(in)    :: pi    ! pi constant
    integer, intent(in) :: nSO4  ! index of SO4 relative to other internal variables
-   type(Chem_Mie2G), intent(in) :: mie   ! mie table
+   type(GOCART2G_Mie), intent(in) :: mie   ! mie table
    real, dimension(:), intent(in)  :: wavelengths_profile
    real, dimension(:), intent(in)  :: wavelengths_vertint
    real, pointer, dimension(:,:,:), intent(in) :: tmpu    ! temperature [K]
@@ -6767,7 +6751,6 @@ K_LOOP: do k = km, 1, -1
 
 ! !Local Variables
    integer :: i, j, k, w, i1=1, j1=1, i2, j2, status
-   real, allocatable, dimension(:)  :: wavelengths_index_profile, wavelengths_index_vertint
    real, dimension(:,:,:), allocatable :: tau, ssa
    real, dimension(:,:), allocatable :: tau470, tau870
    real    :: ilam550, ilam470, ilam870
@@ -6787,32 +6770,14 @@ K_LOOP: do k = km, 1, -1
 !  --------------------------
 !  Must provide ilam550 for AOT calculation
 
-   ilam470 = mie%get_index(4.70e-7)
+   ilam470 = mie%getChannel(4.70e-7)
    if(ilam470 <= 0) ilam470 = 0.
 
-   ilam550 = mie%get_index(5.50e-7)
+   ilam550 = mie%getChannel(5.50e-7)
    if(ilam550 <= 0) ilam550 = 1.
 
-   ilam870 = mie%get_index(8.70e-7)
+   ilam870 = mie%getChannel(8.70e-7)
    if(ilam870 <= 0) ilam870 = 0.
-
-
-   allocate(wavelengths_index_profile(size(wavelengths_profile)))
-   allocate(wavelengths_index_vertint(size(wavelengths_vertint)))
-   wavelengths_index_profile = 0.
-   wavelengths_index_vertint = 0.
-
-   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-   do i = 1, size(wavelengths_profile)
-      ! WJiang note: is this change correct??
-      wavelengths_index_profile(i) = mie%get_index(wavelengths_profile(i), __RC__)
-   end do
-
-   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-   do i = 1, size(wavelengths_vertint)
-      ! WJiang note: is this change correct??
-      wavelengths_index_vertint(i) = mie%get_index(wavelengths_vertint(i), __RC__)
-   end do
 
 !  Determine if going to do Angstrom parameter calculation
 !  -------------------------------------------------------
@@ -6929,7 +6894,7 @@ K_LOOP: do k = km, 1, -1
       if (associated(scacoef)) scacoef = 0.
 
       do w = 1, size(wavelengths_profile)
-         call mie%Query(1, wavelengths_index_profile(w), & ! Only SO4 exists in the MieTable, so its index is 1
+         call mie%Query(wavelengths_profile(w), 1, & ! Only SO4 exists in the MieTable, so its index is 1
               SO4*delp/grav, &
               rh, tau=tau, ssa=ssa)
 
@@ -6954,7 +6919,7 @@ K_LOOP: do k = km, 1, -1
       if (associated(stscatau)) stscatau = 0.
 
       do w = 1, size(wavelengths_vertint)
-         call mie%Query(1, wavelengths_index_vertint(w), & ! Only SO4 exists in the MieTable, so its index is 1
+         call mie%Query(wavelengths_vertint(w), 1,  & ! Only SO4 exists in the MieTable, so its index is 1
             SO4*delp/grav, &
             rh, tau=tau, ssa=ssa)
 
@@ -6995,13 +6960,13 @@ K_LOOP: do k = km, 1, -1
       tau470(i1:i2,j1:j2) = tiny(1.0)
       tau870(i1:i2,j1:j2) = tiny(1.0)
 
-      call mie%Query(1, ilam470, & ! Only SO4 exists in the MieTable, so its index is 1
+      call mie%Query(4.70E-7,  1, & ! Only SO4 exists in the MieTable, so its index is 1
              SO4*delp/grav, rh, tau=tau)
       do k = klid, km
          tau470 = tau470 + tau(:,:,k)
       enddo
 
-      call mie%Query(1, ilam870, &
+      call mie%Query(8.70E-7, 1,  &
               SO4*delp/grav,rh, tau=tau)
       do k = klid, km
          tau870 = tau870 + tau(:,:,k)
