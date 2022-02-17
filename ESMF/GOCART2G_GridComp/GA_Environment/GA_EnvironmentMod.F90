@@ -4,7 +4,7 @@ module GA_EnvironmentMod
 
    use ESMF
    use MAPL
-   use Chem_Mie2GMod
+   use GOCART2G_MieMod
 
    implicit none
    private
