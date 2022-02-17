@@ -1,11 +1,11 @@
 !BOP
 !
-! !MODULE:  Chem_Mie2GMod --- Reader for aerosol mie tables
+! !MODULE:  GOCART2G_MieMod --- Reader for aerosol mie tables
 !
 ! !INTERFACE:
 !
 
-module Chem_Mie2GMod
+module GOCART2G_MieMod
 ! !USES:
    use netcdf
    implicit none
@@ -13,7 +13,7 @@ module Chem_Mie2GMod
 ! !PUBLIC TYPES:
 !
    private
-   public  Chem_Mie2G             ! Holds Chem_MieTable and other information
+   public  GOCART2G_Mie             ! Holds Chem_MieTable and other information
 
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -28,6 +28,9 @@ module Chem_Mie2GMod
 !  23Mar2005 Colarco - Initial code.
 !  31Mar2005 Todling - Declared netcdf nf_ routines as external (OSF1) 
 !                      Removed # from include netcdf.inc
+!  16Feb2022 da Silva  Refactoring from old Chem_MieTable and Chem_MieMod;
+!                      these functionalities have been merged.   
+!   
 !EOP
 !-------------------------------------------------------------------------
 !
@@ -36,7 +39,8 @@ module Chem_Mie2GMod
 ! --------
    integer, parameter :: NRH_BINS = 991
 
-   type Chem_Mie2G
+   type GOCART2G_Mie
+      
       private
       character(len=:), allocatable :: table_name
       integer :: nch             ! number of channels in table (replacement of nlamfda)
@@ -44,15 +48,17 @@ module Chem_Mie2GMod
       integer :: nbin            ! number of size bins in table
       integer :: nMom            ! number of moments of phase function
       integer :: nPol            ! number of elements of scattering phase matrix
-      real, allocatable  :: wavelengths(:)  ! wavelengths [m]
-      real, allocatable  :: rh(:)           ! RH values   [fraction]
-      real, allocatable  :: reff(:,:)       ! effective radius [m]
-      real, allocatable  :: bext(:,:,:)     ! bext values [m2 kg-1]
+
+                                            ! c=channel, r=rh, b=bin, m=moments, p=nPol
+      real, allocatable  :: wavelengths(:)  ! (c) wavelengths [m]
+      real, allocatable  :: rh(:)           ! (r) RH values   [fraction]
+      real, allocatable  :: reff(:,:)       ! (r,b) effective radius [m]
+      real, allocatable  :: bext(:,:,:)     ! (c,r,b) bext values [m2 kg-1]
       real, allocatable  :: bsca(:,:,:)     ! bsca values [m2 kg-1]
       real, allocatable  :: bbck(:,:,:)     ! bbck values [m2 kg-1]
       real, allocatable  :: g(:,:,:)        ! asymmetry parameter
       real, allocatable  :: pback(:,:,:,:)  ! Backscatter phase function
-      real, allocatable  :: pmom(:,:,:,:,:) ! moments of phase function
+      real, allocatable  :: pmom(:,:,:,:,:) ! (c,r,b,m,p) moments of phase function
       real, allocatable  :: gf(:,:)         ! hygroscopic growth factor
       real, allocatable  :: rhop(:,:)       ! wet particle density [kg m-3]
       real, allocatable  :: rhod(:,:)       ! wet particle density [kg m-3]
@@ -61,23 +67,26 @@ module Chem_Mie2GMod
       real, allocatable  :: refr(:,:,:)     ! real part of refractive index
       real, allocatable  :: refi(:,:,:)     ! imaginary part of refractive index
 
-      integer          :: rhi(NRH_BINS)        ! pointer to rh map
-      real             :: rha(NRH_BINS)        ! slope on rh map
-   contains
+      integer          :: rhi(NRH_BINS)     ! pointer to rh LUT
+      real             :: rha(NRH_BINS)     ! slope on rh LUT
+      
+    CONTAINS
+      
       procedure :: Query_0d
       procedure :: Query_1d
       procedure :: Query_2d
       procedure :: Query_3d
       procedure :: QueryScalarRT
-      procedure :: QueryVector
+      procedure :: QueryVectorRT
       generic   :: Query => Query_0d, Query_1d, Query_2d, Query_3d
-      !generic   :: Query => QueryScalar, QueryVector
-      procedure :: get_index
-   end type Chem_Mie2G
+      !generic   :: Query => QueryScalarRT, QueryVectorRT
+      @@@ procedure :: get_index
+      
+   end type GOCART2G_Mie
 
-   interface Chem_Mie2G
-      module procedure new_Chem_Mie
-   end interface Chem_Mie2G
+   interface GOCART2G_Mie
+      module procedure GOCART2G_MieCreate
+   end interface GOCART2G_Mie
 
 CONTAINS
 
@@ -86,7 +95,7 @@ CONTAINS
 !-------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  new_Chem_Mie  --- Construct Chemistry Registry
+! !IROUTINE:  GOCART2G_MieCreate  --- Construct Chemistry Registry
 !
 !
 ! !DESCRIPTION:
@@ -110,9 +119,9 @@ CONTAINS
 !
 !EOP
 !-------------------------------------------------------------------------
-  function new_Chem_Mie ( rcfile, wavelengths, nmom, rc ) result (this)
+  function GOCART2G_MieCreate ( rcfile, wavelengths, nmom, rc ) result (this)
      implicit none
-     type(Chem_Mie2G) :: this
+     type(GOCART2G_Mie) :: this
 ! !INPUT PARAMETERS:
      character(len=*), intent(in) :: rcfile  ! Mie table file name
      real, intent(in) :: wavelengths(:)
@@ -121,7 +130,7 @@ CONTAINS
      integer, intent(out) ::  rc          ! Error return code:
                                           !  0 - all is well
 ! ! local
-     character(len=*), parameter ::  myname = 'new_Chem_Mie'
+     character(len=*), parameter ::  myname = 'GOCART2G_MieCreate'
      integer :: nch
      integer :: ncid, idimid, ivarid, n, i, j, ip1
      integer :: nch_table, nrh_table, nbin_table, nmom_table, nPol_table
@@ -501,7 +510,8 @@ CONTAINS
 
      end subroutine polint
 
-  end function new_Chem_Mie
+   end function GOCART2G_MieCreate
+   
 !----------------------------------------------------------------------------
 
 !BOP
@@ -511,12 +521,14 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  subroutine Query_0d ( this, idx, channel, q_mass, rh,     &
-                           tau, ssa, gasym, bext, bsca, bbck,  &
-                           reff,pmom, p11, p22, gf, rhop, rhod,     &
-                           vol, area, refr, refi, rc )
+  subroutine Query_0d ( this, idx, channel, q_mass, rh,      &
+                        tau, ssa, gasym, bext, bsca, bbck,   &
+                        reff,pmom, p11, p22, gf, rhop, rhod, &
+                        vol, area, refr, refi, rc )
+    
 ! !INPUT PARAMETERS:
-     class (Chem_Mie2G),     intent(in ) :: this
+    
+     class (GOCART2G_Mie),   intent(in ) :: this
      integer,                intent(in ) :: idx     ! variable index on Chem_Mie
      real,                   intent(in ) :: channel ! channel number 
      real,                   intent(in ) :: q_mass  ! aerosol mass [kg/m2],
@@ -619,7 +631,7 @@ include "MieQuery.H"
                            tau, ssa, gasym, bext, bsca, bbck,  &
                            reff, pmom, p11, p22, gf, rhop, rhod,     &
                            vol, area, refr, refi, rc )
-     class (Chem_Mie2G),     intent(in ) :: this
+     class (GOCART2G_Mie),     intent(in ) :: this
      integer,                intent(in ) :: idx     ! variable index on Chem_Mie
      real,                   intent(in ) :: channel ! channel number 
      real,                   intent(in ) :: q_mass(:)  ! aerosol mass [kg/m2],
@@ -657,7 +669,7 @@ include "MieQuery_xd.H"
                            reff, pmom, p11, p22, gf, rhop, rhod,     &
                            vol, area, refr, refi, rc )
 ! !INPUT PARAMETERS:
-     class (Chem_Mie2G),     intent(in ) :: this
+     class (GOCART2G_Mie),     intent(in ) :: this
      integer,                intent(in ) :: idx     ! variable index on Chem_Mie
      real,                   intent(in ) :: channel ! channel number 
      real,                   intent(in ) :: q_mass(:,:)  ! aerosol mass [kg/m2],
@@ -695,7 +707,7 @@ include "MieQuery_xd.H"
                            reff,pmom, p11, p22, gf, rhop, rhod,     &
                            vol, area, refr, refi, rc )
 ! !INPUT PARAMETERS:
-     class (Chem_Mie2G),     intent(in ) :: this
+     class (GOCART2G_Mie),     intent(in ) :: this
      integer,                intent(in ) :: idx     ! variable index on Chem_Mie
      real,                   intent(in ) :: channel ! channel number 
      real,                   intent(in ) :: q_mass(:,:,:)  ! aerosol mass [kg/m2],
@@ -728,23 +740,24 @@ include "MieQuery_xd.H"
 
   end subroutine Query_3d
 
-! !IROUTINE:  QueryScalar --- Return Tau, SSA, etc 
+! !IROUTINE:  QueryScalarRT --- Return Tau, SSA, etc 
 !
 !
 ! !INTERFACE:
 !
-   impure elemental subroutine QueryScalar ( this, idx, channel, q_mass, rh,     &
-                                   tau, ssa, gasym, bext, bsca, bbck,  &
-                                   reff, p11, p22, gf, rhop, rhod, &
-                                   vol, area, refr, refi, rc )
+  impure elemental &
+         subroutine QueryScalarRT ( this, wavelength, bin, q_mass, rh,  &
+                                    tau, ssa, gasym, bext, bsca, bbck,  &
+                                    reff, p11, p22, gf, rhop, rhod,     &
+                                    vol, area, refr, refi, rc )
 
 ! !INPUT PARAMETERS:
 
-   class (Chem_Mie2G), target, intent(in ) :: this
-   integer,                intent(in ) :: idx     ! variable index on Chem_Mie
-   real,                   intent(in ) :: channel ! channel number 
-   real,                   intent(in ) :: q_mass  ! aerosol mass [kg/m2],
-   real,                   intent(in ) :: rh      ! relative himidity
+   class (GOCART2G_Mie), target, intent(in ) :: this
+   real,                   intent(in)  :: wavelength ! wavelength [m]
+   integer,                intent(in)  :: bin number
+   real,                   intent(in)  :: q_mass  ! aerosol mass [kg/m2],
+   real,                   intent(in)  :: rh      ! relative himidity
 
 ! !OUTPUT PARAMETERS:
 
@@ -783,26 +796,21 @@ include "MieQuery_xd.H"
 !-------------------------------------------------------------------------
 
 
-      integer                      :: ICHANNEL, TYPE
+      integer                      :: ch
       integer                      :: irh, irhp1, isnap
       real                         :: rh_, arh
       real                         :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
-                                      gfIn, rhopIn, rhodIn, volIn, areaIn, &
+                                      gfIn, rhopIn, rhodIn, volIn, areaIn,           &
                                       refrIn, refiIn
 
-      character(len=*), parameter  :: Iam = 'QueryScalar'
+      character(len=*), parameter  :: Iam = 'QueryScalarRT'
 
       if ( present(rc) ) rc = 0
 
-      ICHANNEL = nint(CHANNEL)
-!      TABLE => this%vtableUse
-      TYPE = idx
-
-!      ASSERT_(TYPE>0)
-!      ASSERT_(ICHANNEL>=LBOUND(TABLE%bext,1))
-!      ASSERT_(ICHANNEL<=UBOUND(TABLE%bext,1))
-
+      ch = this%getChannel(wavelength) ! wavelength index in LUT
+      
 !     Now map the input RH to the high resolution hash table for RH
+!     -------------------------------------------------------------
       rh_ = max(min(rh,0.99),0.)
       isnap = int((rh_+0.001)*1000.)
       if(isnap .lt. 1) isnap = 1
@@ -815,34 +823,34 @@ include "MieQuery_xd.H"
 !     channel; rh is the relative humidity.
 
       if(present(bext) .or. present(tau) .or. present(ssa) ) then
-         bextIn =   this%bext(irh  ,ichannel,TYPE) * (1.-arh) &
-                  + this%bext(irhp1,ichannel,TYPE) * arh
+         bextIn =   this%bext(irh  ,ch,bin) * (1.-arh) &
+                  + this%bext(irhp1,ch,bin) * arh
       endif
 
       if(present(bsca) .or. present(ssa) ) then
-         bscaIn =   this%bsca(irh  ,ichannel,TYPE) * (1.-arh) &
-                  + this%bsca(irhp1,ichannel,TYPE) * arh
+         bscaIn =   this%bsca(irh  ,ch,bin) * (1.-arh) &
+                  + this%bsca(irhp1,ch,bin) * arh
       endif
 
       if(present(bbck)) then
-         bbckIn =   this%bbck(irh  ,ichannel,TYPE) * (1.-arh) &
-                  + this%bbck(irhp1,ichannel,TYPE) * arh
+         bbckIn =   this%bbck(irh  ,ch,bin) * (1.-arh) &
+                  + this%bbck(irhp1,ch,bin) * arh
       endif
 
       if(present(gasym)) then
-         gasymIn =  this%g(irh  ,ichannel,TYPE) * (1.-arh) &
-                  + this%g(irhp1,ichannel,TYPE) * arh
+         gasymIn =  this%g(irh  ,ch,bin) * (1.-arh) &
+                  + this%g(irhp1,ch,bin) * arh
       endif
 
       if(present(rEff) ) then
-         rEff =     this%rEff(irh  ,TYPE) * (1.-arh) &
-                  + this%rEff(irhp1,TYPE) * arh
+         rEff =     this%rEff(irh  ,bin) * (1.-arh) &
+                  + this%rEff(irhp1,bin) * arh
          rEff = 1.E6 * rEff ! convert to microns
       endif
 
 !      if(present(pmom)) then
-!         pmom(:,:) = this%pmom(irh  ,ichannel,TYPE,:,:) * (1.-arh) &
-!                   + this%pmom(irhp1,ichannel,TYPE,:,:) * arh
+!         pmom(:,:) = this%pmom(irh  ,ch,TYPE,:,:) * (1.-arh) &
+!                   + this%pmom(irhp1,ch,TYPE,:,:) * arh
 !      endif
 
 !      if(present(pmom)) then
@@ -851,42 +859,42 @@ include "MieQuery_xd.H"
 
 
       if(present(p11) ) then
-         p11In =   this%pback(irh  ,ichannel,TYPE,1) * (1.-arh) &
-                 + this%pback(irhp1,ichannel,TYPE,1) * arh
+         p11In =   this%pback(irh  ,ch,bin,1) * (1.-arh) &
+                 + this%pback(irhp1,ch,bin,1) * arh
       endif
 
       if(present(p22) ) then
-         p22In =   this%pback(irh  ,ichannel,TYPE,5) * (1.-arh) &
-                 + this%pback(irhp1,ichannel,TYPE,5) * arh
+         p22In =   this%pback(irh  ,ch,bin,5) * (1.-arh) &
+                 + this%pback(irhp1,ch,bin,5) * arh
       endif
 
       if(present(gf) ) then
-         gfIn =     this%gf(irh  ,TYPE) * (1.-arh) &
-                  + this%gf(irhp1,TYPE) * arh
+         gfIn =     this%gf(irh  ,bin) * (1.-arh) &
+                  + this%gf(irhp1,bin) * arh
       endif
 
       if(present(rhod) ) then
-         rhodIn =   this%rhod(1  ,TYPE)
+         rhodIn =   this%rhod(1  ,bin)
       endif
 
       if(present(vol) ) then
-         volIn  =   this%vol(irh  ,TYPE) * (1.-arh) &
-                  + this%vol(irhp1,TYPE) * arh
+         volIn  =   this%vol(irh  ,bin) * (1.-arh) &
+                  + this%vol(irhp1,bin) * arh
       endif
 
       if(present(area) ) then
-         areaIn  =   this%area(irh  ,TYPE) * (1.-arh) &
-                  + this%area(irhp1,TYPE) * arh
+         areaIn  =   this%area(irh  ,bin) * (1.-arh) &
+                  + this%area(irhp1,bin) * arh
       endif
 
       if(present(refr) .or. present(tau) .or. present(ssa) ) then
-         refrIn =   this%refr(irh  ,ichannel,TYPE) * (1.-arh) &
-                  + this%refr(irhp1,ichannel,TYPE) * arh
+         refrIn =   this%refr(irh  ,ch,bin) * (1.-arh) &
+                  + this%refr(irhp1,ch,bin) * arh
       endif
 
       if(present(refi) .or. present(tau) .or. present(ssa) ) then
-         refiIn =   this%refi(irh  ,ichannel,TYPE) * (1.-arh) &
-                  + this%refi(irhp1,ichannel,TYPE) * arh
+         refiIn =   this%refi(irh  ,ch,bin) * (1.-arh) &
+                  + this%refi(irhp1,ch,bin) * arh
       endif
 
 !     Fill the requested outputs
@@ -908,21 +916,21 @@ include "MieQuery_xd.H"
 
 !  All Done
 !----------
-  end subroutine QueryScalar
+  end subroutine QueryScalarRT
 
-! !IROUTINE:  QueryVector --- Return Tau, SSA, etc 
+! !IROUTINE:  QueryVectorRT --- Return Tau, SSA, etc 
 !
 !
 ! !INTERFACE:
 !
-   subroutine QueryVector ( this, idx, channel, q_mass, rh,     &
+   subroutine QueryVectorRT ( this, idx, channel, q_mass, rh,     &
                                    tau, ssa, gasym, bext, bsca, bbck,  &
                                    reff, pmom, p11, p22, gf, rhop, rhod, &
                                    vol, area, refr, refi, rc )
 
 ! !INPUT PARAMETERS:
 
-   class(Chem_Mie2G), target, intent(in ) :: this
+   class(GOCART2G_Mie), target, intent(in ) :: this
    integer,                intent(in ) :: idx     ! variable index on Chem_Mie
    real,                   intent(in ) :: channel ! channel number
    real,                   intent(in ) :: q_mass  ! aerosol mass [kg/m2],
@@ -937,7 +945,6 @@ include "MieQuery_xd.H"
    real,    optional,      intent(out) :: bsca  ! mass scattering efficiency [m2 (kg dry mass)-1]
    real,    optional,      intent(out) :: bbck  ! mass backscatter efficiency [m2 (kg dry mass)-1]
    real,    optional,      intent(out) :: reff  ! effective radius (micron)
-   real,                   intent(out) :: pmom(:,:)
    real,    optional,      intent(out) :: p11   ! P11 phase function at backscatter
    real,    optional,      intent(out) :: p22   ! P22 phase function at backscatter
    real,    optional,      intent(out) :: gf    ! Growth factor (ratio of wet to dry radius)
@@ -966,15 +973,15 @@ include "MieQuery_xd.H"
 !-------------------------------------------------------------------------
 
 
-      integer                      :: ICHANNEL, TYPE
+      integer                      :: CH, TYPE
       integer                      :: irh, irhp1, isnap
       real                         :: rh_, arh
 
-      character(len=*), parameter  :: Iam = 'QueryVector'
+      character(len=*), parameter  :: Iam = 'QueryVectorRT'
 
       if ( present(rc) ) rc = 0
 
-      ICHANNEL = nint(CHANNEL)
+      CH = nint(CHANNEL)
       TYPE = idx
 
 !     Now map the input RH to the high resolution hash table for RH
@@ -994,18 +1001,19 @@ include "MieQuery_xd.H"
                          vol, area, refr, refi, rc )
     NF_VERIFY_(rc)
 
-         pmom(:,:) = this%pmom(irh  ,ichannel,TYPE,:,:) * (1.-arh) &
-                   + this%pmom(irhp1,ichannel,TYPE,:,:) * arh
+         pmom(:,:) = this%pmom(irh  ,ch,TYPE,:,:) * (1.-arh) &
+                   + this%pmom(irhp1,ch,TYPE,:,:) * arh
 
 
 
 !  All Done
-!----------
-  end subroutine QueryVector
+!  --------
+         
+  end subroutine QueryVectorRT
 
-  function get_Index(this, wavelength, rc) result (idx)
+  function getChanel(this, wavelength, rc) result (idx)
      integer :: idx
-     class (Chem_Mie2G), intent(in) :: this
+     class (GOCART2G_Mie), intent(in) :: this
      real, intent(in) :: wavelength
      integer, optional, intent(out) :: rc
      real, parameter :: w_tol = 1.e-9
@@ -1030,5 +1038,5 @@ include "MieQuery_xd.H"
 
   end function get_Index
  
-end module Chem_Mie2GMod
+end module GOCART2G_MieMod
 
