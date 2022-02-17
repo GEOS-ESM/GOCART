@@ -11,7 +11,7 @@ module SS2G_GridCompMod
 ! !USES:
    use ESMF
    use MAPL
-   use Chem_Mie2GMod
+   use GOCART2G_MieMod 
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -330,8 +330,7 @@ contains
     real, pointer, dimension(:,:,:)      :: ple
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
-    character(len=:), allocatable        :: file_
-
+    character(len=ESMF_MAXSTR)           :: file_
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -485,7 +484,7 @@ contains
           channels_(i) = i
        end do
     endif
-    self%rad_Mie(instance) = Chem_Mie2G(file_, channels_*1.e-9, __RC__)
+    self%rad_Mie(instance) = Chem_Mie2G(trim(file_), channels_*1.e-9, __RC__)
     VERIFY_(status)
     deallocate(channels_)
 
@@ -499,8 +498,7 @@ contains
     allocate (channels_(i), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
                                   label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
-    self%diag_Mie(instance) = Chem_Mie2G(file_, channels_*1.e-9, nmom=nmom_, __RC__)
-    VERIFY_(status)
+    self%diag_Mie(instance) = Chem_Mie2G(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
     deallocate(channels_)
     ! Mie Table instance/index
     call ESMF_AttributeSet(aero, name='mie_table_instance', value=instance, __RC__)

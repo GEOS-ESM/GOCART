@@ -17,7 +17,7 @@
 
 ! !USES:
 !  Only instrinsic fortran types and functions are allowed.
-   use Chem_Mie2GMod
+   use GOCART2G_MieMod
    use, intrinsic :: iso_fortran_env, only: IOSTAT_END
 
    implicit none

@@ -1,11 +1,11 @@
 !BOP
 !
-! !MODULE:  Chem_Mie2GMod --- Reader for aerosol mie tables
+! !MODULE:  GOCART2G_MieMod --- Reader for aerosol mie tables
 !
 ! !INTERFACE:
 !
 
-module Chem_Mie2GMod
+module GOCART2G_MieMod
 ! !USES:
    use netcdf
    implicit none
@@ -71,7 +71,7 @@ module Chem_Mie2GMod
       procedure :: QueryScalarRT
       procedure :: QueryVector
       generic   :: Query => Query_0d, Query_1d, Query_2d, Query_3d
-      !generic   :: Query => QueryScalar, QueryVector
+      !generic   :: Query => QueryScalarRT, QueryVector
       procedure :: get_index
    end type Chem_Mie2G
 
@@ -728,12 +728,12 @@ include "MieQuery_xd.H"
 
   end subroutine Query_3d
 
-! !IROUTINE:  QueryScalar --- Return Tau, SSA, etc 
+! !IROUTINE:  QueryScalarRT --- Return Tau, SSA, etc 
 !
 !
 ! !INTERFACE:
 !
-   impure elemental subroutine QueryScalar ( this, idx, channel, q_mass, rh,     &
+   impure elemental subroutine QueryScalarRT ( this, idx, channel, q_mass, rh,     &
                                    tau, ssa, gasym, bext, bsca, bbck,  &
                                    reff, p11, p22, gf, rhop, rhod, &
                                    vol, area, refr, refi, rc )
@@ -790,7 +790,7 @@ include "MieQuery_xd.H"
                                       gfIn, rhopIn, rhodIn, volIn, areaIn, &
                                       refrIn, refiIn
 
-      character(len=*), parameter  :: Iam = 'QueryScalar'
+      character(len=*), parameter  :: Iam = 'QueryScalarRT'
 
       if ( present(rc) ) rc = 0
 
@@ -908,7 +908,7 @@ include "MieQuery_xd.H"
 
 !  All Done
 !----------
-  end subroutine QueryScalar
+  end subroutine QueryScalarRT
 
 ! !IROUTINE:  QueryVector --- Return Tau, SSA, etc 
 !
@@ -1030,5 +1030,5 @@ include "MieQuery_xd.H"
 
   end function get_Index
  
-end module Chem_Mie2GMod
+end module GOCART2G_MieMod
 
