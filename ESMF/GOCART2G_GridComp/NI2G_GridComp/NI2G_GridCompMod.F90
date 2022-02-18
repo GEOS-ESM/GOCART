@@ -1210,7 +1210,7 @@ contains
     wavelength = mie%getWavelength(offset+1, __RC__)
     do l = 1, nbins
        !tau is converted to bext
-       call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
+       call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
@@ -1319,7 +1319,7 @@ contains
     call c_f_pointer(address, self)
 
     do n = 1, nbins
-       call self%diag_Mie(instance)%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau)
+       call self%diag_Mie(instance)%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
        tau_s = tau_s + tau
     end do
 

@@ -30,9 +30,9 @@ include "MieQuery.H"
           real, allocatable :: momIn1(:,:,:), momIn2(:,:,:)
           allocate(momIn1(size(irh),size(this%pmom,4),size(this%pmom,5)))
           allocate(momIn2(size(irh),size(this%pmom,4),size(this%pmom,5)))
+          allocate(pmomIn(size(irh),size(this%pmom,4),size(this%pmom,5)))
           momIn1 = this%pmom(irh   ,ch,bin,:,:)
           momIn2 = this%pmom(irhp1 ,ch,bin,:,:)
-          pmomIn = momIn1 ! for allocation only
           do j = 1, size(momIn1,3)
              do i = 1, size(momIn1,2)
                 pmomIn(:,i,j)  =  momIn1(:,i,j) * (1.-arh) &

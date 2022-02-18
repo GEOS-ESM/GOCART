@@ -3323,7 +3323,7 @@ CONTAINS
    character(len=*), parameter :: myname = 'Aero_Compute_Diags'
    integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
-   real :: ilam550, ilam470, ilam870
+   integer :: ilam470, ilam870
    real, allocatable, dimension(:,:,:) :: tau, ssa
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
@@ -3354,21 +3354,18 @@ CONTAINS
 !  --------------------------
 
    ilam470 = mie%getChannel(4.70e-7)
-   if(ilam470 <= 0) ilam470 = 0.
-
-   ilam550 = mie%getChannel(5.50e-7)
-   if(ilam550 <= 0) ilam550 = 1.
+   if(ilam470 <= 0) ilam470 = 0
 
    ilam870 = mie%getChannel(8.70e-7)
-   if(ilam870 <= 0) ilam870 = 0.
+   if(ilam870 <= 0) ilam870 = 0
 
 !  Determine if going to do Angstrom parameter calculation
 !  -------------------------------------------------------
    do_angstrom = .false.
 !  If both 470 and 870 channels provided (and not the same) then
 !  possibly will do Angstrom parameter calculation
-   if(ilam470 .ne. 0. .and. &
-      ilam870 .ne. 0. .and. &
+   if(ilam470 .ne. 0 .and. &
+      ilam870 .ne. 0 .and. &
       ilam470 .ne. ilam870) do_angstrom = .true.
 
    if( present(angstrom) .and. do_angstrom ) then
@@ -3489,9 +3486,9 @@ CONTAINS
 
       do n = nbegin, nbins
         do w = 1, size(wavelengths_profile)
-          call mie%Query(wavelengths_profile(w),n, &
-                 aerosol(:,:,:,n)*delp/grav, &
-                 rh, tau=tau, ssa=ssa)
+          call mie%Query(wavelengths_profile(w),n,   &
+                         aerosol(:,:,:,n)*delp/grav, &
+                         rh, tau=tau, ssa=ssa, __RC__)
 !         Calculate the total ext. and scat. coefficients
           if ( present(extcoef) ) then
              extcoef(:,:,:,w) = extcoef(:,:,:,w) + &
@@ -3527,9 +3524,9 @@ CONTAINS
 
       do w = 1, size(wavelengths_vertint)
         do n = nbegin, nbins
-           call mie%Query(wavelengths_vertint(w), n, &
-                aerosol(:,:,:,n)*delp/grav, &
-                rh, tau=tau, ssa=ssa)
+           call mie%Query(wavelengths_vertint(w), n,  &
+                          aerosol(:,:,:,n)*delp/grav, &
+                          rh, tau=tau, ssa=ssa, __RC__)
            do k = klid, km
 !             Integrate in the vertical
               if( present(exttau) ) exttau(:,:,w) = exttau(:,:,w) + tau(:,:,k)
@@ -3596,16 +3593,16 @@ CONTAINS
       do n = nbegin, nbins
 
 !       Select the name for species
-        call mie%Query(4.70E-7, n,        &
-              aerosol(:,:,:,n)*delp/grav, &
-              rh, tau=tau)
+        call mie%Query(4.70E-7, n,                 &
+                       aerosol(:,:,:,n)*delp/grav, &
+                       rh, tau=tau, __RC__)
         do k = klid, km
           tau470 = tau470 + tau(:,:,k)
         enddo
 
-        call mie%Query(8.70E-7, n,        &
-              aerosol(:,:,:,n)*delp/grav, &
-              rh, tau=tau)
+        call mie%Query(8.70E-7, n,                 &
+                       aerosol(:,:,:,n)*delp/grav, &
+                       rh, tau=tau, __RC__)
         do k = klid, km
           tau870 = tau870 + tau(:,:,k)
         enddo
@@ -4297,7 +4294,8 @@ CONTAINS
                                                          ! W.Jiang note, changed to (i1:i2,j1:j2,km,nbins) for efficiency
    real                                  :: cutoff_bb_exttau
    integer                               :: idx
-   real                                  :: ilam550
+   integer                               :: ilam550, status
+   real                                  :: wavelength550
    real, dimension(:,:,:), allocatable   :: tau
    character(len=255)                    :: qname
    real, parameter                       :: max_bb_exttau = 30.0
@@ -4455,16 +4453,18 @@ K_LOOP_BB: do k = km, 1, -1
 !   --------------------------
 !   Must provide ilam550 for AOT calculation
     ilam550 = mie%getChannel(5.50e-7)
-    if (ilam550 <=0) ilam550 = 1.
+    if (ilam550 <=0) ilam550 = 1
+    wavelength550 = mie%getWavelength(ilam550)
+
 !  Calculate the extinction and/or scattering AOD
 
    exttau_bb_(i1:i2,j1:j2) = 0.0
    allocate(tau(i1:i2,j1:j2,km), source = 0.)
    do n = 1, nbins
 !     Select the name for species and the index
-     call mie%Query(5.50E-7, n,                 &
+     call mie%Query(wavelength550, n,           &
               qa_bb_(:,:,:,n)*delp(:,:,:)/grav, &
-              rh, tau=tau)
+              rh, tau=tau, __RC__)
      do k = 1, km
 !        Integrate in the vertical
         exttau_bb_(:,:) = exttau_bb_(:,:) + tau(:,:,k)
@@ -6753,7 +6753,7 @@ K_LOOP: do k = km, 1, -1
    integer :: i, j, k, w, i1=1, j1=1, i2, j2, status
    real, dimension(:,:,:), allocatable :: tau, ssa
    real, dimension(:,:), allocatable :: tau470, tau870
-   real    :: ilam550, ilam470, ilam870
+   integer    :: ilam470, ilam870
    logical :: do_angstrom
    real :: rh_, gf, rwet, svol
 
@@ -6768,24 +6768,20 @@ K_LOOP: do k = km, 1, -1
 
 !  Get the wavelength indices
 !  --------------------------
-!  Must provide ilam550 for AOT calculation
 
    ilam470 = mie%getChannel(4.70e-7)
-   if(ilam470 <= 0) ilam470 = 0.
-
-   ilam550 = mie%getChannel(5.50e-7)
-   if(ilam550 <= 0) ilam550 = 1.
+   if(ilam470 <= 0) ilam470 = 0
 
    ilam870 = mie%getChannel(8.70e-7)
-   if(ilam870 <= 0) ilam870 = 0.
+   if(ilam870 <= 0) ilam870 = 0
 
 !  Determine if going to do Angstrom parameter calculation
 !  -------------------------------------------------------
    do_angstrom = .false.
 !  If both 470 and 870 channels provided (and not the same) then
 !  possibly will do Angstrom parameter calculation
-   if(ilam470 .ne. 0. .and. &
-      ilam870 .ne. 0. .and. &
+   if(ilam470 .ne. 0 .and. &
+      ilam870 .ne. 0 .and. &
       ilam470 .ne. ilam870) do_angstrom = .true.
 
 
@@ -6895,8 +6891,8 @@ K_LOOP: do k = km, 1, -1
 
       do w = 1, size(wavelengths_profile)
          call mie%Query(wavelengths_profile(w), 1, & ! Only SO4 exists in the MieTable, so its index is 1
-              SO4*delp/grav, &
-              rh, tau=tau, ssa=ssa)
+                        SO4*delp/grav, rh,         &
+                        tau=tau, ssa=ssa, __RC__)
 
 !         Calculate the total ext. and scat. coefficients
          if( associated(extcoef) ) then
@@ -6920,8 +6916,8 @@ K_LOOP: do k = km, 1, -1
 
       do w = 1, size(wavelengths_vertint)
          call mie%Query(wavelengths_vertint(w), 1,  & ! Only SO4 exists in the MieTable, so its index is 1
-            SO4*delp/grav, &
-            rh, tau=tau, ssa=ssa)
+                        SO4*delp/grav, rh,          &
+                        tau=tau, ssa=ssa, __RC__)
 
          do k = klid, km
 !           Integrate in the vertical
@@ -6960,14 +6956,16 @@ K_LOOP: do k = km, 1, -1
       tau470(i1:i2,j1:j2) = tiny(1.0)
       tau870(i1:i2,j1:j2) = tiny(1.0)
 
-      call mie%Query(4.70E-7,  1, & ! Only SO4 exists in the MieTable, so its index is 1
-             SO4*delp/grav, rh, tau=tau)
+      call mie%Query(4.70E-7,  1,       & ! Only SO4 exists in the MieTable, so its index is 1
+                     SO4*delp/grav, rh, &
+                     tau=tau, __RC__)
       do k = klid, km
          tau470 = tau470 + tau(:,:,k)
       enddo
 
-      call mie%Query(8.70E-7, 1,  &
-              SO4*delp/grav,rh, tau=tau)
+      call mie%Query(8.70E-7, 1,       &
+                     SO4*delp/grav,rh, &
+                     tau=tau, __RC__)
       do k = klid, km
          tau870 = tau870 + tau(:,:,k)
       enddo
