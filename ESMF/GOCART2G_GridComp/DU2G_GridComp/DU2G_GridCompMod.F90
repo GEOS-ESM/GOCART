@@ -1178,7 +1178,6 @@ contains
     real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
     real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
     real                              :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
-    real                              :: wavelength
 
     __Iam__('DU2G::aerosol_optics::mie_')
 
@@ -1186,10 +1185,9 @@ contains
      bssa_s  = 0.0d0
      basym_s = 0.0d0
 
-     wavelength = mie%getWavelength(offset+1, __RC__)
      do l = 1, nbins
         ! tau is converted to bext
-        call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
+        call mie%Query(offset+1, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
         bext_s  = bext_s  +             bext     ! extinction
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
         basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction

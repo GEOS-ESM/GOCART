@@ -1,4 +1,3 @@
-      integer                      :: ch
       integer, allocatable, dimension(:)   :: irh, irhp1, isnap
       real, allocatable, dimension(:)      :: rh_, arh
       real, allocatable, dimension(:)      :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
@@ -8,8 +7,6 @@
       integer :: i, j
 
       if ( present(rc) ) rc = 0
-
-      ch = this%getChannel(wavelength, rc=rc)
 
 !     Now map the input RH to the high resolution hash table for RH
 
