@@ -735,6 +735,8 @@ include "MieQuery_xd.H"
        print*, "The channel of ",ith_channel, " is an invalid channel number."
        !$omp end critical
        if (present(rc)) rc = -1
+       wavelength = -1. ! meanlingless nagative
+       return
      endif
 
      wavelength = this%wavelengths(ith_channel)

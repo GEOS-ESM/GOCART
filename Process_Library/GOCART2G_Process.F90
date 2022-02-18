@@ -4454,7 +4454,7 @@ K_LOOP_BB: do k = km, 1, -1
 !   Must provide ilam550 for AOT calculation
     ilam550 = mie%getChannel(5.50e-7)
     if (ilam550 <=0) ilam550 = 1
-    wavelength550 = mie%getWavelength(ilam550)
+    wavelength550 = mie%getWavelength(ilam550, __RC__)
 
 !  Calculate the extinction and/or scattering AOD
 

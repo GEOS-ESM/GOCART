@@ -5,6 +5,8 @@
                                               gfIn, rhopIn, rhodIn, volIn, areaIn, &
                                               refrIn, refiIn, rEffIn
       real, allocatable, dimension(:,:,:) :: pmomIn
+      integer :: i, j
+
       if ( present(rc) ) rc = 0
 
       ch = this%getChannel(wavelength, rc=rc)
@@ -25,21 +27,13 @@
 include "MieQuery.H"
 
       if (present(pmom)) then
-        block
-          integer :: i, j
-          real, allocatable :: momIn1(:,:,:), momIn2(:,:,:)
-          allocate(momIn1(size(irh),size(this%pmom,4),size(this%pmom,5)))
-          allocate(momIn2(size(irh),size(this%pmom,4),size(this%pmom,5)))
-          allocate(pmomIn(size(irh),size(this%pmom,4),size(this%pmom,5)))
-          momIn1 = this%pmom(irh   ,ch,bin,:,:)
-          momIn2 = this%pmom(irhp1 ,ch,bin,:,:)
-          do j = 1, size(momIn1,3)
-             do i = 1, size(momIn1,2)
-                pmomIn(:,i,j)  =  momIn1(:,i,j) * (1.-arh) &
-                                + momIn2(:,i,j) * arh
-             enddo
-          enddo
-        end block
+         allocate(pmomIn(size(irh),size(this%pmom,4),size(this%pmom,5)))
+         do j = 1, size(this%pmom,5)
+            do i = 1, size(this%pmom,4)
+               pmomIn(:,i,j)  =  this%pmom(irh   ,ch,bin,i,j) * (1.-arh) &
+                               + this%pmom(irhp1 ,ch,bin,i,j) * arh
+            enddo
+         enddo
       endif
 
 !     Fill the requested outputs
