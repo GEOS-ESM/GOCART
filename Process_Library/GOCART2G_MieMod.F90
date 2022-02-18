@@ -542,6 +542,7 @@ CONTAINS
      character(len=*), parameter  :: Iam = 'QueryByWavelength_0d'
 
      ch = this%getChannel(wavelength, rc=rc)
+     if (ch < 0) return
 
      call this%Query ( ch, bin, q_mass, rh,                 &
                        tau, ssa, gasym, bext, bsca, bbck,   &
@@ -585,6 +586,7 @@ CONTAINS
      integer :: ch
 
      ch = this%getChannel(wavelength, rc=rc)
+     if (ch < 0) return
 
      call this%Query ( ch, bin, q_mass, rh,                 &
                        tau, ssa, gasym, bext, bsca, bbck,   &
@@ -629,6 +631,7 @@ CONTAINS
      integer :: ch
 
      ch = this%getChannel(wavelength, rc=rc)
+     if (ch < 0) return
 
      call this%Query ( ch, bin, q_mass, rh,                 &
                        tau, ssa, gasym, bext, bsca, bbck,   &
@@ -673,6 +676,7 @@ CONTAINS
      integer :: ch
 
      ch = this%getChannel(wavelength, rc=rc)
+     if (ch < 0) return
 
      call this%Query ( ch, bin, q_mass, rh,                 &
                        tau, ssa, gasym, bext, bsca, bbck,   &
@@ -901,7 +905,6 @@ include "MieQuery_xd.H"
 
 include "MieQuery_xd.H"
 
-
   end subroutine QueryByChannel_3d
 
   function getChannel(this, wavelength, rc) result (ch)
@@ -940,6 +943,7 @@ include "MieQuery_xd.H"
      integer :: i
 
      if (present(rc)) rc = 0
+
      if (ith_channel <=0 .or. ith_channel > this%nch ) then
        !$omp critical
        print*, "The channel of ",ith_channel, " is an invalid channel number."
