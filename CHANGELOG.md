@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.X.Y] - 2021-02-DD
-
 ### Fixed
 
 - Fix for layout regression failure (see Issue #103)
