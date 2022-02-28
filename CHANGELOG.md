@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix for bad entries in `DU2G_GridComp_ExtData.rc` (see Issue #109)
+
 ## [2.0.4] - 2021-02-18
 
 ### Fixed
