@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Changed the handling of state variable names in multiple instances of component (see Issue #93)
+- Major refactoring of Mie table class. (see Issue #96)
+   - Renamed Chem_MieTableMod.F90 --> Chem_Mie2GMod.F90
+   - Renamed module Chem_MieTableMod2G --> Chem_Mie2GMod
+   - Introduced object oriented design with type-bound methods
+   - renamed some components/arguments for clarity
+   - eliminated extraneous container data type that is not needed under new GOCART design.
+- Cleaned up optional keyword arguments in call to Mie calculator for aerosol
+  radiative forcing calculation; zero diff change
 
 ### Fixed
 
@@ -30,14 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Major refactoring of Mie table class.
-   - Renamed Chem_MieTableMod.F90 --> Chem_Mie2GMod.F90
-   - Renamed module Chem_MieTableMod2G --> Chem_Mie2GMod
-   - Introduced object oriented design with type-bound methods
-   - renamed some components/arguments for clarity
-   - eliminated extraneous container data type that is not needed under new GOCART design.
-- Cleaned up optional keyword arguments in call to Mie calculator for aerosol
-  radiative forcing calculation; zero diff change
 - Updated FENGSHA dust flux according to Webb et al., Aeolian Res. 42 (2020) 100560
 
 ## [2.0.2] - 2021-01-07
