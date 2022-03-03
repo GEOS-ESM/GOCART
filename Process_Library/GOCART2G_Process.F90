@@ -6627,14 +6627,14 @@ K_LOOP: do k = km, 1, -1
 
 
 !         Adjust the flux out of the bottom of the layer--remove SO2 here!
-          DMS = max(DMS,tiny(1.0))
+          DMS(i,j,k) = max(DMS(i,j,k),tiny(1.0))
           Fd(k,nDMS) = Fd(k,nDMS) - DC(nDMS)*pdog(i,j,k)
-          SO2 = max(SO2,tiny(1.0))
+          SO2(i,j,k) = max(SO2(i,j,k),tiny(1.0))
           Fd(k,nSO2) = Fd(k,nSO2) - DC(nSO2)*pdog(i,j,k)
-          SO4 = max(SO4,tiny(1.0))
+          SO4(i,j,k) = max(SO4(i,j,k),tiny(1.0))
           Fd(k,nSO4) = Fd(k,nSO4) - DC(nSO4)*pdog(i,j,k)
           if (associated(MSA)) then
-             MSA = max(MSA,tiny(1.0))
+             MSA(i,j,k) = max(MSA(i,j,k),tiny(1.0))
              Fd(k,nMSA) = Fd(k,nMSA) - DC(nMSA)*pdog(i,j,k)
           end if
         endif

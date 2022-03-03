@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Changed the handling of state variable names in multiple instances of component (see Issue #93)
+
+### Fixed
+
+- Fix for bad entries in `DU2G_GridComp_ExtData.rc` (see Issue #109)
+
+## [2.0.4] - 2021-02-18
+
+### Fixed
+
+- Fix for layout regression failure (see Issue #103)
+
 ## [2.0.3] - 2021-02-14
 
 ### Fixed
