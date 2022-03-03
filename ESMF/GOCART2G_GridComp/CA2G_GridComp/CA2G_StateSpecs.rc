@@ -84,6 +84,7 @@ category: EXPORT
  CADP*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Dry Deposition (Bin %d)
  CAWT*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Wet Deposition (Bin %d)
  CASV*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Convective Scavenging (Bin %d)
+ CACH*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Parameterized Chemical Loss (Bin %d)
  CAEMAN*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Anthropogenic Emissions     
  CAEMBB*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Biomass Burning Emissions     
  CAEMBF*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Biofuel Emissions             

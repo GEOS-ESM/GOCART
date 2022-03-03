@@ -51,6 +51,7 @@
    public hoppelCorrection
    public CAEmission
    public phobicTophilic
+   public carbonChemLoss
    public NIheterogenousChem
    public SulfateDistributeEmissions
    public DMSemission
@@ -1125,7 +1126,7 @@ CONTAINS
    integer, optional, intent(out)             :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 -
-!  Optionally output the settling velocity calculated
+!  output the settling velocity calculated
    real, pointer, optional, dimension(:,:,:)  :: vsettleOut
 
 !  Optionally correct the settling velocity following Maring et al, 2003
@@ -4756,12 +4757,13 @@ K_LOOP: do k = km, 1, -1
 !
 ! !INTERFACE:
    subroutine phobicTophilic (aerosol_phobic, aerosol_philic, aerosol_toHydrophilic, &
-                              km, cdt, grav, delp, rc)
+                              tConvPhobicToPhilic, km, cdt, grav, delp, rc)
 
 ! !USES:
    implicit NONE
 
 ! !INPUT PARAMETERS:
+   real, intent(in)      :: tConvPhobicToPhilic  ! e-folding time in days to transfer
    integer, intent(in)   :: km   ! total model level
    real, intent(in)      :: cdt  ! chemistry model time-step [sec]
    real, intent(in)      :: grav ! [m/sec^2]
@@ -4776,7 +4778,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !Local Variables
    integer :: i, j, k
-   real :: qUpdate, delq
+   real :: qUpdate, delq, ts
 
 !EOP
 !------------------------------------------------------------------------------------
@@ -4784,10 +4786,17 @@ K_LOOP: do k = km, 1, -1
 
    if(associated(aerosol_toHydrophilic)) aerosol_toHydrophilic = 0.0
 
+!  tConvPhobicToPhilic is the e-folding time (in days) of the conversion
+!  If < 0 no conversion is desired; exit the subroutine
+   if(tConvPhobicToPhilic < 0) then
+    __RETURN__(__SUCCESS__)
+   endif
+   ts = tConvPhobicToPhilic*86400.
+
    do k = 1, km
     do j = 1, ubound(delp, 2)
      do i = 1, ubound(delp, 1)
-      qUpdate = aerosol_phobic(i,j,k)*exp(-4.63e-6*cdt)
+      qUpdate = aerosol_phobic(i,j,k)*exp(-cdt/ts)
       qUpdate = max(qUpdate,1.e-32)
       delq = max(0.,aerosol_phobic(i,j,k)-qUpdate)
       aerosol_phobic(i,j,k) = qUpdate
@@ -4801,6 +4810,72 @@ K_LOOP: do k = km, 1, -1
 
    __RETURN__(__SUCCESS__)
   end subroutine phobicTophilic
+
+
+!============================================================================
+
+!BOP
+!
+! !IROUTINE: carbonChemLoss
+!
+! !INTERFACE:
+   subroutine carbonChemLoss (km, klid, n, cdt, grav, delp, &
+                              tChemLoss, int_qa, fluxout, rc)
+
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   real, intent(in)       :: tChemLoss  ! e-folding loss time [days]
+   integer, intent(in)    :: km         ! total model levels
+   integer, intent(in)    :: klid       ! index for pressure lid
+   integer, intent(in)    :: n          ! bin index number
+   real, intent(in)       :: cdt        ! time step [s]
+   real, intent(in)       :: grav       ! acceleration of gravity [m/sec^2]
+   real, dimension(:,:,:), intent(inout)          :: int_qa  ! aerosol [kg/kg]
+   real, pointer, dimension(:,:,:), intent(in)    :: delp    ! pressure level thickness [Pa]
+
+! !OUTPUT PARAMETERS:
+
+   real, pointer, dimension(:,:,:), intent(inout) :: fluxout ! Mass lost by chemistry [kg/m^2/s]
+   integer, optional, intent(out)                 :: rc      ! Error return code:
+                                                             !  0 - all is well
+                                                             !  1 -
+
+! !Local Variables
+   integer :: i, j, k
+   real :: qUpdate, delq, ts
+
+!EOP
+!------------------------------------------------------------------------------------
+!  Begin...
+
+   if(associated(fluxout)) fluxout(:,:,n) = 0.0
+
+!  tChemLoss is the e-folding time (in days) of parameterized chemistry loss
+!  If < 0 no loss is desired; exit the subroutine
+   if(tChemLoss < 0) then
+    __RETURN__(__SUCCESS__)
+   endif
+   ts = tChemLoss*86400.
+
+   do k = klid, km
+    do j = 1, ubound(delp, 2)
+     do i = 1, ubound(delp, 1)
+      qUpdate = int_qa(i,j,k)*exp(-cdt/ts)
+      qUpdate = max(qUpdate,1.e-32)
+      delq = max(0.,int_qa(i,j,k)-qUpdate)
+      int_qa(i,j,k) = qUpdate
+      if(associated(fluxout)) &
+       fluxout(i,j,n) = fluxout(i,j,n) &
+        + delq*delp(i,j,k)/grav/cdt
+
+     end do
+    end do
+   end do
+
+   __RETURN__(__SUCCESS__)
+  end subroutine carbonChemLoss
 
 
 !============================================================================
