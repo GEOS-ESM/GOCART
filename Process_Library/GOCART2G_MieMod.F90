@@ -108,9 +108,8 @@ CONTAINS
 !
 !  09Mar2005 da Silva  API, prologues.
 !
-!EOP
-!-------------------------------------------------------------------------
 
+  type(GOCART2G_Mie) function GOCART2G_MieCreate ( rcfile, wavelengths, nmom, rc ) result (this)
 
 ! !DESCRIPTION:
 !
@@ -122,9 +121,6 @@ CONTAINS
 !
 !EOP
 !-------------------------------------------------------------------------
-  function GOCART2G_MieCreate ( rcfile, wavelengths, nmom, rc ) result (this)
-     implicit none
-     type(GOCART2G_Mie) :: this
 ! !INPUT PARAMETERS:
      character(len=*), intent(in) :: rcfile  ! Mie table file name
      real, intent(in) :: wavelengths(:)
@@ -475,42 +471,42 @@ CONTAINS
 
 #define RANK_ 0
 #define BYWAVE_ 1
-#include "Querry.H"
+#include "Query.H"
 #undef BYWAVE_
 
 #define RANK_ 1
 #define BYWAVE_ 1
-#include "Querry.H"
+#include "Query.H"
 #undef BYWAVE_
 
 #define RANK_ 2
 #define BYWAVE_ 1
-#include "Querry.H"
+#include "Query.H"
 #undef BYWAVE_
 
 #define RANK_ 3
 #define BYWAVE_ 1
-#include "Querry.H"
+#include "Query.H"
 #undef BYWAVE_
 
 #define RANK_ 0
 #define BYCHANNEL_ 1
-#include "Querry.H"
+#include "Query.H"
 #undef BYCHANNEL_
 
 #define RANK_ 1
 #define BYCHANNEL_ 1
-#include "Querry.H"
+#include "Query.H"
 #undef BYCHANNEL_
 
 #define RANK_ 2
 #define BYCHANNEL_ 1
-#include "Querry.H"
+#include "Query.H"
 #undef BYCHANNEL_
 
 #define RANK_ 3
 #define BYCHANNEL_ 1
-#include "Querry.H"
+#include "Query.H"
 #undef BYCHANNEL_
 
   function getChannel(this, wavelength, rc) result (ch)

@@ -1,75 +1,4 @@
-#if (BYWAVE_ == 1)
-#define ARG_ wavelength
-#endif
-#if (BYCHANNEL_ == 1)
-#define ARG_ ch
-#endif
-
-#if (RANK_ == 0)
-
-#if (BYWAVE_ == 1)
-#define SUB_ QueryByWavelength_0d
-#endif
-
-#if (BYCHANNEL_ == 1)
-#define SUB_ QueryByChannel_0d
-#endif
-
-#define DIMENSIONS_ 
-#define PMOMDIMENSIONS_ (:,:)
-#define DECLAREDIM_ 
-#define DECLAREPMOMDIM_ ,allocatable,dimention(:,:)
-
-#endif
-
-#if (RANK_ == 1)
-
-#if (BYWAVE_ == 1)
-#define SUB_ QueryByWavelength_1d
-#endif
-
-#if (BYCHANNEL_ == 1)
-#define SUB_ QueryByChannel_1d
-#endif
-
-#define DIMENSIONS_ (:)
-#define PMOMDIMENSIONS_ (:,:,:)
-#define DECLAREDIM_ ,allocatable,dimension(:) 
-#define DECLAREPMOMDIM_ ,allocatable,dimention(:,:,:)
-
-#endif
-
-#if (RANK_ == 2)
-
-#if (BYWAVE_ == 1)
-#define SUB_ QueryByWavelength_2d
-#endif
-
-#if (BYCHANNEL_ == 1)
-#define SUB_ QueryByChannel_2d
-#endif
-
-#define DIMENSIONS_ (:,:)
-#define PMOMDIMENSIONS_ (:,:,:,:)
-#define DECLAREDIM_ ,allocatable,dimension(:) 
-#define DECLAREPMOMDIM_ ,allocatable,dimention(:,:,:)
-#endif
-
-#if (RANK_ == 3)
-
-#if (BYWAVE_ == 1)
-#define SUB_ QueryByWavelength_3d
-#endif
-
-#if (BYCHANNEL_ == 1)
-#define SUB_ QueryByChannel_3d
-#endif
-
-#define DIMENSIONS_ (:,:)
-#define PMOMDIMENSIONS_ (:,:,:,:)
-#define DECLAREDIM_ ,allocatable,dimension(:) 
-#define DECLAREPMOMDIM_ ,allocatable,dimention(:,:,:)
-#endif
+#include "overload.macro"
 
  subroutine SUB_ ( this, ARG_ , bin, q_mass, rh,   &
                    tau, ssa, gasym, bext, bsca, bbck,   &
@@ -117,12 +46,12 @@
      integer                        :: ch
 #endif
 
-     integer  DECLAREDIM_           :: irh, irhp1, isnap
-     real     DECLAREDIM_           :: rh_, arh
-     real     DECLAREDIM_           :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
+     integer, allocatable, dimension(:)       :: irh, irhp1, isnap
+     real, allocatable, dimension(:)          :: rh_, arh
+     real, allocatable, dimension(:)          :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
                                        gfIn, rhopIn, rhodIn, volIn, areaIn, &
-                                       refrIn, refiIn, rEffIn
-     real  DECLAREPMOMDIM_          :: pmomIn
+                                       refrIn, refiIn, rEffIn, ssa_tmp
+     real, allocatable, dimension(:,:,:)      :: pmomIn
      integer :: i, j
 
      character(len=*), parameter  :: Iam = 'SUB_'
@@ -131,28 +60,24 @@
 
 #if (BYWAVE_ == 1)
     ch = this%getChannel(wavelength, rc=rc)
-    if (present(rc))
+    if (present(rc)) then
       if (rc /=0) return 
     endif
 #endif
 
 #if (RANK_ == 0)
-      rh_ = max(min(rh,0.99),0.)
-      isnap = int((rh_+0.001)*1000.)
-      where(isnap .lt. 1) isnap = 1
-      arh   = this%rha( isnap )
-      irh   = this%rhi( isnap )
-      irhp1 = irh+1
-      if(irhp1 .gt. this%nrh) irhp1 = this%nrh
+      allocate(rh_(1))
+      rh_(1) = max(min(rh,0.99),0.)
 #else
       rh_ = reshape(max(min(rh,0.99),0.), [product(shape(rh))])
+#endif 
+
       isnap = int((rh_+0.001)*1000.)
       where(isnap .lt. 1) isnap = 1
       arh   = this%rha( isnap )
       irh   = this%rhi( isnap )
       irhp1 = irh+1
       where(irhp1 .gt. this%nrh) irhp1 = this%nrh
-#endif 
 
       if(present(bext) .or. present(tau) .or. present(ssa) ) then
          bextIn =   this%bext(irh  ,ch,bin) * (1.-arh) &
@@ -217,14 +142,9 @@
          refiIn =   this%refi(irh  ,ch,bin) * (1.-arh) &
                   + this%refi(irhp1,ch,bin) * arh
       endif
-#if (RANK_ == 0)
+
       if (present(pmom)) then
-        pmomIn  = this%pmom(irh  ,ch, bin,:,:) * (1.-arh) &
-                + this%pmom(irhp1,ch, bin,:,:) * arh
-      endif
-#else
-      if (present(pmom)) then
-         allocate(pmomIn(size(irh),size(this%pmom,4),size(this%pmom,5)))
+         allocate(pmomIn(product(shape(irh)),size(this%pmom,4),size(this%pmom,5)))
          do j = 1, size(this%pmom,5)
             do i = 1, size(this%pmom,4)
                pmomIn(:,i,j)  =  this%pmom(irh   ,ch,bin,i,j) * (1.-arh) &
@@ -232,46 +152,27 @@
             enddo
          enddo
       endif
-#endif
 
-#if (RANK_ == 0)
-
-     if(present(tau  )) tau   = bextIn * q_mass
-     if(present(ssa  )) ssa   = bscaIn/bextIn
-     if(present(bext )) bext  = bextIn
-     if(present(bsca )) bsca  = bscaIn
-     if(present(bbck )) bbck  = bbckIn
-     if(present(gasym)) gasym = gasymIn
-     if(present(rEff )) rEff  = 1.E6*rEffIn
-     if(present(pmom )) pmom  = pmomIn
-     if(present(p11  )) p11   = p11In
-     if(present(p22  )) p22   = p22In
-     if(present(gf   )) gf    = gfIn
-     if(present(rhop )) rhop  = rhopIn
-     if(present(rhod )) rhod  = rhodIn
-     if(present(vol ))  vol   = volIn
-     if(present(area )) area  = areaIn
-     if(present(refr )) refr  = refrIn
-     if(present(refi )) refi  = refiIn
-#else
-     if(present(tau  )) tau   = reshape(bextIn,shape(q_mass)) * q_mass
-     if(present(ssa  )) ssa   = reshape(bscaIn/bextIn,shape(q_mass))
-     if(present(bext )) bext  = reshape(bextIn,shape(q_mass))
-     if(present(bsca )) bsca  = reshape(bscaIn,shape(q_mass))
-     if(present(bbck )) bbck  = reshape(bbckIn,shape(q_mass))
-     if(present(gasym)) gasym = reshape(gasymIn,shape(q_mass))
-     if(present(rEff )) rEff  = reshape(1.E6*rEffIn,shape(q_mass)) ! convert to microns
-     if(present(pmom )) pmom  = reshape(pmomIn, [shape(q_mass),size(pmomIn,2),size(pmomIn,3)])
-     if(present(p11  )) p11   = reshape(p11In,shape(q_mass))
-     if(present(p22  )) p22   = reshape(p22In, shape(q_mass))
-     if(present(gf   )) gf    = reshape(gfIn, shape(q_mass))
-     if(present(rhop )) rhop  = reshape(rhopIn, shape(q_mass))
-     if(present(rhod )) rhod  = reshape(rhodIn, shape(q_mass))
-     if(present(vol ))  vol   = reshape(volIn, shape(q_mass))
-     if(present(area )) area  = reshape(areaIn, shape(q_mass))
-     if(present(refr )) refr  = reshape(refrIn, shape(q_mass))
-     if(present(refi )) refi  = reshape(refiIn,shape(q_mass))
-#endif
+     if(present(tau  )) tau   = RESHAPE_(bextIn,q_mass) * q_mass
+     if(present(ssa  )) then
+       ssa_tmp   = bscaIn/bextIn
+       ssa       = RESHAPE_(ssa_tmp,q_mass)
+     endif
+     if(present(bext )) bext  = RESHAPE_(bextIn,q_mass)
+     if(present(bsca )) bsca  = RESHAPE_(bscaIn,q_mass)
+     if(present(bbck )) bbck  = RESHAPE_(bbckIn,q_mass)
+     if(present(gasym)) gasym = RESHAPE_(gasymIn,q_mass)
+     if(present(rEff )) rEff  = RESHAPE_(1.E6*rEffIn,q_mass) ! convert to microns
+     if(present(pmom )) pmom  = PMOMRESHAPE_(pmomIn, pmom)
+     if(present(p11  )) p11   = RESHAPE_(p11In,q_mass)
+     if(present(p22  )) p22   = RESHAPE_(p22In,q_mass)
+     if(present(gf   )) gf    = RESHAPE_(gfIn, q_mass)
+     if(present(rhop )) rhop  = RESHAPE_(rhopIn, q_mass)
+     if(present(rhod )) rhod  = RESHAPE_(rhodIn, q_mass)
+     if(present(vol ))  vol   = RESHAPE_(volIn, q_mass)
+     if(present(area )) area  = RESHAPE_(areaIn, q_mass)
+     if(present(refr )) refr  = RESHAPE_(refrIn, q_mass)
+     if(present(refi )) refi  = RESHAPE_(refiIn,q_mass)
 
   end subroutine SUB_
 
