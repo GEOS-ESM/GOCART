@@ -421,7 +421,7 @@ CONTAINS
      subroutine polint(x,y,n,xWant,yWant,yErr)
        integer :: n
        !  recall, table hard-wired single precision
-       real*8 :: x(n),y(n)
+       real   :: x(n),y(n)
        real   :: xWant, yWant, yErr
 
        !  given array x(n) of independent variables and array y(n) of dependent
@@ -470,45 +470,51 @@ CONTAINS
 
    end function GOCART2G_MieCreate
    
+!
+! QueryByWave subroutines
+!
+#define BYWAVE_ 
 
 #define RANK_ 0
-#define BYWAVE_ 1
-#include "Query.H"
-#undef BYWAVE_
+#include "MieQuery.H"
+#undef RANK_
 
 #define RANK_ 1
-#define BYWAVE_ 1
-#include "Query.H"
-#undef BYWAVE_
+#include "MieQuery.H"
+#undef RANK_
 
 #define RANK_ 2
-#define BYWAVE_ 1
-#include "Query.H"
-#undef BYWAVE_
+#include "MieQuery.H"
+#undef RANK_
 
 #define RANK_ 3
-#define BYWAVE_ 1
-#include "Query.H"
+#include "MieQuery.H"
+#undef RANK_
+
 #undef BYWAVE_
+
+!
+! QueryByChannel subroutines
+!
+
+#define BYCHANNEL_ 
 
 #define RANK_ 0
-#define BYCHANNEL_ 1
-#include "Query.H"
-#undef BYCHANNEL_
+#include "MieQuery.H"
+#undef RANK_
 
 #define RANK_ 1
-#define BYCHANNEL_ 1
-#include "Query.H"
-#undef BYCHANNEL_
+#include "MieQuery.H"
+#undef RANK_
 
 #define RANK_ 2
-#define BYCHANNEL_ 1
-#include "Query.H"
-#undef BYCHANNEL_
+#include "MieQuery.H"
+#undef RANK_
 
 #define RANK_ 3
-#define BYCHANNEL_ 1
-#include "Query.H"
+#include "MieQuery.H"
+#undef RANK_
+
 #undef BYCHANNEL_
 
   integer function getChannel(this, wavelength, rc) result (ch)

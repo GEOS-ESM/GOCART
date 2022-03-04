@@ -1,11 +1,4 @@
-#if (BYWAVE_ == 1)
-#  define ARG_ wavelength
-#endif
-
-#if (BYCHANNEL_ == 1)
-#  define ARG_ ch
-#endif
-
+#define IDENTITY_(a) a
 #define PMOMRESHAPE_(a,b) reshape(a,shape(b))
 #if (RANK_ == 0)
 #  define RESHAPE_(a,b) a(1)
@@ -13,46 +6,36 @@
 #  define RESHAPE_(a,b) reshape(a,shape(b))
 #endif
 
+#if defined(BYWAVE_)
+#  define BASE_NAME_ Wavelength
+#  define ARG_ wavelength
+#endif
+
+#if defined(BYCHANNEL_)
+#  define BASE_NAME_ Channel
+#  define ARG_ ch
+#endif
+
 #if (RANK_ == 0)
-#  if (BYWAVE_ == 1)
-#    define SUB_ QueryByWavelength_0d
-#  endif
-#  if (BYCHANNEL_ == 1)
-#    define SUB_ QueryByChannel_0d
-#  endif
+#  define SUFIX_ _0d
 #  define DIMENSIONS_ 
 #  define PMOMDIMENSIONS_ (:,:)
 #endif
-
 #if (RANK_ == 1)
-#  if (BYWAVE_ == 1)
-#    define SUB_ QueryByWavelength_1d
-#  endif
-#  if (BYCHANNEL_ == 1)
-#    define SUB_ QueryByChannel_1d
-#  endif
-#  define DIMENSIONS_ (:)
+#  define SUFIX_ _1d
+#  define DIMENSIONS_ (:) 
 #  define PMOMDIMENSIONS_ (:,:,:)
 #endif
-
 #if (RANK_ == 2)
-#  if (BYWAVE_ == 1)
-#    define SUB_ QueryByWavelength_2d
-#  endif
-#  if (BYCHANNEL_ == 1)
-#    define SUB_ QueryByChannel_2d
-#  endif
-#  define DIMENSIONS_ (:,:)
+#  define SUFIX_ _2d
+#  define DIMENSIONS_ (:,:) 
 #  define PMOMDIMENSIONS_ (:,:,:,:)
 #endif
-
 #if (RANK_ == 3)
-#  if (BYWAVE_ == 1)
-#    define SUB_ QueryByWavelength_3d
-#  endif
-#  if (BYCHANNEL_ == 1)
-#    define SUB_ QueryByChannel_3d
-#  endif
-#  define DIMENSIONS_ (:,:,:)
+#  define SUFIX_ _3d
+#  define DIMENSIONS_ (:,:,:) 
 #  define PMOMDIMENSIONS_ (:,:,:,:,:)
 #endif
+
+#define SUB_ IDENTITY_(QueryBy)IDENTITY_(BASE_NAME_)IDENTITY_(SUFIX_)
+

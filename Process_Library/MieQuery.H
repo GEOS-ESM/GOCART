@@ -17,10 +17,10 @@
 ! !INPUT PARAMETERS:
 
      class (GOCART2G_Mie),   intent(in ) :: this
-#if (BYWAVE_ ==1)
+#if defined(BYWAVE_)
      real,                   intent(in ) :: wavelength ! wave length [m] 
 #endif
-#if (BYCHANNEL_ ==1)
+#if defined(BYCHANNEL_)
      integer,                intent(in ) :: ch         ! wave length [m] 
 #endif
      integer,                intent(in ) :: bin        ! bin number
@@ -66,7 +66,7 @@
 !-------------------------------------------------------------------------
 
      integer                        :: status
-#if (BYWAVE_ == 1)
+#if defined(BYWAVE_)
      integer                        :: ch
 #endif
 
@@ -82,7 +82,7 @@
 
      if ( present(rc) ) rc = 0
 
-#if (BYWAVE_ == 1)
+#if defined(BYWAVE_)
     ch = this%getChannel(wavelength, rc=rc)
     if (present(rc)) then
       if (rc /=0) return 
@@ -194,6 +194,4 @@
 
   end subroutine SUB_
 
-#undef RANK_
-#undef BYWAVE_
-#undef BYCHANNEL_
+#include "undef_overload.macro"
