@@ -111,6 +111,16 @@ CONTAINS
 
   type(GOCART2G_Mie) function GOCART2G_MieCreate ( rcfile, wavelengths, nmom, rc ) result (this)
 
+! !INPUT PARAMETERS:
+
+     character(len=*), intent(in) :: rcfile  ! Mie table file name
+     real, intent(in) :: wavelengths(:)
+     integer, optional, intent(in) :: nmom
+
+! !OUTPUT PARAMETERS:
+
+     integer, intent(out) ::  rc          ! Error return code:
+                                          !  0 - all is well
 ! !DESCRIPTION:
 !
 !   Fills in the Mie table
@@ -121,20 +131,12 @@ CONTAINS
 !
 !EOP
 !-------------------------------------------------------------------------
-! !INPUT PARAMETERS:
-     character(len=*), intent(in) :: rcfile  ! Mie table file name
-     real, intent(in) :: wavelengths(:)
-     integer, optional, intent(in) :: nmom
-! !OUTPUT PARAMETERS:
-     integer, intent(out) ::  rc          ! Error return code:
-                                          !  0 - all is well
-! ! local
      character(len=*), parameter ::  myname = 'GOCART2G_MieCreate'
      integer :: nch
      integer :: ncid, idimid, ivarid, n, i, j, ip1
      integer :: nch_table, nrh_table, nbin_table, nmom_table, nPol_table
 !    Tables are hard-wired as single precision
-     real*8, allocatable :: channels_table(:),    rh_table(:), reff_table(:,:),    &
+     real, allocatable ::   channels_table(:),    rh_table(:), reff_table(:,:),    &
                             bext_table(:,:,:),    bsca_table(:,:,:),               &
                             bbck_table(:,:,:),    g_table(:,:,:),                  &
                             pmom_table(:,:,:,:,:),pback_table(:,:,:,:),            &
@@ -509,8 +511,7 @@ CONTAINS
 #include "Query.H"
 #undef BYCHANNEL_
 
-  function getChannel(this, wavelength, rc) result (ch)
-     integer :: ch
+  integer function getChannel(this, wavelength, rc) result (ch)
      class (GOCART2G_Mie), intent(in) :: this
      real, intent(in) :: wavelength
      integer, optional, intent(out) :: rc
@@ -536,8 +537,7 @@ CONTAINS
 
   end function getChannel
 
-  function getWavelength(this, ith_channel, rc) result (wavelength)
-     real :: wavelength
+  real function getWavelength(this, ith_channel, rc) result (wavelength)
      class (GOCART2G_Mie), intent(in) :: this
      integer, intent(in) :: ith_channel
      integer, optional, intent(out) :: rc

@@ -1,70 +1,58 @@
 #if (BYWAVE_ == 1)
-#define ARG_ wavelength
-#endif
-#if (BYCHANNEL_ == 1)
-#define ARG_ ch
+#  define ARG_ wavelength
 #endif
 
-#define RESHAPE_(a,b) reshape(a,shape(b))
+#if (BYCHANNEL_ == 1)
+#  define ARG_ ch
+#endif
+
 #define PMOMRESHAPE_(a,b) reshape(a,shape(b))
+#if (RANK_ == 0)
+#  define RESHAPE_(a,b) a(1)
+#else
+#  define RESHAPE_(a,b) reshape(a,shape(b))
+#endif
 
 #if (RANK_ == 0)
-
-#undef RESHAPE_
-#define RESHAPE_(a,b) a(1)
-
-#if (BYWAVE_ == 1)
-#define SUB_ QueryByWavelength_0d
-#endif
-
-#if (BYCHANNEL_ == 1)
-#define SUB_ QueryByChannel_0d
-#endif
-
-#define DIMENSIONS_ 
-#define PMOMDIMENSIONS_ (:,:)
-
+#  if (BYWAVE_ == 1)
+#    define SUB_ QueryByWavelength_0d
+#  endif
+#  if (BYCHANNEL_ == 1)
+#    define SUB_ QueryByChannel_0d
+#  endif
+#  define DIMENSIONS_ 
+#  define PMOMDIMENSIONS_ (:,:)
 #endif
 
 #if (RANK_ == 1)
-
-#if (BYWAVE_ == 1)
-#define SUB_ QueryByWavelength_1d
+#  if (BYWAVE_ == 1)
+#    define SUB_ QueryByWavelength_1d
+#  endif
+#  if (BYCHANNEL_ == 1)
+#    define SUB_ QueryByChannel_1d
+#  endif
+#  define DIMENSIONS_ (:)
+#  define PMOMDIMENSIONS_ (:,:,:)
 #endif
 
-#if (BYCHANNEL_ == 1)
-#define SUB_ QueryByChannel_1d
-#endif
-
-#define DIMENSIONS_ (:)
-#define PMOMDIMENSIONS_ (:,:,:)
-
-#endif
 #if (RANK_ == 2)
-
-#if (BYWAVE_ == 1)
-#define SUB_ QueryByWavelength_2d
-#endif
-
-#if (BYCHANNEL_ == 1)
-#define SUB_ QueryByChannel_2d
-#endif
-
-#define DIMENSIONS_ (:,:)
-#define PMOMDIMENSIONS_ (:,:,:,:)
+#  if (BYWAVE_ == 1)
+#    define SUB_ QueryByWavelength_2d
+#  endif
+#  if (BYCHANNEL_ == 1)
+#    define SUB_ QueryByChannel_2d
+#  endif
+#  define DIMENSIONS_ (:,:)
+#  define PMOMDIMENSIONS_ (:,:,:,:)
 #endif
 
 #if (RANK_ == 3)
-
-#if (BYWAVE_ == 1)
-#define SUB_ QueryByWavelength_3d
-#endif
-
-#if (BYCHANNEL_ == 1)
-#define SUB_ QueryByChannel_3d
-#endif
-
-#define DIMENSIONS_ (:,:,:)
-#define PMOMDIMENSIONS_ (:,:,:,:,:)
-
+#  if (BYWAVE_ == 1)
+#    define SUB_ QueryByWavelength_3d
+#  endif
+#  if (BYCHANNEL_ == 1)
+#    define SUB_ QueryByChannel_3d
+#  endif
+#  define DIMENSIONS_ (:,:,:)
+#  define PMOMDIMENSIONS_ (:,:,:,:,:)
 #endif
