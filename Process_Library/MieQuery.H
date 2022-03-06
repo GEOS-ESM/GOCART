@@ -181,7 +181,7 @@
     if(present(bbck )) bbck  = RESHAPE_(bbckIn,q_mass)
     if(present(gasym)) gasym = RESHAPE_(gasymIn,q_mass)
     if(present(rEff )) rEff  = RESHAPE_(1.E6*rEffIn,q_mass) ! convert to microns
-    if(present(pmom )) pmom  = PMOMRESHAPE_(pmomIn, pmom)
+    if(present(pmom )) pmom  = reshape(pmomIn, shape(pmom))
     if(present(p11  )) p11   = RESHAPE_(p11In,q_mass)
     if(present(p22  )) p22   = RESHAPE_(p22In,q_mass)
     if(present(gf   )) gf    = RESHAPE_(gfIn, q_mass)

@@ -1,5 +1,4 @@
 #define IDENTITY_(a) a
-#define PMOMRESHAPE_(a,b) reshape(a,shape(b))
 #if (RANK_ == 0)
 #  define RESHAPE_(a,b) a(1)
 #else

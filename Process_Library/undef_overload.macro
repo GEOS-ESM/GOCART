@@ -5,5 +5,4 @@
 #undef ARG_
 #undef BASE_NAME_
 #undef RESHAPE_
-#undef PMOMRESHAPE_ 
 #undef IDENTITY_
