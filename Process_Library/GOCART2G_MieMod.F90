@@ -80,8 +80,14 @@ module GOCART2G_MieMod
       procedure :: QueryByChannel_1d
       procedure :: QueryByChannel_2d
       procedure :: QueryByChannel_3d
-      generic   :: Query => QueryByWavelength_0d, QueryByWavelength_1d, QueryByWavelength_2d, QueryByWavelength_3d, &
-                            QueryByChannel_0d, QueryByChannel_1d, QueryByChannel_2d, QueryByChannel_3d
+      generic   :: Query => QueryByWavelength_0d, &
+                            QueryByWavelength_1d, &
+                            QueryByWavelength_2d, &
+                            QueryByWavelength_3d, &
+                            QueryByChannel_0d,    &
+                            QueryByChannel_1d,    &
+                            QueryByChannel_2d,    &
+                            QueryByChannel_3d
       procedure :: getChannel
       procedure :: getWavelength
       
