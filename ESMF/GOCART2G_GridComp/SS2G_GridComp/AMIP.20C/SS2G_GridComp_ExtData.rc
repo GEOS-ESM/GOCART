@@ -1,0 +1,44 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+
+# SS.data - 3D
+climss001           'kg kg-1'            Y        N               0              0.0      1.0     ss001      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climss002           'kg kg-1'            Y        N               0              0.0      1.0     ss002      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climss003           'kg kg-1'            Y        N               0              0.0      1.0     ss003      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climss004           'kg kg-1'            Y        N               0              0.0      1.0     ss004      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climss005           'kg kg-1'            Y        N               0              0.0      1.0     ss005      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+
+
+# SS.data - 2D
+
+
+climSSDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV003         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV004         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSSDP005         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSDP005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSWT005         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSWT005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSD005         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSD005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSSSV005         'kg m-2 s-1'         Y        N               0              0.0      1.0     SSSV005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+%%
+

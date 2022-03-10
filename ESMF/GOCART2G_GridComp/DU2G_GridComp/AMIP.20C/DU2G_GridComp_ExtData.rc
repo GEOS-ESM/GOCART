@@ -1,0 +1,52 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+DU_SRC        NA  N Y - none none du_src     ExtData/chemistry/DUST/v0.0.0/sfc/gocart.dust_source.v5a.x1152_y721.nc
+#DU_SRC       NA  N Y - 0.0  2.0  du_src     ExtData/chemistry/DUST/v0.0.0/sfc/australia.k14_dust_source.v5a.x1152_y721.nc
+DU_CLAY       NA  N Y - none none clay       ExtData/chemistry/DUST/v0.0.0/sfc/_gldas-fao.soil_texture.x1152_y721_t1.nc4
+DU_SILT       NA  N Y - none none silt       ExtData/chemistry/DUST/v0.0.0/sfc/_gldas-fao.soil_texture.x1152_y721_t1.nc4
+DU_SAND       NA  N Y - none none sand       ExtData/chemistry/DUST/v0.0.0/sfc/_gldas-fao.soil_texture.x1152_y721_t1.nc4
+DU_TEXTURE    NA  N V - none none texture    ExtData/chemistry/DUST/v0.0.0/sfc/_gldas-fao.soil_category.x1152_y721_t1.nc4
+DU_VEG        NA  N V - none none domveg     ExtData/chemistry/DUST/v0.0.0/sfc/veg20.x1152_y721_t1.nc4
+DU_Z0         NA  N Y - none none roughness  ExtData/chemistry/DUST/v0.0.0/sfc/arlems-roughness.x1151_y720_t1.nc4
+
+DU_GVF        NA  N Y %y4-%m2-%d2t12:00:00 none none gvf  ExtData/chemistry/NDVI/v1.0.r3/sfc/qvi.006.%y4.nc4
+
+# DU data - 3D
+climdu001           'kg kg-1'            Y        N               0              0.0      1.0     du001      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu002           'kg kg-1'            Y        N               0              0.0      1.0     du002      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu003           'kg kg-1'            Y        N               0              0.0      1.0     du003      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu004           'kg kg-1'            Y        N               0              0.0      1.0     du004      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu005           'kg kg-1'            Y        N               0              0.0      1.0     du005      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+
+# DU data - 2D
+climDUDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climDUDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climDUDP003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climDUDP004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climDUDP005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUWT005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSD005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUSV005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+%%
+
+
