@@ -2,8 +2,7 @@ esma_set_this ()
 
 esma_add_library (${this}
   SRCS ${this}Mod.F90
-  DEPENDENCIES Chem_Shared Chem_Base GMAO_mpeu MAPL_cfio_r4)
-target_include_directories (${this} PUBLIC ${INC_ESMF} ${INC_NETCDF})
+  DEPENDENCIES Chem_Shared Chem_Base GMAO_mpeu MAPL_cfio_r4 esmf NetCDF::NetCDF_Fortran)
 
 esma_generate_gocart_code (${this} "-B\;-E\;-F\;-N\;GOCART")
 
