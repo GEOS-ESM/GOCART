@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Updates to support Spack
+
 ### Fixed
 
 - Fix for bad entries in `DU2G_GridComp_ExtData.rc` (see Issue #109)
