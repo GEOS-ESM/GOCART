@@ -53,19 +53,19 @@ module GOCART2G_MieMod
       real, allocatable  :: wavelengths(:)  ! (c) wavelengths [m]
       real, allocatable  :: rh(:)           ! (r) RH values   [fraction]
       real, allocatable  :: reff(:,:)       ! (r,b) effective radius [m]
-      real, allocatable  :: bext(:,:,:)     ! (c,r,b) bext values [m2 kg-1]
-      real, allocatable  :: bsca(:,:,:)     ! (c,r,b) bsca values [m2 kg-1]
-      real, allocatable  :: bbck(:,:,:)     ! (c,r,b) bbck values [m2 kg-1]
-      real, allocatable  :: g(:,:,:)        ! (c,r,b) asymmetry parameter
-      real, allocatable  :: pback(:,:,:,:)  ! (c,r,b,p) Backscatter phase function
-      real, allocatable  :: pmom(:,:,:,:,:) ! (c,r,b,m,p) moments of phase function
+      real, allocatable  :: bext(:,:,:)     ! (r,c,b) bext values [m2 kg-1]
+      real, allocatable  :: bsca(:,:,:)     ! (r,c,b) bsca values [m2 kg-1]
+      real, allocatable  :: bbck(:,:,:)     ! (r,c,b) bbck values [m2 kg-1]
+      real, allocatable  :: g(:,:,:)        ! (r,c,b) asymmetry parameter
+      real, allocatable  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
+      real, allocatable  :: pmom(:,:,:,:,:) ! (r,c,b,m,p) moments of phase function
       real, allocatable  :: gf(:,:)         ! (r,b) hygroscopic growth factor
       real, allocatable  :: rhop(:,:)       ! (r,b) wet particle density [kg m-3]
       real, allocatable  :: rhod(:,:)       ! (r,b) wet particle density [kg m-3]
       real, allocatable  :: vol(:,:)        ! (r,b) wet particle volume [m3 kg-1]
       real, allocatable  :: area(:,:)       ! (r,b) wet particle cross section [m2 kg-1]
-      real, allocatable  :: refr(:,:,:)     ! (c,r,b) real part of refractive index
-      real, allocatable  :: refi(:,:,:)     ! (c,r,b) imaginary part of refractive index
+      real, allocatable  :: refr(:,:,:)     ! (r,c,b) real part of refractive index
+      real, allocatable  :: refi(:,:,:)     ! (r,c,b) imaginary part of refractive index
 
       integer            :: rhi(NRH_BINS)   ! pointer to rh LUT
       real               :: rha(NRH_BINS)   ! slope on rh LUT
