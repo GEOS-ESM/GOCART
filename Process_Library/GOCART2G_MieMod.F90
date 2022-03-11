@@ -72,19 +72,15 @@ module GOCART2G_MieMod
       
    CONTAINS
       
-      procedure :: QueryByWavelength_0d
       procedure :: QueryByWavelength_1d
       procedure :: QueryByWavelength_2d
       procedure :: QueryByWavelength_3d
-      procedure :: QueryByChannel_0d
       procedure :: QueryByChannel_1d
       procedure :: QueryByChannel_2d
       procedure :: QueryByChannel_3d
-      generic   :: Query => QueryByWavelength_0d, &
-                            QueryByWavelength_1d, &
+      generic   :: Query => QueryByWavelength_1d, &
                             QueryByWavelength_2d, &
                             QueryByWavelength_3d, &
-                            QueryByChannel_0d,    &
                             QueryByChannel_1d,    &
                             QueryByChannel_2d,    &
                             QueryByChannel_3d
@@ -481,10 +477,6 @@ CONTAINS
 !
 #define BYWAVE_ 
 
-#define RANK_ 0
-#include "MieQuery.H"
-#undef RANK_
-
 #define RANK_ 1
 #include "MieQuery.H"
 #undef RANK_
@@ -504,10 +496,6 @@ CONTAINS
 !
 
 #define BYCHANNEL_ 
-
-#define RANK_ 0
-#include "MieQuery.H"
-#undef RANK_
 
 #define RANK_ 1
 #include "MieQuery.H"
@@ -570,6 +558,5 @@ CONTAINS
      wavelength = this%wavelengths(ith_channel)
 
   end function getWavelength
- 
-end module GOCART2G_MieMod
 
+end module GOCART2G_MieMod

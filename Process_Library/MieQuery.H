@@ -21,31 +21,31 @@
      real,                   intent(in ) :: wavelength ! wave length [m] 
 #endif
 #if defined(BYCHANNEL_)
-     integer,                intent(in ) :: ch         ! wave length [m] 
+     integer,                intent(in ) :: channel    ! wave length [m] 
 #endif
      integer,                intent(in ) :: bin        ! bin number
-     real,                   intent(in ) :: q_mass DIMENSIONS_      ! aerosol mass [kg/m2],
-     real,                   intent(in ) :: rh     DIMENSIONS_      ! relative himidity
+     real,                   intent(in ) :: q_mass(__DIMS__)      ! aerosol mass [kg/m2],
+     real,                   intent(in ) :: rh    (__DIMS__)      ! relative himidity
 
 ! !OUTPUT PARAMETERS:
 
-     real,    optional,      intent(out) :: tau    DIMENSIONS_      ! aerol extinction optical depth
-     real,    optional,      intent(out) :: ssa    DIMENSIONS_      ! single scattering albedo
-     real,    optional,      intent(out) :: gasym  DIMENSIONS_      ! asymmetry parameter
-     real,    optional,      intent(out) :: bext   DIMENSIONS_      ! mass extinction efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bsca   DIMENSIONS_      ! mass scattering efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: bbck   DIMENSIONS_      ! mass backscatter efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: reff   DIMENSIONS_      ! effective radius (micron)
-     real,    optional,      intent(out) :: pmom   PMOMDIMENSIONS_  ! moments of phase function 
-     real,    optional,      intent(out) :: p11    DIMENSIONS_      ! P11 phase function at backscatter
-     real,    optional,      intent(out) :: p22    DIMENSIONS_      ! P22 phase function at backscatter
-     real,    optional,      intent(out) :: gf     DIMENSIONS_      ! Growth factor (ratio of wet to dry radius)
-     real,    optional,      intent(out) :: rhop   DIMENSIONS_      ! Wet particle density [kg m-3]
-     real,    optional,      intent(out) :: rhod   DIMENSIONS_      ! Dry particle density [kg m-3]
-     real,    optional,      intent(out) :: vol    DIMENSIONS_      ! Wet particle volume [m3 kg-1]
-     real,    optional,      intent(out) :: area   DIMENSIONS_      ! Wet particle cross section [m2 kg-1]
-     real,    optional,      intent(out) :: refr   DIMENSIONS_      ! Wet particle real part of ref. index
-     real,    optional,      intent(out) :: refi   DIMENSIONS_      ! Wet particle imag. part of ref. index
+     real,    optional,      intent(out) :: tau    (__DIMS__)      ! aerol extinction optical depth
+     real,    optional,      intent(out) :: ssa    (__DIMS__)      ! single scattering albedo
+     real,    optional,      intent(out) :: gasym  (__DIMS__)      ! asymmetry parameter
+     real,    optional,      intent(out) :: bext   (__DIMS__)      ! mass extinction efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bsca   (__DIMS__)      ! mass scattering efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: bbck   (__DIMS__)      ! mass backscatter efficiency [m2 (kg dry mass)-1]
+     real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (micron)
+     real,    optional,      intent(out) :: pmom   (__DIMS__,:,:)  ! moments of phase function 
+     real,    optional,      intent(out) :: p11    (__DIMS__)      ! P11 phase function at backscatter
+     real,    optional,      intent(out) :: p22    (__DIMS__)      ! P22 phase function at backscatter
+     real,    optional,      intent(out) :: gf     (__DIMS__)      ! Growth factor (ratio of wet to dry radius)
+     real,    optional,      intent(out) :: rhop   (__DIMS__)      ! Wet particle density [kg m-3]
+     real,    optional,      intent(out) :: rhod   (__DIMS__)      ! Dry particle density [kg m-3]
+     real,    optional,      intent(out) :: vol    (__DIMS__)      ! Wet particle volume [m3 kg-1]
+     real,    optional,      intent(out) :: area   (__DIMS__)      ! Wet particle cross section [m2 kg-1]
+     real,    optional,      intent(out) :: refr   (__DIMS__)      ! Wet particle real part of ref. index
+     real,    optional,      intent(out) :: refi   (__DIMS__)      ! Wet particle imag. part of ref. index
      integer, optional,      intent(out) :: rc                      ! error code
 
 ! !DESCRIPTION:
@@ -67,15 +67,13 @@
 
      integer                        :: status
 #if defined(BYWAVE_)
-     integer                        :: ch
+     integer                        :: channel
 #endif
 
-     integer, allocatable, dimension(:)       :: irh, irhp1, isnap
+     integer, allocatable, dimension(:)       :: irh, qrh
      real, allocatable, dimension(:)          :: rh_, arh
-     real, allocatable, dimension(:)          :: bextIn, bscaIn, bbckIn, gasymIn, p11In, p22In, &
-                                                 gfIn, rhopIn, rhodIn, volIn, areaIn, &
-                                                 refrIn, refiIn, rEffIn, ssa_tmp
-     real, allocatable, dimension(:,:,:)      :: pmomIn
+     real, allocatable, dimension(__DIMS__)   :: bext_, bsca_
+     real, allocatable, dimension(:,:,:)      :: pmom_
      integer :: i, j
 
      character(len=*), parameter  :: Iam = 'Query'
@@ -83,114 +81,88 @@
      if ( present(rc) ) rc = 0
 
 #if defined(BYWAVE_)
-    ch = this%getChannel(wavelength, rc=rc)
+    channel = this%getChannel(wavelength, rc=rc)
     if (present(rc)) then
       if (rc /=0) return 
     endif
 #endif
 
-    rh_ = reshape([max(min(rh,0.99),0.)], [product(shape(rh))])
-    isnap = int((rh_+0.001)*1000.)
-    where(isnap .lt. 1) isnap = 1
-    arh   = this%rha( isnap )
-    irh   = this%rhi( isnap )
-    irhp1 = irh+1
-    where(irhp1 .gt. this%nrh) irhp1 = this%nrh
+    rh_ = reshape(min(max(rh,0.),0.99),[size(rh)])    ! no (super) saturation 
+    qrh = max(1,nint((rh_+0.001)*1000.))              ! quantized RH
+    arh = this%rha(qrh)                               ! interpolation weight in table
+    irh = this%rhi(qrh)                               ! index in table for each RH vcalue
+    where (irh==this%nrh )
+       irh = this%nrh-1
+       arh = 1.0
+    end where
 
     if(present(bext) .or. present(tau) .or. present(ssa) ) then
-       bextIn =   this%bext(irh  ,ch,bin) * (1.-arh) &
-                + this%bext(irhp1,ch,bin) * arh
+       bext_ =  __INTERP__(this%bext, irh, arh, channel, bin, bext)
     endif
 
     if(present(bsca) .or. present(ssa) ) then
-       bscaIn =   this%bsca(irh  ,ch,bin) * (1.-arh) &
-                + this%bsca(irhp1,ch,bin) * arh
+       bsca_ =  __INTERP__(this%bsca, irh, arh, channel, bin, bsca)
     endif
 
     if(present(bbck)) then
-       bbckIn =   this%bbck(irh  ,ch,bin) * (1.-arh) &
-                + this%bbck(irhp1,ch,bin) * arh
+       bbck =  __INTERP__(this%bbck, irh, arh, channel, bin, bbck)
     endif
 
     if(present(gasym)) then
-       gasymIn =  this%g(irh  ,ch,bin) * (1.-arh) &
-                + this%g(irhp1,ch,bin) * arh
+       gasym =  __INTERP__(this%g, irh, arh, channel, bin, gasym)
     endif
 
-    if(present(rEff) ) then
-       rEffin =     this%rEff(irh  ,bin) * (1.-arh) &
-                + this%rEff(irhp1,bin) * arh
+    if(present(rEff)) then
+       rEff = 1.E6* __INTERP1__(this%rEff, irh, arh, bin, rEff)
     endif
 
-    if(present(p11) ) then
-       p11In =   this%pback(irh  ,ch,bin,1) * (1.-arh) &
-               + this%pback(irhp1,ch,bin,1) * arh
+    if(present(p11)) then
+       p11 =  __INTERPK__(this%pback, irh, arh, channel, bin, 1, p11)
     endif
 
-    if(present(p22) ) then
-       p22In =   this%pback(irh  ,ch,bin,5) * (1.-arh) &
-               + this%pback(irhp1,ch,bin,5) * arh
+    if(present(p22)) then
+       p22 =  __INTERPK__(this%pback, irh, arh, channel, bin, 5, p22)
     endif
 
-    if(present(gf) ) then
-       gfIn =     this%gf(irh  ,bin) * (1.-arh) &
-                + this%gf(irhp1,bin) * arh
+    if(present(gf)) then
+       gf =  __INTERP1__(this%gf, irh, arh, bin, gf)
     endif
 
-    if(present(rhod) ) then
-       rhodIn =   this%rhod(1  ,bin)
+    if(present(rhod)) then
+       rhod =  __INTERP1__(this%rhod, irh, arh, bin, rhod)
     endif
 
-    if(present(vol) ) then
-       volIn  =   this%vol(irh  ,bin) * (1.-arh) &
-                + this%vol(irhp1,bin) * arh
+    if(present(vol)) then
+       vol =  __INTERP1__(this%vol, irh, arh, bin, vol)
     endif
 
-    if(present(area) ) then
-       areaIn  =   this%area(irh  ,bin) * (1.-arh) &
-                + this%area(irhp1,bin) * arh
+    if(present(area)) then
+       area =  __INTERP1__(this%area, irh, arh, bin, area)
     endif
 
-    if(present(refr) .or. present(tau) .or. present(ssa) ) then
-       refrIn =   this%refr(irh  ,ch,bin) * (1.-arh) &
-                + this%refr(irhp1,ch,bin) * arh
+    if(present(refr)) then
+       refr =  __INTERP__(this%refr, irh, arh, channel, bin, refr)
     endif
 
-    if(present(refi) .or. present(tau) .or. present(ssa) ) then
-       refiIn =   this%refi(irh  ,ch,bin) * (1.-arh) &
-                + this%refi(irhp1,ch,bin) * arh
+    if(present(refi)) then
+       refi =  __INTERP__(this%refi, irh, arh, channel, bin, refi)
     endif
 
     if (present(pmom)) then
-       allocate(pmomIn(product(shape(irh)),size(this%pmom,4),size(this%pmom,5)))
+       allocate(pmom_(product(shape(irh)),size(this%pmom,4),size(this%pmom,5)))
        do j = 1, size(this%pmom,5)
           do i = 1, size(this%pmom,4)
-             pmomIn(:,i,j)  =  this%pmom(irh   ,ch,bin,i,j) * (1.-arh) &
-                             + this%pmom(irhp1 ,ch,bin,i,j) * arh
+             pmom_(:,i,j)  =  this%pmom(irh   ,channel,bin,i,j) * (1.-arh) &
+                            + this%pmom(irh+1 ,channel,bin,i,j) * arh
           enddo
        enddo
+       pmom = reshape(pmom_, shape(pmom))
     endif
 
-    if(present(tau  )) tau   = RESHAPE_(bextIn,q_mass) * q_mass
-    if(present(ssa  )) then
-      ssa_tmp   = bscaIn/bextIn
-      ssa       = RESHAPE_(ssa_tmp,q_mass)
-    endif
-    if(present(bext )) bext  = RESHAPE_(bextIn,q_mass)
-    if(present(bsca )) bsca  = RESHAPE_(bscaIn,q_mass)
-    if(present(bbck )) bbck  = RESHAPE_(bbckIn,q_mass)
-    if(present(gasym)) gasym = RESHAPE_(gasymIn,q_mass)
-    if(present(rEff )) rEff  = RESHAPE_(1.E6*rEffIn,q_mass) ! convert to microns
-    if(present(pmom )) pmom  = reshape(pmomIn, shape(pmom))
-    if(present(p11  )) p11   = RESHAPE_(p11In,q_mass)
-    if(present(p22  )) p22   = RESHAPE_(p22In,q_mass)
-    if(present(gf   )) gf    = RESHAPE_(gfIn, q_mass)
-    if(present(rhop )) rhop  = RESHAPE_(rhopIn, q_mass)
-    if(present(rhod )) rhod  = RESHAPE_(rhodIn, q_mass)
-    if(present(vol ))  vol   = RESHAPE_(volIn, q_mass)
-    if(present(area )) area  = RESHAPE_(areaIn, q_mass)
-    if(present(refr )) refr  = RESHAPE_(refrIn, q_mass)
-    if(present(refi )) refi  = RESHAPE_(refiIn,q_mass)
+    if(present(tau  )) tau   = bext_ * q_mass
+    if(present(ssa  )) ssa   = bsca_/bext_
+    if(present(bext )) bext  = bext_
+    if(present(bsca )) bsca  = bsca_
 
   end subroutine SUB_
 

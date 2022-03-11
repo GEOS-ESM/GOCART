@@ -1,8 +1,9 @@
 #undef SUB_
-#undef PMOMDIMENSIONS_
-#undef DIMENSIONS_
+#undef __INTERP1__
+#undef __INTERP__
+#undef __INTERPK__
+#undef __DIMS__
 #undef SUFIX_
 #undef ARG_
 #undef BASE_NAME_
-#undef RESHAPE_
 #undef IDENTITY_

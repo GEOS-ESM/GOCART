@@ -1,10 +1,4 @@
 #define IDENTITY_(a) a
-#if (RANK_ == 0)
-#  define RESHAPE_(a,b) a(1)
-#else
-#  define RESHAPE_(a,b) reshape(a,shape(b))
-#endif
-
 #if defined(BYWAVE_)
 #  define BASE_NAME_ Wavelength
 #  define ARG_ wavelength
@@ -12,29 +6,25 @@
 
 #if defined(BYCHANNEL_)
 #  define BASE_NAME_ Channel
-#  define ARG_ ch
+#  define ARG_ channel
 #endif
 
-#if (RANK_ == 0)
-#  define SUFIX_ _0d
-#  define DIMENSIONS_ 
-#  define PMOMDIMENSIONS_ (:,:)
-#endif
 #if (RANK_ == 1)
 #  define SUFIX_ _1d
-#  define DIMENSIONS_ (:) 
-#  define PMOMDIMENSIONS_ (:,:,:)
+#  define __DIMS__ : 
 #endif
 #if (RANK_ == 2)
 #  define SUFIX_ _2d
-#  define DIMENSIONS_ (:,:) 
-#  define PMOMDIMENSIONS_ (:,:,:,:)
+#  define __DIMS__ :,: 
 #endif
 #if (RANK_ == 3)
 #  define SUFIX_ _3d
-#  define DIMENSIONS_ (:,:,:) 
-#  define PMOMDIMENSIONS_ (:,:,:,:,:)
+#  define __DIMS__ :,:,: 
 #endif
+
+#define __INTERP1__(table,rh,ah,bin,sh) reshape((table(rh,bin) * (1-ah) + table(rh+1,bin)*ah), shape(sh))
+#define __INTERP__(table,rh,ah,ch,bin,sh) reshape((table(rh,ch,bin) * (1-ah) + table(rh+1,ch,bin)*ah), shape(sh))
+#define __INTERPK__(table,rh,ah,ch,bin,k,sh) reshape((table(rh,ch,bin,k) * (1-ah) + table(rh+1,ch,bin,k)*ah), shape(sh))
 
 #define SUB_ IDENTITY_(QueryBy)IDENTITY_(BASE_NAME_)IDENTITY_(SUFIX_)
 
