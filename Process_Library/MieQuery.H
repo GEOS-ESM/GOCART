@@ -70,10 +70,10 @@
      integer                        :: channel
 #endif
 
-     integer, allocatable, dimension(:)       :: irh, qrh
-     real, allocatable, dimension(:)          :: rh_, arh
-     real, allocatable, dimension(__DIMS__)   :: bext_, bsca_
-     real, allocatable, dimension(:,:,:)      :: pmom_
+     integer, allocatable, dimension(__DIMS__)  :: irh
+     integer, allocatable, dimension(:)         :: qrh
+     real, allocatable, dimension(__DIMS__)     :: rh_, arh
+     real, allocatable, dimension(__DIMS__)     :: bext_, bsca_
      integer :: i, j
 
      character(len=*), parameter  :: Iam = 'Query'
@@ -87,76 +87,73 @@
     endif
 #endif
 
-    rh_ = reshape(min(max(rh,0.),0.99),[size(rh)])    ! no (super) saturation 
-    qrh = max(1,nint((rh_+0.001)*1000.))              ! quantized RH
-    arh = this%rha(qrh)                               ! interpolation weight in table
-    irh = this%rhi(qrh)                               ! index in table for each RH vcalue
+    rh_ = min(max(rh,0.),0.99)                                  ! no (super) saturation 
+    qrh = reshape(max(1,nint((rh_+0.001)*1000.)), [size(rh_)])  ! quantized RH
+    arh = reshape(this%rha(qrh), shape(rh_))                    ! interpolation weight in table
+    irh = reshape(this%rhi(qrh), shape(rh_))                    ! index in table for each RH vcalue
     where (irh==this%nrh )
        irh = this%nrh-1
        arh = 1.0
     end where
 
     if(present(bext) .or. present(tau) .or. present(ssa) ) then
-       bext_ =  __INTERP__(this%bext, irh, arh, channel, bin, bext)
+       bext_ =  this%interp(this%bext(channel,bin), irh, arh)
     endif
 
     if(present(bsca) .or. present(ssa) ) then
-       bsca_ =  __INTERP__(this%bsca, irh, arh, channel, bin, bsca)
+       bsca_ =  this%interp(this%bsca(channel,bin), irh, arh)
     endif
 
     if(present(bbck)) then
-       bbck =  __INTERP__(this%bbck, irh, arh, channel, bin, bbck)
+       bbck =  this%interp(this%bbck(channel,bin), irh, arh)
     endif
 
     if(present(gasym)) then
-       gasym =  __INTERP__(this%g, irh, arh, channel, bin, gasym)
+       gasym =  this%interp(this%g(channel,bin), irh, arh)
     endif
 
     if(present(rEff)) then
-       rEff = 1.E6* __INTERP1__(this%rEff, irh, arh, bin, rEff)
+       rEff = 1.E6 * this%interp(this%rEff(bin), irh, arh)
     endif
 
     if(present(p11)) then
-       p11 =  __INTERPK__(this%pback, irh, arh, channel, bin, 1, p11)
+       p11 =  this%interp(this%pback(channel,bin,1), irh, arh)
     endif
 
     if(present(p22)) then
-       p22 =  __INTERPK__(this%pback, irh, arh, channel, bin, 5, p22)
+       p22 =  this%interp(this%pback(channel,bin,5), irh, arh)
     endif
 
     if(present(gf)) then
-       gf =  __INTERP1__(this%gf, irh, arh, bin, gf)
+       gf =  this%interp(this%gf(bin), irh, arh)
     endif
 
     if(present(rhod)) then
-       rhod =  __INTERP1__(this%rhod, irh, arh, bin, rhod)
+       rhod = this%interp(this%rhod(bin), irh, arh)
     endif
 
     if(present(vol)) then
-       vol =  __INTERP1__(this%vol, irh, arh, bin, vol)
+       vol = this%interp(this%vol(bin), irh, arh)
     endif
 
     if(present(area)) then
-       area =  __INTERP1__(this%area, irh, arh, bin, area)
+       area = this%interp(this%area(bin), irh, arh)
     endif
 
     if(present(refr)) then
-       refr =  __INTERP__(this%refr, irh, arh, channel, bin, refr)
+       refr = this%interp(this%refr(channel,bin), irh, arh)
     endif
 
     if(present(refi)) then
-       refi =  __INTERP__(this%refi, irh, arh, channel, bin, refi)
+       refi = this%interp(this%refi(channel,bin), irh, arh)
     endif
 
     if (present(pmom)) then
-       allocate(pmom_(product(shape(irh)),size(this%pmom,4),size(this%pmom,5)))
-       do j = 1, size(this%pmom,5)
-          do i = 1, size(this%pmom,4)
-             pmom_(:,i,j)  =  this%pmom(irh   ,channel,bin,i,j) * (1.-arh) &
-                            + this%pmom(irh+1 ,channel,bin,i,j) * arh
+       do j = 1, size(this%pmom,4)
+          do i = 1, size(this%pmom,3)
+             pmom(__DIMS__,i,j) = this%interp(this%pmom(channel,bin,i,j),irh,arh)
           enddo
        enddo
-       pmom = reshape(pmom_, shape(pmom))
     endif
 
     if(present(tau  )) tau   = bext_ * q_mass

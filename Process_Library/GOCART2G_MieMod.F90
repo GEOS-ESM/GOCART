@@ -39,6 +39,10 @@ module GOCART2G_MieMod
 ! --------
    integer, parameter :: NRH_BINS = 991
 
+   type :: RH_Table
+      real, allocatable :: rh(:)
+   end type RH_Table
+
    type GOCART2G_Mie
       
       private
@@ -52,20 +56,20 @@ module GOCART2G_MieMod
                                             ! c=channel, r=rh, b=bin, m=moments, p=nPol
       real, allocatable  :: wavelengths(:)  ! (c) wavelengths [m]
       real, allocatable  :: rh(:)           ! (r) RH values   [fraction]
-      real, allocatable  :: reff(:,:)       ! (r,b) effective radius [m]
-      real, allocatable  :: bext(:,:,:)     ! (r,c,b) bext values [m2 kg-1]
-      real, allocatable  :: bsca(:,:,:)     ! (r,c,b) bsca values [m2 kg-1]
-      real, allocatable  :: bbck(:,:,:)     ! (r,c,b) bbck values [m2 kg-1]
-      real, allocatable  :: g(:,:,:)        ! (r,c,b) asymmetry parameter
-      real, allocatable  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
-      real, allocatable  :: pmom(:,:,:,:,:) ! (r,c,b,m,p) moments of phase function
-      real, allocatable  :: gf(:,:)         ! (r,b) hygroscopic growth factor
-      real, allocatable  :: rhop(:,:)       ! (r,b) wet particle density [kg m-3]
-      real, allocatable  :: rhod(:,:)       ! (r,b) wet particle density [kg m-3]
-      real, allocatable  :: vol(:,:)        ! (r,b) wet particle volume [m3 kg-1]
-      real, allocatable  :: area(:,:)       ! (r,b) wet particle cross section [m2 kg-1]
-      real, allocatable  :: refr(:,:,:)     ! (r,c,b) real part of refractive index
-      real, allocatable  :: refi(:,:,:)     ! (r,c,b) imaginary part of refractive index
+      type(RH_Table), allocatable  :: reff(:)       ! (b) effective radius [m]
+      type(RH_Table), allocatable  :: bext(:,:)     ! (c,b) bext values [m2 kg-1]
+      type(RH_Table), allocatable  :: bsca(:,:)     ! (c,b) bsca values [m2 kg-1]
+      type(RH_Table), allocatable  :: bbck(:,:)     ! (c,b) bbck values [m2 kg-1]
+      type(RH_Table), allocatable  :: g(:,:)        ! (c,b) asymmetry parameter
+      type(RH_Table), allocatable  :: pback(:,:,:)  ! (c,b,p) Backscatter phase function
+      type(RH_Table), allocatable  :: pmom(:,:,:,:) ! (c,b,m,p) moments of phase function
+      type(RH_Table), allocatable  :: gf(:)         ! (b) hygroscopic growth factor
+      type(RH_Table), allocatable  :: rhop(:)       ! (b) wet particle density [kg m-3]
+      type(RH_Table), allocatable  :: rhod(:)       ! (b) wet particle density [kg m-3]
+      type(RH_Table), allocatable  :: vol(:)        ! (b) wet particle volume [m3 kg-1]
+      type(RH_Table), allocatable  :: area(:)       ! (b) wet particle cross section [m2 kg-1]
+      type(RH_Table), allocatable  :: refr(:,:)     ! (c,b) real part of refractive index
+      type(RH_Table), allocatable  :: refi(:,:)     ! (c,b) imaginary part of refractive index
 
       integer            :: rhi(NRH_BINS)   ! pointer to rh LUT
       real               :: rha(NRH_BINS)   ! slope on rh LUT
@@ -86,7 +90,7 @@ module GOCART2G_MieMod
                             QueryByChannel_3d
       procedure :: getChannel
       procedure :: getWavelength
-      
+      procedure :: interp   
    end type GOCART2G_Mie
 
    interface GOCART2G_Mie
@@ -326,73 +330,88 @@ CONTAINS
       this%nMom = nmom_
       this%nPol = nPol_table
 
-      allocate (this%bext(this%nrh,this%nch,this%nbin), __NF_STAT__)
-      allocate (this%bsca(this%nrh,this%nch,this%nbin), __NF_STAT__)
-      allocate (this%bbck(this%nrh,this%nch,this%nbin), __NF_STAT__)
-      allocate (this%g(this%nrh,this%nch,this%nbin),    __NF_STAT__)
-      allocate (this%pback(this%nrh,this%nch,this%nbin,this%nPol),    __NF_STAT__)
-      if ( nmom_ > 0 ) then
-         allocate (this%pmom(this%nrh,this%nch,this%nbin,this%nMom,this%nPol),    __NF_STAT__)
-      end if
-      allocate (this%refr(this%nrh,this%nch,this%nbin), __NF_STAT__)
-      allocate (this%refi(this%nrh,this%nch,this%nbin), __NF_STAT__)
-
 !     Preserve the full RH structure of the input table
       this%rh = rh_table ! assignment does allocation
 
 !     Insert the requested channels in the output table
       this%wavelengths = wavelengths
 
-!     Insert rEff (moist effective radius)
-      this%reff = reff_table
+      allocate (this%gf(this%nbin),__NF_STAT__)
+      allocate (this%rEff(this%nbin),__NF_STAT__)
+      allocate (this%rhop(this%nbin),__NF_STAT__)
+      allocate (this%rhod(this%nbin),__NF_STAT__)
+      allocate (this%vol(this%nbin),__NF_STAT__)
+      allocate (this%area(this%nbin),__NF_STAT__)
+
+      do j = 1, this%nbin
+        this%reff(j)%rh = reff_table(:,j)
+        !Insert growth factor
+        this%gf(j)%rh   = gf_table(:,j)
+        !Wet particle density [kg m-3]
+        this%rhop(j)%rh = rhop_table(:,j)
+        !Dry particle density [kg m-3]
+        this%rhod(j)%rh = rhod_table(:,j)
+        !Volume [m3 kg-1]
+        this%vol(j)%rh  = vol_table(:,j)
+        !Area [m2 kg-1]
+        this%area(j)%rh = area_table(:,j)
+      enddo
+
+      allocate (this%bext(this%nch,this%nbin), __NF_STAT__)
+      allocate (this%bsca(this%nch,this%nbin), __NF_STAT__)
+      allocate (this%bbck(this%nch,this%nbin), __NF_STAT__)
+      allocate (this%g(this%nch,this%nbin),    __NF_STAT__)
+      allocate (this%pback(this%nch,this%nbin,this%nPol),    __NF_STAT__)
+      if ( nmom_ > 0 ) then
+         allocate (this%pmom(this%nch,this%nbin,this%nMom,this%nPol),    __NF_STAT__)
+      end if
+      allocate (this%refr(this%nch,this%nbin), __NF_STAT__)
+      allocate (this%refi(this%nch,this%nbin), __NF_STAT__)
 
 !     Now we linearly interpolate the input table to the output table grid
 !     of requested channels
       do j = 1, this%nbin
-       do i = 1, this%nrh
         do n = 1, this%nch
-         call polint(channels_table,bext_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bext(i,n,j),yerr)
-         call polint(channels_table,bsca_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bsca(i,n,j),yerr)
-         call polint(channels_table,bbck_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bbck(i,n,j),yerr)
-         call polint(channels_table,g_table(:,i,j),nch_table,    &
-                     this%wavelengths(n),this%g(i,n,j),yerr)
-         call polint(channels_table,refr_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%refr(i,n,j),yerr)
-         call polint(channels_table,refi_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%refi(i,n,j),yerr)
-         do ipol = 1, this%nPol
-                  call polint(channels_table,pback_table(:,i,j,ipol),nch_table,    &
-                       this%wavelengths(n),this%pback(i,n,j,ipol),yerr)
-         end do
-         if ( nmom_ > 0 ) then
+          allocate (this%bext(n,j)%rh(this%nrh), __NF_STAT__)
+          allocate (this%bsca(n,j)%rh(this%nrh), __NF_STAT__)
+          allocate (this%bbck(n,j)%rh(this%nrh), __NF_STAT__)
+          allocate (this%g(n,j)%rh(this%nrh), __NF_STAT__)
+          allocate (this%refr(n,j)%rh(this%nrh), __NF_STAT__)
+          allocate (this%refi(n,j)%rh(this%nrh), __NF_STAT__)
+          do i = 1, this%nrh
+            call polint(channels_table,bext_table(:,i,j),nch_table, &
+                     this%wavelengths(n),this%bext(n,j)%rh(i),yerr)
+            call polint(channels_table,bsca_table(:,i,j),nch_table, &
+                     this%wavelengths(n),this%bsca(n,j)%rh(i),yerr)
+            call polint(channels_table,bbck_table(:,i,j),nch_table, &
+                     this%wavelengths(n),this%bbck(n,j)%rh(i),yerr)
+            call polint(channels_table,g_table(:,i,j),nch_table,    &
+                     this%wavelengths(n),this%g(n,j)%rh(i),yerr)
+            call polint(channels_table,refr_table(:,i,j),nch_table, &
+                     this%wavelengths(n),this%refr(n,j)%rh(i),yerr)
+            call polint(channels_table,refi_table(:,i,j),nch_table, &
+                     this%wavelengths(n),this%refi(n,j)%rh(i),yerr)
+          enddo
+          do ipol = 1, this%nPol
+            allocate (this%pback(n,j,ipol)%rh(this%nrh),   __NF_STAT__)
+            do i =1, this%nrh
+              call polint(channels_table,pback_table(:,i,j,ipol),nch_table,    &
+                 this%wavelengths(n),this%pback(n,j,ipol)%rh(i),yerr)
+            enddo
+          end do ! ipol
+          if ( nmom_ > 0 ) then
             do imom = 1, this%nMom
-               do ipol = 1, this%nPol
+              do ipol = 1, this%nPol
+                allocate (this%pmom(n,j,imom,ipol)%rh(this%nrh),  __NF_STAT__)
+                do i =1, this%nrh
                   call polint(channels_table,pmom_table(:,i,j,imom,ipol),nch_table, &
-                       this%wavelengths(n),this%pmom(i,n,j,imom,ipol),yerr)
-               end do
+                       this%wavelengths(n),this%pmom(n,j,imom,ipol)%rh(i),yerr)
+                enddo
+              end do
             end do
-         end if
-        enddo
-       enddo
-      enddo
-
-!     Insert growth factor
-      this%gf = gf_table
-
-!     Wet particle density [kg m-3]
-      this%rhop = rhop_table
-
-!     Dry particle density [kg m-3]
-      this%rhod = rhod_table
-
-!     Volume [m3 kg-1]
-      this%vol  = vol_table
-
-!     Area [m2 kg-1]
-      this%area = area_table
+          end if ! nmom_
+        enddo ! nch
+      enddo ! nbin
 
 !     Now we do a mapping of the RH from the input table to some high
 !     resolution representation.  This is to spare us the need to
@@ -511,24 +530,24 @@ CONTAINS
 
 #undef BYCHANNEL_
 
-  integer function getChannel(this, wavelength, rc) result (ch)
+  integer function getChannel(this, wavelength, rc) result (channel)
      class (GOCART2G_Mie), intent(in) :: this
      real, intent(in) :: wavelength
      integer, optional, intent(out) :: rc
      real, parameter :: w_tol = 1.e-9
      integer :: i
 
-     ch = -1
+     channel = -1
      do i = 1, this%nch
        if (abs(this%wavelengths(i)-wavelength) <= w_tol) then
-          ch = i
+          channel = i
           exit
        endif
     enddo
 
     if (present(rc)) rc = 0
 
-    if (ch < 0) then
+    if (channel < 0) then
        !$omp critical
        print*, "wavelength of ",wavelength, " is an invalid value."
        !$omp end critical
@@ -537,26 +556,35 @@ CONTAINS
 
   end function getChannel
 
-  real function getWavelength(this, ith_channel, rc) result (wavelength)
+  real function getWavelength(this, channel, rc) result (wavelength)
      class (GOCART2G_Mie), intent(in) :: this
-     integer, intent(in) :: ith_channel
+     integer, intent(in) :: channel
      integer, optional, intent(out) :: rc
      real, parameter :: w_tol = 1.e-9
      integer :: i
 
      if (present(rc)) rc = 0
 
-     if (ith_channel <=0 .or. ith_channel > this%nch ) then
+     if (channel <=0 .or. channel > this%nch ) then
        !$omp critical
-       print*, "The channel of ",ith_channel, " is an invalid channel number."
+       print*, "The channel of ",channel, " is an invalid channel number."
        !$omp end critical
        if (present(rc)) rc = -1
        wavelength = -1. ! meanlingless nagative
        return
      endif
 
-     wavelength = this%wavelengths(ith_channel)
+     wavelength = this%wavelengths(channel)
 
   end function getWavelength
+
+  elemental function interp(this,table, irh, arh)
+    class (GOCART2G_Mie), intent(in) :: this
+    type(RH_Table), intent(in) :: table
+    integer, intent(in) :: irh
+    real, intent(in) :: arh
+    real :: interp
+    interp = sum(table%rh(irh:irh+1) * [(1-arh),arh])
+  end function interp
 
 end module GOCART2G_MieMod

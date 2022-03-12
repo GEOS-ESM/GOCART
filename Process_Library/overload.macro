@@ -22,9 +22,5 @@
 #  define __DIMS__ :,:,: 
 #endif
 
-#define __INTERP1__(table,rh,ah,bin,sh) reshape((table(rh,bin) * (1-ah) + table(rh+1,bin)*ah), shape(sh))
-#define __INTERP__(table,rh,ah,ch,bin,sh) reshape((table(rh,ch,bin) * (1-ah) + table(rh+1,ch,bin)*ah), shape(sh))
-#define __INTERPK__(table,rh,ah,ch,bin,k,sh) reshape((table(rh,ch,bin,k) * (1-ah) + table(rh+1,ch,bin,k)*ah), shape(sh))
-
 #define SUB_ IDENTITY_(QueryBy)IDENTITY_(BASE_NAME_)IDENTITY_(SUFIX_)
 
