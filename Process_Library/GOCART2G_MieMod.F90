@@ -39,9 +39,9 @@ module GOCART2G_MieMod
 ! --------
    integer, parameter :: NRH_BINS = 991
 
-   type :: RH_Table
+   type :: RH_Mie
       real, allocatable :: rh(:)
-   end type RH_Table
+   end type RH_Mie
 
    type GOCART2G_Mie
       
@@ -56,20 +56,20 @@ module GOCART2G_MieMod
                                             ! c=channel, r=rh, b=bin, m=moments, p=nPol
       real, allocatable  :: wavelengths(:)  ! (c) wavelengths [m]
       real, allocatable  :: rh(:)           ! (r) RH values   [fraction]
-      type(RH_Table), allocatable  :: reff(:)       ! (b) effective radius [m]
-      type(RH_Table), allocatable  :: bext(:,:)     ! (c,b) bext values [m2 kg-1]
-      type(RH_Table), allocatable  :: bsca(:,:)     ! (c,b) bsca values [m2 kg-1]
-      type(RH_Table), allocatable  :: bbck(:,:)     ! (c,b) bbck values [m2 kg-1]
-      type(RH_Table), allocatable  :: g(:,:)        ! (c,b) asymmetry parameter
-      type(RH_Table), allocatable  :: pback(:,:,:)  ! (c,b,p) Backscatter phase function
-      type(RH_Table), allocatable  :: pmom(:,:,:,:) ! (c,b,m,p) moments of phase function
-      type(RH_Table), allocatable  :: gf(:)         ! (b) hygroscopic growth factor
-      type(RH_Table), allocatable  :: rhop(:)       ! (b) wet particle density [kg m-3]
-      type(RH_Table), allocatable  :: rhod(:)       ! (b) wet particle density [kg m-3]
-      type(RH_Table), allocatable  :: vol(:)        ! (b) wet particle volume [m3 kg-1]
-      type(RH_Table), allocatable  :: area(:)       ! (b) wet particle cross section [m2 kg-1]
-      type(RH_Table), allocatable  :: refr(:,:)     ! (c,b) real part of refractive index
-      type(RH_Table), allocatable  :: refi(:,:)     ! (c,b) imaginary part of refractive index
+      type(RH_Mie), allocatable  :: reff(:)       ! (b) effective radius [m]
+      type(RH_Mie), allocatable  :: bext(:,:)     ! (c,b) bext values [m2 kg-1]
+      type(RH_Mie), allocatable  :: bsca(:,:)     ! (c,b) bsca values [m2 kg-1]
+      type(RH_Mie), allocatable  :: bbck(:,:)     ! (c,b) bbck values [m2 kg-1]
+      type(RH_Mie), allocatable  :: g(:,:)        ! (c,b) asymmetry parameter
+      type(RH_Mie), allocatable  :: pback(:,:,:)  ! (c,b,p) Backscatter phase function
+      type(RH_Mie), allocatable  :: pmom(:,:,:,:) ! (c,b,m,p) moments of phase function
+      type(RH_Mie), allocatable  :: gf(:)         ! (b) hygroscopic growth factor
+      type(RH_Mie), allocatable  :: rhop(:)       ! (b) wet particle density [kg m-3]
+      type(RH_Mie), allocatable  :: rhod(:)       ! (b) wet particle density [kg m-3]
+      type(RH_Mie), allocatable  :: vol(:)        ! (b) wet particle volume [m3 kg-1]
+      type(RH_Mie), allocatable  :: area(:)       ! (b) wet particle cross section [m2 kg-1]
+      type(RH_Mie), allocatable  :: refr(:,:)     ! (c,b) real part of refractive index
+      type(RH_Mie), allocatable  :: refi(:,:)     ! (c,b) imaginary part of refractive index
 
       integer            :: rhi(NRH_BINS)   ! pointer to rh LUT
       real               :: rha(NRH_BINS)   ! slope on rh LUT
@@ -90,7 +90,6 @@ module GOCART2G_MieMod
                             QueryByChannel_3d
       procedure :: getChannel
       procedure :: getWavelength
-      procedure :: interp   
    end type GOCART2G_Mie
 
    interface GOCART2G_Mie
@@ -378,35 +377,29 @@ CONTAINS
           allocate (this%g(n,j)%rh(this%nrh), __NF_STAT__)
           allocate (this%refr(n,j)%rh(this%nrh), __NF_STAT__)
           allocate (this%refi(n,j)%rh(this%nrh), __NF_STAT__)
-          do i = 1, this%nrh
-            call polint(channels_table,bext_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bext(n,j)%rh(i),yerr)
-            call polint(channels_table,bsca_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bsca(n,j)%rh(i),yerr)
-            call polint(channels_table,bbck_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bbck(n,j)%rh(i),yerr)
-            call polint(channels_table,g_table(:,i,j),nch_table,    &
-                     this%wavelengths(n),this%g(n,j)%rh(i),yerr)
-            call polint(channels_table,refr_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%refr(n,j)%rh(i),yerr)
-            call polint(channels_table,refi_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%refi(n,j)%rh(i),yerr)
-          enddo
+          call polint(channels_table,bext_table(:,:,j),nch_table, &
+                     this%wavelengths(n),this%bext(n,j),yerr)
+          call polint(channels_table,bsca_table(:,:,j),nch_table, &
+                     this%wavelengths(n),this%bsca(n,j),yerr)
+          call polint(channels_table,bbck_table(:,:,j),nch_table, &
+                     this%wavelengths(n),this%bbck(n,j),yerr)
+          call polint(channels_table,g_table(:,:,j),nch_table,    &
+                     this%wavelengths(n),this%g(n,j),yerr)
+          call polint(channels_table,refr_table(:,:,j),nch_table, &
+                     this%wavelengths(n),this%refr(n,j),yerr)
+          call polint(channels_table,refi_table(:,:,j),nch_table, &
+                     this%wavelengths(n),this%refi(n,j),yerr)
           do ipol = 1, this%nPol
             allocate (this%pback(n,j,ipol)%rh(this%nrh),   __NF_STAT__)
-            do i =1, this%nrh
-              call polint(channels_table,pback_table(:,i,j,ipol),nch_table,    &
-                 this%wavelengths(n),this%pback(n,j,ipol)%rh(i),yerr)
-            enddo
+            call polint(channels_table,pback_table(:,:,j,ipol),nch_table,    &
+                 this%wavelengths(n),this%pback(n,j,ipol),yerr)
           end do ! ipol
           if ( nmom_ > 0 ) then
             do imom = 1, this%nMom
               do ipol = 1, this%nPol
                 allocate (this%pmom(n,j,imom,ipol)%rh(this%nrh),  __NF_STAT__)
-                do i =1, this%nrh
-                  call polint(channels_table,pmom_table(:,i,j,imom,ipol),nch_table, &
-                       this%wavelengths(n),this%pmom(n,j,imom,ipol)%rh(i),yerr)
-                enddo
+                call polint(channels_table,pmom_table(:,:,j,imom,ipol),nch_table, &
+                       this%wavelengths(n),this%pmom(n,j,imom,ipol),yerr)
               end do
             end do
           end if ! nmom_
@@ -442,51 +435,54 @@ CONTAINS
      subroutine polint(x,y,n,xWant,yWant,yErr)
        integer :: n
        !  recall, table hard-wired single precision
-       real   :: x(n),y(n)
-       real   :: xWant, yWant, yErr
+       real   :: x(:),y(:,:)
+       real   :: xWant, yErr
+       type(RH_Mie) :: yWant
 
        !  given array x(n) of independent variables and array y(n) of dependent
        !  variables, compute the linear interpolated result yWant at xWant and return
        !  with a dummy error estimate yErr.  Hacked up from Numerical Recipes Chapter 3
 
-       integer :: i, j
+       integer :: i, j, k
        real    :: dx, slope
        character(len=255) :: msg
 
-       !  on out of bounds, set i to lower or upper limit
-       i = 0
-       if(xWant .lt. x(1)) then
-       !   write(msg,*) "in polint, wanted: ", xWant, ", got lower bound: ", x(1)
-       !   call warn(myname,msg)
-       !    if (mapl_am_i_root()) print *,'in polint(), wnted: ', xWant, ', got lower bound: ', x(1)
-         i = 1
-       endif
-       if(xWant .gt. x(n)) then
-       !    write(msg,*) "in polint, wanted: ", xWant, ", got upper bound: ", x(n)
-       !    call warn(myname,msg)
-       !    if (mapl_am_i_root()) print *,'in polint(), wnted: ', xWant, ', got upper bound: ', x(n)
+       do k = 1, size(y,2)
 
-         i = n
-       endif
+          !  on out of bounds, set i to lower or upper limit
+          i = 0
+          if(xWant .lt. x(1)) then
+          !   write(msg,*) "in polint, wanted: ", xWant, ", got lower bound: ", x(1)
+          !   call warn(myname,msg)
+          !    if (mapl_am_i_root()) print *,'in polint(), wnted: ', xWant, ', got lower bound: ', x(1)
+            i = 1
+          endif
+          if(xWant .gt. x(n)) then
+          !    write(msg,*) "in polint, wanted: ", xWant, ", got upper bound: ", x(n)
+          !    call warn(myname,msg)
+          !    if (mapl_am_i_root()) print *,'in polint(), wnted: ', xWant, ', got upper bound: ', x(n)
 
-       !  if i is still zero find i less than xWant
-       if (i .eq. 0) then
-          do j = 1, n
-             if(xWant .ge. x(j)) i = j
-          enddo
-       endif
+            i = n
+          endif
 
-       !  slope
-       if (i .eq. n) then
-          slope = 0.
-       else
-         slope = (y(i+1)-y(i)) / (x(i+1)-x(i))
-       endif
-       dx = xWant - x(i)
-       yWant = y(i) + slope*dx
+          !  if i is still zero find i less than xWant
+          if (i .eq. 0) then
+             do j = 1, n
+                if(xWant .ge. x(j)) i = j
+             enddo
+          endif
 
-       yErr = 0.
+          !  slope
+          if (i .eq. n) then
+            slope = 0.
+          else
+            slope = (y(i+1,k)-y(i,k)) / (x(i+1)-x(i))
+          endif
+          dx = xWant - x(i)
+          yWant%rh(k) = y(i,k) + slope*dx
 
+          yErr = 0.
+        enddo
      end subroutine polint
 
    end function GOCART2G_MieCreate
@@ -578,9 +574,8 @@ CONTAINS
 
   end function getWavelength
 
-  elemental function interp(this,table, irh, arh)
-    class (GOCART2G_Mie), intent(in) :: this
-    type(RH_Table), intent(in) :: table
+  elemental function interp(table, irh, arh)
+    type(RH_Mie), intent(in) :: table
     integer, intent(in) :: irh
     real, intent(in) :: arh
     real :: interp

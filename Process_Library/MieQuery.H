@@ -97,61 +97,61 @@
     end where
 
     if(present(bext) .or. present(tau) .or. present(ssa) ) then
-       bext_ =  this%interp(this%bext(channel,bin), irh, arh)
+       bext_ =  interp(this%bext(channel,bin), irh, arh)
     endif
 
     if(present(bsca) .or. present(ssa) ) then
-       bsca_ =  this%interp(this%bsca(channel,bin), irh, arh)
+       bsca_ =  interp(this%bsca(channel,bin), irh, arh)
     endif
 
     if(present(bbck)) then
-       bbck =  this%interp(this%bbck(channel,bin), irh, arh)
+       bbck =  interp(this%bbck(channel,bin), irh, arh)
     endif
 
     if(present(gasym)) then
-       gasym =  this%interp(this%g(channel,bin), irh, arh)
+       gasym =  interp(this%g(channel,bin), irh, arh)
     endif
 
     if(present(rEff)) then
-       rEff = 1.E6 * this%interp(this%rEff(bin), irh, arh)
+       rEff = 1.E6 * interp(this%rEff(bin), irh, arh)
     endif
 
     if(present(p11)) then
-       p11 =  this%interp(this%pback(channel,bin,1), irh, arh)
+       p11 =  interp(this%pback(channel,bin,1), irh, arh)
     endif
 
     if(present(p22)) then
-       p22 =  this%interp(this%pback(channel,bin,5), irh, arh)
+       p22 =  interp(this%pback(channel,bin,5), irh, arh)
     endif
 
     if(present(gf)) then
-       gf =  this%interp(this%gf(bin), irh, arh)
+       gf =  interp(this%gf(bin), irh, arh)
     endif
 
     if(present(rhod)) then
-       rhod = this%interp(this%rhod(bin), irh, arh)
+       rhod = interp(this%rhod(bin), irh, arh)
     endif
 
     if(present(vol)) then
-       vol = this%interp(this%vol(bin), irh, arh)
+       vol = interp(this%vol(bin), irh, arh)
     endif
 
     if(present(area)) then
-       area = this%interp(this%area(bin), irh, arh)
+       area = interp(this%area(bin), irh, arh)
     endif
 
     if(present(refr)) then
-       refr = this%interp(this%refr(channel,bin), irh, arh)
+       refr = interp(this%refr(channel,bin), irh, arh)
     endif
 
     if(present(refi)) then
-       refi = this%interp(this%refi(channel,bin), irh, arh)
+       refi = interp(this%refi(channel,bin), irh, arh)
     endif
 
     if (present(pmom)) then
        do j = 1, size(this%pmom,4)
           do i = 1, size(this%pmom,3)
-             pmom(__DIMS__,i,j) = this%interp(this%pmom(channel,bin,i,j),irh,arh)
+             pmom(__DIMS__,i,j) = interp(this%pmom(channel,bin,i,j),irh,arh)
           enddo
        enddo
     endif
