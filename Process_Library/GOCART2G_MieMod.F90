@@ -335,76 +335,31 @@ CONTAINS
 !     Insert the requested channels in the output table
       this%wavelengths = wavelengths
 
-      allocate (this%gf(this%nbin),__NF_STAT__)
-      allocate (this%rEff(this%nbin),__NF_STAT__)
-      allocate (this%rhop(this%nbin),__NF_STAT__)
-      allocate (this%rhod(this%nbin),__NF_STAT__)
-      allocate (this%vol(this%nbin),__NF_STAT__)
-      allocate (this%area(this%nbin),__NF_STAT__)
+      call fill_table2d(this%reff, reff_table)
+      !Insert growth factor
+      call fill_table2d(this%gf,   gf_table)
+      !Wet particle density [kg m-3]
+      call fill_table2d(this%rhop, rhop_table)
+      !Dry particle density [kg m-3]
+      call fill_table2d(this%rhod, rhod_table)
+      !Volume [m3 kg-1]
+      call fill_table2d(this%vol,  vol_table)
+      !Area [m2 kg-1]
+      call fill_table2d(this%area, area_table)
 
-      do j = 1, this%nbin
-        this%reff(j)%rh = reff_table(:,j)
-        !Insert growth factor
-        this%gf(j)%rh   = gf_table(:,j)
-        !Wet particle density [kg m-3]
-        this%rhop(j)%rh = rhop_table(:,j)
-        !Dry particle density [kg m-3]
-        this%rhod(j)%rh = rhod_table(:,j)
-        !Volume [m3 kg-1]
-        this%vol(j)%rh  = vol_table(:,j)
-        !Area [m2 kg-1]
-        this%area(j)%rh = area_table(:,j)
-      enddo
 
-      allocate (this%bext(this%nch,this%nbin), __NF_STAT__)
-      allocate (this%bsca(this%nch,this%nbin), __NF_STAT__)
-      allocate (this%bbck(this%nch,this%nbin), __NF_STAT__)
-      allocate (this%g(this%nch,this%nbin),    __NF_STAT__)
-      allocate (this%pback(this%nch,this%nbin,this%nPol),    __NF_STAT__)
+      call fill_table3d(this%bext, bext_table, channels_table, wavelengths, yerr)
+      call fill_table3d(this%bsca, bsca_table, channels_table, wavelengths, yerr)
+      call fill_table3d(this%bbck, bbck_table, channels_table, wavelengths, yerr)
+      call fill_table3d(this%g,       g_table, channels_table, wavelengths, yerr)
+      call fill_table3d(this%refi, refi_table, channels_table, wavelengths, yerr)
+      call fill_table3d(this%refr, refr_table, channels_table, wavelengths, yerr)
+
+      call fill_table4d(this%pback, pback_table, channels_table, wavelengths, yerr)
+
       if ( nmom_ > 0 ) then
-         allocate (this%pmom(this%nch,this%nbin,this%nMom,this%nPol),    __NF_STAT__)
-      end if
-      allocate (this%refr(this%nch,this%nbin), __NF_STAT__)
-      allocate (this%refi(this%nch,this%nbin), __NF_STAT__)
-
-!     Now we linearly interpolate the input table to the output table grid
-!     of requested channels
-      do j = 1, this%nbin
-        do n = 1, this%nch
-          allocate (this%bext(n,j)%rh(this%nrh), __NF_STAT__)
-          allocate (this%bsca(n,j)%rh(this%nrh), __NF_STAT__)
-          allocate (this%bbck(n,j)%rh(this%nrh), __NF_STAT__)
-          allocate (this%g(n,j)%rh(this%nrh), __NF_STAT__)
-          allocate (this%refr(n,j)%rh(this%nrh), __NF_STAT__)
-          allocate (this%refi(n,j)%rh(this%nrh), __NF_STAT__)
-          call polint(channels_table,bext_table(:,:,j),nch_table, &
-                     this%wavelengths(n),this%bext(n,j),yerr)
-          call polint(channels_table,bsca_table(:,:,j),nch_table, &
-                     this%wavelengths(n),this%bsca(n,j),yerr)
-          call polint(channels_table,bbck_table(:,:,j),nch_table, &
-                     this%wavelengths(n),this%bbck(n,j),yerr)
-          call polint(channels_table,g_table(:,:,j),nch_table,    &
-                     this%wavelengths(n),this%g(n,j),yerr)
-          call polint(channels_table,refr_table(:,:,j),nch_table, &
-                     this%wavelengths(n),this%refr(n,j),yerr)
-          call polint(channels_table,refi_table(:,:,j),nch_table, &
-                     this%wavelengths(n),this%refi(n,j),yerr)
-          do ipol = 1, this%nPol
-            allocate (this%pback(n,j,ipol)%rh(this%nrh),   __NF_STAT__)
-            call polint(channels_table,pback_table(:,:,j,ipol),nch_table,    &
-                 this%wavelengths(n),this%pback(n,j,ipol),yerr)
-          end do ! ipol
-          if ( nmom_ > 0 ) then
-            do imom = 1, this%nMom
-              do ipol = 1, this%nPol
-                allocate (this%pmom(n,j,imom,ipol)%rh(this%nrh),  __NF_STAT__)
-                call polint(channels_table,pmom_table(:,:,j,imom,ipol),nch_table, &
-                       this%wavelengths(n),this%pmom(n,j,imom,ipol),yerr)
-              end do
-            end do
-          end if ! nmom_
-        enddo ! nch
-      enddo ! nbin
+         call fill_table5d(this%pmom, pmom_table, channels_table, wavelengths, yerr)
+      endif
 
 !     Now we do a mapping of the RH from the input table to some high
 !     resolution representation.  This is to spare us the need to
@@ -431,6 +386,81 @@ CONTAINS
       return
 
   contains
+
+     subroutine fill_table2d(table, array)
+       type(RH_Mie), allocatable, intent(out) :: table(:)
+       real, intent(in) :: array(:,:)
+       integer :: j  
+       associate (nbin => this%nbin, nrh => this%nrh)
+         allocate(table(nbin))
+         do j = 1, nbin
+            table(j)%rh = array(:,j)
+         enddo
+       end associate
+     end subroutine
+
+     subroutine fill_table3d(table, array, channels_table, wavelengths, yerr)
+       type(RH_Mie), allocatable, intent(out) :: table(:,:)
+       real, intent(in) :: array(:,:,:)
+       real, intent(in) :: channels_table(:), wavelengths(:)
+       real, intent(out) :: yerr
+       integer :: j,n
+
+       associate (nbin => this%nbin, nch => this%nch, nrh => this%nrh)
+         allocate(table(nch, nbin), __NF_STAT__)
+         do j = 1, nbin
+            do n = 1, nch
+               allocate (table(n,j)%rh(nrh), __NF_STAT__)
+               call polint(channels_table, array(:,:,j),nch, &
+                     this%wavelengths(n),table(n,j),yerr)
+            enddo
+         enddo
+       end associate
+     end subroutine fill_table3d
+
+     subroutine fill_table4d(table, array, channels_table, wavelengths, yerr)
+       type(RH_Mie), allocatable, intent(out) :: table(:,:,:)
+       real, intent(in) :: array(:,:,:,:)
+       real, intent(in) :: channels_table(:), wavelengths(:)
+       real, intent(out) :: yerr
+       integer :: j,n, ipol
+
+       associate (nbin => this%nbin, nch => this%nch, nrh => this%nrh, npol=> this%npol)
+         allocate(table(nch, nbin, npol), __NF_STAT__)
+         do j = 1, nbin
+            do n = 1, nch
+               do ipol = 1, npol
+                  allocate (table(n,j,ipol)%rh(nrh), __NF_STAT__)
+                  call polint(channels_table, array(:,:,j,ipol),nch, &
+                              wavelengths(n),table(n,j,ipol),yerr)
+               enddo
+            enddo
+         enddo
+       end associate
+     end subroutine fill_table4d
+
+     subroutine fill_table5d(table, array, channels_table, wavelengths, yerr)
+       type(RH_Mie), allocatable, intent(out) :: table(:,:,:,:)
+       real, intent(in) :: array(:,:,:,:,:)
+       real, intent(in) :: channels_table(:), wavelengths(:)
+       real, intent(out) :: yerr
+       integer :: j, n, ipol, imom
+
+       associate (nbin => this%nbin, nch => this%nch, nrh => this%nrh, npol=> this%npol, nmom => this%nmom)
+         allocate(table(nch, nbin, nmom, npol), __NF_STAT__)
+         do j = 1, nbin
+            do n = 1, nch
+               do imom = 1, nmom
+                  do ipol = 1, npol
+                     allocate(table(n,j,imom,ipol)%rh(nrh), __NF_STAT__)
+                     call polint(channels_table, array(:,:,j,imom, ipol),nch, &
+                                 wavelengths(n),table(n,j,imom,ipol),yerr)
+                  enddo
+               enddo
+            enddo
+         enddo
+       end associate
+     end subroutine fill_table5d
 
      subroutine polint(x,y,n,xWant,yWant,yErr)
        integer :: n
@@ -574,11 +604,10 @@ CONTAINS
 
   end function getWavelength
 
-  elemental function interp(table, irh, arh)
+  elemental real function interp(table, irh, arh)
     type(RH_Mie), intent(in) :: table
     integer, intent(in) :: irh
     real, intent(in) :: arh
-    real :: interp
     interp = sum(table%rh(irh:irh+1) * [(1-arh),arh])
   end function interp
 

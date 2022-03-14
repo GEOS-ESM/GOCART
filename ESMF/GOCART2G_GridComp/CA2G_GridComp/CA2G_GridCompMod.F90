@@ -537,7 +537,7 @@ contains
           channels_(i) = i
        end do
     endif
-    self%rad_Mie(instance) = GOCART2G_Mie(trim(file_), channels_*1.e-9, __RC__)
+    self%rad_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, __RC__)
     deallocate(channels_)
 
 !   Create Diagnostics Mie Table
@@ -550,7 +550,7 @@ contains
     allocate (channels_(i), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
                                   label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
-    self%diag_Mie(instance) = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
     deallocate(channels_)
 
 !   Finish creating AERO state
@@ -830,7 +830,7 @@ contains
                                  nhms, self%cdt)
     end if
 
-    call CAEmission (self%diag_Mie(self%instance), self%km, self%nbins, self%cdt, &
+    call CAEmission (self%diag_Mie, self%km, self%nbins, self%cdt, &
                      MAPL_GRAV, GCsuffix, self%ratPOM, &
                      self%eAircraftfuel, aircraft_fuel_src, &
                      aviation_lto_src, aviation_cds_src, &
@@ -1034,7 +1034,7 @@ contains
     int_arr(:,:,:,1) = intPtr_phobic
     int_arr(:,:,:,2) = intPtr_philic
 
-    call Aero_Compute_Diags (mie=self%diag_Mie(self%instance), km=self%km, klid=self%klid, nbegin=1, nbins=2, &
+    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, nbins=2, &
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
                              tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
@@ -1216,7 +1216,7 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_Mie(instance), nbins, n_bands, offset, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    call mie_ (self%rad_Mie, nbins, n_bands, offset, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1379,7 +1379,7 @@ contains
     call c_f_pointer(address, self)
 
     do n = 1, nbins
-       call self%diag_Mie(instance)%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
+       call self%diag_Mie%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
        tau_s = tau_s + tau
     end do
 

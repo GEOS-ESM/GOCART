@@ -498,7 +498,7 @@ contains
           channels_(i) = i
        end do
     endif
-    self%rad_Mie(instance) = GOCART2G_Mie(trim(file_), channels_*1.e-9, __RC__)
+    self%rad_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, __RC__)
     deallocate(channels_)
 
 !   Create Diagnostics Mie Table
@@ -511,7 +511,7 @@ contains
     allocate (channels_(i), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
                                   label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
-    self%diag_Mie(instance) = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
     deallocate(channels_)
 
     ! Mie Table instance/index
@@ -948,7 +948,7 @@ contains
    allocate(aerosol(ubound(NH4a,1), ubound(NH4a,2), ubound(NH4a,3), 3), __STAT__)
    aerosol(:,:,:,:) = 0.0
    aerosol(:,:,:,1) = NH4a
-   call Aero_Compute_Diags (mie=self%diag_Mie(self%instance), km=self%km, klid=self%klid, nbegin=1, &
+   call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
@@ -957,7 +957,7 @@ contains
                             sfcmass=NH4SMASS, colmass=NH4CMASS, mass=NH4MASS, conc=NH4CONC, __RC__)
 
    aerosol(:,:,:,1) = NH3
-   call Aero_Compute_Diags (mie=self%diag_Mie(self%instance), km=self%km, klid=self%klid, nbegin=1, &
+   call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
@@ -966,7 +966,7 @@ contains
                             sfcmass=NH3SMASS, colmass=NH3CMASS, mass=NH3MASS, conc=NH3CONC, __RC__)
 
    aerosol(:,:,:,1) = NO3an1
-   call Aero_Compute_Diags (mie=self%diag_Mie(self%instance), km=self%km, klid=self%klid, nbegin=1, &
+   call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=1, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
@@ -979,7 +979,7 @@ contains
    aerosol(:,:,:,1) = NO3an1
    aerosol(:,:,:,2) = NO3an2
    aerosol(:,:,:,3) = NO3an3
-   call Aero_Compute_Diags (mie=self%diag_Mie(self%instance), km=self%km, klid=self%klid, nbegin=1, &
+   call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=3,  &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
@@ -1152,7 +1152,7 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_Mie(instance), nbins, n_bands, offset, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    call mie_ (self%rad_Mie, nbins, n_bands, offset, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1317,7 +1317,7 @@ contains
     call c_f_pointer(address, self)
 
     do n = 1, nbins
-       call self%diag_Mie(instance)%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
+       call self%diag_Mie%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
        tau_s = tau_s + tau
     end do
 
