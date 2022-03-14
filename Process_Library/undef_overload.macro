@@ -1,7 +1,8 @@
 #undef SUB_
 #undef __INTERP1__
 #undef __INTERP__
-#undef __INTERPK__
+#undef __INTERPBACK__
+#undef __INTERPMOM__
 #undef __DIMS__
 #undef SUFIX_
 #undef ARG_

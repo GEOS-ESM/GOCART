@@ -73,7 +73,6 @@
      integer, allocatable, dimension(:)       :: irh, qrh
      real, allocatable, dimension(:)          :: rh_, arh
      real, allocatable, dimension(__DIMS__)   :: bext_, bsca_
-     real, allocatable, dimension(:,:,:)      :: pmom_
      integer :: i, j
 
      character(len=*), parameter  :: Iam = 'Query'
@@ -117,11 +116,11 @@
     endif
 
     if(present(p11)) then
-       p11 =  __INTERPK__(this%pback, irh, arh, channel, bin, 1, p11)
+       p11 =  __INTERPBACK__(this%pback, irh, arh, channel, bin, 1, p11)
     endif
 
     if(present(p22)) then
-       p22 =  __INTERPK__(this%pback, irh, arh, channel, bin, 5, p22)
+       p22 =  __INTERPBACK__(this%pback, irh, arh, channel, bin, 5, p22)
     endif
 
     if(present(gf)) then
@@ -149,14 +148,11 @@
     endif
 
     if (present(pmom)) then
-       allocate(pmom_(product(shape(irh)),size(this%pmom,4),size(this%pmom,5)))
        do j = 1, size(this%pmom,5)
           do i = 1, size(this%pmom,4)
-             pmom_(:,i,j)  =  this%pmom(irh   ,channel,bin,i,j) * (1.-arh) &
-                            + this%pmom(irh+1 ,channel,bin,i,j) * arh
+             pmom(__DIMS__,i,j)  =  __INTERPMOM__(this%pmom, irh, arh, channel, bin, i, j, rh)
           enddo
        enddo
-       pmom = reshape(pmom_, shape(pmom))
     endif
 
     if(present(tau  )) tau   = bext_ * q_mass
