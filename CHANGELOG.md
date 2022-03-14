@@ -12,9 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added AMIP.20C ExtData configs to allow AMIP GOCART runs to work before Y2000 (during the transition from HFED to QFED)
-  - Note: This is not a *new* scenario but rather a stopgap until
-    Extdata is updated that will allow runs before Y2000 using magic-date
-    scripting in `gcm_run.j` (a la MERRA2 in GOCART1).
+  - Note 1: This is not a *new* scenario but rather a stopgap until Extdata is updated to allow time ranges to be specified. 
+  - Note 2: Temporarily, this will allow runs before Y2000 using magic-data scripting in `gcm_run.j` (a la MERRA2 in GOCART1).
 
 ### Fixed
 
