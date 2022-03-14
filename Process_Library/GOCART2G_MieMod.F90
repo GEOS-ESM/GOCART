@@ -58,6 +58,8 @@ module GOCART2G_MieMod
       real, allocatable  :: bbck(:,:,:)     ! (r,c,b) bbck values [m2 kg-1]
       real, allocatable  :: g(:,:,:)        ! (r,c,b) asymmetry parameter
       real, allocatable  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
+      real, allocatable  :: p11(:,:,:)      ! (r,c,b) Backscatter phase function, index 1 
+      real, allocatable  :: p22(:,:,:)      ! (r,c,b) Backscatter phase function, index 5
       real, allocatable  :: pmom(:,:,:,:,:) ! (r,c,b,m,p) moments of phase function
       real, allocatable  :: gf(:,:)         ! (r,b) hygroscopic growth factor
       real, allocatable  :: rhop(:,:)       ! (r,b) wet particle density [kg m-3]
@@ -378,6 +380,8 @@ CONTAINS
         enddo
        enddo
       enddo
+      this%p11 = this%pback(:,:,:,1)
+      this%p22 = this%pback(:,:,:,5)
 
 !     Insert growth factor
       this%gf = gf_table
@@ -473,9 +477,8 @@ CONTAINS
    end function GOCART2G_MieCreate
    
 !
-! QueryByWave subroutines
+! Query subroutines
 !
-#define BYWAVE_ 
 
 #define RANK_ 1
 #include "MieQuery.H"
@@ -488,28 +491,6 @@ CONTAINS
 #define RANK_ 3
 #include "MieQuery.H"
 #undef RANK_
-
-#undef BYWAVE_
-
-!
-! QueryByChannel subroutines
-!
-
-#define BYCHANNEL_ 
-
-#define RANK_ 1
-#include "MieQuery.H"
-#undef RANK_
-
-#define RANK_ 2
-#include "MieQuery.H"
-#undef RANK_
-
-#define RANK_ 3
-#include "MieQuery.H"
-#undef RANK_
-
-#undef BYCHANNEL_
 
   integer function getChannel(this, wavelength, rc) result (ch)
      class (GOCART2G_Mie), intent(in) :: this

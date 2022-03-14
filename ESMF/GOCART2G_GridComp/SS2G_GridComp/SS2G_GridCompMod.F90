@@ -484,7 +484,7 @@ contains
           channels_(i) = i
        end do
     endif
-    self%rad_Mie(instance) = GOCART2G_Mie(trim(file_), channels_*1.e-9, __RC__)
+    self%rad_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, __RC__)
     deallocate(channels_)
 
 !   Create Diagnostics Mie Table
@@ -497,7 +497,7 @@ contains
     allocate (channels_(i), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
                                   label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
-    self%diag_Mie(instance) = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
     deallocate(channels_)
     ! Mie Table instance/index
     call ESMF_AttributeSet(aero, name='mie_table_instance', value=instance, __RC__)
@@ -824,7 +824,7 @@ contains
 !   Compute diagnostics
 !   -------------------
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
-    call Aero_Compute_Diags (self%diag_Mie(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
+    call Aero_Compute_Diags (self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
                              self%rup, self%wavelengths_profile*1.0e-9, &
                              self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
                              delp, ple, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
@@ -988,7 +988,7 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_Mie(instance), nbins, n_bands, offset, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    call mie_ (self%rad_Mie, nbins, n_bands, offset, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1143,7 +1143,7 @@ contains
     call c_f_pointer(address, self)
 
     do n = 1, nbins
-       call self%diag_Mie(instance)%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
+       call self%diag_Mie%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
        tau_s = tau_s + tau
     end do
 
