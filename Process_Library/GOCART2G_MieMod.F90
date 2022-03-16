@@ -118,7 +118,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 
      character(len=*), intent(in) :: rcfile  ! Mie table file name
-     real, intent(in) :: wavelengths(:)
+     real, intent(in) :: optional, wavelengths(:)
      integer, optional, intent(in) :: nmom
 
 ! !OUTPUT PARAMETERS:
@@ -159,8 +159,8 @@ CONTAINS
 
      rc = 0
      this%table_name = rcfile
-     nch = size(wavelengths)
 
+      
 !    Whether or not doing phase function
 !    -----------------------------------
      if ( present(nmom) ) then
@@ -192,6 +192,12 @@ CONTAINS
       NF_VERIFY_(nf90_inq_dimid(ncid,'lambda',idimid))
       NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nch_table))
 
+      if (present(wavelengths) ) then
+        nch = size(wavelengths)
+      else
+        nch = nch_table
+     end if
+      
 !     Dry Effective radius
 !     --------------------
       NF_VERIFY_(nf90_inq_dimid(ncid,'radius',idimid))
@@ -345,43 +351,54 @@ CONTAINS
       this%rh = rh_table ! assignment does allocation
 
 !     Insert the requested channels in the output table
-      this%wavelengths = wavelengths
+      if ( present(wavelength) ) then
+         this%wavelengths = wavelengths
+      else
+         this%wavelengths = @@@lambda
+      endif
 
+         
 !     Insert rEff (moist effective radius)
       this%reff = reff_table
 
 !     Now we linearly interpolate the input table to the output table grid
 !     of requested channels
-      do j = 1, this%nbin
-       do i = 1, this%nrh
-        do n = 1, this%nch
-         call polint(channels_table,bext_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bext(i,n,j),yerr)
-         call polint(channels_table,bsca_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bsca(i,n,j),yerr)
-         call polint(channels_table,bbck_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%bbck(i,n,j),yerr)
-         call polint(channels_table,g_table(:,i,j),nch_table,    &
-                     this%wavelengths(n),this%g(i,n,j),yerr)
-         call polint(channels_table,refr_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%refr(i,n,j),yerr)
-         call polint(channels_table,refi_table(:,i,j),nch_table, &
-                     this%wavelengths(n),this%refi(i,n,j),yerr)
-         do ipol = 1, this%nPol
-                  call polint(channels_table,pback_table(:,i,j,ipol),nch_table,    &
-                       this%wavelengths(n),pback(i,n,j,ipol),yerr)
-         end do
-         if ( nmom_ > 0 ) then
-            do imom = 1, this%nMom
-               do ipol = 1, this%nPol
-                  call polint(channels_table,pmom_table(:,i,j,imom,ipol),nch_table, &
-                       this%wavelengths(n),this%pmom(i,n,j,imom,ipol),yerr)
-               end do
-            end do
-         end if
-        enddo
-       enddo
-      enddo
+      if ( present(wavelength) ) then
+         do j = 1, this%nbin
+            do i = 1, this%nrh
+               do n = 1, this%nch
+                  call polint(channels_table,bext_table(:,i,j),nch_table, &
+                       this%wavelengths(n),this%bext(i,n,j),yerr)
+                  call polint(channels_table,bsca_table(:,i,j),nch_table, &
+                       this%wavelengths(n),this%bsca(i,n,j),yerr)
+                  call polint(channels_table,bbck_table(:,i,j),nch_table, &
+                       this%wavelengths(n),this%bbck(i,n,j),yerr)
+                  call polint(channels_table,g_table(:,i,j),nch_table,    &
+                       this%wavelengths(n),this%g(i,n,j),yerr)
+                  call polint(channels_table,refr_table(:,i,j),nch_table, &
+                       this%wavelengths(n),this%refr(i,n,j),yerr)
+                  call polint(channels_table,refi_table(:,i,j),nch_table, &
+                       this%wavelengths(n),this%refi(i,n,j),yerr)
+                  do ipol = 1, this%nPol
+                      call polint(channels_table,pback_table(:,i,j,ipol),nch_table,    &
+                             this%wavelengths(n),pback(i,n,j,ipol),yerr)
+                  end do
+                  if ( nmom_ > 0 ) then
+                     do imom = 1, this%nMom
+                        do ipol = 1, this%nPol
+                           call polint(channels_table,pmom_table(:,i,j,imom,ipol),nch_table, &
+                                this%wavelengths(n),this%pmom(i,n,j,imom,ipol),yerr)
+                        enddo
+                     enddo
+                  endif
+               enddo
+            enddo
+         enddo
+      else (no wavelength)
+       ... swap dimensions ...
+    endif
+
+!     Pick p11, p12
       this%p11 = pback(:,:,:,1)
       this%p22 = pback(:,:,:,5)
 

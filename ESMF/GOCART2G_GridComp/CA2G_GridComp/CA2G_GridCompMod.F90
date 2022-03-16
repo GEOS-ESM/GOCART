@@ -365,7 +365,6 @@ contains
     integer                              :: HDT         ! model     timestep (secs)
     real, pointer, dimension(:,:,:)      :: ple
     logical                              :: data_driven
-    integer                              :: NUM_BANDS
     logical                              :: bands_are_present
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
@@ -519,26 +518,8 @@ contains
 
 !   Create Radiation Mie Table
 !   --------------------------
-    call MAPL_GetResource (MAPL, NUM_BANDS, 'NUM_BANDS:', __RC__)
-
-!   Get file names for the optical tables
-    call ESMF_ConfigGetAttribute (cfg, file_, &
-                                  label="aerosol_radBands_optics_file:", __RC__ )
-
-    allocate (channels_(NUM_BANDS), __STAT__ )
-
-    call ESMF_ConfigFindLabel(cfg, label="BANDS:", isPresent=bands_are_present, __RC__)
-
-    if (bands_are_present) then
-       call ESMF_ConfigGetAttribute (cfg, channels_, label= "BANDS:", &
-                                    count=NUM_BANDS, __RC__)
-    else
-       do i = 1, NUM_BANDS
-          channels_(i) = i
-       end do
-    endif
-    self%rad_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, __RC__)
-    deallocate(channels_)
+    call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
+    self%rad_Mie = GOCART2G_Mie(trim(file_), __RC__)
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
