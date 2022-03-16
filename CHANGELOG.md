@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `.editorconfig` file
+  - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
+
 ### Changed
 
 - Updated the CircleCI to use circleci-tools 0.13.0 orb
