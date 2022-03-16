@@ -11,13 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Changed the handling of state variable names in multiple instances of component (see Issue #93)
 - Major refactoring of Mie table class. (see Issue #96)
-   - Renamed Chem_MieTableMod.F90 --> Chem_Mie2GMod.F90
-   - Renamed module Chem_MieTableMod2G --> Chem_Mie2GMod
+   - Renamed Chem_MieTableMod.F90 --> GOCART2G_Mie2GMod.F90
+   - Renamed module Chem_MieTableMod2G --> GOCART2G_Mie2GMod
    - Introduced object oriented design with type-bound methods
    - renamed some components/arguments for clarity
    - eliminated extraneous container data type that is not needed under new GOCART design.
 - Cleaned up optional keyword arguments in call to Mie calculator for aerosol
   radiative forcing calculation; zero diff change
+- Simplified loading of radiation MieTables.
+
+## [2.0.5] - 2021-03-14
+
+### Added
+
+- Added AMIP.20C ExtData configs to allow AMIP GOCART runs to work before Y2000 (during the transition from HFED to QFED)
+  - Note 1: This is not a *new* scenario but rather a stopgap until Extdata is updated to allow time ranges to be specified. 
+  - Note 2: Temporarily, this will allow runs before Y2000 using magic-data scripting in `gcm_run.j` (a la MERRA2 in GOCART1).
 
 ### Fixed
 

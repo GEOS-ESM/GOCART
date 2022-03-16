@@ -1,0 +1,67 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+
+#===== Sulfate Data Instance ==========================================
+climSO4         'kg kg-1'     Y   N               0              0.0      1.0     SO4        ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+#climDMS         'kg kg-1'     Y   N               -              0.0      1.0     none       /dev/null
+#climMSA         'kg kg-1'     Y   N               -              0.0      1.0     none       /dev/null
+#climSO2         'kg kg-1'     Y   N               -              0.0      1.0     none       /dev/null
+
+climSUDP001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUWT001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSD001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSD001    /dev/null
+climSUSV001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSUDP002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUWT002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSD002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSD002    /dev/null
+climSUSV002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSUDP003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUWT003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSD003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSD003    /dev/null
+climSUSV003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climSUDP004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUWT004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSD004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSD004    /dev/null
+climSUSV004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+
+#====== Sulfate Sources =================================================
+# Biomass burning 
+SU_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass ExtData/chemistry/HFED/v1.0/Y%y4/hfed.emis_so2.x576_y361_t14.%y4.nc4
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+SU_ANTHROL1 NA  N Y %y4-%m2-%d2t12:00:00 none none so2_nonenergy  ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+SU_ANTHROL2 NA  N Y %y4-%m2-%d2t12:00:00 none none so2_energy     ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+
+# Ship emissions
+SU_SHIPSO2    NA  N Y %y4-%m2-%d2t12:00:00 none none so2_shipping ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+SU_SHIPSO4    NA  N Y %y4-%m2-%d2t12:00:00 none none so4_shipping ExtData/chemistry/CEDS/v2021-04-21/sfc/SO4-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+
+# Aircraft fuel consumption
+SU_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none so2_aviation   ExtData/chemistry/CEDS/v2021-04-21/L72/SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+
+# DMS concentration
+SU_DMSO NA  Y Y %y4-%m2-%d2t12:00:00 none none conc ExtData/chemistry/Lana/v2011/DMSclim_sfcconcentration.x360_y181_t12.Lana2011.nc4
+
+# Aviation emissions during the three phases of flight
+SU_AVIATION_LTO NA  Y Y %y4-%m2-%d2t12:00:00 none none so2_aviation /dev/null
+SU_AVIATION_CDS NA  Y Y %y4-%m2-%d2t12:00:00 none none so2_aviation /dev/null
+SU_AVIATION_CRS NA  Y Y %y4-%m2-%d2t12:00:00 none none so2_aviation /dev/null
+
+# H2O2, OH and NO3 mixing ratios
+SU_H2O2 NA  N Y %y4-%m2-%d2t12:00:00 none none h2o2 ExtData/chemistry/MERRA2GMI/v0.0.0/L72/MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
+SU_OH   NA  N Y %y4-%m2-%d2t12:00:00 none none oh   ExtData/chemistry/MERRA2GMI/v0.0.0/L72/MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
+SU_NO3  NA  N Y %y4-%m2-%d2t12:00:00 none none no3  ExtData/chemistry/MERRA2GMI/v0.0.0/L72/MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
+
+# Production of SO2 from OCS oxidation
+pSO2_OCS NA Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+#SU_regionMask   NA  N v - none none REGION_MASK ExtData/chemistry/Masks/v0.0.0/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+%%
+
