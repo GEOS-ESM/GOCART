@@ -57,7 +57,7 @@ module GOCART2G_MieMod
       real, allocatable  :: bsca(:,:,:)     ! (r,c,b) bsca values [m2 kg-1]
       real, allocatable  :: bbck(:,:,:)     ! (r,c,b) bbck values [m2 kg-1]
       real, allocatable  :: g(:,:,:)        ! (r,c,b) asymmetry parameter
-      real, allocatable  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
+!ams  real, allocatable  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
       real, allocatable  :: p11(:,:,:)      ! (r,c,b) Backscatter phase function, index 1 
       real, allocatable  :: p22(:,:,:)      ! (r,c,b) Backscatter phase function, index 5
       real, allocatable  :: pmom(:,:,:,:,:) ! (r,c,b,m,p) moments of phase function
@@ -148,6 +148,8 @@ CONTAINS
                             vol_table(:,:),       area_table(:,:),                 &
                             refr_table(:,:,:),    refi_table(:,:,:)
 
+     real, allocatable  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
+     
      real :: yerr
      integer :: nmom_, imom, ipol
      integer :: status
@@ -332,7 +334,7 @@ CONTAINS
       allocate (this%bsca(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%bbck(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%g(this%nrh,this%nch,this%nbin),    __NF_STAT__)
-      allocate (this%pback(this%nrh,this%nch,this%nbin,this%nPol),    __NF_STAT__)
+      allocate (pback(this%nrh,this%nch,this%nbin,this%nPol),    __NF_STAT__)
       if ( nmom_ > 0 ) then
          allocate (this%pmom(this%nrh,this%nch,this%nbin,this%nMom,this%nPol),    __NF_STAT__)
       end if
@@ -367,7 +369,7 @@ CONTAINS
                      this%wavelengths(n),this%refi(i,n,j),yerr)
          do ipol = 1, this%nPol
                   call polint(channels_table,pback_table(:,i,j,ipol),nch_table,    &
-                       this%wavelengths(n),this%pback(i,n,j,ipol),yerr)
+                       this%wavelengths(n),pback(i,n,j,ipol),yerr)
          end do
          if ( nmom_ > 0 ) then
             do imom = 1, this%nMom
@@ -380,8 +382,8 @@ CONTAINS
         enddo
        enddo
       enddo
-      this%p11 = this%pback(:,:,:,1)
-      this%p22 = this%pback(:,:,:,5)
+      this%p11 = pback(:,:,:,1)
+      this%p22 = pback(:,:,:,5)
 
 !     Insert growth factor
       this%gf = gf_table
