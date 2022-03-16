@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated the CircleCI to use circleci-tools 0.13.0 orb
   - Moves CI to use Baselibs 6.2.13 needed by MAPL development
-- Update `components.yaml` to be in line with GOCART2G GEOSgcm
+- Update `components.yaml` to be in line with GEOSgcm v10.22.0
 
 ## [2.0.5] - 2021-03-14
 
