@@ -1,0 +1,116 @@
+PrimaryExports%%
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
+#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
+# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+
+#========== Data Instance ==========================================================
+
+climBCphobic   'kg kg-1'   Y        N               0              0.0      1.0     BCphobic   ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climBCphilic   'kg kg-1'   Y        N               0              0.0      1.0     BCphilic   ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climOCphobic   'kg kg-1'   Y        N               0              0.0      1.0     OCphobic   ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climOCphilic   'kg kg-1'   Y        N               0              0.0      1.0     OCphilic   ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+
+climBCDP001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCWT001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCSD001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSD001    /dev/null
+climBCSV001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climBCDP002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCWT002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCSD002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSD002    /dev/null
+climBCSV002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climOCDP001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCWT001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCSD001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSD001    /dev/null
+climOCSV001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+climOCDP002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCWT002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCSD002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSD002    /dev/null
+climOCSV002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+
+#=========== Carbonaceous aerosol sources ===========================================
+# ORGANIC CARBON
+# ---------------
+# Biomass burning 
+OC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass /dev/null
+
+# Biofuel Source -- Included in AeroCom anthropogenic emissions
+OC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+OC_ANTEOC1 NA  N Y %y4-%m2-%d2t12:00:00 none none oc_nonenergy ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+OC_ANTEOC2 NA  N Y %y4-%m2-%d2t12:00:00 none none oc_energy    ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+
+# EDGAR based ship emissions
+OC_SHIP    NA  N Y %y4-%m2-%d2t12:00:00 none none oc_shipping  ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+
+# Aircraft fuel consumption
+OC_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none oc_aviation ExtData/chemistry/CEDS/v2021-04-21/L72/OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+
+# Aviation emissions during the three phases of flight
+OC_AVIATION_LTO NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation /dev/null
+OC_AVIATION_CDS NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation /dev/null
+OC_AVIATION_CRS NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation /dev/null
+
+# SOA production
+pSOA_ANTHRO_VOC NA Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+#============================================================================================================
+# BLACK CARBON
+# ------------
+# 
+BC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass ExtData/chemistry/HFED/v1.0/Y%y4/hfed.emis_bc.x576_y361_t14.%y4.nc4
+
+# Biofuel Source -- Included in AeroCom anthropogenic emissions
+BC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+BC_ANTEBC1 NA  N Y %y4-%m2-%d2t12:00:00 none none bc_nonenergy ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+BC_ANTEBC2 NA  N Y %y4-%m2-%d2t12:00:00 none none bc_energy    ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+
+# EDGAR based ship emissions
+BC_SHIP    NA  N Y %y4-%m2-%d2t12:00:00 none none bc_shipping  ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+
+# Aircraft fuel consumption
+BC_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none bc_aviation ExtData/chemistry/CEDS/v2021-04-21/L72/BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+
+# Aviation emissions during the LTO, SDC and CRS phases of flight
+BC_AVIATION_LTO NA  Y Y %y4-%m2-%d2t12:00:00 none none bc_aviation /dev/null
+BC_AVIATION_CDS NA  Y Y %y4-%m2-%d2t12:00:00 none none bc_aviation /dev/null
+BC_AVIATION_CRS NA  Y Y %y4-%m2-%d2t12:00:00 none none bc_aviation /dev/null
+
+#============================================================================================================
+# BROWN CARBON
+# ------------
+# Biomass burning
+BRC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass ExtData/chemistry/HFED/v1.0/Y%y4/hfed.emis_oc.x576_y361_t14.%y4.nc4
+
+# Terpene emission
+BRC_TERPENE NA  Y Y %y4-%m2-%d2t12:00:00 none none terpene /dev/null
+
+# Biofuel Source -- Included in AeroCom anthropogenic emissions
+BRC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+# Anthropogenic (BF & FF) emissions -- allowed to input as two layers
+BRC_ANTEBRC1 NA  Y Y %y4-%m2-%d2t12:00:00 none none anteoc1 /dev/null
+BRC_ANTEBRC2 NA  Y Y %y4-%m2-%d2t12:00:00 none none anteoc2 /dev/null
+
+# EDGAR based ship emissions
+BRC_SHIP    NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_ship /dev/null
+
+# Aircraft fuel consumption
+BRC_AIRCRAFT NA  Y Y %y4-%m2-%d2t12:00:00 none none none /dev/null
+
+# Aviation emissions during the three phases of flight
+BRC_AVIATION_LTO NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation /dev/null
+BRC_AVIATION_CDS NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation /dev/null
+BRC_AVIATION_CRS NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation /dev/null
+
+# SOA production
+pSOA_BIOB_VOC NA Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
+
+%%
