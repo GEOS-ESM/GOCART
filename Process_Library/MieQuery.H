@@ -1,22 +1,22 @@
 #define IDENTITY_(a) a
 
 #if (RANK_ == 1)
-#  define SUFIX_ _1d
+#  define SUFFIX_ _1d
 #  define __DIMS__ : 
 #elif (RANK_ == 2)
-#  define SUFIX_ _2d
+#  define SUFFIX_ _2d
 #  define __DIMS__ :,: 
 #elif (RANK_ == 3)
-#  define SUFIX_ _3d
+#  define SUFFIX_ _3d
 #  define __DIMS__ :,:,: 
 #endif
 
-#define __INTERP2__(table,rh,ah,bin,sh) reshape((table(rh,bin) * (1-ah) + table(rh+1,bin)*ah), shape(sh))
-#define __INTERP3__(table,rh,ah,ch,bin,sh) reshape((table(rh,ch,bin) * (1-ah) + table(rh+1,ch,bin)*ah), shape(sh))
-#define __INTERP5__(table,rh,ah,ch,bin,k,l,sh) reshape((table(rh,ch,bin,k,l) * (1-ah) + table(rh+1,ch,bin,k,l)*ah), shape(sh))
+#define __RHINTERP2__(table,rh,ah,bin,sh) reshape((table(rh,bin) * (1-ah) + table(rh+1,bin)*ah), shape(sh))
+#define __RHINTERP3__(table,rh,ah,ch,bin,sh) reshape((table(rh,ch,bin) * (1-ah) + table(rh+1,ch,bin)*ah), shape(sh))
+#define __RHINTERP5__(table,rh,ah,ch,bin,k,l,sh) reshape((table(rh,ch,bin,k,l) * (1-ah) + table(rh+1,ch,bin,k,l)*ah), shape(sh))
 
-#define SUBCHANNEL_ IDENTITY_(QueryByChannel)IDENTITY_(SUFIX_)
-#define SUBWAVELENGTH_ IDENTITY_(QueryByWavelength)IDENTITY_(SUFIX_)
+#define SUBCHANNEL_ IDENTITY_(QueryByChannel)IDENTITY_(SUFFIX_)
+#define SUBWAVELENGTH_ IDENTITY_(QueryByWavelength)IDENTITY_(SUFFIX_)
 
 !-------------------------------------------------------------------------
 !BOP
@@ -99,61 +99,61 @@
      end where
 
      if(present(bext) .or. present(tau) .or. present(ssa) ) then
-       bext_ =  __INTERP3__(this%bext, irh, arh, channel, bin, bext)
+       bext_ =  __RHINTERP3__(this%bext, irh, arh, channel, bin, bext)
      endif
 
      if(present(bsca) .or. present(ssa) ) then
-       bsca_ =  __INTERP3__(this%bsca, irh, arh, channel, bin, bsca)
+       bsca_ =  __RHINTERP3__(this%bsca, irh, arh, channel, bin, bsca)
      endif
 
      if(present(bbck)) then
-       bbck =  __INTERP3__(this%bbck, irh, arh, channel, bin, bbck)
+       bbck =  __RHINTERP3__(this%bbck, irh, arh, channel, bin, bbck)
      endif
 
      if(present(gasym)) then
-       gasym =  __INTERP3__(this%g, irh, arh, channel, bin, gasym)
+       gasym =  __RHINTERP3__(this%g, irh, arh, channel, bin, gasym)
      endif
 
      if(present(rEff)) then
-       rEff = 1.E6* __INTERP2__(this%rEff, irh, arh, bin, rEff)
+       rEff = 1.E6* __RHINTERP2__(this%rEff, irh, arh, bin, rEff)
      endif
 
      if(present(p11)) then
-       p11 =  __INTERP3__(this%p11, irh, arh, channel, bin, p11)
+       p11 =  __RHINTERP3__(this%p11, irh, arh, channel, bin, p11)
      endif
 
      if(present(p22)) then
-       p22 =  __INTERP3__(this%p22, irh, arh, channel, bin, p22)
+       p22 =  __RHINTERP3__(this%p22, irh, arh, channel, bin, p22)
      endif
 
      if(present(gf)) then
-       gf =  __INTERP2__(this%gf, irh, arh, bin, gf)
+       gf =  __RHINTERP2__(this%gf, irh, arh, bin, gf)
      endif
 
      if(present(rhod)) then
-       rhod =  __INTERP2__(this%rhod, irh, arh, bin, rhod)
+       rhod =  __RHINTERP2__(this%rhod, irh, arh, bin, rhod)
      endif
 
      if(present(vol)) then
-       vol =  __INTERP2__(this%vol, irh, arh, bin, vol)
+       vol =  __RHINTERP2__(this%vol, irh, arh, bin, vol)
      endif
 
      if(present(area)) then
-       area =  __INTERP2__(this%area, irh, arh, bin, area)
+       area =  __RHINTERP2__(this%area, irh, arh, bin, area)
      endif
 
      if(present(refr)) then
-       refr =  __INTERP3__(this%refr, irh, arh, channel, bin, refr)
+       refr =  __RHINTERP3__(this%refr, irh, arh, channel, bin, refr)
      endif
 
      if(present(refi)) then
-       refi =  __INTERP3__(this%refi, irh, arh, channel, bin, refi)
+       refi =  __RHINTERP3__(this%refi, irh, arh, channel, bin, refi)
      endif
 
      if (present(pmom)) then
        do j = 1, size(this%pmom,5)
           do i = 1, size(this%pmom,4)
-             pmom(__DIMS__,i,j)  =  __INTERP5__(this%pmom, irh, arh, channel, bin, i, j, rh)
+             pmom(__DIMS__,i,j)  =  __RHINTERP5__(this%pmom, irh, arh, channel, bin, i, j, rh)
           enddo
        enddo
      endif
@@ -247,10 +247,10 @@
 
 #undef SUBWAVELENGTH_
 #undef SUBCHANNEL_
-#undef __INTERP2__
-#undef __INTERP3__
-#undef __INTERP5__
+#undef __RHINTERP2__
+#undef __RHINTERP3__
+#undef __RHINTERP5__
 #undef __DIMS__
-#undef SUFIX_
+#undef SUFFIX_
 #undef IDENTITY_
 
