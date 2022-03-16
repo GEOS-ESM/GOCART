@@ -118,8 +118,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 
      character(len=*), intent(in) :: rcfile  ! Mie table file name
-     real, intent(in) :: optional, wavelengths(:)
-     integer, optional, intent(in) :: nmom
+     real, optional,   intent(in) :: wavelengths(:)
+     integer, optional,intent(in) :: nmom
 
 ! !OUTPUT PARAMETERS:
 
@@ -350,20 +350,34 @@ CONTAINS
 !     Preserve the full RH structure of the input table
       this%rh = rh_table ! assignment does allocation
 
-!     Insert the requested channels in the output table
-      if ( present(wavelength) ) then
-         this%wavelengths = wavelengths
-      else
-         this%wavelengths = @@@lambda
-      endif
-
-         
 !     Insert rEff (moist effective radius)
       this%reff = reff_table
 
+!     Insert growth factor
+      this%gf = gf_table
+
+!     Wet particle density [kg m-3]
+      this%rhop = rhop_table
+
+!     Dry particle density [kg m-3]
+      this%rhod = rhod_table
+
+!     Volume [m3 kg-1]
+      this%vol  = vol_table
+
+!     Area [m2 kg-1]
+      this%area = area_table
+
+!     Insert the requested channels in the output table
+      if ( present(wavelengths) ) then
+         this%wavelengths = wavelengths
+      else
+         this%wavelengths = channels_table 
+      endif
+
 !     Now we linearly interpolate the input table to the output table grid
 !     of requested channels
-      if ( present(wavelength) ) then
+      if ( present(wavelengths) ) then
          do j = 1, this%nbin
             do i = 1, this%nrh
                do n = 1, this%nch
@@ -394,28 +408,23 @@ CONTAINS
                enddo
             enddo
          enddo
-      else (no wavelength)
-       ... swap dimensions ...
-    endif
+      else !(no wavelength)
+         !swap the order
+         this%bext = reshape(bext_table, [nrh_table, nch, nbin_table],order =[2,1,3])
+         this%bsca = reshape(bsca_table, [nrh_table, nch, nbin_table],order =[2,1,3])
+         this%bbck = reshape(bbck_table, [nrh_table, nch, nbin_table],order =[2,1,3])
+         this%g    = reshape(   g_table, [nrh_table, nch, nbin_table],order =[2,1,3])
+         this%refr = reshape(refr_table, [nrh_table, nch, nbin_table],order =[2,1,3])
+         this%refi = reshape(refi_table, [nrh_table, nch, nbin_table],order =[2,1,3])
+         pback     = reshape(pback_table,[nrh_table, nch, nbin_table, npol_table],order =[2,1,3,4])
+         if ( nmom_ > 0 ) then
+           this%pmom = reshape(pmom_table,[nrh_table,nch, nbin_table, nmom_, npol_table], order = [2,1,3,4,5])
+         endif
+      endif
 
 !     Pick p11, p12
       this%p11 = pback(:,:,:,1)
       this%p22 = pback(:,:,:,5)
-
-!     Insert growth factor
-      this%gf = gf_table
-
-!     Wet particle density [kg m-3]
-      this%rhop = rhop_table
-
-!     Dry particle density [kg m-3]
-      this%rhod = rhod_table
-
-!     Volume [m3 kg-1]
-      this%vol  = vol_table
-
-!     Area [m2 kg-1]
-      this%area = area_table
 
 !     Now we do a mapping of the RH from the input table to some high
 !     resolution representation.  This is to spare us the need to

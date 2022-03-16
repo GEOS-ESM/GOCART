@@ -907,8 +907,7 @@ contains
     integer                                          :: instance
     integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
-    integer                                          :: band, offset
-    integer, parameter                               :: n_bands = 1
+    integer                                          :: band
     integer ::  k
 
     __Iam__('SS2G::aerosol_optics')
@@ -923,7 +922,6 @@ contains
 !   --------------
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
-    offset = band - n_bands
 
 !   Pressure at layer edges 
 !   ------------------------
@@ -970,7 +968,7 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_Mie, nbins, n_bands, offset, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -997,14 +995,13 @@ contains
 
   contains
 
-    subroutine mie_(mie, nbins, nb, offset, q, rh, bext_s, bssa_s, basym_s, rc)
+    subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
 
     implicit none
 
     type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
     integer,                       intent(in   ) :: nbins            ! number of bins
-    integer,                       intent(in )   :: nb               ! number of bands
-    integer,                       intent(in )   :: offset           ! bands offset 
+    integer,                       intent(in )   :: band             ! channel
     real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
     real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
     real(kind=8), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
@@ -1026,7 +1023,7 @@ contains
 
     do l = 1, nbins
        ! tau is converted to bext
-       call mie%Query(offset+1, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
+       call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
