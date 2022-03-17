@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
+### Added
 
+- Add `.editorconfig` file
+  - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
+
+### Changed
+- Updated the CircleCI to use circleci-tools 0.13.0 orb
+  - Moves CI to use Baselibs 6.2.13 needed by MAPL development
+- Update `components.yaml` to be in line with GEOSgcm v10.22.0
 - Updates to support Spack
 - Changed the handling of state variable names in multiple instances of component (see Issue #93)
 - Major refactoring of Mie table class. (see Issue #96)
@@ -26,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added AMIP.20C ExtData configs to allow AMIP GOCART runs to work before Y2000 (during the transition from HFED to QFED)
-  - Note 1: This is not a *new* scenario but rather a stopgap until Extdata is updated to allow time ranges to be specified. 
+  - Note 1: This is not a *new* scenario but rather a stopgap until Extdata is updated to allow time ranges to be specified.
   - Note 2: Temporarily, this will allow runs before Y2000 using magic-data scripting in `gcm_run.j` (a la MERRA2 in GOCART1).
 
 ### Fixed
