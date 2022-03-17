@@ -10,6 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Updates to support Spack
+- Changed the handling of state variable names in multiple instances of component (see Issue #93)
+- Major refactoring of Mie table class. (see Issue #96)
+   - Renamed Chem_MieTableMod.F90 --> GOCART2G_Mie2GMod.F90
+   - Renamed module Chem_MieTableMod2G --> GOCART2G_Mie2GMod
+   - Introduced object oriented design with type-bound methods
+   - renamed some components/arguments for clarity
+   - eliminated extraneous container data type that is not needed under new GOCART design.
+- Cleaned up optional keyword arguments in call to Mie calculator for aerosol
+  radiative forcing calculation; zero diff change
+- Simplified loading of radiation MieTables.
 
 ## [2.0.5] - 2021-03-14
 
@@ -38,8 +48,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Cleaned up optional keyword arguments in call to Mie calculator for aerosol
-  radiative forcing calculation; zero diff change
 - Updated FENGSHA dust flux according to Webb et al., Aeolian Res. 42 (2020) 100560
 
 ## [2.0.2] - 2021-01-07

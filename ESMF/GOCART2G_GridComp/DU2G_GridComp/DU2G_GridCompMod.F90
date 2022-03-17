@@ -11,7 +11,7 @@ module DU2G_GridCompMod
 !  !USES:
    use ESMF
    use MAPL
-   use Chem_MieTableMod2G
+   use GOCART2G_MieMod 
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -373,7 +373,9 @@ contains
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
-
+    integer, allocatable, dimension(:)   :: channels_
+    integer                              :: nmom_
+    character(len=ESMF_MAXSTR)           :: file_
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -516,49 +518,21 @@ contains
 
 !   Create Radiation Mie Table
 !   --------------------------
-    call MAPL_GetResource (MAPL, NUM_BANDS, 'NUM_BANDS:', __RC__)
-
-!   Get file names for the optical tables
-    call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%optics_file, &
-                                  label="aerosol_radBands_optics_file:", __RC__ )
-
-    allocate (self%rad_MieTable(instance)%channels(NUM_BANDS), __STAT__ )
-    self%rad_MieTable(instance)%nch = NUM_BANDS
-
-    call ESMF_ConfigFindLabel(cfg, label="BANDS:", isPresent=bands_are_present, __RC__)
-
-    if (bands_are_present) then
-       call ESMF_ConfigGetAttribute (cfg, self%rad_MieTable(instance)%channels, label= "BANDS:", &
-                                    count=self%rad_MieTable(instance)%nch, __RC__)
-    else
-       do i = 1, NUM_BANDS
-          self%rad_MieTable(instance)%channels(i) = i
-       end do
-    endif
-
-    allocate (self%rad_MieTable(instance)%mie_aerosol, __STAT__)
-    self%rad_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%rad_MieTable(instance)%optics_file, __RC__)
-    call Chem_MieTableRead (self%rad_MieTable(instance)%mie_aerosol, NUM_BANDS, self%rad_MieTable(instance)%channels, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
+    self%rad_Mie = GOCART2G_Mie(trim(file_), __RC__)
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%optics_file, &
+    call ESMF_ConfigGetAttribute (cfg, file_, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
-    call ESMF_ConfigGetAttribute (cfg, self%diag_MieTable(instance)%nmom, label="n_moments:", default=0,  __RC__)
-
+    call ESMF_ConfigGetAttribute (cfg, nmom_, label="n_moments:", default=0,  __RC__)
     i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
-    self%diag_MieTable(instance)%nch = i
-    allocate (self%diag_MieTable(instance)%channels(self%diag_MieTable(instance)%nch), __STAT__ )
-    call ESMF_ConfigGetAttribute (universal_cfg, self%diag_MieTable(instance)%channels, &
-                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__) 
-
-    allocate (self%diag_MieTable(instance)%mie_aerosol, __STAT__)
-    self%diag_MieTable(instance)%mie_aerosol = Chem_MieTableCreate (self%diag_MieTable(instance)%optics_file, __RC__ )
-    call Chem_MieTableRead (self%diag_MieTable(instance)%mie_aerosol, self%diag_MieTable(instance)%nch, &
-                            self%diag_MieTable(instance)%channels*1.e-9, rc=status, nmom=self%diag_MieTable(instance)%nmom)
-    VERIFY_(status)
-
+    allocate (channels_(i), __STAT__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
+                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
+    self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    deallocate(channels_)
 
 !   Mie Table instance/index
     call ESMF_AttributeSet (aero, name='mie_table_instance', value=instance, __RC__)
@@ -978,8 +952,8 @@ contains
 !  Compute diagnostics
 !  -------------------
 !  Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
-   call Aero_Compute_Diags (self%diag_MieTable(self%instance), self%km, self%klid, 1, self%nbins, self%rlow, &
-                            self%rup, self%diag_MieTable(self%instance)%channels*1.0e-9, self%wavelengths_profile*1.0e-9, &
+   call Aero_Compute_Diags (self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
+                            self%rup, self%wavelengths_profile*1.0e-9, &
                             self%wavelengths_vertint*1.0e-9, DU, MAPL_GRAV, t, airdens, &
                             rh2, u, v, delp, ple,tropp, &
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
@@ -1076,8 +1050,7 @@ contains
     integer                                          :: instance
     integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
-    integer                                          :: band, offset
-    integer, parameter                               :: n_bands = 1
+    integer                                          :: band
 
     integer :: k
 
@@ -1093,7 +1066,6 @@ contains
 !   --------------
     band = 0
     call ESMF_AttributeGet (state, name='band_for_aerosol_optics', value=band, __RC__)
-    offset = band - n_bands
 
 !   Pressure at layer edges 
 !   ------------------------
@@ -1139,7 +1111,7 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_MieTable(instance), nbins, n_bands, offset, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
 
     call ESMF_AttributeGet (state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1166,14 +1138,13 @@ contains
 
   contains
 
-    subroutine mie_(mie_table, nbins, nb, offset, q, rh, bext_s, bssa_s, basym_s, rc)
+    subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
 
     implicit none
-
-    type(Chem_Mie),                intent(inout) :: mie_table        ! mie table
+ 
+    type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
     integer,                       intent(in   ) :: nbins            ! number of bins
-    integer,                       intent(in )   :: nb               ! number of bands
-    integer,                       intent(in )   :: offset           ! bands offset 
+    integer,                       intent(in )   :: band             ! channel
     real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
     real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
     real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
@@ -1194,8 +1165,8 @@ contains
      basym_s = 0.0d0
 
      do l = 1, nbins
-        call Chem_MieQuery(mie_table, l, real(offset+1.), q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa)
-
+        ! tau is converted to bext
+        call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
         bext_s  = bext_s  +             bext     ! extinction
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
         basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
@@ -1231,7 +1202,7 @@ contains
     integer                                          :: instance
     integer                                          :: n, nbins, k
     integer                                          :: i1, j1, i2, j2, km, i, j
-    real                                             :: wavelength, mieTable_index
+    real                                             :: wavelength
 
     __Iam__('DU2G::monochromatic_aerosol_optics')
 
@@ -1245,21 +1216,6 @@ contains
 !   --------------
     wavelength = 0.
     call ESMF_AttributeGet (state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
-
-!   Get wavelength index for Mie Table
-!   Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-    if ((wavelength .ge. 4.69e-7) .and. (wavelength .le. 4.71e-7)) then
-       mieTable_index = 1.
-    else if ((wavelength .ge. 5.49e-7) .and. (wavelength .le. 5.51e-7)) then
-       mieTable_index = 2.
-    else if ((wavelength .ge. 6.69e-7) .and. (wavelength .le. 6.71e-7)) then
-       mieTable_index = 3.
-    else if ((wavelength .ge. 8.68e-7) .and. (wavelength .le. 8.71e-7)) then
-       mieTable_index = 4.
-    else
-       print*,trim(Iam),' : wavelength of ',wavelength,' is an invalid value.'
-       return
-    end if
 
 !   Pressure at layer edges 
 !   ------------------------
@@ -1308,14 +1264,8 @@ contains
     call c_f_pointer(address, self)
 
     do n = 1, nbins
-      do i = 1, i2
-        do j = 1, j2
-          do k = 1, km
-            call Chem_MieQuery(self%diag_MieTable(instance), n, mieTable_index, q_4d(i,j,k,n), rh(i,j,k), tau=tau(i,j,k), __RC__)
-            tau_s(i,j,k) = tau_s(i,j,k) + tau(i,j,k)
-          end do
-        end do
-      end do
+       call self%diag_Mie%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
+       tau_s = tau_s + tau
     end do
 
     call ESMF_AttributeGet (state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
