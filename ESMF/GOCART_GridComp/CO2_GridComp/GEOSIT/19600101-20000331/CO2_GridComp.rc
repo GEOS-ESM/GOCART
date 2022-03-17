@@ -1,0 +1,50 @@
+#
+# Resource file for CO2 parameters. 
+#
+
+number_CO2_bins:      1 
+CO2_regions_indices: -1 1 2 5
+
+# Run year-specific CMS emissions (0 runs climatological monthly mean emissions, 1 runs CMS)
+# ------------------------------------------------------------------------------------------
+CMS_EMIS: 0
+
+# Biosphere drawdown enhancement factor used for climatological emissions.
+# Range: < 0 invalid, < 1 reduce sink, 1 neutral, > 1 enhance sink.
+# ------------------------------------------------------------------------
+Biosphere_drawdown_factor: 1.2448
+
+# Run-time debug switch (0 off, 1 on)
+# -----------------------------------
+DEBUG: 0
+
+
+
+# Deprecated options
+# ------------------
+# NOTES: 1) The filename variables are all unused because they are now read from
+# CO2_GridComp_ExtData.rc.  However, some versions of the CO2 GridComp require
+# these fields to be present in this file and have a time wildcard (here %y4).
+#
+# 2) The emissions factors are read and applied.  However, scale factors can be
+# specified in CO2_GridComp_ExtData.rc, so for clarity, we now apply them there.
+
+CO2_regions: name_set_in_extdata_rc
+
+CO2_biomass_emission_filename: name_set_in_extdata_rc_%y4
+CO2_biomass_emission_factor: 1.
+
+CO2_fossilfuel_emissions_filename: name_set_in_extdata_rc_%y4
+CO2_fossilfuel_emissions_factor: 1.
+
+CO2_biosphere_emissions_filename: name_set_in_extdata_rc_%y4
+CO2_ocean_emissions_filename: name_set_in_extdata_rc_%y4
+
+CMS_biomass_emission_filename: name_set_in_extdata_rc_%y4
+CMS_biomass_emission_factor: 1.
+
+CMS_fossilfuel_emissions_filename: name_set_in_extdata_rc_%y4
+CMS_fossilfuel_emissions_factor: 1.
+
+CMS_biosphere_emissions_filename: name_set_in_extdata_rc_%y4
+CMS_ocean_emissions_filename: name_set_in_extdata_rc_%y4
