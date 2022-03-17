@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updates to support Spack
 - Changed the handling of state variable names in multiple instances of component (see Issue #93)
 - Major refactoring of Mie table class. (see Issue #96)
    - Renamed Chem_MieTableMod.F90 --> GOCART2G_Mie2GMod.F90
