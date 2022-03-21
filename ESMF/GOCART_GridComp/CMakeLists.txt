@@ -16,16 +16,15 @@ set (srcs
 
 set (resource_files
    GOCARTdata_AerRegistry.rc
-   ) 
+   )
 
-install( FILES ${resource_files} 
+install( FILES ${resource_files}
    DESTINATION etc
    )
 
-set (dependencies Chem_Base Chem_Shared MAPL GMAO_mpeu)
+set (dependencies Chem_Base Chem_Shared MAPL GMAO_mpeu esmf)
 esma_add_library (${this}
   SRCS ${srcs}
   SUBCOMPONENTS ${alldirs}
-  DEPENDENCIES ${dependencies}
-  INCLUDES ${INC_ESMF})
+  DEPENDENCIES ${dependencies})
 
