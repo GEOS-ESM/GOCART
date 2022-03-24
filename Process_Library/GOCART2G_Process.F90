@@ -505,8 +505,6 @@ CONTAINS
 !  = 1.25 kg m-3 to speed the calculation.  The error in air density is
 !  small compared to errors in other parameters.
 
-!print*,'DustEmiss shape(emissions) = ',shape(emissions)
-
    do n = 1, nbins
       diameter = 2. * radius(n)
 
@@ -8341,8 +8339,6 @@ loop2: DO l = 1,nspecies_HL
       AH2O  = 1.d-32
       ANH4  = max(1.d-32,NH4a(i,j,k) * fmmr_to_conc)
 
-!print*,'GOCART2G NIthermo TEST 2'
-
       call RPMARES (  SO4_, GNO3,  GNH3, RH_,  TEMP, &
                       ASO4, AHSO4, ANO3, AH2O, ANH4, __RC__ )
 
@@ -10439,7 +10435,6 @@ loop2: DO l = 1,nspecies_HL
 
       call this%rewind(__RC__)
       call this%scan_to_label(label, __RC__)
-!      print*,__FILE__,__LINE__, ' found label'
 
       dims = 0
       do
