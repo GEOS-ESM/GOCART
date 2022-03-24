@@ -3176,7 +3176,6 @@ CONTAINS
       endif
      end do
 
- 100 continue
     end do   ! i
    end do    ! j
 
