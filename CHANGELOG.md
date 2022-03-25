@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Rewind Issue #93
+- Fix bug in MieQuery.H (not use a shape of a not present variable)
 - Updated the CircleCI to use circleci-tools 0.13.0 orb
   - Moves CI to use Baselibs 6.2.13 needed by MAPL development
 - Update `components.yaml` to be in line with GEOSgcm v10.22.1

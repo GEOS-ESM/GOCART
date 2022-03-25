@@ -818,7 +818,7 @@ contains
                      aviation_crs_src, self%fHydrophobic, zpbl, t, airdens, rh2, &
                      intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
                      biogvoc_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
-                     EM, EMAN, EMBB, EMBF, EMBG, __RC__ )
+                     CAEM, CAEMAN, CAEMBB, CAEMBF, CAEMBG, __RC__ )
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
@@ -949,8 +949,8 @@ contains
        where (1.01 * pSOA_VOC > MAPL_UNDEF) pSOA_VOC = 0.0
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
-       if (associated(PSOA)) &
-          PSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
+       if (associated(CAPSOA)) &
+          CAPSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
 
     if (trim(comp_name) == 'CA.br') then
@@ -958,14 +958,14 @@ contains
        where (1.01 * pSOA_VOC > MAPL_UNDEF) pSOA_VOC = 0.0
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
-       if (associated(PSOA)) &
-          PSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
+       if (associated(CAPSOA)) &
+          CAPSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
 
 !   Ad Hoc transfer of hydrophobic to hydrophilic aerosols
 !   Following Chin's parameterization, the rate constant is
 !   k = 4.63e-6 s-1 (.4 day-1; e-folding time = 2.5 days)
-    call phobicTophilic (intPtr_phobic, intPtr_philic, HYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
+    call phobicTophilic (intPtr_phobic, intPtr_philic, CAHYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
 
 !   CA Settling
 !   -----------
@@ -975,7 +975,7 @@ contains
 
        call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
                            self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
-                           rh2, zle, delp, SD, __RC__)
+                           rh2, zle, delp, CASD, __RC__)
     end do
 
 !   CA Deposition
@@ -993,21 +993,21 @@ contains
        dqa = 0.
        dqa = max(0.0, int_ptr(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
        int_ptr(:,:,self%km) = int_ptr(:,:,self%km) - dqa
-       if (associated(DP)) then
-          DP(:,:,n) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
+       if (associated(CADP)) then
+          CADP(:,:,n) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
        end if
     end do
 
 !   Large-scale Wet Removal
 !   -------------------------------
 !   Hydrophobic mode (first tracer) is not removed
-    if (associated(WT)) WT(:,:,1)=0.0
+    if (associated(CAWT)) CAWT(:,:,1)=0.0
     KIN = .true.
 !   Hydrophilic mode (second tracer) is removed
     fwet = 1.
     call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
-                             KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
-                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
+                             KIN, MAPL_GRAV, fwet, CAphilic, ple, t, airdens, &
+                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, CAWT, __RC__)
 
 !   Compute diagnostics
 !   -------------------
@@ -1019,10 +1019,10 @@ contains
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
                              tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
-                             sfcmass=SMASS, colmass=CMASS, mass=MASS,&
-                             exttau=EXTTAU,stexttau=STEXTTAU, scatau=SCATAU, stscatau=STSCATAU,&
-                             fluxu=FLUXU, fluxv=FLUXV, &
-                             conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, angstrom=ANGSTR, aerindx=AERIDX,&
+                             sfcmass=CASMASS, colmass=CACMASS, mass=CAMASS,&
+                             exttau=CAEXTTAU,stexttau=CASTEXTTAU, scatau=CASCATAU, stscatau=CASTSCATAU,&
+                             fluxu=CAFLUXU, fluxv=CAFLUXV, &
+                             conc=CACONC, extcoef=CAEXTCOEF, scacoef=CASCACOEF, angstrom=CAANGSTR, aerindx=CAAERIDX,&
                              NO3nFlag=.false., __RC__)
 
 

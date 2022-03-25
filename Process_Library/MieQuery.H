@@ -99,11 +99,11 @@
      end where
 
      if(present(bext) .or. present(tau) .or. present(ssa) ) then
-       bext_ =  __RHINTERP3__(this%bext, irh, arh, channel, bin, bext)
+       bext_ =  __RHINTERP3__(this%bext, irh, arh, channel, bin, rh)
      endif
 
      if(present(bsca) .or. present(ssa) ) then
-       bsca_ =  __RHINTERP3__(this%bsca, irh, arh, channel, bin, bsca)
+       bsca_ =  __RHINTERP3__(this%bsca, irh, arh, channel, bin, rh)
      endif
 
      if(present(bbck)) then
