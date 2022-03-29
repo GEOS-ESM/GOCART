@@ -1062,8 +1062,6 @@ CONTAINS
 !
 
 #include "CAEmission.F90"
-
-
    subroutine distribute_aviation_emissions(delp, rhoa, z_bot, z_top, emissions_layer, emissions, i1, i2, j1, j2, km, grav)
 
     implicit none
@@ -3890,41 +3888,21 @@ CONTAINS
 !
 #include "Chem_UtilResVal.F90"
 !==================================================================================
-!BOP
-!
-! !IROUTINE:  Chem_UtilIdow
-!
-! !INTERFACE:
-!
+
 #include "Chem_UtilIdow.F90"
-!==================================================================================
-!BOP
-!
-! !IROUTINE:  Chem_UtilCdow
-!
-! !INTERFACE:
-!
 #include "Chem_UtilCdow.F90"
 
 !==================================================================================
+
 !BOP
 !
 ! !ROUTINE:  Chem_BiomassDiurnal - Applies diurnal cycle to biomass emissions.
 !
 ! !INTERFACE:
-#include "Chem_BiomassDiurnal.F90"
-!==================================================================================
-!BOP
-!
-! !ROUTINE: ReadPointEmissions
-!
-! !INTERFACE:
+#include "Chem_BiomassDiurnal.F90"!==================================================================================
 
 #include "ReadPointEmissions.F90"
-
 !==================================================================================
-
-
    subroutine open(this, filename, rc)
       class(EmissionReader), intent(inout) :: this
       character(*), intent(in) :: filename
