@@ -1084,7 +1084,7 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-!   Update interal data pointers with ExtData
+!   Update internal data pointers with ExtData
 !   -----------------------------------------
     call MAPL_GetPointer (internal, NAME=trim(comp_name)//'phobic', ptr=ptr3d_int_phobic, __RC__)
     call MAPL_GetPointer (internal, NAME=trim(comp_name)//'philic', ptr=ptr3d_int_philic, __RC__)
