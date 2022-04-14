@@ -2195,7 +2195,8 @@ contains
 !   Begin...
 
     endInd = len_trim(aeroToken)
-
+    
+    aeroOut = 0.0
     do i = 1, size(aeroList)
        if (trim(aeroList(i)(1:endInd)) == trim(aeroToken)) then
           call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
@@ -2204,8 +2205,8 @@ contains
                                  value=fld_name, __RC__)
           if (fld_name /= '') then
              call MAPL_GetPointer(child_state, ptr3d, trim(fld_name), __RC__)
+             aeroOut = aeroOut + ptr3d
           end if
-          aeroOut = aeroOut + ptr3d
        end if
     end do
 

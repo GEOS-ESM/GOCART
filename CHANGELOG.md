@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
 
 ### Changed
-
+- Fix bug in getAerosolSum
 - Updated the CircleCI to use circleci-tools 0.13.0 orb
   - Moves CI to use Baselibs 6.2.13 needed by MAPL development
 - Update `components.yaml` to be in line with GEOSgcm v10.22.1
