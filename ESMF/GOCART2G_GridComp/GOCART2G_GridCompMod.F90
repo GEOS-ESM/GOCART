@@ -50,6 +50,7 @@ module GOCART2G_GridCompMod
      type(Constituent) :: NI
      real, allocatable :: wavelengths_profile(:) ! wavelengths for profile aop [nm]
      real, allocatable :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
+     logical :: use_threads = .FALSE.
   end type GOCART_State
 
   type wrap_
@@ -158,6 +159,7 @@ contains
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, self%use_threads, label='use_threads:', default=.FALSE., __RC__)
 
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------
@@ -479,7 +481,83 @@ contains
      end subroutine add_aero_states_
 
  end subroutine Initialize
- 
+
+ recursive subroutine Run1(GC, import, export, clock, RC)
+   !$ use omp_lib
+   type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+   type (ESMF_State),    intent(inout) :: import ! Import state
+   type (ESMF_State),    intent(inout) :: export ! Export state
+   type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+   integer, optional,    intent(  out) :: RC     ! Error code:
+
+   type (MAPL_MetaComp), pointer :: MAPL
+   type(GOCART_State), pointer :: self
+   type(wrap_) :: wrap
+   integer :: thread
+   type(ESMF_State) :: subimport
+   type(ESMF_State) :: subexport
+   integer :: status
+   integer, allocatable :: statuses(:)
+   integer :: num_threads
+   character(len=ESMF_MAXSTR) :: Iam = "Run1"
+   type(ESMF_VM) :: vm
+   type(ESMF_GridComp) :: thread_gc
+   integer :: i, me
+
+   !call start_global_time_profiler('run1()')
+   call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, status)
+   VERIFY_(status)
+   self => wrap%ptr
+
+   call ESMF_GridCompGet (GC, vm=vm, __RC__)
+   call ESMF_VMGet(vm, localPet=me, __RC__)
+
+   if(self%use_threads) then
+      call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+      if(MAPL%is_threading_active()) then
+         call run_thread(GC, import, export, clock, __RC__)
+      else
+         !call start_global_time_profiler('activate_threads')
+         num_threads = 1
+         !$ num_threads = omp_get_max_threads()
+         call MAPL%activate_threading(num_threads, __RC__)
+         !call stop_global_time_profiler('activate_threads')
+         !call start_global_time_profiler('parallel')
+
+         allocate(statuses(num_threads), __STAT__)
+         statuses=0
+         !$omp parallel default(none), &
+         !$omp& private(thread, subimport, subexport, thread_gc), &
+         !$omp& shared(gc, statuses, clock, MAPL)
+
+         !  !$omp critical (RUN1)
+         thread = 0
+         !$ thread = omp_get_thread_num()
+
+         subimport = MAPL%get_import_state()
+         subexport = MAPL%get_export_state()
+         thread_gc = MAPL%get_gridcomp()
+
+         call run_thread(thread_gc, subimport, subexport, clock, rc=statuses(thread+1))
+         !  !$omp end critical (RUN1)
+         !$omp end parallel
+         !call stop_global_time_profiler('parallel')
+
+         if (any(statuses /= ESMF_SUCCESS)) then
+            _FAIL('some thread failed')
+         end if
+         deallocate(statuses, __STAT__)
+         !call start_global_time_profiler('deactivate_threads')
+         call MAPL%deactivate_threading(__RC__)
+         !call stop_global_time_profiler('deactivate_threads')
+      end if
+   else
+      call run_thread(GC, import, export, clock, __RC__)
+   end if
+   !call stop_global_time_profiler('run1()')
+   RETURN_(ESMF_SUCCESS)
+ end subroutine Run1
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !BOP
 ! !IROUTINE: RUN -- Run method for GOCART2G 
@@ -487,7 +565,8 @@ contains
 
 ! !INTERFACE:
 
-  subroutine Run1 (GC, import, export, clock, RC)
+  subroutine run_thread (GC, import, export, clock, RC)
+   !$ use omp_lib
 
 ! !ARGUMENTS:
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
@@ -524,8 +603,7 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
-    VERIFY_(STATUS)
+    call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -540,7 +618,7 @@ contains
 
     RETURN_(ESMF_SUCCESS)
 
-  end subroutine Run1
+  end subroutine run_thread
 
 !============================================================================
 !BOP
@@ -548,7 +626,90 @@ contains
 
 ! !INTERFACE:
 
-  subroutine Run2 (GC, import, export, clock, RC)
+ recursive subroutine Run2(GC, import, export, clock, RC)
+   !$ use omp_lib
+   type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+   type (ESMF_State),    intent(inout) :: import ! Import state
+   type (ESMF_State),    intent(inout) :: export ! Export state
+   type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+   integer, optional,    intent(  out) :: RC     ! Error code:
+
+   type (MAPL_MetaComp), pointer :: MAPL
+   type(GOCART_State), pointer :: self
+   type(wrap_) :: wrap
+   integer :: thread
+   type(ESMF_State) :: subimport
+   type(ESMF_State) :: subexport
+   integer :: status
+   integer, allocatable :: statuses(:)
+   integer :: num_threads
+   character(len=ESMF_MAXSTR) :: Iam = "Run2"
+   type(ESMF_VM) :: vm
+   type(ESMF_GridComp) :: thread_gc
+   integer :: i, me
+
+   !call start_global_time_profiler('run2()')
+   call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, status)
+   VERIFY_(status)
+   self => wrap%ptr
+
+   call ESMF_GridCompGet (GC, vm=vm, __RC__)
+   call ESMF_VMGet(vm, localPet=me, __RC__)
+
+   if(self%use_threads) then
+      call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+      if(MAPL%is_threading_active()) then
+         call run_thread2(GC, import, export, clock, __RC__)
+      else
+         !call start_global_time_profiler('activate_threads2')
+         num_threads = 1
+         !$ num_threads = omp_get_max_threads()
+         call MAPL%activate_threading(num_threads, __RC__)
+         !call stop_global_time_profiler('activate_threads2')
+         !call start_global_time_profiler('parallel2')
+
+         allocate(statuses(num_threads), __STAT__)
+         statuses=0
+         !$omp parallel default(none), &
+         !$omp& private(thread, subimport, subexport, thread_gc), &
+         !$omp& shared(gc, statuses, clock, MAPL)
+
+         !  !$omp critical (RUN2)
+         thread = 0
+         !$ thread = omp_get_thread_num()
+
+         subimport = MAPL%get_import_state()
+         subexport = MAPL%get_export_state()
+         thread_gc = MAPL%get_gridcomp()
+
+         call run_thread2(thread_gc, subimport, subexport, clock, rc=statuses(thread+1))
+         !  !$omp end critical (RUN2)
+
+         !$omp end parallel
+         !call stop_global_time_profiler('parallel2')
+
+         if (any(statuses /= ESMF_SUCCESS)) then
+            _FAIL('some thread failed')
+         end if
+         deallocate(statuses, __STAT__)
+         !call start_global_time_profiler('deactivate_threads2')
+         call MAPL%deactivate_threading(__RC__)
+         !call stop_global_time_profiler('deactivate_threads2')
+      end if
+   else
+      call run_thread2(GC, import, export, clock, __RC__)
+   end if
+   !call stop_global_time_profiler('run2()')
+   RETURN_(ESMF_SUCCESS)
+ end subroutine Run2
+
+!============================================================================
+!BOP
+! !IROUTINE: RUN2 -- Run2 method for GOCART2G component
+
+! !INTERFACE:
+
+ subroutine run_thread2 (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
@@ -681,8 +842,10 @@ contains
        end do
 
        if (ind550 == 0) then
+          !$omp critical (G2G_1)
           print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',& 
                            ' Cannot produce TOTANGSTR variable without 550nm wavelength.'
+          !$omp end critical (G2G_1)
           VERIFY_(100)
        end if
 
@@ -981,7 +1144,7 @@ contains
 
     RETURN_(ESMF_SUCCESS)
 
-  end subroutine Run2
+  end subroutine run_thread2
 
 
 !===============================================================================
@@ -2170,7 +2333,9 @@ contains
           end if
 
        case default
+          !$omp critical (G2G_2)
           print *,"Invalid aerosolName of '",trim(aeroName), "' in GOCART2G::get_mixRatioSum"
+          !$omp end critical (G2G_2)
     end select
 
 contains
