@@ -9,3 +9,6 @@ esma_add_library(${this}
   SRCS ${srcs} 
   DEPENDENCIES esmf NetCDF::NetCDF_Fortran
   )
+if (OMP)
+  target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
+endif()

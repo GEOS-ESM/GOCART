@@ -13,3 +13,7 @@ foreach ( file ${rc_files} )
    get_filename_component( dir ${file} DIRECTORY )
    install( FILES ${file} DESTINATION etc/${dir} )
 endforeach()
+
+if (OMP)
+   target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
+endif ()

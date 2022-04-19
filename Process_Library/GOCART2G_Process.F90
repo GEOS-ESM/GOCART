@@ -663,6 +663,9 @@ CONTAINS
 
    allocate(w_g(i2,j2), w_gt(i2,j2), f_veg(i2,j2), clay(i2,j2), silt(i2,j2), k_gamma(i2,j2))
    allocate(z0s(i2,j2), Dp_size(i2,j2))
+!AOO initialization
+   w_g=0.;w_gt=0.;f_veg=0.;clay=0.;silt=0.;k_gamma=0.;z0s=0.;Dp_size=0.
+!AOO end initialization
 
    ! typical size of soil particles for optimal saltation is about 75e-6m
    Dp_size = 75e-6
@@ -1185,6 +1188,9 @@ CONTAINS
 
    allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km))
    allocate(cmass_before(i2,j2), cmass_after(i2,j2))
+!AOO initialization
+   dz=0.;radius=0.;rhop=0.;vsettle=0.;qa=0.
+!AOO end initialization
    cmass_before = 0.d0
    cmass_after = 0.d0
 
@@ -1361,6 +1367,9 @@ CONTAINS
 
    allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km))
    allocate(cmass_before(i2,j2), cmass_after(i2,j2))
+!AOO initialization
+   dz=0.;radius=0.;rhop=0.;vsettle=0.;qa=0.
+!AOO end initialization
    cmass_before = 0.d0
    cmass_after = 0.d0
 
@@ -1989,6 +1998,10 @@ CONTAINS
    allocate(dz, mold=rhoa);
    allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km))
    allocate(cmass_before(i2,j2), cmass_after(i2,j2))
+!AOO initialization
+   dz=0.;vsettle=0.
+   dzd=0.d0;vsd=0.d0;qa=0.d0;qa_temp=0.d0;cmass_before=0.d0;cmass_after=0.d0
+!AOO end initialization
 
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
 !  -----------------------------------------------------------------
@@ -2332,6 +2345,11 @@ CONTAINS
    allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km))
    allocate(cmass_before(i2,j2), cmass_after(i2,j2), qdel(i2,j2), dp(i2,j2), &
             dpm1(i2,j2), qsrc(i2,j2))
+!AOO initialization
+   dz=0.;vsettle=0.
+   dzd=0.d0;vsd=0.d0;qa=0.d0;qa_temp=0.d0;cmass_before=0.d0;cmass_after=0.d0
+   qdel=0.d0;dp=0.d0;dpm1=0.d0;qsrc=0.d0
+!AOO end initialization
 
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
 !  -----------------------------------------------------------------
@@ -2570,6 +2588,9 @@ CONTAINS
 
    allocate(dz(i2,j2),rmu(i2,j2),Ra(i2,j2),Rs(i2,j2),vdep(i2,j2), &
             obk(i2,j2))
+!AOO initialization
+   dz=0.;rmu=0.;Ra=0.;Rs=0.;vdep=0.;obk=0.
+!AOO end initialization
 
 !  Calculate the viscosity and thickness of the surface level
    dz = hghte(:,:,km-1) - hghte(:,:,km)
@@ -2819,6 +2840,9 @@ CONTAINS
 !  Allocate arrays
    allocate(c_h2o(i2,j2,km), cldliq(i2,j2,km), cldice(i2,j2,km), pdog(i2,j2,km), &
             delz(i2,j2,km), dpfli(i2,j2,km))
+!AOO initialization
+   c_h2o=0.;cldliq=0.;cldice=0.;pdog=0.;delz=0.;dpfli=0.
+!AOO end initialization
 
 !  Initialize local variables
 !  --------------------------
@@ -2838,6 +2862,9 @@ CONTAINS
 
    allocate(fd(km,nbins),stat=ios)
    allocate(dc(nbins),stat=ios)
+!AOO initialization
+   fd=0.;dc=0.
+!AOO end initialization
 
    if( associated(fluxout) ) fluxout(i1:i2,j1:j2,bin_ind) = 0.0
 
@@ -2851,7 +2878,9 @@ CONTAINS
         Kstar298 = 1.05d6
         H298_R = -4.2d3
       else
+        !$omp critical (G2G_proc_1)
         print *, 'stop in WetRemoval, need Kstar298 and H298_R'
+        !$omp end critical (G2G_proc_1)
         rc = __FAIL__
         return
       endif
@@ -3352,6 +3381,9 @@ CONTAINS
    j2 = size(rhoa,2)
    allocate(fPMfm(nbins))
    allocate(fPM25(nbins))
+!AOO initialization
+   fPMfm=0.;fPM25=0.
+!AOO end initialization
 
 !  Get the wavelength indices
 !  --------------------------
@@ -3385,7 +3417,9 @@ CONTAINS
       else if ((wavelengths_profile(i) .ge. 8.68e-7) .and. (wavelengths_profile(i) .le. 8.71e-7)) then
          wavelengths_index_profile(i) = 4.
       else
+         !$omp critical (G2G_proc_2)
          print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
+         !$omp end critical (G2G_proc_2)
          return
       end if
    end do
@@ -3401,7 +3435,9 @@ CONTAINS
       else if ((wavelengths_vertint(i) .ge. 8.68e-7) .and. (wavelengths_vertint(i) .le. 8.71e-7)) then
          wavelengths_index_vertint(i) = 4.
       else
+         !$omp critical (G2G_proc_3)
          print*,'wavelengths_vertint of ',wavelengths_vertint(i),' is an invalid value.'
+         !$omp end critical (G2G_proc_3)
          return
       end if
    end do
@@ -3415,8 +3451,11 @@ CONTAINS
       ilam870 .ne. 0. .and. &
       ilam470 .ne. ilam870) do_angstrom = .true.
 
-   if( present(angstrom) .and. do_angstrom ) then
-      allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2))
+   if( present(angstrom) )  then
+      if (do_angstrom ) then
+         allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2))
+         tau470=0.;tau870=0.  !AOO initialization
+      end if
    end if
 
 !  Compute the fine mode (sub-micron) and PM2.5 bin-wise fractions
@@ -4063,7 +4102,9 @@ CONTAINS
       w        => ustar
 
      case default
+      !$omp critical (G2G_proc_4)
       print *, 'GOCART2G_Process.F90 - SeasaltEmission - missing algorithm method'
+      !$omp end critical (G2G_proc_4)
       rc = __FAIL__
       return
 
@@ -4240,6 +4281,7 @@ CONTAINS
    rc = __SUCCESS__
    fhoppel = 1.0
    allocate(vsettle, mold=rh)
+   vsettle=0.  !AOO initialization
 
    do j = 1, ubound(rh,2)
       do i = 1, ubound(rh,1)
@@ -4377,6 +4419,10 @@ CONTAINS
 
    allocate(factor(i2,j2), srcHydrophobic(i2,j2), srcHydrophilic(i2,j2), srcBiofuel(i2,j2), &
             srcBiomass(i2,j2), srcAnthro(i2,j2), srcBiogenic(i2,j2), f_bb_(i2,j2), exttau_bb_(i2,j2))
+!AOO initialization
+   factor=0.;srcHydrophobic=0.;srcHydrophilic=0.;srcBiofuel=0.
+   srcBiomass=0.;srcAnthro=0.;srcBiogenic=0.;f_bb_=0.;exttau_bb_=0.
+!AOO end initialization
 
 !  Emission factors scaling from source files to desired mass quantity
    eBiomass = ratPOM
@@ -4426,6 +4472,9 @@ CONTAINS
    allocate(p100, mold=pblh)
    allocate(p500, mold=pblh)
    allocate(pPBL, mold=pblh)
+!AOO initialization
+   p0=0.;z0=0.;p100=0.;p500=0.;pPBL=0.
+!AOO end initialization
    ps = 0.0
    do k = 1, km
     ps(i1:i2,j1:j2) = ps(i1:i2,j1:j2) + delp(i1:i2,j1:j2,k)
@@ -5461,6 +5510,9 @@ K_LOOP: do k = km, 1, -1
    srcSO2 = 0.0
    srcSO4 = 0.0
    srcDMS = 0.0
+!AOO initialization
+   srcSO4anthro=0.;srcSO2anthro=0.;srcSO2bioburn=0.
+!AOO end initialization
 
    if ((nVolc <= 0) .and. associated(SU_emis)) SU_emis = 0.0 !SU_emis is usually set to zero in SUvolcanicEmissions.
 !                                               !If there are no volcanic emissions, we need to set it to zero here.
@@ -5503,6 +5555,9 @@ K_LOOP: do k = km, 1, -1
    allocate(p100, mold=pblh)
    allocate(p500, mold=pblh)
    allocate(pPblh, mold=pblh)
+!AOO initialization
+   p0=0.;z0=0.;p100=0.;p500=0.;pPblh=0.
+!AOO end initialization
 
    ps = 0.0
    do k = 1, km
@@ -5787,6 +5842,9 @@ K_LOOP: do k = km, 1, -1
 
    allocate(z0, mold=area)
    z0 = hghte(:,:,km)
+!AOO initialization
+   z0=0.
+!AOO end initialization
 
     do it = 1, nVolc
        so2volcano = 0.
@@ -5943,6 +6001,9 @@ K_LOOP: do k = km, 1, -1
 
     allocate(cossza(i1:i2,j1:j2), sza(i1:i2,j1:j2), tcosz(i1:i2,j1:j2), &
              tday(i1:i2,j1:j2), tnight(i1:i2,j1:j2))
+!AOO initialization
+    cossza=0.;sza=0.;tcosz=0.;tday=0.;tnight=0.
+!AOO end initialization
 
 ! Update emissions/production if necessary (daily)
 !  -----------------------------------------------
@@ -6332,6 +6393,9 @@ K_LOOP: do k = km, 1, -1
    allocate(fd(km,nbins),__STAT__)
    allocate(dc(nbins),__STAT__)
    allocate(dpfli(i1:i2, j1:j2, km),__STAT__)
+!AOO initialization
+    fd=0.d0;dc=0.d0;dpfli=0.d0
+!AOO end initialization
 
 !  Duration of rain: ls = model timestep, cv = 1800 s (<= cdt)
    Td_ls = cdt
@@ -6846,6 +6910,9 @@ K_LOOP: do k = km, 1, -1
    i2 = ubound(tmpu, 1)
 
    allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2))
+!AOO initialization
+   tau470=0.;tau870=0.
+!AOO end initialization
 
 !  Get the wavelength indices
 !  --------------------------
@@ -6880,7 +6947,9 @@ K_LOOP: do k = km, 1, -1
       else if ((wavelengths_profile(i) .ge. 8.69e-7) .and. (wavelengths_profile(i) .le. 8.71e-7)) then
          wavelengths_index_profile(i) = 4.
       else
+         !$omp critical (G2G_proc_5)
          print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
+         !$omp end critical (G2G_proc_5)
          return
       end if
    end do
@@ -6896,7 +6965,9 @@ K_LOOP: do k = km, 1, -1
       else if ((wavelengths_vertint(i) .ge. 8.69e-7) .and. (wavelengths_vertint(i) .le. 8.71e-7)) then
          wavelengths_index_vertint(i) = 4.
       else
+         !$omp critical (G2G_proc_6)
          print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
+         !$omp end critical (G2G_proc_6)
          return
       end if
    end do
@@ -7262,6 +7333,9 @@ K_LOOP: do k = km, 1, -1
    allocate(drydepositionfrequency, mold=oro)
    allocate(cossza, mold=oro)
    allocate(sza, mold=oro)
+!AOO initialization
+   drydepositionfrequency=0.;cossza=0.;sza=0.
+!AOO end initialization
 
 !  Reset the production terms
    allocate(pSO2_DMS, mold=tmpu)
@@ -7464,6 +7538,7 @@ K_LOOP: do k = km, 1, -1
 
    allocate(pSO2_DMS, mold=tmpu)
    allocate(pMSA_DMS, mold=tmpu)
+   pSO2_DMS=0.;pMSA_DMS=0.  !AOO initialization
 
 !  spatial loop
    do k = klid, km
@@ -7629,6 +7704,7 @@ K_LOOP: do k = km, 1, -1
    allocate(pSO4g_SO2, mold=tmpu)
    allocate(pSO4aq_SO2, mold=tmpu)
    allocate(fout(i2,j2))
+   pSO4g_SO2=0.;pSO4aq_SO2=0.;fout=0.  !AOO initialization
 
 !  Conversion of SO2 mmr to SO2 vmr
    fMR = airMolWght / fMassSO2
@@ -7795,6 +7871,7 @@ K_LOOP: do k = km, 1, -1
    i2 = ubound(qa, 1)
 
    allocate(fout(i2,j2))
+   fout=0.   !AOO initialization
 
 !  Initialize flux variable
    fout = 0.
@@ -7895,6 +7972,7 @@ K_LOOP: do k = km, 1, -1
    i2 = ubound(qa, 1)
 
    allocate(fout(i2,j2))
+   fout=0.   !AOO initialization
 
 !  spatial loop
    do k = klid, km
@@ -8865,9 +8943,11 @@ loop2: DO l = 1,nspecies_HL
 
       ! validity check for negative concentration
       IF ( TSO4 < 0.0d0 .OR. TNO3 < 0.0d0 .OR. TNH4 < 0.0d0 ) THEN
+          !$omp critical (G2G_proc_7)
           PRINT*, 'TSO4 : ', TSO4
           PRINT*, 'TNO3 : ', TNO3
           PRINT*, 'TNH4 : ', TNH4
+          !$omp end critical (G2G_proc_7)
 
 
 !.sds          CALL GEOS_CHEM_STOP
@@ -9730,7 +9810,9 @@ loop2: DO l = 1,nspecies_HL
             NR        = 0
 !.sds no such module - what is ours?
 !.sds            CALL ERROR_STOP( 'PHI < 1d-20', 'CUBIC (rpmares_mod.f)' )
+            !$omp critical (G2G_proc_8)
             print *,'PHI < 1d-20 in  CUBIC (rpmares_mod.f)'
+            !$omp end critical (G2G_proc_8)
             err_msg = 'PHI < 1d-20 in  CUBIC (rpmares_mod.f):'
             call PrintError  &
      &         (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0, __RC_NO_OPT__)
@@ -10110,6 +10192,7 @@ loop2: DO l = 1,nspecies_HL
 !-------------------------------------------------------------------------
       rc = __SUCCESS__
 !BOC
+      !$omp critical (G2G_proc_9)
       Write (6,*)
       Write (6,*) &
         '--------------------------------------------------------------'
@@ -10131,6 +10214,7 @@ loop2: DO l = 1,nspecies_HL
       Write (6,*) &
         '--------------------------------------------------------------'
       Write (6,*)
+      !$omp end critical (G2G_proc_9)
 
       if (err_do_stop) then
         rc = __FAIL__
@@ -10487,7 +10571,7 @@ loop2: DO l = 1,nspecies_HL
       character(:), allocatable :: label_
       real, allocatable :: table(:,:)
       integer :: nCols
-      integer :: status
+      integer :: status, status1, status2, status3
 
       if (present(label)) then
          label_ = trim(label)
@@ -10496,9 +10580,14 @@ loop2: DO l = 1,nspecies_HL
       end if
 
       reader = EmissionReader()
-      call reader%open(filename, __RC__)
-      table = reader%read_table(label=label_, __RC__)
-      call reader%close(__RC__)
+      !$omp critical (process1)
+      call reader%open(filename, rc=status1)
+      table = reader%read_table(label=label_, rc=status2)
+      call reader%close(rc=status3)
+      !$omp end critical (process1)
+      __VERIFY__(status1)
+      __VERIFY__(status2)
+      __VERIFY__(status3)
 
       nCols = size(table,1)
       nPts = size(table,2)
