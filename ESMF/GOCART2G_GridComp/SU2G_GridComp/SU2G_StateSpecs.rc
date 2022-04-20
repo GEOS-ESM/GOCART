@@ -103,10 +103,11 @@ category: INTERNAL
 #----------------------------------------------------------------------------------------
   NAME | UNITS | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO | LONG NAME
 #----------------------------------------------------------------------------------------
- DMS   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
- SO2   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
- SO4   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
- MSA   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid  
+ DMS       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
+ SO2       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
+ SO4       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
+ MSA       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid  
+ H2O2_INIT |kg kg-1| xyz  | C    | MAPL_RestartOptional | F |                           | private H2O2 that is saved and used to initialize 
 
 
 #********************************************************

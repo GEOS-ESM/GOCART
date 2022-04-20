@@ -18,6 +18,7 @@ module DU2G_GridCompMod
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
+   !$ use omp_lib
    
    implicit none
    private
@@ -39,6 +40,17 @@ module DU2G_GridCompMod
    integer, parameter         :: NHRES = 6
 
 !  !Dust state
+   type :: ThreadWorkspace
+       integer                :: day_save = -1
+       integer                         :: nPts = -1
+       integer, allocatable, dimension(:)  :: pstart, pend
+       real, allocatable, dimension(:)     :: pLat, &
+            pLon, &
+            pBase, &
+            pTop, &
+            pEmis
+    end type ThreadWorkspace
+
    type, extends(GA_Environment) :: DU2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
@@ -59,13 +71,7 @@ module DU2G_GridCompMod
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
-       integer                         :: nPts = -1
-       integer, allocatable, dimension(:)  :: pstart, pend
-       real, allocatable, dimension(:)     :: pLat, &
-                                              pLon, &
-                                              pBase, &
-                                              pTop, &
-                                              pEmis
+       type(ThreadWorkspace), allocatable :: workspaces(:)
    end type DU2G_GridComp
 
    type wrap_
@@ -111,6 +117,7 @@ contains
     integer                            :: i
     real                               :: DEFVAL
     logical                            :: data_driven = .true.
+    integer :: num_threads
 
     __Iam__('SetServices')
 
@@ -126,6 +133,10 @@ contains
 !   -------------------------------------
     allocate (self, __STAT__)
     wrap%ptr => self
+
+    num_threads = 1
+    !$ num_threads = omp_get_max_threads()
+    allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file  
 !   -------------------
@@ -702,6 +713,8 @@ contains
     real, dimension(:,:), allocatable   :: R_
     real, dimension(:,:), allocatable   :: H_w_
     real, dimension(:,:), allocatable   :: f_erod_
+    type(ThreadWorkspace), pointer :: workspace
+    integer :: thread, jstart, jend
 
 #include "DU2G_DeclarePointer___.h"
 
@@ -813,46 +826,53 @@ contains
 
 !   Read point emissions file once per day
 !   --------------------------------------
+    thread = 0
+    !$ thread = omp_get_thread_num()
+    workspace => self%workspaces(thread)
     if (self%doing_point_emissions) then
-       if (self%day_save /= idd) then
-          self%day_save = idd
+       if (workspace%day_save /= idd) then
+          workspace%day_save = idd
           call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                             nymd=nymd, nhms=120000 )
           inquire( file=fname, exist=fileExists)
           if (fileExists) then
-             call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                      self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                      self%pEnd, label='source', __RC__)
+             call ReadPointEmissions (nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
+                                      workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
+                                      workspace%pEnd, label='source', __RC__)
           else if (.not. fileExists) then
+             !$omp critical (DU2G_1)
              if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
-             self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
+             !$omp end critical (DU2G_1)
+             workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
           end if
        end if
     end if
 
 !   Get indices for point emissions
 !   -------------------------------
-    if (self%nPts > 0) then
-        allocate(iPoint(self%nPts), jPoint(self%nPts),  __STAT__)
-        call MAPL_GetHorzIJIndex(self%nPts, iPoint, jPoint, &
+    if (workspace%nPts > 0) then
+        allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
+        call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
                                  grid = grid,               &
-                                 lon  = self%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                 lat  = self%pLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                 lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                 lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
                                  rc   = status)
             if ( status /= 0 ) then
+                !$omp critical (DU2G_2)
                 if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
+                !$omp end critical (DU2G_2)
                 VERIFY_(status)
             end if
 
-        call updatePointwiseEmissions (self%km, self%pBase, self%pTop, self%pEmis, self%nPts, &
-                                       self%pStart, self%pEnd, zle, &
+        call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
+                                       workspace%pStart, workspace%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
     end if
 
 !   Update aerosol state
 !   --------------------
     call UpdateAerosolState (emissions, emissions_surface, emissions_point, &
-                             self%sfrac, self%nPts, self%km, self%CDT, MAPL_GRAV, &
+                             self%sfrac, workspace%nPts, self%km, self%CDT, MAPL_GRAV, &
                              self%nbins, delp, DU, __RC__)
 
     if (associated(DUEM)) then
@@ -862,7 +882,7 @@ contains
 !   Clean up
 !   --------
     deallocate(emissions, emissions_surface, emissions_point, __STAT__)
-    if (self%nPts > 0) then
+    if (workspace%nPts > 0) then
         deallocate(iPoint, jPoint, __STAT__)
     end if
 
@@ -1257,7 +1277,9 @@ contains
     else if ((wavelength .ge. 8.68e-7) .and. (wavelength .le. 8.71e-7)) then
        mieTable_index = 4.
     else
+       !$omp critical (DU2G_3)
        print*,trim(Iam),' : wavelength of ',wavelength,' is an invalid value.'
+       !$omp end critical (DU2G_3)
        return
     end if
 

@@ -50,7 +50,7 @@ integer, parameter     :: DP = kind(1.0d0)
    type, extends(GA_Environment) :: NI2G_GridComp
        logical           :: first
        logical           :: recycle_HNO3 = .false.
-       real, allocatable :: xhno3(:,:,:)   ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
+       !real, allocatable :: xhno3(:,:,:)   ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]; moved to ESMF internal state
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
    end type NI2G_GridComp
@@ -310,6 +310,8 @@ contains
     real, dimension(4)   :: Vect_Hcts
 !    real, allocatable, dimension(:) :: rmedDU, rmedSS, fnumDU, fnumSS
     integer :: itemCount
+    integer :: num_threads
+!    real, pointer, dimension(:,:,:) :: xhno3
 
     __Iam__('Initialize')
 
@@ -333,11 +335,12 @@ contains
 
 !   Get dimensions
 !   ---------------
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    !call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
 
-    allocate(self%xhno3(dims(1),dims(2),dims(3)), __STAT__)
+    !allocate(self%xhno3(dims(1),dims(2),dims(3)), __STAT__)
 
 !   Get DTs
 !   -------
@@ -364,6 +367,9 @@ contains
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, __RC__)
+
+! xhno3 is moved to ESMF internal state
+!    call MAPL_GetPointer(internal, NAME='XHNO3', ptr=xhno3, __RC__)
 
 !   Is NI data driven?
 !   ------------------
@@ -785,13 +791,13 @@ contains
 
 !   Save local copy of HNO3 for first pass through run method regardless
     if (self%first) then
-       self%xhno3 = MAPL_UNDEF
+       xhno3 = MAPL_UNDEF
        self%first = .false.
     end if
 
 !   Recycle HNO3 every 3 hours
     if (alarm_is_ringing) then
-       self%xhno3 = NITRATE_HNO3
+       xhno3 = NITRATE_HNO3
        call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
 
@@ -801,10 +807,10 @@ contains
 
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, &
                    t, rh2, fMassHNO3, MAPL_AIRMW, SO4, NH3, NO3an1, NH4a, &
-                   self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
+                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
 
 
-    call NIheterogenousChem (NIHT, self%xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
+    call NIheterogenousChem (NIHT, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
                              self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, &

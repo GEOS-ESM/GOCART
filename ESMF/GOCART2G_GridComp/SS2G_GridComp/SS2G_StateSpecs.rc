@@ -77,6 +77,7 @@ category: INTERNAL
   NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
 #----------------------------------------------------------------------------------------
  SS    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio (bin %d)
+ DEEP_LAKES_MASK |   1   | xy   | N    |            |                      | F |                           | Deep Lakes Mask
 
 
 #********************************************************

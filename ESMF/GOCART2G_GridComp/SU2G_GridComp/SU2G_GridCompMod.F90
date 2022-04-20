@@ -52,21 +52,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
 !EOP
 !===========================================================================
 !  !Sulfer state
-   type, extends(GA_Environment) :: SU2G_GridComp
-      integer :: myDOW = -1     ! my Day of the week: Sun=1, Mon=2,...,Sat=7
-      logical :: diurnal_bb     ! diurnal biomass burning
-      integer :: nymd_last = -1 ! Previous nymd. Updated daily
-      integer :: nymd_oxidants = -1 ! Update the oxidant files?
-      real    :: eAircraftFuel  ! Aircraft emission factor: go from kg fuel to kg SO2
-      real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
-      real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
-      logical :: recycle_H2O2 = .false.
-      logical :: firstRun = .true.
-      real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
-      real, pointer :: h2o2_init(:,:,:)
-
-!     Special handling for volcanic emissions
-      character(len=255) :: volcano_srcfilen
+   type :: ThreadWorkspace
       integer :: nVolc = 0
       real, allocatable, dimension(:)  :: vLat, &
                                           vLon, &
@@ -75,9 +61,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
                                           vCloud
       integer, allocatable, dimension(:) :: vStart, &
                                             vEnd
-!     !Workspae for point emissions
-      logical                :: doing_point_emissions = .false.
-      character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
+      integer :: nymd_last = -1 ! Previous nymd. Updated daily
       integer                         :: nPts = -1
       integer, allocatable, dimension(:)  :: pstart, pend
       real, allocatable, dimension(:)     :: pLat, &
@@ -85,6 +69,26 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
                                              pBase, &
                                              pTop, &
                                              pEmis
+   end type ThreadWorkspace
+
+   type, extends(GA_Environment) :: SU2G_GridComp
+      integer :: myDOW = -1     ! my Day of the week: Sun=1, Mon=2,...,Sat=7
+      logical :: diurnal_bb     ! diurnal biomass burning
+      integer :: nymd_oxidants = -1 ! Update the oxidant files?
+      real    :: eAircraftFuel  ! Aircraft emission factor: go from kg fuel to kg SO2
+      real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
+      real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
+      logical :: recycle_H2O2 = .false.
+      logical :: firstRun = .true.
+      real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
+      !real, pointer :: h2o2_init(:,:,:)
+
+!     Special handling for volcanic emissions
+      character(len=255) :: volcano_srcfilen
+!     !Workspae for point emissions
+      logical                :: doing_point_emissions = .false.
+      character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
+      type(ThreadWorkspace), allocatable :: workspaces(:)
    end type SU2G_GridComp
 
    type wrap_
@@ -130,6 +134,7 @@ contains
     integer                                     :: i
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    integer :: num_threads
 
     __Iam__('SetServices')
 
@@ -145,6 +150,10 @@ contains
 !   -------------------------------------
     allocate (self, __STAT__)
     wrap%ptr => self
+
+    num_threads = 1
+    !$ num_threads = omp_get_max_threads()
+    allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file 
 !   -------------------
@@ -465,7 +474,7 @@ contains
                          LONS = LONS, &
                          LATS = LATS, __RC__ )
 
-    allocate(self%h2o2_init(size(lats,1),size(lats,2),self%km), __STAT__)
+    !allocate(self%h2o2_init(size(lats,1),size(lats,2),self%km), __STAT__)
 
 !   Is SU data driven?
 !   ------------------
@@ -756,6 +765,8 @@ contains
     logical :: fileExists
 
     real, pointer, dimension(:,:,:) :: dummyMSA => null() ! This is so the model can run without MSA enabled
+    type(ThreadWorkspace), pointer :: workspace
+    integer :: thread
 
 #include "SU2G_DeclarePointer___.h"
 
@@ -840,41 +851,46 @@ contains
 
 !   Update emissions/production if necessary (daily)
 !   -----------------------------------------------
-    if(self%nymd_last /= nymd) then
-       self%nymd_last = nymd
+    thread = 0
+    !$ thread = omp_get_thread_num()
+    workspace => self%workspaces(thread)
+
+    if(workspace%nymd_last /= nymd) then
+       workspace%nymd_last = nymd
 
 !      Get pointwise SO2 and altitude of volcanoes from a daily file data base
        if(index(self%volcano_srcfilen,'volcanic_') /= 0) then
           call StrTemplate(fname, self%volcano_srcfilen, xid='unknown', &
                             nymd=nymd, nhms=120000 )
-          call ReadPointEmissions (nymd, fname, self%nVolc, self%vLat, self%vLon, &
-                                   self%vElev, self%vCloud, self%vSO2, self%vStart, &
-                                   self%vEnd, label='volcano', __RC__)
-          self%vSO2 = self%vSO2 * fMassSO2 / fMassSulfur
+          call ReadPointEmissions (nymd, fname, workspace%nVolc, workspace%vLat, workspace%vLon, &
+                                   workspace%vElev, workspace%vCloud, workspace%vSO2, workspace%vStart, &
+                                   workspace%vEnd, label='volcano', __RC__)
+          workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
 !         Special possible case
-          if(self%volcano_srcfilen(1:9) == '/dev/null') self%nVolc = 0
+          if(self%volcano_srcfilen(1:9) == '/dev/null') workspace%nVolc = 0
        end if
     end if
+    print *, __FILE__, __LINE__, workspace%nVolc, shape(workspace%vLon), shape(workspace%vLat)
 
 !   Apply volcanic emissions
 !   ------------------------
-    if (self%nVolc > 0) then
+    if (workspace%nVolc > 0) then
        if (associated(SO2EMVE)) SO2EMVE=0.0
        if (associated(SO2EMVN)) SO2EMVN=0.0
-       allocate(iPointVolc(self%nVolc), jPointVolc(self%nVolc),  __STAT__)
-       call MAPL_GetHorzIJIndex(self%nVolc, iPointVolc, jPointVolc, &
+       allocate(iPointVolc(workspace%nVolc), jPointVolc(workspace%nVolc),  __STAT__)
+       call MAPL_GetHorzIJIndex(workspace%nVolc, iPointVolc, jPointVolc, &
                                 grid = grid,               &
-                                lon  = self%vLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                lat  = self%vLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                lon  = workspace%vLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                lat  = workspace%vLat/real(MAPL_RADIANS_TO_DEGREES), &
                                 rc   = status)
            if ( status /= 0 ) then
               if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
               VERIFY_(status)
            end if
 
-       call SUvolcanicEmissions (self%nVolc, self%vStart, self%vEnd, self%vSO2, self%vElev, &
-                                 self%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SUEM, &
-                                 self%km, self%cdt, MAPL_GRAV, zle, delp, area, self%vLat, self%vLon, __RC__)
+       call SUvolcanicEmissions (workspace%nVolc, workspace%vStart, workspace%vEnd, workspace%vSO2, workspace%vElev, &
+                                 workspace%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SUEM, &
+                                 self%km, self%cdt, MAPL_GRAV, zle, delp, area, workspace%vLat, workspace%vLon, __RC__)
     end if
 
 !   Apply diurnal cycle if so desired
@@ -897,7 +913,7 @@ contains
                                       aircraft_fuel_src, &
                                       SO2, SO4, &
                                       lwi, u10m, v10m, zle, zpbl, &
-                                      t, airdens, delp, self%nVolc, &
+                                      t, airdens, delp, workspace%nVolc, &
                                       SUEM, SO4EMAN, SO2EMAN, SO2EMBB, &
                                       self%aviation_layers,   &
                                       aviation_lto_src, &
@@ -920,33 +936,34 @@ contains
                          nymd=nymd, nhms=120000 )
        inquire( file=fname, exist=fileExists)
        if (fileExists) then
-          call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                   self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                   self%pEnd, label='source', __RC__)
+          call ReadPointEmissions (nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
+                                   workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
+                                   workspace%pEnd, label='source', __RC__)
        else if (.not. fileExists) then
          if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
-         self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
+         workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
        end if
     endif
+    print *, __FILE__, __LINE__, workspace%nPts, shape(workspace%pLon), shape(workspace%pLat)
 
 !   Get indices for point emissions
 !   -------------------------------
-    if (self%nPts > 0) then
+    if (workspace%nPts > 0) then
        allocate(emissions_point, mold=delp,  __STAT__)
        emissions_point = 0.0
-       allocate(iPoint(self%nPts), jPoint(self%nPts),  __STAT__)
-       call MAPL_GetHorzIJIndex(self%nPts, iPoint, jPoint, &
+       allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
+       call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
                                 grid = grid,               &
-                                lon  = self%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                lat  = self%pLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
                                 rc   = status)
           if ( status /= 0 ) then
              if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
              VERIFY_(status)
           end if
 
-        call updatePointwiseEmissions (self%km, self%pBase, self%pTop, self%pEmis, self%nPts, &
-                                       self%pStart, self%pEnd, zle, &
+        call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
+                                       workspace%pStart, workspace%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
    
         SO4 = SO4 + self%cdt * MAPL_GRAV / delp * emissions_point
@@ -1055,11 +1072,11 @@ contains
 
     if (self%firstRun) then
        xh2o2          = MAPL_UNDEF
-       self%h2o2_init = MAPL_UNDEF
+       h2o2_init = MAPL_UNDEF
        self%firstRun  = .false.
     end if
 
-    xh2o2 = self%h2o2_init 
+    xh2o2 = h2o2_init 
 
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
@@ -1091,7 +1108,7 @@ contains
                             nymd, nhms, lons, lats, &
                             dms, so2, so4, dummyMSA, &
                             nDMS, nSO2, nSO4, nMSA, &
-                            xoh, xno3, xh2o2, self%h2o2_init, &
+                            xoh, xno3, xh2o2, h2o2_init, &
                             delp, t, fcld, airdens, zle, &
                             ustar, sh, lwi, zpbl, z0h, &
                             SUDP, SUPSO2, SUPMSA, &
@@ -1102,7 +1119,7 @@ contains
     KIN = .true.
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
                           delp, fMassSO4, fMassSO2, &
-                          self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
+                          h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 

@@ -49,7 +49,7 @@ real, parameter ::  cpd    = 1004.16
 !                                                 0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
        logical                :: hoppelFlag     ! Apply the Hoppel correction to emissions (Fan and Toon, 2011)
        logical                :: weibullFlag    ! Apply the Weibull distribution to wind speed for emissions (Fan and Toon, 2011)
-       real, allocatable      :: deep_lakes_mask(:,:)
+       !real, allocatable      :: deep_lakes_mask(:,:)
        integer                :: emission_scheme
        real                   :: emission_scale ! global scaling factor
        real                   :: emission_scale_res(NHRES) ! global scaling factor
@@ -328,6 +328,7 @@ contains
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
     real, pointer, dimension(:,:,:)      :: ple
+    real, pointer, dimension(:,:)        :: deep_lakes_mask
 
     __Iam__('Initialize')
 
@@ -538,8 +539,11 @@ contains
 
 !   Mask to prevent emissions from the Great Lakes and the Caspian Sea
 !   ------------------------------------------------------------------
-    allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
-    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
+    !allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
+    !call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
+    call MAPL_GetPointer (internal, NAME='DEEP_LAKES_MASK', ptr=deep_lakes_mask, __RC__)
+    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, __RC__)
+
 
     RETURN_(ESMF_SUCCESS)
 
@@ -673,7 +677,7 @@ contains
 !   -----------------------------------
 !   Grid box efficiency to emission (fraction of sea water)
     allocate(fgridefficiency, mold=frocean, __STAT__ )
-    fgridefficiency = min(max(0.,(frocean-fraci)*self%deep_lakes_mask),1.)
+    fgridefficiency = min(max(0.,(frocean-fraci)*deep_lakes_mask),1.)
 
 !   Apply SST correction following Jaegle et al. 2011 if needed
 !   ------------------------------------------------------------
