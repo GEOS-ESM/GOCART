@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - more hard-coded name changes for Issue #93
 - Fixed bug in MieQuery.H, shape of not present variable is used
+- Update `CODEOWNERS` file to make approvals less restrictive
 - Updated the CircleCI to use circleci-tools 0.13.0 orb
   - Moves CI to use Baselibs 6.2.13 needed by MAPL development
 - Update `components.yaml` to be in line with GEOSgcm v10.22.1
