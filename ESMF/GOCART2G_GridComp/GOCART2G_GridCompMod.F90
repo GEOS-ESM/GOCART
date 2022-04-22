@@ -111,6 +111,7 @@ contains
 
     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
     integer, allocatable, dimension(:) :: wavelengths_diagmie
+    integer :: n
 
     __Iam__('SetServices')
 
@@ -205,6 +206,30 @@ contains
 
 #include "GOCART2G_Export___.h"
 
+!   Allow children of Chemistry to connect to these fields:
+!   Assumed elsewhere in this file that DU,SU,SS are running with at least 1 instance
+    if ((self%DU%instances(1)%is_active)) call MAPL_AddExportSpec (GC, SHORT_NAME='DUSCACOEF',      CHILD_ID=self%DU%instances(1)%id, __RC__)
+    if ((self%SU%instances(1)%is_active)) call MAPL_AddExportSpec (GC, SHORT_NAME='SUSCACOEF',      CHILD_ID=self%SU%instances(1)%id, __RC__)
+    if ((self%SS%instances(1)%is_active)) call MAPL_AddExportSpec (GC, SHORT_NAME='SSSCACOEF',      CHILD_ID=self%SS%instances(1)%id, __RC__)
+
+   if (size(self%NI%instances) > 0) then
+    if ((self%DU%instances(1)%is_active)) call MAPL_AddExportSpec (GC, SHORT_NAME='NISCACOEF',      CHILD_ID=self%NI%instances(1)%id, __RC__)
+   end if
+
+!   Assuming there is only one instance for bc, oc:
+    do n = 1, size(self%CA%instances)
+       if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,        'CA.bc') > 0)) &
+                                          call MAPL_AddExportSpec (GC, SHORT_NAME='CASCACOEFCA.bc', CHILD_ID=self%CA%instances(n)%id, __RC__)
+       if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,        'CA.oc') > 0)) &
+                                          call MAPL_AddExportSpec (GC, SHORT_NAME='CASCACOEFCA.oc', CHILD_ID=self%CA%instances(n)%id, __RC__)
+    end do
+! MAY NEED THIS with the DEVELOP version:
+!   do n = 1, size(self%CA%instances)
+!      if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,   'CA.bc') > 0)) &
+!                                    call MAPL_AddExportSpec (GC, SHORT_NAME='CA.bcSCACOEF', CHILD_ID=self%CA%instances(n)%id, __RC__)
+!      if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,   'CA.oc') > 0)) &
+!                                    call MAPL_AddExportSpec (GC, SHORT_NAME='CA.ocSCACOEF', CHILD_ID=self%CA%instances(n)%id, __RC__)
+!   end do
 
 !   Add connectivities for Nitrate component
 !   Nitrate currently only supports one Nitrate component. Nitrate only 
