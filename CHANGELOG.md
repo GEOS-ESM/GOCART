@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Added a restart column to all statespec.rc files in GOCART2G. Variables being provided by ExtData must be MAPL_RestartSkip
+
 ## [2.0.5] - 2021-03-14
 
 ### Added
