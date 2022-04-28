@@ -4,7 +4,7 @@ module GA_EnvironmentMod
 
    use ESMF
    use MAPL
-   use Chem_MieTableMod2G
+   use GOCART2G_MieMod
 
    implicit none
    private
@@ -12,7 +12,7 @@ module GA_EnvironmentMod
    public :: GA_Environment
 
    type :: GA_Environment
-       type(Chem_Mie), dimension(2)    :: rad_MieTable, diag_MieTable
+       type(GOCART2G_Mie)     :: rad_Mie, diag_Mie
        real, allocatable      :: radius(:)      ! particle effective radius [um]
        real, allocatable      :: rhop(:)        ! soil class density [kg m-3]
        real, allocatable      :: fscav(:)       ! scavenging efficiency
