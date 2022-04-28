@@ -1773,6 +1773,8 @@ CONTAINS
 
    allocate(pSO2_DMS, mold=tmpu)
    allocate(pMSA_DMS, mold=tmpu)
+   pSO2_DMS = 0.0
+   pMSA_DMS = 0.0
 
 !  spatial loop
    do k = klid, km
@@ -1938,6 +1940,9 @@ CONTAINS
    allocate(pSO4g_SO2, mold=tmpu)
    allocate(pSO4aq_SO2, mold=tmpu)
    allocate(fout(i2,j2))
+   pSO4g_SO2 = 0.0
+   pSO4aq_SO2 = 0.0
+   fout = 0.0
 
 !  Conversion of SO2 mmr to SO2 vmr
    fMR = airMolWght / fMassSO2
@@ -2204,6 +2209,7 @@ CONTAINS
    i2 = ubound(qa, 1)
 
    allocate(fout(i2,j2))
+   fout = 0.0
 
 !  spatial loop
    do k = klid, km
