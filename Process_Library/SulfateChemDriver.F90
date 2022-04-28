@@ -112,6 +112,10 @@
    allocate(cossza, mold=oro)
    allocate(sza, mold=oro)
 
+   drydepositionfrequency = 0.0
+   cossza = 0.0
+   sza = 0.0
+
 !  Reset the production terms
    allocate(pSO2_DMS, mold=tmpu)
    allocate(pMSA_DMS, mold=tmpu)
@@ -220,4 +224,4 @@
    h2o2_init = xh2o2
 
    __RETURN__(__SUCCESS__)
-   end subroutine SulfateChemDriver 
+   end subroutine SulfateChemDriver

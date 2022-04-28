@@ -87,10 +87,8 @@
 
    hsurf => hghte(i1:i2,j1:j2,km)
 
-   allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km))
-   allocate(cmass_before(i2,j2), cmass_after(i2,j2))
-   cmass_before = 0.d0
-   cmass_after = 0.d0
+   allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km), source=0.0)
+   allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
 
    qa = int_qa
 

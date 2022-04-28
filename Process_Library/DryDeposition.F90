@@ -72,7 +72,7 @@
    i2 = dims(1); j2 = dims(2)
 
    allocate(dz(i2,j2),rmu(i2,j2),Ra(i2,j2),Rs(i2,j2),vdep(i2,j2), &
-            obk(i2,j2))
+            obk(i2,j2), source=0.0)
 
 !  Calculate the viscosity and thickness of the surface level
    dz = hghte(:,:,km-1) - hghte(:,:,km)

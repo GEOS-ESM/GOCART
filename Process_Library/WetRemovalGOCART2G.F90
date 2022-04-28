@@ -89,7 +89,7 @@
 
 !  Allocate arrays
    allocate(c_h2o(i2,j2,km), cldliq(i2,j2,km), cldice(i2,j2,km), pdog(i2,j2,km), &
-            delz(i2,j2,km), dpfli(i2,j2,km))
+            delz(i2,j2,km), dpfli(i2,j2,km), source=0.0)
 
 !  Initialize local variables
 !  --------------------------
@@ -107,8 +107,8 @@
    Td_ls = cdt
    nbins = n2-n1+1
 
-   allocate(fd(km,nbins),stat=ios)
-   allocate(dc(nbins),stat=ios)
+   allocate(fd(km,nbins),source=0.0,stat=ios)
+   allocate(dc(nbins),source=0.0,stat=ios)
 
    if( associated(fluxout) ) fluxout(i1:i2,j1:j2,bin_ind) = 0.0
 

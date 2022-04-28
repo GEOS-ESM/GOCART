@@ -113,8 +113,8 @@
    i2 = ubound(t_soil,1)
    j2 = ubound(t_soil,2)
 
-   allocate(w_g(i2,j2), w_gt(i2,j2), f_veg(i2,j2), clay(i2,j2), silt(i2,j2), k_gamma(i2,j2))
-   allocate(z0s(i2,j2), Dp_size(i2,j2))
+   allocate(w_g(i2,j2), w_gt(i2,j2), f_veg(i2,j2), clay(i2,j2), silt(i2,j2), k_gamma(i2,j2), source=0.0)
+   allocate(z0s(i2,j2), Dp_size(i2,j2), source=0.0)
 
    ! typical size of soil particles for optimal saltation is about 75e-6m
    Dp_size = 75e-6

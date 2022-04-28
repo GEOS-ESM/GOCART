@@ -74,7 +74,7 @@
    real, dimension(:,:,:), allocatable  :: vsettle   ! fall speed [m s-1]
    real(kind=DP), dimension(:,:,:), allocatable   :: dzd, vsd, qa, qa_temp
    real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after
-   real(kind=DP) :: qdel, qsrc, d_p, dpm1
+   real(kind=DP) :: qdel, qsrc, d_p, d_pm1
 
    integer :: status
 
@@ -93,9 +93,9 @@
 
 !  Allocate arrays
 !  ---------------
-   allocate(dz, mold=rhoa);
-   allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km))
-   allocate(cmass_before(i2,j2), cmass_after(i2,j2))
+   allocate(dz, mold=rhoa)
+   allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km), source=0.0)
+   allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
 
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
 !  -----------------------------------------------------------------
@@ -226,8 +226,8 @@
 !             do k = 2, km
              do k = klid+1, km
                d_p  = delp(i,j,k)
-               dpm1 = delp(i,j,k-1)
-               qsrc = qdel * dpm1 / d_p
+               d_pm1 = delp(i,j,k-1)
+               qsrc = qdel * d_pm1 / d_p
                qdel = qa(i,j,k)*dt_settle*vsd(i,j,k)/dzd(i,j,k)
                qa(i,j,k) = qa(i,j,k) - qdel + qsrc
             end do

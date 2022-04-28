@@ -41,6 +41,7 @@
    rc = __SUCCESS__
    fhoppel = 1.0
    allocate(vsettle, mold=rh)
+   vsettle=0.0
 
    do j = 1, ubound(rh,2)
       do i = 1, ubound(rh,1)

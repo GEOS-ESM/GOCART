@@ -107,7 +107,7 @@
    hsurf = hghte(i1:i2,j1:j2,km)
 
    allocate(srcSO2(i2,j2), srcSO4(i2,j2), srcDMS(i2,j2), srcSO4anthro(i2,j2), &
-            srcSO2anthro(i2,j2), srcSO2bioburn(i2,j2))
+            srcSO2anthro(i2,j2), srcSO2bioburn(i2,j2), source=0.0)
 
 !  Initialize local variables
 !  --------------------------
@@ -158,6 +158,11 @@
    allocate(pPblh, mold=pblh)
 
    ps = 0.0
+   p0 = 0.0
+   z0 = 0.0
+   p100 = 0.0
+   p500 = 0.0
+   pPblh = 0.0
    do k = 1, km
     ps(i1:i2,j1:j2) = ps(i1:i2,j1:j2) + delp(i1:i2,j1:j2,k)
    end do

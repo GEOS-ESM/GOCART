@@ -64,7 +64,7 @@
    real, dimension(:,:,:), allocatable  :: vsettle   ! fall speed [m s-1]
    real(kind=DP), dimension(:,:,:), allocatable   :: dzd, vsd, qa, qa_temp
    real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after, qdel, &
-        dp, dpm1, qsrc
+        d_p, d_pm1, qsrc
 
 !EOP
 !-------------------------------------------------------------------------
@@ -81,8 +81,8 @@
 !  ---------------
    allocate(dz, mold=rhoa);
    allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km))
-   allocate(cmass_before(i2,j2), cmass_after(i2,j2), qdel(i2,j2), dp(i2,j2), &
-            dpm1(i2,j2), qsrc(i2,j2))
+   allocate(cmass_before(i2,j2), cmass_after(i2,j2), qdel(i2,j2), d_p(i2,j2), &
+            d_pm1(i2,j2), qsrc(i2,j2))
 
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
 !  -----------------------------------------------------------------
@@ -210,9 +210,9 @@
      qa(i1:i2,j1:j2,klid) = qa(i1:i2,j1:j2,klid) - qdel
 
      do k = klid+1, km
-      dp   = delp(i1:i2,j1:j2,k)
-      dpm1 = delp(i1:i2,j1:j2,k-1)
-      qsrc = qdel * dpm1 / dp
+      d_p   = delp(i1:i2,j1:j2,k)
+      d_pm1 = delp(i1:i2,j1:j2,k-1)
+      qsrc = qdel * d_pm1 / d_p
       qdel = qa(i1:i2,j1:j2,k)*dt_settle*vsd(i1:i2,j1:j2,k)/dzd(i1:i2,j1:j2,k)
       qa(i1:i2,j1:j2,k) = qa(i1:i2,j1:j2,k) - qdel + qsrc
      enddo

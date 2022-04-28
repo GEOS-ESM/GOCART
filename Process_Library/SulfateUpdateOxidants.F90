@@ -59,7 +59,7 @@
     j2 = size(rhoa,2)
 
     allocate(cossza(i1:i2,j1:j2), sza(i1:i2,j1:j2), tcosz(i1:i2,j1:j2), &
-             tday(i1:i2,j1:j2), tnight(i1:i2,j1:j2))
+             tday(i1:i2,j1:j2), tnight(i1:i2,j1:j2), source=0.0)
 
 ! Update emissions/production if necessary (daily)
 !  -----------------------------------------------

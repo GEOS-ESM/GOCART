@@ -81,7 +81,7 @@
 
    real, dimension(:,:), allocatable          :: f_bb_        ! scaling factor for BB emissions based on maximum allowed exttau
    real, dimension(:,:), allocatable          :: exttau_bb_   ! increment of exttau due to BB during the current time step
-   real, allocatable, dimension(:,:,:,:) :: qa_bb_       ! increment of qa due to BB during the current time step (nbins,i1:i2,j1:j2:km) 
+   real, allocatable, dimension(:,:,:,:) :: qa_bb_       ! increment of qa due to BB during the current time step (nbins,i1:i2,j1:j2:km)
                                                          ! W.Jiang note, changed to (i1:i2,j1:j2,km,nbins) for efficiency
    real                                  :: cutoff_bb_exttau
    integer                               :: idx
@@ -103,7 +103,7 @@
    ijl = ( i2 - i1 + 1 ) * ( j2 - j1 + 1 )
 
    allocate(factor(i2,j2), srcHydrophobic(i2,j2), srcHydrophilic(i2,j2), srcBiofuel(i2,j2), &
-            srcBiomass(i2,j2), srcAnthro(i2,j2), srcBiogenic(i2,j2), f_bb_(i2,j2), exttau_bb_(i2,j2))
+            srcBiomass(i2,j2), srcAnthro(i2,j2), srcBiogenic(i2,j2), f_bb_(i2,j2), exttau_bb_(i2,j2), source=0.0)
 
 !  Emission factors scaling from source files to desired mass quantity
    eBiomass = ratPOM
@@ -154,6 +154,11 @@
    allocate(p500, mold=pblh)
    allocate(pPBL, mold=pblh)
    ps = 0.0
+   p0 = 0.0
+   z0 = 0.0
+   p100 = 0.0
+   p500 = 0.0
+   pPBL = 0.0
    do k = 1, km
     ps(i1:i2,j1:j2) = ps(i1:i2,j1:j2) + delp(i1:i2,j1:j2,k)
    end do

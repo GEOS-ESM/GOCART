@@ -86,7 +86,7 @@
    j2 = ubound(tmpu, 2)
    i2 = ubound(tmpu, 1)
 
-   allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2))
+   allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2), source=0.0)
 
 !  Get the wavelength indices
 !  --------------------------
@@ -248,9 +248,9 @@
             endif
 
             if (associated(stexttau) ) then
-               where (ple(:,:,k) .le. tropp) 
+               where (ple(:,:,k) .le. tropp)
                   stexttau(:,:,w) = stexttau(:,:,w) + tau(:,:,k)
-               elsewhere(ple(:,:,k-1) .lt. tropp) 
+               elsewhere(ple(:,:,k-1) .lt. tropp)
                  stexttau(:,:,w)  = stexttau(:,:,w) + log(tropp/ple(:,:,k-1))/log(ple(:,:,k)/ple(:,:,k-1))*tau(:,:,k)
                endwhere
             endif
@@ -260,9 +260,9 @@
             endif
 
             if ( associated(stscatau) ) then
-               where (ple(:,:,k) .le. tropp) 
+               where (ple(:,:,k) .le. tropp)
                   stscatau(:,:,w) = stscatau(:,:,w) + tau(:,:,k)*ssa(:,:,k)
-               elsewhere(ple(:,:,k-1) .lt. tropp) 
+               elsewhere(ple(:,:,k-1) .lt. tropp)
                   stscatau(:,:,w) = stscatau(:,:,w) + log(tropp/ple(:,:,k-1))/log(ple(:,:,k)/ple(:,:,k-1))*tau(:,:,k)*ssa(:,:,k)
                endwhere
            endif
