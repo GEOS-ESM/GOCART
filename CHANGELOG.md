@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   radiative forcing calculation; zero diff change
 - Simplified loading of radiation MieTables.
 
+## [2.0.6] - 2021-04-28
+
+### Fixed
+
+- Initialize allocatable variables in Process Library. Fixes #130
+
 ## [2.0.5] - 2021-03-14
 
 ### Added
