@@ -661,8 +661,8 @@ CONTAINS
    i2 = ubound(t_soil,1)
    j2 = ubound(t_soil,2)
 
-   allocate(w_g(i2,j2), w_gt(i2,j2), f_veg(i2,j2), clay(i2,j2), silt(i2,j2), k_gamma(i2,j2))
-   allocate(z0s(i2,j2), Dp_size(i2,j2))
+   allocate(w_g(i2,j2), w_gt(i2,j2), f_veg(i2,j2), clay(i2,j2), silt(i2,j2), k_gamma(i2,j2), source=0.0)
+   allocate(z0s(i2,j2), Dp_size(i2,j2), source=0.0)
 
    ! typical size of soil particles for optimal saltation is about 75e-6m
    Dp_size = 75e-6
@@ -1183,10 +1183,8 @@ CONTAINS
 
    hsurf => hghte(i1:i2,j1:j2,km)
 
-   allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km))
-   allocate(cmass_before(i2,j2), cmass_after(i2,j2))
-   cmass_before = 0.d0
-   cmass_after = 0.d0
+   allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km), source=0.0)
+   allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
 
    qa = int_qa
 
@@ -1359,10 +1357,8 @@ CONTAINS
 
    hsurf => hghte(i1:i2,j1:j2,km)
 
-   allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km))
-   allocate(cmass_before(i2,j2), cmass_after(i2,j2))
-   cmass_before = 0.d0
-   cmass_after = 0.d0
+   allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km), source=0.0)
+   allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
 
    qa = int_qa
 
@@ -1967,7 +1963,7 @@ CONTAINS
    real, dimension(:,:,:), allocatable  :: vsettle   ! fall speed [m s-1]
    real(kind=DP), dimension(:,:,:), allocatable   :: dzd, vsd, qa, qa_temp
    real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after
-   real(kind=DP) :: qdel, qsrc, d_p, dpm1
+   real(kind=DP) :: qdel, qsrc, d_p, d_pm1
 
    integer :: status
 
@@ -1986,9 +1982,10 @@ CONTAINS
 
 !  Allocate arrays
 !  ---------------
-   allocate(dz, mold=rhoa);
-   allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km))
-   allocate(cmass_before(i2,j2), cmass_after(i2,j2))
+   allocate(dz, mold=rhoa)
+   allocate(vsettle(i2,j2,km), source=0.0)
+   allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), qa_temp(i2,j2,km), source=0.0_DP)
+   allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
 
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
 !  -----------------------------------------------------------------
@@ -2119,8 +2116,8 @@ CONTAINS
 !             do k = 2, km
              do k = klid+1, km
                d_p  = delp(i,j,k)
-               dpm1 = delp(i,j,k-1)
-               qsrc = qdel * dpm1 / d_p
+               d_pm1 = delp(i,j,k-1)
+               qsrc = qdel * d_pm1 / d_p
                qdel = qa(i,j,k)*dt_settle*vsd(i,j,k)/dzd(i,j,k)
                qa(i,j,k) = qa(i,j,k) - qdel + qsrc
             end do
@@ -2313,7 +2310,7 @@ CONTAINS
    real, dimension(:,:,:), allocatable  :: vsettle   ! fall speed [m s-1]
    real(kind=DP), dimension(:,:,:), allocatable   :: dzd, vsd, qa, qa_temp
    real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after, qdel, &
-        dp, dpm1, qsrc
+        d_p, d_pm1, qsrc
 
 !EOP
 !-------------------------------------------------------------------------
@@ -2328,10 +2325,11 @@ CONTAINS
 
 !  Allocate arrays
 !  ---------------
-   allocate(dz, mold=rhoa);
-   allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km))
-   allocate(cmass_before(i2,j2), cmass_after(i2,j2), qdel(i2,j2), dp(i2,j2), &
-            dpm1(i2,j2), qsrc(i2,j2))
+   allocate(dz, mold=rhoa)
+   allocate(vsettle(i2,j2,km), source=0.0)
+   allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), qa_temp(i2,j2,km), source=0.0_DP)
+   allocate(cmass_before(i2,j2), cmass_after(i2,j2), qdel(i2,j2), d_p(i2,j2), &
+            d_pm1(i2,j2), qsrc(i2,j2), source=0.0_DP)
 
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
 !  -----------------------------------------------------------------
@@ -2459,9 +2457,9 @@ CONTAINS
      qa(i1:i2,j1:j2,klid) = qa(i1:i2,j1:j2,klid) - qdel
 
      do k = klid+1, km
-      dp   = delp(i1:i2,j1:j2,k)
-      dpm1 = delp(i1:i2,j1:j2,k-1)
-      qsrc = qdel * dpm1 / dp
+      d_p   = delp(i1:i2,j1:j2,k)
+      d_pm1 = delp(i1:i2,j1:j2,k-1)
+      qsrc = qdel * d_pm1 / d_p
       qdel = qa(i1:i2,j1:j2,k)*dt_settle*vsd(i1:i2,j1:j2,k)/dzd(i1:i2,j1:j2,k)
       qa(i1:i2,j1:j2,k) = qa(i1:i2,j1:j2,k) - qdel + qsrc
      enddo
@@ -2569,7 +2567,7 @@ CONTAINS
    i2 = dims(1); j2 = dims(2)
 
    allocate(dz(i2,j2),rmu(i2,j2),Ra(i2,j2),Rs(i2,j2),vdep(i2,j2), &
-            obk(i2,j2))
+            obk(i2,j2), source=0.0)
 
 !  Calculate the viscosity and thickness of the surface level
    dz = hghte(:,:,km-1) - hghte(:,:,km)
@@ -2818,7 +2816,7 @@ CONTAINS
 
 !  Allocate arrays
    allocate(c_h2o(i2,j2,km), cldliq(i2,j2,km), cldice(i2,j2,km), pdog(i2,j2,km), &
-            delz(i2,j2,km), dpfli(i2,j2,km))
+            delz(i2,j2,km), dpfli(i2,j2,km), source=0.0)
 
 !  Initialize local variables
 !  --------------------------
@@ -2836,8 +2834,8 @@ CONTAINS
    Td_ls = cdt
    nbins = n2-n1+1
 
-   allocate(fd(km,nbins),stat=ios)
-   allocate(dc(nbins),stat=ios)
+   allocate(fd(km,nbins),source=0.0,stat=ios)
+   allocate(dc(nbins),source=0.0,stat=ios)
 
    if( associated(fluxout) ) fluxout(i1:i2,j1:j2,bin_ind) = 0.0
 
@@ -3347,8 +3345,8 @@ CONTAINS
 !  --------------------------
    i2 = size(rhoa,1)
    j2 = size(rhoa,2)
-   allocate(fPMfm(nbins))
-   allocate(fPM25(nbins))
+   allocate(fPMfm(nbins),source=0.0)
+   allocate(fPM25(nbins),source=0.0)
 
 !  Get the wavelength indices
 !  --------------------------
@@ -3369,7 +3367,7 @@ CONTAINS
       ilam470 .ne. ilam870) do_angstrom = .true.
 
    if( present(angstrom) .and. do_angstrom ) then
-      allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2))
+      allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2), source=0.0)
    end if
 
 !  Compute the fine mode (sub-micron) and PM2.5 bin-wise fractions
@@ -4175,6 +4173,7 @@ CONTAINS
    rc = __SUCCESS__
    fhoppel = 1.0
    allocate(vsettle, mold=rh)
+   vsettle=0.0
 
    do j = 1, ubound(rh,2)
       do i = 1, ubound(rh,1)
@@ -4312,7 +4311,7 @@ CONTAINS
    ijl = ( i2 - i1 + 1 ) * ( j2 - j1 + 1 )
 
    allocate(factor(i2,j2), srcHydrophobic(i2,j2), srcHydrophilic(i2,j2), srcBiofuel(i2,j2), &
-            srcBiomass(i2,j2), srcAnthro(i2,j2), srcBiogenic(i2,j2), f_bb_(i2,j2), exttau_bb_(i2,j2))
+            srcBiomass(i2,j2), srcAnthro(i2,j2), srcBiogenic(i2,j2), f_bb_(i2,j2), exttau_bb_(i2,j2), source=0.0)
 
 !  Emission factors scaling from source files to desired mass quantity
    eBiomass = ratPOM
@@ -4363,6 +4362,11 @@ CONTAINS
    allocate(p500, mold=pblh)
    allocate(pPBL, mold=pblh)
    ps = 0.0
+   p0 = 0.0
+   z0 = 0.0
+   p100 = 0.0
+   p500 = 0.0
+   pPBL = 0.0
    do k = 1, km
     ps(i1:i2,j1:j2) = ps(i1:i2,j1:j2) + delp(i1:i2,j1:j2,k)
    end do
@@ -5377,7 +5381,7 @@ K_LOOP: do k = km, 1, -1
    hsurf = hghte(i1:i2,j1:j2,km)
 
    allocate(srcSO2(i2,j2), srcSO4(i2,j2), srcDMS(i2,j2), srcSO4anthro(i2,j2), &
-            srcSO2anthro(i2,j2), srcSO2bioburn(i2,j2))
+            srcSO2anthro(i2,j2), srcSO2bioburn(i2,j2), source=0.0)
 
 !  Initialize local variables
 !  --------------------------
@@ -5428,6 +5432,11 @@ K_LOOP: do k = km, 1, -1
    allocate(pPblh, mold=pblh)
 
    ps = 0.0
+   p0 = 0.0
+   z0 = 0.0
+   p100 = 0.0
+   p500 = 0.0
+   pPblh = 0.0
    do k = 1, km
     ps(i1:i2,j1:j2) = ps(i1:i2,j1:j2) + delp(i1:i2,j1:j2,k)
    end do
@@ -5865,7 +5874,7 @@ K_LOOP: do k = km, 1, -1
     j2 = size(rhoa,2)
 
     allocate(cossza(i1:i2,j1:j2), sza(i1:i2,j1:j2), tcosz(i1:i2,j1:j2), &
-             tday(i1:i2,j1:j2), tnight(i1:i2,j1:j2))
+             tday(i1:i2,j1:j2), tnight(i1:i2,j1:j2), source=0.0)
 
 ! Update emissions/production if necessary (daily)
 !  -----------------------------------------------
@@ -6764,7 +6773,7 @@ K_LOOP: do k = km, 1, -1
    j2 = ubound(tmpu, 2)
    i2 = ubound(tmpu, 1)
 
-   allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2))
+   allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2), source=0.0)
 
 !  Get the wavelength indices
 !  --------------------------
@@ -7124,6 +7133,10 @@ K_LOOP: do k = km, 1, -1
    allocate(cossza, mold=oro)
    allocate(sza, mold=oro)
 
+   drydepositionfrequency = 0.0
+   cossza = 0.0
+   sza = 0.0
+
 !  Reset the production terms
    allocate(pSO2_DMS, mold=tmpu)
    allocate(pMSA_DMS, mold=tmpu)
@@ -7325,6 +7338,8 @@ K_LOOP: do k = km, 1, -1
 
    allocate(pSO2_DMS, mold=tmpu)
    allocate(pMSA_DMS, mold=tmpu)
+   pSO2_DMS = 0.0
+   pMSA_DMS = 0.0
 
 !  spatial loop
    do k = klid, km
@@ -7490,6 +7505,9 @@ K_LOOP: do k = km, 1, -1
    allocate(pSO4g_SO2, mold=tmpu)
    allocate(pSO4aq_SO2, mold=tmpu)
    allocate(fout(i2,j2))
+   pSO4g_SO2 = 0.0
+   pSO4aq_SO2 = 0.0
+   fout = 0.0
 
 !  Conversion of SO2 mmr to SO2 vmr
    fMR = airMolWght / fMassSO2
@@ -7756,6 +7774,7 @@ K_LOOP: do k = km, 1, -1
    i2 = ubound(qa, 1)
 
    allocate(fout(i2,j2))
+   fout = 0.0
 
 !  spatial loop
    do k = klid, km
