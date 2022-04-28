@@ -94,7 +94,7 @@
 !  Allocate arrays
 !  ---------------
    allocate(dz, mold=rhoa)
-   allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km), source=0.0)
+   allocate(dzd(i2,j2,km), vsd(i2,j2,km), qa(i2,j2,km), vsettle(i2,j2,km), qa_temp(i2,j2,km), source=0.0_DP)
    allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
 
 !  Handle the fact that hghte may be in the range [1,km+1] or [0,km]
