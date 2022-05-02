@@ -30,6 +30,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   radiative forcing calculation; zero diff change
 - Simplified loading of radiation MieTables.
 
+## [2.0.7] - 2021-04-29
+
+### Fixed
+
+- Added a restart column to all statespec.rc files in GOCART2G. Variables being provided by ExtData must be MAPL_RestartSkip
+
 ## [2.0.6] - 2021-04-28
 
 ### Fixed
