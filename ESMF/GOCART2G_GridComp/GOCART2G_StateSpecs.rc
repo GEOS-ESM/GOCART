@@ -3,36 +3,36 @@ component: GOCART2G
 
 category: IMPORT
 #----------------------------------------------------------------------------------------
-#  VARIABLE          | DIMENSIONS|          Additional Metadata
+#  VARIABLE       | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
-     NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
+     NAME | UNITS | DIMS | VLOC | COND | LONG NAME
 #----------------------------------------------------------------------------------------
-# DELP       | Pa     | xyz  | C   |      | pressure_thickness
-# RH2        | 1      | xyz  | C   |      | Rel_Hum_after_moist
+# DELP    | Pa    | xyz  | C    |      | pressure_thickness
+# RH2     | 1     | xyz  | C    |      | Rel_Hum_after_moist
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
-#  VARIABLE              | DIMENSIONS |          Additional Metadata
+#  VARIABLE               | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS | VLOC |  UNGRIDDED | LONG NAME
+ NAME        | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- PSO4TOT    | kg m-2 s-1 | xyz  | C    |            | Total Sulfate Produced in GOCART
+ PSO4TOT     | kg m-2 s-1 | xyz  | C    |                                | Total Sulfate Produced in GOCART
 #........................................................................................
- TOTEXTTAU  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm]
- TOTSTEXTTAU| 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] Stratosphere
- TOTSCATAU  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Scattering AOT [550 nm]
- TOTSTSCATAU| 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Scattering AOT [550 nm] Stratosphere
- TOTEXTT25  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM2.5
- TOTSCAT25  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM2.5
- TOTEXTTFM  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM1.0
- TOTSCATFM  | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM1.0
- TOTANGSTR  | 1          | xy   | N    |            | Total Aerosol Angstrom parameter [470-870 nm]
- PM         | kg m-3     | xy   | N    |            | Total reconstructed PM
- PM_RH35    | kg m-3     | xy   | N    |            | Total reconstructed PM(RH=35%)
- PM_RH50    | kg m-3     | xy   | N    |            | Total reconstructed PM(RH=50%)
- PM25       | kg m-3     | xy   | N    |            | Total reconstructed PM2.5
- PM25_RH35  | kg m-3     | xy   | N    |            | Total reconstructed PM2.5(RH=35%)
- PM25_RH50  | kg m-3     | xy   | N    |            | Total reconstructed PM2.5(RH=50%)
+ TOTEXTTAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm]
+ TOTSTEXTTAU | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] Stratosphere
+ TOTSCATAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Scattering AOT [550 nm]
+ TOTSTSCATAU | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Scattering AOT [550 nm] Stratosphere
+ TOTEXTT25   | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM2.5
+ TOTSCAT25   | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM2.5
+ TOTEXTTFM   | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM1.0
+ TOTSCATFM   | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM1.0
+ TOTANGSTR   | 1          | xy   | N    |                                | Total Aerosol Angstrom parameter [470-870 nm]
+ PM          | kg m-3     | xy   | N    |                                | Total reconstructed PM
+ PM_RH35     | kg m-3     | xy   | N    |                                | Total reconstructed PM(RH=35%)
+ PM_RH50     | kg m-3     | xy   | N    |                                | Total reconstructed PM(RH=50%)
+ PM25        | kg m-3     | xy   | N    |                                | Total reconstructed PM2.5
+ PM25_RH35   | kg m-3     | xy   | N    |                                | Total reconstructed PM2.5(RH=35%)
+ PM25_RH50   | kg m-3     | xy   | N    |                                | Total reconstructed PM2.5(RH=50%)
 
 category: INTERNAL
 #----------------------------------------------------------------------------------------
