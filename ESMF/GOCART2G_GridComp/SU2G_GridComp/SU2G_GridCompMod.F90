@@ -18,6 +18,7 @@ module SU2G_GridCompMod
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
+   !$ use omp_lib
 
    implicit none
    private
@@ -92,7 +93,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
    end type SU2G_GridComp
 
    type wrap_
-      type (SU2G_GridComp), pointer     :: PTR => null()
+      type (SU2G_GridComp), pointer     :: PTR !=> null()
    end type wrap_
 
 contains
@@ -764,7 +765,7 @@ contains
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     logical :: fileExists
 
-    real, pointer, dimension(:,:,:) :: dummyMSA => null() ! This is so the model can run without MSA enabled
+    real, pointer, dimension(:,:,:) :: dummyMSA !=> null() ! This is so the model can run without MSA enabled
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread
 
@@ -775,14 +776,18 @@ contains
 !*****************************************************************************
 !   Begin... 
 
+    nullify(dummyMSA)
+
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(comp_name) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -870,7 +875,6 @@ contains
           if(self%volcano_srcfilen(1:9) == '/dev/null') workspace%nVolc = 0
        end if
     end if
-    print *, __FILE__, __LINE__, workspace%nVolc, shape(workspace%vLon), shape(workspace%vLat)
 
 !   Apply volcanic emissions
 !   ------------------------
@@ -944,7 +948,6 @@ contains
          workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
        end if
     endif
-    print *, __FILE__, __LINE__, workspace%nPts, shape(workspace%pLon), shape(workspace%pLat)
 
 !   Get indices for point emissions
 !   -------------------------------
@@ -1013,7 +1016,7 @@ contains
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
 
     real, dimension(:,:), allocatable   :: drydepositionf
-    real, pointer, dimension(:,:,:)     :: dummyMSA => null() ! this is so the model can run without MSA enabled
+    real, pointer, dimension(:,:,:)     :: dummyMSA !=> null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing  
 
 #include "SU2G_DeclarePointer___.h"

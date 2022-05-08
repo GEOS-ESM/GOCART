@@ -56,7 +56,7 @@ real, parameter ::  cpd    = 1004.16
    end type SS2G_GridComp
 
    type wrap_
-      type (SS2G_GridComp), pointer     :: PTR => null()
+      type (SS2G_GridComp), pointer     :: PTR !=> null()
    end type wrap_
 
 contains
@@ -654,12 +654,14 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------

@@ -95,7 +95,7 @@ contains
 
 !=====================================================================================
 
-  subroutine determine_data_driven(COMP_NAME, data_driven, RC)
+  recursive subroutine determine_data_driven(COMP_NAME, data_driven, RC)
 
     !ARGUMENTS:
     integer, optional,               intent(  out)   :: RC          ! Error code:

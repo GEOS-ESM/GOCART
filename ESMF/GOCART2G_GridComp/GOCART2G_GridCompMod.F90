@@ -566,7 +566,6 @@ contains
 ! !INTERFACE:
 
   subroutine run_thread (GC, import, export, clock, RC)
-   !$ use omp_lib
 
 ! !ARGUMENTS:
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 

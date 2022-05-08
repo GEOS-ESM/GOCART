@@ -56,7 +56,7 @@ integer, parameter     :: DP = kind(1.0d0)
    end type NI2G_GridComp
 
    type wrap_
-      type (NI2G_GridComp), pointer     :: PTR => null()
+      type (NI2G_GridComp), pointer     :: PTR !=> null()
    end type wrap_
 
 contains
@@ -310,7 +310,6 @@ contains
     real, dimension(4)   :: Vect_Hcts
 !    real, allocatable, dimension(:) :: rmedDU, rmedSS, fnumDU, fnumSS
     integer :: itemCount
-    integer :: num_threads
 !    real, pointer, dimension(:,:,:) :: xhno3
 
     __Iam__('Initialize')
@@ -662,12 +661,14 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=comp_name, __RC__)
+    call ESMF_GridCompGet (GC, NAME=comp_name, __RC__)
     Iam = trim(comp_name) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
