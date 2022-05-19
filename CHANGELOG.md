@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
 
 ### Fixed
-
+- Added protection guard for pointer DU_SRC. fixed issue #148
 - Initialized pointers by allocation instead of assignment. fixed issue #127 
 
 ### Changed
