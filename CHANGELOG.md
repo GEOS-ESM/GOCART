@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `.editorconfig` file
   - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
 
+### Fixed
+
+- Initialized pointers by allocation instead of assignment. fixed issue #127 
+
 ### Changed
 
 - Update `CODEOWNERS` file to make approvals less restrictive
