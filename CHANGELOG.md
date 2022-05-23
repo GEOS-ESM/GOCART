@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - 2022-05-23
--Commented out anthropogenic and shipping emissions in ExtData rc files for carbon, sulfate, and nitrate.
+-Set anthropogenic and shipping emission files in ExtData rc files for carbon, sulfate, and nitrate to /dev/null as they will be pulled in through HEMCO.
 
 ## [2.0.5] - 2021-03-14
 
