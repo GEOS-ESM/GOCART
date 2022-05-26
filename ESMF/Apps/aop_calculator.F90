@@ -17,10 +17,9 @@
 !
       use  ESMF
       use  MAPL_Mod
-      use  Chem_SimpleBundleMod
-      use  Chem_RegistryMod
-      use  Chem_MieMod
-      use  Chem_AodMod
+      use  GOCART2G_SimpleBundleMod
+      use  GOCART2G_MieMod
+      use  GOCART2G_AodMod
 
       use  m_die
  
@@ -45,16 +44,17 @@
 
       logical :: verbose = .TRUE.
 
-      character(len=ESMF_MAXSTR) :: aer_registry, ext_registry
-
 !     Control variables and obervations
 !     ---------------------------------
-      type (MAPL_SimpleBundle)   :: q_f          ! aerosol mixing ratio 
-      type (MAPL_SimpleBundle)   :: y_f          ! extinction parameters
+      type (MAPL_SimpleBundle)   :: q_f              ! aerosol mixing ratio 
+      type (MAPL_SimpleBundle)   :: y_f              ! extinction parameters
 
-      type (Chem_Mie)      :: Mie                ! Mie Tables, etc
-      type (Chem_Registry) :: aerReg             ! Registry with many species
-      type (Chem_Registry) :: extReg             ! Registry with XX tracers
+      integer                          :: n_species    ! number of species
+      type (GOCART2G_Mie), pointer     :: MieTables(:) ! (n_species) Mie Tables, etc
+
+
+      integer                          :: n_tracers  ! number of tracers
+      type (GOCART2G_Mie), pointer     :: Mie(:)     ! (n_tracers) Mie Tables, etc
 
 !     Basic ESMF objects
 !     ------------------
@@ -63,15 +63,16 @@
       type(ESMF_Time)      :: Time
       type(ESMF_VM)        :: VM
 
-      integer :: Nx, Ny         ! Layout
-      integer :: IM_World, JM_World, LM_WORLD ! Global Grid dimensions
+      integer :: Nx, Ny                        ! Layout
+      integer :: IM_World, JM_World, LM_WORLD  ! Global Grid dimensions
 
       call Main()
 
 CONTAINS
 
 !...............................................................................................
-      Subroutine Main()
+
+     Subroutine Main()
 
                                    __Iam__('ext_calculator')
 
@@ -107,8 +108,8 @@ CONTAINS
     call ESMF_ConfigGetAttribute(CF, Ny,       Label='Layout_Ny:', __RC__ )
     call ESMF_ConfigGetAttribute(CF, verbose,  Label='verbose:',   __RC__ )
 
-!   Create global grids:
-!   -------------------
+!   Create global lat/lon grid
+!   --------------------------
     etaGrid = MAPL_LatLonGridCreate (Name='etaGrid',        &
                                      Nx = Nx, Ny = Ny,      &
                                      IM_World = IM_World,   &
@@ -135,46 +136,40 @@ CONTAINS
 !                                     Gridded Background
 !                                     -------------------
 
-!     Registries
-!     ----------
-      call ESMF_ConfigGetAttribute(CF, aer_registry, Label='aer_registry:', __RC__ )
-      aerReg = Chem_RegistryCreate ( rc, aer_registry )
-      if ( rc == 0 ) then
-         if ( MAPL_AM_I_ROOT() ) then
-            call Chem_RegistryPrint(aerReg)
-         end if
-      else
-         call die(myname,'could not read Chem Registry for INPUT species')
-      end if
-
-      call ESMF_ConfigGetAttribute(CF, ext_registry, Label='ext_registry:', __RC__ )
-      extReg = Chem_RegistryCreate ( rc, ext_registry )
-      if ( rc == 0 ) then
-         if ( MAPL_AM_I_ROOT() ) then
-              call Chem_RegistryPrint(extReg)
-         end if
-      else
-         call die(myname,'could not read Chem Registry for OUTPUT extinction parameters')
-      end if
 
 !     Read aerosol mixing ratio
 !     -------------------------
-      q_f = Chem_SimpleBundleRead (CF, 'aer_filename', etaGrid, &
-                                   time=Time, verbose=verbose, __RC__ )
+      q_f = GOCART2G_SimpleBundleRead (CF, 'aer_filename', etaGrid, &
+                                       time=Time, verbose=verbose, __RC__ )
 
+!     Associate mixing ratio tracers with corresponding MieTable
+!     ----------------------------------------------------------
+      n_tracers = q_f%n3d
+      allocate(Mie(n_tracers),__STAT__)
+      do i = 1, n_tracers
+         j = getTable__(CF, species, q_f%r3d%name)
+         Mie(i) => MieTables(j)
+      end do
+      
+!     Load Mie tables
+!     ---------------
+      n_species = ESMF_ConfigGetLen(CF,'Species:', __RC__)
+      - alocate and read mie tables
+
+!     Create SimpleBundle for output fields
+!     -------------------------------------      
+      y_f = GOCART2G_SimpleBundleCreate ('ext', CF, 'aop_variables', etaGrid, __RC__ )
+      
 !     Perform Mie calculation
 !     -----------------------
-      y_f = Chem_SimpleBundleCreate ('ext', extReg, etaGrid, __RC__ )
-      Mie = Chem_MieCreate(CF, chemReg=aerReg, __RC__)
-
-      call Chem_ExtCalculator (y_f, q_f, Mie, verbose, __RC__)
+      call GOCART2G_AopCalculator3D (y_f, q_f, Mie, verbose, __RC__)
 
       call MAPL_SimpleBundlePrint(q_f)
       call MAPL_SimpleBundlePrint(y_f)
 
 !     Write file with AOD/Extinction output
 !     ------------------------------------
-      call Chem_SimpleBundleWrite (y_f, CF, 'ext_filename', Time, __RC__ )
+      call GOCART2G_SimpleBundleWrite (y_f, CF, 'ext_filename', Time, __RC__ )
 
 !     All done
 !     --------
@@ -182,6 +177,11 @@ CONTAINS
 
      end subroutine Main
 
+
+     integer function getTable__(CF, species, name)
+     .... write code ....
+     end function getTable__
+       
     end program ext_calculator
 
 
