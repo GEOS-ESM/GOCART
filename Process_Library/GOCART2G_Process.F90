@@ -2876,7 +2876,7 @@ CONTAINS
 !    Check for total precipitation amount
 !    Assume no precip in column if precl+precc = 0
      pac = precl(i,j) + precc(i,j)
-     if(pac .le. 0.) goto 100
+     if(pac .le. 0.) continue
      pls = precl(i,j)
      pcv = precc(i,j)
 
@@ -2890,12 +2890,12 @@ CONTAINS
      LH = 0
      do k = klid, km
       if(dpfli(i,j,k) .gt. 0. ) then
-       LH = k
-       goto 15
+        LH = k
+        exit
       endif
      end do
- 15  continue
-     if(LH .lt. 1) goto 100
+
+     if(LH .lt. 1) continue
 
      do k = LH, km
       qls(k) = dpfli(i,j,k)/pdog(i,j,k)*rhoa(i,j,k)
@@ -2977,11 +2977,10 @@ CONTAINS
          if (Qls(kk).gt.0.) then
           Qmx = max(Qmx,Qls(kk))
          else
-          goto 333
+          exit
          end if
         end do
 
- 333    continue
         F = F0_ls / (1. + F0_ls*B0_ls*XL_ls/(Qmx*cdt/Td_ls))
         if (F.lt.0.01) F = 0.01
 !-----------------------------------------------------------------------------
@@ -3096,11 +3095,10 @@ CONTAINS
          if (Qcv(kk).gt.0.) then
           Qmx = max(Qmx,Qcv(kk))
          else
-          goto 444
+          exit
          end if
         end do
 
- 444    continue
         F = F0_cv / (1. + F0_cv*B0_cv*XL_cv/(Qmx*cdt/Td_cv))
         if (F.lt.0.01) F = 0.01
 
@@ -3174,7 +3172,6 @@ CONTAINS
       endif
      end do
 
- 100 continue
     end do   ! i
    end do    ! j
 
@@ -6279,7 +6276,7 @@ K_LOOP: do k = km, 1, -1
 !    Check for total precipitation amount
 !    Assume no precip in column if precl+precc = 0
      pac = precl(i,j) + precc(i,j)
-     if(pac .le. 0.) goto 100
+     if(pac .le. 0.) continue
      pls = precl(i,j)
      pcv = precc(i,j)
 
@@ -6295,11 +6292,11 @@ K_LOOP: do k = km, 1, -1
      do k = klid, km
       if(dpfli(i,j,k) .gt. 0. .and. tmpu(i,j,k) .gt. 258.) then
        LH = k
-       goto 15
+       exit
       endif
      end do
- 15  continue
-     if(LH .lt. 1) goto 100
+
+     if(LH .lt. 1) continue
 
      do k = LH, km
       qls(k) = dpfli(i,j,k)/pdog(i,j,k)*rhoa(i,j,k)
@@ -6376,11 +6373,10 @@ K_LOOP: do k = km, 1, -1
          if (Qls(kk).gt.0.) then
           Qmx = max(Qmx,Qls(kk))
          else
-          goto 333
+          exit
          end if
         end do
 
- 333    continue
         F = F0_ls / (1. + F0_ls*B0_ls*XL_ls/(Qmx*cdt/Td_ls))
         if (F.lt.0.01) F = 0.01
 
@@ -6512,11 +6508,10 @@ K_LOOP: do k = km, 1, -1
          if (Qcv(kk).gt.0.) then
           Qmx = max(Qmx,Qcv(kk))
          else
-          goto 444
+          exit
          end if
         end do
 
- 444    continue
         F = F0_cv / (1. + F0_cv*B0_cv*XL_cv/(Qmx*cdt/Td_cv))
         if (F.lt.0.01) F = 0.01
 !-----------------------------------------------------------------------------
@@ -6655,7 +6650,6 @@ K_LOOP: do k = km, 1, -1
       endif
      end do
 
- 100 continue
     end do   ! i
    end do    ! j
 
