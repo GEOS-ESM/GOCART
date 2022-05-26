@@ -905,6 +905,8 @@ contains
 
 #include "DU2G_DeclarePointer___.h"
 
+    REAL,               POINTER  :: PTR3d(:,:,:) => NULL()
+
     __Iam__('Run2')
 
 !*****************************************************************************
@@ -986,6 +988,12 @@ contains
                             DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
                             DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
+
+   ! Fill the dust exports to sent to GEOS-Chem (GEOSChem-chem)
+    DST1 = DU(:,:,:,1)
+    DST2 = DU(:,:,:,2)
+    DST3 = DU(:,:,:,3)
+    DST4 = DU(:,:,:,4)
 
     RETURN_(ESMF_SUCCESS)
 

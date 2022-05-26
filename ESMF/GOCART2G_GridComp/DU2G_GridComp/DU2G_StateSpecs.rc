@@ -58,6 +58,10 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
+ DST1       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DST2       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DST3       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DST4       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUMASS     | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUMASS25   | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUCONC     | kg m-3     | xyz  | C    |                                | Dust Mass Concentration

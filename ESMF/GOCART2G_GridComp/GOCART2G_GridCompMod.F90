@@ -202,9 +202,31 @@ contains
        dims       = MAPL_DimsHorzOnly,                &
        datatype   = MAPL_BundleItem, __RC__)
 
+! 
+!   M.Long - GCC/G2G
+!   --------------------------------------------------------
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DST1',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DST2',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DST3',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DST4',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
 
 #include "GOCART2G_Export___.h"
-
 
 !   Add connectivities for Nitrate component
 !   Nitrate currently only supports one Nitrate component. Nitrate only 
@@ -611,6 +633,10 @@ contains
     real                            :: c1, c2, c3
     integer                         :: ind550
 
+    ! MSL - GEOS-Chem/GOCART2G interface
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr3d_R8(:,:,:) => NULL()
+    REAL, POINTER  :: DST1(:,:,:), DST2(:,:,:), DST3(:,:,:), DST4(:,:,:)
+
 #include "GOCART2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -735,8 +761,15 @@ contains
              tau1 = tau1 + duexttau(:,:,ind550)*exp(c1*duangstr)
              tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
           end if
-       end if   
+       end if
     end do
+
+!    if ((self%DU%instances(1)%is_active) .and. (index(self%DU%instances(1)%name, 'data') == 0 )) then
+       call MAPL_GetPointer(gex(self%DU%instances(1)%id), DST1, 'DST1', __RC__) ! HARDWIRED TO 1! NOT SURE HOW TO GET AROUND IT!
+       call MAPL_GetPointer(gex(self%DU%instances(1)%id), DST2, 'DST2', __RC__) ! HARDWIRED TO 1! NOT SURE HOW TO GET AROUND IT!
+       call MAPL_GetPointer(gex(self%DU%instances(1)%id), DST3, 'DST3', __RC__) ! HARDWIRED TO 1! NOT SURE HOW TO GET AROUND IT!
+       call MAPL_GetPointer(gex(self%DU%instances(1)%id), DST4, 'DST4', __RC__) ! HARDWIRED TO 1! NOT SURE HOW TO GET AROUND IT!
+!    endif
 
 !   Sea Salt
     do n = 1, size(self%SS%instances)
