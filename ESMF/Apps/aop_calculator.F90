@@ -17,9 +17,10 @@
 !
       use  ESMF
       use  MAPL_Mod
+      
       use  GOCART2G_SimpleBundleMod
       use  GOCART2G_MieMod
-      use  GOCART2G_AodMod
+      use  GOCART2G_AopMod
 
       use  m_die
  
@@ -46,8 +47,8 @@
 
 !     Control variables and obervations
 !     ---------------------------------
-      type (MAPL_SimpleBundle)   :: q_f              ! aerosol mixing ratio 
-      type (MAPL_SimpleBundle)   :: y_f              ! extinction parameters
+      type (MAPL_SimpleBundle)   :: q_f              ! input: aerosol mixing ratio 
+      type (MAPL_SimpleBundle)   :: y_f              ! output: extinction parameters
 
       integer                          :: n_species    ! number of species
       type (GOCART2G_Mie), pointer     :: MieTables(:) ! (n_species) Mie Tables, etc
@@ -97,7 +98,7 @@ CONTAINS
 !   Load resources
 !   --------------
     CF = ESMF_ConfigCreate(__RC__)
-    call ESMF_ConfigLoadFile(CF, fileName='ext.rc', __RC__)
+    call ESMF_ConfigLoadFile(CF, fileName='aop_calculator.rc', __RC__)
 
 !   World grid dimensions and layout
 !   --------------------------------
@@ -148,13 +149,21 @@ CONTAINS
       allocate(Mie(n_tracers),__STAT__)
       do i = 1, n_tracers
          j = getTable__(CF, species, q_f%r3d%name)
-         Mie(i) => MieTables(j)
+         if ( j>0 ) then
+            Mie(i) => MieTables(j)
+         else
+            Mie(i) => null()
+         end if
       end do
       
 !     Load Mie tables
 !     ---------------
       n_species = ESMF_ConfigGetLen(CF,'Species:', __RC__)
-      - alocate and read mie tables
+      allocate(MieTables(n_species),__STAT__)
+      do i = 1, n_species
+         MieTables(i) = ...MieCtreate(...)
+      end do
+     
 
 !     Create SimpleBundle for output fields
 !     -------------------------------------      
@@ -167,8 +176,8 @@ CONTAINS
       call MAPL_SimpleBundlePrint(q_f)
       call MAPL_SimpleBundlePrint(y_f)
 
-!     Write file with AOD/Extinction output
-!     ------------------------------------
+!     Write file with AOP output
+!     ---------------------------
       call GOCART2G_SimpleBundleWrite (y_f, CF, 'ext_filename', Time, __RC__ )
 
 !     All done

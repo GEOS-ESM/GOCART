@@ -20,7 +20,6 @@
    use MAPL
 
    use GOCART2G_MieMod
-   use GOCART2G_RegistryMod
 
    implicit none
 
@@ -57,9 +56,9 @@ CONTAINS
 
 ! !ARGUMENTS:
 
-  type(MAPL_SimpleBundle), intent(inout) :: y       ! Aerosol extinction
-  type(MAPL_SimpleBundle), intent(in)    :: x       ! Aerosol mixing ratio
-  type(GOCART2G_Mie),          intent(inout) :: Mie ! Mie tables for each tracer
+  type(MAPL_SimpleBundle), intent(inout) :: y          ! Aerosol extinction
+  type(MAPL_SimpleBundle), intent(in)    :: x          ! Aerosol mixing ratio
+  type(GOCART2G_Mie),          intent(inout) :: Mie(:) ! Mie tables for each tracer
 
   logical, OPTIONAL,       intent(in)    :: verbose
   integer, OPTIONAL,       intent(out)   :: rc

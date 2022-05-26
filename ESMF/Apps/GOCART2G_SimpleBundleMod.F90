@@ -111,7 +111,7 @@ CONTAINS
     type(ESMF_Config),          intent(inout)  :: CF
     character(len=*),           intent(in)     :: rc_name
     type(ESMF_Grid),            intent(in)     :: Grid
-    type(ESMF_Time), OPTIONAL,  intent(inout)  :: Time
+    type(ESMF_Time),            intent(inout)  :: Time
     logical, OPTIONAL,          intent(in)     :: verbose
     character(len=*), optional,  intent(IN)    :: only_vars 
     integer, OPTIONAL,          intent(out)    :: rc
@@ -126,22 +126,8 @@ CONTAINS
     call ESMF_ConfigGetAttribute(CF, filename, Label=trim(rc_name)//':',  __RC__ )
     fname = trim(rc_name)
 
-    if ( present(Time) ) then
        self = MAPL_SimpleBundleRead (filename, fname, Grid, Time, verbose, &
                                      ONLY_VARS=only_vars, expid=expid, __RC__ )
-    else
-       call GFIO_Open ( filename, READ_ONLY, fid, rc )
-       if ( rc /= 0 ) return
-       call GetBegDateTime ( fid, nymd, nhms, incSecs, rc )
-       if ( rc /= 0 ) return
-       call GFIO_Close ( fid, rc )
-       if ( rc /= 0 ) return
-       yy = nymd/10000; mm = (nymd-yy*10000) / 100; dd = nymd - (10000*yy + mm*100)
-       h  = nhms/10000;  m = (nhms- h*10000) / 100;  s = nhms - (10000*h  +  m*100)
-       call ESMF_TimeSet(Time_, yy=yy, mm=mm, dd=dd,  h=h,  m=m, s=s)
-       self = MAPL_SimpleBundleRead (filename, fname, Grid, Time_, verbose, &
-              ONLY_VARS=only_vars, expid=expid, __RC__ )
-    end if
 
   end Function GOCART2G_SimpleBundleRead
 
