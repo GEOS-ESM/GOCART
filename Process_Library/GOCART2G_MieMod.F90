@@ -445,7 +445,6 @@ CONTAINS
                exit
             endif
          enddo
-!       print *, j, this%rhi(j), this%rha(j), this%rh(this%rhi(j))
       enddo
 
       return
@@ -469,16 +468,9 @@ CONTAINS
        !  on out of bounds, set i to lower or upper limit
        i = 0
        if(xWant .lt. x(1)) then
-       !   write(msg,*) "in polint, wanted: ", xWant, ", got lower bound: ", x(1)
-       !   call warn(myname,msg)
-       !    if (mapl_am_i_root()) print *,'in polint(), wnted: ', xWant, ', got lower bound: ', x(1)
          i = 1
        endif
        if(xWant .gt. x(n)) then
-       !    write(msg,*) "in polint, wanted: ", xWant, ", got upper bound: ", x(n)
-       !    call warn(myname,msg)
-       !    if (mapl_am_i_root()) print *,'in polint(), wnted: ', xWant, ', got upper bound: ', x(n)
-
          i = n
        endif
 
