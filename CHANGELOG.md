@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Fix bug in getAerosolSum
 - more hard-coded name changes for Issue #93
 - Fixed bug in MieQuery.H, shape of not present variable is used
 - remove logic dinosaur "goto" 
