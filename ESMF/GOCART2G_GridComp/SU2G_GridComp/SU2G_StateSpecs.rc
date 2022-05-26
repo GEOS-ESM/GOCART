@@ -3,110 +3,110 @@ component: SU
 
 category: IMPORT
 #----------------------------------------------------------------------------------------
-#  VARIABLE          | DIMENSIONS|          Additional Metadata
+#  VARIABLE                 | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
-     NAME    | UNITS  | DIMS | VLOC | LONG NAME
+     NAME        | UNITS    | DIMS | VLOC | RESTART | LONG NAME
 #----------------------------------------------------------------------------------------
- FROCEAN    | 1      | xy   | N    | fraction_of_ocean
- LWI        | 1      | xy   | N   | land-ocean-ice_mask
- TROPP      | Pa     | xy   | N   | tropopause_pressure_based_on_blended_estimate
- U10M       | m s-1  | xy   | N   | 10-meter_eastward_wind
- V10M       | m s-1  | xy   | N   | 10-meter_northward_wind
- AREA       | m^2    | xy   | N   | agrid_cell_area
- ZPBL       | m      | xy   | N   | planetary_boundary_layer_height
- USTAR      | m s-1  | xy   | N   | surface velocity scale
- SH         | w m-2  | xy   | N   | sensible_heat_flux_from_turbulence
- Z0H        | m      | xy   | N   | surface_roughness_for_heat
- CN_PRCP    |kg/m^2/s| xy   | N   | surface_conv._rain_flux_needed_by_land
- NCN_PRCP   |kg/m^2/s| xy   | N   | Non-convective precipitation
+ FROCEAN         | 1        | xy   | N    | OPT     | fraction_of_ocean
+ LWI             | 1        | xy   | N    | OPT     | land-ocean-ice_mask
+ TROPP           | Pa       | xy   | N    | OPT     | tropopause_pressure_based_on_blended_estimate
+ U10M            | m s-1    | xy   | N    | OPT     | 10-meter_eastward_wind
+ V10M            | m s-1    | xy   | N    | OPT     | 10-meter_northward_wind
+ AREA            | m^2      | xy   | N    | OPT     | agrid_cell_area
+ ZPBL            | m        | xy   | N    | OPT     | planetary_boundary_layer_height
+ USTAR           | m s-1    | xy   | N    | OPT     | surface velocity scale
+ SH              | w m-2    | xy   | N    | OPT     | sensible_heat_flux_from_turbulence
+ Z0H             | m        | xy   | N    | OPT     | surface_roughness_for_heat
+ CN_PRCP         | kg/m^2/s | xy   | N    | OPT     | surface_conv._rain_flux_needed_by_land
+ NCN_PRCP        | kg/m^2/s | xy   | N    | OPT     | Non-convective precipitation
 #........................................................................................
- AIRDENS    | kg/m^3 | xyz  | C    | moist_air_density
- DELP       | Pa     | xyz  | C    | pressure_thickness
- T          | K      | xyz  | C    | air_temperature
- RH2        | 1      | xyz  | C    | Rel_Hum_after_moist
- ZLE        | m      | xyz  | E    | geopotential_height
- PLE        | Pa     | xyz  | E    | air_pressure
- PFL_LSAN   | kg/m2/s| xyz  | E    | 3D_flux_of_liquid_nonconvective_precipitation
- PFI_LSAN   | kg/m2/s| xyz  | E    | 3D_flux_of_ice_nonconvective_precipitation
- U          | m s-1  | xyz  | C    | eastward_wind
- V          | m s-1  | xyz  | C    | northward_wind
- FCLD       | 1      | xyz  | C    | Cloud fraction for radiation
- pSO2_OCS    | 1      | xyz  | C    | source species
- SU_AIRCRAFT | 1      | xyz  | C    | fuel source species
- SU_NO3      | 1      | xyz  | C    | climatological NO3 source
- SU_OH       | 1      | xyz  | C    | climatological OH source
- SU_H2O2     | 1      | xyz  | C    | climatological H2O2 source
+ AIRDENS         | kg/m^3   | xyz  | C    | OPT     | moist_air_density
+ DELP            | Pa       | xyz  | C    | OPT     | pressure_thickness
+ T               | K        | xyz  | C    | OPT     | air_temperature
+ RH2             | 1        | xyz  | C    | OPT     | Rel_Hum_after_moist
+ ZLE             | m        | xyz  | E    | OPT     | geopotential_height
+ PLE             | Pa       | xyz  | E    | OPT     | air_pressure
+ PFL_LSAN        | kg/m2/s  | xyz  | E    | OPT     | 3D_flux_of_liquid_nonconvective_precipitation
+ PFI_LSAN        | kg/m2/s  | xyz  | E    | OPT     | 3D_flux_of_ice_nonconvective_precipitation
+ U               | m s-1    | xyz  | C    | OPT     | eastward_wind
+ V               | m s-1    | xyz  | C    | OPT     | northward_wind
+ FCLD            | 1        | xyz  | C    | OPT     | Cloud fraction for radiation
+ pSO2_OCS        | 1        | xyz  | C    | SKIP    | source species
+ SU_AIRCRAFT     | 1        | xyz  | C    | SKIP    | fuel source species
+ SU_NO3          | 1        | xyz  | C    | SKIP    | climatological NO3 source
+ SU_OH           | 1        | xyz  | C    | SKIP    | climatological OH source
+ SU_H2O2         | 1        | xyz  | C    | SKIP    | climatological H2O2 source
 #........................................................................................
- SU_BIOMASS  | 1      | xy   | N   | biomass burning emissions
- SU_ANTHROL1 | 1      | xy   | N   | anthropogenic BF emissions
- SU_ANTHROL2 | 1      | xy   | N   | anthropogenic FF emissions
- SU_SHIPSO2  | 1      | xy   | N   | SO2 ship emissions
- SU_SHIPSO4  | 1      | xy   | N   | SO4 ship emissions
- SU_DMSO     | 1      | xy   | N   | DMS emissions
- SU_AVIATION_LTO | 1  | xy   | N   | Landing/Take-off aircraft source species
- SU_AVIATION_CDS | 1  | xy   | N   | Climb/Descent aircraft source species
- SU_AVIATION_CRS | 1  | xy   | N   | Cruise aircraft source species
+ SU_BIOMASS      | 1        | xy   | N    | SKIP    | biomass burning emissions
+ SU_ANTHROL1     | 1        | xy   | N    | SKIP    | anthropogenic BF emissions
+ SU_ANTHROL2     | 1        | xy   | N    | SKIP    | anthropogenic FF emissions
+ SU_SHIPSO2      | 1        | xy   | N    | SKIP    | SO2 ship emissions
+ SU_SHIPSO4      | 1        | xy   | N    | SKIP    | SO4 ship emissions
+ SU_DMSO         | 1        | xy   | N    | SKIP    | DMS emissions
+ SU_AVIATION_LTO | 1        | xy   | N    | SKIP    | Landing/Take-off aircraft source species
+ SU_AVIATION_CDS | 1        | xy   | N    | SKIP    | Climb/Descent aircraft source species
+ SU_AVIATION_CRS | 1        | xy   | N    | SKIP    | Cruise aircraft source species
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
-#  VARIABLE              | DIMENSIONS |          Additional Metadata
+#  VARIABLE              | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME      | UNITS      | DIMS| VLOC | UNGRIDDED  | LONG NAME
+ NAME       | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- SUEM      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfer Emission (Bin %d) 
- SUDP      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Dry Deposition (Bin %d)
- SUSD      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Settling (Bin %d)
- SUWT      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Wet Deposition (Bin %d)
- SUSV      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Convective Scavenging (Bin %d)
- SO4EMAN   | kg m-2 s-1 | xy  | N    |            | SO4 Anthropogenic Emissions
- SO2EMAN   | kg m-2 s-1 | xy  | N    |            | SO2 Anthropogenic Emissions
- SO2EMBB   | kg m-2 s-1 | xy  | N    |            | SO2 Biomass Burning Emissions
- SO2EMVN   | kg m-2 s-1 | xy  | N    |            | SO2 Volcanic (non-explosive) Emissions
- SO2EMVE   | kg m-2 s-1 | xy  | N    |            | SO2 Volcanic (explosive) Emissions
- PSO2      | kg m-2 s-1 | xyz | C    |            | SO2 Prod from DMS oxidation
- PMSA      | kg m-2 s-1 | xyz | C    |            | MSA Prod from DMS oxidation
- PSO4      | kg m-2 s-1 | xyz | C    |            | SO4 Prod from all SO2 oxidation
- PSO4G     | kg m-2 s-1 | xyz | C    |            | SO4 Prod from gaseous SO2 oxidation
- PSO4WET   | kg m-2 s-1 | xyz | C    |            | SO4 Prod from wet SO2 oxidation
- PSO4AQ    | kg m-2 s-1 | xyz | C    |            | SO4 Prod from aqueous SO2 oxidation
- SUPSO2    | kg m-2 s-1 | xy  | N    |            | SO2 Prod from DMS Oxidation [column]
- SUPSO4    | kg m-2 s-1 | xy  | N    |            | SO4 Prod from All SO2 Oxidation [column]
- SUPSO4G   | kg m-2 s-1 | xy  | N    |            | SO4 Prod from Gaseous SO2 Oxidation [column]
- SUPSO4AQ  | kg m-2 s-1 | xy  | N    |            | SO4 Prod from Aqueous SO2 Oxidation [column]
- SUPSO4WT  | kg m-2 s-1 | xy  | N    |            | SO4 Prod from Aqueous SO2 Oxidation (wet dep)
- SUPMSA    | kg m-2 s-1 | xy  | N    |            | MSA Prod from DMS Oxidation [column]
- SO2SMASS  | kg m-3     | xy  | N    |            | SO2 Surface Mass Concentration
- SO2CMASS  | kg m-2     | xy  | N    |            | SO2 Column Mass Density
- SO4SMASS  | kg m-3     | xy  | N    |            | SO4 Surface Mass Concentration
- SO4CMASS  | kg m-2     | xy  | N    |            | SO4 Column Mass Density
- DMSSMASS  | kg m-3     | xy  | N    |            | DMS Surface Mass Concentration
- DMSCMASS  | kg m-2     | xy  | N    |            | DMS Column Mass Density
- MSASMASS  | kg m-3     | xy  | N    |            | MSA Surface Mass Concentration
- MSACMASS  | kg m-2     | xy  | N    |            | MSA Column Mass Density
- SUCONC    | kg m-3     | xyz | C    |            | SO4 Aerosol Mass Concentration
- SUEXTCOEF | m-1        | xyz | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient
- SUSCACOEF | m-1        | xyz | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient
- SUANGSTR  |      1     | xy  | N    |            | SO4 Angstrom parameter [470-870 nm]
- SUFLUXU   | kg m-1 s-1 | xy  | N    |            | SO4 column u-wind mass flux
- SUFLUXV   | kg m-1 s-1 | xy  | N    |            | SO4 column v-wind mass flux
- SO4MASS   | kg kg-1    | xyz | C    |            | SO4 Aerosol Mass Mixing Ratio
- SUEXTTAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT
- SUSTEXTTAU|      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT Stratosphere
- SUSCATAU  |      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT
- SUSTSCATAU|      1     | xy  | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT Stratosphere
- SO4SAREA  | m2 m-3     | xyz | C    |            | SO4 Surface Area Density
- SO4SNUM   | m-3        | xyz | C    |            | SO4 Number Density
+ SUEM       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfer Emission (Bin %d)
+ SUDP       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Dry Deposition (Bin %d)
+ SUSD       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Settling (Bin %d)
+ SUWT       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Wet Deposition (Bin %d)
+ SUSV       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Convective Scavenging (Bin %d)
+ SO4EMAN    | kg m-2 s-1 | xy   | N    |                                | SO4 Anthropogenic Emissions
+ SO2EMAN    | kg m-2 s-1 | xy   | N    |                                | SO2 Anthropogenic Emissions
+ SO2EMBB    | kg m-2 s-1 | xy   | N    |                                | SO2 Biomass Burning Emissions
+ SO2EMVN    | kg m-2 s-1 | xy   | N    |                                | SO2 Volcanic (non-explosive) Emissions
+ SO2EMVE    | kg m-2 s-1 | xy   | N    |                                | SO2 Volcanic (explosive) Emissions
+ PSO2       | kg m-2 s-1 | xyz  | C    |                                | SO2 Prod from DMS oxidation
+ PMSA       | kg m-2 s-1 | xyz  | C    |                                | MSA Prod from DMS oxidation
+ PSO4       | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from all SO2 oxidation
+ PSO4G      | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from gaseous SO2 oxidation
+ PSO4WET    | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from wet SO2 oxidation
+ PSO4AQ     | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from aqueous SO2 oxidation
+ SUPSO2     | kg m-2 s-1 | xy   | N    |                                | SO2 Prod from DMS Oxidation [column]
+ SUPSO4     | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from All SO2 Oxidation [column]
+ SUPSO4G    | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Gaseous SO2 Oxidation [column]
+ SUPSO4AQ   | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Aqueous SO2 Oxidation [column]
+ SUPSO4WT   | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Aqueous SO2 Oxidation (wet dep)
+ SUPMSA     | kg m-2 s-1 | xy   | N    |                                | MSA Prod from DMS Oxidation [column]
+ SO2SMASS   | kg m-3     | xy   | N    |                                | SO2 Surface Mass Concentration
+ SO2CMASS   | kg m-2     | xy   | N    |                                | SO2 Column Mass Density
+ SO4SMASS   | kg m-3     | xy   | N    |                                | SO4 Surface Mass Concentration
+ SO4CMASS   | kg m-2     | xy   | N    |                                | SO4 Column Mass Density
+ DMSSMASS   | kg m-3     | xy   | N    |                                | DMS Surface Mass Concentration
+ DMSCMASS   | kg m-2     | xy   | N    |                                | DMS Column Mass Density
+ MSASMASS   | kg m-3     | xy   | N    |                                | MSA Surface Mass Concentration
+ MSACMASS   | kg m-2     | xy   | N    |                                | MSA Column Mass Density
+ SUCONC     | kg m-3     | xyz  | C    |                                | SO4 Aerosol Mass Concentration
+ SUEXTCOEF  | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient
+ SUSCACOEF  | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient
+ SUANGSTR   | 1          | xy   | N    |                                | SO4 Angstrom parameter [470-870 nm]
+ SUFLUXU    | kg m-1 s-1 | xy   | N    |                                | SO4 column u-wind mass flux
+ SUFLUXV    | kg m-1 s-1 | xy   | N    |                                | SO4 column v-wind mass flux
+ SO4MASS    | kg kg-1    | xyz  | C    |                                | SO4 Aerosol Mass Mixing Ratio
+ SUEXTTAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT
+ SUSTEXTTAU | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT Stratosphere
+ SUSCATAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT
+ SUSTSCATAU | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT Stratosphere
+ SO4SAREA   | m2 m-3     | xyz  | C    |                                | SO4 Surface Area Density
+ SO4SNUM    | m-3        | xyz  | C    |                                | SO4 Number Density
 
 category: INTERNAL
-#----------------------------------------------------------------------------------------
-#  VARIABLE                | DIMENSION        |          Additional Metadata
-#----------------------------------------------------------------------------------------
-  NAME | UNITS | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO | LONG NAME
-#----------------------------------------------------------------------------------------
- DMS   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
- SO2   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
- SO4   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
- MSA   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid  
+#------------------------------------------------------------------------------------------------------------
+#  VARIABLE      | DIMENSION   |          Additional Metadata
+#------------------------------------------------------------------------------------------------------------
+  NAME | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
+#------------------------------------------------------------------------------------------------------------
+ DMS   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
+ SO2   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
+ SO4   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
+ MSA   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid
 
 
 #********************************************************

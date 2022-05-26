@@ -875,11 +875,11 @@ contains
        if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
            .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
 
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CAEXTTAUCA.bc', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CASTEXTTAUCA.bc', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CASCATAUCA.bc', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CASTSCATAUCA.bc', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CAANGSTRCA.bc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -893,7 +893,7 @@ contains
              if(associated(totscatfm) .and. associated(bcscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+bcscatau(:,:,w)
           end do
 
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CASMASSCA.bc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', __RC__)
           if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
           if(associated(pm25)      .and. associated(bcsmass)) pm25      = pm25      + bcsmass
           if(associated(pm_rh35)   .and. associated(bcsmass)) pm_rh35   = pm_rh35   + bcsmass
@@ -908,11 +908,11 @@ contains
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CAEXTTAUCA.oc', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CASTEXTTAUCA.oc', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CASCATAUCA.oc', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CASTSCATAUCA.oc', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CAANGSTRCA.oc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -926,7 +926,7 @@ contains
              if(associated(totscatfm) .and. associated(ocscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+ocscatau(:,:,w)
           end do
 
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CASMASSCA.oc', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', __RC__)
           if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
           if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
           if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
@@ -941,11 +941,11 @@ contains
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CAEXTTAUCA.br', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CASTEXTTAUCA.br', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CASCATAUCA.br', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CASTSCATAUCA.br', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CAANGSTRCA.br', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -959,7 +959,7 @@ contains
              if(associated(totscatfm) .and. associated(brscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+brscatau(:,:,w)
           end do
 
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CASMASSCA.br', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', __RC__)
           if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
           if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
           if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
@@ -1558,7 +1558,7 @@ contains
              varNameLen = len_trim(aeroList(i))
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
              varNameLen = varNameLen - 5
-             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
              q = q + ptr_3d
              hygroscopicity = k_ORG * ptr_3d + hygroscopicity
              density = densORG * ptr_3d + density
@@ -1589,7 +1589,7 @@ contains
              varNameLen = len_trim(aeroList(i))
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
              varNameLen = varNameLen - 5
-             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
              q = q + ptr_3d
              hygroscopicity = k_BC
              density = densBC
@@ -1603,7 +1603,7 @@ contains
              varNameLen = len_trim(aeroList(i))
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
              varNameLen = varNameLen - 5
-             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
              q = q + ptr_3d
              hygroscopicity = k_OC
              density = densOC
@@ -1617,7 +1617,7 @@ contains
              varNameLen = len_trim(aeroList(i))
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
              varNameLen = varNameLen - 5
-             call MAPL_GetPointer(child_state, ptr_3d, 'CAphilic'//aeroList(i)(1:varNameLen), __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
              q = q + ptr_3d
              hygroscopicity = k_BR
              density = densBR
@@ -2195,7 +2195,8 @@ contains
 !   Begin...
 
     endInd = len_trim(aeroToken)
-
+    
+    aeroOut = 0.0
     do i = 1, size(aeroList)
        if (trim(aeroList(i)(1:endInd)) == trim(aeroToken)) then
           call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
@@ -2204,8 +2205,8 @@ contains
                                  value=fld_name, __RC__)
           if (fld_name /= '') then
              call MAPL_GetPointer(child_state, ptr3d, trim(fld_name), __RC__)
+             aeroOut = aeroOut + ptr3d
           end if
-          aeroOut = aeroOut + ptr3d
        end if
     end do
 
