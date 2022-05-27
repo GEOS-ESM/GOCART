@@ -11,6 +11,10 @@ Collections:
     template: ExtData/PIESA/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
   CO_qfed2.emis_co.006.%y4%m2%d2.nc4:
     template: ExtData/chemistry/QFED/v2.5r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_co.006.%y4%m2%d2.nc4
+    valid_range: "2000-03-01T12:00/2025-01-01"
+  CO_hfed.emis_co.x576_y361.%y4%m2.nc4:
+    template: ExtData/chemistry/HFED/v1.0/Y%y4/M%m2/hfed.emis_co.x576_y361.%y4%m2.nc4
+    valid_range: "1960-01-16T12:00/2000-12-16T12:00"
 
 Samplings:
   CO_sample_0:
@@ -62,13 +66,8 @@ Exports:
     sample: CO_sample_2
     variable: bf
   CO_BIOMASS:
-    collection: CO_qfed2.emis_co.006.%y4%m2%d2.nc4
-    linear_transformation:
-      - 0.0
-      - 1.11
-    regrid: CONSERVE
-    sample: CO_sample_0
-    variable: biomass
+    - {starting: "1960-01-16T12:00", collection: CO_hfed.emis_co.x576_y361.%y4%m2.nc4, linear_transformation: [0.0,1.11], regrid: CONSERVE, sample: CA2G_sample_0, variable: biomass}
+    - {starting: "2000-03-01T12:00", collection: CO_qfed2.emis_co.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 1.11], regrid: CONSERVE, sample: CA2G_sample_0, variable: biomass}
   CO_BIOMASSnbas:
     collection: /dev/null
     regrid: CONSERVE
