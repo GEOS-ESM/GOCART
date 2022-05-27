@@ -204,7 +204,7 @@ contains
           RESTART    = MAPL_RestartSkip,     __RC__)
 
        call MAPL_AddInternalSpec(GC,                          &
-          short_name = 'CAphobic'//trim(comp_name),           &
+          short_name = trim(comp_name)//'phobic',             &
           long_name  = trim(GCsuffix)//' phobic Mixing Ratio',&
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
@@ -212,7 +212,7 @@ contains
           vlocation  = MAPL_VLocationCenter, __RC__) 
 
        call MAPL_AddInternalSpec(GC,                          &
-          short_name = 'CAphilic'//trim(comp_name),           &
+          short_name = trim(comp_name)//'philic',             &
           long_name  = trim(GCsuffix)//' philic Mixing Ratio',&
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
@@ -458,18 +458,18 @@ contains
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
-    call ESMF_StateGet (internal, 'CAphobic'//trim(comp_name), field, __RC__)
+    call ESMF_StateGet (internal, trim(comp_name)//'phobic', field, __RC__)
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), __RC__)
-    fld = MAPL_FieldCreate (field, 'CAphobic'//trim(comp_name), __RC__)
+    fld = MAPL_FieldCreate (field, trim(comp_name)//'phobic', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
 !   Set internal CAphobic values to 0 where above klid
-    call MAPL_GetPointer (internal, int_ptr, 'CAphobic'//trim(comp_name), __RC__)
+    call MAPL_GetPointer (internal, int_ptr, trim(comp_name)//'phobic', __RC__)
     call setZeroKlid(self%km, self%klid, int_ptr)
 
-    call ESMF_StateGet (internal, 'CAphilic'//trim(comp_name), field, __RC__)
+    call ESMF_StateGet (internal, trim(comp_name)//'philic', field, __RC__)
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
-    fld = MAPL_FieldCreate (field, 'CAphilic'//trim(comp_name), __RC__)
+    fld = MAPL_FieldCreate (field, trim(comp_name)//'philic', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
     if (.not. data_driven) then
@@ -477,7 +477,7 @@ contains
        call MAPL_GetPointer(import, ple, 'PLE', __RC__)
        call findKlid (self%klid, self%plid, ple, __RC__)
 !      Set internal CAphilic values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'CAphilic'//trim(comp_name), __RC__)
+       call MAPL_GetPointer (internal, int_ptr, trim(comp_name)//'philic', __RC__)
        call setZeroKlid(self%km, self%klid, int_ptr)
     end if
 
@@ -502,16 +502,16 @@ contains
        instance = instanceComputational
 
 !      Dry deposition
-       call append_to_bundle('CADP'//trim(comp_name), providerState, prefix, Bundle_DP, __RC__)
+       call append_to_bundle(trim(comp_name)//'DP', providerState, prefix, Bundle_DP, __RC__)
 
 !      Wet deposition (Convective scavenging)
-       call append_to_bundle('CASV'//trim(comp_name), providerState, prefix, Bundle_DP, __RC__)
+       call append_to_bundle(trim(comp_name)//'SV', providerState, prefix, Bundle_DP, __RC__)
 
 !      Wet deposition
-       call append_to_bundle('CAWT'//trim(comp_name), providerState, prefix, Bundle_DP, __RC__)
+       call append_to_bundle(trim(comp_name)//'WT', providerState, prefix, Bundle_DP, __RC__)
 
 !      Gravitational Settling
-       call append_to_bundle('CASD'//trim(comp_name), providerState, prefix, Bundle_DP, __RC__)
+       call append_to_bundle(trim(comp_name)//'SD', providerState, prefix, Bundle_DP, __RC__)
     end if
 
     self%instance = instance
@@ -561,8 +561,8 @@ contains
     call ESMF_AttributeSet(aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
 
     allocate(aerosol_names(self%nbins), __STAT__)
-    aerosol_names(1) = 'CAphobic'//trim(comp_name)
-    aerosol_names(2) = 'CAphilic'//trim(comp_name)
+    aerosol_names(1) = trim(comp_name)//'phobic'
+    aerosol_names(2) = trim(comp_name)//'philic'
     call ESMF_AttributeSet(aero, name='internal_variable_name', valueList=aerosol_names, &
                            itemCount=size(aerosol_names), __RC__)
 
@@ -711,8 +711,8 @@ contains
        GCsuffix = 'BR' 
     end if
 
-    call MAPL_GetPointer (internal, intPtr_phobic, 'CAphobic'//trim(comp_name), __RC__)
-    call MAPL_GetPointer (internal, intPtr_philic, 'CAphilic'//trim(comp_name), __RC__)
+    call MAPL_GetPointer (internal, intPtr_phobic, trim(comp_name)//'phobic', __RC__)
+    call MAPL_GetPointer (internal, intPtr_philic, trim(comp_name)//'philic', __RC__)
 
 !   Get my private internal state
 !   ------------------------------
@@ -923,8 +923,8 @@ contains
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, &
                          INTERNALSPEC = InternalSpec, __RC__)
 
-    call MAPL_GetPointer (internal, intPtr_phobic, 'CAphobic'//trim(comp_name), __RC__)
-    call MAPL_GetPointer (internal, intPtr_philic, 'CAphilic'//trim(comp_name), __RC__)
+    call MAPL_GetPointer (internal, intPtr_phobic, trim(comp_name)//'phobic', __RC__)
+    call MAPL_GetPointer (internal, intPtr_philic, trim(comp_name)//'philic', __RC__)
 
 #include "CA2G_GetPointer___.h"
 
@@ -1084,10 +1084,10 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-!   Update interal data pointers with ExtData
+!   Update internal data pointers with ExtData
 !   -----------------------------------------
-    call MAPL_GetPointer (internal, NAME='CAphobic'//trim(comp_name), ptr=ptr3d_int_phobic, __RC__)
-    call MAPL_GetPointer (internal, NAME='CAphilic'//trim(comp_name), ptr=ptr3d_int_philic, __RC__)
+    call MAPL_GetPointer (internal, NAME=trim(comp_name)//'phobic', ptr=ptr3d_int_phobic, __RC__)
+    call MAPL_GetPointer (internal, NAME=trim(comp_name)//'philic', ptr=ptr3d_int_philic, __RC__)
 
     call MAPL_GetPointer (import, NAME='clim'//trim(GCsuffix)//'phobic', ptr=ptr3d_imp, __RC__)
     ptr3d_int_phobic = ptr3d_imp

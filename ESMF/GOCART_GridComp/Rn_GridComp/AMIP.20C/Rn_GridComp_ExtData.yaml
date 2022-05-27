@@ -1,0 +1,27 @@
+Collections:
+  Rn_RADON.region_mask.x540_y361.2001.nc:
+    template: ExtData/g5chem/sfc/RADON.region_mask.x540_y361.2001.nc
+  Rn_gocart.radon.x540_y361.nc:
+    template: ExtData/g5chem/sfc/gocart.radon.x540_y361.nc
+
+Samplings:
+  Rn_sample_0:
+    extrapolation: clim
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  Rn_sample_1:
+    extrapolation: persist_closest
+
+Exports:
+  RN_regionMask:
+    collection: Rn_RADON.region_mask.x540_y361.2001.nc
+    regrid: VOTE
+    sample: Rn_sample_1
+    variable: REGION_MASK
+  Rn_EMISSION:
+    collection: Rn_gocart.radon.x540_y361.nc
+    regrid: CONSERVE
+    sample: Rn_sample_0
+    variable: Rn_EMISSION
+
