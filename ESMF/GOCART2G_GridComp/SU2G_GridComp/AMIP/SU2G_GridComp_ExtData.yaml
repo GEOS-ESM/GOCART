@@ -19,9 +19,9 @@ Collections:
     template: ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
   SU2G_qfed2.emis_nh3.006.%y4%m2%d2.nc4:
     template: ExtData/chemistry/QFED/v2.5r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
-    valid range: "2000-03-1T12:00/2025-01-01"
-  SU2G_hfed.emis_nh3.x576_y361_t14.%y4%m2.nc4:
-    template: ExtData/chemistry/HFED/v1.0/Y%y4/%M2/hfed.emis_so2.x576_y361_t14.%y4%m2.nc4
+    valid_range: "2000-03-1T12:00/2025-01-01"
+  SU2G_hfed.emis_nh3.x576_y361.%y4%m2.nc4:
+    template: ExtData/chemistry/HFED/v1.0/Y%y4/%M2/hfed.emis_so2.x576_y361.%y4%m2.nc4
     valid_range: "1960-01-16T12:00/2000-03-01T12:00"
 
 Samplings:
@@ -69,8 +69,8 @@ Exports:
     sample: SU2G_sample_2
     variable: so2_aviation
   SU_BIOMASS:
-    - {starting: "1960-01-16T12:00", collection: SU2G_qfed2.emis_so2.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: SU2G_sample_1, variable: biomass}
-    - {starting: "2000-03-01T12:00", collection: SU2G_hfed.emis_so2.x576_y361_t14.%y4%m2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: SU2G_sample_1, variable: biomass}
+    - {starting: "1960-01-16T12:00", collection: SU2G_hfed.emis_so2.x576_y361.%y4%m2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: SU2G_sample_1, variable: biomass}
+    - {starting: "2000-03-01T12:00", collection: SU2G_qfed2.emis_so2.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: SU2G_sample_1, variable: biomass}
   SU_DMSO:
     collection: SU2G_DMSclim_sfcconcentration.x360_y181_t12.Lana2011.nc4
     regrid: CONSERVE
