@@ -27,10 +27,10 @@ Collections:
     valid_range: "2000-03-1T12:00/2025-01-01"
   CA2G_hfed.emis_bc.x576_y361_t14.%y4%m2.nc4:
     template: ExtData/chemistry/HFED/v1.0/Y%y4/%M2/hfed.emis_bc.x576_y361_t14.%y4%m2.nc4
-    valid_range: "1960-01-16T12:00/2000-03-01T12:00"
+    valid_range: "1960-01-16T12:00/2000-12-16T12:00"
   CA2G_hfed.emis_oc.x576_y361_t14.%y4%m2.nc4:
     template: ExtData/chemistry/HFED/v1.0/Y%y4/%m2/hfed.emis_oc.x576_y361_t14.%y4%m2.nc4
-    valid_range: "1960-01-16T12:00/2000-03-01T12:00"
+    valid_range: "1960-01-16T12:00/2000-012-16T12:00"
 
 Samplings:
   CA2G_sample_0:
