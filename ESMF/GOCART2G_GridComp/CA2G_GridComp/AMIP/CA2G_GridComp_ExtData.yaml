@@ -21,8 +21,16 @@ Collections:
     template: ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
   CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4:
     template: ExtData/chemistry/QFED/v2.5r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
+    valid_range: "2000-02-29T12:00/2025-01-01"
   CA2G_qfed2.emis_oc.006.%y4%m2%d2.nc4:
     template: ExtData/chemistry/QFED/v2.5r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
+    valid_range: "2000-02-29T12:00/2025-01-01"
+  CA2G_hfed.emis_bc.x576_y361.%y4%m2.nc4:
+    template: ExtData/chemistry/HFED/v1.0/Y%y4/M%m2/hfed.emis_bc.x576_y361.%y4%m2.nc4
+    valid_range: "1960-01-16T12:00/2000-12-16T12:00"
+  CA2G_hfed.emis_oc.x576_y361.%y4%m2.nc4:
+    template: ExtData/chemistry/HFED/v1.0/Y%y4/M%m2/hfed.emis_oc.x576_y361.%y4%m2.nc4
+    valid_range: "1960-01-16T12:00/2000-12-16T12:00"
 
 Samplings:
   CA2G_sample_0:
@@ -74,13 +82,8 @@ Exports:
     sample: CA2G_sample_2
     variable: biofuel
   BC_BIOMASS:
-    collection: CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4
-    linear_transformation:
-      - 0.0
-      - 0.778
-    regrid: CONSERVE
-    sample: CA2G_sample_1
-    variable: biomass
+    - {starting: "1960-01-16T12:00", collection: CA2G_hfed.emis_bc.x576_y361.%y4%m2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
+    - {starting: "2000-03-01T00:00", collection: CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
   BC_SHIP:
     collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
     regrid: CONSERVE
@@ -122,13 +125,8 @@ Exports:
     sample: CA2G_sample_2
     variable: biofuel
   BRC_BIOMASS:
-    collection: CA2G_qfed2.emis_oc.006.%y4%m2%d2.nc4
-    linear_transformation:
-      - 0.0
-      - 0.778
-    regrid: CONSERVE
-    sample: CA2G_sample_1
-    variable: biomass
+    - {starting: "1960-01-16T12:00", collection: CA2G_hfed.emis_oc.x576_y361.%y4%m2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
+    - {starting: "2000-03-01T00:00", collection: CA2G_qfed2.emis_oc.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
   BRC_SHIP:
     collection: /dev/null
     regrid: CONSERVE

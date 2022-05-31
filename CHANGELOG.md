@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Updated ExtData2G yaml files to handle AMIP magic date
 - Fix bug in getAerosolSum
 - more hard-coded name changes for Issue #93
 - Fixed bug in MieQuery.H, shape of not present variable is used
