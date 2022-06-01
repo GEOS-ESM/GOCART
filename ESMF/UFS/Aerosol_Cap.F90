@@ -311,14 +311,16 @@ contains
     end if
 
     ! startup MAPL
-    allocate(is % wrap % maplCap, stat=stat)
+    allocate(is % wrap % maplCap, stat=stat, source = MAPL_Cap("MAPL Driver", aerosol_routine_SS, cap_options=maplCapOptions, rc=rc))
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg="Unable to allocate MAPL cap", &
       line=__LINE__,  &
       file=__FILE__,  &
       rcToReturn=rc)) return  ! bail out
-
-    is % wrap % maplCap = MAPL_Cap("MAPL Driver", aerosol_routine_SS, cap_options=maplCapOptions, _RC)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__,  &
+      file=__FILE__)) &
+      return  ! bail out
 
     cap => is % wrap % maplCap
 
@@ -348,15 +350,13 @@ contains
       return  ! bail out
 
     ! create maps linking imported aerosol tracers to MAPL fields
-    allocate(is % wrap % tracers, stat=stat)
+    ! initialize tracer datatype containing tracer names and mapping information
+    allocate(is % wrap % tracers, stat=stat, source = AerosolTracer(cap % get_cap_rc_file(), tracerInfo, rc=rc))
     if (ESMF_LogFoundAllocError(statusToCheck=stat, &
       msg="Unable to allocate tracers data structure", &
       line=__LINE__,  &
       file=__FILE__,  &
       rcToReturn=rc)) return  ! bail out
-
-    ! initialize tracer datatype containing tracer names and mapping information
-    is % wrap % tracers = AerosolTracer(cap % get_cap_rc_file(), tracerInfo, rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
