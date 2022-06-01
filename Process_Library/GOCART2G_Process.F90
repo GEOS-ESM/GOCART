@@ -2876,7 +2876,7 @@ CONTAINS
 !    Check for total precipitation amount
 !    Assume no precip in column if precl+precc = 0
      pac = precl(i,j) + precc(i,j)
-     if(pac .le. 0.) continue
+     if(pac .le. 0.) cycle
      pls = precl(i,j)
      pcv = precc(i,j)
 
@@ -2895,7 +2895,7 @@ CONTAINS
       endif
      end do
 
-     if(LH .lt. 1) continue
+     if(LH .lt. 1) cycle
 
      do k = LH, km
       qls(k) = dpfli(i,j,k)/pdog(i,j,k)*rhoa(i,j,k)
@@ -6276,7 +6276,7 @@ K_LOOP: do k = km, 1, -1
 !    Check for total precipitation amount
 !    Assume no precip in column if precl+precc = 0
      pac = precl(i,j) + precc(i,j)
-     if(pac .le. 0.) continue
+     if(pac .le. 0.) cycle
      pls = precl(i,j)
      pcv = precc(i,j)
 
@@ -6296,7 +6296,7 @@ K_LOOP: do k = km, 1, -1
       endif
      end do
 
-     if(LH .lt. 1) continue
+     if(LH .lt. 1) cycle
 
      do k = LH, km
       qls(k) = dpfli(i,j,k)/pdog(i,j,k)*rhoa(i,j,k)
