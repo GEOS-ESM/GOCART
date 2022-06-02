@@ -1,0 +1,242 @@
+Collections:
+  O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc:
+    template: ExtData/g5chem/sfc/leafAreaIndex_GMI.x288_y181_t12.2006.nc
+  O3_vegetationType_GMI.x288_y181_t12.2006.nc:
+    template: ExtData/g5chem/sfc/vegetationType_GMI.x288_y181_t12.2006.nc
+
+Samplings:
+  O3_sample_0:
+    extrapolation: clim
+
+Exports:
+  O3_ilandVegID001:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID001
+  O3_ilandVegID002:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID002
+  O3_ilandVegID003:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID003
+  O3_ilandVegID004:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID004
+  O3_ilandVegID005:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID005
+  O3_ilandVegID006:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID006
+  O3_ilandVegID007:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID007
+  O3_ilandVegID008:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID008
+  O3_ilandVegID009:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID009
+  O3_ilandVegID010:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID010
+  O3_ilandVegID011:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID011
+  O3_ilandVegID012:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID012
+  O3_ilandVegID013:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID013
+  O3_ilandVegID014:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID014
+  O3_ilandVegID015:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ilandVegID015
+  O3_ireg:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: ireg
+  O3_iuseVegID001:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID001
+  O3_iuseVegID002:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID002
+  O3_iuseVegID003:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID003
+  O3_iuseVegID004:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID004
+  O3_iuseVegID005:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID005
+  O3_iuseVegID006:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID006
+  O3_iuseVegID007:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID007
+  O3_iuseVegID008:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID008
+  O3_iuseVegID009:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID009
+  O3_iuseVegID010:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID010
+  O3_iuseVegID011:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID011
+  O3_iuseVegID012:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID012
+  O3_iuseVegID013:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID013
+  O3_iuseVegID014:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID014
+  O3_iuseVegID015:
+    collection: O3_vegetationType_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: iuseVegID015
+  O3_laiVegID001:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID001
+  O3_laiVegID002:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID002
+  O3_laiVegID003:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID003
+  O3_laiVegID004:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID004
+  O3_laiVegID005:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID005
+  O3_laiVegID006:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID006
+  O3_laiVegID007:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID007
+  O3_laiVegID008:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID008
+  O3_laiVegID009:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID009
+  O3_laiVegID010:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID010
+  O3_laiVegID011:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID011
+  O3_laiVegID012:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID012
+  O3_laiVegID013:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID013
+  O3_laiVegID014:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID014
+  O3_laiVegID015:
+    collection: O3_leafAreaIndex_GMI.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: O3_sample_0
+    variable: laiVegID015
+
