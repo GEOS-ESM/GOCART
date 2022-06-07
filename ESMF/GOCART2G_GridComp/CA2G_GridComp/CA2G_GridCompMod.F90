@@ -858,13 +858,11 @@ contains
 !   -------------------------------
     if (workspace%nPts > 0) then
         allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
-        !$omp critical (MAPL_GettHorz1)
         call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
                                  grid = grid,               &
                                  lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
                                  lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
                                  rc   = status)
-        !$omp end critical (MAPL_GettHorz1)
             if ( status /= 0 ) then
                 !$omp critical (CA_3)
                 if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'

@@ -858,13 +858,11 @@ contains
        if (associated(SO2EMVE)) SO2EMVE=0.0
        if (associated(SO2EMVN)) SO2EMVN=0.0
        allocate(iPointVolc(workspace%nVolc), jPointVolc(workspace%nVolc),  __STAT__)
-       !$omp critical (MAPL_GettHorz1)
        call MAPL_GetHorzIJIndex(workspace%nVolc, iPointVolc, jPointVolc, &
                                 grid = grid,               &
                                 lon  = workspace%vLon/real(MAPL_RADIANS_TO_DEGREES), &
                                 lat  = workspace%vLat/real(MAPL_RADIANS_TO_DEGREES), &
                                 rc   = status)
-       !$omp end critical (MAPL_GettHorz1)
            if ( status /= 0 ) then
               if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
               VERIFY_(status)
@@ -933,13 +931,11 @@ contains
        allocate(emissions_point, mold=delp,  __STAT__)
        emissions_point = 0.0
        allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
-       !$omp critical (MAPL_GettHorz2)
        call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
                                 grid = grid,               &
                                 lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
                                 lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
                                 rc   = status)
-       !$omp end critical (MAPL_GettHorz2)
           if ( status /= 0 ) then
              if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
              VERIFY_(status)
