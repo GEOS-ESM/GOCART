@@ -3,114 +3,114 @@ component: CA
 
 category: IMPORT
 #----------------------------------------------------------------------------------------
-#  VARIABLE          | DIMENSIONS|          Additional Metadata
+#  VARIABLE       | DIMENSIONS |          Additional Metadata
 #----------------------------------------------------------------------------------------
-     NAME   | UNITS  | DIMS | VLOC| COND | LONG NAME
+     NAME         | UNITS      | DIMS | VLOC | RESTART | COND | LONG NAME
 #----------------------------------------------------------------------------------------
- FROCEAN    | 1      | xy   | N   |      | fraction_of_ocean
- FRACI      | 1      | xy   | N   |      | ice_covered_fraction_of_tile
- LWI        | 1      | xy   | N   |      | land-ocean-ice_mask
- TROPP      | Pa     | xy   | N   |      | tropopause_pressure_based_on_blended_estimate
- U10M       | m s-1  | xy   | N   |      | 10-meter_eastward_wind
- V10M       | m s-1  | xy   | N   |      | 10-meter_northward_wind
- USTAR      | m s-1  | xy   | N   |      | surface_velocity_scale
- FRLAKE     | 1      | xy   | N   |      | fraction_of_lake
- AREA       | m^2    | xy   | N   |      | agrid_cell_area
- ZPBL       | m      | xy   | N   |      | planetary_boundary_layer_height
- SH         | w m-2  | xy   | N   |      | sensible_heat_flux_from_turbulence
- Z0H        | m      | xy   | N   |      | surface_roughness_for_heat
- CN_PRCP    |kg/m^2/s| xy   | N   |      | surface_conv._rain_flux_needed_by_land
- NCN_PRCP   |kg/m^2/s| xy   | N   |      | Non-convective precipitation
+ FROCEAN          | 1          | xy   | N    | OPT     |      | fraction_of_ocean
+ FRACI            | 1          | xy   | N    | OPT     |      | ice_covered_fraction_of_tile
+ LWI              | 1          | xy   | N    | OPT     |      | land-ocean-ice_mask
+ TROPP            | Pa         | xy   | N    | OPT     |      | tropopause_pressure_based_on_blended_estimate
+ U10M             | m s-1      | xy   | N    | OPT     |      | 10-meter_eastward_wind
+ V10M             | m s-1      | xy   | N    | OPT     |      | 10-meter_northward_wind
+ USTAR            | m s-1      | xy   | N    | OPT     |      | surface_velocity_scale
+ FRLAKE           | 1          | xy   | N    | OPT     |      | fraction_of_lake
+ AREA             | m^2        | xy   | N    | OPT     |      | agrid_cell_area
+ ZPBL             | m          | xy   | N    | OPT     |      | planetary_boundary_layer_height
+ SH               | w m-2      | xy   | N    | OPT     |      | sensible_heat_flux_from_turbulence
+ Z0H              | m          | xy   | N    | OPT     |      | surface_roughness_for_heat
+ CN_PRCP          | kg/m^2/s   | xy   | N    | OPT     |      | surface_conv._rain_flux_needed_by_land
+ NCN_PRCP         | kg/m^2/s   | xy   | N    | OPT     |      | Non-convective precipitation
 #........................................................................................
- AIRDENS    | kg/m^3 | xyz  | C   |      | moist_air_density
- DELP       | Pa     | xyz  | C   |      | pressure_thickness
- T          | K      | xyz  | C   |      | air_temperature
- RH2        | 1      | xyz  | C   |      | Rel_Hum_after_moist
- ZLE        | m      | xyz  | E   |      | geopotential_height
- PLE        | Pa     | xyz  | E   |      | air_pressure
- PFL_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_liquid_nonconvective_precipitation
- PFI_LSAN   | kg/m2/s| xyz  | E   |      | 3D_flux_of_ice_nonconvective_precipitation
- U          | m s-1  | xyz  | C   |      | eastward_wind
- V          | m s-1  | xyz  | C   |      | northward_wind
- OC_AIRCRAFT  | 1      | xyz  | C   |      | aircraft emissions
- BC_AIRCRAFT  | 1      | xyz  | C   |      | aircraft emissions
- BRC_AIRCRAFT | 1      | xyz  | C   |      | aircraft emissions
- pSOA_ANTHRO_VOC | kg m-3 s-1 | xyz | C |   | SOA from Anthropogenic and biomass burning VOC
- pSOA_BIOB_VOC   | kg m-3 s-1 | xyz | C |   | SOA from Anthropogenic and biomass burning VOC
+ AIRDENS          | kg/m^3     | xyz  | C    | OPT     |      | moist_air_density
+ DELP             | Pa         | xyz  | C    | OPT     |      | pressure_thickness
+ T                | K          | xyz  | C    | OPT     |      | air_temperature
+ RH2              | 1          | xyz  | C    | OPT     |      | Rel_Hum_after_moist
+ ZLE              | m          | xyz  | E    | OPT     |      | geopotential_height
+ PLE              | Pa         | xyz  | E    | OPT     |      | air_pressure
+ PFL_LSAN         | kg/m2/s    | xyz  | E    | OPT     |      | 3D_flux_of_liquid_nonconvective_precipitation
+ PFI_LSAN         | kg/m2/s    | xyz  | E    | OPT     |      | 3D_flux_of_ice_nonconvective_precipitation
+ U                | m s-1      | xyz  | C    | OPT     |      | eastward_wind
+ V                | m s-1      | xyz  | C    | OPT     |      | northward_wind
+ OC_AIRCRAFT      | 1          | xyz  | C    | SKIP    |      | aircraft emissions
+ BC_AIRCRAFT      | 1          | xyz  | C    | SKIP    |      | aircraft emissions
+ BRC_AIRCRAFT     | 1          | xyz  | C    | SKIP    |      | aircraft emissions
+ pSOA_ANTHRO_VOC  | kg m-3 s-1 | xyz  | C    | SKIP    |      | SOA from Anthropogenic and biomass burning VOC
+ pSOA_BIOB_VOC    | kg m-3 s-1 | xyz  | C    | SKIP    |      | SOA from Anthropogenic and biomass burning VOC
 #........................................................................................
- OC_BIOMASS  | 1      | xy   | N   |      | biomass burning emissions
- OC_ISOPRENE | 1      | xy   | N   |      | source species
- OC_MTPA     | 1      | xy   | N   |      | source species
- OC_MTPO     | 1      | xy   | N   |      | source species
- OC_LIMO     | 1      | xy   | N   |      | source species
- OC_BIOFUEL  | 1      | xy   | N   |      | biofuel emissions
- OC_ANTEOC1  | 1      | xy   | N   |      | anthropogenic BF emissions
- OC_ANTEOC2  | 1      | xy   | N   |      | anthropogenic FF emissions
- OC_SHIP     | 1      | xy   | N   |      | ship emissions
- OC_AVIATION_LTO | 1  | xy   | N   |      | Landing/Take-off aircraft emissions 
- OC_AVIATION_CDS | 1  | xy   | N   |      | Climb/Descent aircraft emissions
- OC_AVIATION_CRS | 1  | xy   | N   |      | Cruise aircraft source species
- BC_BIOMASS  | 1      | xy   | N   |      | biomass burning emissions
- BC_BIOFUEL  | 1      | xy   | N   |      | biofuel emissions
- BC_ANTEBC1  | 1      | xy   | N   |      | anthropogenic BF emissions
- BC_ANTEBC2  | 1      | xy   | N   |      | anthropogenic FF emissions
- BC_SHIP     | 1      | xy   | N   |      | ship emissions
- BC_AVIATION_LTO | 1  | xy   | N   |      | Landing/Take-off aircraft emissions
- BC_AVIATION_CDS | 1  | xy   | N   |      | Climb/Descent aircraft emissions
- BC_AVIATION_CRS | 1  | xy   | N   |      | Cruise aircraft source species
- BRC_BIOMASS  | 1     | xy   | N   |      | biomass burning emissions
- BRC_TERPENE  | 1     | xy   | N   |      | terpene emissions
- BRC_BIOFUEL  | 1     | xy   | N   |      | biofuel emissions
- BRC_ANTEBRC1 | 1     | xy   | N   |      | anthropogenic BF emissions
- BRC_ANTEBRC2 | 1     | xy   | N   |      | anthropogenic FF emissions
- BRC_SHIP     | 1     | xy   | N   |      | ship emisisons
- BRC_AVIATION_LTO | 1 | xy   | N   |      | Landing/Take-off aircraft emissions
- BRC_AVIATION_CDS | 1 | xy   | N   |      | Climb/Descent aircraft emissions
- BRC_AVIATION_CRS | 1 | xy   | N   |      | Cruise aircraft source species
+ OC_BIOMASS       | 1          | xy   | N    | SKIP    |      | biomass burning emissions
+ OC_ISOPRENE      | 1          | xy   | N    | SKIP    |      | source species
+ OC_MTPA          | 1          | xy   | N    | SKIP    |      | source species
+ OC_MTPO          | 1          | xy   | N    | SKIP    |      | source species
+ OC_LIMO          | 1          | xy   | N    | SKIP    |      | source species
+ OC_BIOFUEL       | 1          | xy   | N    | SKIP    |      | biofuel emissions
+ OC_ANTEOC1       | 1          | xy   | N    | SKIP    |      | anthropogenic BF emissions
+ OC_ANTEOC2       | 1          | xy   | N    | SKIP    |      | anthropogenic FF emissions
+ OC_SHIP          | 1          | xy   | N    | SKIP    |      | ship emissions
+ OC_AVIATION_LTO  | 1          | xy   | N    | SKIP    |      | Landing/Take-off aircraft emissions
+ OC_AVIATION_CDS  | 1          | xy   | N    | SKIP    |      | Climb/Descent aircraft emissions
+ OC_AVIATION_CRS  | 1          | xy   | N    | SKIP    |      | Cruise aircraft source species
+ BC_BIOMASS       | 1          | xy   | N    | SKIP    |      | biomass burning emissions
+ BC_BIOFUEL       | 1          | xy   | N    | SKIP    |      | biofuel emissions
+ BC_ANTEBC1       | 1          | xy   | N    | SKIP    |      | anthropogenic BF emissions
+ BC_ANTEBC2       | 1          | xy   | N    | SKIP    |      | anthropogenic FF emissions
+ BC_SHIP          | 1          | xy   | N    | SKIP    |      | ship emissions
+ BC_AVIATION_LTO  | 1          | xy   | N    | SKIP    |      | Landing/Take-off aircraft emissions
+ BC_AVIATION_CDS  | 1          | xy   | N    | SKIP    |      | Climb/Descent aircraft emissions
+ BC_AVIATION_CRS  | 1          | xy   | N    | SKIP    |      | Cruise aircraft source species
+ BRC_BIOMASS      | 1          | xy   | N    | SKIP    |      | biomass burning emissions
+ BRC_TERPENE      | 1          | xy   | N    | SKIP    |      | terpene emissions
+ BRC_BIOFUEL      | 1          | xy   | N    | SKIP    |      | biofuel emissions
+ BRC_ANTEBRC1     | 1          | xy   | N    | SKIP    |      | anthropogenic BF emissions
+ BRC_ANTEBRC2     | 1          | xy   | N    | SKIP    |      | anthropogenic FF emissions
+ BRC_SHIP         | 1          | xy   | N    | SKIP    |      | ship emisisons
+ BRC_AVIATION_LTO | 1          | xy   | N    | SKIP    |      | Landing/Take-off aircraft emissions
+ BRC_AVIATION_CDS | 1          | xy   | N    | SKIP    |      | Climb/Descent aircraft emissions
+ BRC_AVIATION_CRS | 1          | xy   | N    | SKIP    |      | Cruise aircraft source species
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
-#  VARIABLE              | DIMENSIONS |          Additional Metadata
+#  VARIABLE                 |  DIMENSIONS   |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
+ NAME        | UNITS        | DIMS  | VLOC  | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- CAMASS*    | kg kg-1    | xyz | C   |       | Carbonaceous Aerosol Mass Mixing Ratio                
- CACONC*    | kg m-3     | xyz | C   |       | Carbonaceous Aerosol Mass Concentration               
- CAEXTCOEF* | m-1        | xyz | C   | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient 
- CASCACOEF* | m-1        | xyz | C   | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient 
-#...........|............|.....|.....|.......|............................................
- CAEM*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Emission (Bin %d) 
- CASD*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Sedimentation (Bin %d)
- CADP*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Dry Deposition (Bin %d)
- CAWT*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Wet Deposition (Bin %d)
- CASV*      | kg m-2 s-1 | xy  | N   | nbins | Carbonaceous Aerosol Convective Scavenging (Bin %d)
- CAEMAN*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Anthropogenic Emissions     
- CAEMBB*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Biomass Burning Emissions     
- CAEMBF*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Biofuel Emissions             
- CAEMBG*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Biogenic Emissions            
- CAHYPHIL*  | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol Hydrophobic to Hydrophilic    
- CAPSOA*    | kg m-2 s-1 | xy  | N   |       | Carbonaceous Aerosol SOA Production                
- CASMASS*   | kg m-3     | xy  | N   |       | Carbonaceous Aerosol Surface Mass Concentration    
- CACMASS*   | kg m-2     | xy  | N   |       | Carbonaceous Aerosol Column Mass Density           
- CAEXTTAU*  |      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT       
- CASTEXTTAU*|      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT Stratosphere      
- CASCATAU*  |      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT       
- CASTSCATAU*|      1     | xy  | N   | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT Stratosphere     
- CAANGSTR*  |      1     | xy  | N   |       | Carbonaceous Aerosol Angstrom parameter [470-870 nm] 
- CAFLUXU*   | kg m-1 s-1 | xy  | N   |       | Carbonaceous Aerosol column u-wind mass flux       
- CAFLUXV*   | kg m-1 s-1 | xy  | N   |       | Carbonaceous Aerosol column v-wind mass flux       
- CAAERIDX*  |    1       | xy  | N   |       | Carbonaceous Aerosol TOMS UV Aerosol Index         
+ *MASS       | kg kg-1      | xyz   | C     |                                | Carbonaceous Aerosol Mass Mixing Ratio
+ *CONC       | kg m-3       | xyz   | C     |                                | Carbonaceous Aerosol Mass Concentration
+ *EXTCOEF    | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient
+ *SCACOEF    | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient
+#........... | ............ | ..... | ..... | .......                        | ............................................
+ *EM         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Emission (Bin %d)
+ *SD         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Sedimentation (Bin %d)
+ *DP         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Dry Deposition (Bin %d)
+ *WT         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Wet Deposition (Bin %d)
+ *SV         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Convective Scavenging (Bin %d)
+ *EMAN       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Anthropogenic Emissions
+ *EMBB       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biomass Burning Emissions
+ *EMBF       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biofuel Emissions
+ *EMBG       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biogenic Emissions
+ *HYPHIL     | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Hydrophobic to Hydrophilic
+ *PSOA       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol SOA Production
+ *SMASS      | kg m-3       | xy    | N     |                                | Carbonaceous Aerosol Surface Mass Concentration
+ *CMASS      | kg m-2       | xy    | N     |                                | Carbonaceous Aerosol Column Mass Density
+ *EXTTAU     | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT
+ *STEXTTAU   | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT Stratosphere
+ *SCATAU     | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT
+ *STSCATAU   | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT Stratosphere
+ *ANGSTR     | 1            | xy    | N     |                                | Carbonaceous Aerosol Angstrom parameter [470-870 nm]
+ *FLUXU      | kg m-1 s-1   | xy    | N     |                                | Carbonaceous Aerosol column u-wind mass flux
+ *FLUXV      | kg m-1 s-1   | xy    | N     |                                | Carbonaceous Aerosol column v-wind mass flux
+ *AERIDX     | 1            | xy    | N     |                                | Carbonaceous Aerosol TOMS UV Aerosol Index
 
 
 
 category: INTERNAL
-#----------------------------------------------------------------------------------------
-#  VARIABLE                | DIMENSION        |          Additional Metadata
-#----------------------------------------------------------------------------------------
-  NAME    | UNITS | DIMS | VLOC | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
-#----------------------------------------------------------------------------------------
- CAphobic* |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
- CAphilic* |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
+#--------------------------------------------------------------------------------------------------------------
+#  VARIABLE        | DIMENSION   |          Additional Metadata
+#--------------------------------------------------------------------------------------------------------------
+  NAME   | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
+#--------------------------------------------------------------------------------------------------------------
+ *phobic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
+ *philic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
 
 #********************************************************
 #
