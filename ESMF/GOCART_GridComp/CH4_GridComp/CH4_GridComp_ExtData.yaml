@@ -1,0 +1,174 @@
+Collections:
+  CH4_ARCTAS.region_mask.x540_y361.2008.nc:
+    template: ExtData/g5chem/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+  CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+  CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+
+Samplings:
+  CH4_sample_0:
+    extrapolation: clim
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  CH4_sample_1:
+    extrapolation: persist_closest
+
+Exports:
+  CH4_ohanimls:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohbf:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohbogs:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohburn:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohcoal:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohgasvnt:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohhydz:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohleak:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohmsw:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohricec:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohsoilab:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohswamps:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohtot:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohtrmite:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_ohtundra:
+    collection: CH4_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: oh
+  CH4_regionMask:
+    collection: CH4_ARCTAS.region_mask.x540_y361.2008.nc
+    regrid: VOTE
+    sample: CH4_sample_1
+    variable: REGION_MASK
+  CH4_sfcFluxanimls:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_ANIMLS
+  CH4_sfcFluxbf:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_BF
+  CH4_sfcFluxbogs:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_BOGS
+  CH4_sfcFluxburn:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_BURN
+  CH4_sfcFluxcoal:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_COAL
+  CH4_sfcFluxgasvnt:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_GASVNT
+  CH4_sfcFluxhydz:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_HYDZ
+  CH4_sfcFluxleak:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_LEAK
+  CH4_sfcFluxmsw:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_MSW
+  CH4_sfcFluxricec:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_RICEC
+  CH4_sfcFluxsoilab:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_SOILAB
+  CH4_sfcFluxswamps:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_SWAMPS
+  CH4_sfcFluxtot:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_TOT
+  CH4_sfcFluxtrmite:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_TRMITE
+  CH4_sfcFluxtundra:
+    collection: CH4_emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CH4_sample_0
+    variable: CH4_TUNDRA
+

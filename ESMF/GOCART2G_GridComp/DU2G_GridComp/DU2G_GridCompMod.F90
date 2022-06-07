@@ -731,8 +731,9 @@ contains
 
 !   Set du_src to 0 where undefined
 !   --------------------------------
-    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
-
+    if (associated(du_src)) then
+       where (1.01*du_src > MAPL_UNDEF) du_src = 0.
+    endif
 !   Get dimensions
 !   ---------------
     import_shape = shape(wet1)

@@ -1,0 +1,278 @@
+Collections:
+  CA2G_BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/L72/BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+  CA2G_BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+  CA2G_BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+  CA2G_BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+  CA2G_OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/L72/OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+  CA2G_OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+  CA2G_OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+  CA2G_OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+  CA2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4:
+    template: ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+  CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4:
+    template: ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+  CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4:
+    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
+    valid_range: "2014-12-01T12:00/2021-11-01T12:00"
+  CA2G_qfed2.emis_oc.006.%y4%m2%d2.nc4:
+    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
+    valid_range: "2014-12-01T12:00/2021-11-01T12:00"
+  CA2G_qfed2.emis_bc.061.%y4%m2%d2.nc4:
+    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.061.%y4%m2%d2.nc4
+    valid_range: "2021-11-01T12:00/2025-01-01"
+  CA2G_qfed2.emis_oc.061.%y4%m2%d2.nc4:
+    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.061.%y4%m2%d2.nc4
+    valid_range: "2021-11-01T12:00/2025-01-01"
+
+Samplings:
+  CA2G_sample_0:
+    extrapolation: clim
+  CA2G_sample_1:
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  CA2G_sample_2:
+    extrapolation: clim
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+
+Exports:
+  BC_AIRCRAFT:
+    collection: CA2G_BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: bc_aviation
+  BC_ANTEBC1:
+    collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: bc_nonenergy
+  BC_ANTEBC2:
+    collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: bc_energy
+  BC_AVIATION_CDS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: bc_aviation
+  BC_AVIATION_CRS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: bc_aviation
+  BC_AVIATION_LTO:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: bc_aviation
+  BC_BIOFUEL:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: biofuel
+  BC_BIOMASS:
+    - {starting: "2014-12-01T12:00", collection: CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
+    - {starting: "2021-11-01T12:00", collection: CA2G_qfed2.emis_bc.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
+  BC_SHIP:
+    collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: bc_shipping
+  BRC_AIRCRAFT:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: none
+  BRC_ANTEBRC1:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: anteoc1
+  BRC_ANTEBRC2:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: anteoc2
+  BRC_AVIATION_CDS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: oc_aviation
+  BRC_AVIATION_CRS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: oc_aviation
+  BRC_AVIATION_LTO:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: oc_aviation
+  BRC_BIOFUEL:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: biofuel
+  BRC_BIOMASS:
+    - {starting: "2014-12-01T12:00", collection: CA2G_qfed2.emis_oc.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
+    - {starting: "2021-11-01T12:00", collection: CA2G_qfed2.emis_oc.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
+  BRC_SHIP:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: oc_ship
+  BRC_TERPENE:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: terpene
+  OC_AIRCRAFT:
+    collection: CA2G_OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: oc_aviation
+  OC_ANTEOC1:
+    collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: oc_nonenergy
+  OC_ANTEOC2:
+    collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: oc_energy
+  OC_AVIATION_CDS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: oc_aviation
+  OC_AVIATION_CRS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: oc_aviation
+  OC_AVIATION_LTO:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: oc_aviation
+  OC_BIOFUEL:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: biofuel
+  OC_BIOMASS:
+    collection: /dev/null
+    linear_transformation:
+      - 0.0
+      - 0.778
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: biomass
+  OC_SHIP:
+    collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: CA2G_sample_1
+    variable: oc_shipping
+  climBCDP001:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: BCDP001
+  climBCDP002:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: BCDP002
+  climBCSD001:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BCSD001
+  climBCSD002:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BCSD002
+  climBCSV001:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: BCSV001
+  climBCSV002:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: BCSV002
+  climBCWT001:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: BCWT001
+  climBCWT002:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: BCWT002
+  climBCphilic:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: BCphilic
+  climBCphobic:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: BCphobic
+  climOCDP001:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: OCDP001
+  climOCDP002:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: OCDP002
+  climOCSD001:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: OCSD001
+  climOCSD002:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: OCSD002
+  climOCSV001:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: OCSV001
+  climOCSV002:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: OCSV002
+  climOCWT001:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: OCWT001
+  climOCWT002:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: OCWT002
+  climOCphilic:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: OCphilic
+  climOCphobic:
+    collection: CA2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: CA2G_sample_0
+    variable: OCphobic
+  pSOA_ANTHRO_VOC:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: biofuel
+  pSOA_BIOB_VOC:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CA2G_sample_2
+    variable: biofuel
+
