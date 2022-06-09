@@ -21,6 +21,10 @@
    use Aero_GridCompMod      ! Parent Aerosol component with IRF methods but no SetServices()
 
    use ConvectionMod, only: Disable_Convection
+   
+   use mod_network , only: network_type
+   use mod_kinds, only: ik, rk
+
 
    implicit none
    private
@@ -1390,10 +1394,21 @@ end if ! doing GOCART
    integer                         :: n_aerosols
    integer                         :: n_modes
    integer, parameter              :: n_gocart_modes = 13
-   character(len=ESMF_MAXSTR)      :: aero_aci_modes(n_gocart_modes)
+   !character(len=ESMF_MAXSTR) :: aero_aci_modes(n_gocart_modes)
+   character(len=ESMF_MAXSTR), dimension(13),  parameter :: aero_aci_modes = (/'du001    ', 'du002    ', 'du003    ', &
+                        'du004    ', 'du005    ',              &
+                        'ss001    ', 'ss002    ', 'ss003    ', &
+                        'sulforg01', 'sulforg02', 'sulforg03', &
+                        'bcphilic ', 'ocphilic '/)
+                        
+   character(len=ESMF_MAXSTR), dimension(7), parameter :: aero_aci_modes_mam =  (/'NUM_A_ACC', 'NUM_A_AIT', 'NUM_A_CDU', 'NUM_A_CSS', &
+                             'NUM_A_FDU', 'NUM_A_FSS', 'NUM_A_PCM'/)
+                                             
    character(len=ESMF_MAXSTR)      :: short_name
    real                            :: f_aci_seasalt, maxclean, ccntuning
    character(LEN=ESMF_MAXSTR)      :: CLDMICRO
+   
+   logical                         :: USE_MAMNET
      
    type(MAPL_VarSpec), pointer     :: InternalSpec(:)
    integer                         :: instance
@@ -1815,25 +1830,34 @@ end if ! doing GOCART
     !  - attach required met fields
     !  - attach method that computes the aerosol activation properties
     
+    call ESMF_ConfigGetAttribute(CF, USE_MAMNET, default=.FALSE., label='USE_MAMNET:', __RC__)
+    
     call ESMF_FieldBundleGet(aero_aci_aerosols, fieldCount=n_aerosols, __RC__)
 
-    aero_aci_modes =  (/'du001    ', 'du002    ', 'du003    ', &
-                        'du004    ', 'du005    ',              &
-                        'ss001    ', 'ss002    ', 'ss003    ', &
-                        'sulforg01', 'sulforg02', 'sulforg03', &
-                        'bcphilic ', 'ocphilic '/)
 
-    n_modes = size(aero_aci_modes)
+    if (.not. USE_MAMNET) then 
+        n_modes =  13    	
+    else  	
+        n_modes =  7
+    end if                     
+
+   !n_modes = size(aero_aci_modes)
 
 
     if (n_modes > 0 .and. n_aerosols > 0) then
       
         call ESMF_AttributeSet(aero_aci, name='number_of_aerosol_modes', value=n_modes, __RC__)
+       
+       
+       if (.not. USE_MAMNET) then 
         call ESMF_AttributeSet(aero_aci, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, __RC__)
-
-
+       else
+         call ESMF_AttributeSet(aero_aci, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes_mam, __RC__)
+       end if  
+   
         ! met fields and land fraction
         call ESMF_AttributeSet(aero_aci, name='air_pressure',                 value='PLE',      __RC__)
+        call ESMF_AttributeSet(aero_aci, name='air_density',              value='AIRDEN',        __RC__)
         call ESMF_AttributeSet(aero_aci, name='air_temperature',              value='T',        __RC__)
         call ESMF_AttributeSet(aero_aci, name='fraction_of_land_type',        value='FRLAND',   __RC__)
 
@@ -1874,6 +1898,16 @@ end if ! doing GOCART
             fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
             call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationEdge, typekind=MAPL_R4, hw=0, __RC__)
+            call MAPL_StateAdd(aero_aci, fld, __RC__)
+        end if
+        
+        
+        ! add AIRDENSITY to ACI state
+        call ESMF_AttributeGet(aero_aci, name='air_density', value=fld_name, __RC__)
+        if (fld_name /= '') then
+            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
             call MAPL_StateAdd(aero_aci, fld, __RC__)
         end if
 
@@ -1963,6 +1997,8 @@ end if ! doing GOCART
 
         ! attach the aerosol optics method
         call ESMF_MethodAdd(aero_aci, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
+        
+        call ESMF_MethodAdd(aero_aci, label='MAMnet', userRoutine=MAMnet, __RC__)
     end if
 
 
@@ -3837,5 +3873,565 @@ contains
 
 end subroutine aerosol_activation_properties
 
+
+
+subroutine MAMnet(state, rc)
+
+    implicit none
+
+    ! Arguments
+    ! ---------
+    type(ESMF_State)     :: state
+    integer, intent(out) :: rc
+
+    ! Local
+    ! ---------
+    type(ESMF_FieldBundle)          :: aerosols          ! field bundle containing the aerosol mass mixing ratios
+
+    real, dimension(:,:,:), pointer :: ple               ! pressure at the edges of model layers
+    real, dimension(:,:,:), pointer :: temperature       ! air temperature
+    real, dimension(:,:,:), pointer :: airden            ! air density
+    real, dimension(:,:,:), pointer :: q, q_             ! aerosol mass mixing ratio
+
+    real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
+    real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
+    real, dimension(:,:,:), pointer :: sigma             ! width of aerosol mode
+    real, dimension(:,:,:), pointer :: density           ! density of aerosol
+    real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol 
+    real, dimension(:,:,:), pointer :: f_dust            ! fraction of dust aerosol
+    real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol 
+    real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
+    
+    real, dimension(:,:,:, :),  pointer :: num_4d               ! number concentration of aerosol particles 
+    real, dimension(:,:,:, :), pointer :: diameter_4d          ! dry size of aerosol
+    real, dimension(:,:,:, :), pointer :: sigma_4d             ! width of aerosol mode
+    real, dimension(:,:,:, :), pointer :: density_4d           ! density of aerosol
+    real, dimension(:,:,:, :), pointer :: hygroscopicity_4d    ! hygroscopicity of aerosol 
+    real, dimension(:,:,:, :), pointer :: f_dust_4d            ! fraction of dust aerosol
+    real, dimension(:,:,:, :), pointer :: f_soot_4d            ! fraction of soot aerosol 
+    real, dimension(:,:,:, :), pointer :: f_organic_4d         ! fraction of organic aerosol
+    
+    real, dimension(:,:,:,:), pointer :: mass         ! MAM species 
+    real, dimension(:,:,:), pointer :: modal_mass         ! MAM species
+    real, dimension(:,:,:), pointer :: modal_number        ! MAM modal numbers
+
+    character(len=ESMF_MAXSTR)      :: fld_name
+    type(ESMF_Field)                :: fld
+
+    integer                         :: i1, j1, i2, j2, km
+
+    integer                         :: STATUS
+    character(len=ESMF_MAXSTR)      :: Iam
+
+    ! auxilliary parameters
+    ! ---------------------
+    real, parameter :: dens_SO4 = 1700.0
+    real, parameter :: dens_ORG = 1600.0
+    real, parameter :: dens_SS  = 2200.0
+    real, parameter :: dens_DU  = 1700.0
+    real, parameter :: dens_BC  = 1600.0
+
+    real, parameter :: k_SO4   = 0.65
+    real, parameter :: k_ORG   = 0.20
+    real, parameter :: k_SS    = 1.28
+    real, parameter :: k_DU    = 0.01
+    real, parameter :: k_BC    = 0.0001
+    
+    real, parameter :: sig_acc   = 1.8
+    real, parameter :: sig_ait   = 1.6
+    real, parameter :: sig_cdu   = 1.8
+    real, parameter :: sig_css   = 2.0
+    real, parameter :: sig_fdu   = 1.8
+    real, parameter :: sig_fss   = 2.0
+    real, parameter :: sig_pcm   = 1.6
+
+    integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015 
+    
+    character(len=ESMF_MAXSTR)      :: mam_species(24)
+
+
+    real, parameter, dimension(7) :: means =  (/-14.35511, -14.725009, -14.91018, -15.612967, -15.061058, 2.3847961, -1.353214/)
+    integer :: samples, n_species, n_modes, im, jm, sx 
+    
+    ! Neural Network parameterization of aerosol number concentration  (Breen et al. 2022)
+    ! Two neural nets work in series:
+    ! mass_net (Gocart total mass, T, P [samples, 7*72] to MAM mass species [samples, 24*72])    
+    ! number_net (MAM species [samples, 24*72] to MAM modal number conc. [samples, 7*72])   
+    !mass_net input is log10 transformed, then removing the precalculated mean 
+    !mass net output is number-like using precalculated modal diameters and feeds to number net
+    ! number_net output is log10-transformed
+     
+    type (network_type) :: mass_net
+    type (network_type) :: number_net
+    
+    real, allocatable, dimension(:,:) :: massnet_in
+    real, allocatable, dimension(:,:) :: massnet_out
+    real, allocatable, dimension(:,:) :: numnet_out
+    real, allocatable, dimension(:,:) :: q_reshaped
+    
+    real :: scale_factor
+    
+
+    Iam = 'MAMnet'
+    
+    mam_species = (/'SU_A_ACC', 'SOA_A_ACC', 'SS_A_ACC', 'POM_A_ACC', 'BC_A_ACC', 'AMM_A_ACC', &
+                   'SU_A_AIT', 'SOA_A_AIT', 'SS_A_AIT', 'AMM_A_AIT', &
+                   'SU_A_CDU', 'DU_A_CDU', 'AMM_A_CDU', &
+                   'SU_A_CSS', 'SS_A_CSS', 'AMM_A_CSS', &
+                   'SU_A_FDU', 'DU_A_FDU', 'AMM_A_FDU', &
+                   'SU_A_FSS', 'SS_A_FSS', 'AMM_A_FSS', &
+                   'POM_A_PCM', 'BC_A_PCM'/)
+                 
+    n_species  = size(mam_species)             
+     
+    !initialize the neural networks
+    
+    call mass_net%load('./massnet_weights.rc')
+    call number_net%load('./numbernet_weights.rc') 
+
+
+    ! Temperature
+    ! -----------
+    call ESMF_AttributeGet(state, name='air_temperature', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, temperature, trim(fld_name), __RC__)
+
+    ! dry air density 
+    ! ------------------------
+    call ESMF_AttributeGet(state, name='air_density', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, airden, trim(fld_name), __RC__)
+    
+    ! Aerosol properties
+    ! --------------------------------    
+
+    call ESMF_AttributeGet(state, name='aerosol_dry_size', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, diameter, trim(fld_name), __RC__)
+    
+    call ESMF_AttributeGet(state, name='aerosol_number_concentration', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, num, trim(fld_name), __RC__)
+
+    call ESMF_AttributeGet(state, name='width_of_aerosol_mode', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, sigma, trim(fld_name), __RC__)
+
+    call ESMF_AttributeGet(state, name='aerosol_density', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, density, trim(fld_name), __RC__)
+
+    call ESMF_AttributeGet(state, name='aerosol_hygroscopicity', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, hygroscopicity, trim(fld_name), __RC__)
+
+    call ESMF_AttributeGet(state, name='fraction_of_dust_aerosol', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, f_dust, trim(fld_name), __RC__)
+
+    call ESMF_AttributeGet(state, name='fraction_of_soot_aerosol', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, f_soot, trim(fld_name), __RC__)
+
+    call ESMF_AttributeGet(state, name='fraction_of_organic_aerosol', value=fld_name, __RC__)
+    call MAPL_GetPointer(state, f_organic, trim(fld_name), __RC__)
+
+
+    i1 = lbound(temperature, 1); i2 = ubound(temperature, 1)
+    j1 = lbound(temperature, 2); j2 = ubound(temperature, 2)
+    km = ubound(temperature, 3)
+    
+    !if (km .ne. 72) __raise__(MAMnet only works for 72 levels) !for now the NNs always expect 72 levels
+    
+    call ESMF_StateGet(state, 'AEROSOLS', aerosols, __RC__) !GOCART state  
+
+    allocate(q(i1:i2,j1:j2,km), __STAT__)
+    allocate(q_(i1:i2,j1:j2,km), __STAT__)
+    q = 0.0 
+    q_ =0.0        
+    
+    
+    !!!!!! make the feature set for mass_net
+    !!!!!! sulfate
+
+    call ESMF_FieldBundleGet(aerosols, 'SO4', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q, __RC__)
+    
+    
+    im =  size(q, 1)
+    jm =  size(q, 2)
+    km =  72 !size(q, 3)
+    
+    samples = im*jm! each column is an example
+           
+    allocate(q_reshaped(samples, km))
+    km =  72*7 
+    allocate(massnet_in(samples, km)) 
+    allocate(numnet_out(samples, km))
+    km =  72*24
+    allocate(massnet_out(samples, km))   
+
+    km  = 72
+    
+    !allocate (mass(im, jm, km, n_species))
+
+    
+
+    i1 =  1
+    i2 = 72 
+    where(q> 0.0)
+        q =  log10(q) - means(1)       
+    end where 
+        q_reshaped  = reshape(q, shape(q_reshaped))    
+    
+    massnet_in(:, i1:i2) =  q_reshaped 
+    
+    
+   ! print *, 'massnet_in'
+   ! print *, massnet_in
+    !!!!!!! sea salt
+    
+    q =  0.0
+
+    call ESMF_FieldBundleGet(aerosols, 'ss001', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    call ESMF_FieldBundleGet(aerosols, 'ss002', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    call ESMF_FieldBundleGet(aerosols, 'ss003', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    call ESMF_FieldBundleGet(aerosols, 'ss004', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    call ESMF_FieldBundleGet(aerosols, 'ss005', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    i1 = 73  
+    i2 = 144 
+    where(q> 0.0)
+        q =  log10(q) - means(2)        
+    end where 
+    q_reshaped  = reshape(q, shape(q_reshaped))    
+    massnet_in(:, i1:i2) =  q_reshaped 
+     
+    !!organics
+    q = 0.0  
+    call ESMF_FieldBundleGet(aerosols, 'OCphilic', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+    
+    call ESMF_FieldBundleGet(aerosols, 'OCphobic', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+  
+  
+    i1 = 145  
+    i2 = 216 
+    where(q > 0.0)
+        q =  log10(q) - means(3)        
+    end where 
+    q_reshaped  = reshape(q, shape(q_reshaped))    
+    massnet_in(:, i1:i2) =  q_reshaped 
+    
+    
+    !!black carbon
+    q = 0.0  
+    call ESMF_FieldBundleGet(aerosols, 'BCphilic', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+    
+    call ESMF_FieldBundleGet(aerosols, 'BCphobic', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+  
+  
+    i1 = 217  
+    i2 = 288 
+    where(q > 0.0)
+        q =  log10(q) - means(4)        
+    end where
+    q_reshaped  = reshape(q, shape(q_reshaped))     
+    massnet_in(:, i1:i2) =  q_reshaped 
+    
+    !!!!!!! dust
+    
+    q =  0.0
+
+    call ESMF_FieldBundleGet(aerosols, 'du001', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    call ESMF_FieldBundleGet(aerosols, 'du002', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    call ESMF_FieldBundleGet(aerosols, 'du003', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    call ESMF_FieldBundleGet(aerosols, 'du004', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    call ESMF_FieldBundleGet(aerosols, 'du005', field=fld, __RC__)
+    call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
+    q = q + q_
+
+    i1 = 289  
+    i2 = 360 
+    where(q> 0.0)
+        q =  log10(q) - means(5)        
+    end where 
+    q_reshaped  = reshape(q, shape(q_reshaped))    
+    massnet_in(:, i1:i2) =  q_reshaped 
+    
+    !! temperature 
+    
+    i1 = 361  
+    i2 = 432
+     
+    q =  0.0 
+    where(temperature > 0.0)
+        q =  log10(temperature) - means(6)        
+    end where  
+    q_reshaped  = reshape(q, shape(q_reshaped))   
+    massnet_in(:, i1:i2) =  q_reshaped 
+    
+    !! air density 
+    
+    i1 = 433  
+    i2 = 504
+     
+    q =  0.0 
+    where(airden > 0.0)
+        q =  log10(airden) - means(7)        
+    end where
+    q_reshaped  = reshape(q, shape(q_reshaped))     
+    massnet_in(:, i1:i2) =  q_reshaped
+    
+    !!!!!! run the Neural Networks
+    do sx  = 1, samples
+    	!******call mass_net
+    	massnet_out(sx, :) = mass_net%output(massnet_in(sx, :)) ![samples, 7*24]
+    	!****** call number_net    
+    	numnet_out(sx, :) = number_net%output(massnet_out(sx, :)) ![samples, 7*72]
+    end do    
+    
+    
+    
+    n_modes =  7 
+    km = 72
+    allocate(num_4d(im, jm, km, n_modes))
+    allocate(sigma_4d(im, jm, km, n_modes)) 
+    allocate(density_4d(im, jm, km, n_modes)) 
+    allocate(hygroscopicity_4d(im, jm, km, n_modes))
+    allocate( diameter_4d(im, jm, km, n_modes))
+    allocate(f_dust_4d(im, jm, km, n_modes))
+    allocate(f_soot_4d(im, jm, km, n_modes))
+    allocate(f_organic_4d(im, jm, km, n_modes))
+    allocate(modal_mass(im, jm, km))
+    allocate(modal_number(im, jm, km))
+     
+    allocate(mass(im, jm, km, n_species))        
+    !!!map numbernet_out to each mode
+    mass = reshape(massnet_out,  (/im, jm, km, n_species/)) ![im, jm, 72, 24]
+    num_4d =  reshape(numnet_out, (/im, jm, km, n_modes/)) ![im, jm, 72, 7]    
+    num_4d =  0.0
+    !return number concentration to #/Kg
+    where ((num_4d .le. 18.0) .and. (num_4d .gt. -3.0))
+     num_4d =  10.0**num_4d 
+    end where 
+    
+    !!!!!!return mixing ratios to Kg/Kg and fill up the other properties
+   
+    mass  = 10.0**mass !remove log scaling
+    
+    !set default values
+    sigma_4d =  num_4d*0.0 + sig_acc
+    density_4d =  num_4d*0.0 + dens_SO4
+    hygroscopicity_4d =  num_4d*0.0  + k_SO4
+    diameter_4d =  num_4d*0.0 + 1.0e-9
+    f_dust_4d  =  num_4d*0.0 
+    f_soot_4d =  num_4d*0.0
+    f_organic_4d =  num_4d*0.0
+ 
+    !!!!!!!!!!!! mode 1: accumulation, species 1 to 6
+    !'SU_A_ACC', 'SOA_A_ACC', 'SS_A_ACC', 'POM_A_ACC', 'BC_A_ACC', 'AMM_A_ACC'
+    scale_factor  = (((0.26+0.056)/2.0)**3.0)* 1600.0 * 8.0 * 1.0e-18 ! scaling using during training 
+    
+    i1 = 1
+    i2 = 6
+    mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
+    modal_mass =  sum(mass(:, :, :, i1:i2), 4)
+    modal_number = num_4d(:, :, :,1)
+    
+    sigma_4d(:, :, :, 1) = sig_acc
+        
+    where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
+       hygroscopicity_4d(:, :, :, 1) =  (mass(:, :, :, 1)*k_SO4 + mass(:, :, :, 2)*k_ORG + mass(:, :, :, 3)*k_SS  &
+      					 + mass(:, :, :, 4)*k_ORG + mass(:, :, :, 5)*k_BC +  mass(:, :, :, 6)*k_SO4)/modal_mass !approximated by mass fraction
+       diameter_4d(:, :, :, 1) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_acc)*log(sig_acc))          
+       density_4d(:, :, :, 1) =  (mass(:, :, :, 1)*dens_SO4 + mass(:, :, :, 2)*dens_ORG + mass(:, :, :, 3)*dens_SS  &
+       							+ mass(:, :, :, 4)*dens_ORG + mass(:, :, :, 5)*dens_BC +  mass(:, :, :, 6)*dens_SO4) /modal_mass 
+       f_organic_4d(:, :, :, 1) =  (mass(:, :, :, 2) + mass(:, :, :, 4)) /modal_mass
+       f_soot_4d(:, :, :, 1) =  mass(:, :, :, 5) /modal_mass
+    end where
+    
+    diameter_4d(:, :, :, 1)  = min(max(diameter_4d(:, :, :, 1), 0.056e-6), 0.26e-6) 
+    
+    
+    !!!!!!!!!!!!! mode 2: aitken, species 7 to 10
+    ! 'SU_A_AIT', 'SOA_A_AIT', 'SS_A_AIT', 'AMM_A_AIT',
+    scale_factor  = (((0.052+0.015)/2.0)**3.0)* 1600.0 * 8.0 * 1.0e-18 ! scaling using durinhg training    
+    i1 = 7
+    i2 = 10
+    mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
+    modal_mass =  sum(mass(:, :, :, i1:i2), 4)
+    modal_number = num_4d(:, :, :, 2)
+    
+    sigma_4d(:, :, :, 2) = sig_ait
+    
+    where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
+       hygroscopicity_4d(:, :, :, 2) =  (mass(:, :, :, 7)*k_SO4 + mass(:, :, :, 8)*k_ORG + mass(:, :, :, 9)*k_SS  &
+      								 +   mass(:, :, :, 10*k_SO4))/modal_mass    
+       diameter_4d(:, :, :, 2) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_ait)*log(sig_ait)) 
+       density_4d(:, :, :, 2) =  (mass(:, :, :, 7)*dens_SO4 + mass(:, :, :, 8)*dens_ORG + mass(:, :, :, 9)*dens_SS  &
+      							 +  mass(:, :, :, 10)*dens_SO4) /modal_mass 
+       f_organic_4d(:, :, :, 2) =  mass(:, :, :, 8) /modal_mass
+    end where
+    diameter_4d(:, :, :, 2)  = min(max(diameter_4d(:, :, :, 2), 0.015e-6), 0.052e-6) 
+ 
+   !!!!!!!!!!!!!!!!! mode 3: coarse dust, species 11 to 13
+    !'SU_A_CDU', 'DU_A_CDU', 'AMM_A_CDU',
+    scale_factor  = (((2.75+0.59)/2.0)**3.0)* 1600.0 * 8.0 * 1.0e-18 ! scaling using durinhg training =    
+    i1 = 11
+    i2 = 13
+    mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
+    modal_mass =  sum(mass(:, :, :, i1:i2), 4)
+    modal_number = num_4d(:, :, :, 3)
+    
+    sigma_4d(:, :, :, 3) = sig_cdu
+    
+    where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
+       hygroscopicity_4d(:, :, :, 3) =  (mass(:, :, :, 11)*k_SO4 + mass(:, :, :, 12)*k_DU + mass(:, :, :, 13)*k_SO4)/modal_mass  
+       diameter_4d(:, :, :, 3) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_cdu)*log(sig_cdu))    
+       density_4d(:, :, :, 3) =  (mass(:, :, :, 11)*dens_SO4 + mass(:, :, :, 12)*dens_DU +  mass(:, :, :, 13)*dens_SO4) /modal_mass    
+       f_dust_4d(:, :, :, 3) =  mass(:, :, :, 12) /modal_mass
+    end where
+    
+    diameter_4d(:, :, :, 3)  = min(max(diameter_4d(:, :, :, 3), 0.59e-6), 2.75e-6) 
+     
+    !!!!!!! mode 4: coarse sea salt, species 14 to 16
+    !'SU_A_CSS', 'SS_A_CSS', 'AMM_A_CSS',,
+    scale_factor  = (((3.7+0.63)/2.0)**3.0)* 1600.0 * 8.0 * 1.0e-18 ! scaling using durinhg training    
+    i1 = 14
+    i2 = 16
+    mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
+    modal_mass =  sum(mass(:, :, :, i1:i2), 4)
+    modal_number = num_4d(:, :, :, 4)
+    
+    sigma_4d(:, :, :, 4) = sig_css
+    
+    where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
+       hygroscopicity_4d(:, :, :, 4) =  (mass(:, :, :, 14)*k_SO4 + mass(:, :, :, 15)*k_SS + mass(:, :, :, 16)*k_SO4)/modal_mass 
+       diameter_4d(:, :, :, 4) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_css)*log(sig_css))  
+       density_4d(:, :, :, 4) =  (mass(:, :, :, 14)*dens_SO4 + mass(:, :, :, 15)*dens_SS +  mass(:, :, :, 16)*dens_SO4) /modal_mass 
+    end where     
+    diameter_4d(:, :, :, 4) =   min(max(diameter_4d(:, :, :, 3), 0.63e-6), 3.7e-6)  
+    
+    
+    !!!!!!!!!!!! mode 5: fine dust, species 17 to 19
+    !'SU_A_FDU', 'DU_A_FDU', 'AMM_A_FDU',
+    scale_factor  = (((0.62+0.14)/2.0)**3.0)* 1600.0 * 8.0 * 1.0e-18 ! scaling using durinhg training     
+    i1 = 17
+    i2 = 19
+    mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
+    modal_mass =  sum(mass(:, :, :, i1:i2), 4)
+    modal_number = num_4d(:, :, :, 5)
+    
+    sigma_4d(:, :, :, 5) = sig_fdu
+    
+    where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
+       hygroscopicity_4d(:, :, :, 5) =  (mass(:, :, :, 17)*k_SO4 + mass(:, :, :, 18)*k_DU + mass(:, :, :, 19)*k_SO4)/modal_mass 
+       diameter_4d(:, :, :, 5) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_fdu)*log(sig_fdu))  
+       density_4d(:, :, :, 5) =  (mass(:, :, :, 17)*dens_SO4 + mass(:, :, :, 18)*dens_DU +  mass(:, :, :, 19)*dens_SO4) /modal_mass 
+       f_dust_4d(:, :, :, 5) =  mass(:, :, :, 18) /modal_mass
+    end where
+     diameter_4d(:, :, :, 5)  = min(max(diameter_4d(:, :, :, 5), 0.14e-6), 0.62e-6)    
+   
+    !!!!!!!! mode 6: fine sea salt, species 20 to 22
+    !'SU_A_FSS', 'SS_A_FSS', 'AMM_A_FSS',
+    scale_factor  = (((0.56+0.095)/2.0)**3.0)* 1600.0 * 8.0 * 1.0e-18 ! scaling using durinhg training   
+    i1 = 20
+    i2 = 22
+    mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
+    modal_mass =  sum(mass(:, :, :, i1:i2), 4)
+    modal_number = num_4d(:, :, :, 6)
+    
+    sigma_4d(:, :, :, 6) = sig_fss
+    
+    where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
+       hygroscopicity_4d(:, :, :, 6) =  (mass(:, :, :, 20)*k_SO4 + mass(:, :, :, 21)*k_SS + mass(:, :, :, 22)*k_SO4)/modal_mass 
+       diameter_4d(:, :, :, 6) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_fss)*log(sig_fss))  
+       density_4d(:, :, :, 6) =  (mass(:, :, :, 20)*dens_SO4 + mass(:, :, :, 21)*dens_SS +  mass(:, :, :, 22)*dens_SO4) /modal_mass 
+    end where    
+        diameter_4d(:, :, :, 6)  = min(max(diameter_4d(:, :, :, 6), 0.095e-6), 0.56e-6) 
+
+    !!!!!!! mode 7: primary organic matter, species 23 to 24
+    !'POM_A_PCM', 'BC_A_PCM'
+    scale_factor  = (((0.13+0.039)/2.0)**3.0)* 1600.0 * 8.0 * 1.0e-18 ! scaling using durinhg training 
+    
+    i1 = 23
+    i2 = 24
+    mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
+    modal_mass =  sum(mass(:, :, :, i1:i2), 4)
+    modal_number = num_4d(:, :, :, 7)
+    
+    sigma_4d(:, :, :, 7) = sig_pcm
+    
+    where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
+       hygroscopicity_4d(:, :, :, 7) =  (mass(:, :, :, 23)*k_ORG + mass(:, :, :, 24)*k_BC)/modal_mass 
+       diameter_4d(:, :, :, 7) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_pcm)*log(sig_pcm)) 
+       density_4d(:, :, :, 7) =  (mass(:, :, :, 23)*dens_ORG + mass(:, :, :, 24)*dens_BC) /modal_mass
+       f_organic_4d(:, :, :, 7) =  mass(:, :, :, 23) /modal_mass
+       f_soot_4d(:, :, :, 7) =  mass(:, :, :, 24) /modal_mass
+    end where
+    diameter_4d(:, :, :, 7)  = min(max(diameter_4d(:, :, :, 7), 0.039e-6), 0.13e-6) 
+    
+    
+    !Trick to pass it as a 3d array
+    
+    km =  72*n_modes
+    num =  reshape(num_4d, (/im, jm, km/))
+    hygroscopicity =  reshape(hygroscopicity_4d, (/im, jm, km/))
+    diameter =  reshape(diameter_4d, (/im, jm, km/))
+    density =  reshape(density_4d, (/im, jm, km/))
+    f_dust =  reshape(f_dust_4d, (/im, jm, km/))
+    f_organic =  reshape(f_organic_4d, (/im, jm, km/))
+    f_soot =  reshape(f_soot_4d, (/im, jm, km/))
+
+   deallocate(q_reshaped)
+   deallocate(massnet_in) 
+   deallocate(numnet_out)
+   deallocate(massnet_out)   
+   deallocate (mass)
+   deallocate (num_4d)
+   deallocate(q)
+   deallocate(q_)
+   
+   deallocate(sigma_4d) 
+   deallocate(density_4d) 
+   deallocate(hygroscopicity_4d)
+   deallocate( diameter_4d)
+   deallocate(f_dust_4d)
+   deallocate(f_soot_4d)
+   deallocate(f_organic_4d)
+   deallocate(modal_mass)
+   deallocate(modal_number)
+      
+    
+   
+   RETURN_(ESMF_SUCCESS)
+         
+end subroutine MAMnet 
+     
 end module GOCART_GridCompMod
 

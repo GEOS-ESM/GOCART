@@ -30,7 +30,7 @@ install( FILES ${resource_files}
    DESTINATION etc
    )
 
-set (dependencies Chem_Base Chem_Shared MAPL GMAO_mpeu)
+set (dependencies Chem_Base Chem_Shared MAPL GMAO_mpeu FKB)
 esma_add_library (${this}
   SRCS ${srcs}
   SUBCOMPONENTS ${alldirs}
