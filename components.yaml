@@ -11,7 +11,7 @@ env:
 cmake:
   local: ./cmake@
   remote: ../ESMA_cmake.git
-  tag: v3.12.0
+  tag: v3.16.0
   develop: develop
 
 ecbuild:
@@ -27,12 +27,12 @@ HEMCO:
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
-  tag: v1.5.3
+  tag: v1.5.5
   sparse: ./config/GMAO_Shared.sparse
   develop: main
 
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  tag: v2.19.0
+  tag: v2.21.3
   develop: develop
