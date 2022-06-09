@@ -1,64 +1,32 @@
 version: 2.1
 
 orbs:
-  circleci-tools: geos-esm/circleci-tools@0.13.0
+  ci: geos-esm/circleci-tools@1
 
 workflows:
   build-and-test:
     jobs:
-      - build-GOCART2G:
+      # Build GOCART
+      - ci/build:
           name: build-GOCART2G-on-<< matrix.compiler >>
+          context:
+            - docker-hub-creds
           matrix:
             parameters:
               compiler: [gfortran, ifort]
-          context:
-            - docker-hub-creds
-      - build-GEOSgcm:
+          repo: GOCART
+          buildtarget: GOCART2G_GridComp
+          mepodevelop: true
+          persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
+      # Build GEOSgcm
+      - ci/build:
           name: build-GEOSgcm-on-<< matrix.compiler >>
+          context:
+            - docker-hub-creds
           matrix:
             parameters:
               compiler: [gfortran, ifort]
-          context:
-            - docker-hub-creds
-
-jobs:
-  build-GOCART2G:
-    parameters:
-      compiler:
-        type: string
-    executor: circleci-tools/<< parameters.compiler >>
-    working_directory: /root/project
-    steps:
-      - checkout:
-          path: GOCART
-      - circleci-tools/versions:
-          compiler: << parameters.compiler >>
-      - circleci-tools/mepoclone:
-          repo: GOCART
-      - circleci-tools/cmake:
-          repo: GOCART
-          compiler: << parameters.compiler >>
-      - circleci-tools/buildtarget:
-          repo: GOCART
-          target: GOCART2G_GridComp
-      - circleci-tools/compress_artifacts
-      - store_artifacts:
-          path: /logfiles
-
-  build-GEOSgcm:
-    parameters:
-      compiler:
-        type: string
-    executor: circleci-tools/<< parameters.compiler >>
-    working_directory: /root/project
-    steps:
-      - circleci-tools/checkout_fixture
-      - circleci-tools/mepoclone
-      - circleci-tools/mepodevelop
-      - circleci-tools/checkout_if_exists
-      - circleci-tools/cmake:
-          compiler: << parameters.compiler >>
-      - circleci-tools/buildinstall
-      - circleci-tools/compress_artifacts
-      - store_artifacts:
-          path: /logfiles
+          repo: GEOSgcm
+          checkout_fixture: true
+          mepodevelop: true
+          persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
