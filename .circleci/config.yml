@@ -17,6 +17,7 @@ workflows:
           repo: GOCART
           buildtarget: GOCART2G_GridComp
           mepodevelop: true
+          develop_repos: GMAO_Shared
           persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
       # Build GEOSgcm
       - ci/build:
