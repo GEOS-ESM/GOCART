@@ -226,6 +226,20 @@ contains
        RC=STATUS  )
     _VERIFY(STATUS)
 
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'imSS',  &
+       CHILD_ID           = self%SS%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+
+!    call MAPL_AddExportSpec(GC,                       &
+!       short_name = 'imSS',                           &
+!       long_name  = 'internally mixed SS fields',     &
+!       dims       = MAPL_DimsHorzVert,                &
+!       vlocation  = MAPL_VLocationCenter,             &
+!       datatype   = MAPL_BundleItem, __RC__)
+
+
 #include "GOCART2G_Export___.h"
 
 !   Add connectivities for Nitrate component

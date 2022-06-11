@@ -265,6 +265,14 @@ contains
        DIMS       = MAPL_DimsHorzOnly,                            &
        DATATYPE   = MAPL_BundleItem, __RC__)
 
+!   Field bundle for internally mixed species
+!   ---------------------------------------------------------------
+    call MAPL_AddExportSpec(GC,                       &
+       short_name = 'imSS',                           &
+       long_name  = 'internally mixed SS fields',     &
+       dims       = MAPL_DimsHorzVert,                &
+       vlocation  = MAPL_VLocationCenter,             &
+       datatype   = MAPL_BundleItem, __RC__)
 
 !   Store internal state in GC
 !   --------------------------
@@ -631,6 +639,7 @@ contains
     type (ESMF_Grid)                  :: grid
     type (wrap_)                      :: wrap
     type (SS2G_GridComp), pointer     :: self
+    type (ESMF_FieldBundle)           :: imSS ! Internally mixed species bundle
 
     real, allocatable, dimension(:,:) :: fgridefficiency
     real, allocatable, dimension(:,:) :: fsstemis
@@ -640,6 +649,15 @@ contains
     real(kind=DP), allocatable, dimension(:,:) :: gweibull
 
     integer :: n 
+
+    ! For internally mixed species calcs (M.Long)
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr
+    integer                            :: nIMFields, nn, IMitemCount
+    real, allocatable                  :: IMbinsplit(:), IMbinemisfrac(:)
+    character(len=ESMF_MAXSTR)         :: attributeName
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    logical                            :: IMinverted ! Is the vertical dim inverted (GEOSCHEM-Chem is inverted)
 
 #include "SS2G_DeclarePointer___.h"
 
@@ -685,6 +703,8 @@ contains
     allocate(gweibull(ubound(u10m,1), ubound(u10m,2)), __STAT__ )
     call weibullDistribution (gweibull, self%weibullFlag, u10m, v10m, __RC__)
 
+    call ESMF_StateGet (export, 'imSS' , imSS, __RC__)
+
 !   Loop over bins and do emission calculation
 !   Possibly apply the Hoppel correction based on fall speed (Fan and Toon, 2011)
 !   -----------------------------------------------
@@ -718,6 +738,43 @@ contains
        if (associated(SSEM)) then
           SSEM(:,:,n) = memissions
        end if
+
+       !-------------------------
+       ! Internally mixed species
+       write( attributeName, '(A3,I0)') 'bin', n             ! Number of IM fields in this bin
+       call ESMF_AttributeGet( imSS, attributeName, value=nIMFields, defaultvalue=0, __RC__ )
+       if (nIMFields .eq. 0) cycle ! Nothing to do
+       ! Proceed
+       allocate( IMbinsplit(nIMFields), IMbinemisfrac(nIMFields), IMFieldNameList(nIMFields), __STAT__ )
+
+       write( attributeName, '(A3,I0,A11)') 'bin', n,'_fieldnames'
+       call ESMF_AttributeGet( imSS, attributeName, valueList=IMFieldNameList, __RC__ )
+
+       write( attributeName, '(A3,I0,A6)') 'bin', n,'_split'
+       call ESMF_AttributeGet( imSS, attributeName, itemCount=IMItemCount, __RC__ )
+       call ESMF_AttributeGet( imSS, attributeName, valueList=IMBinSplit, __RC__ )
+
+       write( attributeName, '(A3,I0,A9)') 'bin', n,'_emisfrac'
+       call ESMF_AttributeGet( imSS, attributeName, valueList=IMBinEmisFrac, __RC__ )
+
+       !-------------------------
+       do nn=1,nIMFields
+          ! Get field from bundle
+          call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
+          call ESMF_FieldGet( IMField, fArrayPtr=IMFieldPtr, __RC__ )
+          call ESMF_AttributeGet( IMField, 'internally_mixed_is_inverted', value=IMinverted, defaultvalue=.false., __RC__ )
+          ! Increment emissions
+          ! -- if inverted, surface is 1
+          IF (IMinverted) THEN
+             IMFieldPtr(:,:,1)       = IMFieldPtr(:,:,1)       + IMbinsplit(nn)*IMbinemisfrac(nn)*dqa
+          ELSE
+             IMFieldPtr(:,:,self%km) = IMFieldPtr(:,:,self%km) + IMbinsplit(nn)*IMbinemisfrac(nn)*dqa
+          ENDIF
+  
+       enddo
+       deallocate(IMFieldNameList, IMBinSplit, IMBinEmisFrac)
+       !-------------------------
+
     end do !n = 1
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
@@ -758,7 +815,15 @@ contains
     real                              :: fwet
     logical                           :: KIN
 
-
+    ! For internally mixed species calcs (M.Long)
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr
+    integer                            :: nIMFields, nn, IMitemCount
+    real, allocatable                  :: IMbinsplit(:), IMbinemisfrac(:)
+    character(len=ESMF_MAXSTR)         :: attributeName
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    logical                            :: IMinverted ! Is the vertical dim inverted (GEOSCHEM-Chem is inverted
+)
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -827,6 +892,44 @@ contains
                                KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
     end do
+
+!>>>       !-------------------------
+!>>>       ! Internally mixed species
+!>>>       write( attributeName, '(A3,I0)') 'bin', n             ! Number of IM fields in this bin
+!>>>       call ESMF_AttributeGet( imSS, attributeName, value=nIMFields, defaultvalue=0, __RC__ )
+!>>>       if (nIMFields .eq. 0) cycle ! Nothing to do
+!>>>       ! Proceed
+!>>>       allocate( IMbinsplit(nIMFields), IMbinemisfrac(nIMFields), IMFieldNameList(nIMFields), __STAT__ )
+!>>>
+!>>>       write( attributeName, '(A3,I0,A11)') 'bin', n,'_fieldnames'
+!>>>       call ESMF_AttributeGet( imSS, attributeName, valueList=IMFieldNameList, __RC__ )
+!>>>
+!>>>       write( attributeName, '(A3,I0,A6)') 'bin', n,'_split'
+!>>>       call ESMF_AttributeGet( imSS, attributeName, itemCount=IMItemCount, __RC__ )
+!>>>       call ESMF_AttributeGet( imSS, attributeName, valueList=IMBinSplit, __RC__ )
+!>>>
+!>>>       write( attributeName, '(A3,I0,A9)') 'bin', n,'_emisfrac'
+!>>>       call ESMF_AttributeGet( imSS, attributeName, valueList=IMBinEmisFrac, __RC__ )
+!>>>
+!>>>       !-------------------------
+!>>>       do nn=1,nIMFields
+!>>>          ! Get field from bundle
+!>>>          call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
+!>>>          call ESMF_FieldGet( IMField, fArrayPtr=IMFieldPtr, __RC__ )
+!>>>          call ESMF_AttributeGet( IMField, 'internally_mixed_is_inverted', value=IMinverted, defaultvalue=.false., __RC__ )
+!>>>          ! Increment emissions
+!>>>          ! -- if inverted, surface is 1
+!>>>          IF (IMinverted) THEN
+!>>>             IMFieldPtr(:,:,1)       = IMFieldPtr(:,:,1)       + IMbinsplit(nn)*IMbinemisfrac(nn)*dqa
+!>>>          ELSE
+!>>>             IMFieldPtr(:,:,self%km) = IMFieldPtr(:,:,self%km) + IMbinsplit(nn)*IMbinemisfrac(nn)*dqa
+!>>>          ENDIF
+!>>>  
+!>>>       enddo
+!>>>       deallocate(IMFieldNameList, IMBinSplit, IMBinEmisFrac)
+!>>>       !-------------------------
+
+    end do !n = 1
 
 !   Compute diagnostics
 !   -------------------
