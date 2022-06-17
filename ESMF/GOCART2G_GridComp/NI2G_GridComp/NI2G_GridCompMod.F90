@@ -48,9 +48,7 @@ integer, parameter     :: DP = kind(1.0d0)
 
 !  !Nitrate state
    type, extends(GA_Environment) :: NI2G_GridComp
-       logical           :: first
        logical           :: recycle_HNO3 = .false.
-       real, allocatable :: xhno3(:,:,:)   ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
    end type NI2G_GridComp
@@ -337,8 +335,6 @@ contains
     km = dims(3)
     self%km = km
 
-    allocate(self%xhno3(dims(1),dims(2),dims(3)), __STAT__)
-
 !   Get DTs
 !   -------
     call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)
@@ -354,8 +350,6 @@ contains
                                     loading NI2G_instance_NI.rc instead'
       call ESMF_ConfigLoadFile( cfg, 'NI2G_instance_NI.rc', __RC__)
     end if
-
-    self%first = .true.
 
 !   Call Generic Initialize 
 !   ----------------------------------------
@@ -393,14 +387,10 @@ contains
         call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, __RC__)
         call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, __RC__)
 
-        do while (ringTime < currentTime)! DO WE NEED THIS?
-            ringTime = currentTime + ringInterval
-        end do
-
         alarm_HNO3 = ESMF_AlarmCreate(Clock        = clock,        &
                                       Name         = 'HNO3_RECYCLE_ALARM', &
                                       RingInterval = ringInterval, &
-                                      RingTime     = currentTime,  &
+                                      RingTime     = ringTime,  &
                                       Enabled      = .true.   ,    &
                                       Sticky       = .false.  , __RC__)
     end if
@@ -783,17 +773,13 @@ contains
     call ESMF_ClockGetAlarm(clock, 'HNO3_RECYCLE_ALARM', alarm, __RC__)
     alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
 
-!   Save local copy of HNO3 for first pass through run method regardless
-    if (self%first) then
-       self%xhno3 = MAPL_UNDEF
-       self%first = .false.
-    end if
-
 !   Recycle HNO3 every 3 hours
+    if (mapl_am_I_root()) write(*,*)"bmaa alarm: ",alarm_is_ringing
     if (alarm_is_ringing) then
-       self%xhno3 = NITRATE_HNO3
+       xhno3 = NITRATE_HNO3
        call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
+    if (mapl_am_I_root()) write(*,*)"bmaa maxval ",maxval(xhno3)
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
@@ -801,10 +787,10 @@ contains
 
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, &
                    t, rh2, fMassHNO3, MAPL_AIRMW, SO4, NH3, NO3an1, NH4a, &
-                   self%xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
+                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
 
 
-    call NIheterogenousChem (NIHT, self%xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
+    call NIheterogenousChem (NIHT, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
                              self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, &
@@ -996,6 +982,7 @@ contains
                             fluxu=NIFLUXU, fluxv=NIFLUXV, extcoef=NIEXTCOEF, scacoef=NISCACOEF, &
                             angstrom=NIANGSTR, __RC__ )
 
+    !xhno3 = self%xhno3
     RETURN_(ESMF_SUCCESS)
   
   end subroutine Run2

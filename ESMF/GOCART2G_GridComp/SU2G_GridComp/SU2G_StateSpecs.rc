@@ -101,12 +101,13 @@ category: INTERNAL
 #------------------------------------------------------------------------------------------------------------
 #  VARIABLE      | DIMENSION   |          Additional Metadata
 #------------------------------------------------------------------------------------------------------------
-  NAME | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
+  NAME | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME | DEFAULT
 #------------------------------------------------------------------------------------------------------------
- DMS   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
- SO2   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
- SO4   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
- MSA   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid
+ DMS       | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide      |
+ SO2       | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide       |
+ SO4       | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol      |
+ MSA       | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid |
+ h2o2_init | kg kg-1 | xyz  | C    |                      |            |                           | h2o                   | MAPL_UNDEF
 
 
 #********************************************************

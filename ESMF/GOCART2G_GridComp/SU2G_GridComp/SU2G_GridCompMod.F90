@@ -61,9 +61,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
       real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
       logical :: recycle_H2O2 = .false.
-      logical :: firstRun = .true.
       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
-      real, pointer :: h2o2_init(:,:,:)
 
 !     Special handling for volcanic emissions
       character(len=255) :: volcano_srcfilen
@@ -465,8 +463,6 @@ contains
                          LONS = LONS, &
                          LATS = LATS, __RC__ )
 
-    allocate(self%h2o2_init(size(lats,1),size(lats,2),self%km), __STAT__)
-
 !   Is SU data driven?
 !   ------------------
     call determine_data_driven (COMP_NAME, data_driven, __RC__)
@@ -479,14 +475,14 @@ contains
         call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, __RC__)
         call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, __RC__)
 
-        do while (ringTime < currentTime)! DO WE NEED THIS?
-            ringTime = currentTime + ringInterval
-        end do
+        !do while (ringTime < currentTime)! DO WE NEED THIS?
+            !ringTime = currentTime + ringInterval
+        !end do
 
         alarm_H2O2 = ESMF_AlarmCreate(Clock        = clock,        &
                                       Name         = 'H2O2_RECYCLE_ALARM', &
                                       RingInterval = ringInterval, &
-                                      RingTime     = currentTime,  &
+                                      RingTime     = ringTime,  &
                                       Enabled      = .true.   ,    &
                                       Sticky       = .false.  , __RC__)
     end if
@@ -1045,6 +1041,7 @@ contains
     if (alarm_is_ringing) then
        self%recycle_h2o2 = ESMF_AlarmIsRinging(alarm, __RC__)
        call ESMF_AlarmRingerOff(alarm, __RC__)
+       
     end if
 
     allocate(xoh, mold=airdens, __STAT__)
@@ -1053,13 +1050,7 @@ contains
     xoh = 0.0
     xno3 = 0.0
 
-    if (self%firstRun) then
-       xh2o2          = MAPL_UNDEF
-       self%h2o2_init = MAPL_UNDEF
-       self%firstRun  = .false.
-    end if
-
-    xh2o2 = self%h2o2_init 
+    xh2o2 = h2o2_init 
 
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
@@ -1091,7 +1082,7 @@ contains
                             nymd, nhms, lons, lats, &
                             dms, so2, so4, dummyMSA, &
                             nDMS, nSO2, nSO4, nMSA, &
-                            xoh, xno3, xh2o2, self%h2o2_init, &
+                            xoh, xno3, xh2o2, h2o2_init, &
                             delp, t, fcld, airdens, zle, &
                             ustar, sh, lwi, zpbl, z0h, &
                             SUDP, SUPSO2, SUPMSA, &
@@ -1102,7 +1093,7 @@ contains
     KIN = .true.
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
                           delp, fMassSO4, fMassSO2, &
-                          self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
+                          h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
