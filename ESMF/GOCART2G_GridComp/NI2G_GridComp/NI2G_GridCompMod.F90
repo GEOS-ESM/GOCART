@@ -774,12 +774,10 @@ contains
     alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
 
 !   Recycle HNO3 every 3 hours
-    if (mapl_am_I_root()) write(*,*)"bmaa alarm: ",alarm_is_ringing
     if (alarm_is_ringing) then
        xhno3 = NITRATE_HNO3
        call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
-    if (mapl_am_I_root()) write(*,*)"bmaa maxval ",maxval(xhno3)
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
