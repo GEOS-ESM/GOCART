@@ -980,7 +980,6 @@ contains
                             fluxu=NIFLUXU, fluxv=NIFLUXV, extcoef=NIEXTCOEF, scacoef=NISCACOEF, &
                             angstrom=NIANGSTR, __RC__ )
 
-    !xhno3 = self%xhno3
     RETURN_(ESMF_SUCCESS)
   
   end subroutine Run2
