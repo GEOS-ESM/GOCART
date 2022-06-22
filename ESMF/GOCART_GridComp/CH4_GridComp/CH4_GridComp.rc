@@ -11,4 +11,4 @@
 #  All instances    | full  | -1
 # ------------------|-------|------------
 
-CH4_instances: animls coal leak gasvnt hydz msw soilab trmite bogs burn ricec swamps tundra bf tot
+CH4_instances: full animls coal leak gasvnt hydz msw soilab trmite bogs burn ricec swamps tundra bf tot

@@ -3,6 +3,7 @@ PrimaryExports%%
 #  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
 #  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
+# old files w/ units  kg/gridbox/s
 CH4_sfcFluxanimls NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_ANIMLS /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
 CH4_sfcFluxcoal   NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_COAL   /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
 CH4_sfcFluxleak   NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_LEAK   /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
@@ -18,6 +19,7 @@ CH4_sfcFluxswamps NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_SWAMPS /discover/no
 CH4_sfcFluxtundra NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_TUNDRA /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
 CH4_sfcFluxbf     NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_BF     /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
 CH4_sfcFluxtot    NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_TOT    /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
+#
 CH4_ohanimls      NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
 CH4_ohcoal        NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
 CH4_ohleak        NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
@@ -34,6 +36,36 @@ CH4_ohtundra      NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/no
 CH4_ohbf          NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
 CH4_ohtot         NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
 #
-CH4_regionMask    NA  N v - none none REGION_MASK ExtData/g5chem/sfc/ARCTAS.region_mask.x540_y361.2008.nc 
+# instance-specific emissions
+#
+# Use scale-factor to convert from mol/m2/s to kg/m2/s
+# Climatology - 2008
+CH4_sfcFlux       NA       Y       Y     %y4-%m2-%d2t12:00:00    none     0.016043    CH4_tot       /discover/nobackup/mmanyin/CCM/ELSHORBANY/CH4/transcom_emission_CTL_2008_t12.nc
+#
+# Time varying from 1988 to 2008:
+YYYY_sfcFlux      NA       N       Y     %y4-%m2-%d2t12:00:00    none     0.016043    CH4_tot       /discover/nobackup/mmanyin/CCM/ELSHORBANY/CH4/transcom_emission_CTL_%y4_t12.nc
+#
+# Stored in a single file:
+XXXX_sfcFlux      NA       N       N     %y4-%m2-%d2t00:00:00    none     0.016043    CH4_tot       /discover/nobackup/mmanyin/CCM/ELSHORBANY/CH4/transcom_emission_CTL.nc
+#
+# optional soil sink, not used in F90, but can be used below in Derived section
+#
+CH4_soilsink      NA       N       Y     %y4-%m2-%d2t12:00:00    none     none        sink          /dev/null
+#
+# for all instances:
+#
+CH4_Cl            NA       Y       Y     %y4-%m2-%d2t12:00:00    none     none        cl            /discover/nobackup/mmanyin/CCM/EXT_DATA/ECCOH/gmiorig_oh_ch4_cl_o1d.x144_y91_z72_t12.2006.nc
+CH4_O1D           NA       Y       Y     %y4-%m2-%d2t12:00:00    none     none        o1d           /discover/nobackup/mmanyin/CCM/EXT_DATA/ECCOH/gmiorig_oh_ch4_cl_o1d.x144_y91_z72_t12.2006.nc
+# Uncomment if OH is not running (e.g. QuickChem)
+#CH4_oh            NA       Y       Y     %y4-%m2-%d2t12:00:00    none     none        oh            /discover/nobackup/mmanyin/CCM/EXT_DATA/ECCOH/gmiorig_oh_ch4_cl_o1d.x144_y91_z72_t12.2006.nc
+#
+CH4_regionMask    NA  N v - none none REGION_MASK ExtData/g5chem/sfc/ARCTAS.region_mask.x540_y361.2008.nc
 %%
-
+DerivedExports%%
+# -------------|-----------------------------------------------------------------|----------------------|
+#  Import      |      Expression                                                 |        Refresh       |
+#  Name        |                                                                 |     Time Template    |
+# -------------|-----------------------------------------------------------------|----------------------|
+# To make 'full' the sum of other instances plus a soil sink:
+#CH4_sfcFlux     CH4_sfcFluxAAA+CH4_sfcFluxBBB+CH4_sfcFluxCCC+CH4_soilsink         %y4-%m2-%d2t12:00:00
+%%

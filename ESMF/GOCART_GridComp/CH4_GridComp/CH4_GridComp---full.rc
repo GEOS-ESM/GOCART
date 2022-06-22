@@ -1,0 +1,50 @@
+#
+# Resource file for CH4 parameters. 
+#
+
+# Not set here
+# number_CH4_bins: 1
+
+# Indicate regions using a comma-delimited list of integers.
+# To activate all land boxes, use -1, or all or global (not case sensitive)
+# -------------------------------------------------------------------------
+# Code reads this but does not use it
+CH4_regions_indices: -1
+
+# For all land boxes in a latitude range, set doZoneMasking to
+# 1 then specify BOTH the south and north limits in degrees.
+# WARNING: When set, zone masking OVERRIDES regions setting above!
+# ----------------------------------------------------------------
+# Code no longer reads these:
+# doZoneMasking: 0
+# LatitudeSouth: 45.0
+# LatitudeNorth: 90.0
+
+# Previous files
+# --------------
+# CH4_emission_filename:        /discover/nobackup/mmanyin/CCM/ELSHORBANY/CH4/transcom_emission_CTL_%y4.nc
+# CH4_emission_filename:        /gpfsm/dnb32/yelshorb/inputs/CH4_tot/transcom_emission_CTL_%y4.nc
+# CH4_emission_filename:        /gpfsm/dnb32/yelshorb/CH4/GEOS5_Gridded/CH4_Flux_TransCom_gridded_CTL.nc
+# CH4_emission_filename:        /gpfsm/dnb32/yelshorb/CH4/GEOS5_Gridded/CH4_Flux_TransCom_gridded_CTL_1988.nc
+# CH4_emission_filename:        /discover/nobackup/eyegorov/g5chemInput/emist_2006_m_b72_plusCH4WangAposterori_v3.nc
+# CH4_emission_filename:        /discover/nobackup/eyegorov/Tagged_CO_CH4_OH/inputFiles/src/CH4_AnnualFlux_TransCom_unshifted_CTL.12mo.nc
+
+# OH_concentration_filename:    /discover/nobackup/bnduncan/eyegorov/NOBACKUP/Tagged_CO_CH4_OH/inputFiles/src/ohspiv_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+# BAD_LAT_O1DCL_concentration_filename:   /discover/nobackup/bnduncan/eyegorov/NOBACKUP/g5chemInput/gmiorig_oh_ch4_cl_o1d.x144_y91_z72_t12.2006.nc
+# O1DCL_concentration_filename:           /discover/nobackup/mmanyin/CCM/EXT_DATA/ECCOH/gmiorig_oh_ch4_cl_o1d.x144_y91_z72_t12.2006.nc
+
+# Not currently used
+# ------------------
+# solar_ZA_cutoff: 94.00
+
+# Let's have a run-time debug switch (0 off, 1 on)
+# ------------------------------------------------
+DEBUG: 1
+
+# No longer in the code:
+# OH_amp_factor_LT: 1.
+# OH_amp_factor_FT: 1.
+
+# Now set automatically if species name ends in "12C" or "13C"
+# No longer read from this file
+# C_isotope: 0
