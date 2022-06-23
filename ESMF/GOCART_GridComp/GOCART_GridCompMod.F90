@@ -1930,71 +1930,146 @@ end if ! doing GOCART
         end if
 
 
-        ! add aerosol activation properties to ACI state
-        call ESMF_AttributeGet(aero_aci, name='width_of_aerosol_mode', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+        !!!!!!!!!!!!!!!! add aerosol activation properties to ACI state
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-            call MAPL_StateAdd(aero_aci, fld, __RC__)
-        end if
 
-        call ESMF_AttributeGet(aero_aci, name='aerosol_number_concentration', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+        if (.not. USE_MAMNET) then
+           
+            call ESMF_AttributeGet(aero_aci, name='width_of_aerosol_mode', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-            call MAPL_StateAdd(aero_aci, fld, __RC__)
-        end if
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
 
-        call ESMF_AttributeGet(aero_aci, name='aerosol_dry_size', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+            call ESMF_AttributeGet(aero_aci, name='aerosol_number_concentration', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-            call MAPL_StateAdd(aero_aci, fld, __RC__)
-        end if
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
 
-        call ESMF_AttributeGet(aero_aci, name='aerosol_density', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+            call ESMF_AttributeGet(aero_aci, name='aerosol_dry_size', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-            call MAPL_StateAdd(aero_aci, fld, __RC__)
-        end if
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0,  __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
 
-        call ESMF_AttributeGet(aero_aci, name='aerosol_hygroscopicity', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-            call MAPL_StateAdd(aero_aci, fld, __RC__)
-        end if
+            call ESMF_AttributeGet(aero_aci, name='aerosol_density', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
-        call ESMF_AttributeGet(aero_aci, name='fraction_of_dust_aerosol', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-            call MAPL_StateAdd(aero_aci, fld, __RC__)
-        end if
+            call ESMF_AttributeGet(aero_aci, name='aerosol_hygroscopicity', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
-        call ESMF_AttributeGet(aero_aci, name='fraction_of_soot_aerosol', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-            call MAPL_StateAdd(aero_aci, fld, __RC__)
-        end if
+            call ESMF_AttributeGet(aero_aci, name='fraction_of_dust_aerosol', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
-        call ESMF_AttributeGet(aero_aci, name='fraction_of_organic_aerosol', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-            call MAPL_StateAdd(aero_aci, fld, __RC__)
-        end if
+            call ESMF_AttributeGet(aero_aci, name='fraction_of_soot_aerosol', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+
+            call ESMF_AttributeGet(aero_aci, name='fraction_of_organic_aerosol', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+            
+        else ! if using mamnet fields must 4d
+        
+        	 call ESMF_AttributeGet(aero_aci, name='width_of_aerosol_mode', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, ungrid=[7], __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+
+            call ESMF_AttributeGet(aero_aci, name='aerosol_number_concentration', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, ungrid=[7],  __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+
+            call ESMF_AttributeGet(aero_aci, name='aerosol_dry_size', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, ungrid=[7], __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+
+
+            call ESMF_AttributeGet(aero_aci, name='aerosol_density', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, ungrid=[7], __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+
+            call ESMF_AttributeGet(aero_aci, name='aerosol_hygroscopicity', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, ungrid=[7], __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+
+            call ESMF_AttributeGet(aero_aci, name='fraction_of_dust_aerosol', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, ungrid=[7], __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+
+            call ESMF_AttributeGet(aero_aci, name='fraction_of_soot_aerosol', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, ungrid=[7], __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if
+
+            call ESMF_AttributeGet(aero_aci, name='fraction_of_organic_aerosol', value=fld_name, __RC__)
+            if (fld_name /= '') then
+                fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
+
+                call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, ungrid=[7], __RC__)
+                call MAPL_StateAdd(aero_aci, fld, __RC__)
+            end if     
+
+        end if  ! using MAMNET
+        
+        
         ! attach the aerosol optics method
         call ESMF_MethodAdd(aero_aci, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
         
@@ -3893,24 +3968,16 @@ subroutine MAMnet(state, rc)
     real, dimension(:,:,:), pointer :: airden            ! air density
     real, dimension(:,:,:), pointer :: q, q_             ! aerosol mass mixing ratio
 
-    real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
-    real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
-    real, dimension(:,:,:), pointer :: sigma             ! width of aerosol mode
-    real, dimension(:,:,:), pointer :: density           ! density of aerosol
-    real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol 
-    real, dimension(:,:,:), pointer :: f_dust            ! fraction of dust aerosol
-    real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol 
-    real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
+    real, dimension(:,:,:, :), pointer :: num               ! number concentration of aerosol particles 
+    real, dimension(:,:,:, :), pointer :: diameter          ! dry size of aerosol
+    real, dimension(:,:,:, :), pointer :: sigma             ! width of aerosol mode
+    real, dimension(:,:,:, :), pointer :: density           ! density of aerosol
+    real, dimension(:,:,:, :), pointer :: hygroscopicity    ! hygroscopicity of aerosol 
+    real, dimension(:,:,:, :), pointer :: f_dust            ! fraction of dust aerosol
+    real, dimension(:,:,:, :), pointer :: f_soot            ! fraction of soot aerosol 
+    real, dimension(:,:,:, :), pointer :: f_organic         ! fraction of organic aerosol
     
-    real, dimension(:,:,:, :),  pointer :: num_4d               ! number concentration of aerosol particles 
-    real, dimension(:,:,:, :), pointer :: diameter_4d          ! dry size of aerosol
-    real, dimension(:,:,:, :), pointer :: sigma_4d             ! width of aerosol mode
-    real, dimension(:,:,:, :), pointer :: density_4d           ! density of aerosol
-    real, dimension(:,:,:, :), pointer :: hygroscopicity_4d    ! hygroscopicity of aerosol 
-    real, dimension(:,:,:, :), pointer :: f_dust_4d            ! fraction of dust aerosol
-    real, dimension(:,:,:, :), pointer :: f_soot_4d            ! fraction of soot aerosol 
-    real, dimension(:,:,:, :), pointer :: f_organic_4d         ! fraction of organic aerosol
-    
+   
     real, dimension(:,:,:,:), pointer :: mass         ! MAM species 
     real, dimension(:,:,:), pointer :: modal_mass         ! MAM species
     real, dimension(:,:,:), pointer :: modal_number        ! MAM modal numbers
@@ -4219,25 +4286,17 @@ subroutine MAMnet(state, rc)
     
     n_modes =  7 
     km = 72
-    allocate(num_4d(im, jm, km, n_modes))
-    allocate(sigma_4d(im, jm, km, n_modes)) 
-    allocate(density_4d(im, jm, km, n_modes)) 
-    allocate(hygroscopicity_4d(im, jm, km, n_modes))
-    allocate( diameter_4d(im, jm, km, n_modes))
-    allocate(f_dust_4d(im, jm, km, n_modes))
-    allocate(f_soot_4d(im, jm, km, n_modes))
-    allocate(f_organic_4d(im, jm, km, n_modes))
     allocate(modal_mass(im, jm, km))
     allocate(modal_number(im, jm, km))
      
     allocate(mass(im, jm, km, n_species))        
     !!!map numbernet_out to each mode
     mass = reshape(massnet_out,  (/im, jm, km, n_species/)) ![im, jm, 72, 24]
-    num_4d =  reshape(numnet_out, (/im, jm, km, n_modes/)) ![im, jm, 72, 7]    
-    num_4d =  0.0
+    num =  reshape(numnet_out, (/im, jm, km, n_modes/)) ![im, jm, 72, 7]    
+    num =  0.0
     !return number concentration to #/Kg
-    where ((num_4d .le. 18.0) .and. (num_4d .gt. -3.0))
-     num_4d =  10.0**num_4d 
+    where ((num .le. 18.0) .and. (num .gt. -3.0))
+     num =  10.0**num 
     end where 
     
     !!!!!!return mixing ratios to Kg/Kg and fill up the other properties
@@ -4245,13 +4304,13 @@ subroutine MAMnet(state, rc)
     mass  = 10.0**mass !remove log scaling
     
     !set default values
-    sigma_4d =  num_4d*0.0 + sig_acc
-    density_4d =  num_4d*0.0 + dens_SO4
-    hygroscopicity_4d =  num_4d*0.0  + k_SO4
-    diameter_4d =  num_4d*0.0 + 1.0e-9
-    f_dust_4d  =  num_4d*0.0 
-    f_soot_4d =  num_4d*0.0
-    f_organic_4d =  num_4d*0.0
+    sigma =  num*0.0 + sig_acc
+    density =  num*0.0 + dens_SO4
+    hygroscopicity =  num*0.0  + k_SO4
+    diameter =  num*0.0 + 1.0e-9
+    f_dust  =  num*0.0 
+    f_soot =  num*0.0
+    f_organic =  num*0.0
  
     !!!!!!!!!!!! mode 1: accumulation, species 1 to 6
     !'SU_A_ACC', 'SOA_A_ACC', 'SS_A_ACC', 'POM_A_ACC', 'BC_A_ACC', 'AMM_A_ACC'
@@ -4261,21 +4320,21 @@ subroutine MAMnet(state, rc)
     i2 = 6
     mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
     modal_mass =  sum(mass(:, :, :, i1:i2), 4)
-    modal_number = num_4d(:, :, :,1)
+    modal_number = num(:, :, :,1)
     
-    sigma_4d(:, :, :, 1) = sig_acc
+    sigma(:, :, :, 1) = sig_acc
         
     where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
-       hygroscopicity_4d(:, :, :, 1) =  (mass(:, :, :, 1)*k_SO4 + mass(:, :, :, 2)*k_ORG + mass(:, :, :, 3)*k_SS  &
+       hygroscopicity(:, :, :, 1) =  (mass(:, :, :, 1)*k_SO4 + mass(:, :, :, 2)*k_ORG + mass(:, :, :, 3)*k_SS  &
       					 + mass(:, :, :, 4)*k_ORG + mass(:, :, :, 5)*k_BC +  mass(:, :, :, 6)*k_SO4)/modal_mass !approximated by mass fraction
-       diameter_4d(:, :, :, 1) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_acc)*log(sig_acc))          
-       density_4d(:, :, :, 1) =  (mass(:, :, :, 1)*dens_SO4 + mass(:, :, :, 2)*dens_ORG + mass(:, :, :, 3)*dens_SS  &
+       diameter(:, :, :, 1) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_acc)*log(sig_acc))          
+       density(:, :, :, 1) =  (mass(:, :, :, 1)*dens_SO4 + mass(:, :, :, 2)*dens_ORG + mass(:, :, :, 3)*dens_SS  &
        							+ mass(:, :, :, 4)*dens_ORG + mass(:, :, :, 5)*dens_BC +  mass(:, :, :, 6)*dens_SO4) /modal_mass 
-       f_organic_4d(:, :, :, 1) =  (mass(:, :, :, 2) + mass(:, :, :, 4)) /modal_mass
-       f_soot_4d(:, :, :, 1) =  mass(:, :, :, 5) /modal_mass
+       f_organic(:, :, :, 1) =  (mass(:, :, :, 2) + mass(:, :, :, 4)) /modal_mass
+       f_soot(:, :, :, 1) =  mass(:, :, :, 5) /modal_mass
     end where
     
-    diameter_4d(:, :, :, 1)  = min(max(diameter_4d(:, :, :, 1), 0.056e-6), 0.26e-6) 
+    diameter(:, :, :, 1)  = min(max(diameter(:, :, :, 1), 0.056e-6), 0.26e-6) 
     
     
     !!!!!!!!!!!!! mode 2: aitken, species 7 to 10
@@ -4285,19 +4344,19 @@ subroutine MAMnet(state, rc)
     i2 = 10
     mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
     modal_mass =  sum(mass(:, :, :, i1:i2), 4)
-    modal_number = num_4d(:, :, :, 2)
+    modal_number = num(:, :, :, 2)
     
-    sigma_4d(:, :, :, 2) = sig_ait
+    sigma(:, :, :, 2) = sig_ait
     
     where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
-       hygroscopicity_4d(:, :, :, 2) =  (mass(:, :, :, 7)*k_SO4 + mass(:, :, :, 8)*k_ORG + mass(:, :, :, 9)*k_SS  &
+       hygroscopicity(:, :, :, 2) =  (mass(:, :, :, 7)*k_SO4 + mass(:, :, :, 8)*k_ORG + mass(:, :, :, 9)*k_SS  &
       								 +   mass(:, :, :, 10*k_SO4))/modal_mass    
-       diameter_4d(:, :, :, 2) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_ait)*log(sig_ait)) 
-       density_4d(:, :, :, 2) =  (mass(:, :, :, 7)*dens_SO4 + mass(:, :, :, 8)*dens_ORG + mass(:, :, :, 9)*dens_SS  &
+       diameter(:, :, :, 2) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_ait)*log(sig_ait)) 
+       density(:, :, :, 2) =  (mass(:, :, :, 7)*dens_SO4 + mass(:, :, :, 8)*dens_ORG + mass(:, :, :, 9)*dens_SS  &
       							 +  mass(:, :, :, 10)*dens_SO4) /modal_mass 
-       f_organic_4d(:, :, :, 2) =  mass(:, :, :, 8) /modal_mass
+       f_organic(:, :, :, 2) =  mass(:, :, :, 8) /modal_mass
     end where
-    diameter_4d(:, :, :, 2)  = min(max(diameter_4d(:, :, :, 2), 0.015e-6), 0.052e-6) 
+    diameter(:, :, :, 2)  = min(max(diameter(:, :, :, 2), 0.015e-6), 0.052e-6) 
  
    !!!!!!!!!!!!!!!!! mode 3: coarse dust, species 11 to 13
     !'SU_A_CDU', 'DU_A_CDU', 'AMM_A_CDU',
@@ -4306,18 +4365,18 @@ subroutine MAMnet(state, rc)
     i2 = 13
     mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
     modal_mass =  sum(mass(:, :, :, i1:i2), 4)
-    modal_number = num_4d(:, :, :, 3)
+    modal_number = num(:, :, :, 3)
     
-    sigma_4d(:, :, :, 3) = sig_cdu
+    sigma(:, :, :, 3) = sig_cdu
     
     where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
-       hygroscopicity_4d(:, :, :, 3) =  (mass(:, :, :, 11)*k_SO4 + mass(:, :, :, 12)*k_DU + mass(:, :, :, 13)*k_SO4)/modal_mass  
-       diameter_4d(:, :, :, 3) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_cdu)*log(sig_cdu))    
-       density_4d(:, :, :, 3) =  (mass(:, :, :, 11)*dens_SO4 + mass(:, :, :, 12)*dens_DU +  mass(:, :, :, 13)*dens_SO4) /modal_mass    
-       f_dust_4d(:, :, :, 3) =  mass(:, :, :, 12) /modal_mass
+       hygroscopicity(:, :, :, 3) =  (mass(:, :, :, 11)*k_SO4 + mass(:, :, :, 12)*k_DU + mass(:, :, :, 13)*k_SO4)/modal_mass  
+       diameter(:, :, :, 3) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_cdu)*log(sig_cdu))    
+       density(:, :, :, 3) =  (mass(:, :, :, 11)*dens_SO4 + mass(:, :, :, 12)*dens_DU +  mass(:, :, :, 13)*dens_SO4) /modal_mass    
+       f_dust(:, :, :, 3) =  mass(:, :, :, 12) /modal_mass
     end where
     
-    diameter_4d(:, :, :, 3)  = min(max(diameter_4d(:, :, :, 3), 0.59e-6), 2.75e-6) 
+    diameter(:, :, :, 3)  = min(max(diameter(:, :, :, 3), 0.59e-6), 2.75e-6) 
      
     !!!!!!! mode 4: coarse sea salt, species 14 to 16
     !'SU_A_CSS', 'SS_A_CSS', 'AMM_A_CSS',,
@@ -4326,16 +4385,16 @@ subroutine MAMnet(state, rc)
     i2 = 16
     mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
     modal_mass =  sum(mass(:, :, :, i1:i2), 4)
-    modal_number = num_4d(:, :, :, 4)
+    modal_number = num(:, :, :, 4)
     
-    sigma_4d(:, :, :, 4) = sig_css
+    sigma(:, :, :, 4) = sig_css
     
     where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
-       hygroscopicity_4d(:, :, :, 4) =  (mass(:, :, :, 14)*k_SO4 + mass(:, :, :, 15)*k_SS + mass(:, :, :, 16)*k_SO4)/modal_mass 
-       diameter_4d(:, :, :, 4) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_css)*log(sig_css))  
-       density_4d(:, :, :, 4) =  (mass(:, :, :, 14)*dens_SO4 + mass(:, :, :, 15)*dens_SS +  mass(:, :, :, 16)*dens_SO4) /modal_mass 
+       hygroscopicity(:, :, :, 4) =  (mass(:, :, :, 14)*k_SO4 + mass(:, :, :, 15)*k_SS + mass(:, :, :, 16)*k_SO4)/modal_mass 
+       diameter(:, :, :, 4) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_css)*log(sig_css))  
+       density(:, :, :, 4) =  (mass(:, :, :, 14)*dens_SO4 + mass(:, :, :, 15)*dens_SS +  mass(:, :, :, 16)*dens_SO4) /modal_mass 
     end where     
-    diameter_4d(:, :, :, 4) =   min(max(diameter_4d(:, :, :, 3), 0.63e-6), 3.7e-6)  
+    diameter(:, :, :, 4) =   min(max(diameter(:, :, :, 3), 0.63e-6), 3.7e-6)  
     
     
     !!!!!!!!!!!! mode 5: fine dust, species 17 to 19
@@ -4345,17 +4404,17 @@ subroutine MAMnet(state, rc)
     i2 = 19
     mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
     modal_mass =  sum(mass(:, :, :, i1:i2), 4)
-    modal_number = num_4d(:, :, :, 5)
+    modal_number = num(:, :, :, 5)
     
-    sigma_4d(:, :, :, 5) = sig_fdu
+    sigma(:, :, :, 5) = sig_fdu
     
     where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
-       hygroscopicity_4d(:, :, :, 5) =  (mass(:, :, :, 17)*k_SO4 + mass(:, :, :, 18)*k_DU + mass(:, :, :, 19)*k_SO4)/modal_mass 
-       diameter_4d(:, :, :, 5) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_fdu)*log(sig_fdu))  
-       density_4d(:, :, :, 5) =  (mass(:, :, :, 17)*dens_SO4 + mass(:, :, :, 18)*dens_DU +  mass(:, :, :, 19)*dens_SO4) /modal_mass 
-       f_dust_4d(:, :, :, 5) =  mass(:, :, :, 18) /modal_mass
+       hygroscopicity(:, :, :, 5) =  (mass(:, :, :, 17)*k_SO4 + mass(:, :, :, 18)*k_DU + mass(:, :, :, 19)*k_SO4)/modal_mass 
+       diameter(:, :, :, 5) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_fdu)*log(sig_fdu))  
+       density(:, :, :, 5) =  (mass(:, :, :, 17)*dens_SO4 + mass(:, :, :, 18)*dens_DU +  mass(:, :, :, 19)*dens_SO4) /modal_mass 
+       f_dust(:, :, :, 5) =  mass(:, :, :, 18) /modal_mass
     end where
-     diameter_4d(:, :, :, 5)  = min(max(diameter_4d(:, :, :, 5), 0.14e-6), 0.62e-6)    
+     diameter(:, :, :, 5)  = min(max(diameter(:, :, :, 5), 0.14e-6), 0.62e-6)    
    
     !!!!!!!! mode 6: fine sea salt, species 20 to 22
     !'SU_A_FSS', 'SS_A_FSS', 'AMM_A_FSS',
@@ -4364,16 +4423,16 @@ subroutine MAMnet(state, rc)
     i2 = 22
     mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
     modal_mass =  sum(mass(:, :, :, i1:i2), 4)
-    modal_number = num_4d(:, :, :, 6)
+    modal_number = num(:, :, :, 6)
     
-    sigma_4d(:, :, :, 6) = sig_fss
+    sigma(:, :, :, 6) = sig_fss
     
     where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
-       hygroscopicity_4d(:, :, :, 6) =  (mass(:, :, :, 20)*k_SO4 + mass(:, :, :, 21)*k_SS + mass(:, :, :, 22)*k_SO4)/modal_mass 
-       diameter_4d(:, :, :, 6) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_fss)*log(sig_fss))  
-       density_4d(:, :, :, 6) =  (mass(:, :, :, 20)*dens_SO4 + mass(:, :, :, 21)*dens_SS +  mass(:, :, :, 22)*dens_SO4) /modal_mass 
+       hygroscopicity(:, :, :, 6) =  (mass(:, :, :, 20)*k_SO4 + mass(:, :, :, 21)*k_SS + mass(:, :, :, 22)*k_SO4)/modal_mass 
+       diameter(:, :, :, 6) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_fss)*log(sig_fss))  
+       density(:, :, :, 6) =  (mass(:, :, :, 20)*dens_SO4 + mass(:, :, :, 21)*dens_SS +  mass(:, :, :, 22)*dens_SO4) /modal_mass 
     end where    
-        diameter_4d(:, :, :, 6)  = min(max(diameter_4d(:, :, :, 6), 0.095e-6), 0.56e-6) 
+        diameter(:, :, :, 6)  = min(max(diameter(:, :, :, 6), 0.095e-6), 0.56e-6) 
 
     !!!!!!! mode 7: primary organic matter, species 23 to 24
     !'POM_A_PCM', 'BC_A_PCM'
@@ -4383,47 +4442,42 @@ subroutine MAMnet(state, rc)
     i2 = 24
     mass(:, :, :, i1:i2)  =  mass(:, :, :, i1:i2)*scale_factor
     modal_mass =  sum(mass(:, :, :, i1:i2), 4)
-    modal_number = num_4d(:, :, :, 7)
+    modal_number = num(:, :, :, 7)
     
-    sigma_4d(:, :, :, 7) = sig_pcm
+    sigma(:, :, :, 7) = sig_pcm
     
     where ((modal_mass .gt. 0.0 ) .and.  (modal_number .gt. 0.0 )) 
-       hygroscopicity_4d(:, :, :, 7) =  (mass(:, :, :, 23)*k_ORG + mass(:, :, :, 24)*k_BC)/modal_mass 
-       diameter_4d(:, :, :, 7) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_pcm)*log(sig_pcm)) 
-       density_4d(:, :, :, 7) =  (mass(:, :, :, 23)*dens_ORG + mass(:, :, :, 24)*dens_BC) /modal_mass
-       f_organic_4d(:, :, :, 7) =  mass(:, :, :, 23) /modal_mass
-       f_soot_4d(:, :, :, 7) =  mass(:, :, :, 24) /modal_mass
+       hygroscopicity(:, :, :, 7) =  (mass(:, :, :, 23)*k_ORG + mass(:, :, :, 24)*k_BC)/modal_mass 
+       diameter(:, :, :, 7) =   ((modal_mass/modal_number)**(1./3.))*exp(-3.0*log(sig_pcm)*log(sig_pcm)) 
+       density(:, :, :, 7) =  (mass(:, :, :, 23)*dens_ORG + mass(:, :, :, 24)*dens_BC) /modal_mass
+       f_organic(:, :, :, 7) =  mass(:, :, :, 23) /modal_mass
+       f_soot(:, :, :, 7) =  mass(:, :, :, 24) /modal_mass
     end where
-    diameter_4d(:, :, :, 7)  = min(max(diameter_4d(:, :, :, 7), 0.039e-6), 0.13e-6) 
+    diameter(:, :, :, 7)  = min(max(diameter(:, :, :, 7), 0.039e-6), 0.13e-6) 
     
     
-    !Trick to pass it as a 3d array
+    !set limits to avoid instability
     
-    km =  72*n_modes
-    num =  reshape(num_4d, (/im, jm, km/))
-    hygroscopicity =  reshape(hygroscopicity_4d, (/im, jm, km/))
-    diameter =  reshape(diameter_4d, (/im, jm, km/))
-    density =  reshape(density_4d, (/im, jm, km/))
-    f_dust =  reshape(f_dust_4d, (/im, jm, km/))
-    f_organic =  reshape(f_organic_4d, (/im, jm, km/))
-    f_soot =  reshape(f_soot_4d, (/im, jm, km/))
+    density =  min(max(900.0, density), 2200.0)
+    hygroscopicity =  min(max(0.00, hygroscopicity), 1.5)
+    diameter =  min(max(1.0e-9, diameter), 1.e-4)
+    f_dust  =  min(max(f_dust, 0.0), 1.0) 
+    f_soot =  min(max(f_soot, 0.0), 1.0) 
+    f_organic =  min(max(f_organic, 0.0), 1.0) 
+    num =  min(max(num, 0.0), 1.0e12)
 
+
+
+   !deallocate(q)
+   !deallocate(q_)
    deallocate(q_reshaped)
    deallocate(massnet_in) 
    deallocate(numnet_out)
    deallocate(massnet_out)   
    deallocate (mass)
-   deallocate (num_4d)
-   deallocate(q)
-   deallocate(q_)
    
-   deallocate(sigma_4d) 
-   deallocate(density_4d) 
-   deallocate(hygroscopicity_4d)
-   deallocate( diameter_4d)
-   deallocate(f_dust_4d)
-   deallocate(f_soot_4d)
-   deallocate(f_organic_4d)
+   
+
    deallocate(modal_mass)
    deallocate(modal_number)
       
