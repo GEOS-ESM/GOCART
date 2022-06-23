@@ -11,11 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `.editorconfig` file
   - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
+- Add YAML validator GitHub Action
+  - This action makes sure all YAML files are valid (to a very relaxed standard)
 
 ### Fixed
 - Added protection guard for pointer DU_SRC. fixed issue #148
 - Initialized pointers by allocation instead of assignment. fixed issue #127
-- Removed ExtData2G yaml files from all AMIP.20C directories as these are not needed anymore 
+- Removed ExtData2G yaml files from all AMIP.20C directories as these are not needed anymore
 
 ### Changed
 
@@ -23,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix bug in getAerosolSum
 - more hard-coded name changes for Issue #93
 - Fixed bug in MieQuery.H, shape of not present variable is used
-- remove logic dinosaur "goto" 
+- remove logic dinosaur "goto"
 - Removed some print statements that have been commented out.
 - Update `CODEOWNERS` file to make approvals less restrictive
 - Updated the CircleCI to use circleci-tools 0.13.0 orb
