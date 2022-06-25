@@ -312,6 +312,15 @@ contains
        dims       = MAPL_DimsHorzOnly,                            &
        datatype   = MAPL_BundleItem, __RC__)
 
+!   Field bundle for internally mixed species
+!   ---------------------------------------------------------------
+    call MAPL_AddExportSpec(GC,                       &
+       short_name = 'imDU',                           &
+       long_name  = 'internally mixed DU fields',     &
+       dims       = MAPL_DimsHorzVert,                &
+       vlocation  = MAPL_VLocationCenter,             &
+       datatype   = MAPL_BundleItem, __RC__)
+
 !   Store internal state in GC
 !   --------------------------
     call ESMF_UserCompSetInternalState ( GC, 'DU2G_GridComp', wrap, STATUS )
@@ -703,6 +712,15 @@ contains
     real, dimension(:,:), allocatable   :: H_w_
     real, dimension(:,:), allocatable   :: f_erod_
 
+    ! For internally mixed species calcs (M.Long)
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr
+    integer                            :: nIMFields, nn, IMitemCount
+    real, allocatable                  :: IMbinsplit(:), IMbinemisfrac(:), dDU(:,:,:,:)
+    character(len=ESMF_MAXSTR)         :: attributeName
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    type (ESMF_FieldBundle)            :: imDU ! Internally mixed species bundle
+
 #include "DU2G_DeclarePointer___.h"
 
    __Iam__('Run1')
@@ -740,6 +758,9 @@ contains
 #include "DU2G_GetPointer___.h"
     end associate
 
+    call ESMF_StateGet (export, 'imDU' , imDU, __RC__)
+    allocate(dDU, mold=DU, __STAT__)
+
 !   Set du_src to 0 where undefined
 !   --------------------------------
     where (1.01*du_src > MAPL_UNDEF) du_src = 0.
@@ -757,6 +778,9 @@ contains
     emissions_point = 0.0
     allocate(emissions_surface(i2,j2,self%nbins), __STAT__)
     emissions_surface = 0.0
+
+!   Set initial DU
+    dDU = DU
 
 !   Get surface gridded emissions
 !   -----------------------------
@@ -855,6 +879,46 @@ contains
                              self%sfrac, self%nPts, self%km, self%CDT, MAPL_GRAV, &
                              self%nbins, delp, DU, __RC__)
 
+    ! Calc delta DU
+    dDU = DU - dDU
+
+    do n = 1, self%nbins
+       !-------------------------
+       !-------------------------
+       ! Internally mixed species
+       write( attributeName, '(A3,I0)') 'bin', n             ! Number of IM fields in this bin
+       call ESMF_AttributeGet( imDU, attributeName, value=nIMFields, defaultvalue=0, __RC__ )
+       if (nIMFields .eq. 0) cycle ! Nothing to do
+       ! Proceed
+       allocate( IMbinsplit(nIMFields), IMbinemisfrac(nIMFields), IMFieldNameList(nIMFields), __STAT__ )
+
+       ! Get IM Field names
+       write( attributeName, '(A3,I0,A11)') 'bin', n,'_fieldnames'
+       call ESMF_AttributeGet( imDU, attributeName, valueList=IMFieldNameList, __RC__ )
+
+       ! Get IM bin split factors
+       write( attributeName, '(A3,I0,A6)') 'bin', n,'_split'
+       call ESMF_AttributeGet( imDU, attributeName, valueList=IMBinSplit, __RC__ )
+
+       ! Get bin emis factors
+       write( attributeName, '(A3,I0,A9)') 'bin', n,'_emisfrac'
+       call ESMF_AttributeGet( imDU, attributeName, valueList=IMBinEmisFrac, __RC__ )
+
+       !-------------------------
+       do nn=1,nIMFields
+          ! Get field from bundle
+          call ESMF_FieldBundleGet( imDU, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
+          call ESMF_FieldGet( IMField, fArrayPtr=IMFieldPtr, __RC__ )
+          ! Apply tendency
+          IMFieldPtr = IMFieldPtr + IMbinsplit(nn)*IMbinemisfrac(nn)*dDU(:,:,:,n)
+          IMFieldPtr => null()
+       enddo
+       deallocate( IMFieldNameList, IMBinSplit, IMBinEmisFrac )
+       !-------------------------
+       !-------------------------
+    end do
+    deallocate(dDU)
+
     if (associated(DUEM)) then
        DUEM = sum(emissions, dim=3)
     end if
@@ -907,6 +971,15 @@ contains
 
     REAL,               POINTER  :: PTR3d(:,:,:) => NULL()
 
+    ! For internally mixed species calcs (M.Long)
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr
+    integer                            :: nIMFields, nn, IMitemCount
+    real, allocatable                  :: IMbinsplit(:), dDU(:,:,:,:)
+    character(len=ESMF_MAXSTR)         :: attributeName
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    type (ESMF_FieldBundle)            :: imDU ! Internally mixed species bundle
+
     __Iam__('Run2')
 
 !*****************************************************************************
@@ -937,6 +1010,12 @@ contains
 
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
+    
+    call ESMF_StateGet (export, 'imDU' , imDU, __RC__)
+    allocate(dDU, mold=DU, __STAT__)
+
+!   Set initial DU
+    dDU = DU
 
 !   Dust Settling
 !   -------------
@@ -989,13 +1068,43 @@ contains
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
                             DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
 
-   ! Fill the dust exports to sent to GEOS-Chem (GEOSChem-chem)
-    DST1 = DU(:,:,:,1)
-    DST2 = DU(:,:,:,2)
-    DST3 = DU(:,:,:,3)
-    DST4 = DU(:,:,:,4)
+   ! Calc delta DU
+   dDU = DU - dDU
 
-    RETURN_(ESMF_SUCCESS)
+   do n = 1, self%nbins
+      !-------------------------
+      !-------------------------
+      ! Internally mixed species
+      write( attributeName, '(A3,I0)') 'bin', n             ! Number of IM fields in this bin
+      call ESMF_AttributeGet( imDU, attributeName, value=nIMFields, defaultvalue=0, __RC__ )
+      if (nIMFields .eq. 0) cycle ! Nothing to do
+      ! Proceed
+      allocate( IMbinsplit(nIMFields), IMFieldNameList(nIMFields), __STAT__ )
+
+      ! Get IM Field names
+      write( attributeName, '(A3,I0,A11)') 'bin', n,'_fieldnames'
+      call ESMF_AttributeGet( imDU, attributeName, valueList=IMFieldNameList, __RC__ )
+
+      ! Get IM bin split factors
+      write( attributeName, '(A3,I0,A6)') 'bin', n,'_split'
+      call ESMF_AttributeGet( imDU, attributeName, valueList=IMBinSplit, __RC__ )
+
+      !-------------------------
+      do nn=1,nIMFields
+         ! Get field from bundle
+         call ESMF_FieldBundleGet( imDU, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
+         call ESMF_FieldGet( IMField, fArrayPtr=IMFieldPtr, __RC__ )
+         ! Apply tendency
+         IMFieldPtr = IMFieldPtr + IMbinsplit(nn)*dDU(:,:,:,n)
+         IMFieldPtr => null()
+      enddo
+      deallocate( IMFieldNameList, IMBinSplit )
+      !-------------------------
+      !-------------------------
+   end do
+   deallocate(dDU)
+
+   RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2
 

@@ -206,39 +206,16 @@ contains
 !   M.Long - GCC/G2G
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'DST1',  &
-       CHILD_ID           = self%DU%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'DST2',  &
-       CHILD_ID           = self%DU%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'DST3',  &
-       CHILD_ID           = self%DU%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'DST4',  &
-       CHILD_ID           = self%DU%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-
-    call MAPL_AddExportSpec(GC, &
        SHORT_NAME         = 'imSS',  &
        CHILD_ID           = self%SS%instances(1)%id, &
        RC=STATUS  )
     _VERIFY(STATUS)
 
-!    call MAPL_AddExportSpec(GC,                       &
-!       short_name = 'imSS',                           &
-!       long_name  = 'internally mixed SS fields',     &
-!       dims       = MAPL_DimsHorzVert,                &
-!       vlocation  = MAPL_VLocationCenter,             &
-!       datatype   = MAPL_BundleItem, __RC__)
-
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'imDU',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
 
 #include "GOCART2G_Export___.h"
 
@@ -547,6 +524,9 @@ contains
 
     integer                             :: i
 
+    type(ESMF_FieldBundle)              :: imSS, imDU ! Internal mixture fields
+    type (wrap_)                        :: wrap
+    type (GOCART_State),       pointer  :: self
     __Iam__('Run1')
 
 !****************************************************************************
@@ -566,6 +546,15 @@ contains
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
+
+!   Get internal mixture bundles
+!   ---------------------
+    !   Get my internal state
+    call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
+    call ESMF_StateGet (gex(self%SS%instances(1)%id), 'imSS', imSS, __RC__ )
+    call ESMF_StateGet (gex(self%DU%instances(1)%id), 'imDU', imDU, __RC__ )
 
 !   Run the children
 !   -----------------
@@ -607,6 +596,7 @@ contains
     type (ESMF_State),         pointer  :: gex(:)
     type (ESMF_State)                   :: internal
     type (GOCART_State),       pointer  :: self
+    type (ESMF_FieldBundle)             :: imSS, imDU ! Internal mixture fields
 
     type (wrap_)                        :: wrap
     character(len=ESMF_MAXSTR)          :: child_name
@@ -646,10 +636,6 @@ contains
     real, allocatable               :: tau1(:,:), tau2(:,:)
     real                            :: c1, c2, c3
     integer                         :: ind550
-
-    ! MSL - GEOS-Chem/GOCART2G interface
-    REAL(ESMF_KIND_R8), POINTER  :: Ptr3d_R8(:,:,:) => NULL()
-    REAL, POINTER  :: DST1(:,:,:), DST2(:,:,:), DST3(:,:,:), DST4(:,:,:)
 
 #include "GOCART2G_DeclarePointer___.h"
 
@@ -776,14 +762,8 @@ contains
              tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
           end if
        end if
+       call ESMF_StateGet (gex(self%DU%instances(n)%id), 'imDU', imDU, __RC__ ) ! get internal mixture fields
     end do
-
-!    if ((self%DU%instances(1)%is_active) .and. (index(self%DU%instances(1)%name, 'data') == 0 )) then
-       call MAPL_GetPointer(gex(self%DU%instances(1)%id), DST1, 'DST1', __RC__) ! HARDWIRED TO 1! NOT SURE HOW TO GET AROUND IT!
-       call MAPL_GetPointer(gex(self%DU%instances(1)%id), DST2, 'DST2', __RC__) ! HARDWIRED TO 1! NOT SURE HOW TO GET AROUND IT!
-       call MAPL_GetPointer(gex(self%DU%instances(1)%id), DST3, 'DST3', __RC__) ! HARDWIRED TO 1! NOT SURE HOW TO GET AROUND IT!
-       call MAPL_GetPointer(gex(self%DU%instances(1)%id), DST4, 'DST4', __RC__) ! HARDWIRED TO 1! NOT SURE HOW TO GET AROUND IT!
-!    endif
 
 !   Sea Salt
     do n = 1, size(self%SS%instances)
@@ -824,6 +804,7 @@ contains
              tau2 = tau2 + ssexttau(:,:,ind550)*exp(c2*ssangstr)
           end if
        end if
+       call ESMF_StateGet (gex(self%SS%instances(n)%id), 'imSS', imSS, __RC__ ) ! Get internal mixture fields
     end do
 
 !   Nitrates - NOTE! Nitrates currently only support one active instance
