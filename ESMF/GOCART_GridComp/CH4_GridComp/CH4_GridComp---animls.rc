@@ -2,9 +2,6 @@
 # Resource file for CH4 parameters. 
 #
 
-# Not set here
-# number_CH4_bins: 1
-
 # Indicate regions using a comma-delimited list of integers.
 # To activate all land boxes, use -1, or all or global (not case sensitive)
 # -------------------------------------------------------------------------
