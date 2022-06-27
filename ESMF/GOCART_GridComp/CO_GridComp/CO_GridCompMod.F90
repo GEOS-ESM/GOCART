@@ -779,6 +779,7 @@ CONTAINS
 !  -----------------------
    REAL, POINTER, DIMENSION(:,:)   ::  pblh  => null()
    REAL, POINTER, DIMENSION(:,:,:) ::  T     => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  Q     => null()
    REAL, POINTER, DIMENSION(:,:,:) ::  rhoa  => null()
    REAL, POINTER, DIMENSION(:,:,:) ::  zle   => null()
 
@@ -796,9 +797,9 @@ CONTAINS
    REAL    :: qmin, qmax, toMass, c2co
    REAL    :: fiso, fmtn, fmon
 
-   REAL, ALLOCATABLE :: CH4nd(:,:,:)
+   REAL, ALLOCATABLE :: CH4nd(:,:,:)   ! molec/m3
    REAL, ALLOCATABLE :: OHnd(:,:,:)
-   REAL, ALLOCATABLE :: pe(:,:,:),p(:,:,:),nd(:,:,:)
+   REAL, ALLOCATABLE :: pe(:,:,:),p(:,:,:),nd(:,:,:),nd_moist(:,:,:)
    REAL, ALLOCATABLE :: rkoh(:,:,:),rkch4(:,:,:)
 
    real, pointer, dimension(:,:,:) :: ptr3d => null()
@@ -875,9 +876,18 @@ CONTAINS
 ! Background CH4, for source term.
 ! NOTE: Return zeroes in all but the global instantiation.
 ! --------------------------------------------------------
-    call MAPL_GetPointer(impChem, ptr3d, 'CO_CH4'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%CH4 = ptr3d
+    ! For the full CO instance, use online CH4 if available
+    IF ( len(TRIM(iNAME)).EQ.0 .AND. w_c%reg%doing_CH4 ) THEN
+       ! Use FIRST instance of CH4, which should be full
+       ! Units: internal state CH4 is volume mixing ratio wrt moist air
+       ! Units conversion occurs later in this routine (search for doing_CH4)
+       ! --------------------------------------------------------------------
+       gcCO%CH4(:,:,:) = w_c%qa(w_c%reg%i_CH4)%data3d(:,:,:)
+    ELSE
+       call MAPL_GetPointer(impChem, ptr3d, 'CO_CH4'//iNAME,rc=status)
+       VERIFY_(STATUS)
+       gcCO%CH4 = ptr3d
+    END IF
 
 ! Biofuel source
 ! --------------
@@ -936,6 +946,7 @@ CONTAINS
 !  Allocate temporary workspace
 !  ----------------------------
    allocate ( pe(i1:i2,j1:j2,km+1), p(i1:i2,j1:j2,km), nd(i1:i2,j1:j2,km), &
+              nd_moist(i1:i2,j1:j2,km), &
               rkoh(i1:i2,j1:j2,km), rkch4(i1:i2,j1:j2,km), &
               CH4nd(i1:i2,j1:j2,km), OHnd(i1:i2,j1:j2,km), stat = ios )
 
@@ -963,8 +974,9 @@ CONTAINS
    call MAPL_GetPointer( impChem, T,     'T',       rc=ier(2) ) 
    call MAPL_GetPointer( impChem, rhoa,  'AIRDENS', rc=ier(3) ) 
    call MAPL_GetPointer( impChem, zle,   'ZLE',     rc=ier(4) ) 
+   call MAPL_GetPointer( impChem, Q,     'Q',       rc=ier(5) ) 
 
-   if ( any(ier(1:4) /= 0) ) then
+   if ( any(ier(1:5) /= 0) ) then
         rc = 10
         return
    end if
@@ -981,10 +993,23 @@ CONTAINS
    nd(i1:i2,j1:j2,1:km)= nsuba*p(i1:i2,j1:j2,1:km)/ &
                         (rstar*t(i1:i2,j1:j2,1:km))
 
+!  Moist air number density  (molec/m3)
+!  ------------------------------------
+!  nd_moist = (MAPL_AVOGAD * p) / (MAPL_RUNIV * TV)
+   nd_moist = (MAPL_AVOGAD * p) / (MAPL_RUNIV * (T * (1.0 + Q/MAPL_EPSILON)/(1.0 + Q)) )
+
+
 !  CH4 number density.  CH4 on file is in mole fraction.
 !  -----------------------------------------------------
-   CH4nd(i1:i2,j1:j2,1:km)=gcCO%CH4(i1:i2,j1:j2,1:km)* &
-                                 nd(i1:i2,j1:j2,1:km)
+   ! For the full CO instance, use online CH4 if available
+   ! It is VMR wrt Moist Air; convert to molec/m3:
+   IF ( len(TRIM(iNAME)).EQ.0 .AND. w_c%reg%doing_CH4 ) THEN
+     CH4nd(i1:i2,j1:j2,1:km)=gcCO%CH4(i1:i2,j1:j2,1:km)* &
+                             nd_moist(i1:i2,j1:j2,1:km)
+   ELSE
+     CH4nd(i1:i2,j1:j2,1:km)=gcCO%CH4(i1:i2,j1:j2,1:km)* &
+                                   nd(i1:i2,j1:j2,1:km)
+   END IF
 
 !  OH number density. Handle mole fraction or number density.
 !  ----------------------------------------------------------
@@ -1098,7 +1123,7 @@ CONTAINS
 
 !  Housekeeping
 !  ------------
-   DEALLOCATE(nd,p,pe,rkoh,rkch4,CH4nd,OHnd,STAT=ier(1))
+   DEALLOCATE(nd,nd_moist,p,pe,rkoh,rkch4,CH4nd,OHnd,STAT=ier(1))
 
    RETURN
 
