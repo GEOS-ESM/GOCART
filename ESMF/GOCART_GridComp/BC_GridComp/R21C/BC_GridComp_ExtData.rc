@@ -4,7 +4,7 @@ PrimaryExports%%
 #  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
 # QFED v2.x
-BC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/chemistry/QFED/v2.5r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
+BC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.061.%y4%m2%d2.nc4
 
 # Biofuel Source -- Included in AeroCom anthropogenic emissions
 BC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
