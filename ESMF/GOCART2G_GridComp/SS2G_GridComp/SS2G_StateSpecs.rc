@@ -41,8 +41,6 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
- SALA      | kg kg-1    | xyz | C   |            | SALA
- SALC      | kg kg-1    | xyz | C   |            | SALC
  SSMASS    | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio
  SSMASS25  | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio - PM 2.5
  SSCONC    | kg m-3     | xyz | C   |            | Sea Salt Mass Concentration
@@ -78,7 +76,7 @@ category: INTERNAL
 #----------------------------------------------------------------------------------------
   NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
 #----------------------------------------------------------------------------------------
- SS    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio (bin %d)
+ SS    |kg kg-1  | xyz | C   | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio (bin %d)
 
 
 #********************************************************
