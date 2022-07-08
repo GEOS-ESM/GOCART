@@ -1,5 +1,9 @@
 version: 2.1
 
+# Anchors to prevent forgetting to update a version
+baselibs_version: &baselibs_version v7.5.0
+bcs_version: &bcs_version v10.22.3
+
 orbs:
   ci: geos-esm/circleci-tools@1
 
@@ -14,6 +18,7 @@ workflows:
           matrix:
             parameters:
               compiler: [gfortran, ifort]
+          baselibs_version: *baselibs_version
           repo: GOCART
           buildtarget: GOCART2G_GridComp
           mepodevelop: true
@@ -27,6 +32,7 @@ workflows:
           matrix:
             parameters:
               compiler: [gfortran, ifort]
+          baselibs_version: *baselibs_version
           repo: GEOSgcm
           checkout_fixture: true
           mepodevelop: true
