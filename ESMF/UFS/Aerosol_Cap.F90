@@ -6,6 +6,7 @@ module Aerosol_Cap
   use NUOPC
   use NUOPC_Model, only : &
     NUOPC_ModelGet, &
+    SetVM, &
     model_routine_SS            => SetServices,          &
     model_routine_Run           => routine_Run,          &
     model_label_Advance         => label_Advance,        &
@@ -75,6 +76,7 @@ module Aerosol_Cap
   private
 
   public :: SetServices
+  public :: SetVM
 
 contains
 

@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up optional keyword arguments in call to Mie calculator for aerosol
   radiative forcing calculation; zero diff change
 - Simplified loading of radiation MieTables.
-
+- Added SetVM in UFS Aerosol Cap for ESMF managed threading
 
 ## [2.0.7] - 2021-04-29
 
