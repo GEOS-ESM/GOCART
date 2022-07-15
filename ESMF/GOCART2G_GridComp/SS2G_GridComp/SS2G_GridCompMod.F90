@@ -13,7 +13,6 @@ module SS2G_GridCompMod
    use MAPL
    use Chem_MieTableMod2G
    use Chem_AeroGeneric
-!   use Chem_InternalMixtureMod
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
@@ -658,7 +657,6 @@ contains
     real, allocatable                  :: IMbinemisfrac(:)
     character(len=ESMF_MAXSTR)         :: attributeName
     character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
-    logical                            :: lmixstate
     integer, allocatable               :: IMBins(:)
     
     ! TESTING. MSL
@@ -721,48 +719,6 @@ contains
 
     fhoppel = 1.0
 
-!>>> THE CODE BELOW 'WORKS' BUT THE DM Fields and SS have diverged by the time
-!>>> we get to SS2G::Run1. It's here now just in case we need to revisit this -- MSL
-!>>>    if (FIRST) then
-!>>>       first = .false. ! Turn off the toggle
-!>>>       !-------------------------
-!>>>       ! If FIRST timestep, we need to synchronize the internal mixtures from GCC with the aerosol 
-!>>>       ! distribution in SS2G. This prevents instability due to inconsistent fields between GCC
-!>>>       ! and GOCART2G in the case of a spin up run or when a restart file is missing.
-!>>>       
-!>>>       call ESMF_FieldBundleGet( imSS, fieldCount=nIMFields,  __RC__ )
-!>>>       allocate (IMfieldNameList(nIMFields), __STAT__)
-!>>>       call ESMF_FieldBundleGet( imSS, fieldNameList=IMfieldNameList, __RC__ )
-!>>>       
-!>>>       ! -- Cycle through IM fields
-!>>>       do nn=1,nIMFields
-!>>>          ! -- Determine which GCC species (parent) IM field is mixed with
-!>>>          call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
-!>>>          call ESMF_AttributeGet( IMField, 'directly_mixed', value=lmixstate, defaultvalue=.false., __RC__ )
-!>>>          if (lmixstate) cycle ! Not an IM field
-!>>>          call ESMF_AttributeGet( IMField, 'internally_mixed_with',      value=attributeValue, __RC__ )
-!>>>          call ESMF_AttributeGet( IMField, 'internally_mixed_nbins',     value=nIMBins,        __RC__ )
-!>>>          allocate(IMBins(nIMBins))
-!>>>          call ESMF_AttributeGet( IMField, 'internally_mixed_with_bins', valuelist=IMBins,     __RC__ )
-!>>>          ! -- Get parent & IM fields
-!>>>          call ESMFL_BundleGetPointerToData( imSS, trim(attributeValue),      DMFieldPtr,      __RC__ )
-!>>>          call ESMFL_BundleGetPointerToData( imSS, trim(ImFieldNameList(nn)), IMFieldPtr,      __RC__ )
-!>>>          allocate( IMRatio, mold=IMFieldPtr, __STAT__ )
-!>>>          where (DMFieldPtr .gt. 1e-32 .and. IMFieldPtr .gt. 1e-32 ) 
-!>>>             IMRatio = IMFieldPtr/DMFieldPtr
-!>>>          elsewhere
-!>>>             IMRatio = 1e-32
-!>>>          endwhere
-!>>>          ! -- Project SS onto IMField
-!>>>          IMFieldPtr = sum(SS(:,:,:,IMBins),4)*IMRatio
-!>>>          IMFieldPtr => null()
-!>>>          DMFieldPtr => null()
-!>>>          deallocate(IMBins,IMRatio)
-!>>>       enddo
-!>>>       deallocate(IMfieldNameList)
-!>>>    endif
-    !-------------------------
-    
     do n = 1, self%nbins
        memissions = 0.
        nemissions = 0.
@@ -803,11 +759,10 @@ contains
 
        !-------------------------
        do nn=1,nIMFields
+          if (IMbinemisfrac(nn) .eq. 0.) cycle
           ! Get field from bundle
           call ESMFL_BundleGetPointerToData( imSS, trim(IMFieldNameList(nn)), IMFieldPtr, __RC__ )
           call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
-          call ESMF_AttributeGet( IMField, 'directly_mixed', value=lmixstate, defaultvalue=.false., __RC__ )
-          if (lmixstate) cycle ! Not an IM field
           ! Apply tendency
           IMFieldPtr(:,:,self%km) = IMFieldPtr(:,:,self%km) + IMbinemisfrac(nn)*dqa
           IMFieldPtr => null()
@@ -817,30 +772,6 @@ contains
        !-------------------------
 
     end do !n = 1
-
-! DIRECTLY MIXED
-    ! -- Cycle through DM fields
-    call ESMF_FieldBundleGet( imSS, fieldCount=nIMFields,  __RC__ )
-    allocate (IMfieldNameList(nIMFields), __STAT__)
-    call ESMF_FieldBundleGet( imSS, fieldNameList=IMfieldNameList, __RC__ )
-       
-    do nn=1,nIMFields
-       ! -- Determine which GCC species (parent) IM field is mixed with
-       call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
-       call ESMF_AttributeGet( IMField, 'directly_mixed', value=lmixstate, defaultvalue=.false., __RC__ )
-       if (.not. lmixstate) cycle ! Not a DM field
-       call ESMF_AttributeGet( IMField, 'directly_mixed_nbins',     value=nIMBins,        __RC__ )
-       allocate(IMBins(nIMBins))
-       call ESMF_AttributeGet( IMField, 'directly_mixed_with_bins',  valuelist=IMBins, __RC__ )
-       ! -- 
-       call ESMFL_BundleGetPointerToData( imSS, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
-       ! -- 
-       IMFieldPtr = sum(SS(:,:,:,IMBins),4)
-       IMFieldPtr => null()
-       deallocate(IMBins)
-    enddo
-    deallocate(IMfieldNameList)
-! END DIRECTLY MIXED
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
@@ -888,7 +819,6 @@ contains
     character(len=ESMF_MAXSTR)         :: attributeName
     character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
     type (ESMF_FieldBundle)            :: imSS ! Internally mixed species bundle
-    logical                            :: lmixstate
     integer, allocatable               :: IMBins(:)
 
 #include "SS2G_DeclarePointer___.h"
@@ -939,13 +869,11 @@ contains
     do n = 1, nIMFields
        ! Get field from bundle
        call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(n)), field=IMField, __RC__ )
-       ! Test if an IM or DM field
-       call ESMF_AttributeGet( IMField, 'directly_mixed', value=lmixstate, defaultvalue=.false., __RC__ )
-       if (lmixstate) cycle ! Not an IM field
        ! Get data pointer
        call ESMFL_BundleGetPointerToData( imSS, trim(IMFieldNameList(n)), IMFieldPtr, __RC__ )
        ! Set up attribute qtys
-       call ESMF_AttributeGet( IMField, 'internally_mixed_nbins',     value=nIMBins,        __RC__ )
+       call ESMF_AttributeGet( IMField, 'internally_mixed_nbins',     value=nIMBins, defaultValue=0, __RC__ )
+       if (nIMBins .eq. 0) cycle
        allocate(IMBins(nIMBins))
        call ESMF_AttributeGet( IMField, 'internally_mixed_with_bins',  valuelist=IMBins, __RC__ )
        ! Compute settling
@@ -1020,8 +948,6 @@ contains
 !   IM Fields: This is independent of bin-specific quantities (right?)
     do nn=1,nIMFields
        call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
-       call ESMF_AttributeGet( IMField, 'directly_mixed', value=lmixstate, defaultvalue=.false., __RC__ )
-       if (lmixstate) cycle ! Not an IM field.
        call ESMFL_BundleGetPointerToData( imSS, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
        fwet = 1.
        ! 'n' is only used for 'fluxout()' computation
@@ -1030,27 +956,6 @@ contains
                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, dummy, __RC__)
        IMFieldPtr => null()
     enddo
-
-
-! DIRECTLY MIXED
-    ! -- Cycle through DM fields
-    do nn=1,nIMFields
-       ! -- Determine which GCC species are directly mixed with SS (directly mixed = 1:1 ratio)
-       call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
-       call ESMF_AttributeGet( IMField, 'directly_mixed', value=lmixstate, defaultvalue=.false., __RC__ )
-       if (.not. lmixstate) cycle ! Not a DM field
-       call ESMF_AttributeGet( IMField, 'directly_mixed_nbins',     value=nIMBins,        __RC__ )
-       allocate(IMBins(nIMBins))
-       call ESMF_AttributeGet( IMField, 'directly_mixed_with_bins',  valuelist=IMBins, __RC__ )
-       ! -- 
-       call ESMFL_BundleGetPointerToData( imSS, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
-       ! -- 
-       IMFieldPtr = sum(SS(:,:,:,IMBins),4)
-       IMFieldPtr => null()
-       deallocate(IMBins)
-    enddo
-    deallocate(IMfieldNameList)
-! END DIRECTLY MIXED
 
 !   Compute diagnostics
 !   -------------------

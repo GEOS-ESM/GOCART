@@ -38,7 +38,9 @@ module SU2G_GridCompMod
                          nSO2 = 2, &
                          nSO4 = 3, &
                          nMSA = 4
-real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
+   real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
+
+   logical         :: skipover, friendlyto, isPresent
 
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
@@ -531,6 +533,18 @@ contains
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(3), __RC__)
     fld = MAPL_FieldCreate (field, 'SO4', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
+    ! If SO4 is friendly to GEOSCHEMCHEM then don't do SO4 chem in SU2G
+    call ESMF_StateGet (internal, 'SO4', field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       skipover = .true.
+    else
+       skipover = .false.
+    endif
 
     if (.not. data_driven) then
 !      Set klid
@@ -706,7 +720,7 @@ contains
 !   ---------------------------------------------
     if (data_driven) then
        call Run_data (GC, import, export, internal, __RC__)
-    else
+    else if (.not. skipover) then ! GEOSCHEMCHEM/HEMCO control emissions
        call Run1 (GC, import, export, clock, __RC__)
     end if
 
@@ -995,7 +1009,7 @@ contains
 
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
 
-    real, dimension(:,:), allocatable   :: drydepositionf
+    real, dimension(:,:), allocatable   :: drydepositionf, dqa
     real, pointer, dimension(:,:,:)     :: dummyMSA => null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing  
 
@@ -1082,8 +1096,11 @@ contains
        call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
                            self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
                            rh2, zle, delp, SUSD, __RC__)
+       if (mapl_am_I_root() .and. trim(short_name) .eq. 'SO4') write(*,*) '<<>> SO4 SD: ',sum(SUSD(:,:,n))
     end do
 
+    if (mapl_am_I_root() .and. skipover) write(*,*) '<<>> Skipping SU2G chem'
+    if (.not. skipover) then
     allocate(drydepositionf, mold=lwi, __STAT__)
     call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
                             MAPL_AIRMW, MAPL_AVOGAD/1000., cpd, MAPL_GRAV, &
@@ -1098,6 +1115,20 @@ contains
                             SUPSO4, SUPSO4g, SUPSO4aq, &
                             pso2, pmsa, pso4, pso4g, pso4aq, drydepositionf, & ! 3d diagnostics
                             __RC__)
+    else ! Make sure dry dep is calculated
+       allocate(dqa, mold=lwi, __STAT__)
+       allocate(drydepositionf, mold=lwi, __STAT__)
+       dqa = 0.e0
+       drydepositionf = 0.e0
+       call DryDeposition ( self%km, t, airdens, zle, lwi, ustar, zpbl, sh, &
+            MAPL_karman, cpd, MAPL_grav, z0h, drydepositionf, __RC__)
+       dqa = max(0.0, SO4(:,:,self%km)*(1.-exp(-drydepositionf*self%cdt)))
+       SO4(:,:,self%km) = SO4(:,:,self%km) - dqa
+       if (associated(SUDP)) then
+          SUDP(:,:,nSO4) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
+       end if
+       if (mapl_am_I_root()) write(*,*) '<<>> SO4 DP: ',sum(SUDP(:,:,nSO4))
+    endif
 
     KIN = .true.
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
@@ -1105,6 +1136,7 @@ contains
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
+    if (mapl_am_I_root()) write(*,*) '<<>> SO4 WT: ',sum(SUWT(:,:,nSO4))
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
