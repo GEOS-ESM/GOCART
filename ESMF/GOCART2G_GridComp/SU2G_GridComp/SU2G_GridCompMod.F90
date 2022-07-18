@@ -533,7 +533,7 @@ contains
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(3), __RC__)
     fld = MAPL_FieldCreate (field, 'SO4', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-    ! If SO4 is friendly to GEOSCHEMCHEM then don't do SO4 chem in SU2G
+    ! If SO4 is friendly to GEOSCHEMCHEM then don't do SO4 chem or emis in SU2G
     call ESMF_StateGet (internal, 'SO4', field, __RC__)
     call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
          isPresent=isPresent, RC=status)
@@ -699,6 +699,12 @@ contains
 !*****************************************************************************
 !   Begin... 
 
+    ! If 'skipover' = .true, skip Run1(). GCC/HEMCO does SO4 emissions and chem
+    ! is skipped in Run2()
+    if (skipover) then
+       RETURN_(ESMF_SUCCESS)
+    endif
+
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
@@ -720,7 +726,7 @@ contains
 !   ---------------------------------------------
     if (data_driven) then
        call Run_data (GC, import, export, internal, __RC__)
-    else if (.not. skipover) then ! GEOSCHEMCHEM/HEMCO control emissions
+    else
        call Run1 (GC, import, export, clock, __RC__)
     end if
 
@@ -1096,10 +1102,8 @@ contains
        call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
                            self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
                            rh2, zle, delp, SUSD, __RC__)
-       if (mapl_am_I_root() .and. trim(short_name) .eq. 'SO4') write(*,*) '<<>> SO4 SD: ',sum(SUSD(:,:,n))
     end do
 
-    if (mapl_am_I_root() .and. skipover) write(*,*) '<<>> Skipping SU2G chem'
     if (.not. skipover) then
     allocate(drydepositionf, mold=lwi, __STAT__)
     call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
@@ -1127,7 +1131,6 @@ contains
        if (associated(SUDP)) then
           SUDP(:,:,nSO4) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
        end if
-       if (mapl_am_I_root()) write(*,*) '<<>> SO4 DP: ',sum(SUDP(:,:,nSO4))
     endif
 
     KIN = .true.
@@ -1136,7 +1139,6 @@ contains
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
-    if (mapl_am_I_root()) write(*,*) '<<>> SO4 WT: ',sum(SUWT(:,:,nSO4))
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
@@ -1150,6 +1152,12 @@ contains
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
+
+
+    SUDP003 = SUDP(:,:,nSO4)
+    SUSD003 = SUSD(:,:,nSO4)
+    SUWT003 = SUWT(:,:,nSO4)
+    SUSV003 = SUSV(:,:,nSO4)
 
     RETURN_(ESMF_SUCCESS)
 

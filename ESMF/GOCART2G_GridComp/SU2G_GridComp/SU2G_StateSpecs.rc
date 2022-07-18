@@ -58,6 +58,10 @@ category: EXPORT
  SUSD      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Settling (Bin %d)
  SUWT      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Wet Deposition (Bin %d)
  SUSV      | kg m-2 s-1 | xy  | N    | self%nbins | Sulfate Convective Scavenging (Bin %d)
+ SUDP003   | kg m-2 s-1 | xy  | N    |            | Sulfate Dry Deposition (Bin %d)
+ SUSD003   | kg m-2 s-1 | xy  | N    |            | Sulfate Settling (Bin %d)
+ SUWT003   | kg m-2 s-1 | xy  | N    |            | Sulfate Wet Deposition (Bin %d)
+ SUSV003   | kg m-2 s-1 | xy  | N    |            | Sulfate Convective Scavenging (Bin %d)
  SO4EMAN   | kg m-2 s-1 | xy  | N    |            | SO4 Anthropogenic Emissions
  SO2EMAN   | kg m-2 s-1 | xy  | N    |            | SO2 Anthropogenic Emissions
  SO2EMBB   | kg m-2 s-1 | xy  | N    |            | SO2 Biomass Burning Emissions
