@@ -118,9 +118,6 @@ CONTAINS
       call ESMF_FieldBundleGet(y, 'backscat', Field=Field, __RC__)
       call ESMF_FieldGet(Field,0,Farrayptr=ptrbck,__RC__)
   endif
-!  iTau = MAPL_SimpleBundleGetIndex(y,'tau',       rank=3,quiet=.true.,rc=STATUS)
-!  iExt = MAPL_SimpleBundleGetIndex(y,'extinction',rank=3,quiet=.true.,rc=STATUS)
-!  iBck = MAPL_SimpleBundleGetIndex(y,'backscat',  rank=3,quiet=.true.,rc=STATUS)
 
 ! Consistency check
 ! -----------------
@@ -134,22 +131,19 @@ CONTAINS
 
 ! Loop over aerosol species
 ! -------------------------
-!  if ( iTau>0 ) y%r3(iTau)%q = 0.0
-!  if ( iExt>0 ) y%r3(iExt)%q = 0.0
-!  if ( iBck>0 ) y%r3(iBck)%q = 0.0
   nch = size(Mie(2)%Table%wavelengths)
   allocate(delm(im,jm,km), delc(im,jm,km), delz(im,jm,km),rh(im,jm,km))
   allocate(tau(im,jm,km),bck(im,jm,km), aod_(im,jm,km,nch))
   aod_ = 0
-!  ptrtau = 0
   
      do iq =1, x%n3d
      print*, 'iq species', iq, x%r3(iq)%name
         if (associated(Mie(iq)%Table)) then
                  do n = 1 , size(Mie(iq)%Table%wavelengths)
                     delm = x%r3(iq)%q * x%coords%lcv%delp / MAPL_GRAV
-                    delc = x%r3(iq)%q * x%r3(iRHO)%q ! concentration
+                    delc = x%r3(iq)%q * x%r3(iRHO)%q        
                     delz = x%coords%lcv%delp / (MAPL_GRAV*x%r3(iRHO)%q)
+                    delz = delz / 1000.                                 ! m to km conversion
                      rh = x%r3(iRH)%q
                  
                     ! print*, 'Table name', Mie(iq)%Table%table_name, Mie(iq)%bin_number, Mie(iq)%Table%wavelengths(n)
@@ -158,66 +152,12 @@ CONTAINS
                      aod_(:,:,:,n) = aod_(:,:,:,n) + tau
                      print*, 'aod_', aod_(100,100,72,1), aod_(100,100,72,2)
                  if ( has_tau ) ptrtau(:,:,:,n) = ptrtau(:,:,:,n) + tau
-                 if ( has_ext ) ptrext(:,:,:,n) = ptrext(:,:,:,n) + tau / delz
-                 if ( has_bck ) ptrbck(:,:,:,n) = ptrbck(:,:,:,n) + bck * delc
+                 if ( has_ext ) ptrext(:,:,:,n) = ptrext(:,:,:,n) + tau / delz        ! in km-1
+                 if ( has_bck ) ptrbck(:,:,:,n) = ptrbck(:,:,:,n) + bck * delc * 1e03 ! in km-1 sr-1 
                  enddo
          endif
      enddo
-       print*, 'max val aod lev 72' maxval(ptrtau(:,:,72,2)
-!     print*, 'tau total over species', y%r3(iTau)%q(100,100,:), y%r3(iTau)%q(130,200,:)
-!     print*, 'tau total over species', shape(y%r3(iTau)%q)
-     allocate(aod(im,jm))
-     aod = 0
   
-     do j = 1, 72
-        aod = aod + aod_(:,:,j,2)
-     enddo
-     print*, 'aod', aod(100,100), aod(130,200), maxval(aod)
-!  enddo
-
-
-
-!  do iq = 1, x%n3d
-
-!     idxTable = GOCART2G_MieQueryIdx(Mie,x%r3(iq)%name,rc)
-!     if(idxTable == -1) cycle
-!     if ( rc/=0 ) then
-!        __raise__(MAPL_RC_ERROR,"cannot get Mie index for "//trim(x%r3(iq)%name))
-!     end if
-
-!     if (verbose_) &
-!          print *, '[+] Adding '//trim(x%r3(iq)%name)//' contribution'
-
-!    Loop over x, y, z
-!    -----------------
-!     do k = 1, km
-!    delm = x%r3(iq)%q(i,j,k) * x%coords%lcv%delp(i,j,k) / MAPL_GRAV
-!                 delc = x%r3(iq)%q(i,j,k) * x%r3(iRHO)%q(i,j,k) ! concentration
-!                 delz = x%coords%lcv%delp(i,j,k) / (MAPL_GRAV*x%r3(iRHO)%q(i,j,k))
-!                   rh = x%r3(iRH)%q(i,j,k)     
-!           do j = 1, jm
-!           do i = 1, im
-
-!                 delm = x%r3(iq)%q(i,j,k) * x%coords%lcv%delp(i,j,k) / MAPL_GRAV
-!                 delc = x%r3(iq)%q(i,j,k) * x%r3(iRHO)%q(i,j,k) ! concentration
-!                 delz = x%coords%lcv%delp(i,j,k) / (MAPL_GRAV*x%r3(iRHO)%q(i,j,k))
-!                   rh = x%r3(iRH)%q(i,j,k)
-
-!                 call GOCART2G_MieQuery(Mie, idxTable, float(n), delm, rh, tau=tau, bbck=bck )
-
-!                 if ( iTau>0 ) y%r3(iTau)%q(i,j,k) = y%r3(iTau)%q(i,j,k) + tau
-!
-!                 if ( iExt>0 ) y%r3(iExt)%q(i,j,k) = y%r3(iExt)%q(i,j,k) + tau / delz
-
-!                 if ( iBck>0 ) y%r3(iBck)%q(i,j,k) = y%r3(iBck)%q(i,j,k) + bck * delc
-
-!           end do ! longitudes
-!        end do ! latitudes
-!     end do ! levels
-
-!  end do ! aerosol tracers
-
-
   if (verbose_) &
        print *, '[x] All done!'
         
