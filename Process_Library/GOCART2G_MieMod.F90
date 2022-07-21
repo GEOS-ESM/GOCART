@@ -43,7 +43,6 @@ module GOCART2G_MieMod
 
    type GOCART2G_Mie
       
-      private
       character(len=:), allocatable :: table_name
       integer :: nch             ! number of channels in table (replacement of nlamfda)
       integer :: nrh             ! number of RH values in table
@@ -559,7 +558,7 @@ CONTAINS
        wavelength = -1. ! meanlingless nagative
        return
      endif
-
+     
      wavelength = this%wavelengths(ith_channel)
 
   end function getWavelength

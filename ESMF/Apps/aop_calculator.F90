@@ -16,14 +16,12 @@
 ! !USES:
 !
       use  ESMF
-      use  MAPL_Mod
-      
+      use  MAPL
+      use  MAPL_LatLonGridFactoryMod 
       use  GOCART2G_SimpleBundleMod
       use  GOCART2G_MieMod
       use  GOCART2G_AopMod
-
-      use  m_die
- 
+      use  mpi
       implicit NONE
 
 ! !DESCRIPTION: This is a parallel version of the 3D AOD Calculator.
@@ -31,6 +29,7 @@
 ! !REVISION HISTORY:
 !
 !  18Jun2011  da Silva  Derived from mpana_aod.x
+!  Jun2022    da Silva/Buchard  Updated for GOCART2G
 !
 !EOP
 !-----------------------------------------------------------------------
@@ -48,25 +47,34 @@
 !     Control variables and obervations
 !     ---------------------------------
       type (MAPL_SimpleBundle)   :: q_f              ! input: aerosol mixing ratio 
-      type (MAPL_SimpleBundle)   :: y_f              ! output: extinction parameters
+      type (ESMF_FieldBundle)   :: y_f              ! output: extinction parameters
 
-      integer                          :: n_species    ! number of species
-      type (GOCART2G_Mie), pointer     :: MieTables(:) ! (n_species) Mie Tables, etc
+      integer                           :: n_species    ! number of species
+      integer                           :: n_tracers  ! number of tracers
+      
+      type (MieTable), allocatable       :: Mie(:)       ! (n_tracers) Mie Tables, etc
 
-
-      integer                          :: n_tracers  ! number of tracers
-      type (GOCART2G_Mie), pointer     :: Mie(:)     ! (n_tracers) Mie Tables, etc
+      type (GOCART2G_Mie), allocatable, target    :: MieTables(:)     ! (n_species) Mie Tables, etc
 
 !     Basic ESMF objects
 !     ------------------
-      type(ESMF_Config)    :: CF       ! Resource file
-      type(ESMF_Grid)      :: etaGrid  ! Eta Grid (lon, lat, eta)
-      type(ESMF_Time)      :: Time
-      type(ESMF_VM)        :: VM
-
+      type(ESMF_Config)       :: CF       ! Resource file
+      type(ESMF_Grid)         :: etaGrid  ! Eta Grid (lon, lat, eta)
+      type(ESMF_Time)         :: Time
+      type(ESMF_Clock)        :: Clock
+      type(ESMF_timeinterval) :: Tinterval
+      type(ESMF_VM)           :: VM
+      type(ServerManager) ::io_server
       integer :: Nx, Ny                        ! Layout
       integer :: IM_World, JM_World, LM_WORLD  ! Global Grid dimensions
-
+      integer :: i, j, n_wav, iTable, nbins
+      integer ::  iBin 
+      real, allocatable :: wavelengths(:)     
+      integer, pointer :: bin_number(:)
+      character(len=255), allocatable :: species_name(:)
+      character(len=255), allocatable :: tmp(:)
+      character(len=255) :: MieFile
+ 
       call Main()
 
 CONTAINS
@@ -80,10 +88,12 @@ CONTAINS
 !   Initialize the ESMF. For performance reasons, it is important
 !    to turn OFF ESMF's automatic logging feature
 !   -------------------------------------------------------------
-    call ESMF_Initialize (LogKindFlag=ESMF_LOGKIND_NONE, VM=VM, __RC__)
+    call ESMF_Initialize (LogKindFlag=ESMF_LOGKIND_MULTI, VM=VM, __RC__)
     call ESMF_CalendarSetDefault ( ESMF_CALKIND_GREGORIAN, __RC__ )
-
-    if ( MAPL_am_I_root() ) then
+    call MAPL_Initialize(__RC__) 
+    call io_server%initialize(mpi_comm_world)
+       
+          if ( MAPL_am_I_root() ) then
        print *
        print *, '     --------------------------------------'
        print *, '             3D Extinction Calculator'
@@ -111,12 +121,12 @@ CONTAINS
 
 !   Create global lat/lon grid
 !   --------------------------
-    etaGrid = MAPL_LatLonGridCreate (Name='etaGrid',        &
-                                     Nx = Nx, Ny = Ny,      &
-                                     IM_World = IM_World,   &
-                                     JM_World = JM_World,   &
-                                     LM_World = LM_World,   &
-                                    __RC__ )
+
+    etaGrid = grid_manager%make_grid(                                                 &
+                   LatLonGridFactory(im_world=IM_World, jm_world=JM_World, lm=LM_World, &
+                   nx=NX, ny=NY, pole='PC', dateline= 'DC', rc = status))
+    VERIFY_(status)
+
 
 !   Validate grid
 !   -------------
@@ -132,6 +142,9 @@ CONTAINS
     yy = nymd/10000; mm = (nymd-yy*10000) / 100; dd = nymd - (10000*yy + mm*100)
     h  = nhms/10000;  m = (nhms - h*10000) / 100;  s = nhms - (10000*h  +  m*100)
     call ESMF_TimeSet(Time, yy=yy, mm=mm, dd=dd,  h=h,  m=m, s=s)
+    call ESMF_TimeIntervalSet(Tinterval, h=1)
+    clock = ESMF_ClockCreate (timeStep=Tinterval, &
+                                startTime=Time, __RC__ )
 
 !                                     -------------------
 !                                     Gridded Background
@@ -142,56 +155,117 @@ CONTAINS
 !     -------------------------
       q_f = GOCART2G_SimpleBundleRead (CF, 'aer_filename', etaGrid, &
                                        time=Time, verbose=verbose, __RC__ )
-
-!     Associate mixing ratio tracers with corresponding MieTable
-!     ----------------------------------------------------------
-      n_tracers = q_f%n3d
-      allocate(Mie(n_tracers),__STAT__)
-      do i = 1, n_tracers
-         j = getTable__(CF, species, q_f%r3d%name)
-         if ( j>0 ) then
-            Mie(i) => MieTables(j)
-         else
-            Mie(i) => null()
-         end if
-      end do
       
 !     Load Mie tables
 !     ---------------
-      n_species = ESMF_ConfigGetLen(CF,'Species:', __RC__)
-      allocate(MieTables(n_species),__STAT__)
-      do i = 1, n_species
-         MieTables(i) = ...MieCtreate(...)
-      end do
-     
+      n_wav = ESMF_ConfigGetLen(CF,Label='wavelengths_in_nm:',__RC__)
+      allocate(wavelengths(n_wav),__STAT__)
+      call ESMF_ConfigGetAttribute(CF, wavelengths, Label='wavelengths_in_nm:', __RC__)  
 
-!     Create SimpleBundle for output fields
+
+      n_species = ESMF_ConfigGetLen(CF, Label='Species:', __RC__)
+      allocate(species_name(n_species), __STAT__)
+      call ESMF_ConfigGetAttribute(CF, species_name, Label='Species:', __RC__)
+
+      allocate(MieTables(n_species), __STAT__)
+      do i = 1, n_species
+          nbins = ESMF_ConfigGetLen(CF, Label=trim(species_name(i))//':',__RC__)
+          allocate(tmp(nbins), __STAT__)  ! note: arg(1) is miefile then bin name
+          call ESMF_ConfigGetAttribute(CF, tmp, Label=trim(species_name(i))//':', __RC__)
+          MieFile = tmp(1)
+          MieTables(i) = GOCART2G_Mie(MieFile, wavelengths*1e-9, __RC__)
+          deallocate(tmp)
+      end do
+      
+!     Associate mixing ratio tracers with corresponding MieTable
+!
+!     ----------------------------------------------------------
+      n_tracers = q_f%n3d
+      allocate(Mie(n_tracers),__STAT__)
+      allocate(bin_number(n_tracers), __STAT__)
+      do i = 1, n_tracers
+
+         call getTable__(CF,  q_f%r3(i)%name, iTable, iBin)
+
+         if ( iTable>0 ) then
+            Mie(i)%Table => MieTables(iTable)
+            Mie(i)%bin_number = iBin
+         else
+            Mie(i)%Table => null()
+         end if
+      end do
+      
+!     Create SimpleBundle for output fields!     -------------------------------------      
 !     -------------------------------------      
-      y_f = GOCART2G_SimpleBundleCreate ('ext', CF, 'aop_variables', etaGrid, __RC__ )
+!      y_f = GOCART2G_SimpleBundleCreate ('ext', CF, 'aop_variables', etaGrid, __RC__ )
+      y_f = GOCART2G_ESMFBundleCreate ('ext', CF, 'aop_variables', etaGrid, __RC__ )
       
 !     Perform Mie calculation
 !     -----------------------
       call GOCART2G_AopCalculator3D (y_f, q_f, Mie, verbose, __RC__)
 
       call MAPL_SimpleBundlePrint(q_f)
-      call MAPL_SimpleBundlePrint(y_f)
+!      call MAPL_SimpleBundlePrint(y_f)
 
 !     Write file with AOP output
 !     ---------------------------
-      call GOCART2G_SimpleBundleWrite (y_f, CF, 'ext_filename', Time, __RC__ )
+!      call GOCART2G_SimpleBundleWrite (y_f, CF, 'ext_filename', Time, __RC__ )
+      call GOCART2G_ESMFBundleWrite (y_f, CF, 'ext_filename', wavelengths, Clock, __RC__ )
 
 !     All done
 !     --------
-      call ESMF_Finalize ( __RC__ )
+      call io_server%finalize()
+      call MAPL_Finalize( __RC__ )
+      call ESMF_Finalize( __RC__ )
+      
 
      end subroutine Main
 
+     subroutine getTable__(CF,  qname,  ind_table, bin_number)
 
-     integer function getTable__(CF, species, name)
-     .... write code ....
-     end function getTable__
-       
-    end program ext_calculator
+        implicit NONE
+
+        type (ESMF_config), intent(inout) :: CF
+        character(len=*), intent(in)      :: qname               
+        integer,            intent(out)   :: ind_table
+        integer,            intent(out)   :: bin_number
+
+        integer :: i, j, n_species, nbins, STATUS
+        character(len=255), allocatable :: species_name(:)
+        character(len=255), allocatable :: bins_name(:)
+
+        n_species = ESMF_ConfigGetLen(CF, Label='Species:', __RC__)
+        allocate(species_name(n_species), __STAT__)
+        call ESMF_ConfigGetAttribute(CF, species_name, Label='Species:', __RC__)
+
+!        ind_table = 0
+!        bin_number = 0
+!        print*, 'species_name', ind_table
+!        print*, 'species_name', species_name, trim(qname(1:2))
+!        do i= 1, n_species
+!           if(trim(species_name(i)) == trim(qname)(1:2)) then
+ 
+
+
+          ind_table = 0
+          bin_number = 0
+          do i = 1, n_species
+          nbins = ESMF_ConfigGetLen(CF, Label=trim(species_name(i))//':',__RC__)
+          allocate(bins_name(nbins), __STAT__)  ! note: arg(1) is miefile then bin name
+          call ESMF_ConfigGetAttribute(CF, bins_name, Label=trim(species_name(i))//':', __RC__)
+          do j = 2, nbins   ! first index is Miefile
+              if(ESMF_UtilStringUpperCase(trim(qname)) == ESMF_UtilStringUpperCase(trim(bins_name(j)))) then
+                 ind_table = i
+                 bin_number = j - 1
+              endif
+                            
+           enddo
+           deallocate(bins_name)
+        enddo
+        print*, 'end loop over species'
+     
+     end subroutine  getTable__
+end program ext_calculator 
 
 
 

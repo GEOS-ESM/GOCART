@@ -12,12 +12,12 @@ ExpId: a0000
 Layout_Nx: 2
 Layout_Ny: 4
 
-IM_World: 540 
+IM_World: 720 
 JM_World: 361 
 LM_World: 72
 
-nymd: 20080630
-nhms: 120000
+nymd: 20190621
+nhms: 000000
 
 verbose: .TRUE.
 
@@ -25,7 +25,7 @@ verbose: .TRUE.
 #                    File Name Templates
 #                    -------------------
 
-aer_filename: /nobackup/1/ARCTAS/Y2008/M06/d5_arctas_02.inst3d_aer_v.20080630_1200z.nc
+aer_filename: /home/vbuchard/workspace/GOCART_2G/TEST_ext/c180R_exp_ext.inst3_3d_aer_Nv.20190621_0000z.nc4
 ext_filename: ext.nc4
 
 #                   --------------------------------
@@ -55,6 +55,6 @@ SS:   ExtData/PIESA/x/optics_SS.v3_3.nc  ss001 ss002 ss003 ss004 ss005
 SU:   ExtData/PIESA/x/optics_SU.v1_3.nc  so4
 NI:   ExtData/PIESA/x/optics_NI.v2_5.nc  no3an1 no3an2 no3an3 
 OC:   ExtData/PIESA/x/optics_OC.v1_3.nc  ocphilic ocphobic
-BR:   ExtData/PIESA/x/optics_BRC.v1_5.nc brphilic brphobic
+BR:   ExtData/PIESA/x/optics_BRC.v1_5.nc brcphilic brcphobic
 BC:   ExtData/PIESA/x/optics_BC.v1_3.nc  bcphilic bcphobic
 

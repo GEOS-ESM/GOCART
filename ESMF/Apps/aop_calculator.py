@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 """
-  Python wrapper for ana_lpe.x.
+  Python wrapper for aop_extinction.x.
 
-  Chem_Ext3d.py aer_f aod_d 
+  aop_calculator.py aer_f 
 
+  V. Buchard June 2022
 """
 
+#
+ 
 import os
 import sys
 
@@ -40,7 +43,7 @@ if __name__ == "__main__":
         ext =  "%s.ext.sfc.%y4%m2%d2_%h2%n2z.nc"
         
 
-    rc_file = "ext.rc"
+    rc_file = "aop_extinction.rc"
     Nx = "2"
     Ny = "4"
     channel = "532"
