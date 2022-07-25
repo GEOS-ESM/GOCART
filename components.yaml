@@ -27,12 +27,12 @@ HEMCO:
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
-  tag: v1.5.5
+  tag: v1.5.6
   sparse: ./config/GMAO_Shared.sparse
   develop: main
 
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  tag: v2.23.0
+  tag: v2.23.1
   develop: develop
