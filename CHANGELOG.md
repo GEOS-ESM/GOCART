@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add `.editorconfig` file
   - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
+- Add YAML validator GitHub Action
+  - This action makes sure all YAML files are valid (to a relaxed standard)
 
 ### Fixed
 
