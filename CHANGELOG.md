@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - This action makes sure all YAML files are valid (to a relaxed standard)
 
 ### Fixed
+
 - Added protection guard for pointer DU_SRC. fixed issue #148
 - Initialized pointers by allocation instead of assignment. fixed issue #127
 - Removed ExtData2G yaml files from all AMIP.20C directories as these are not needed anymore
@@ -28,9 +29,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - remove logic dinosaur "goto"
 - Removed some print statements that have been commented out.
 - Update `CODEOWNERS` file to make approvals less restrictive
-- Updated the CircleCI to use circleci-tools 0.13.0 orb
+- Updated the CircleCI to use circleci-tools v1 orb
   - Moves CI to use Baselibs 6.2.13 needed by MAPL development
-- Update `components.yaml` to be in line with GEOSgcm v10.22.1
+- Update `components.yaml` to be in line with GEOSgcm v10.22.4
 - Updates to support Spack
 - Changed the handling of state variable names in multiple instances of component (see Issue #93)
 - Major refactoring of Mie table class. (see Issue #96)
@@ -42,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up optional keyword arguments in call to Mie calculator for aerosol
   radiative forcing calculation; zero diff change
 - Simplified loading of radiation MieTables.
-
+- Added SetVM in UFS Aerosol Cap for ESMF managed threading
 
 ## [2.0.7] - 2021-04-29
 
