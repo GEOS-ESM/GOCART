@@ -28,6 +28,7 @@ module GOCART2G_GridCompMod
 
 ! !PUBLIC MEMBER FUNCTIONS:
    public  SetServices
+   public  IS_G2G_INSTANCE_RUNNING
 
   ! Private State
   type :: Instance
@@ -2238,5 +2239,71 @@ contains
 
   end subroutine get_mixRatioSum
 
+! !IROUTINE: IS_G2G_INSTANCE_RUNNING -- Scan the resource file for Instance name
+
+! !INTERFACE:
+
+  subroutine IS_G2G_INSTANCE_RUNNING (aerosol_name, instance_name, running, RC)
+
+    implicit none
+
+! !ARGUMENTS:
+
+    character (len=*),   intent(in   )  :: aerosol_name
+    character (len=*),   intent(in   )  :: instance_name
+    logical,             intent(  out)  :: running
+    integer, optional                   :: RC  ! return code
+
+! !DESCRIPTION: Determine whether a particular instance is running
+!   by interrogating the .rc file; intended to help parent GC determine
+!   whether to AddConnectivity
+
+! !REVISION HISTORY:
+
+!  11jul2022  Manyin - first crack
+
+!EOP
+!============================================================================
+!
+!   Locals
+
+    type (ESMF_Config)                  :: myCF      ! fill from GOCART2G_GridComp.rc
+    integer                             :: i
+    integer                             :: n_active
+    integer                             :: n_passive
+    integer                             :: n_instances
+    character (len=ESMF_MAXSTR)         :: inst_name
+
+    __Iam__('GOCART2G::IS_G2G_INSTANCE_RUNNING')
+
+    running = .FALSE.
+
+    myCF = ESMF_ConfigCreate (__RC__)
+
+    call ESMF_ConfigLoadFile (myCF, 'GOCART2G_GridComp.rc', __RC__)
+
+    n_active  = ESMF_ConfigGetLen (myCF, label= 'ACTIVE_INSTANCES_'//trim(aerosol_name)//':', __RC__)
+    n_passive = ESMF_ConfigGetLen (myCF, label='PASSIVE_INSTANCES_'//trim(aerosol_name)//':', __RC__)
+    n_instances = n_active + n_passive
+
+!   !Check the active instances first
+    call ESMF_ConfigFindLabel (myCF, 'ACTIVE_INSTANCES_'//trim(aerosol_name)//':', __RC__)
+    do i = 1, n_active
+       call ESMF_ConfigGetAttribute (myCF, inst_name, __RC__)
+       if ( TRIM(inst_name) == TRIM(instance_name) ) running = .TRUE.
+    end do
+
+!   !Now check the passive instances
+    call ESMF_ConfigFindLabel (myCF, 'PASSIVE_INSTANCES_'//trim(aerosol_name)//':', __RC__)
+    do i = n_active+1, n_active+n_passive
+       call ESMF_ConfigGetAttribute (myCF, inst_name, __RC__)
+       if ( TRIM(inst_name) == TRIM(instance_name) ) running = .TRUE.
+    end do
+
+    call ESMF_ConfigDestroy(myCF, __RC__)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine IS_G2G_INSTANCE_RUNNING
 
 end module GOCART2G_GridCompMod
