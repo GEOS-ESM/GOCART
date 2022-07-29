@@ -28,6 +28,7 @@ module GOCART2G_GridCompMod
 
 ! !PUBLIC MEMBER FUNCTIONS:
    public  SetServices
+   public  Is_G2G_Instance_Running
 
   ! Private State
   type :: Instance
@@ -111,6 +112,7 @@ contains
 
     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
     integer, allocatable, dimension(:) :: wavelengths_diagmie
+    integer :: n
 
     __Iam__('SetServices')
 
@@ -204,6 +206,46 @@ contains
 
 
 #include "GOCART2G_Export___.h"
+
+!   Allow children of Chemistry to connect to these fields:
+!   (Assume we want the first active instance for each species)
+
+    if (size(self%DU%instances) > 0) then
+     if     (self%DU%instances(1)%is_active) call MAPL_AddExportSpec (GC, SHORT_NAME='DUSCACOEF',     CHILD_ID=self%DU%instances(1)%id, __RC__)
+    end if
+
+    if (size(self%SU%instances) > 0) then
+     if     (self%SU%instances(1)%is_active) call MAPL_AddExportSpec (GC, SHORT_NAME='SUSCACOEF',     CHILD_ID=self%SU%instances(1)%id, __RC__)
+    end if
+
+    if (size(self%SS%instances) > 0) then
+     if     (self%SS%instances(1)%is_active) call MAPL_AddExportSpec (GC, SHORT_NAME='SSSCACOEF',     CHILD_ID=self%SS%instances(1)%id, __RC__)
+    end if
+
+    if (size(self%NI%instances) > 0) then
+     if     (self%NI%instances(1)%is_active) call MAPL_AddExportSpec (GC, SHORT_NAME='NISCACOEF',     CHILD_ID=self%NI%instances(1)%id, __RC__)
+    end if
+
+    find_BC: do n = 1, size(self%CA%instances)
+        if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
+                                             call MAPL_AddExportSpec (GC, SHORT_NAME='CA.bcSCACOEF',  CHILD_ID=self%CA%instances(n)%id, __RC__)
+                                             exit find_BC ! take the first match
+        end if
+    end do find_BC
+
+    find_OC: do n = 1, size(self%CA%instances)
+        if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
+                                             call MAPL_AddExportSpec (GC, SHORT_NAME='CA.ocSCACOEF',  CHILD_ID=self%CA%instances(n)%id, __RC__)
+                                             exit find_OC ! take the first match
+        end if
+    end do find_OC
+
+    find_BR: do n = 1, size(self%CA%instances)
+        if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
+                                             call MAPL_AddExportSpec (GC, SHORT_NAME='CA.brSCACOEF',  CHILD_ID=self%CA%instances(n)%id, __RC__)
+                                             exit find_BR ! take the first match
+        end if
+    end do find_BR
 
 
 !   Add connectivities for Nitrate component
@@ -2214,5 +2256,71 @@ contains
 
   end subroutine get_mixRatioSum
 
+! !IROUTINE: Is_G2G_Instance_Running -- Determine is a particular aerosol instance is running
+
+! !INTERFACE:
+
+  subroutine Is_G2G_Instance_Running (aerosol_name, instance_name, running, RC)
+
+    implicit none
+
+! !ARGUMENTS:
+
+    character (len=*),   intent(in   )  :: aerosol_name
+    character (len=*),   intent(in   )  :: instance_name
+    logical,             intent(  out)  :: running
+    integer, optional                   :: RC  ! return code
+
+! !DESCRIPTION: Determine whether a particular instance is running
+!   by interrogating the .rc file; intended to help parent GC determine
+!   whether to AddConnectivity
+
+! !REVISION HISTORY:
+
+!  11jul2022  Manyin - first crack
+
+!EOP
+!============================================================================
+!
+!   Locals
+
+    type (ESMF_Config)                  :: myCF      ! fill from GOCART2G_GridComp.rc
+    integer                             :: i
+    integer                             :: n_active
+    integer                             :: n_passive
+    integer                             :: n_instances
+    character (len=ESMF_MAXSTR)         :: inst_name
+
+    __Iam__('GOCART2G::Is_G2G_Instance_Running')
+
+    running = .FALSE.
+
+    myCF = ESMF_ConfigCreate (__RC__)
+
+    call ESMF_ConfigLoadFile (myCF, 'GOCART2G_GridComp.rc', __RC__)
+
+    n_active  = ESMF_ConfigGetLen (myCF, label= 'ACTIVE_INSTANCES_'//trim(aerosol_name)//':', __RC__)
+    n_passive = ESMF_ConfigGetLen (myCF, label='PASSIVE_INSTANCES_'//trim(aerosol_name)//':', __RC__)
+    n_instances = n_active + n_passive
+
+!   !Check the active instances first
+    call ESMF_ConfigFindLabel (myCF, 'ACTIVE_INSTANCES_'//trim(aerosol_name)//':', __RC__)
+    do i = 1, n_active
+       call ESMF_ConfigGetAttribute (myCF, inst_name, __RC__)
+       if ( TRIM(inst_name) == TRIM(instance_name) ) running = .TRUE.
+    end do
+
+!   !Now check the passive instances
+    call ESMF_ConfigFindLabel (myCF, 'PASSIVE_INSTANCES_'//trim(aerosol_name)//':', __RC__)
+    do i = n_active+1, n_active+n_passive
+       call ESMF_ConfigGetAttribute (myCF, inst_name, __RC__)
+       if ( TRIM(inst_name) == TRIM(instance_name) ) running = .TRUE.
+    end do
+
+    call ESMF_ConfigDestroy(myCF, __RC__)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine Is_G2G_Instance_Running
 
 end module GOCART2G_GridCompMod
