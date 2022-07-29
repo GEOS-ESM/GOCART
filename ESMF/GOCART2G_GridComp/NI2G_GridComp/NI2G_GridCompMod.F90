@@ -32,6 +32,8 @@ module NI2G_GridCompMod
    integer, parameter :: nNO3an2 = 4
    integer, parameter :: nNO3an3 = 5
 
+   logical            :: skipover, friendlyto, isPresent
+
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
 
@@ -476,6 +478,64 @@ contains
 
     self%instance = instance
 
+    ! If species are friendly to GEOSCHEMCHEM then don't do chem or emis in NI2G
+    ! Need to check NH4a, and the three NO3- bins, and they all must be friendly
+    ! to GCC
+    call ESMF_StateGet (internal, 'NH4a', field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       skipover = .true.
+    else
+       skipover = .false.
+    endif
+    if (skipover) then
+    call ESMF_StateGet (internal, 'NO3an1', field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       skipover = .true.
+    else
+       skipover = .false.
+    endif
+    endif
+    if (skipover) then
+    call ESMF_StateGet (internal, 'NO3an2', field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       skipover = .true.
+    else
+       skipover = .false.
+    endif
+    endif
+    if (skipover) then
+    call ESMF_StateGet (internal, 'NO3an3', field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       skipover = .true.
+    else
+       skipover = .false.
+    endif
+    endif
+    ! Print skipover status
+    if (mapl_Am_I_Root()) then
+       if (skipover) write(*,*) 'NI2G is Connected with GEOS-Chem. Skipping Run1() and Chem.'
+    endif
+
 !   Create Radiation Mie Table
 !   --------------------------
     call MAPL_GetResource (MAPL, NUM_BANDS, 'NUM_BANDS:', __RC__)
@@ -659,6 +719,11 @@ contains
     call ESMF_GridCompGet (GC, grid=grid, NAME=comp_name, __RC__)
     Iam = trim(comp_name) //'::'// Iam
 
+    ! If 'skipover' = .true, skip Run1(). GCC/HEMCO does emissions
+    if (skipover) then
+       RETURN_(ESMF_SUCCESS)
+    endif
+
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
@@ -783,6 +848,7 @@ contains
     call ESMF_ClockGetAlarm(clock, 'HNO3_RECYCLE_ALARM', alarm, __RC__)
     alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
 
+    if (.not. skipover) then
 !   Save local copy of HNO3 for first pass through run method regardless
     if (self%first) then
        self%xhno3 = MAPL_UNDEF
@@ -811,7 +877,7 @@ contains
                              self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, & 
                              NO3an3, HNO3CONC, HNO3SMASS,  HNO3CMASS, __RC__)
 
-
+    endif
 !   NI Settling
 !   -----------
 !   Because different bins having different swelling coefficients I need to
@@ -848,7 +914,7 @@ contains
                               self%radius(nNO3an2)*1.e-6, self%rhop(nNO3an2), NO3an2, &
                               t, airdens, rh2, zle, delp, flux_ptr, __RC__)
 
-!  Nitrate bin 1 - settles like dust (rhflag = 0)
+!  Nitrate bin 3 - settles like dust (rhflag = 0)
     rhflag = 0
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,3)
@@ -866,6 +932,7 @@ contains
                        MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, __RC__ )
 
 !  NH3
+   if (.not. skipover) then ! no need to consume these FLOP cycles (assume savings > cost of branching)
    dqa = 0.
    do i=1,ubound(lwi,1)
       do j =1,ubound(lwi,2)
@@ -879,6 +946,7 @@ contains
 
    NH3(:,:,self%km) = NH3(:,:,self%km) - dqa
    if( associated(NH3DP) ) NH3DP = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
+   endif
 
 !  NH4a
    dqa = 0.
@@ -904,6 +972,7 @@ contains
 
 !  NI Large-scale Wet Removal
 !  --------------------------
+   if (.not. skipover) then ! Save the FLOP cycles (hopefully savings < cost of branching)
    if (associated(NH3WT) .or. associated(NH4WT)) then
       allocate(fluxoutWT(ubound(t,1), ubound(t,2), 1), __STAT__)
    end if
@@ -916,6 +985,7 @@ contains
                             KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
    if (associated(NH3WT)) NH3WT = fluxWT_ptr(:,:,1)
+   endif ! FLOPS saved
 
 !  NH4a
    KIN = .true.

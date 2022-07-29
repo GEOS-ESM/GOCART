@@ -434,6 +434,7 @@ contains
     end if
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
+    call ESMF_AttributeSet(field, NAME='radius', valueList=self%rmed, itemCount=self%nbins, __RC__)
 
     if (data_driven) then
        instance = instanceData

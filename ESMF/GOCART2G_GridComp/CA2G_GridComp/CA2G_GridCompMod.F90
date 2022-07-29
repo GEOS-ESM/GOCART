@@ -25,6 +25,9 @@ module CA2G_GridCompMod
    integer, parameter :: instanceComputational = 1
    integer, parameter :: instanceData          = 2
 
+   logical            :: skipover
+   logical            :: friendlyto, isPresent
+
 ! !PUBLIC MEMBER FUNCTIONS:
    public  SetServices
 
@@ -470,6 +473,41 @@ contains
     fld = MAPL_FieldCreate (field, 'CAphilic'//trim(comp_name), __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
+    ! If OC* is friendly to GEOSCHEMCHEM then don't do chem or emis in CA2G
+    ! -- currently, there is no connectivity for CA.br with GCC
+    ! -- done via an attribute since there are 3 GCs that use this module
+    if (index(trim(comp_name),'CA.br') .eq. 0) then ! Skip this step for CA.br
+    call ESMF_StateGet (internal, 'CAphobic'//trim(comp_name), field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       call ESMF_AttributeSet( GC, 'skipover', value=.true., __RC__ )
+    else
+       call ESMF_AttributeSet( GC, 'skipover', value=.false., __RC__ )
+    endif
+    call ESMF_StateGet (internal, 'CAphilic'//trim(comp_name), field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       call ESMF_AttributeSet( GC, 'skipover', value=.true., __RC__ )
+    else
+       call ESMF_AttributeSet( GC, 'skipover', value=.false., __RC__ )
+    endif
+    else
+       call ESMF_AttributeSet( GC, 'skipover', value=.false., __RC__ )
+    endif
+    ! Print skipover status
+    if (mapl_Am_I_Root()) then
+       call ESMF_AttributeGet( GC, 'skipover', value=skipover, __RC__ )
+       if (skipover) write(*,*) trim(comp_name)//' is Connected with GEOS-Chem. Skipping Run1() and Chem.'
+    endif
+
     if (.not. data_driven) then
 !      Set klid
        call MAPL_GetPointer(import, ple, 'PLE', __RC__)
@@ -635,6 +673,14 @@ contains
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
+
+    ! If 'skipover' = .true, skip Run1(). GCC/HEMCO does SO4 emissions and chem
+    ! is skipped in Run2()
+    call ESMF_AttributeGet( GC, 'skipover', value=skipover, __RC__ )
+
+    if (skipover) then
+       RETURN_(ESMF_SUCCESS)
+    endif
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
@@ -939,6 +985,8 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
+    call ESMF_AttributeGet( GC, 'skipover', value=skipover, __RC__ )
+
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
@@ -967,6 +1015,7 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
+    if (.not. skipover) then
 !   Add on SOA from Anthropogenic VOC oxidation
 !   -------------------------------------------
     if (trim(comp_name) == 'CA.oc') then
@@ -986,11 +1035,13 @@ contains
        if (associated(CAPSOA)) &
           CAPSOA = sum(pSOA_VOC*delp/airdens/MAPL_GRAV, 3)
     end if
-
+    
 !   Ad Hoc transfer of hydrophobic to hydrophilic aerosols
 !   Following Chin's parameterization, the rate constant is
 !   k = 4.63e-6 s-1 (.4 day-1; e-folding time = 2.5 days)
     call phobicTophilic (intPtr_phobic, intPtr_philic, CAHYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
+
+    endif !skipover
 
 !   CA Settling
 !   -----------
