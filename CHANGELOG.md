@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
 - Add YAML validator GitHub Action
   - This action makes sure all YAML files are valid (to a relaxed standard)
+- Added utility routine Is_G2G_Instance_Running, for use by parent GridComp
 
 ### Fixed
 
@@ -44,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   radiative forcing calculation; zero diff change
 - Simplified loading of radiation MieTables.
 - Added SetVM in UFS Aerosol Cap for ESMF managed threading
+- Export SCACOEF diagnostics for DU, SU, SS, NI, BC, OC and BR
 
 ## [2.0.7] - 2021-04-29
 
