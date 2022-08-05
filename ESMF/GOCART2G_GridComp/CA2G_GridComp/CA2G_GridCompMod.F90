@@ -679,6 +679,7 @@ contains
     call ESMF_AttributeGet( GC, 'skipover', value=skipover, __RC__ )
 
     if (skipover) then
+!       if(mapl_am_I_root()) write(*,*) 'Skipping Run1() in '//trim(comp_name)
        RETURN_(ESMF_SUCCESS)
     endif
 
@@ -1016,6 +1017,7 @@ contains
     self => wrap%ptr
 
     if (.not. skipover) then
+!       if(mapl_am_I_root()) write(*,*) 'Doing chem in '//trim(comp_name)
 !   Add on SOA from Anthropogenic VOC oxidation
 !   -------------------------------------------
     if (trim(comp_name) == 'CA.oc') then
