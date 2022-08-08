@@ -20,8 +20,6 @@
    use Chem_UtilMod, only: Chem_UtilNegFiller
    use Aero_GridCompMod      ! Parent Aerosol component with IRF methods but no SetServices()
 
-   use ConvectionMod, only: Disable_Convection
-
    implicit none
    private
 
