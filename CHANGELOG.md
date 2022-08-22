@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Removed nbinsDU and nbinsSS arguments from subroutine NIheterogenousChem
+
 ## [2.0.7] - 2021-04-29
 
 ### Fixed
