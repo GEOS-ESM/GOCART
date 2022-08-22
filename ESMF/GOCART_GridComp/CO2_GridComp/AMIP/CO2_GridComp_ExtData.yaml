@@ -17,12 +17,12 @@ Collections:
 Samplings:
   CO2_sample_0:
     extrapolation: clim
-    time_interpolation: 'False'
+    time_interpolation: False
     update_frequency: PT24H
     update_offset: PT12H
     update_reference_time: '0'
   CO2_sample_1:
-    time_interpolation: 'False'
+    time_interpolation: False
     update_frequency: PT24H
     update_offset: PT12H
     update_reference_time: '0'
