@@ -1,0 +1,177 @@
+Collections:
+  SU2G_DMSclim_sfcconcentration.x360_y181_t12.Lana2011.nc4:
+    template: ExtData/chemistry/Lana/v2011/DMSclim_sfcconcentration.x360_y181_t12.Lana2011.nc4
+  SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4:
+    template: ExtData/chemistry/MERRA2GMI/v0.0.0/L72/MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
+  SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/L72/SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+  SU2G_SO2-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+  SU2G_SO2-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+  SU2G_SO2-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+  SU2G_SO4-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4:
+    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/SO4-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+  SU2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4:
+    template: ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+  SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4:
+    template: ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+  SU2G_qfed2.emis_so2.006.%y4%m2%d2.nc4:
+    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
+    valid_range: "2014-12-01T12:00/2021-11-01T12:00"
+  SU2G_qfed2.emis_so2.061.%y4%m2%d2.nc4:
+    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_so2.061.%y4%m2%d2.nc4
+    valid_range: "2021-11-01T12:00/2025-01-01"
+
+Samplings:
+  SU2G_sample_0:
+    extrapolation: clim
+  SU2G_sample_1:
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  SU2G_sample_2:
+    extrapolation: clim
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+
+Exports:
+  SU_AIRCRAFT:
+    collection: SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: so2_aviation
+  SU_ANTHROL1:
+    collection: SU2G_SO2-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: so2_nonenergy
+  SU_ANTHROL2:
+    collection: SU2G_SO2-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: so2_energy
+  SU_AVIATION_CDS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: SU2G_sample_2
+    variable: so2_aviation
+  SU_AVIATION_CRS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: SU2G_sample_2
+    variable: so2_aviation
+  SU_AVIATION_LTO:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: SU2G_sample_2
+    variable: so2_aviation
+  SU_BIOMASS:
+    - {starting: "2014-12-01T12:00", collection: SU2G_qfed2.emis_so2.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: SU2G_sample_1, variable: biomass}
+    - {starting: "2021-11-01T12:00", collection: SU2G_qfed2.emis_so2.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: SU2G_sample_1, variable: biomass}
+  SU_DMSO:
+    collection: SU2G_DMSclim_sfcconcentration.x360_y181_t12.Lana2011.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_2
+    variable: conc
+  SU_H2O2:
+    collection: SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: h2o2
+  SU_NO3:
+    collection: SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: no3
+  SU_OH:
+    collection: SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: oh
+  SU_SHIPSO2:
+    collection: SU2G_SO2-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: so2_shipping
+  SU_SHIPSO4:
+    collection: SU2G_SO4-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: so4_shipping
+  climSO4:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SO4
+  climSUDP001:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUDP001
+  climSUDP002:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUDP002
+  climSUDP003:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUDP003
+  climSUDP004:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUDP004
+  climSUSD001:
+    collection: /dev/null
+    sample: SU2G_sample_0
+    variable: SUSD001
+  climSUSD002:
+    collection: /dev/null
+    sample: SU2G_sample_0
+    variable: SUSD002
+  climSUSD003:
+    collection: /dev/null
+    sample: SU2G_sample_0
+    variable: SUSD003
+  climSUSD004:
+    collection: /dev/null
+    sample: SU2G_sample_0
+    variable: SUSD004
+  climSUSV001:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUSV001
+  climSUSV002:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUSV002
+  climSUSV003:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUSV003
+  climSUSV004:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUSV004
+  climSUWT001:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUWT001
+  climSUWT002:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUWT002
+  climSUWT003:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUWT003
+  climSUWT004:
+    collection: SU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SU2G_sample_0
+    variable: SUWT004
+  pSO2_OCS:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: SU2G_sample_2
+    variable: biofuel
+

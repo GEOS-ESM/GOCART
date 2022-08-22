@@ -1,0 +1,373 @@
+Collections:
+  CO_ARCTAS.region_mask.x540_y361.2008.nc:
+    template: ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+  CO_co_biofuel_v2.x360_y181_t12.2001.nc:
+    template: ExtData/PIESA/sfc/co_biofuel_v2.x360_y181_t12.2001.nc
+  CO_co_biogenic.x288_y181_t12.2006.nc:
+    template: ExtData/PIESA/sfc/co_biogenic.x288_y181_t12.2006.nc
+  CO_co_fossilfuel_v2.x360_y181_t12.2001.nc:
+    template: ExtData/PIESA/sfc/co_fossilfuel_v2.x360_y181_t12.2001.nc
+  CO_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc:
+    template: ExtData/PIESA/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+  CO_qfed2.emis_co.006.%y4%m2%d2.nc4:
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_co.006.%y4%m2%d2.nc4
+    valid_range: "2014-12-01T12:00/2021-11-01T12:00"
+  CO_qfed2.emis_co.061.%y4%m2%d2.nc4:
+    template: ExtData/PIESA/sfc/QFED/NRT/v2.5r1_0.1_deg/Y%y4/M%m2/qfed2.emis_co.061.%y4%m2%d2.nc4
+    valid_range: "2021-11-01T12:00/2025-01-01"
+
+Samplings:
+  CO_sample_0:
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  CO_sample_1:
+    extrapolation: clim
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  CO_sample_2:
+    extrapolation: clim
+  CO_sample_3:
+    extrapolation: persist_closest
+
+Exports:
+  CO_BF:
+    collection: CO_co_biofuel_v2.x360_y181_t12.2001.nc
+    linear_transformation:
+      - 0.0
+      - 1.19
+    regrid: CONSERVE
+    sample: CO_sample_1
+    variable: emcobf
+  CO_BFbbae:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: bf
+  CO_BFbbaf:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: bf
+  CO_BFbbgl:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: bf
+  CO_BFbbla:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: bf
+  CO_BFbbna:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: bf
+  CO_BIOMASS:
+    - {starting: "2014-12-01T12:00", collection: CO_qfed2.emis_co.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 1.11], regrid: CONSERVE, sample: CO_sample_0, variable: biomass}
+    - {starting: "2021-11-01T12:00", collection: CO_qfed2.emis_co.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 1.11], regrid: CONSERVE, sample: CO_sample_0, variable: biomass}
+  CO_BIOMASSnbas:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_BIOMASSnbeu:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_BIOMASSnbgl:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_BIOMASSnbna:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_CH4:
+    collection: CO_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CO_sample_1
+    variable: ch4
+  CO_CH4bbae:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: ch4
+  CO_CH4bbaf:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: ch4
+  CO_CH4bbgl:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: ch4
+  CO_CH4bbla:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: ch4
+  CO_CH4bbna:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: ch4
+  CO_FS:
+    collection: CO_co_fossilfuel_v2.x360_y181_t12.2001.nc
+    linear_transformation:
+      - 0.0
+      - 1.2
+    regrid: CONSERVE
+    sample: CO_sample_1
+    variable: emcofs
+  CO_FSbbae:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: fs
+  CO_FSbbaf:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: fs
+  CO_FSbbgl:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: fs
+  CO_FSbbla:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: fs
+  CO_FSbbna:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: fs
+  CO_ISOP:
+    collection: CO_co_biogenic.x288_y181_t12.2006.nc
+    linear_transformation:
+      - 0.0
+      - 0.2
+    regrid: CONSERVE
+    sample: CO_sample_1
+    variable: emcoisop
+  CO_ISOPbbae:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: isop
+  CO_ISOPbbaf:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: isop
+  CO_ISOPbbgl:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: isop
+  CO_ISOPbbla:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: isop
+  CO_ISOPbbna:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: isop
+  CO_NVOC:
+    collection: CO_co_biogenic.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: CO_sample_1
+    variable: emconvoc
+  CO_NVOCbbae:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: nvoc
+  CO_NVOCbbaf:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: nvoc
+  CO_NVOCbbgl:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: nvoc
+  CO_NVOCbbla:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: nvoc
+  CO_NVOCbbna:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: nvoc
+  CO_OH:
+    collection: CO_gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
+    regrid: CONSERVE
+    sample: CO_sample_1
+    variable: oh
+  CO_TERP:
+    collection: CO_co_biogenic.x288_y181_t12.2006.nc
+    regrid: CONSERVE
+    sample: CO_sample_1
+    variable: emcoterp
+  CO_TERPbbae:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_TERPbbaf:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_TERPbbgl:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_TERPbbla:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_TERPbbna:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: CO_sample_2
+    variable: terp
+  CO_regionMask:
+    collection: CO_ARCTAS.region_mask.x540_y361.2008.nc
+    regrid: VOTE
+    sample: CO_sample_3
+    variable: REGION_MASK
+
+
+Derived:
+  CO_BFnbas:
+    function: regionmask(CO_BF,CO_regionMask;4,10)
+    sample: CO_sample_0
+  CO_BFnbeu:
+    function: regionmask(CO_BF,CO_regionMask;3,9)
+    sample: CO_sample_0
+  CO_BFnbgl:
+    function: CO_BF
+    sample: CO_sample_0
+  CO_BFnbna:
+    function: regionmask(CO_BF,CO_regionMask;1)
+    sample: CO_sample_0
+  CO_BIOMASSbbae:
+    function: regionmask(CO_BIOMASS,CO_regionMask;3,9,10)
+    sample: CO_sample_0
+  CO_BIOMASSbbaf:
+    function: regionmask(CO_BIOMASS,CO_regionMask;5)
+    sample: CO_sample_0
+  CO_BIOMASSbbgl:
+    function: CO_BIOMASS
+    sample: CO_sample_0
+  CO_BIOMASSbbla:
+    function: regionmask(CO_BIOMASS,CO_regionMask;2,6)
+    sample: CO_sample_0
+  CO_BIOMASSbbna:
+    function: regionmask(CO_BIOMASS,CO_regionMask;1)
+    sample: CO_sample_0
+  CO_CH4nbas:
+    function: regionmask(CO_CH4,CO_regionMask;4,10)
+    sample: CO_sample_0
+  CO_CH4nbeu:
+    function: regionmask(CO_CH4,CO_regionMask;3,9)
+    sample: CO_sample_0
+  CO_CH4nbgl:
+    function: CO_CH4
+    sample: CO_sample_0
+  CO_CH4nbna:
+    function: regionmask(CO_CH4,CO_regionMask;1)
+    sample: CO_sample_0
+  CO_FSnbas:
+    function: regionmask(CO_FS,CO_regionMask;4,10)
+    sample: CO_sample_0
+  CO_FSnbeu:
+    function: regionmask(CO_FS,CO_regionMask;3,9)
+    sample: CO_sample_0
+  CO_FSnbgl:
+    function: CO_FS
+    sample: CO_sample_0
+  CO_FSnbna:
+    function: regionmask(CO_FS,CO_regionMask;1)
+    sample: CO_sample_0
+  CO_ISOPnbas:
+    function: regionmask(CO_ISOP,CO_regionMask;4,10)
+    sample: CO_sample_0
+  CO_ISOPnbeu:
+    function: regionmask(CO_ISOP,CO_regionMask;3,9)
+    sample: CO_sample_0
+  CO_ISOPnbgl:
+    function: CO_ISOP
+    sample: CO_sample_0
+  CO_ISOPnbna:
+    function: regionmask(CO_ISOP,CO_regionMask;1)
+    sample: CO_sample_0
+  CO_NVOCnbas:
+    function: regionmask(CO_NVOC,CO_regionMask;4,10)
+    sample: CO_sample_0
+  CO_NVOCnbeu:
+    function: regionmask(CO_NVOC,CO_regionMask;3,9)
+    sample: CO_sample_0
+  CO_NVOCnbgl:
+    function: CO_NVOC
+    sample: CO_sample_0
+  CO_NVOCnbna:
+    function: regionmask(CO_NVOC,CO_regionMask;1)
+    sample: CO_sample_0
+  CO_OHbbae:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_OHbbaf:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_OHbbgl:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_OHbbla:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_OHbbna:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_OHnbas:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_OHnbeu:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_OHnbgl:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_OHnbna:
+    function: CO_OH
+    sample: CO_sample_0
+  CO_TERPnbas:
+    function: regionmask(CO_TERP,CO_regionMask;4,10)
+    sample: CO_sample_0
+  CO_TERPnbeu:
+    function: regionmask(CO_TERP,CO_regionMask;3,9)
+    sample: CO_sample_0
+  CO_TERPnbgl:
+    function: CO_TERP
+    sample: CO_sample_0
+  CO_TERPnbna:
+    function: regionmask(CO_TERP,CO_regionMask;1)
+    sample: CO_sample_0
