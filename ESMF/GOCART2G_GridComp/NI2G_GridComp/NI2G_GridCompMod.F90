@@ -782,7 +782,7 @@ contains
     call NIheterogenousChem (NIHT, self%xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
-                             self%fnumDU, self%fnumSS, 5, 5, self%km, self%klid, &
+                             self%fnumDU, self%fnumSS, self%km, self%klid, &
                              self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, & 
                              NO3an3, HNO3CONC, HNO3SMASS,  HNO3CMASS, __RC__)
 
