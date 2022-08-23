@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed declaration of Disable_Convection, no longer needed
 
 ### Changed
-
+- Fixed typo in PM2.5 calculation (check if nitrate is active for not double counting ammonium)
 - Removed nbinsDU and nbinsSS arguments from subroutine NIheterogenousChem
 - Updated ExtData2G yaml files to handle AMIP magic date
 - Fix bug in getAerosolSum
