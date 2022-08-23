@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Removed nbinsDU and nbinsSS arguments from subroutine NIheterogenousChem
 - Updated ExtData2G yaml files to handle AMIP magic date
 - Fix bug in getAerosolSum
 - more hard-coded name changes for Issue #93
