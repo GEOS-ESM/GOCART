@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added protection guard for pointer DU_SRC. fixed issue #148
 - Initialized pointers by allocation instead of assignment. fixed issue #127
 - Removed ExtData2G yaml files from all AMIP.20C directories as these are not needed anymore
+- Removed declaration of Disable_Convection, no longer needed
 
 ### Changed
 
