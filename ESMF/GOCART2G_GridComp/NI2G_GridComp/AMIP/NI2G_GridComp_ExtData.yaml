@@ -18,7 +18,7 @@ Collections:
 
 Samplings:
   NI2G_sample_0:
-    time_interpolation: 'False'
+    time_interpolation: False
   NI2G_sample_1:
     update_frequency: PT24H
     update_offset: PT12H
