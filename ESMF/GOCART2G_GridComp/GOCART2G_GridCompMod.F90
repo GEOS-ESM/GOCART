@@ -1004,7 +1004,7 @@ contains
           if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', __RC__)
-          if ((self%SU%instances(1)%is_active) .and. (index(self%SU%instances(1)%name, 'data') == 0 )) then ! Nitrates currently only support one active instance. We check the NI gridded component because SO4MASS can be altered by NI chemistry.
+          if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) then ! Nitrates currently only support one active instance. We check the NI gridded component because SO4MASS can be altered by NI chemistry.
              if(associated(pm)        .and. associated(so4smass)) pm        = pm        + so4smass
              if(associated(pm25)      .and. associated(so4smass)) pm25      = pm25      + so4smass
              if(associated(pm_rh35)   .and. associated(so4smass)) pm_rh35   = pm_rh35   + 1.33*so4smass

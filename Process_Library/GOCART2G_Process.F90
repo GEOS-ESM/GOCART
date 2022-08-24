@@ -4741,8 +4741,8 @@ K_LOOP: do k = km, 1, -1
 !
 ! !INTERFACE:
    subroutine NIheterogenousChem (NI_phet, xhno3, UNDEF, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
-                                  DU, SS, rmedDU, rmedSS, fnumDU, fnumSS, nbinsDU, nbinsSS, &
-                                  km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2, &
+                                  DU, SS, rmedDU, rmedSS, fnumDU, fnumSS,                                    &
+                                  km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2,                &
                                   nNO3an3, HNO3_conc, HNO3_sfcmass, HNO3_colmass, rc)
 
 
@@ -4767,8 +4767,6 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [um]
    real, dimension(:) ,intent(in)      :: fnumDU         ! number of dust particles per kg mass
    real, dimension(:) ,intent(in)      :: fnumSS         ! number of sea salt particles per kg mass
-   integer, intent(in)                 :: nbinsDU        ! number of dust bins
-   integer, intent(in)                 :: nbinsSS        ! number of sea salt bins
    integer, intent(in)                 :: km             ! number of model levels
    integer, intent(in)                 :: klid           ! index for pressure lid
    real, intent(in)                    :: cdt            ! chemistry model timestep (sec)
@@ -4794,6 +4792,8 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), allocatable :: deltahno3
 
    integer :: i1, j1, i2, j2, n, i, j, k
+   integer :: nbinsDU        ! number of dust bins
+   integer :: nbinsSS        ! number of sea salt bins
 
 
 !
@@ -4805,6 +4805,9 @@ K_LOOP: do k = km, 1, -1
 !EOP
 !------------------------------------------------------------------------------------
 !  Begin..
+
+   nbinsDU = size(DU,4)
+   nbinsSS = size(SS,4)
 
 !  Heterogeneous chemistry
 !  -----------------------
