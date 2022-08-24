@@ -6,7 +6,9 @@
 !
 
 module GOCART2G_MieMod
-! !USES:
+  
+  ! !USES:
+  
    use netcdf
    implicit none
 
@@ -41,7 +43,6 @@ module GOCART2G_MieMod
 
    type GOCART2G_Mie
       
-      private
       character(len=:), allocatable :: table_name
       integer :: nch             ! number of channels in table (replacement of nlamfda)
       integer :: nrh             ! number of RH values in table
@@ -113,11 +114,11 @@ CONTAINS
 !  09Mar2005 da Silva  API, prologues.
 !
 
-  type(GOCART2G_Mie) function GOCART2G_MieCreate ( rcfile, wavelengths, nmom, rc ) result (this)
+  type(GOCART2G_Mie) function GOCART2G_MieCreate ( MieFile, wavelengths, nmom, rc ) result (this)
 
 ! !INPUT PARAMETERS:
 
-     character(len=*), intent(in) :: rcfile  ! Mie table file name
+     character(len=*), intent(in) :: MieFile  ! Mie table file name
      real, optional,   intent(in) :: wavelengths(:)
      integer, optional,intent(in) :: nmom
 
@@ -134,12 +135,14 @@ CONTAINS
 !  23Mar2005 Colarco
 !
 !EOP
+
 !-------------------------------------------------------------------------
+     
      character(len=*), parameter ::  myname = 'GOCART2G_MieCreate'
      integer :: nch
      integer :: ncid, idimid, ivarid, n, i, j, ip1
      integer :: nch_table, nrh_table, nbin_table, nmom_table, nPol_table
-!    Tables are hard-wired as single precision
+
      real, allocatable ::   channels_table(:),    rh_table(:), reff_table(:,:),    &
                             bext_table(:,:,:),    bsca_table(:,:,:),               &
                             bbck_table(:,:,:),    g_table(:,:,:),                  &
@@ -158,7 +161,7 @@ CONTAINS
 #define __NF_STAT__ stat=status); NF_VERIFY_(status
 
      rc = 0
-     this%table_name = rcfile
+     this%table_name = MieFile
 
       
 !    Whether or not doing phase function
@@ -555,7 +558,7 @@ CONTAINS
        wavelength = -1. ! meanlingless nagative
        return
      endif
-
+     
      wavelength = this%wavelengths(ith_channel)
 
   end function getWavelength
