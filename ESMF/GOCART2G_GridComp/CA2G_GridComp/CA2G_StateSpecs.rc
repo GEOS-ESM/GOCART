@@ -74,43 +74,43 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME        | UNITS        | DIMS  | VLOC  | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- CAMASS*     | kg kg-1      | xyz   | C     |                                | Carbonaceous Aerosol Mass Mixing Ratio
- CACONC*     | kg m-3       | xyz   | C     |                                | Carbonaceous Aerosol Mass Concentration
- CAEXTCOEF*  | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient
- CASCACOEF*  | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient
+ *MASS       | kg kg-1      | xyz   | C     |                                | Carbonaceous Aerosol Mass Mixing Ratio
+ *CONC       | kg m-3       | xyz   | C     |                                | Carbonaceous Aerosol Mass Concentration
+ *EXTCOEF    | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient
+ *SCACOEF    | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient
 #........... | ............ | ..... | ..... | .......                        | ............................................
- CAEM*       | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Emission (Bin %d)
- CASD*       | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Sedimentation (Bin %d)
- CADP*       | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Dry Deposition (Bin %d)
- CAWT*       | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Wet Deposition (Bin %d)
- CASV*       | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Convective Scavenging (Bin %d)
- CAEMAN*     | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Anthropogenic Emissions
- CAEMBB*     | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biomass Burning Emissions
- CAEMBF*     | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biofuel Emissions
- CAEMBG*     | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biogenic Emissions
- CAHYPHIL*   | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Hydrophobic to Hydrophilic
- CAPSOA*     | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol SOA Production
- CASMASS*    | kg m-3       | xy    | N     |                                | Carbonaceous Aerosol Surface Mass Concentration
- CACMASS*    | kg m-2       | xy    | N     |                                | Carbonaceous Aerosol Column Mass Density
- CAEXTTAU*   | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT
- CASTEXTTAU* | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT Stratosphere
- CASCATAU*   | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT
- CASTSCATAU* | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT Stratosphere
- CAANGSTR*   | 1            | xy    | N     |                                | Carbonaceous Aerosol Angstrom parameter [470-870 nm]
- CAFLUXU*    | kg m-1 s-1   | xy    | N     |                                | Carbonaceous Aerosol column u-wind mass flux
- CAFLUXV*    | kg m-1 s-1   | xy    | N     |                                | Carbonaceous Aerosol column v-wind mass flux
- CAAERIDX*   | 1            | xy    | N     |                                | Carbonaceous Aerosol TOMS UV Aerosol Index
+ *EM         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Emission (Bin %d)
+ *SD         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Sedimentation (Bin %d)
+ *DP         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Dry Deposition (Bin %d)
+ *WT         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Wet Deposition (Bin %d)
+ *SV         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Convective Scavenging (Bin %d)
+ *EMAN       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Anthropogenic Emissions
+ *EMBB       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biomass Burning Emissions
+ *EMBF       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biofuel Emissions
+ *EMBG       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biogenic Emissions
+ *HYPHIL     | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Hydrophobic to Hydrophilic
+ *PSOA       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol SOA Production
+ *SMASS      | kg m-3       | xy    | N     |                                | Carbonaceous Aerosol Surface Mass Concentration
+ *CMASS      | kg m-2       | xy    | N     |                                | Carbonaceous Aerosol Column Mass Density
+ *EXTTAU     | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT
+ *STEXTTAU   | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT Stratosphere
+ *SCATAU     | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT
+ *STSCATAU   | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT Stratosphere
+ *ANGSTR     | 1            | xy    | N     |                                | Carbonaceous Aerosol Angstrom parameter [470-870 nm]
+ *FLUXU      | kg m-1 s-1   | xy    | N     |                                | Carbonaceous Aerosol column u-wind mass flux
+ *FLUXV      | kg m-1 s-1   | xy    | N     |                                | Carbonaceous Aerosol column v-wind mass flux
+ *AERIDX     | 1            | xy    | N     |                                | Carbonaceous Aerosol TOMS UV Aerosol Index
 
 
 
 category: INTERNAL
-#----------------------------------------------------------------------------------------------------------------
-#  VARIABLE          | DIMENSION   |          Additional Metadata
-#----------------------------------------------------------------------------------------------------------------
-  NAME     | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
-#----------------------------------------------------------------------------------------------------------------
- CAphobic* | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
- CAphilic* | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
+#--------------------------------------------------------------------------------------------------------------
+#  VARIABLE        | DIMENSION   |          Additional Metadata
+#--------------------------------------------------------------------------------------------------------------
+  NAME   | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
+#--------------------------------------------------------------------------------------------------------------
+ *phobic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
+ *philic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
 
 #********************************************************
 #

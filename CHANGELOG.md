@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+### Fixed  
+
+### Changed
+
+
+## [2.1.0] - 2022-08-24
+
+### Added
+
+- Add `.editorconfig` file
+  - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
+- Add YAML validator GitHub Action
+  - This action makes sure all YAML files are valid (to a relaxed standard)
+- Initial implementation of offline simulator for 3D profiles of extinction based on the new GOCART2G-Mie interface. Work for the 2D simulator in progress. 
+ 
+### Fixed
+
+- Added protection guard for pointer DU_SRC. fixed issue #148
+- Initialized pointers by allocation instead of assignment. fixed issue #127
+- Removed ExtData2G yaml files from all AMIP.20C directories as these are not needed anymore
+- Removed declaration of Disable_Convection, no longer needed
+- Added extra `esmf` to CMake files for UFS
+
+### Changed
+- Fixed typo in PM2.5 calculation (check if nitrate is active for not double counting ammonium)
+- Removed nbinsDU and nbinsSS arguments from subroutine NIheterogenousChem
+- Updated ExtData2G yaml files to handle AMIP magic date
+- Fix bug in getAerosolSum
+- more hard-coded name changes for Issue #93
+- Fixed bug in MieQuery.H, shape of not present variable is used
+- remove logic dinosaur "goto"
+- Removed some print statements that have been commented out.
+- Update `CODEOWNERS` file to make approvals less restrictive
+- Updated the CircleCI to use circleci-tools v1 orb
+  - Moves CI to use Baselibs 6.2.13 needed by MAPL development
+- Update `components.yaml` to be in line with GEOSgcm v10.22.4
+- Updates to support Spack
+- Changed the handling of state variable names in multiple instances of component (see Issue #93)
+- Major refactoring of Mie table class. (see Issue #96)
+   - Renamed Chem_MieTableMod.F90 --> GOCART2G_Mie2GMod.F90
+   - Renamed module Chem_MieTableMod2G --> GOCART2G_Mie2GMod
+   - Introduced object oriented design with type-bound methods
+   - renamed some components/arguments for clarity
+   - eliminated extraneous container data type that is not needed under new GOCART design.
+- Cleaned up optional keyword arguments in call to Mie calculator for aerosol
+  radiative forcing calculation; zero diff change
+- Simplified loading of radiation MieTables.
+- Added SetVM in UFS Aerosol Cap for ESMF managed threading
+
 ## [2.0.7] - 2021-04-29
 
 ### Fixed
@@ -46,8 +97,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Cleaned up optional keyword arguments in call to Mie calculator for aerosol
-  radiative forcing calculation; zero diff change
 - Updated FENGSHA dust flux according to Webb et al., Aeolian Res. 42 (2020) 100560
 
 ## [2.0.2] - 2021-01-07

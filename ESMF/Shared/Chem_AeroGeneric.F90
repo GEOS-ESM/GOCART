@@ -184,7 +184,7 @@ contains
           do i = 1, size(orig_ptr, 3)
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
-             varNameNew = 'OC'//trim(varName(3:4))
+             varNameNew = 'OC'//varName(6:7)
              field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
                                         name=trim(varNameNew)//trim(bin_index) , __RC__)
              call MAPL_AllocateCoupling (field2D, __RC__)
@@ -196,7 +196,7 @@ contains
           do i = 1, size(orig_ptr, 3)
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
-             varNameNew = 'BC'//trim(varName(3:4))
+             varNameNew = 'BC'//varName(6:7)
              field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
                                         name=trim(varNameNew)//trim(bin_index) , __RC__)
              call MAPL_AllocateCoupling (field2D, __RC__)

@@ -17,7 +17,7 @@
 
 ! !USES:
 !  Only instrinsic fortran types and functions are allowed.
-   use Chem_MieTableMod2G
+   use GOCART2G_MieMod
    use, intrinsic :: iso_fortran_env, only: IOSTAT_END
 
    implicit none
@@ -504,8 +504,6 @@ CONTAINS
 !  The parameterization includes the air density which is assumed
 !  = 1.25 kg m-3 to speed the calculation.  The error in air density is
 !  small compared to errors in other parameters.
-
-!print*,'DustEmiss shape(emissions) = ',shape(emissions)
 
    do n = 1, nbins
       diameter = 2. * radius(n)
@@ -2878,7 +2876,7 @@ CONTAINS
 !    Check for total precipitation amount
 !    Assume no precip in column if precl+precc = 0
      pac = precl(i,j) + precc(i,j)
-     if(pac .le. 0.) goto 100
+     if(pac .le. 0.) cycle
      pls = precl(i,j)
      pcv = precc(i,j)
 
@@ -2892,12 +2890,12 @@ CONTAINS
      LH = 0
      do k = klid, km
       if(dpfli(i,j,k) .gt. 0. ) then
-       LH = k
-       goto 15
+        LH = k
+        exit
       endif
      end do
- 15  continue
-     if(LH .lt. 1) goto 100
+
+     if(LH .lt. 1) cycle
 
      do k = LH, km
       qls(k) = dpfli(i,j,k)/pdog(i,j,k)*rhoa(i,j,k)
@@ -2979,11 +2977,10 @@ CONTAINS
          if (Qls(kk).gt.0.) then
           Qmx = max(Qmx,Qls(kk))
          else
-          goto 333
+          exit
          end if
         end do
 
- 333    continue
         F = F0_ls / (1. + F0_ls*B0_ls*XL_ls/(Qmx*cdt/Td_ls))
         if (F.lt.0.01) F = 0.01
 !-----------------------------------------------------------------------------
@@ -3098,11 +3095,10 @@ CONTAINS
          if (Qcv(kk).gt.0.) then
           Qmx = max(Qmx,Qcv(kk))
          else
-          goto 444
+          exit
          end if
         end do
 
- 444    continue
         F = F0_cv / (1. + F0_cv*B0_cv*XL_cv/(Qmx*cdt/Td_cv))
         if (F.lt.0.01) F = 0.01
 
@@ -3176,7 +3172,6 @@ CONTAINS
       endif
      end do
 
- 100 continue
     end do   ! i
    end do    ! j
 
@@ -3249,7 +3244,7 @@ CONTAINS
 ! !IROUTINE:  Aero_Compute_Diags - Calculate aerosol diagnostics
 !
 ! !INTERFACE:
-   subroutine Aero_Compute_Diags (mie_table, km, klid, nbegin, nbins, rlow, rup, channels, &
+   subroutine Aero_Compute_Diags (mie, km, klid, nbegin, nbins, rlow, rup, &
                                   wavelengths_profile, wavelengths_vertint, aerosol, &
                                   grav, tmpu, rhoa, rh, u, v, delp, ple,tropp, &
                                   sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
@@ -3262,12 +3257,11 @@ CONTAINS
   implicit NONE
 
 ! !INPUT PARAMETERS:
-   type(Chem_Mie),  intent(in) :: mie_table        ! mie table
+   type(GOCART2G_Mie),  intent(in) :: mie        ! mie table
    integer, intent(in) :: km, nbegin, nbins
    integer,    intent(in)    :: klid   ! index for pressure lid
    real, optional, dimension(:), intent(in)    :: rlow   ! bin radii - low bounds
    real, optional, dimension(:), intent(in)    :: rup    ! bin radii - upper bounds
-   real, dimension(:), intent(in)    :: channels
    real, dimension(:), intent(in)    :: wavelengths_profile
    real, dimension(:), intent(in)    :: wavelengths_vertint
    real, dimension(:,:,:,:), intent(in) :: aerosol     !
@@ -3320,11 +3314,10 @@ CONTAINS
 
 ! !Local Variables
    character(len=*), parameter :: myname = 'Aero_Compute_Diags'
-   integer :: i, j, k, n, w, ios, nch
+   integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
-   real :: ilam550, ilam470, ilam870
-   real, allocatable, dimension(:) :: wavelengths_index_profile, wavelengths_index_vertint
-   real :: tau, ssa
+   integer :: ilam470, ilam870
+   real, allocatable, dimension(:,:,:) :: tau, ssa
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
@@ -3345,7 +3338,6 @@ CONTAINS
 
 !  Initialize local variables
 !  --------------------------
-   nch = size(channels)
    i2 = size(rhoa,1)
    j2 = size(rhoa,2)
    allocate(fPMfm(nbins),source=0.0)
@@ -3353,64 +3345,20 @@ CONTAINS
 
 !  Get the wavelength indices
 !  --------------------------
-!  Must provide ilam550 for AOT calculation
-   allocate(wavelengths_index_profile(size(wavelengths_profile)))
-   allocate(wavelengths_index_vertint(size(wavelengths_vertint)))
-   wavelengths_index_profile = 0.
-   wavelengths_index_vertint = 0.
-   ilam550 = 1.
-   ilam470 = 0.
-   ilam870 = 0.
-   if(nch .gt. 1) then
-      do i = 1, nch
-         if ( channels(i) .ge. 5.49e-7 .and. &
-              channels(i) .le. 5.51e-7) ilam550 = i
-         if ( channels(i) .ge. 4.69e-7 .and. &
-              channels(i) .le. 4.71e-7) ilam470 = i
-         if ( channels(i) .ge. 8.69e-7 .and. &
-              channels(i) .le. 8.71e-7) ilam870 = i
-      enddo
-   endif
 
-   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-   do i = 1, size(wavelengths_profile)
-      if ((wavelengths_profile(i) .ge. 5.49e-7) .and. (wavelengths_profile(i) .le. 5.51e-7)) then
-         wavelengths_index_profile(i) = 2.
-      else if ((wavelengths_profile(i) .ge. 4.69e-7) .and. (wavelengths_profile(i) .le. 4.71e-7)) then
-         wavelengths_index_profile(i) = 1.
-      else if ((wavelengths_profile(i) .ge. 6.69e-7) .and. (wavelengths_profile(i) .le. 6.71e-7)) then
-         wavelengths_index_profile(i) = 3.
-      else if ((wavelengths_profile(i) .ge. 8.68e-7) .and. (wavelengths_profile(i) .le. 8.71e-7)) then
-         wavelengths_index_profile(i) = 4.
-      else
-         print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
-         return
-      end if
-   end do
+   ilam470 = mie%getChannel(4.70e-7)
+   if(ilam470 <= 0) ilam470 = 0
 
-   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-   do i = 1, size(wavelengths_vertint)
-      if ((wavelengths_vertint(i) .ge. 5.49e-7) .and. (wavelengths_vertint(i) .le. 5.51e-7)) then
-         wavelengths_index_vertint(i) = 2.
-      else if ((wavelengths_vertint(i) .ge. 4.69e-7) .and. (wavelengths_vertint(i) .le. 4.71e-7)) then
-         wavelengths_index_vertint(i) = 1.
-      else if ((wavelengths_vertint(i) .ge. 6.69e-7) .and. (wavelengths_vertint(i) .le. 6.71e-7)) then
-         wavelengths_index_vertint(i) = 3.
-      else if ((wavelengths_vertint(i) .ge. 8.68e-7) .and. (wavelengths_vertint(i) .le. 8.71e-7)) then
-         wavelengths_index_vertint(i) = 4.
-      else
-         print*,'wavelengths_vertint of ',wavelengths_vertint(i),' is an invalid value.'
-         return
-      end if
-   end do
+   ilam870 = mie%getChannel(8.70e-7)
+   if(ilam870 <= 0) ilam870 = 0
 
 !  Determine if going to do Angstrom parameter calculation
 !  -------------------------------------------------------
    do_angstrom = .false.
 !  If both 470 and 870 channels provided (and not the same) then
 !  possibly will do Angstrom parameter calculation
-   if(ilam470 .ne. 0. .and. &
-      ilam870 .ne. 0. .and. &
+   if(ilam470 .ne. 0 .and. &
+      ilam870 .ne. 0 .and. &
       ilam470 .ne. ilam870) do_angstrom = .true.
 
    if( present(angstrom) .and. do_angstrom ) then
@@ -3520,6 +3468,8 @@ CONTAINS
       end do
    endif
 
+   allocate(tau(i1:i2,j1:j2,km),source = 0.)
+   allocate(ssa(i1:i2,j1:j2,km),source = 0.)
 !  Calculate the extinction and/or scattering AOD
    if( present(extcoef)  .or. &
        present(scacoef) ) then
@@ -3528,27 +3478,19 @@ CONTAINS
       if( present(scacoef) ) scacoef = 0.
 
       do n = nbegin, nbins
-       do w = 1, size(wavelengths_profile)
-         do k = klid, km
-            do j = j1, j2
-               do i = i1, i2
-!                call Chem_MieQuery(mie_table, n, ilam550, &
-                 call Chem_MieQuery(mie_table, n, wavelengths_index_profile(w), &
-                 aerosol(i,j,k,n)*delp(i,j,k)/grav, &
-                 rh(i,j,k), tau=tau, ssa=ssa)
-
-!                Calculate the total ext. and scat. coefficients
-                 if( present(extcoef) ) then
-                     extcoef(i,j,k,w) = extcoef(i,j,k,w) + &
-                                      tau * (grav * rhoa(i,j,k) / delp(i,j,k))
-                 endif
-                 if( present(scacoef) ) then
-                    scacoef(i,j,k,w) = scacoef(i,j,k,w) + &
-                                     ssa * tau * (grav * rhoa(i,j,k) / delp(i,j,k))
-                 endif
-               enddo !i
-            enddo !j
-         enddo !k
+        do w = 1, size(wavelengths_profile)
+          call mie%Query(wavelengths_profile(w),n,   &
+                         aerosol(:,:,:,n)*delp/grav, &
+                         rh, tau=tau, ssa=ssa, __RC__)
+!         Calculate the total ext. and scat. coefficients
+          if ( present(extcoef) ) then
+             extcoef(:,:,:,w) = extcoef(:,:,:,w) + &
+                               tau * (grav * rhoa / delp)
+          endif
+          if ( present(scacoef) ) then
+             scacoef(:,:,:,w) = scacoef(:,:,:,w) + &
+                               ssa * tau * (grav * rhoa / delp)
+          endif
        enddo !wavelengths_profile
       enddo !nbins
     end if !present(extcoef)...
@@ -3573,72 +3515,63 @@ CONTAINS
       if( present(exttaufm) ) exttaufm = 0.
       if( present(scataufm) ) scataufm = 0.
 
-       do w = 1, size(wavelengths_vertint)
-      do n = nbegin, nbins
-!       do w = 1, size(wavelengths_vertint)
-         do k = klid, km
-            do j = j1, j2
-               do i = i1, i2
+      do w = 1, size(wavelengths_vertint)
+        do n = nbegin, nbins
+           call mie%Query(wavelengths_vertint(w), n,  &
+                          aerosol(:,:,:,n)*delp/grav, &
+                          rh, tau=tau, ssa=ssa, __RC__)
+           do k = klid, km
+!             Integrate in the vertical
+              if( present(exttau) ) exttau(:,:,w) = exttau(:,:,w) + tau(:,:,k)
+              if( present(stexttau) ) then
+                 where (ple(:,:,k) .le. tropp) 
+                    stexttau(:,:,w) = stexttau(:,:,w) + tau(:,:,k)
+                 elsewhere(ple(:,:,k) .gt. tropp .and. ple(:,:,k-1) .lt. tropp) 
+                    stexttau(:,:,w) = stexttau(:,:,w) + log(tropp/ple(:,:,k-1))/log(ple(:,:,k)/ple(:,:,k-1))*tau(:,:,k)
+                 endwhere
+              endif
 
-!                call Chem_MieQuery(mie_table, n, ilam550, &
-                 call Chem_MieQuery(mie_table, n, wavelengths_index_vertint(w), &
-                 aerosol(i,j,k,n)*delp(i,j,k)/grav, &
-                 rh(i,j,k), tau=tau, ssa=ssa)
-
-!                Integrate in the vertical
-                 if( present(exttau) ) exttau(i,j,w) = exttau(i,j,w) + tau
-                 if( present(stexttau) ) then
-                    if (ple(i,j,k) .le. tropp(i,j)) then
-                        stexttau(i,j,w) = stexttau(i,j,w) + tau
-                    elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
-                        stexttau(i,j,w) = stexttau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau
-                    endif
-                 endif
-
-                 if( present(exttaufm) ) then
-                    if( NO3nFlag_ ) then
-                       exttaufm(i,j,w) = exttaufm(i,j,w) + tau
-                    else
-                       exttaufm(i,j,w) = exttaufm(i,j,w) + tau * fPMfm(n)
-                    end if
+              if( present(exttaufm) ) then
+                 if( NO3nFlag_ ) then
+                    exttaufm(:,:,w) = exttaufm(:,:,w) + tau(:,:,k)
+                 else
+                    exttaufm(:,:,w) = exttaufm(:,:,w) + tau(:,:,k) * fPMfm(n)
                  end if
+              end if
 
-                 if( present(exttau25) ) then
-                    if( NO3nFlag_ ) then
-                       exttau25(i,j,w) = exttau25(i,j,w) + tau
-                    else
-                       exttau25(i,j,w) = exttau25(i,j,w) + tau * fPM25(n)
-                    end if
+              if( present(exttau25) ) then
+                 if( NO3nFlag_ ) then
+                    exttau25(:,:,w) = exttau25(:,:,w) + tau(:,:,k)
+                 else
+                    exttau25(:,:,w) = exttau25(:,:,w) + tau(:,:,k) * fPM25(n)
                  end if
+              end if
 
-                 if( present(scatau) ) scatau(i,j,w) = scatau(i,j,w) + tau*ssa
-                 if( present(stscatau) ) then
-                    if (ple(i,j,k) .le. tropp(i,j)) then
-                        stscatau(i,j,w) = stscatau(i,j,w) + tau*ssa
-                    elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
-                        stscatau(i,j,w) = stscatau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau*ssa
-                    endif
-                 endif
-                 if( present(scataufm) ) then
-                    if( NO3nFlag_ ) then
-                       scataufm(i,j,w) = scataufm(i,j,w) + tau * ssa
-                    else
-                       scataufm(i,j,w) = scataufm(i,j,w) + tau * ssa * fPMfm(n)
-                    end if
+              if( present(scatau) ) scatau(:,:,w) = scatau(:,:,w) + tau(:,:,k)*ssa(:,:,k)
+              if( present(stscatau) ) then
+                 where (ple(:,:,k) .le. tropp) 
+                    stscatau(:,:,w) = stscatau(:,:,w) + tau(:,:,k)*ssa(:,:,k)
+                 elsewhere(ple(:,:,k) .gt. tropp .and. ple(:,:,k-1) .lt. tropp) 
+                    stscatau(:,:,w) = stscatau(:,:,w) + log(tropp/ple(:,:,k-1))/log(ple(:,:,k)/ple(:,:,k-1))*tau(:,:,k)*ssa(:,:,k)
+                 endwhere
+              endif
+              if( present(scataufm) ) then
+                 if( NO3nFlag_ ) then
+                    scataufm(:,:,w) = scataufm(:,:,w) + tau(:,:,k) * ssa(:,:,k)
+                 else
+                    scataufm(:,:,w) = scataufm(:,:,w) + tau(:,:,k) * ssa(:,:,k) * fPMfm(n)
                  end if
+              end if
 
-                 if( present(scatau25) ) then
-                    if( NO3nFlag_ ) then
-                       scatau25(i,j,w) = scatau25(i,j,w) + tau * ssa
-                    else
-                       scatau25(i,j,w) = scatau25(i,j,w) + tau * ssa * fPM25(n)
-                    end if
+              if( present(scatau25) ) then
+                 if( NO3nFlag_ ) then
+                    scatau25(:,:,w) = scatau25(:,:,w) + tau(:,:,k) * ssa(:,:,k)
+                 else
+                    scatau25(:,:,w) = scatau25(:,:,w) + tau(:,:,k) * ssa(:,:,k) * fPM25(n)
                  end if
-
-               enddo !i
-            enddo !j
-         enddo !k
-       enddo !wavelengths_vertint
+              end if
+           enddo !k
+        enddo !wavelengths_vertint
       enddo !nbins
    endif !present(exttau)...
 
@@ -3652,30 +3585,27 @@ CONTAINS
 
       do n = nbegin, nbins
 
-!      Select the name for species
-       do k = klid, km
-        do j = j1, j2
-         do i = i1, i2
-          call Chem_MieQuery(mie_table, n, ilam470, &
-              aerosol(i,j,k,n)*delp(i,j,k)/grav, &
-              rh(i,j,k), tau=tau)
-          tau470(i,j) = tau470(i,j) + tau
-
-          call Chem_MieQuery(mie_table, n, ilam870, &
-              aerosol(i,j,k,n)*delp(i,j,k)/grav, &
-              rh(i,j,k), tau=tau)
-          tau870(i,j) = tau870(i,j) + tau
-         enddo
+!       Select the name for species
+        call mie%Query(4.70E-7, n,                 &
+                       aerosol(:,:,:,n)*delp/grav, &
+                       rh, tau=tau, __RC__)
+        do k = klid, km
+          tau470 = tau470 + tau(:,:,k)
         enddo
-       enddo
 
+        call mie%Query(8.70E-7, n,                 &
+                       aerosol(:,:,:,n)*delp/grav, &
+                       rh, tau=tau, __RC__)
+        do k = klid, km
+          tau870 = tau870 + tau(:,:,k)
+        enddo
       enddo  ! nbins
 
       angstrom(i1:i2,j1:j2) = &
         -log(tau470(i1:i2,j1:j2)/tau870(i1:i2,j1:j2)) / &
          log(470./870.)
    endif
-
+   deallocate(tau,ssa)
    __RETURN__(__SUCCESS__)
    end subroutine Aero_Compute_Diags
 !====================================================================
@@ -4271,7 +4201,7 @@ CONTAINS
 ! !INTERFACE:
 !
 
-   subroutine CAEmission (mie_table, km, nbins, cdt, grav, prefix, ratPOM, eAircraftfuel, aircraft_fuel_src, &
+   subroutine CAEmission (mie, km, nbins, cdt, grav, prefix, ratPOM, eAircraftfuel, aircraft_fuel_src, &
                            aviation_lto_src, aviation_cds_src, aviation_crs_src, &
                            fHydrophobic, pblh, tmpu, rhoa, rh, aerosolPhilic, aerosolPhobic, &
                            delp, aviation_layers, &
@@ -4283,7 +4213,7 @@ CONTAINS
   implicit NONE
 
 ! !INPUT PARAMETERS:
-   type(Chem_Mie),  intent(in) :: mie_table        ! mie table
+   type(GOCART2G_Mie),  intent(in) :: mie        ! mie table
    integer, intent(in) :: km     ! total model levels
    integer, intent(in) :: nbins  ! number of aerosol size bins
    real, intent(in)    :: cdt    ! chemistry model time-step [sec]
@@ -4354,11 +4284,13 @@ CONTAINS
 
    real, dimension(:,:), allocatable          :: f_bb_        ! scaling factor for BB emissions based on maximum allowed exttau
    real, dimension(:,:), allocatable          :: exttau_bb_   ! increment of exttau due to BB during the current time step
-   real, allocatable, dimension(:,:,:,:) :: qa_bb_       ! increment of qa due to BB during the current time step (nbins,i1:i2,j1:j2:km)
+   real, allocatable, dimension(:,:,:,:) :: qa_bb_       ! increment of qa due to BB during the current time step (nbins,i1:i2,j1:j2:km) 
+                                                         ! W.Jiang note, changed to (i1:i2,j1:j2,km,nbins) for efficiency
    real                                  :: cutoff_bb_exttau
-   integer                               :: nch, idx
-   real                                  :: ilam550
-   real                                  :: tau, ssa
+   integer                               :: idx
+   integer                               :: ilam550, status
+   real                                  :: wavelength550
+   real, dimension(:,:,:), allocatable   :: tau
    character(len=255)                    :: qname
    real, parameter                       :: max_bb_exttau = 30.0
 
@@ -4367,7 +4299,6 @@ CONTAINS
 
 !  Source function terms for SOA from Anthropogenic VOCs
    real :: srcSOAanthro = 0.0
-
 !  Initialize local variables
 !  --------------------------
    i2 = size(rhoa,1)
@@ -4471,7 +4402,7 @@ CONTAINS
 
 !   Limit biomass burning emissions
 !   -------------------------------
-    allocate(qa_bb_(nbins,i1:i2,j1:j2,km))
+    allocate(qa_bb_(i1:i2,j1:j2,km,nbins))
     qa_bb_ = 0.0
 
     p0 = ps
@@ -4512,44 +4443,31 @@ K_LOOP_BB: do k = km, 1, -1
 !   -----------------------------------
     factor = cdt * grav / delp(:,:,k)
 
-    qa_bb_(1,:,:,k) = factor * srcHydrophobic
-    qa_bb_(2,:,:,k) = factor * srcHydrophilic
+    qa_bb_(:,:,k,1) = factor * srcHydrophobic
+    qa_bb_(:,:,k,2) = factor * srcHydrophilic
 
    end do K_LOOP_BB
-
-    nch   = mie_table%nch
 
 !   Get the wavelength indices
 !   --------------------------
 !   Must provide ilam550 for AOT calculation
-    ilam550 = 1.
-    if(nch .gt. 1) then
-     do i = 1, nch
-      if ( mie_table%channels(i) .ge. 5.49e-7 .and. &
-           mie_table%channels(i) .le. 5.51e-7) ilam550 = i
-     enddo
-    endif
+    ilam550 = mie%getChannel(5.50e-7)
+    if (ilam550 <=0) ilam550 = 1
+    wavelength550 = mie%getWavelength(ilam550, __RC__)
 
 !  Calculate the extinction and/or scattering AOD
 
    exttau_bb_(i1:i2,j1:j2) = 0.0
-
+   allocate(tau(i1:i2,j1:j2,km), source = 0.)
    do n = 1, nbins
 !     Select the name for species and the index
-      do k = 1, km
-       do j = j1, j2
-        do i = i1, i2
-         call Chem_MieQuery(mie_table, n, ilam550, &
-              qa_bb_(n,i,j,k)*delp(i,j,k)/grav, &
-              rh(i,j,k), tau=tau, ssa=ssa)
-
+     call mie%Query(wavelength550, n,           &
+              qa_bb_(:,:,:,n)*delp(:,:,:)/grav, &
+              rh, tau=tau, __RC__)
+     do k = 1, km
 !        Integrate in the vertical
-         exttau_bb_(i,j) = exttau_bb_(i,j) + tau
-
-        enddo
-       enddo
-      enddo
-
+        exttau_bb_(:,:) = exttau_bb_(:,:) + tau(:,:,k)
+     enddo
    enddo  ! nbins
 
    f_bb_ = 1.0
@@ -4563,7 +4481,7 @@ K_LOOP_BB: do k = km, 1, -1
     enddo
    enddo
 
-   deallocate(qa_bb_)
+   deallocate(qa_bb_, tau)
 
 !  Now update the tracer mixing ratios with the aerosol sources
 !  ------------------------------------------------------------
@@ -4814,8 +4732,8 @@ K_LOOP: do k = km, 1, -1
 !
 ! !INTERFACE:
    subroutine NIheterogenousChem (NI_phet, xhno3, UNDEF, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
-                                  DU, SS, rmedDU, rmedSS, fnumDU, fnumSS, nbinsDU, nbinsSS, &
-                                  km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2, &
+                                  DU, SS, rmedDU, rmedSS, fnumDU, fnumSS,                                    &
+                                  km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2,                &
                                   nNO3an3, HNO3_conc, HNO3_sfcmass, HNO3_colmass, rc)
 
 
@@ -4840,8 +4758,6 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [um]
    real, dimension(:) ,intent(in)      :: fnumDU         ! number of dust particles per kg mass
    real, dimension(:) ,intent(in)      :: fnumSS         ! number of sea salt particles per kg mass
-   integer, intent(in)                 :: nbinsDU        ! number of dust bins
-   integer, intent(in)                 :: nbinsSS        ! number of sea salt bins
    integer, intent(in)                 :: km             ! number of model levels
    integer, intent(in)                 :: klid           ! index for pressure lid
    real, intent(in)                    :: cdt            ! chemistry model timestep (sec)
@@ -4867,6 +4783,8 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), allocatable :: deltahno3
 
    integer :: i1, j1, i2, j2, n, i, j, k
+   integer :: nbinsDU        ! number of dust bins
+   integer :: nbinsSS        ! number of sea salt bins
 
 
 !
@@ -4878,6 +4796,9 @@ K_LOOP: do k = km, 1, -1
 !EOP
 !------------------------------------------------------------------------------------
 !  Begin..
+
+   nbinsDU = size(DU,4)
+   nbinsSS = size(SS,4)
 
 !  Heterogeneous chemistry
 !  -----------------------
@@ -6358,7 +6279,7 @@ K_LOOP: do k = km, 1, -1
 !    Check for total precipitation amount
 !    Assume no precip in column if precl+precc = 0
      pac = precl(i,j) + precc(i,j)
-     if(pac .le. 0.) goto 100
+     if(pac .le. 0.) cycle
      pls = precl(i,j)
      pcv = precc(i,j)
 
@@ -6374,11 +6295,11 @@ K_LOOP: do k = km, 1, -1
      do k = klid, km
       if(dpfli(i,j,k) .gt. 0. .and. tmpu(i,j,k) .gt. 258.) then
        LH = k
-       goto 15
+       exit
       endif
      end do
- 15  continue
-     if(LH .lt. 1) goto 100
+
+     if(LH .lt. 1) cycle
 
      do k = LH, km
       qls(k) = dpfli(i,j,k)/pdog(i,j,k)*rhoa(i,j,k)
@@ -6455,11 +6376,10 @@ K_LOOP: do k = km, 1, -1
          if (Qls(kk).gt.0.) then
           Qmx = max(Qmx,Qls(kk))
          else
-          goto 333
+          exit
          end if
         end do
 
- 333    continue
         F = F0_ls / (1. + F0_ls*B0_ls*XL_ls/(Qmx*cdt/Td_ls))
         if (F.lt.0.01) F = 0.01
 
@@ -6591,11 +6511,10 @@ K_LOOP: do k = km, 1, -1
          if (Qcv(kk).gt.0.) then
           Qmx = max(Qmx,Qcv(kk))
          else
-          goto 444
+          exit
          end if
         end do
 
- 444    continue
         F = F0_cv / (1. + F0_cv*B0_cv*XL_cv/(Qmx*cdt/Td_cv))
         if (F.lt.0.01) F = 0.01
 !-----------------------------------------------------------------------------
@@ -6734,7 +6653,6 @@ K_LOOP: do k = km, 1, -1
       endif
      end do
 
- 100 continue
     end do   ! i
    end do    ! j
 
@@ -6762,7 +6680,7 @@ K_LOOP: do k = km, 1, -1
 !BOP
 ! !IROUTINE: SU_Compute_Diags
 
-   subroutine SU_Compute_Diags ( km, klid, rmed, sigma, rhop, grav, pi, nSO4, mie_table, channels, &
+   subroutine SU_Compute_Diags ( km, klid, rmed, sigma, rhop, grav, pi, nSO4, mie, &
                                  wavelengths_profile, wavelengths_vertint, &
                                  tmpu, rhoa, delp, ple, tropp,rh, u, v, &
                                  DMS, SO2, SO4, MSA, &
@@ -6785,8 +6703,7 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)    :: grav  ! gravity [m/sec]
    real, intent(in)    :: pi    ! pi constant
    integer, intent(in) :: nSO4  ! index of SO4 relative to other internal variables
-   type(Chem_Mie), intent(in) :: mie_table   ! mie table
-   real, dimension(:), intent(in)  :: channels
+   type(GOCART2G_Mie), intent(in) :: mie   ! mie table
    real, dimension(:), intent(in)  :: wavelengths_profile
    real, dimension(:), intent(in)  :: wavelengths_vertint
    real, pointer, dimension(:,:,:), intent(in) :: tmpu    ! temperature [K]
@@ -6837,11 +6754,10 @@ K_LOOP: do k = km, 1, -1
 !  29july2020, E.Sherman - refactored for process library
 
 ! !Local Variables
-   integer :: i, j, k, w, i1=1, j1=1, i2, j2, nch
-   real, allocatable, dimension(:)  :: wavelengths_index_profile, wavelengths_index_vertint
-   real :: tau, ssa
+   integer :: i, j, k, w, i1=1, j1=1, i2, j2, status
+   real, dimension(:,:,:), allocatable :: tau, ssa
    real, dimension(:,:), allocatable :: tau470, tau870
-   real    :: ilam550, ilam470, ilam870
+   integer    :: ilam470, ilam870
    logical :: do_angstrom
    real :: rh_, gf, rwet, svol
 
@@ -6849,8 +6765,6 @@ K_LOOP: do k = km, 1, -1
 !EOP
 !-------------------------------------------------------------------------
 !  Begin
-
-   nch = size(channels)
    j2 = ubound(tmpu, 2)
    i2 = ubound(tmpu, 1)
 
@@ -6858,65 +6772,20 @@ K_LOOP: do k = km, 1, -1
 
 !  Get the wavelength indices
 !  --------------------------
-!  Must provide ilam550 for AOT calculation
-   ilam550 = 1.
-   ilam470 = 0.
-   ilam870 = 0.
-   if(nch .gt. 1) then
-      do i = 1, nch
-         if ( channels(i) .ge. 5.49e-7 .and. &
-              channels(i) .le. 5.51e-7) ilam550 = i
-         if ( channels(i) .ge. 4.69e-7 .and. &
-              channels(i) .le. 4.71e-7) ilam470 = i
-         if ( channels(i) .ge. 8.69e-7 .and. &
-              channels(i) .le. 8.71e-7) ilam870 = i
-      enddo
-   endif
 
-   allocate(wavelengths_index_profile(size(wavelengths_profile)))
-   allocate(wavelengths_index_vertint(size(wavelengths_vertint)))
-   wavelengths_index_profile = 0.
-   wavelengths_index_vertint = 0.
+   ilam470 = mie%getChannel(4.70e-7)
+   if(ilam470 <= 0) ilam470 = 0
 
-   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-   do i = 1, size(wavelengths_profile)
-      if ((wavelengths_profile(i) .ge. 5.49e-7) .and. (wavelengths_profile(i) .le. 5.51e-7)) then
-         wavelengths_index_profile(i) = 2.
-      else if ((wavelengths_profile(i) .ge. 4.69e-7) .and. (wavelengths_profile(i) .le. 4.71e-7)) then
-         wavelengths_index_profile(i) = 1.
-      else if ((wavelengths_profile(i) .ge. 6.69e-7) .and. (wavelengths_profile(i) .le. 6.71e-7)) then
-         wavelengths_index_profile(i) = 3.
-      else if ((wavelengths_profile(i) .ge. 8.69e-7) .and. (wavelengths_profile(i) .le. 8.71e-7)) then
-         wavelengths_index_profile(i) = 4.
-      else
-         print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
-         return
-      end if
-   end do
-
-   ! Channel values are 4.7e-7 5.5e-7 6.7e-7 8.7e-7 [meter]. Their indices are 1,2,3,4 respectively.
-   do i = 1, size(wavelengths_vertint)
-      if ((wavelengths_vertint(i) .ge. 5.49e-7) .and. (wavelengths_vertint(i) .le. 5.51e-7)) then
-         wavelengths_index_vertint(i) = 2.
-      else if ((wavelengths_vertint(i) .ge. 4.69e-7) .and. (wavelengths_vertint(i) .le. 4.71e-7)) then
-         wavelengths_index_vertint(i) = 1.
-      else if ((wavelengths_vertint(i) .ge. 6.69e-7) .and. (wavelengths_vertint(i) .le. 6.71e-7)) then
-         wavelengths_index_vertint(i) = 3.
-      else if ((wavelengths_vertint(i) .ge. 8.69e-7) .and. (wavelengths_vertint(i) .le. 8.71e-7)) then
-         wavelengths_index_vertint(i) = 4.
-      else
-         print*,'wavelengths_profile of ',wavelengths_profile(i),' is an invalid value.'
-         return
-      end if
-   end do
+   ilam870 = mie%getChannel(8.70e-7)
+   if(ilam870 <= 0) ilam870 = 0
 
 !  Determine if going to do Angstrom parameter calculation
 !  -------------------------------------------------------
    do_angstrom = .false.
 !  If both 470 and 870 channels provided (and not the same) then
 !  possibly will do Angstrom parameter calculation
-   if(ilam470 .ne. 0. .and. &
-      ilam870 .ne. 0. .and. &
+   if(ilam470 .ne. 0 .and. &
+      ilam870 .ne. 0 .and. &
       ilam470 .ne. ilam870) do_angstrom = .true.
 
 
@@ -7017,32 +6886,27 @@ K_LOOP: do k = km, 1, -1
    endif
 
 !  Calculate the extinction and/or scattering AOD
+   allocate(tau(i1:i2,j1:j2,km), source = 0.)
+   allocate(ssa(i1:i2,j1:j2,km), source = 0.)
    if( associated(extcoef) .or. associated(scacoef) ) then
 
       if (associated(extcoef)) extcoef = 0.
       if (associated(scacoef)) scacoef = 0.
 
       do w = 1, size(wavelengths_profile)
-       do k = klid, km
-        do j = j1, j2
-         do i = i1, i2
-          call Chem_MieQuery(mie_table, 1, wavelengths_index_profile(w), & ! Only SO4 exists in the MieTable, so its index is 1
-              SO4(i,j,k)*delp(i,j,k)/grav, &
-              rh(i,j,k), tau=tau, ssa=ssa)
+         call mie%Query(wavelengths_profile(w), 1, & ! Only SO4 exists in the MieTable, so its index is 1
+                        SO4*delp/grav, rh,         &
+                        tau=tau, ssa=ssa, __RC__)
 
 !         Calculate the total ext. and scat. coefficients
-          if( associated(extcoef) ) then
-              extcoef(i,j,k,w) = extcoef(i,j,k,w) + &
-                              tau * (grav * rhoa(i,j,k) / delp(i,j,k))
-          endif
-          if( associated(scacoef) ) then
-              scacoef(i,j,k,w) = scacoef(i,j,k,w) + &
-                              ssa * tau * (grav * rhoa(i,j,k) / delp(i,j,k))
-          endif
-
-         enddo
-        enddo
-       enddo
+         if( associated(extcoef) ) then
+              extcoef(:,:,:,w) = extcoef(:,:,:,w) + &
+                              tau * (grav * rhoa / delp)
+         endif
+         if( associated(scacoef) ) then
+              scacoef(:,:,:,w) = scacoef(:,:,:,w) + &
+                              ssa * tau * (grav * rhoa / delp)
+         endif
       enddo
    endif
 
@@ -7055,42 +6919,36 @@ K_LOOP: do k = km, 1, -1
       if (associated(stscatau)) stscatau = 0.
 
       do w = 1, size(wavelengths_vertint)
-       do k = klid, km
-        do j = j1, j2
-         do i = i1, i2
-            call Chem_MieQuery(mie_table, 1, wavelengths_index_vertint(w), & ! Only SO4 exists in the MieTable, so its index is 1
-            SO4(i,j,k)*delp(i,j,k)/grav, &
-            rh(i,j,k), tau=tau, ssa=ssa)
+         call mie%Query(wavelengths_vertint(w), 1,  & ! Only SO4 exists in the MieTable, so its index is 1
+                        SO4*delp/grav, rh,          &
+                        tau=tau, ssa=ssa, __RC__)
 
-!         Integrate in the vertical
-          if( associated(exttau) ) then
-           exttau(i,j,w) = exttau(i,j,w) + tau
-          endif
+         do k = klid, km
+!           Integrate in the vertical
+            if ( associated(exttau) ) then
+               exttau(:,:,w) = exttau(:,:,w) + tau(:,:,k)
+            endif
 
-          if(associated(stexttau) ) then
-             if (ple(i,j,k) .le. tropp(i,j)) then
-                 stexttau(i,j,w) = stexttau(i,j,w) + tau
-             elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
-                 stexttau(i,j,w) = stexttau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau
-             endif
+            if (associated(stexttau) ) then
+               where (ple(:,:,k) .le. tropp) 
+                  stexttau(:,:,w) = stexttau(:,:,w) + tau(:,:,k)
+               elsewhere(ple(:,:,k-1) .lt. tropp) 
+                 stexttau(:,:,w)  = stexttau(:,:,w) + log(tropp/ple(:,:,k-1))/log(ple(:,:,k)/ple(:,:,k-1))*tau(:,:,k)
+               endwhere
+            endif
+
+            if ( associated(scatau) ) then
+               scatau(:,:,w) = scatau(:,:,w) + tau(:,:,k)*ssa(:,:,k)
+            endif
+
+            if ( associated(stscatau) ) then
+               where (ple(:,:,k) .le. tropp) 
+                  stscatau(:,:,w) = stscatau(:,:,w) + tau(:,:,k)*ssa(:,:,k)
+               elsewhere(ple(:,:,k-1) .lt. tropp) 
+                  stscatau(:,:,w) = stscatau(:,:,w) + log(tropp/ple(:,:,k-1))/log(ple(:,:,k)/ple(:,:,k-1))*tau(:,:,k)*ssa(:,:,k)
+               endwhere
            endif
-
-           if( associated(scatau) ) then
-            scatau(i,j,w) = scatau(i,j,w) + tau*ssa
-           endif
-
-           if( associated(stscatau) ) then
-              if (ple(i,j,k) .le. tropp(i,j)) then
-                 stscatau(i,j,w) = stscatau(i,j,w) + tau*ssa
-              elseif(ple(i,j,k) .gt. tropp(i,j) .and. ple(i,j,k-1) .lt. tropp(i,j)) then
-                 stscatau(i,j,w) = stscatau(i,j,w) + log(tropp(i,j)/ple(i,j,k-1))/log(ple(i,j,k)/ple(i,j,k-1))*tau*ssa
-              endif
-           endif
-
-
          enddo
-        enddo
-       enddo
       enddo
    endif
 
@@ -7102,21 +6960,19 @@ K_LOOP: do k = km, 1, -1
       tau470(i1:i2,j1:j2) = tiny(1.0)
       tau870(i1:i2,j1:j2) = tiny(1.0)
 
-       do k = klid, km
-        do j = j1, j2
-         do i = i1, i2
+      call mie%Query(4.70E-7,  1,       & ! Only SO4 exists in the MieTable, so its index is 1
+                     SO4*delp/grav, rh, &
+                     tau=tau, __RC__)
+      do k = klid, km
+         tau470 = tau470 + tau(:,:,k)
+      enddo
 
-          call Chem_MieQuery(mie_table, 1, ilam470, & ! Only SO4 exists in the MieTable, so its index is 1
-              SO4(i,j,k)*delp(i,j,k)/grav, rh(i,j,k), tau=tau)
-          tau470(i,j) = tau470(i,j) + tau
-
-          call Chem_MieQuery(mie_table, 1, ilam870, &
-              SO4(i,j,k)*delp(i,j,k)/grav,rh(i,j,k), tau=tau)
-          tau870(i,j) = tau870(i,j) + tau
-
-         enddo
-        enddo
-       enddo
+      call mie%Query(8.70E-7, 1,       &
+                     SO4*delp/grav,rh, &
+                     tau=tau, __RC__)
+      do k = klid, km
+         tau870 = tau870 + tau(:,:,k)
+      enddo
 
 !      enddo  ! nbins
       angstrom(i1:i2,j1:j2) = &
@@ -7150,7 +7006,7 @@ K_LOOP: do k = km, 1, -1
         enddo
        endif
    endif
-
+   deallocate(tau,ssa)
    __RETURN__(__SUCCESS__)
    end subroutine SU_Compute_Diags
 
@@ -8498,8 +8354,6 @@ loop2: DO l = 1,nspecies_HL
       ANO3  = max(1.d-32,NO3an1(i,j,k) * fmmr_to_conc)
       AH2O  = 1.d-32
       ANH4  = max(1.d-32,NH4a(i,j,k) * fmmr_to_conc)
-
-!print*,'GOCART2G NIthermo TEST 2'
 
       call RPMARES (  SO4_, GNO3,  GNH3, RH_,  TEMP, &
                       ASO4, AHSO4, ANO3, AH2O, ANH4, __RC__ )
@@ -10597,7 +10451,6 @@ loop2: DO l = 1,nspecies_HL
 
       call this%rewind(__RC__)
       call this%scan_to_label(label, __RC__)
-!      print*,__FILE__,__LINE__, ' found label'
 
       dims = 0
       do

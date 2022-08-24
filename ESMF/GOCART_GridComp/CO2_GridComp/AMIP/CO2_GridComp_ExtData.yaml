@@ -1,0 +1,77 @@
+Collections:
+  CO2_ARCTAS.region_mask.x540_y361.2008.nc:
+    template: ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+  CO2_NOBM_fco2.daily.1x1.25.%y4.nc:
+    template: ExtData/PIESA/sfc/CMS/NOBM_fco2.daily.1x1.25.%y4.nc
+  CO2_ORNL_TRANSCOM.co2_ff_nep_ocn.x288_y181_t12.%y4.nc:
+    template: ExtData/PIESA/sfc/CMS/ORNL_TRANSCOM.co2_ff_nep_ocn.x288_y181_t12.%y4.nc
+  CO2_bian.co2.x288_y181_t12.2001.nc:
+    template: ExtData/PIESA/sfc/bian.co2.x288_y181_t12.2001.nc
+  CO2_casa.3hr.1x1.25.%y4.nc:
+    template: ExtData/PIESA/sfc/CMS/casa.3hr.1x1.25.%y4.nc
+  CO2_em.daily.1x1.25.%y4.nc:
+    template: ExtData/PIESA/sfc/CMS/em.daily.1x1.25.%y4.nc
+  CO2_qfed2.emis_co2.005.x1152_y721_t12.2003_2012.2007.nc4:
+    template: ExtData/PIESA/sfc/QFED/v2.4r6/climatology/qfed2.emis_co2.005.x1152_y721_t12.2003_2012.2007.nc4
+
+Samplings:
+  CO2_sample_0:
+    extrapolation: clim
+    time_interpolation: False
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  CO2_sample_1:
+    time_interpolation: False
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+  CO2_sample_2:
+    extrapolation: persist_closest
+
+Exports:
+  CO2_BIOMASS:
+    collection: CO2_qfed2.emis_co2.005.x1152_y721_t12.2003_2012.2007.nc4
+    regrid: CONSERVE
+    sample: CO2_sample_0
+    variable: biomass
+  CO2_CMS_BIOMASS:
+    collection: CO2_em.daily.1x1.25.%y4.nc
+    regrid: CONSERVE
+    sample: CO2_sample_1
+    variable: biomass
+  CO2_CMS_FF:
+    collection: CO2_ORNL_TRANSCOM.co2_ff_nep_ocn.x288_y181_t12.%y4.nc
+    regrid: CONSERVE
+    sample: CO2_sample_1
+    variable: emco2ff
+  CO2_CMS_NEP:
+    collection: CO2_casa.3hr.1x1.25.%y4.nc
+    regrid: CONSERVE
+    variable: emco2nep
+  CO2_CMS_OCN:
+    collection: CO2_NOBM_fco2.daily.1x1.25.%y4.nc
+    regrid: CONSERVE
+    sample: CO2_sample_1
+    variable: emco2ocn
+  CO2_FF:
+    collection: CO2_bian.co2.x288_y181_t12.2001.nc
+    regrid: CONSERVE
+    sample: CO2_sample_0
+    variable: emco2ff
+  CO2_NEP:
+    collection: CO2_bian.co2.x288_y181_t12.2001.nc
+    regrid: CONSERVE
+    sample: CO2_sample_0
+    variable: emco2nep
+  CO2_OCN:
+    collection: CO2_bian.co2.x288_y181_t12.2001.nc
+    regrid: CONSERVE
+    sample: CO2_sample_0
+    variable: emco2ocn
+  CO2_regionMask:
+    collection: CO2_ARCTAS.region_mask.x540_y361.2008.nc
+    regrid: VOTE
+    sample: CO2_sample_2
+    variable: REGION_MASK
+

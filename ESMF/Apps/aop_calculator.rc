@@ -1,0 +1,60 @@
+#
+# Resource file for (MPI) 3D Extinction Calculator
+#
+
+#                    ---------------------
+#                     Grid, Decomposition
+#                    ---------------------
+
+
+ExpId: a0000
+
+Layout_Nx: 2
+Layout_Ny: 4
+
+IM_World: 720 
+JM_World: 361 
+LM_World: 72
+
+nymd: 20190621
+nhms: 000000
+
+verbose: .TRUE.
+
+#                    -------------------
+#                    File Name Templates
+#                    -------------------
+
+aer_filename: /home/vbuchard/workspace/GOCART_2G/TEST_ext/c180R_exp_ext.inst3_3d_aer_Nv.20190621_0000z.nc4
+ext_filename: ext.nc4
+
+#                   --------------------------------
+#                      AOP Wavelengths & Variables
+#                   --------------------------------
+
+wavelengths_in_nm: 355 532 1064 # desired wavelengths
+
+aop_variables::
+  extinction   km-1      'Aerosol Extinction'
+  ssa          none      'Aerosol Single Scatter Albedo'
+  tau          none      'Aerosol Layer Optical Thickness'
+  backscat     km-1sr-1  'Aerosol Backscatter [532 nm]'
+  ext2back     sr-1      'Aerosol Extinction to Backscatter Ratio'
+  aback_sfc    km-1sr-1  'Aerosol Attenuated Backscatter from Surface'
+  aback_toa    km-1sr-1  'Aerosol Attenuated Backscatter from Space'
+::
+
+#                   -------------------
+#                      Optical Tables
+#                   -------------------
+
+Species: DU SS SU NI OC BR BC
+
+DU:   ExtData/PIESA/x/optics_DU.v15_3.nc du001 du002 du003 du004 du005 
+SS:   ExtData/PIESA/x/optics_SS.v3_3.nc  ss001 ss002 ss003 ss004 ss005
+SU:   ExtData/PIESA/x/optics_SU.v1_3.nc  so4
+NI:   ExtData/PIESA/x/optics_NI.v2_5.nc  no3an1 no3an2 no3an3 
+OC:   ExtData/PIESA/x/optics_OC.v1_3.nc  ocphobic ocphilic
+BR:   ExtData/PIESA/x/optics_BRC.v1_5.nc brphobic brphilic
+BC:   ExtData/PIESA/x/optics_BC.v1_3.nc  bcphobic bcphilic
+

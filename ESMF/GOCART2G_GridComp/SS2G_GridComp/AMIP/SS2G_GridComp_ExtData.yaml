@@ -1,0 +1,112 @@
+Collections:
+  SS2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4:
+    template: ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+  SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4:
+    template: ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+
+Samplings:
+  SS2G_sample_0:
+    extrapolation: clim
+
+Exports:
+  climSSDP001:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSDP001
+  climSSDP002:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSDP002
+  climSSDP003:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSDP003
+  climSSDP004:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSDP004
+  climSSDP005:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSDP005
+  climSSSD001:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSD001
+  climSSSD002:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSD002
+  climSSSD003:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSD003
+  climSSSD004:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSD004
+  climSSSD005:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSD005
+  climSSSV001:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSV001
+  climSSSV002:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSV002
+  climSSSV003:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSV003
+  climSSSV004:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSV004
+  climSSSV005:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSSV005
+  climSSWT001:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSWT001
+  climSSWT002:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSWT002
+  climSSWT003:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSWT003
+  climSSWT004:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSWT004
+  climSSWT005:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: SSWT005
+  climss001:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: ss001
+  climss002:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: ss002
+  climss003:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: ss003
+  climss004:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: ss004
+  climss005:
+    collection: SS2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    sample: SS2G_sample_0
+    variable: ss005
+

@@ -1,0 +1,15 @@
+Collections:
+  CFC_ARCTAS.CFC12.emission.x540_y361.2008.hdf:
+    template: ExtData/g5chem/sfc/ARCTAS.CFC12.emission.x540_y361.2008.hdf
+
+Samplings:
+  CFC_sample_0:
+    extrapolation: persist_closest
+
+Exports:
+  CFC12:
+    collection: CFC_ARCTAS.CFC12.emission.x540_y361.2008.hdf
+    regrid: CONSERVE
+    sample: CFC_sample_0
+    variable: CFC-12_EMISSION
+
