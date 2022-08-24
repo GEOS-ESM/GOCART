@@ -133,11 +133,9 @@ CONTAINS
 ! -------------------------
   nch = size(Mie(2)%Table%wavelengths)
   allocate(delm(im,jm,km), delc(im,jm,km), delz(im,jm,km),rh(im,jm,km))
-  allocate(tau(im,jm,km),bck(im,jm,km), aod_(im,jm,km,nch))
-  aod_ = 0
+  allocate(tau(im,jm,km),bck(im,jm,km))
   
      do iq =1, x%n3d
-     print*, 'iq species', iq, x%r3(iq)%name
         if (associated(Mie(iq)%Table)) then
                  do n = 1 , size(Mie(iq)%Table%wavelengths)
                     delm = x%r3(iq)%q * x%coords%lcv%delp / MAPL_GRAV
@@ -145,12 +143,7 @@ CONTAINS
                     delz = x%coords%lcv%delp / (MAPL_GRAV*x%r3(iRHO)%q)
                     delz = delz / 1000.                                 ! m to km conversion
                      rh = x%r3(iRH)%q
-                 
-                    ! print*, 'Table name', Mie(iq)%Table%table_name, Mie(iq)%bin_number, Mie(iq)%Table%wavelengths(n)
                      call Mie(iq)%Table%Query(Mie(iq)%Table%wavelengths(n), Mie(iq)%bin_number, delm, rh, tau=tau, bbck=bck) 
-                     print*, 'aod lev', iq, x%r3(iq)%name, tau(100,100,72), maxval(tau(:,:,72))
-                     aod_(:,:,:,n) = aod_(:,:,:,n) + tau
-                     print*, 'aod_', aod_(100,100,72,1), aod_(100,100,72,2)
                  if ( has_tau ) ptrtau(:,:,:,n) = ptrtau(:,:,:,n) + tau
                  if ( has_ext ) ptrext(:,:,:,n) = ptrext(:,:,:,n) + tau / delz        ! in km-1
                  if ( has_bck ) ptrbck(:,:,:,n) = ptrbck(:,:,:,n) + bck * delc * 1e03 ! in km-1 sr-1 

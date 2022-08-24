@@ -238,14 +238,6 @@ CONTAINS
         allocate(species_name(n_species), __STAT__)
         call ESMF_ConfigGetAttribute(CF, species_name, Label='Species:', __RC__)
 
-!        ind_table = 0
-!        bin_number = 0
-!        print*, 'species_name', ind_table
-!        print*, 'species_name', species_name, trim(qname(1:2))
-!        do i= 1, n_species
-!           if(trim(species_name(i)) == trim(qname)(1:2)) then
- 
-
 
           ind_table = 0
           bin_number = 0
@@ -262,7 +254,6 @@ CONTAINS
            enddo
            deallocate(bins_name)
         enddo
-        print*, 'end loop over species'
      
      end subroutine  getTable__
 end program ext_calculator 

@@ -55,6 +55,6 @@ SS:   ExtData/PIESA/x/optics_SS.v3_3.nc  ss001 ss002 ss003 ss004 ss005
 SU:   ExtData/PIESA/x/optics_SU.v1_3.nc  so4
 NI:   ExtData/PIESA/x/optics_NI.v2_5.nc  no3an1 no3an2 no3an3 
 OC:   ExtData/PIESA/x/optics_OC.v1_3.nc  ocphobic ocphilic
-BR:   ExtData/PIESA/x/optics_BRC.v1_5.nc brcphobic brcphilic
+BR:   ExtData/PIESA/x/optics_BRC.v1_5.nc brphobic brphilic
 BC:   ExtData/PIESA/x/optics_BC.v1_3.nc  bcphobic bcphilic
 

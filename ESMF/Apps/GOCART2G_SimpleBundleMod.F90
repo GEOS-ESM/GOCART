@@ -3,6 +3,7 @@
 ! This would better implemented as an extension of MPL_SimpleBundle.
 !
 ! Arlindo da Silva <arlindo.dasilva@nasa.gov>, March 2022
+! V. Buchard July 2022- added new subroutines
 !----------------------------------------------------------------------------
 
 #  include "MAPL_Generic.h"
@@ -94,11 +95,9 @@ CONTAINS
 !   add number of wavelengths nch
 !------------------------
     nch  = ESMF_ConfigGetLen(CF,Label='wavelengths_in_nm:',__RC__)
-    print*, 'nch', nch, size(short_name)
 !   Add fields to Bundle
 !   --------------------
     do i = 1, size(short_name)
-       print*, 'in the loop', i, short_name(i), long_name(i), units(i) 
        Field=ESMF_FieldCreate(grid,name=short_name(i),typekind=ESMF_typekind_r4,ungriddedlbound=[1,1], ungriddedubound=[km,nch], __RC__)
        call ESMF_AttributeSet(field, name='ShortName', value=short_name(i),  __RC__)
        call ESMF_AttributeSet(field, name='LongName', value=long_name(i),  __RC__)
