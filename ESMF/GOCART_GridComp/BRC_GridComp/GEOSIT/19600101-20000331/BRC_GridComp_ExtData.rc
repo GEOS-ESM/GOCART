@@ -4,8 +4,6 @@ PrimaryExports%%
 #  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
 # Biomass burning -- QFED-v2.x
-#BRC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/chemistry/QFED/v2.5r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
-#BRC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/chemistry/HFED/v1.0/Y%y4/M%m2/hfed.emis_oc.x576_y361.%y4%m2.nc4
 BRC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none none biomass ExtData/chemistry/HFED/v1.0/Y%y4/hfed.emis_oc.x576_y361_t14.%y4.nc4
 
 # Terpene emission
