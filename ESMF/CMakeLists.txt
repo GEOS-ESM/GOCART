@@ -12,6 +12,7 @@ if (UFS_GOCART)
 else ()
   esma_add_subdirectories(
     Shared
+    Apps
     Aerosol_GridComp
     GOCART_GridComp
     GOCART2G_GridComp

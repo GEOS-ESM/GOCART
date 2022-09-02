@@ -9,17 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed  
+
+### Changed
+
+
+## [2.1.0] - 2022-08-24
+
+### Added
+
 - Add `.editorconfig` file
   - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
 - Add YAML validator GitHub Action
   - This action makes sure all YAML files are valid (to a relaxed standard)
-
+- Initial implementation of offline simulator for 3D profiles of extinction based on the new GOCART2G-Mie interface. Work for the 2D simulator in progress. 
+ 
 ### Fixed
 
 - Added protection guard for pointer DU_SRC. fixed issue #148
 - Initialized pointers by allocation instead of assignment. fixed issue #127
 - Removed ExtData2G yaml files from all AMIP.20C directories as these are not needed anymore
 - Removed declaration of Disable_Convection, no longer needed
+- Added extra `esmf` to CMake files for UFS
 
 ### Changed
 - Fixed typo in PM2.5 calculation (check if nitrate is active for not double counting ammonium)
