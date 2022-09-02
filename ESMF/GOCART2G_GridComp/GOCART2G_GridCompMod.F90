@@ -50,7 +50,6 @@ module GOCART2G_GridCompMod
      type(Constituent) :: NI
      real, allocatable :: wavelengths_profile(:) ! wavelengths for profile aop [nm]
      real, allocatable :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
-     logical :: use_threads = .FALSE.
   end type GOCART_State
 
   type wrap_
@@ -113,6 +112,7 @@ contains
     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
     integer, allocatable, dimension(:) :: wavelengths_diagmie
     type (MAPL_MetaComp),       pointer    :: MAPL
+    logical :: use_threads
 
     __Iam__('SetServices')
 
@@ -160,13 +160,13 @@ contains
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
-    call ESMF_ConfigGetAttribute (myCF, self%use_threads, label='use_threads:', default=.FALSE., __RC__)
+    call ESMF_ConfigGetAttribute (myCF, use_threads, label='use_threads:', default=.FALSE., __RC__)
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
 !   set use_threads
-    call MAPL%set_use_threads(self%use_threads)
+    call MAPL%set_use_threads(use_threads)
 
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------
