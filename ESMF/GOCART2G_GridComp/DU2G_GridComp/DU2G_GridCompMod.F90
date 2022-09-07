@@ -1284,3 +1284,10 @@ contains
 
 end module DU2G_GridCompMod
 
+subroutine SetServices(gc, rc)
+   use ESMF
+   use DU2G_GridCompMod, only : mySetservices=>SetServices
+   type(ESMF_GridComp) :: gc
+   integer, intent(out) :: rc
+   call mySetServices(gc, rc=rc)
+end subroutine

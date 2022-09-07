@@ -15,14 +15,6 @@ module GOCART2G_GridCompMod
    use MAPL
    use Chem_AeroGeneric
 
-! !Establish the Childen's SetServices
- !-----------------------------------
-   use DU2G_GridCompMod,    only   : DU2G_setServices  => SetServices
-   use SS2G_GridCompMod,    only   : SS2G_setServices  => SetServices
-   use SU2G_GridCompMod,    only   : SU2G_setServices  => SetServices
-   use CA2G_GridCompMod,    only   : CA2G_setServices  => SetServices
-   use NI2G_GridCompMod,    only   : NI2G_setServices  => SetServices
-
    implicit none
    private
 
@@ -1053,6 +1045,7 @@ contains
 
     ! locals
     integer                                                    :: i
+    character(:), allocatable :: dso_suffix
 
     __Iam__('GOCART2G::createInstances_')
 
@@ -1062,22 +1055,22 @@ contains
 !   Active instances must be created first! This ordering is necessary for
 !   filing the AERO states that are passed to radiation.
 !   This is achieved by arranging the names of the active instances first.
-
-    call addChildren__ (gc, self%DU, setServices=DU2G_setServices, __RC__)
-    call addChildren__ (gc, self%SS, setServices=SS2G_setServices, __RC__)
-    call addChildren__ (gc, self%CA, setServices=CA2G_setServices, __RC__)
-    call addChildren__ (gc, self%SU, setServices=SU2G_setServices, __RC__)
-    call addChildren__ (gc, self%NI, setServices=NI2G_setServices, __RC__)
+    dso_suffix = get_system_dso_suffix()
+    call addChildren__ (gc, self%DU, 'libDU2G_GridComp'//dso_suffix, __RC__)
+    call addChildren__ (gc, self%SS, 'libSS2G_GridComp'//dso_suffix, __RC__)
+    call addChildren__ (gc, self%CA, 'libCA2G_GridComp'//dso_suffix, __RC__)
+    call addChildren__ (gc, self%SU, 'libSU2G_GridComp'//dso_suffix, __RC__)
+    call addChildren__ (gc, self%NI, 'libNI2G_GridComp'//dso_suffix, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
     contains
     
-        subroutine addChildren__ (gc, species, setServices, rc)
+        subroutine addChildren__ (gc, species, sharedObj, rc)
         
           type (ESMF_GridComp),            intent(inout)     :: gc
           type(Constituent),               intent(inout)     :: species
-          external                                           :: setServices
+          character(*),                    intent(in)        :: sharedObj          
           integer,                         intent(  out)     :: rc
 
           ! local
@@ -1088,7 +1081,7 @@ contains
           n=size(species%instances)
 
           do i = 1, n
-             species%instances(i)%id = MAPL_AddChild(gc, name=species%instances(i)%name, SS=SetServices, __RC__)
+             species%instances(i)%id = MAPL_AddChild(species%instances(i)%name, 'setservices_', parentGC=gc, sharedObj=SharedObj, __RC__)
           end do
 
         RETURN_(ESMF_SUCCESS)
