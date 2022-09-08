@@ -3,9 +3,9 @@ esma_set_this ()
 add_subdirectory (GA_Environment)
 add_subdirectory (DU2G_GridComp)
 add_subdirectory (SS2G_GridComp)
-add_subdirectory (CA2G_GridComp
-add_subdirectory (NI2G_GridComp
-add_subdirectory (SU2G_GridComp
+add_subdirectory (CA2G_GridComp)
+add_subdirectory (NI2G_GridComp)
+add_subdirectory (SU2G_GridComp)
 
 set (srcs
   GOCART2G_GridCompMod.F90

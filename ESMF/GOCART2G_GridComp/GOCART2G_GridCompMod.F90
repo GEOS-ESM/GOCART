@@ -1045,7 +1045,7 @@ contains
 
     ! locals
     integer                                                    :: i
-    character(:), allocatable :: dso_suffix
+    character(:), allocatable :: dso_libname
 
     __Iam__('GOCART2G::createInstances_')
 
@@ -1055,12 +1055,20 @@ contains
 !   Active instances must be created first! This ordering is necessary for
 !   filing the AERO states that are passed to radiation.
 !   This is achieved by arranging the names of the active instances first.
-    dso_suffix = get_system_dso_suffix()
-    call addChildren__ (gc, self%DU, 'libDU2G_GridComp'//dso_suffix, __RC__)
-    call addChildren__ (gc, self%SS, 'libSS2G_GridComp'//dso_suffix, __RC__)
-    call addChildren__ (gc, self%CA, 'libCA2G_GridComp'//dso_suffix, __RC__)
-    call addChildren__ (gc, self%SU, 'libSU2G_GridComp'//dso_suffix, __RC__)
-    call addChildren__ (gc, self%NI, 'libNI2G_GridComp'//dso_suffix, __RC__)
+    dso_libname = adjust_dso_name('libDU2G_GridComp')
+    call addChildren__ (gc, self%DU, dso_libname, __RC__)
+
+    dso_libname = adjust_dso_name('libSS2G_GridComp')
+    call addChildren__ (gc, self%SS, dso_libname, __RC__)
+
+    dso_libname = adjust_dso_name('libCA2G_GridComp')
+    call addChildren__ (gc, self%CA, dso_libname, __RC__)
+
+    dso_libname = adjust_dso_name('libSU2G_GridComp')
+    call addChildren__ (gc, self%SU, dso_libname, __RC__)
+
+    dso_libname = adjust_dso_name('libNI2G_GridComp')
+    call addChildren__ (gc, self%NI, dso_libname, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
