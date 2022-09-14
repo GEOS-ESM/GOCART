@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Remove GOCART requirement for gFTL, gFTL-Shared, pFlogger and yaFyaml. These are requirements of MAPL. (#184)
 
+### Added
+
+- Added CI test for building GOCART like UFS does
+
 ## [2.1.0] - 2022-08-24
 
 ### Added
