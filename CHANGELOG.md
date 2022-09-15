@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Remove GOCART requirement for gFTL, gFTL-Shared, pFlogger and yaFyaml. These are requirements of MAPL. (#184)
+- Remove GOCART requirement for gFTL, pFlogger and yaFyaml. These are requirements of MAPL. (#184)
 
 ### Added
 
