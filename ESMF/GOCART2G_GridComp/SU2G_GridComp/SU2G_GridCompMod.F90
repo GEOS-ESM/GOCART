@@ -1093,6 +1093,23 @@ contains
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
+                            rhop=self%rhop(nSO4), &
+                            grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=0.20, u=u, v=v, &
+                            extcoef=SUEXTCOEFRH20, __RC__)
+
+
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
+                            rhop=self%rhop(nSO4), &
+                            grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
+                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=0.80, u=u, v=v, &
+                            extcoef=SUEXTCOEFRH80, __RC__)
+
     RETURN_(ESMF_SUCCESS)
 
 

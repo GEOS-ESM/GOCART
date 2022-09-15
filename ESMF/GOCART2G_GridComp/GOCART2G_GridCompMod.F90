@@ -583,6 +583,7 @@ contains
                                        duextt25, duscat25, &
                                        duexttfm, duscatfm
     real, pointer, dimension(:,:,:,:) :: duextcoef, duscacoef
+    real, pointer, dimension(:,:,:,:) :: duextcoefrh20, duextcoefrh80
     real, pointer, dimension(:,:)   :: duangstr, dusmass,  &
                                        dusmass25
     real, pointer, dimension(:,:,:) :: ssexttau, ssstexttau, &
@@ -590,6 +591,7 @@ contains
                                        ssextt25, ssscat25, &
                                        ssexttfm, ssscatfm
     real, pointer, dimension(:,:,:,:) :: ssextcoef, ssscacoef
+    real, pointer, dimension(:,:,:,:) :: ssextcoefrh20, ssextcoefrh80
     real, pointer, dimension(:,:)   :: ssangstr, sssmass,  &
                                        sssmass25
     real, pointer, dimension(:,:,:) :: niexttau, nistexttau, &
@@ -597,6 +599,7 @@ contains
                                        niextt25, niscat25, &
                                        niexttfm, niscatfm
     real, pointer, dimension(:,:,:,:) :: niextcoef, niscacoef
+    real, pointer, dimension(:,:,:,:) :: niextcoefrh20, niextcoefrh80
     real, pointer, dimension(:,:)   :: niangstr, nismass,  &
                                        nismass25
     real, pointer, dimension(:,:)   :: nh4smass
@@ -606,12 +609,15 @@ contains
     real, pointer, dimension(:,:)   :: suangstr, so4smass
     real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau 
     real, pointer, dimension(:,:,:,:) :: bcextcoef, bcscacoef
+    real, pointer, dimension(:,:,:,:) :: bcextcoefrh20, bcextcoefrh80
     real, pointer, dimension(:,:)   :: bcangstr, bcsmass
     real, pointer, dimension(:,:,:) :: ocexttau, ocstexttau, ocscatau, ocstscatau
     real, pointer, dimension(:,:,:,:) :: ocextcoef, ocscacoef
+    real, pointer, dimension(:,:,:,:) :: ocextcoefrh20, ocextcoefrh80
     real, pointer, dimension(:,:)   :: ocangstr, ocsmass
     real, pointer, dimension(:,:,:) :: brexttau, brstexttau, brscatau, brstscatau
     real, pointer, dimension(:,:,:,:) :: brextcoef, brscacoef
+    real, pointer, dimension(:,:,:,:) :: brextcoefrh20, brextcoefrh80
     real, pointer, dimension(:,:)   :: brangstr, brsmass
     real, pointer, dimension(:,:,:) :: pso4
     real, allocatable               :: tau1(:,:), tau2(:,:)
@@ -657,6 +663,8 @@ contains
     if(associated(totexttfm)) totexttfm = 0.
     if(associated(totscatfm)) totscatfm = 0.
     if(associated(totextcoef)) totextcoef = 0.
+    if(associated(totextcoefrh20)) totextcoefrh20 = 0.
+    if(associated(totextcoefrh80)) totextcoefrh80 = 0.
     if(associated(totscacoef)) totscacoef = 0.
     if(associated(pm))        pm(:,:)        = 0.
     if(associated(pm25))      pm25(:,:)      = 0.
@@ -713,6 +721,8 @@ contains
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatau, 'DUSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustscatau, 'DUSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoef, 'DUEXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh20, 'DUEXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh80, 'DUEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoef, 'DUSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', __RC__)
@@ -734,6 +744,8 @@ contains
           
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(duextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+duextcoef(:,:,:,w)
+             if(associated(totextcoefrh20) .and. associated(duextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+duextcoefrh20(:,:,:,w)
+             if(associated(totextcoefrh80) .and. associated(duextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+duextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(duscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+duscacoef(:,:,:,w)
           end do
           
@@ -761,6 +773,8 @@ contains
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatau, 'SSSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstscatau, 'SSSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoef, 'SSEXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh20, 'SSEXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh80, 'SSEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoef, 'SSSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextt25, 'SSEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscat25, 'SSSCAT25', __RC__)
@@ -782,6 +796,8 @@ contains
 
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(ssextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+ssextcoef(:,:,:,w)
+             if(associated(totextcoefrh20) .and. associated(ssextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+ssextcoefrh20(:,:,:,w)
+             if(associated(totextcoefrh80) .and. associated(ssextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+ssextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(ssscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ssscacoef(:,:,:,w)
           enddo
     
@@ -809,6 +825,8 @@ contains
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoef, 'NIEXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', __RC__)
@@ -830,6 +848,8 @@ contains
 
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(niextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+niextcoef(:,:,:,w)
+             if(associated(totextcoefrh20) .and. associated(niextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+niextcoefrh20(:,:,:,w)
+             if(associated(totextcoefrh80) .and. associated(niextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+niextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(niscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+niscacoef(:,:,:,w)
           end do
           
@@ -855,6 +875,8 @@ contains
        if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoef, 'SUEXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', __RC__)
@@ -875,6 +897,8 @@ contains
 
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(suextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+suextcoef(:,:,:,w)
+             if(associated(totextcoefrh20) .and. associated(suextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+suextcoefrh20(:,:,:,w)
+             if(associated(totextcoefrh80) .and. associated(suextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+suextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(suscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+suscacoef(:,:,:,w)
           end do
           
@@ -917,6 +941,8 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', __RC__)
 
           !   Iterate over the wavelengths
@@ -933,6 +959,8 @@ contains
 
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(bcextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+bcextcoef(:,:,:,w)
+             if(associated(totextcoefrh20) .and. associated(bcextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+bcextcoefrh20(:,:,:,w)
+             if(associated(totextcoefrh80) .and. associated(bcextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+bcextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(bcscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+bcscacoef(:,:,:,w)
           end do
 
@@ -957,6 +985,8 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', __RC__)
 
           !   Iterate over the wavelengths
@@ -973,6 +1003,8 @@ contains
           
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(ocextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+ocextcoef(:,:,:,w)
+             if(associated(totextcoefrh20) .and. associated(ocextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+ocextcoefrh20(:,:,:,w)
+             if(associated(totextcoefrh80) .and. associated(ocextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+ocextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(ocscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ocscacoef(:,:,:,w)
           end do
          
@@ -997,6 +1029,8 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', __RC__)
 
           !   Iterate over the wavelengths
@@ -1013,6 +1047,8 @@ contains
 
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(brextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+brextcoef(:,:,:,w)
+             if(associated(totextcoefrh20) .and. associated(brextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+brextcoefrh20(:,:,:,w)
+             if(associated(totextcoefrh80) .and. associated(brextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+brextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(brscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+brscacoef(:,:,:,w)
           end do
            

@@ -56,41 +56,43 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE              | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
+ NAME          | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- DUMASS     | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
- DUMASS25   | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
- DUCONC     | kg m-3     | xyz  | C    |                                | Dust Mass Concentration
- DUEXTCOEF  | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient
- DUSCACOEF  | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient
+ DUMASS        | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DUMASS25      | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DUCONC        | kg m-3     | xyz  | C    |                                | Dust Mass Concentration
+ DUEXTCOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient
+ DUEXTCOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient - Fixed RH=20%
+ DUEXTCOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient - Fixed RH=80%
+ DUSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient
 #........................................................................................
- DUSMASS    | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration
- DUCMASS    | kg m-2     | xy   | N    |                                | Dust Column Mass Density
- DUEXTTAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT
- DUSTEXTTAU | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT Stratosphere
- DUSCATAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT
- DUSTSCATAU | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT Stratosphere
- DUSMASS25  | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration - PM 2.5
- DUCMASS25  | kg m-2     | xy   | N    |                                | Dust Column Mass Density - PM 2.5
- DUEXTT25   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 2.5
- DUSCAT25   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 2.5
- DUAERIDX   | 1          | xy   | N    |                                | Dust TOMS UV Aerosol Index
- DUFLUXU    | kg m-1 s-1 | xy   | N    |                                | Dust column u-wind mass flux
- DUFLUXV    | kg m-1 s-1 | xy   | N    |                                | Dust column v-wind mass flux
- DUEXTTFM   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 1.0 um
- DUSCATFM   | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 1.0 um
- DUANGSTR   | 1          | xy   | N    |                                | Dust Angstrom parameter [470-870 nm]
- DUEM       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Emission (Bin %d)
- DUSD       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Sedimentation (Bin %d)
- DUDP       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Dry Deposition (Bin %d)
- DUWT       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Wet Deposition (Bin %d)
- DUSV       | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Convective Scavenging (Bin %d)
- DU_UST     | 1          | xy   | N    |                                | aeolian_friction_velocity
- DU_UST_T   | 1          | xy   | N    |                                | aeolian_threshold_friction_velocity
- DU_UST_TS  | 1          | xy   | N    |                                | aeolian_threshold_friction_velocity_over_smooth_surface
- DU_DPC     | 1          | xy   | N    |                                | aeolian_drag_partition_correction
- DU_SMC     | 1          | xy   | N    |                                | aeolian_soil_moisture_correction
- DU_EROD    | 1          | xy   | N    |                                | aeolian_erodibilitiy
+ DUSMASS       | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration
+ DUCMASS       | kg m-2     | xy   | N    |                                | Dust Column Mass Density
+ DUEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT
+ DUSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT Stratosphere
+ DUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT
+ DUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT Stratosphere
+ DUSMASS25     | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration - PM 2.5
+ DUCMASS25     | kg m-2     | xy   | N    |                                | Dust Column Mass Density - PM 2.5
+ DUEXTT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 2.5
+ DUSCAT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 2.5
+ DUAERIDX      | 1          | xy   | N    |                                | Dust TOMS UV Aerosol Index
+ DUFLUXU       | kg m-1 s-1 | xy   | N    |                                | Dust column u-wind mass flux
+ DUFLUXV       | kg m-1 s-1 | xy   | N    |                                | Dust column v-wind mass flux
+ DUEXTTFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 1.0 um
+ DUSCATFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 1.0 um
+ DUANGSTR      | 1          | xy   | N    |                                | Dust Angstrom parameter [470-870 nm]
+ DUEM          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Emission (Bin %d)
+ DUSD          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Sedimentation (Bin %d)
+ DUDP          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Dry Deposition (Bin %d)
+ DUWT          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Wet Deposition (Bin %d)
+ DUSV          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Convective Scavenging (Bin %d)
+ DU_UST        | 1          | xy   | N    |                                | aeolian_friction_velocity
+ DU_UST_T      | 1          | xy   | N    |                                | aeolian_threshold_friction_velocity
+ DU_UST_TS     | 1          | xy   | N    |                                | aeolian_threshold_friction_velocity_over_smooth_surface
+ DU_DPC        | 1          | xy   | N    |                                | aeolian_drag_partition_correction
+ DU_SMC        | 1          | xy   | N    |                                | aeolian_soil_moisture_correction
+ DU_EROD       | 1          | xy   | N    |                                | aeolian_erodibilitiy
 
 
 category: INTERNAL

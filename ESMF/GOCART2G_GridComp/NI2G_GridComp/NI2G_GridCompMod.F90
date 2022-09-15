@@ -971,6 +971,21 @@ contains
                             fluxu=NIFLUXU, fluxv=NIFLUXV, extcoef=NIEXTCOEF, scacoef=NISCACOEF, &
                             angstrom=NIANGSTR, __RC__ )
 
+   call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
+                            nbins=3,  &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=aerosol, &
+                            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
+                            rh=0.20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            extcoef = NIEXTCOEFRH20, __RC__)        
+                    
+   call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
+                            nbins=3,  &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=aerosol, &
+                            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
+                            rh=0.80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            extcoef = NIEXTCOEFRH80, __RC__)        
     RETURN_(ESMF_SUCCESS)
   
   end subroutine Run2

@@ -1026,6 +1026,20 @@ contains
                              NO3nFlag=.false., __RC__)
 
 
+    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, nbins=2, &
+                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
+                             tmpu=t, rhoa=airdens, rh=0.20, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
+                             extcoef=EXTCOEFRH20,NO3nFlag=.false., __RC__)
+
+
+    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, nbins=2, &
+                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
+                             tmpu=t, rhoa=airdens, rh=0.80, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
+                             extcoef=EXTCOEFRH80,NO3nFlag=.false., __RC__)
+
+
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2
