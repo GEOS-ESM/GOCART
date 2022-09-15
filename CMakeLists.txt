@@ -61,6 +61,7 @@ if (NOT Baselibs_FOUND)
   find_package (GFTL REQUIRED)
   find_package (GFTL_SHARED REQUIRED)
   find_package (PFLOGGER QUIET)
+  find_package (YAFYAML QUIET)
 endif ()
 
 if (UFS_GOCART)
