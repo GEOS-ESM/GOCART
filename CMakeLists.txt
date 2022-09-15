@@ -60,6 +60,7 @@ if (NOT Baselibs_FOUND)
 endif ()
 
 if (UFS_GOCART)
+  find_package (GFTL_SHARED REQUIRED)
   find_package (MAPL REQUIRED)
   include(mapl_acg)
 elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
