@@ -733,7 +733,8 @@ contains
     real                              :: fwet
     logical                           :: KIN
 
-
+    integer                           :: i1, j1, i2, j2, km
+    real, allocatable, target, dimension(:,:,:)   :: RH20,RH80
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -813,25 +814,33 @@ contains
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
-    
+
+    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
+    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
+    km = ubound(RH2, 3)
+
+    allocate(RH20(i1:i2,j1:j2,km), __STAT__)
+    allocate(RH80(i1:i2,j1:j2,km), __STAT__)
+
+    RH20(:,:,:) = 0.20    
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=self%nbins, rlow=self%rlow, &
                             rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=0.20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=RH20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = SSEXTCOEFRH20, NO3nFlag=.False., __RC__)
  
-
+    RH80(:,:,:) = 0.80
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=self%nbins, rlow=self%rlow, &
                             rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=0.80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=RH80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = SSEXTCOEFRH80, NO3nFlag=.False., __RC__)
 
- 
+    deallocate(RH20,RH80) 
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2

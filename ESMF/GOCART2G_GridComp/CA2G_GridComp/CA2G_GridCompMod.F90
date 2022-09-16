@@ -901,7 +901,8 @@ contains
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
 
     real, parameter ::  cpd    = 1004.16
-
+    integer                      :: i1, j1, i2, j2, km
+    real, allocatable, target, dimension(:,:,:)   :: RH20,RH80
 #include "CA2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1026,20 +1027,29 @@ contains
                              NO3nFlag=.false., __RC__)
 
 
+    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
+    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
+    km = ubound(RH2, 3)
+
+    allocate(RH20(i1:i2,j1:j2,km), __STAT__)
+    allocate(RH80(i1:i2,j1:j2,km), __STAT__)
+
+    RH20(:,:,:) = 0.20
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, nbins=2, &
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
-                             tmpu=t, rhoa=airdens, rh=0.20, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
+                             tmpu=t, rhoa=airdens, rh=RH20, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
                              extcoef=EXTCOEFRH20,NO3nFlag=.false., __RC__)
 
 
+    RH80(:,:,:) = 0.80
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, nbins=2, &
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
-                             tmpu=t, rhoa=airdens, rh=0.80, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
+                             tmpu=t, rhoa=airdens, rh=RH80, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
                              extcoef=EXTCOEFRH80,NO3nFlag=.false., __RC__)
 
-
+    deallocate(RH20,RH80)
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2
