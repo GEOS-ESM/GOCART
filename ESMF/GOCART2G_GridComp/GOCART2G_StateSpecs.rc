@@ -31,6 +31,8 @@ category: EXPORT
  TOTEXTCOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Extinction coefficient - Fixed RH=20%
  TOTEXTCOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Extinction coefficient - Fixed RH=80%
  TOTSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient
+ TOTSCACOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient - Fixed RH=20%
+ TOTSCACOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient - Fixed RH=80%
  PM             | kg m-3     | xy   | N    |            | Total reconstructed PM
  PM_RH35        | kg m-3     | xy   | N    |            | Total reconstructed PM(RH=35%)
  PM_RH50        | kg m-3     | xy   | N    |            | Total reconstructed PM(RH=50%)

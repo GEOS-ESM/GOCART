@@ -68,7 +68,6 @@ module GOCART2G_GridCompMod
 !  25feb2005  da Silva   First crack.
 !  19jul2006  da Silva   First separate GOCART component.
 !  14Oct2019  E.Sherman, A.Darmenov, A. da Silva, T. Clune  First attempt at refactoring. 
-
 !
 !EOP
 !============================================================================
@@ -584,6 +583,7 @@ contains
                                        duexttfm, duscatfm
     real, pointer, dimension(:,:,:,:) :: duextcoef, duscacoef
     real, pointer, dimension(:,:,:,:) :: duextcoefrh20, duextcoefrh80
+    real, pointer, dimension(:,:,:,:) :: duscacoefrh20, duscacoefrh80
     real, pointer, dimension(:,:)   :: duangstr, dusmass,  &
                                        dusmass25
     real, pointer, dimension(:,:,:) :: ssexttau, ssstexttau, &
@@ -592,6 +592,7 @@ contains
                                        ssexttfm, ssscatfm
     real, pointer, dimension(:,:,:,:) :: ssextcoef, ssscacoef
     real, pointer, dimension(:,:,:,:) :: ssextcoefrh20, ssextcoefrh80
+    real, pointer, dimension(:,:,:,:) :: ssscacoefrh20, ssscacoefrh80
     real, pointer, dimension(:,:)   :: ssangstr, sssmass,  &
                                        sssmass25
     real, pointer, dimension(:,:,:) :: niexttau, nistexttau, &
@@ -600,6 +601,7 @@ contains
                                        niexttfm, niscatfm
     real, pointer, dimension(:,:,:,:) :: niextcoef, niscacoef
     real, pointer, dimension(:,:,:,:) :: niextcoefrh20, niextcoefrh80
+    real, pointer, dimension(:,:,:,:) :: niscacoefrh20, niscacoefrh80
     real, pointer, dimension(:,:)   :: niangstr, nismass,  &
                                        nismass25
     real, pointer, dimension(:,:)   :: nh4smass
@@ -607,18 +609,22 @@ contains
                                        suscatau, sustscatau
     real, pointer, dimension(:,:,:,:) :: suextcoef, suscacoef
     real, pointer, dimension(:,:,:,:) :: suextcoefrh20, suextcoefrh80
+    real, pointer, dimension(:,:,:,:) :: suscacoefrh20, suscacoefrh80
     real, pointer, dimension(:,:)   :: suangstr, so4smass
     real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau 
     real, pointer, dimension(:,:,:,:) :: bcextcoef, bcscacoef
     real, pointer, dimension(:,:,:,:) :: bcextcoefrh20, bcextcoefrh80
+    real, pointer, dimension(:,:,:,:) :: bcscacoefrh20, bcscacoefrh80
     real, pointer, dimension(:,:)   :: bcangstr, bcsmass
     real, pointer, dimension(:,:,:) :: ocexttau, ocstexttau, ocscatau, ocstscatau
     real, pointer, dimension(:,:,:,:) :: ocextcoef, ocscacoef
     real, pointer, dimension(:,:,:,:) :: ocextcoefrh20, ocextcoefrh80
+    real, pointer, dimension(:,:,:,:) :: ocscacoefrh20, ocscacoefrh80
     real, pointer, dimension(:,:)   :: ocangstr, ocsmass
     real, pointer, dimension(:,:,:) :: brexttau, brstexttau, brscatau, brstscatau
     real, pointer, dimension(:,:,:,:) :: brextcoef, brscacoef
     real, pointer, dimension(:,:,:,:) :: brextcoefrh20, brextcoefrh80
+    real, pointer, dimension(:,:,:,:) :: brscacoefrh20, brscacoefrh80
     real, pointer, dimension(:,:)   :: brangstr, brsmass
     real, pointer, dimension(:,:,:) :: pso4
     real, allocatable               :: tau1(:,:), tau2(:,:)
@@ -667,6 +673,8 @@ contains
     if(associated(totextcoefrh20)) totextcoefrh20 = 0.
     if(associated(totextcoefrh80)) totextcoefrh80 = 0.
     if(associated(totscacoef)) totscacoef = 0.
+    if(associated(totscacoefrh20)) totscacoefrh20 = 0.
+    if(associated(totscacoefrh80)) totscacoefrh80 = 0.
     if(associated(pm))        pm(:,:)        = 0.
     if(associated(pm25))      pm25(:,:)      = 0.
     if(associated(pm_rh35))   pm_rh35(:,:)   = 0.
@@ -725,6 +733,8 @@ contains
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh20, 'DUEXTCOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh80, 'DUEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoef, 'DUSCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh20, 'DUSCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh80, 'DUSCACOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', __RC__)
@@ -748,6 +758,8 @@ contains
              if(associated(totextcoefrh20) .and. associated(duextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+duextcoefrh20(:,:,:,w)
              if(associated(totextcoefrh80) .and. associated(duextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+duextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(duscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+duscacoef(:,:,:,w)
+             if(associated(totscacoefrh20) .and. associated(duscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+duscacoefrh20(:,:,:,w)
+             if(associated(totscacoefrh80) .and. associated(duscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+duscacoefrh80(:,:,:,w)
           end do
           
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   __RC__)
@@ -777,6 +789,8 @@ contains
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh20, 'SSEXTCOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh80, 'SSEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoef, 'SSSCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh20, 'SSSCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh80, 'SSSCACOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextt25, 'SSEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscat25, 'SSSCAT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttfm, 'SSEXTTFM', __RC__)
@@ -800,6 +814,8 @@ contains
              if(associated(totextcoefrh20) .and. associated(ssextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+ssextcoefrh20(:,:,:,w)
              if(associated(totextcoefrh80) .and. associated(ssextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+ssextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(ssscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ssscacoef(:,:,:,w)
+             if(associated(totscacoefrh20) .and. associated(ssscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ssscacoefrh20(:,:,:,w)
+             if(associated(totscacoefrh80) .and. associated(ssscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+ssscacoefrh80(:,:,:,w)
           enddo
     
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass,   'SSSMASS',   __RC__)
@@ -829,6 +845,8 @@ contains
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', __RC__)
@@ -852,6 +870,8 @@ contains
              if(associated(totextcoefrh20) .and. associated(niextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+niextcoefrh20(:,:,:,w)
              if(associated(totextcoefrh80) .and. associated(niextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+niextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(niscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+niscacoef(:,:,:,w)
+             if(associated(totscacoefrh20) .and. associated(niscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+niscacoefrh20(:,:,:,w)
+             if(associated(totscacoefrh80) .and. associated(niscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+niscacoefrh80(:,:,:,w)
           end do
           
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   __RC__)
@@ -879,6 +899,8 @@ contains
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', __RC__)
@@ -901,6 +923,8 @@ contains
              if(associated(totextcoefrh20) .and. associated(suextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+suextcoefrh20(:,:,:,w)
              if(associated(totextcoefrh80) .and. associated(suextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+suextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(suscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+suscacoef(:,:,:,w)
+             if(associated(totscacoefrh20) .and. associated(suscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+suscacoefrh20(:,:,:,w)
+             if(associated(totscacoefrh80) .and. associated(suscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+suscacoefrh80(:,:,:,w)
           end do
           
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', __RC__)
@@ -945,6 +969,8 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -963,6 +989,8 @@ contains
              if(associated(totextcoefrh20) .and. associated(bcextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+bcextcoefrh20(:,:,:,w)
              if(associated(totextcoefrh80) .and. associated(bcextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+bcextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(bcscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+bcscacoef(:,:,:,w)
+             if(associated(totscacoefrh20) .and. associated(bcscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+bcscacoefrh20(:,:,:,w)
+             if(associated(totscacoefrh80) .and. associated(bcscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+bcscacoefrh80(:,:,:,w)
           end do
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', __RC__)
@@ -989,6 +1017,8 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -1007,6 +1037,8 @@ contains
              if(associated(totextcoefrh20) .and. associated(ocextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+ocextcoefrh20(:,:,:,w)
              if(associated(totextcoefrh80) .and. associated(ocextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+ocextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(ocscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ocscacoef(:,:,:,w)
+             if(associated(totscacoefrh20) .and. associated(ocscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ocscacoefrh20(:,:,:,w)
+             if(associated(totscacoefrh80) .and. associated(ocscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+ocscacoefrh80(:,:,:,w)
           end do
          
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', __RC__)
@@ -1033,6 +1065,8 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -1051,6 +1085,8 @@ contains
              if(associated(totextcoefrh20) .and. associated(brextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+brextcoefrh20(:,:,:,w)
              if(associated(totextcoefrh80) .and. associated(brextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+brextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(brscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+brscacoef(:,:,:,w)
+             if(associated(totscacoefrh20) .and. associated(brscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+brscacoefrh20(:,:,:,w)
+             if(associated(totscacoefrh80) .and. associated(brscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+brscacoefrh80(:,:,:,w)
           end do
            
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', __RC__)

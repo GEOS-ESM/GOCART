@@ -829,7 +829,7 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=RH20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = SSEXTCOEFRH20, NO3nFlag=.False., __RC__)
+                            extcoef = SSEXTCOEFRH20, scacoef = SSSCACOEFRH20, NO3nFlag=.False., __RC__)
  
     RH80(:,:,:) = 0.80
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
@@ -838,7 +838,7 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=RH80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = SSEXTCOEFRH80, NO3nFlag=.False., __RC__)
+                            extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., __RC__)
 
     deallocate(RH20,RH80) 
     RETURN_(ESMF_SUCCESS)

@@ -978,7 +978,7 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=RH20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = DUEXTCOEFRH20, NO3nFlag=.False., __RC__)        
+                            extcoef = DUEXTCOEFRH20, scacoef = DUSCACOEFRH20, NO3nFlag=.False., __RC__)        
                     
    
    RH80(:,:,:) = 0.80
@@ -988,7 +988,7 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=RH80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = DUEXTCOEFRH80, NO3nFlag=.False., __RC__)        
+                            extcoef = DUEXTCOEFRH80, scacoef = DUSCACOEFRH80, NO3nFlag=.False., __RC__)        
   
   
    deallocate(RH20,RH80)

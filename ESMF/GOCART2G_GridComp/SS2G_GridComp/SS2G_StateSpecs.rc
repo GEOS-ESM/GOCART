@@ -48,6 +48,8 @@ category: EXPORT
  SSEXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Extinction Coefficient - Fixed RH=20%
  SSEXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Extinction Coefficient - Fixed RH=80%
  SSSCACOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient
+ SSSCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient - Fixed RH=20%
+ SSSCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient - Fixed RH=80%
 #............. | ............ | ..... | ..... | ............                   | ..................................
  SSEM          | kg m-2 s-1   | xy    | N     | self%nbins                     | Sea Salt Emission (Bin %d)
  SSSD          | kg m-2 s-1   | xy    | N     | self%nbins                     | Sea Salt Sedimentation (Bin %d)

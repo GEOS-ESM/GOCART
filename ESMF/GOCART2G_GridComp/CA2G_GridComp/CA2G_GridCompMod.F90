@@ -1039,7 +1039,7 @@ contains
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
                              tmpu=t, rhoa=airdens, rh=RH20, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
-                             extcoef=EXTCOEFRH20,NO3nFlag=.false., __RC__)
+                             extcoef=EXTCOEFRH20, scacoef=SCACOEFRH20, NO3nFlag=.false., __RC__)
 
 
     RH80(:,:,:) = 0.80
@@ -1047,7 +1047,7 @@ contains
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
                              tmpu=t, rhoa=airdens, rh=RH80, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
-                             extcoef=EXTCOEFRH80,NO3nFlag=.false., __RC__)
+                             extcoef=EXTCOEFRH80, scacoef=SCACOEFRH80, NO3nFlag=.false., __RC__)
 
     deallocate(RH20,RH80)
     RETURN_(ESMF_SUCCESS)

@@ -80,6 +80,8 @@ category: EXPORT
  *EXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient - Fixed RH=20%
  *EXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient - Fixed RH=80%
  *SCACOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient
+ *SCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient - Fixed RH=20%
+ *SCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient - Fixed RH=80%
 #............ | ............ | ..... | ..... | .......                        | ............................................
  *EM          | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Emission (Bin %d)
  *SD          | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Sedimentation (Bin %d)

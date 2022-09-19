@@ -1109,7 +1109,8 @@ contains
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
                             tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=RH20, u=u, v=v, &
-                            DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH20, __RC__)
+                            DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH20, &
+                            scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
     call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
@@ -1118,7 +1119,8 @@ contains
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
                             tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=RH80, u=u, v=v, &
-                            DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH80, __RC__)
+                            DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH80,&
+                            scacoef = SUSCACOEFRH80, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
