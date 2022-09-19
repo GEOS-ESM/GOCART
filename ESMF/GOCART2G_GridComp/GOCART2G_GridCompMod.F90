@@ -606,6 +606,7 @@ contains
     real, pointer, dimension(:,:,:) :: suexttau, sustexttau, &
                                        suscatau, sustscatau
     real, pointer, dimension(:,:,:,:) :: suextcoef, suscacoef
+    real, pointer, dimension(:,:,:,:) :: suextcoefrh20, suextcoefrh80
     real, pointer, dimension(:,:)   :: suangstr, so4smass
     real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau 
     real, pointer, dimension(:,:,:,:) :: bcextcoef, bcscacoef

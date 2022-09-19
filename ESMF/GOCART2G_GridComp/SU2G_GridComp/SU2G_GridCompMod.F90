@@ -973,6 +973,8 @@ contains
     real, dimension(:,:), allocatable   :: drydepositionf
     real, pointer, dimension(:,:,:)     :: dummyMSA => null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing  
+    integer                           :: i1, j1, i2, j2, km
+    real, allocatable, target, dimension(:,:,:)   :: RH20,RH80
 
 #include "SU2G_DeclarePointer___.h"
 
@@ -1093,22 +1095,30 @@ contains
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
+    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
+    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
+    km = ubound(RH2, 3)
+
+    allocate(RH20(i1:i2,j1:j2,km), __STAT__)
+    allocate(RH80(i1:i2,j1:j2,km), __STAT__)
+
+    RH20(:,:,:) = 0.20
     call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
-                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=0.20, u=u, v=v, &
-                            extcoef=SUEXTCOEFRH20, __RC__)
+                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=RH20, u=u, v=v, &
+                            DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH20, __RC__)
 
-
+    RH80(:,:,:) = 0.80
     call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
-                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=0.80, u=u, v=v, &
-                            extcoef=SUEXTCOEFRH80, __RC__)
+                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=RH80, u=u, v=v, &
+                            DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH80, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
