@@ -974,7 +974,7 @@ contains
     real, pointer, dimension(:,:,:)     :: dummyMSA => null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing  
     integer                           :: i1, j1, i2, j2, km
-    real, allocatable, target, dimension(:,:,:)   :: RH20,RH80
+    real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
 
 #include "SU2G_DeclarePointer___.h"
 
@@ -1108,7 +1108,7 @@ contains
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
-                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=RH20, u=u, v=v, &
+                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=rh20, u=u, v=v, &
                             DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH20, &
                             scacoef = SUSCACOEFRH20, __RC__)
 
@@ -1118,7 +1118,7 @@ contains
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
-                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=RH80, u=u, v=v, &
+                            tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=rh80, u=u, v=v, &
                             DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH80,&
                             scacoef = SUSCACOEFRH80, __RC__)
 

@@ -878,7 +878,7 @@ contains
 
     integer                           :: i1, j1, i2, j2, km
     real, parameter ::  cpd    = 1004.16
-    real, allocatable, target, dimension(:,:,:)   :: RH20,RH80
+    real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
 #include "DU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -977,19 +977,18 @@ contains
                             rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=RH20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=rh20, u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = DUEXTCOEFRH20, scacoef = DUSCACOEFRH20, NO3nFlag=.False., __RC__)        
-                    
    
    RH80(:,:,:) = 0.80
+
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=self%nbins, rlow=self%rlow, &
                             rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=RH80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=rh80, u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = DUEXTCOEFRH80, scacoef = DUSCACOEFRH80, NO3nFlag=.False., __RC__)        
-  
   
    deallocate(RH20,RH80)
    RETURN_(ESMF_SUCCESS)

@@ -720,7 +720,7 @@ contains
     type (ESMF_ALARM)               :: alarm
     logical                         :: alarm_is_ringing
     integer                         :: i1, j1, i2, j2, km
-    real, allocatable,target, dimension(:,:,:)   :: RH20,RH80
+    real, target,allocatable, dimension(:,:,:)   :: RH20,RH80
     integer :: rhFlag
     integer :: i, j
 
@@ -986,7 +986,7 @@ contains
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=aerosol, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=RH20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = NIEXTCOEFRH20, scacoef=NISCACOEFRH20, __RC__)        
                     
    RH80(:,:,:) = 0.80
@@ -995,7 +995,7 @@ contains
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=aerosol, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=RH80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = NIEXTCOEFRH80, scacoef=NISCACOEFRH80,__RC__)        
    
    deallocate(RH20,RH80) 

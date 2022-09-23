@@ -902,7 +902,7 @@ contains
 
     real, parameter ::  cpd    = 1004.16
     integer                      :: i1, j1, i2, j2, km
-    real, allocatable, target, dimension(:,:,:)   :: RH20,RH80
+    real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
 #include "CA2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1038,7 +1038,7 @@ contains
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, nbins=2, &
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
-                             tmpu=t, rhoa=airdens, rh=RH20, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
+                             tmpu=t, rhoa=airdens, rh=rh20, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
                              extcoef=EXTCOEFRH20, scacoef=SCACOEFRH20, NO3nFlag=.false., __RC__)
 
 
@@ -1046,7 +1046,7 @@ contains
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, nbins=2, &
                              wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                              wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=int_arr, grav=MAPL_GRAV, &
-                             tmpu=t, rhoa=airdens, rh=RH80, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
+                             tmpu=t, rhoa=airdens, rh=rh80, u=u, v=v, delp=delp, ple=ple, tropp=tropp, &
                              extcoef=EXTCOEFRH80, scacoef=SCACOEFRH80, NO3nFlag=.false., __RC__)
 
     deallocate(RH20,RH80)

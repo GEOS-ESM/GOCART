@@ -1088,7 +1088,7 @@ contains
              if(associated(totscacoefrh20) .and. associated(brscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+brscacoefrh20(:,:,:,w)
              if(associated(totscacoefrh80) .and. associated(brscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+brscacoefrh80(:,:,:,w)
           end do
-           
+          
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', __RC__)
           if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
           if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass

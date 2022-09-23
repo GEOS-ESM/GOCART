@@ -734,7 +734,7 @@ contains
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
-    real, allocatable, target, dimension(:,:,:)   :: RH20,RH80
+    real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -828,7 +828,7 @@ contains
                             rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=RH20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = SSEXTCOEFRH20, scacoef = SSSCACOEFRH20, NO3nFlag=.False., __RC__)
  
     RH80(:,:,:) = 0.80
@@ -837,7 +837,7 @@ contains
                             rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=RH80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., __RC__)
 
     deallocate(RH20,RH80) 
