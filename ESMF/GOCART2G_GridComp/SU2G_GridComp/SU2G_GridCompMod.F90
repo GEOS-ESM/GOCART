@@ -153,8 +153,7 @@ contains
     allocate (self, __STAT__)
     wrap%ptr => self
 
-    num_threads = 1
-    !$ num_threads = omp_get_max_threads()
+    num_threads = MAPL_get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file 
@@ -832,8 +831,7 @@ contains
 
 !   Update emissions/production if necessary (daily)
 !   -----------------------------------------------
-    thread = 0
-    !$ thread = omp_get_thread_num()
+    thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
     if(workspace%nymd_last /= nymd) then
@@ -1037,8 +1035,7 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-    thread = 0
-    !$ thread = omp_get_thread_num()
+    thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
     call ESMF_ClockGetAlarm(clock, 'H2O2_RECYCLE_ALARM', alarm, __RC__)

@@ -118,8 +118,7 @@ contains
     allocate (self, __STAT__)
     wrap%ptr => self
 
-    num_threads = 1
-    !$ num_threads = omp_get_max_threads()
+    num_threads = MAPL_get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file 
@@ -778,8 +777,7 @@ contains
     alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
 
 !   Save local copy of HNO3 for first pass through run method regardless
-    thread = 0
-    !$ thread = omp_get_thread_num()
+    thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
     if (workspace%first) then
