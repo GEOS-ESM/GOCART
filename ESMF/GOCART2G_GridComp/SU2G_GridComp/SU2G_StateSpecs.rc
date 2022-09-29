@@ -51,51 +51,55 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE              | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME       | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
+ NAME          | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- SUEM       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfer Emission (Bin %d)
- SUDP       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Dry Deposition (Bin %d)
- SUSD       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Settling (Bin %d)
- SUWT       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Wet Deposition (Bin %d)
- SUSV       | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Convective Scavenging (Bin %d)
- SO4EMAN    | kg m-2 s-1 | xy   | N    |                                | SO4 Anthropogenic Emissions
- SO2EMAN    | kg m-2 s-1 | xy   | N    |                                | SO2 Anthropogenic Emissions
- SO2EMBB    | kg m-2 s-1 | xy   | N    |                                | SO2 Biomass Burning Emissions
- SO2EMVN    | kg m-2 s-1 | xy   | N    |                                | SO2 Volcanic (non-explosive) Emissions
- SO2EMVE    | kg m-2 s-1 | xy   | N    |                                | SO2 Volcanic (explosive) Emissions
- PSO2       | kg m-2 s-1 | xyz  | C    |                                | SO2 Prod from DMS oxidation
- PMSA       | kg m-2 s-1 | xyz  | C    |                                | MSA Prod from DMS oxidation
- PSO4       | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from all SO2 oxidation
- PSO4G      | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from gaseous SO2 oxidation
- PSO4WET    | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from wet SO2 oxidation
- PSO4AQ     | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from aqueous SO2 oxidation
- SUPSO2     | kg m-2 s-1 | xy   | N    |                                | SO2 Prod from DMS Oxidation [column]
- SUPSO4     | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from All SO2 Oxidation [column]
- SUPSO4G    | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Gaseous SO2 Oxidation [column]
- SUPSO4AQ   | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Aqueous SO2 Oxidation [column]
- SUPSO4WT   | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Aqueous SO2 Oxidation (wet dep)
- SUPMSA     | kg m-2 s-1 | xy   | N    |                                | MSA Prod from DMS Oxidation [column]
- SO2SMASS   | kg m-3     | xy   | N    |                                | SO2 Surface Mass Concentration
- SO2CMASS   | kg m-2     | xy   | N    |                                | SO2 Column Mass Density
- SO4SMASS   | kg m-3     | xy   | N    |                                | SO4 Surface Mass Concentration
- SO4CMASS   | kg m-2     | xy   | N    |                                | SO4 Column Mass Density
- DMSSMASS   | kg m-3     | xy   | N    |                                | DMS Surface Mass Concentration
- DMSCMASS   | kg m-2     | xy   | N    |                                | DMS Column Mass Density
- MSASMASS   | kg m-3     | xy   | N    |                                | MSA Surface Mass Concentration
- MSACMASS   | kg m-2     | xy   | N    |                                | MSA Column Mass Density
- SUCONC     | kg m-3     | xyz  | C    |                                | SO4 Aerosol Mass Concentration
- SUEXTCOEF  | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient
- SUSCACOEF  | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient
- SUANGSTR   | 1          | xy   | N    |                                | SO4 Angstrom parameter [470-870 nm]
- SUFLUXU    | kg m-1 s-1 | xy   | N    |                                | SO4 column u-wind mass flux
- SUFLUXV    | kg m-1 s-1 | xy   | N    |                                | SO4 column v-wind mass flux
- SO4MASS    | kg kg-1    | xyz  | C    |                                | SO4 Aerosol Mass Mixing Ratio
- SUEXTTAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT
- SUSTEXTTAU | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT Stratosphere
- SUSCATAU   | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT
- SUSTSCATAU | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT Stratosphere
- SO4SAREA   | m2 m-3     | xyz  | C    |                                | SO4 Surface Area Density
- SO4SNUM    | m-3        | xyz  | C    |                                | SO4 Number Density
+ SUEM          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfer Emission (Bin %d)
+ SUDP          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Dry Deposition (Bin %d)
+ SUSD          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Settling (Bin %d)
+ SUWT          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Wet Deposition (Bin %d)
+ SUSV          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Convective Scavenging (Bin %d)
+ SO4EMAN       | kg m-2 s-1 | xy   | N    |                                | SO4 Anthropogenic Emissions
+ SO2EMAN       | kg m-2 s-1 | xy   | N    |                                | SO2 Anthropogenic Emissions
+ SO2EMBB       | kg m-2 s-1 | xy   | N    |                                | SO2 Biomass Burning Emissions
+ SO2EMVN       | kg m-2 s-1 | xy   | N    |                                | SO2 Volcanic (non-explosive) Emissions
+ SO2EMVE       | kg m-2 s-1 | xy   | N    |                                | SO2 Volcanic (explosive) Emissions
+ PSO2          | kg m-2 s-1 | xyz  | C    |                                | SO2 Prod from DMS oxidation
+ PMSA          | kg m-2 s-1 | xyz  | C    |                                | MSA Prod from DMS oxidation
+ PSO4          | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from all SO2 oxidation
+ PSO4G         | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from gaseous SO2 oxidation
+ PSO4WET       | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from wet SO2 oxidation
+ PSO4AQ        | kg m-2 s-1 | xyz  | C    |                                | SO4 Prod from aqueous SO2 oxidation
+ SUPSO2        | kg m-2 s-1 | xy   | N    |                                | SO2 Prod from DMS Oxidation [column]
+ SUPSO4        | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from All SO2 Oxidation [column]
+ SUPSO4G       | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Gaseous SO2 Oxidation [column]
+ SUPSO4AQ      | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Aqueous SO2 Oxidation [column]
+ SUPSO4WT      | kg m-2 s-1 | xy   | N    |                                | SO4 Prod from Aqueous SO2 Oxidation (wet dep)
+ SUPMSA        | kg m-2 s-1 | xy   | N    |                                | MSA Prod from DMS Oxidation [column]
+ SO2SMASS      | kg m-3     | xy   | N    |                                | SO2 Surface Mass Concentration
+ SO2CMASS      | kg m-2     | xy   | N    |                                | SO2 Column Mass Density
+ SO4SMASS      | kg m-3     | xy   | N    |                                | SO4 Surface Mass Concentration
+ SO4CMASS      | kg m-2     | xy   | N    |                                | SO4 Column Mass Density
+ DMSSMASS      | kg m-3     | xy   | N    |                                | DMS Surface Mass Concentration
+ DMSCMASS      | kg m-2     | xy   | N    |                                | DMS Column Mass Density
+ MSASMASS      | kg m-3     | xy   | N    |                                | MSA Surface Mass Concentration
+ MSACMASS      | kg m-2     | xy   | N    |                                | MSA Column Mass Density
+ SUCONC        | kg m-3     | xyz  | C    |                                | SO4 Aerosol Mass Concentration
+ SUEXTCOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient
+ SUEXTCOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient - Fixed RH=20%
+ SUEXTCOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient - Fixed RH=80%
+ SUSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient
+ SUSCACOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient - Fixed RH=20%
+ SUSCACOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient - Fixed RH=80%
+ SUANGSTR      | 1          | xy   | N    |                                | SO4 Angstrom parameter [470-870 nm]
+ SUFLUXU       | kg m-1 s-1 | xy   | N    |                                | SO4 column u-wind mass flux
+ SUFLUXV       | kg m-1 s-1 | xy   | N    |                                | SO4 column v-wind mass flux
+ SO4MASS       | kg kg-1    | xyz  | C    |                                | SO4 Aerosol Mass Mixing Ratio
+ SUEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT
+ SUSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT Stratosphere
+ SUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT
+ SUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT Stratosphere
+ SO4SAREA      | m2 m-3     | xyz  | C    |                                | SO4 Surface Area Density
+ SO4SNUM       | m-3        | xyz  | C    |                                | SO4 Number Density
 
 category: INTERNAL
 #----------------------------------------------------------------------------------------

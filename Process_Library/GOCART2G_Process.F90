@@ -3282,8 +3282,8 @@ CONTAINS
 !  Total mass
    real, optional, dimension(:,:), intent(inout)   :: sfcmass   ! sfc mass concentration kg/m3
    real, optional, dimension(:,:), intent(inout)   :: colmass   ! col mass density kg/m2
-   real, pointer, dimension(:,:,:), intent(inout) :: mass      ! 3d mass mixing ratio kg/kg
-   real, pointer, dimension(:,:,:), intent(inout) :: conc      ! 3d mass concentration, kg/m3
+   real, optional, dimension(:,:,:), intent(inout) :: mass      ! 3d mass mixing ratio kg/kg
+   real, optional, dimension(:,:,:), intent(inout) :: conc      ! 3d mass concentration, kg/m3
 !  Total optical properties
    real, optional, dimension(:,:,:), intent(inout)   :: exttau    ! ext. AOT at 550 nm
    real, optional, dimension(:,:,:), intent(inout)   :: stexttau  ! stratospheric ext. AOT at 550 nm
@@ -3421,7 +3421,7 @@ CONTAINS
    endif
 
 !  Calculate the total mass concentration
-   if( associated(conc) ) then
+   if( present(conc) ) then
       conc(i1:i2,j1:j2,1:km) = 0.
       do n = nbegin, nbins
          conc(i1:i2,j1:j2,1:km) &
@@ -3431,7 +3431,7 @@ CONTAINS
    endif
 
 !  Calculate the total mass mixing ratio
-   if( associated(mass) ) then
+   if( present(mass) ) then
       mass(i1:i2,j1:j2,1:km) = 0.
       do n = nbegin, nbins
        mass(i1:i2,j1:j2,1:km) &
@@ -6741,27 +6741,27 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), intent(inout) :: SO2  ! sulfer dioxide [kg/kg]
    real, dimension(:,:,:), intent(inout) :: SO4  ! sulfate aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout)  :: MSA  ! methanesulphonic acid [kg/kg]
-   real, pointer, dimension(:,:),   intent(inout)  :: dmssfcmass ! sfc mass concentration [kg/m3]
-   real, pointer, dimension(:,:),   intent(inout)  :: dmscolmass ! col mass density [kg/m2]
-   real, pointer, dimension(:,:),   intent(inout)  :: msasfcmass ! sfc mass concentration [kg/m3]
-   real, pointer, dimension(:,:),   intent(inout)  :: msacolmass ! col mass density [kg/m2]
-   real, pointer, dimension(:,:),   intent(inout)  :: so2sfcmass ! sfc mass concentration [kg/m3]
-   real, pointer, dimension(:,:),   intent(inout)  :: so2colmass ! col mass density [kg/m2]
-   real, pointer, dimension(:,:),   intent(inout)  :: so4sfcmass ! sfc mass concentration [kg/m3]
-   real, pointer, dimension(:,:),   intent(inout)  :: so4colmass ! col mass density [kg/m2]
-   real, pointer, dimension(:,:,:), intent(inout)  :: exttau     ! ext. AOT at 550 nm
-   real, pointer, dimension(:,:,:), intent(inout)  :: stexttau   ! Stratosphere ext. AOT at 550 nm
-   real, pointer, dimension(:,:,:), intent(inout)  :: scatau     ! sct. AOT at 550 nm
-   real, pointer, dimension(:,:,:), intent(inout)  :: stscatau   ! Stratosphere sct. AOT at 550 nm
-   real, pointer, dimension(:,:,:), intent(inout)  :: so4mass    ! 3D sulfate mass mr
-   real, pointer, dimension(:,:,:), intent(inout)  :: so4conc    ! 3D mass concentration, [kg/m3]
-   real, pointer, dimension(:,:,:,:), intent(inout)  :: extcoef    ! 3D ext. coefficient, [1/m]
-   real, pointer, dimension(:,:,:,:), intent(inout)  :: scacoef    ! 3D scat.coefficient, [1/m]
-   real, pointer, dimension(:,:),   intent(inout)  :: angstrom   ! 470-870 nm Angstrom parameter
-   real, pointer, dimension(:,:),   intent(inout)  :: fluxu      ! Column mass flux in x direction
-   real, pointer, dimension(:,:),   intent(inout)  :: fluxv      ! Column mass flux in y direction
-   real, pointer, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
-   real, pointer, dimension(:,:,:), intent(inout)  :: snum       ! Sulfate number density [# m-2]
+   real, optional, dimension(:,:),   intent(inout)  :: dmssfcmass ! sfc mass concentration [kg/m3]
+   real, optional, dimension(:,:),   intent(inout)  :: dmscolmass ! col mass density [kg/m2]
+   real, optional, dimension(:,:),   intent(inout)  :: msasfcmass ! sfc mass concentration [kg/m3]
+   real, optional, dimension(:,:),   intent(inout)  :: msacolmass ! col mass density [kg/m2]
+   real, optional, dimension(:,:),   intent(inout)  :: so2sfcmass ! sfc mass concentration [kg/m3]
+   real, optional, dimension(:,:),   intent(inout)  :: so2colmass ! col mass density [kg/m2]
+   real, optional, dimension(:,:),   intent(inout)  :: so4sfcmass ! sfc mass concentration [kg/m3]
+   real, optional, dimension(:,:),   intent(inout)  :: so4colmass ! col mass density [kg/m2]
+   real, optional, dimension(:,:,:), intent(inout)  :: exttau     ! ext. AOT at 550 nm
+   real, optional, dimension(:,:,:), intent(inout)  :: stexttau   ! Stratosphere ext. AOT at 550 nm
+   real, optional, dimension(:,:,:), intent(inout)  :: scatau     ! sct. AOT at 550 nm
+   real, optional, dimension(:,:,:), intent(inout)  :: stscatau   ! Stratosphere sct. AOT at 550 nm
+   real, optional, dimension(:,:,:), intent(inout)  :: so4mass    ! 3D sulfate mass mr
+   real, optional, dimension(:,:,:), intent(inout)  :: so4conc    ! 3D mass concentration, [kg/m3]
+   real, optional, dimension(:,:,:,:), intent(inout)  :: extcoef    ! 3D ext. coefficient, [1/m]
+   real, optional, dimension(:,:,:,:), intent(inout)  :: scacoef    ! 3D scat.coefficient, [1/m]
+   real, optional, dimension(:,:),   intent(inout)  :: angstrom   ! 470-870 nm Angstrom parameter
+   real, optional, dimension(:,:),   intent(inout)  :: fluxu      ! Column mass flux in x direction
+   real, optional, dimension(:,:),   intent(inout)  :: fluxv      ! Column mass flux in y direction
+   real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
+   real, optional, dimension(:,:,:), intent(inout)  :: snum       ! Sulfate number density [# m-2]
    integer, optional, intent(out)   :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 -
@@ -6814,22 +6814,22 @@ K_LOOP: do k = km, 1, -1
 !  -----------------------------------------------
 
 !  Calculate the surface mass concentration
-   if( associated(so4sfcmass) ) then
+   if( present(so4sfcmass) ) then
       so4sfcmass(i1:i2,j1:j2) = 0.
       so4sfcmass(i1:i2,j1:j2) &
        =  SO4(i1:i2,j1:j2,km)*rhoa(i1:i2,j1:j2,km)
    endif
-   if( associated(so2sfcmass) ) then
+   if( present(so2sfcmass) ) then
       so2sfcmass(i1:i2,j1:j2) = 0.
       so2sfcmass(i1:i2,j1:j2) &
        =   SO2(i1:i2,j1:j2,km)*rhoa(i1:i2,j1:j2,km)
    endif
-   if( associated(dmssfcmass) ) then
+   if( present(dmssfcmass) ) then
       dmssfcmass(i1:i2,j1:j2) = 0.
       dmssfcmass(i1:i2,j1:j2) &
        =   DMS(i1:i2,j1:j2,km)*rhoa(i1:i2,j1:j2,km)
    endif
-   if( associated(msasfcmass) .and. associated(MSA)) then
+   if( present(msasfcmass) .and. associated(MSA)) then
       msasfcmass(i1:i2,j1:j2) = 0.
       msasfcmass(i1:i2,j1:j2) &
        =   MSA(i1:i2,j1:j2,km)*rhoa(i1:i2,j1:j2,km)
@@ -6840,7 +6840,7 @@ K_LOOP: do k = km, 1, -1
 !  -----------------------------------
 
 !  Calculate the column loading
-   if( associated(so4colmass) ) then
+   if( present(so4colmass) ) then
       so4colmass(i1:i2,j1:j2) = 0.
       do k = klid, km
        so4colmass(i1:i2,j1:j2) &
@@ -6848,7 +6848,7 @@ K_LOOP: do k = km, 1, -1
           + SO4(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
       enddo
    endif
-   if( associated(so2colmass) ) then
+   if( present(so2colmass) ) then
       so2colmass(i1:i2,j1:j2) = 0.
       do k = klid, km
        so2colmass(i1:i2,j1:j2) &
@@ -6856,7 +6856,7 @@ K_LOOP: do k = km, 1, -1
           + SO2(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
       enddo
    endif
-   if( associated(dmscolmass) ) then
+   if( present(dmscolmass) ) then
       dmscolmass(i1:i2,j1:j2) = 0.
       do k = klid, km
        dmscolmass(i1:i2,j1:j2) &
@@ -6864,7 +6864,7 @@ K_LOOP: do k = km, 1, -1
           + DMS(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
       enddo
    endif
-   if( associated(msacolmass) .and. associated(MSA)) then
+   if( present(msacolmass) .and. associated(MSA)) then
       msacolmass(i1:i2,j1:j2) = 0.
       do k = klid, km
        msacolmass(i1:i2,j1:j2) &
@@ -6875,19 +6875,19 @@ K_LOOP: do k = km, 1, -1
 
 
 !  Calculate the mass concentration of sulfate
-   if( associated(so4conc) ) then
+   if( present(so4conc) ) then
       so4conc(i1:i2,j1:j2,1:km) = 0.
       so4conc(i1:i2,j1:j2,1:km) = SO4(i1:i2,j1:j2,1:km)*rhoa(i1:i2,j1:j2,1:km)
    endif
 
 !  Mass mixing ratio of sulfate
-   if( associated(so4mass) ) then
+   if( present(so4mass) ) then
       so4mass(i1:i2,j1:j2,1:km) = 0.
       so4mass(i1:i2,j1:j2,1:km) = SO4(i1:i2,j1:j2,1:km)
    endif
 
 !  Calculate the column mass flux in x direction
-   if( associated(fluxu) ) then
+   if( present(fluxu) ) then
       fluxu(i1:i2,j1:j2) = 0.
        do k = klid, km
         fluxu(i1:i2,j1:j2) &
@@ -6897,7 +6897,7 @@ K_LOOP: do k = km, 1, -1
    endif
 
 !  Calculate the column mass flux in y direction
-   if( associated(fluxv) ) then
+   if( present(fluxv) ) then
       fluxv(i1:i2,j1:j2) = 0.
        do k = klid, km
         fluxv(i1:i2,j1:j2) &
@@ -6909,10 +6909,10 @@ K_LOOP: do k = km, 1, -1
 !  Calculate the extinction and/or scattering AOD
    allocate(tau(i1:i2,j1:j2,km), source = 0.)
    allocate(ssa(i1:i2,j1:j2,km), source = 0.)
-   if( associated(extcoef) .or. associated(scacoef) ) then
+   if( present(extcoef) .or. present(scacoef) ) then
 
-      if (associated(extcoef)) extcoef = 0.
-      if (associated(scacoef)) scacoef = 0.
+      if (present(extcoef)) extcoef = 0.
+      if (present(scacoef)) scacoef = 0.
 
       do w = 1, size(wavelengths_profile)
          call mie%Query(wavelengths_profile(w), 1, & ! Only SO4 exists in the MieTable, so its index is 1
@@ -6920,24 +6920,24 @@ K_LOOP: do k = km, 1, -1
                         tau=tau, ssa=ssa, __RC__)
 
 !         Calculate the total ext. and scat. coefficients
-         if( associated(extcoef) ) then
+         if( present(extcoef) ) then
               extcoef(:,:,:,w) = extcoef(:,:,:,w) + &
                               tau * (grav * rhoa / delp)
          endif
-         if( associated(scacoef) ) then
+         if( present(scacoef) ) then
               scacoef(:,:,:,w) = scacoef(:,:,:,w) + &
                               ssa * tau * (grav * rhoa / delp)
          endif
       enddo
    endif
 
-   if( associated(exttau) .or. associated(stexttau) .or. &
-       associated(scatau) .or. associated(stscatau)) then
+   if( present(exttau) .or. present(stexttau) .or. &
+       present(scatau) .or. present(stscatau)) then
 
-      if (associated(exttau)) exttau = 0.
-      if (associated(stexttau)) stexttau = 0.
-      if (associated(scatau)) scatau = 0.
-      if (associated(stscatau)) stscatau = 0.
+      if (present(exttau)) exttau = 0.
+      if (present(stexttau)) stexttau = 0.
+      if (present(scatau)) scatau = 0.
+      if (present(stscatau)) stscatau = 0.
 
       do w = 1, size(wavelengths_vertint)
          call mie%Query(wavelengths_vertint(w), 1,  & ! Only SO4 exists in the MieTable, so its index is 1
@@ -6946,11 +6946,11 @@ K_LOOP: do k = km, 1, -1
 
          do k = klid, km
 !           Integrate in the vertical
-            if ( associated(exttau) ) then
+            if ( present(exttau) ) then
                exttau(:,:,w) = exttau(:,:,w) + tau(:,:,k)
             endif
 
-            if (associated(stexttau) ) then
+            if (present(stexttau) ) then
                where (ple(:,:,k) .le. tropp) 
                   stexttau(:,:,w) = stexttau(:,:,w) + tau(:,:,k)
                elsewhere(ple(:,:,k-1) .lt. tropp) 
@@ -6958,11 +6958,11 @@ K_LOOP: do k = km, 1, -1
                endwhere
             endif
 
-            if ( associated(scatau) ) then
+            if ( present(scatau) ) then
                scatau(:,:,w) = scatau(:,:,w) + tau(:,:,k)*ssa(:,:,k)
             endif
 
-            if ( associated(stscatau) ) then
+            if ( present(stscatau) ) then
                where (ple(:,:,k) .le. tropp) 
                   stscatau(:,:,w) = stscatau(:,:,w) + tau(:,:,k)*ssa(:,:,k)
                elsewhere(ple(:,:,k-1) .lt. tropp) 
@@ -6974,7 +6974,7 @@ K_LOOP: do k = km, 1, -1
    endif
 
 !  Calculate the 470-870 Angstrom parameter
-   if( associated(angstrom) .and. do_angstrom ) then
+   if( present(angstrom) .and. do_angstrom ) then
 
       angstrom(i1:i2,j1:j2) = 0.
 !     Set tau to small number by default
@@ -7006,7 +7006,7 @@ K_LOOP: do k = km, 1, -1
 !  radius (gcSU%radius for sulfate) and standard deviation of lognormal
 !  distribution.  Hydration is by grid box provided RH and is follows Petters
 !  and Kreeidenweis (ACP2007)
-   if(associated(sarea) .or. associated(snum)) then
+   if(present(sarea) .or. present(snum)) then
 !        rmed   = w_c%reg%rmed(n1+nSO4-1)                    ! median radius, m
         if(rmed > 0.) then
 !         sigma  = w_c%reg%sigma(n1+nSO4-1)                  ! width of lognormal distribution
@@ -7019,9 +7019,9 @@ K_LOOP: do k = km, 1, -1
 !          Wet particle volume m3 m-3
            svol = SO4(i,j,k) * rhoa(i,j,k) / rhop * gf
 !          Integral of lognormal surface area m2 m-3
-           if(associated(sarea)) sarea(i,j,k) = 3./rwet*svol*exp(-5./2.*alog(sigma)**2.)
+           if(present(sarea)) sarea(i,j,k) = 3./rwet*svol*exp(-5./2.*alog(sigma)**2.)
 !          Integral of lognormal number density # m-3
-           if(associated(snum)) snum(i,j,k) = svol / (rwet**3) * exp(-9/2.*alog(sigma)**2.) * 3./4./pi
+           if(present(snum)) snum(i,j,k) = svol / (rwet**3) * exp(-9/2.*alog(sigma)**2.) * 3./4./pi
           enddo
          enddo
         enddo

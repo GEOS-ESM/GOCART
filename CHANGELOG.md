@@ -17,15 +17,19 @@ the 'mini' ESMF sates are created. Those arrays are xhno3 for NI2G, h202_init
 for SU2G, and deep_lakes_mask for SS2G. All of these arrays have MAPL_RestartSkip
 option so they are not written to restart.
 
+- Extinction exports with RH=20% and RH=80%
+
 ### Fixed
 
 ### Changed
 
+### Changed
 ## [2.1.1] - 2022-09-16
 
 ### Fixed
 
 - Remove GOCART requirement for gFTL, pFlogger and yaFyaml. These are requirements of MAPL. (#184)
+- Update BCs version in CI for GEOSgcm run
 
 ### Added
 
