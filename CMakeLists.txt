@@ -4,7 +4,7 @@ cmake_policy (SET CMP0054 NEW)
 
 project (
         GOCART
-        VERSION 2.0.7
+        VERSION 2.1.1
         LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -57,14 +57,10 @@ if (NOT Baselibs_FOUND)
   if (NOT ESMF_FOUND)
     find_package (ESMF REQUIRED)
   endif ()
-
-  find_package (GFTL REQUIRED)
-  find_package (GFTL_SHARED REQUIRED)
-  find_package (PFLOGGER QUIET)
-  find_package (YAFYAML REQUIRED)
 endif ()
 
 if (UFS_GOCART)
+  find_package (GFTL_SHARED REQUIRED)
   find_package (MAPL REQUIRED)
   include(mapl_acg)
 elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")

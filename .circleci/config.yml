@@ -2,7 +2,7 @@ version: 2.1
 
 # Anchors to prevent forgetting to update a version
 baselibs_version: &baselibs_version v7.5.0
-bcs_version: &bcs_version v10.22.5
+bcs_version: &bcs_version v10.23.0
 
 orbs:
   ci: geos-esm/circleci-tools@1
@@ -23,6 +23,21 @@ workflows:
           buildtarget: GOCART2G_GridComp
           mepodevelop: true
           develop_repos: GMAO_Shared
+          persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
+      # Build GOCART like UFS
+      - ci/build:
+          name: build-GOCART2G-like-UFS-on-<< matrix.compiler >>
+          context:
+            - docker-hub-creds
+          matrix:
+            parameters:
+              compiler: [gfortran, ifort]
+          baselibs_version: *baselibs_version
+          repo: GOCART
+          buildtarget: GOCART2G_GridComp
+          mepodevelop: true
+          develop_repos: GMAO_Shared
+          extra_cmake_options: "-DBUILD_WITH_FLAP=OFF -DBUILD_WITH_PFLOGGER=OFF -DBUILD_SHARED_MAPL=OFF -DUSE_EXTDATA2G=OFF"
           persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
       # Build GEOSgcm
       - ci/build:
