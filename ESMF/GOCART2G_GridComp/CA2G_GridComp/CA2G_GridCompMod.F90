@@ -985,7 +985,7 @@ contains
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
-
+    
     call ESMF_AttributeGet( GC, 'skipover', value=skipover, __RC__ )
 
 !   Get my internal MAPL_Generic state

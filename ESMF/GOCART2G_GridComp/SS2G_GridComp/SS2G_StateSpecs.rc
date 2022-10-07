@@ -41,6 +41,11 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS      | DIMS| VLOC| UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
+ SS01      | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio
+ SS02      | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio
+ SS03      | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio
+ SS04      | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio
+ SS05      | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio
  SSMASS    | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio
  SSMASS25  | kg kg-1    | xyz | C   |            | Sea Salt Mass Mixing Ratio - PM 2.5
  SSCONC    | kg m-3     | xyz | C   |            | Sea Salt Mass Concentration
@@ -51,6 +56,7 @@ category: EXPORT
  SSSD      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Sedimentation (Bin %d)
  SSDP      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Dry Deposition (Bin %d)
  SSWT      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Wet Deposition (Bin %d)
+# WDTMP     | kg m-2 s-1 | xy  | N   | self%nbins | tmp
  SSSV      | kg m-2 s-1 | xy  | N   | self%nbins | Sea Salt Convective Scavenging (Bin %d)
  SSSMASS   | kg m-3     | xy  | N   |            | Sea Salt Surface Mass Concentration
  SSCMASS   | kg m-2     | xy  | N   |            | Sea Salt Column Mass Density
@@ -68,7 +74,58 @@ category: EXPORT
  SSANGSTR  |    1       | xy  | N   |            | Sea Salt Angstrom parameter [470-870 nm]
  SSFLUXU   | kg m-1 s-1 | xy  | N   |            | Sea Salt column u-wind mass flux
  SSFLUXV   | kg m-1 s-1 | xy  | N   |            | Sea Salt column v-wind mass flux
-
+ DD_BrSALA | kg m-2 s-1 | xy  | N   |            | DD_BrSALA
+ DD_BrSALC | kg m-2 s-1 | xy  | N   |            | DD_BrSALC
+ DD_SALACL | kg m-2 s-1 | xy  | N   |            | DD_SALACL
+ DD_SALCCL | kg m-2 s-1 | xy  | N   |            | DD_SALCCL
+ DD_SALAAL | kg m-2 s-1 | xy  | N   |            | DD_SALAAL
+ DD_SALCAL | kg m-2 s-1 | xy  | N   |            | DD_SALCAL
+ DD_SO4s   | kg m-2 s-1 | xy  | N   |            | DD_SO4s
+ WD_BrSALA | kg m-2 s-1 | xy  | N   |            | WD_BrSALA
+ WD_BrSALC | kg m-2 s-1 | xy  | N   |            | WD_BrSALC
+ WD_SALACL | kg m-2 s-1 | xy  | N   |            | WD_SALACL
+ WD_SALCCL | kg m-2 s-1 | xy  | N   |            | WD_SALCCL
+ WD_SALAAL | kg m-2 s-1 | xy  | N   |            | WD_SALAAL
+ WD_SALCAL | kg m-2 s-1 | xy  | N   |            | WD_SALCAL
+ WD_SO4s   | kg m-2 s-1 | xy  | N   |            | WD_SO4s
+ SD_BrSALA | kg m-2 s-1 | xy  | N   |            | SD_BrSALA
+ SD_BrSALC | kg m-2 s-1 | xy  | N   |            | SD_BrSALC
+ SD_SALACL | kg m-2 s-1 | xy  | N   |            | SD_SALACL
+ SD_SALCCL | kg m-2 s-1 | xy  | N   |            | SD_SALCCL
+ SD_SALAAL | kg m-2 s-1 | xy  | N   |            | SD_SALAAL
+ SD_SALCAL | kg m-2 s-1 | xy  | N   |            | SD_SALCAL
+ SD_SO4s   | kg m-2 s-1 | xy  | N   |            | SD_SO4S
+ EM_BrSALA | kg m-2 s-1 | xy  | N   |            | tmp
+ EM_BrSALC | kg m-2 s-1 | xy  | N   |            | tmp
+ EM_SALACL | kg m-2 s-1 | xy  | N   |            | tmp
+ EM_SALCCL | kg m-2 s-1 | xy  | N   |            | tmp
+ EM_SALAAL | kg m-2 s-1 | xy  | N   |            | tmp
+ EM_SALCAL | kg m-2 s-1 | xy  | N   |            | tmp
+ EM_SO4s   | kg m-2 s-1 | xy  | N   |            | tmp
+ DD_SS01   | kg m-2 s-1 | xy  | N   |            | DD_SS01
+ DD_SS02   | kg m-2 s-1 | xy  | N   |            | DD_SS02
+ DD_SS03   | kg m-2 s-1 | xy  | N   |            | DD_SS03
+ DD_SS04   | kg m-2 s-1 | xy  | N   |            | DD_SS04
+ DD_SS05   | kg m-2 s-1 | xy  | N   |            | DD_SS05
+ WD_SS01   | kg m-2 s-1 | xy  | N   |            | WD_SS01
+ WD_SS02   | kg m-2 s-1 | xy  | N   |            | WD_SS02
+ WD_SS03   | kg m-2 s-1 | xy  | N   |            | WD_SS03
+ WD_SS04   | kg m-2 s-1 | xy  | N   |            | WD_SS04
+ WD_SS05   | kg m-2 s-1 | xy  | N   |            | WD_SS05
+ SD_SS01   | kg m-2 s-1 | xy  | N   |            | SD_SS01
+ SD_SS02   | kg m-2 s-1 | xy  | N   |            | SD_SS02
+ SD_SS03   | kg m-2 s-1 | xy  | N   |            | SD_SS03
+ SD_SS04   | kg m-2 s-1 | xy  | N   |            | SD_SS04
+ SD_SS05   | kg m-2 s-1 | xy  | N   |            | SD_SS05
+ EM_SS01   | kg m-2 s-1 | xy  | N   |            | EM_SS01
+ EM_SS02   | kg m-2 s-1 | xy  | N   |            | EM_SS02
+ EM_SS03   | kg m-2 s-1 | xy  | N   |            | EM_SS03
+ EM_SS04   | kg m-2 s-1 | xy  | N   |            | EM_SS04
+ EM_SS05   | kg m-2 s-1 | xy  | N   |            | EM_SS05
+ SSEMOUT   | kg kg-1    | xy  | N   | self%nbins | 
+ SSDDOUT   | kg kg-1    | xy  | N   | self%nbins | 
+ SSSDOUT   | kg kg-1    | xyz | C   | self%nbins | 
+ SSWDOUT   | kg kg-1    | xyz | C   | self%nbins | 
 
 category: INTERNAL
 #----------------------------------------------------------------------------------------
@@ -76,7 +133,9 @@ category: INTERNAL
 #----------------------------------------------------------------------------------------
   NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
 #----------------------------------------------------------------------------------------
- SS    |kg kg-1  | xyz | C   | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST:GEOSCHEMCHEM | Sea Salt Mixing Ratio (bin %d)
+ SS    |kg kg-1     | xyz | C   | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST:GEOSCHEMCHEM | Sea Salt Mixing Ratio (bin %d)
+ SDTMP | kg m-2 s-1 | xy  |     | self%nbins | MAPL_RestartOptional | T | | sdtmp
+ WDTMP | kg m-2 s-1 | xy  |     | self%nbins | MAPL_RestartOptional | T | | wdtmp
 
 
 #********************************************************

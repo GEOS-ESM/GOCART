@@ -217,6 +217,48 @@ contains
        RC=STATUS  )
     _VERIFY(STATUS)
 
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'SSEMOUT',  &
+       CHILD_ID           = self%SS%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'SSDDOUT',  &
+       CHILD_ID           = self%SS%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'SSSDOUT',  &
+       CHILD_ID           = self%SS%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'SSWDOUT',  &
+       CHILD_ID           = self%SS%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DUEMOUT',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DUDDOUT',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DUSDOUT',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DUWDOUT',  &
+       CHILD_ID           = self%DU%instances(1)%id, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+
 #include "GOCART2G_Export___.h"
 
 !   Add connectivities for Nitrate component

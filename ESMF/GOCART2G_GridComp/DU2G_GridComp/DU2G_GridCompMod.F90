@@ -864,6 +864,10 @@ contains
                              self%sfrac, self%nPts, self%km, self%CDT, MAPL_GRAV, &
                              self%nbins, delp, DU, __RC__)
 
+    do n=1,self%nbins
+       DUEMOUT(:,:,:,n) = emissions(:,:,:,n) * self%cdt * MAPL_GRAV / delp(:,:,:)
+    enddo 
+
     if (associated(DUEM)) then
        DUEM = sum(emissions, dim=3)
     end if
@@ -950,10 +954,12 @@ contains
 !   Dust Settling
 !   -------------
     do n = 1, self%nbins
+       DUSDOUT(:,:,:,n) = DU(:,:,:,n) 
        call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
                            self%radius(n)*1.e-6, self%rhop(n), DU(:,:,:,n), t, airdens, &
                            rh2, zle, delp, DUSD, correctionMaring=self%maringFlag, __RC__)
 
+       DUSDOUT(:,:,:,n) = DU(:,:,:,n) - DUSDOUT(:,:,:,N)
 
     end do
 
@@ -969,6 +975,7 @@ contains
       dqa = 0.
       dqa = max(0.0, DU(:,:,self%km,n)*(1.-exp(-drydepositionfrequency*self%cdt)))
       DU(:,:,self%km,n) = DU(:,:,self%km,n) - dqa
+      DUDDOUT(:,:,n) = dqa
 
     if (associated(DUDP)) then
        DUDP(:,:,n) = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
@@ -980,10 +987,12 @@ contains
 !  ----------------------------
    KIN = .TRUE.
    do n = 1, self%nbins
+      DUWDOUT(:,:,:,n) = DU(:,:,:,n)
       fwet = 0.8
       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
                               KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
+      DUWDOUT(:,:,:,n) = DU(:,:,:,n) - DUWDOUT(:,:,:,N)
    end do
 
 !  Compute diagnostics
@@ -997,6 +1006,12 @@ contains
                             DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
                             DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
+
+   DU01 = DU(:,:,:,1)
+   DU02 = DU(:,:,:,2)
+   DU03 = DU(:,:,:,3)
+   DU04 = DU(:,:,:,4)
+   DU05 = DU(:,:,:,5)
 
    RETURN_(ESMF_SUCCESS)
 

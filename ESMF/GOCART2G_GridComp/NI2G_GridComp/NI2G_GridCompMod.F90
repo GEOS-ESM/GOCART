@@ -531,6 +531,7 @@ contains
        skipover = .false.
     endif
     endif
+
     ! Print skipover status
     if (mapl_Am_I_Root()) then
        if (skipover) write(*,*) 'NI2G is Connected with GEOS-Chem. Skipping Run1() and Chem.'
