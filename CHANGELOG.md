@@ -9,13 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [2.1.2] - 2022-10-07
+
+### Added
+
 - Extinction exports with RH=20% and RH=80%
 
 ### Fixed
 
 ### Changed
 
-### Changed
 ## [2.1.1] - 2022-09-16
 
 ### Fixed
