@@ -10307,8 +10307,8 @@ loop2: DO l = 1,nspecies_HL
 !      Fixed normalization factors; a more accurate normalization would take
 !      in consideration longitude and time step
 !      ---------------------------------------------------------------------
-       real*8, save :: fBoreal = -1., fNonBoreal = -1
-       real,   save :: fDT=-1
+       real*8 :: fBoreal, fNonBoreal
+       real :: fDT
 
        integer :: hh, mm, ss, ndt, i, j, k
        integer :: NN
@@ -10318,22 +10318,19 @@ loop2: DO l = 1,nspecies_HL
 
 !      Normalization factor depends on timestep
 !      ----------------------------------------
-       if ( fDT /= cdt ) then
-            fBoreal = 0.0
-            fNonBoreal = 0.0
-            NN = 0
-            ndt = max(1,nint(cdt/DT))
+       fBoreal = 0.0
+       fNonBoreal = 0.0
+       NN = 0
+       ndt = max(1,nint(cdt/DT))
 
-            do k = 1, N, ndt
-               NN = NN + 1
-               fBoreal    = fBoreal    + Boreal(k)
-               fNonBoreal = fNonBoreal + NonBoreal(k)
-            end do
+       do k = 1, N, ndt
+          NN = NN + 1
+          fBoreal    = fBoreal    + Boreal(k)
+          fNonBoreal = fNonBoreal + NonBoreal(k)
+       end do
 
-            fBoreal    = fBoreal / NN
-            fnonBoreal = fnonBoreal / NN
-            fDT = cdt ! so it recalculates only if necessary
-       end if
+       fBoreal    = fBoreal / NN
+       fnonBoreal = fnonBoreal / NN
 
 
 !      Find number of secs since begining of the day (GMT)
