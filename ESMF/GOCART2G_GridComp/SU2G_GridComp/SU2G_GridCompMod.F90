@@ -343,8 +343,7 @@ contains
 
 !   Store internal state in GC
 !   --------------------------
-    call ESMF_UserCompSetInternalState ( GC, 'SU2G_GridComp', wrap, STATUS )
-    VERIFY_(STATUS)
+    call ESMF_UserCompSetInternalState ( GC, 'SU2G_GridComp', wrap, _RC )
 
 !   Set generic services
 !   ----------------------------------
