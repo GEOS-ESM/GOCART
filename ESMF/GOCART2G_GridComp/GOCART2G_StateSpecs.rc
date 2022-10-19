@@ -5,10 +5,13 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE       | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
-     NAME | UNITS | DIMS | VLOC | COND | LONG NAME
+     NAME   | UNITS    | DIMS | VLOC | RESTART | LONG NAME
 #----------------------------------------------------------------------------------------
-# DELP    | Pa    | xyz  | C    |      | pressure_thickness
-# RH2     | 1     | xyz  | C    |      | Rel_Hum_after_moist
+ DELP       | Pa       | xyz  | C    |         | pressure_thickness
+# RH2       | 1        | xyz  | C    |         | Rel_Hum_after_moist
+ AIRDENS    | kg/m^3   | xyz  | C    | OPT     | moist_air_density
+ T          | K        | xyz  | C    | OPT     | air_temperature
+ PLE        | Pa       | xyz  | E    | OPT     | air_pressure
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
@@ -33,6 +36,8 @@ category: EXPORT
  TOTSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient
  TOTSCACOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient - Fixed RH=20%
  TOTSCACOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient - Fixed RH=80%
+ TOTBCKCOEF     | m-1 sr-1   | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Single Scattering Backscatter coefficient
+ TOTABCKTOA     | m-1 sr-1   | xyz  | C    |                                | Total Attenuated Backscatter Coefficient [532nm]
  PM             | kg m-3     | xy   | N    |            | Total reconstructed PM
  PM_RH35        | kg m-3     | xy   | N    |            | Total reconstructed PM(RH=35%)
  PM_RH50        | kg m-3     | xy   | N    |            | Total reconstructed PM(RH=50%)

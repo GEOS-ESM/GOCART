@@ -61,6 +61,7 @@ category: EXPORT
   NISCACOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient
   NISCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient - fixed RH=20%
   NISCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient - fixed RH=80%
+  NIBCKCOEF     | m-1 sr-1     | xyz   | C     | size(self%wavelengths_profile) | Nitrate Backscatter Coefficient
 # ............. | ............ | ..... | ..... | ...........                    | ..................................
   NIPNO3AQ      | kg m-2 s-1   | xy    | N     |                                | Nitrate Production from Aqueous Chemistry
   NIPNH4AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonium Production from Aqueous Chemistry
