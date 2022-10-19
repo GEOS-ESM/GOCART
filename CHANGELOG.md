@@ -17,13 +17,20 @@ the 'mini' ESMF sates are created. Those arrays are xhno3 for NI2G, h202_init
 for SU2G, and deep_lakes_mask for SS2G. All of these arrays have MAPL_RestartSkip
 option so they are not written to restart.
 
+### Fixed
+
+### Changed
+
+## [2.1.2] - 2022-10-07
+
+### Added
+
 - Extinction exports with RH=20% and RH=80%
 
 ### Fixed
 
 ### Changed
 
-### Changed
 ## [2.1.1] - 2022-09-16
 
 ### Fixed
