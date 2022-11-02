@@ -830,6 +830,9 @@ contains
     type (ESMF_FieldBundle)            :: imSS ! Internally mixed species bundle
     integer, allocatable               :: IMBins(:)
 
+    ! Testing <<>> MSL
+    real, allocatable, dimension(:,:,:) :: wet_radius
+
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1002,7 +1005,7 @@ contains
        SSWDOUT(:,:,:,n) = SS(:,:,:,n)
        call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
                                KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
-                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
+                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, wet_radius, __RC__)
 
        SSWDOUT(:,:,:,n) = SS(:,:,:,n) - SSWDOUT(:,:,:,N)
 !       SSWDOUT(:,:,n) = SSWT(:,:,n) * self%cdt * MAPL_GRAV / delp(:,:,self%km)
@@ -1407,6 +1410,62 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
+!BOP
+!
+! !IROUTINE: wetRadiusArray - Compute the wet radius of sea salt particle of arrays
+!
+! !INTERFACE:
+   subroutine wetRadiusArray (radius, rh, radius_wet, rc)
+
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   real, intent(in)  :: radius           ! dry radius [m]
+   real, intent(in)  :: rh(:,:,:)        ! relative humidity [0-1]
+!   integer           :: flag             ! 1 (Fitzgerald, 1975)
+!                                         ! 2 (Gerber, 1985)
+
+! !OUTPUT PARAMETERS:
+   real, intent(out) :: radius_wet(:,:,:) ! humidified radius [m]
+   integer, intent(out) :: rc
+
+! !Local Variables
+   real, allocatable :: sat(:,:,:)
+   real, parameter   :: rhow = 1000.  ! Density of water [kg m-3]
+
+!  The following parameters relate to the swelling of seasalt like particles
+!  following Fitzgerald, Journal of Applied Meteorology, 1975.
+   real, parameter :: epsilon = 1.   ! soluble fraction of deliqeuscing particle
+   real, parameter :: alphaNaCl = 1.35
+
+!  parameter from Gerber 1985 (units require radius in cm, see rcm)
+   real, parameter :: c1=0.7674, c2=3.079, c3=2.573e-11, c4=-1.424
+
+!EOP
+!------------------------------------------------------------------------------------
+!  Begin...
+
+    __Iam__('SS2G::wetRadiusArray')
+
+   allocate(sat, mold=rh, STAT=RC)
+   VERIFY_(RC)
+
+!  Default is to return radius as radius_wet, rhop as rhop_wet
+   radius_wet = radius
+
+!  Make sure saturation ratio (RH) is sensible
+   sat = max(rh,tiny(1.0)) ! to avoid zero FPE
+   sat = min(0.995,sat)
+   radius_wet = 0.01 * (c1*(radius*100.)**c2 / (c3*(radius*100.)**c4-alog10(sat)) &
+        + (radius*100.)**3.)**(1./3.)
+
+   deallocate(sat, stat=RC)
+   VERIFY_(RC)
+
+   RC = ESMF_SUCCESS
+
+ end subroutine wetRadiusArray
 
 end module SS2G_GridCompMod
 

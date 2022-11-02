@@ -109,8 +109,8 @@ category: INTERNAL
 #----------------------------------------------------------------------------------------
  DMS   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
  SO2   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
- SO4   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
-# SO4   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST:GEOSCHEMCHEM | Sulphate aerosol
+# SO4   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
+ SO4   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST:GEOSCHEMCHEM | Sulphate aerosol
  MSA   |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid  
 
 

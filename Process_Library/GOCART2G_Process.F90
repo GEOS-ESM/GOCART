@@ -2729,7 +2729,7 @@ CONTAINS
 ! !IROUTINE: WetRemovalGOCART2G
    subroutine WetRemovalGOCART2G ( km, klid, n1, n2, bin_ind, cdt, aero_type, kin, grav, fwet, &
                                    aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
-                                   precc, precl, fluxout, rc )
+                                   precc, precl, fluxout, radius, rc )
 
 ! !USES:
   implicit NONE
@@ -2755,8 +2755,10 @@ CONTAINS
    real, pointer, dimension(:,:), intent(in)    :: precl   ! Non-convective precipitation [kg/(m^2 sec)]
    real, pointer, dimension(:,:,:)  :: fluxout ! tracer loss flux [kg m-2 s-1]
 
+   real,          dimension(:,:,:), optional, intent(inout) :: radius
+
 ! !OUTPUT PARAMETERS:
-   integer, intent(out)             :: rc          ! Error return code:
+   integer, optional, intent(out)             :: rc          ! Error return code:
 
 ! !DESCRIPTION: Calculates the updated species concentration due to wet
 !               removal.  As written, intended to function for large
@@ -3037,11 +3039,21 @@ CONTAINS
             WASHFRAC = 0d0
            ENDIF
         endif
-
+        
 !       Adjust du level:
         do n = 1, nbins
          if ( KIN ) then
-            DC(n) = aerosol(i,j,k) * F * (1.-exp(-BT))
+            ! The following is very crude <<>> MSL
+            ! -- DUST: bins 2-5 are coarse
+            ! -- SSLT: bins 3-5 are coarse
+            PP = (PFLLSAN(i,j,k)/1000d0 + PFILSAN(i,j,k)/917d0 )*100d0 ! from kg H2O/m2/s to cm3 H2O/cm2/s
+            if ((aero_type .eq. 'sea_salt' .and. bin_ind .gt. 2) .or. &
+                (aero_type .eq. 'dust'     .and. bin_ind .gt. 1)) then
+               WASHFRAC = WASHFRAC_COARSE_AEROSOL( CDT, F, REAL(PP,4), TMPU(i,j,k))
+            else
+               WASHFRAC = WASHFRAC_FINE_AEROSOL( CDT, F, REAL(PP,4), TMPU(i,j,k))
+            endif
+            DC(n) = aerosol(i,j,k) * WASHFRAC ! F * (1.-exp(-BT))
          else
             DC(n) = aerosol(i,j,k) * F * WASHFRAC
          endif
@@ -10708,4 +10720,149 @@ loop2: DO l = 1,nspecies_HL
 
       __RETURN__(__SUCCESS__)
    end subroutine scan_to_label
+!------------------------------------------------------------------------------
+! copied from the GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_coarse_aerosol
+!
+! !DESCRIPTION: Function WASHFRAC\_COARSE\_AEROSOL returns the fraction of
+!  soluble aerosol species lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION WASHFRAC_COARSE_AEROSOL( DT, F, PP, TK ) &
+       RESULT( WASHFRAC )
+!
+! !INPUT PARAMETERS:
+!
+    REAL, INTENT(IN) :: DT         ! Timestep of washout event [s]
+    REAL, INTENT(IN) :: F          ! Fraction of grid box that is
+                                       !  precipitating [unitless]
+    REAL, INTENT(IN) :: PP         ! Precip rate thru bottom of grid
+                                       !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+    REAL, INTENT(IN) :: TK         ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+    REAL             :: WASHFRAC   ! Fraction of soluble species
+                                       !  lost to washout
+!
+! !REVISION HISTORY:
+!  08 Nov 2002 - R. Yantosca - Initial version
+!  28 Oct 2022 - M. Long     - Copied from GEOS-Chem into NASA-GEOS's GOCART2G
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    !=================================================================
+    ! WASHFRAC_COARSE_AEROSOL begins here!
+    !=================================================================
+
+    IF ( TK >= 268.0 ) THEN
+
+       !---------------------------------
+       ! T >= 268K
+       !---------------------------------
+       IF ( F > 0e+0 ) THEN
+          WASHFRAC = F*(1.0 - EXP(-0.92 * (PP / F*3.6e+4) &
+                     ** 0.79 * DT / 3.6e+3 ))
+       ELSE
+          WASHFRAC = 0.0
+       ENDIF
+
+    ELSE
+
+       !---------------------------------
+       ! T < 268K
+       !---------------------------------
+       IF ( F > 0e+0 ) THEN
+          WASHFRAC = F *(1.0 - EXP( -1.57 * &
+                     (PP / F*3.6e+4)**0.96 * DT / 3.6e+3 ))
+       ELSE
+          WASHFRAC = 0.0
+       ENDIF
+
+    ENDIF
+
+  END FUNCTION WASHFRAC_COARSE_AEROSOL
+!------------------------------------------------------------------------------
+! copied from the  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_fine_aerosol
+!
+! !DESCRIPTION: Function WASHFRAC\_FINE\_AEROSOL returns the fraction of
+!  soluble aerosol species lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION WASHFRAC_FINE_AEROSOL( DT, F, PP, TK ) &
+       RESULT( WASHFRAC )
+!
+! !INPUT PARAMETERS:
+!
+    REAL, INTENT(IN) :: DT        ! Timestep of washout event [s]
+    REAL, INTENT(IN) :: F         ! Fraction of grid box that is
+                                      !  precipitating [unitless]
+    REAL, INTENT(IN) :: PP        ! Precip rate thru bottom of grid
+                                      !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+    REAL, INTENT(IN) :: TK        ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+    REAL             :: WASHFRAC  ! Fraction of soluble species
+                                      !  lost to washout [1]
+!
+! !REVISION HISTORY:
+!  08 Nov 2002 - R. Yantosca - Initial version
+!  28 Oct 2022 - M. Long     - Copied from GEOS-Chem into NASA-GEOS's GOCART2G
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETER:
+!
+    ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
+    ! K_WASH for aerosols in accumulation mode (qq,10/11/2011)
+    REAL, PARAMETER :: K_WASH = 1.06e-3
+
+    !=================================================================
+    ! WASHFRAC_FINE_AEROSOL begins here!
+    !=================================================================
+    IF ( ( TK >= 268e+0 ) ) THEN
+
+       !---------------------------------
+       ! T >= 268K
+       !---------------------------------
+       IF ( F > 0e+0 ) THEN
+          WASHFRAC = F *(1e+0 - EXP( -K_WASH * &
+                     (PP / F*3.6e+4 )**0.61e+0 * DT / 3.6e+3 ))
+       ELSE
+          WASHFRAC = 0e+0
+       ENDIF
+
+    ELSE
+
+       !---------------------------------
+       ! T < 268K
+       !---------------------------------
+       IF ( F > 0e+0 ) THEN
+          WASHFRAC = F *(1e+0 - EXP( -2.6e+1*K_WASH * &
+                     (PP / F*3.6e+4 )**0.96e+0 * DT / 3.6e+3 ))
+       ELSE
+          WASHFRAC = 0e+0
+       ENDIF
+
+    ENDIF
+
+  END FUNCTION WASHFRAC_FINE_AEROSOL
+!EOC
+!EOC
  end module GOCART2G_Process
