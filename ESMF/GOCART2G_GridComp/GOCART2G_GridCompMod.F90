@@ -635,7 +635,6 @@ contains
     real, pointer, dimension(:,:,:,:) :: brbckcoef
     real, pointer, dimension(:,:)   :: brangstr, brsmass
     real, pointer, dimension(:,:,:) :: pso4
-    real, allocatable               :: aerabcktoa(:,:,:), molabcktoa(:,:,:)
     real, allocatable               :: tau1(:,:), tau2(:,:)
     real, allocatable               :: backscat_mol(:,:,:)
     real, allocatable               :: P(:,:,:), delz(:,:,:)
@@ -692,6 +691,7 @@ contains
     if(associated(totscacoefrh80)) totscacoefrh80 = 0.
     if(associated(totbckcoef))     totbckcoef = 0.
     if(associated(totabcktoa))     totabcktoa = 0.
+    if(associated(totabcksfc))     totabcksfc = 0.
     if(associated(pm))        pm(:,:)        = 0.
     if(associated(pm25))      pm25(:,:)      = 0.
     if(associated(pm_rh35))   pm_rh35(:,:)   = 0.
@@ -1141,7 +1141,13 @@ contains
     end if
 
 !  Calculate the total (molecular + aer) single scattering attenuated backscater coef from the TOA
-    if(associated(totabcktoa) .and. associated(totextcoef) .and. associated(totbckcoef)) then
+    if(associated(totabcktoa).or.associated(totabcksfc)) then
+        if (.not.associated(totextcoef) .and. .not. associated(totbckcoef)) then
+             print*,trim(Iam),' : TOTEXTCOEF and TOTBCKCOEF and their children needs to be requested in HISTORY.rc.',&
+                           ' Cannot produce TOTABCKTOA or TOTABCKSFC variables without these exports.'
+             VERIFY_(100)
+        endif
+
        ind532 = 0
        do w = 1, size(self%wavelengths_profile) ! find index for 532nm to compute TBA
           if ((self%wavelengths_profile(w)*1.e-9 .ge. 5.31e-7) .and. &
@@ -1171,7 +1177,7 @@ contains
       !molecular backscattering cross section for each layer at 532nm: Cair  * P(Pa) / T(K)
       !Cair = 4.51944e-9 at 532nm # unit K Pa-1 m-1 sr-1 http://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19960051003.pdf
        allocate(backscat_mol(i1:i2,j1:j2,km), __STAT__)
-       backscat_mol = 5.45e-32/1.380648e-23 * (532./550.)**(-4.0)  * P / T
+       backscat_mol = (5.45e-32/1.380648e-23) * (532./550.)**(-4.0)  * P / T
        ! tau mol for each layer
        allocate(tau_mol_layer(i1:i2,j1:j2,km), delz(i1:i2,j1:j2,km),__STAT__)
        delz  = delp / (MAPL_GRAV * airdens)
@@ -1181,16 +1187,13 @@ contains
        allocate(tau_aer_layer(i1:i2,j1:j2,km), __STAT__)
        tau_aer_layer = totextcoef(:,:,:,ind532) * delz
 
-       allocate(molabcktoa(i1:i2,j1:j2,km), __STAT__)
-       allocate(aerabcktoa(i1:i2,j1:j2,km), __STAT__)
-
        allocate(tau_aer(i1:i2,j1:j2), __STAT__)
        allocate(tau_mol(i1:i2,j1:j2), __STAT__)
+    
+       ! TOTAL ABCK TOA  
        ! top layer 
        totabcktoa(:,:,1) = (totbckcoef(:,:,1,ind532) + backscat_mol(:,:,1)) * exp(-tau_aer_layer(:,:,1)) * exp(-tau_mol_layer(:,:,1))
-       aerabcktoa(:,:,1) = totbckcoef(:,:,1,ind532) * exp(-tau_aer_layer(:,:,1)) 
-       molabcktoa(:,:,1) = backscat_mol(:,:,1)  * exp(-tau_mol_layer(:,:,1))
-       ! layer 2 to the layer at the surface(km-1)
+       ! layer 2 to the layer at the surface(km)
        do k = 2, km
            tau_aer = 0.
            tau_mol = 0. ! for each layer
@@ -1201,9 +1204,24 @@ contains
            tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
            tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
            totabcktoa(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
-           aerabcktoa(:,:,k) = totbckcoef(:,:,k,ind532) * exp(-2*tau_aer) 
-           molabcktoa(:,:,k) = backscat_mol(:,:,k) * exp(-2*tau_mol) 
        enddo
+    
+       ! TOTAL ABCK SFC  
+       ! bottom layer 
+       totabcksfc(:,:,km) = (totbckcoef(:,:,km,ind532) + backscat_mol(:,:,km)) * exp(-tau_aer_layer(:,:,km)) * exp(-tau_mol_layer(:,:,km))
+       ! layer 2nd from the surface to the top of the atmoshere (km)
+       do k = km-1, 1, -1
+           tau_aer = 0.
+           tau_mol = 0. ! for each layer
+           do kk = km, k+1, -1
+             tau_aer = tau_aer + tau_aer_layer(:,:,kk)
+             tau_mol = tau_mol + tau_mol_layer(:,:,kk)
+           enddo
+           tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
+           tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
+           totabcksfc(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
+       enddo
+
    endif ! end of total attenuated backscatter coef calculation
 
     RETURN_(ESMF_SUCCESS)
