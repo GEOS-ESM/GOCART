@@ -57,7 +57,7 @@
 ! !DESCRIPTION:
 !
 !  This module implements the (pre-ESMF) GOCART Grid Component. This is
-!  a composite component which delegates the real work to its 
+!  a composite component which delegates the real work to its
 !  sub-components.
 !
 ! !REVISION HISTORY:
@@ -102,7 +102,7 @@ CONTAINS
    character(len=ESMF_MAXSTR) :: Iam
 
    Iam = "Aero_GridCompSetServices"
- 
+
 !  Carbon Monoxide
 !  ---------------
    if ( chemReg%doing_DU ) then
@@ -160,7 +160,7 @@ CONTAINS
    endif
 
    if ( chemReg%doing_CH4 ) then
-#     include "CH4_ExportSpec___.h"
+!#     include "CH4_ExportSpec___.h"
       call CH4_GridCompSetServices(GC, chemReg, __RC__)
    endif
 
@@ -192,7 +192,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   type(Chem_Bundle), intent(inout) :: w_c        ! Chemical tracer fields      
+   type(Chem_Bundle), intent(inout) :: w_c        ! Chemical tracer fields
    type(ESMF_GridComp), intent(inout) :: gc
    integer, intent(in) :: nymd, nhms              ! time
    real, intent(in)    :: cdt                     ! chemistry timestep (secs)
@@ -255,7 +255,7 @@ CONTAINS
    if ( w_c%reg%doing_O3 ) then
       call O3_GridCompInitialize ( gcThis%gcO3, w_c, impChem, expChem, &
                                    nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            if (MAPL_AM_I_ROOT()) print *, Iam//': O3 failed to initialize ', rc
            rc = 1000 + rc
            return
@@ -268,7 +268,7 @@ CONTAINS
       if (.not. data_driven) then
          call CO_GridCompInitialize ( gcThis%gcCO, w_c, impChem, expChem, &
                                       nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': CO failed to initialize ', rc
             rc = 2000 + rc
             return
@@ -282,12 +282,12 @@ CONTAINS
       if (.not. data_driven) then
          call CO2_GridCompInitialize ( gcThis%gcCO2, w_c, impChem, expChem, &
                                        nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': CO2 failed to initialize ', rc
             rc = 2500 + rc
             return
          end if
-      end if   
+      end if
    end if
 
 !  Dust
@@ -298,7 +298,7 @@ CONTAINS
       if (.not. data_driven) then
          call DU_GridCompInitialize ( gcThis%gcDU, w_c, impChem, expChem, &
                                       nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': DU failed to initialize ', rc
             rc = 3000 + rc
             return
@@ -314,7 +314,7 @@ CONTAINS
       if (.not. data_driven) then
          call SS_GridCompInitialize ( gcThis%gcSS, w_c, impChem, expChem, &
                                       nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': SS failed to initialize ', rc
             rc = 4000 + rc
             return
@@ -330,7 +330,7 @@ CONTAINS
       if (.not. data_driven) then
          call BC_GridCompInitialize ( gcThis%gcBC, w_c, impChem, expChem, &
                                       nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': BC failed to initialize ', rc
             rc = 5000 + rc
             return
@@ -346,12 +346,12 @@ CONTAINS
       if (.not. data_driven) then
          call OC_GridCompInitialize ( gcThis%gcOC, w_c, impChem, expChem, &
                                       nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': OC failed to initialize ', rc
             rc = 6000 + rc
             return
          end if
-      end if   
+      end if
    end if
 
 !  Brown Carbon
@@ -362,12 +362,12 @@ CONTAINS
       if (.not. data_driven) then
          call BRC_GridCompInitialize ( gcThis%gcBRC, w_c, impChem, expChem, &
                                       nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': BRC failed to initialize ', rc
             rc = 6000 + rc
             return
          end if
-      end if   
+      end if
    end if
 
 !  Sulfates
@@ -378,7 +378,7 @@ CONTAINS
       if (.not. data_driven) then
          call SU_GridCompInitialize ( gcThis%gcSU, w_c, impChem, expChem, &
                                       nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': SU failed to initialize ', rc
             rc = 7000 + rc
             return
@@ -391,7 +391,7 @@ CONTAINS
    if ( w_c%reg%doing_CFC ) then
       call CFC_GridCompInitialize ( gcThis%gcCFC, w_c, impChem, expChem, &
                                     nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            if (MAPL_AM_I_ROOT()) print *, Iam//': CFC failed to initialize ', rc
            rc = 8000 + rc
            return
@@ -403,7 +403,7 @@ CONTAINS
    if ( w_c%reg%doing_Rn ) then
       call Rn_GridCompInitialize ( gcThis%gcRn, w_c, impChem, expChem, &
                                     nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            if (MAPL_AM_I_ROOT()) print *, Iam//': Rn failed to initialize ', rc
            rc = 8500 + rc
            return
@@ -415,7 +415,7 @@ CONTAINS
    if ( w_c%reg%doing_CH4 ) then
       call CH4_GridCompInitialize ( gcThis%gcCH4, w_c, impChem, expChem, &
                                     nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            if (MAPL_AM_I_ROOT()) print *, Iam//': CH4 failed to initialize ', rc
            rc = 8800 + rc
            return
@@ -430,7 +430,7 @@ CONTAINS
       if (.not. data_driven) then
          call NI_GridCompInitialize ( gcThis%gcNI, w_c, impChem, expChem, &
                                       nymd, nhms, cdt, rc )
-         if ( rc /= 0 ) then  
+         if ( rc /= 0 ) then
             if (MAPL_AM_I_ROOT()) print *, Iam//': NI failed to initialize ', rc
             rc = 8900 + rc
             return
@@ -474,7 +474,7 @@ CONTAINS
 !-------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  Aero_GridCompRun1 --- The GOCART Driver 
+! !IROUTINE:  Aero_GridCompRun1 --- The GOCART Driver
 !
 ! !INTERFACE:
 !
@@ -489,7 +489,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(Aero_GridComp), intent(inout) :: gcThis   ! Grid Component
-   type(Chem_Bundle), intent(inout)   :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout)   :: w_c      ! Chemical tracer fields
    type(ESMF_GridComp), intent(inout) :: gc
 
 ! !INPUT PARAMETERS:
@@ -506,11 +506,11 @@ CONTAINS
                                                  !  0 - all is well
                                                  !  1 -
    type(MAPL_MetaComp), pointer :: state
- 
-! !DESCRIPTION: This routine implements the so-called GOCART Driver. That 
+
+! !DESCRIPTION: This routine implements the so-called GOCART Driver. That
 !               is, adds chemical tendencies to each of the constituents,
 !  Note: water wapor, the first constituent is not considered a chemical
-!  constituents. 
+!  constituents.
 !
 ! !REVISION HISTORY:
 !
@@ -528,7 +528,7 @@ CONTAINS
       call DU_GridCompRun1 ( gcThis%gcDU, w_c, impChem, expChem, &
                              nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"DU")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 3000 + rc
            return
       end if
@@ -541,7 +541,7 @@ CONTAINS
       call SS_GridCompRun1 ( gcThis%gcSS, w_c, impChem, expChem, &
                              nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"SS")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 4000 + rc
            return
       end if
@@ -554,7 +554,7 @@ CONTAINS
       call BC_GridCompRun1 ( gcThis%gcBC, w_c, impChem, expChem, &
                             nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"BC")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 5000 + rc
            return
       end if
@@ -567,7 +567,7 @@ CONTAINS
       call OC_GridCompRun1 ( gcThis%gcOC, w_c, impChem, expChem, &
                             nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"OC")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 6000 + rc
            return
       end if
@@ -580,7 +580,7 @@ CONTAINS
       call BRC_GridCompRun1 ( gcThis%gcBRC, w_c, impChem, expChem, &
                             nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"BRC")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 6100 + rc
            return
       end if
@@ -593,7 +593,7 @@ CONTAINS
       call SU_GridCompRun1 ( gcThis%gcSU, w_c, impChem, expChem, &
                             nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"SU")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 7000 + rc
            return
       end if
@@ -606,7 +606,7 @@ CONTAINS
       call NI_GridCompRun1 ( gcThis%gcNI, w_c, impChem, expChem, &
                              nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"NI")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8900 + rc
            return
       end if
@@ -624,7 +624,7 @@ CONTAINS
 !-------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  Aero_GridCompRun --- The GOCART Driver 
+! !IROUTINE:  Aero_GridCompRun --- The GOCART Driver
 !
 ! !INTERFACE:
 !
@@ -639,13 +639,13 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(Aero_GridComp), intent(inout) :: gcThis   ! Grid Component
-   type(Chem_Bundle), intent(inout)   :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout)   :: w_c      ! Chemical tracer fields
    type(ESMF_GridComp), intent(inout) :: gc
 
 ! !INPUT PARAMETERS:
 
    type(ESMF_State), intent(inout) :: impChem  ! Import State
-   logical             :: run_alarm            ! run alarm 
+   logical             :: run_alarm            ! run alarm
    integer, intent(in) :: nymd, nhms           ! time
    real, intent(in)    :: cdt                  ! chemistry timestep (secs)
 
@@ -657,11 +657,11 @@ CONTAINS
                                                  !  0 - all is well
                                                  !  1 -
    type(MAPL_MetaComp), pointer :: state
- 
-! !DESCRIPTION: This routine implements the so-called GOCART Driver. That 
+
+! !DESCRIPTION: This routine implements the so-called GOCART Driver. That
 !               is, adds chemical tendencies to each of the constituents,
 !  Note: water wapor, the first constituent is not considered a chemical
-!  constituents. 
+!  constituents.
 !
 ! !REVISION HISTORY:
 !
@@ -679,7 +679,7 @@ CONTAINS
       call O3_GridCompRun( gcThis%gcO3, w_c, impChem, expChem, &
                            nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"O3")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 1000 + rc
            return
       end if
@@ -692,7 +692,7 @@ CONTAINS
       call CO_GridCompRun ( gcThis%gcCO, w_c, impChem, expChem, &
                             nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"CO")
-       if ( rc /= 0 ) then  
+       if ( rc /= 0 ) then
            rc = 2000 + rc
            return
       end if
@@ -705,7 +705,7 @@ CONTAINS
       call CO2_GridCompRun ( gcThis%gcCO2, w_c, impChem, expChem, &
                              nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"CO2")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 2500 + rc
            return
       end if
@@ -718,7 +718,7 @@ CONTAINS
       call DU_GridCompRun2 ( gcThis%gcDU, w_c, impChem, expChem, &
                              run_alarm, nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"DU")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 3000 + rc
            return
       end if
@@ -730,7 +730,7 @@ CONTAINS
    if ( w_c%reg%doing_SS ) then
       call SS_GridCompRun2 ( gcThis%gcSS, w_c, impChem, expChem, &
                              run_alarm, nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 4000 + rc
            return
       end if
@@ -744,7 +744,7 @@ CONTAINS
       call BC_GridCompRun2 ( gcThis%gcBC, w_c, impChem, expChem, &
                              run_alarm, nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"BC")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 5000 + rc
            return
       end if
@@ -757,7 +757,7 @@ CONTAINS
       call OC_GridCompRun2 ( gcThis%gcOC, w_c, impChem, expChem, &
                              run_alarm, nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"OC")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 6000 + rc
            return
       end if
@@ -770,7 +770,7 @@ CONTAINS
       call BRC_GridCompRun2 ( gcThis%gcBRC, w_c, impChem, expChem, &
                              run_alarm, nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"BRC")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 6100 + rc
            return
       end if
@@ -783,7 +783,7 @@ CONTAINS
       call SU_GridCompRun2 ( gcThis%gcSU, w_c, impChem, expChem, &
                              run_alarm, nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"SU")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 7000 + rc
            return
       end if
@@ -796,7 +796,7 @@ CONTAINS
       call CFC_GridCompRun ( gcThis%gcCFC, w_c, impChem, expChem, &
                              nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"CFC")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8000 + rc
            return
       end if
@@ -807,7 +807,7 @@ CONTAINS
    if ( w_c%reg%doing_Rn ) then
       call Rn_GridCompRun ( gcThis%gcRn, w_c, impChem, expChem, &
                             nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8500 + rc
            return
       end if
@@ -820,7 +820,7 @@ CONTAINS
       call CH4_GridCompRun ( gcThis%gcCH4, w_c, impChem, expChem, &
                              nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"CH4")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8800 + rc
            return
       end if
@@ -833,7 +833,7 @@ CONTAINS
       call NI_GridCompRun2 ( gcThis%gcNI, w_c, impChem, expChem, &
                              run_alarm, nymd, nhms, cdt, rc )
       call MAPL_TimerOff(state,"NI")
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8900 + rc
            return
       end if
@@ -866,7 +866,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   type(Chem_Bundle), intent(in)  :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(in)  :: w_c      ! Chemical tracer fields
    integer, intent(in) :: nymd, nhms          ! time
    real, intent(in) :: cdt                    ! chemistry timestep (secs)
 
@@ -877,7 +877,7 @@ CONTAINS
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 -
- 
+
 ! !DESCRIPTION: This routine finalizes this Grid Component.
 !
 ! !REVISION HISTORY:
@@ -905,7 +905,7 @@ CONTAINS
    if ( w_c%reg%doing_O3 ) then
       call O3_GridCompFinalize ( gcThis%gcO3, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 1000 + rc
            return
       end if
@@ -916,7 +916,7 @@ CONTAINS
    if ( w_c%reg%doing_CO ) then
       call CO_GridCompFinalize ( gcThis%gcCO, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 2000 + rc
            return
       end if
@@ -927,7 +927,7 @@ CONTAINS
    if ( w_c%reg%doing_CO2 ) then
       call CO2_GridCompFinalize ( gcThis%gcCO2, w_c, impChem, expChem, &
                                   nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 2500 + rc
            return
       end if
@@ -938,7 +938,7 @@ CONTAINS
    if ( w_c%reg%doing_DU ) then
       call DU_GridCompFinalize ( gcThis%gcDU, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 3000 + rc
            return
       end if
@@ -949,7 +949,7 @@ CONTAINS
    if ( w_c%reg%doing_SS ) then
       call SS_GridCompFinalize ( gcThis%gcSS, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 4000 + rc
            return
       end if
@@ -960,7 +960,7 @@ CONTAINS
    if ( w_c%reg%doing_BC ) then
       call BC_GridCompFinalize ( gcThis%gcBC, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 5000 + rc
            return
       end if
@@ -971,7 +971,7 @@ CONTAINS
    if ( w_c%reg%doing_OC ) then
       call OC_GridCompFinalize ( gcThis%gcOC, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 6000 + rc
            return
       end if
@@ -982,7 +982,7 @@ CONTAINS
    if ( w_c%reg%doing_BRC ) then
       call BRC_GridCompFinalize ( gcThis%gcBRC, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 6000 + rc
            return
       end if
@@ -993,7 +993,7 @@ CONTAINS
    if ( w_c%reg%doing_SU ) then
       call SU_GridCompFinalize ( gcThis%gcSU, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 7000 + rc
            return
       end if
@@ -1004,7 +1004,7 @@ CONTAINS
    if ( w_c%reg%doing_CFC ) then
       call CFC_GridCompFinalize ( gcThis%gcCFC, w_c, impChem, expChem, &
                                   nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8000 + rc
            return
       end if
@@ -1015,7 +1015,7 @@ CONTAINS
    if ( w_c%reg%doing_Rn ) then
       call Rn_GridCompFinalize ( gcThis%gcRn, w_c, impChem, expChem, &
                                   nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8500 + rc
            return
       end if
@@ -1026,7 +1026,7 @@ CONTAINS
    if ( w_c%reg%doing_CH4 ) then
       call CH4_GridCompFinalize ( gcThis%gcCH4, w_c, impChem, expChem, &
                                   nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8800 + rc
            return
       end if
@@ -1037,7 +1037,7 @@ CONTAINS
    if ( w_c%reg%doing_NI ) then
       call NI_GridCompFinalize ( gcThis%gcNI, w_c, impChem, expChem, &
                                   nymd, nhms, cdt, rc )
-      if ( rc /= 0 ) then  
+      if ( rc /= 0 ) then
            rc = 8900 + rc
            return
       end if

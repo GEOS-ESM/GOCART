@@ -1,14 +1,37 @@
 #
 #  CH4 main resource file defining the particular instances.
 #
-#  For detailed description of the ARCTAS tags consult:
-#
-#  http://geos5.org/wiki/index.php?title=GEOS-5_Configuration_for_ARCTAS
-#
 # ------------------|-------|------------
 #       Region      | Tag   |   Masking
 # ------------------|-------|------------
 #  All instances    | full  | -1
 # ------------------|-------|------------
 
-CH4_instances: animls coal leak gasvnt hydz msw soilab trmite bogs burn ricec swamps tundra bf tot
+CH4_instances: wetland industrial extract transport agwaste biofuel onat fire null total
+
+# The keys below apply to all CH4 tags, unless overridden by a tag specific key (see below)
+
+# Indicate regions using a comma-delimited list of integers.
+# To activate all land boxes, use -1, or all or global (not case sensitive)
+# -------------------------------------------------------------------------------------------
+CH4_regions_indices: -1
+
+# Largest solar zenith angle (degrees) allowed as daytime
+# -------------------------------------------------------------------------------------------
+solar_ZA_cutoff: 94.00
+
+# Run-time debug switch to print additional stuff
+# -------------------------------------------------------------------------------------------
+DEBUG: F
+
+# Turn chemistry on in the model to simulate oxidation by OH, Cl and O1D
+# -------------------------------------------------------------------------------------------
+do_chemistry: T
+
+# The keys above apply to all CH4 tags. To override any of those with a different value for
+# a specific tag, e.g., to turn debuggin on for wetland, set
+# DEBUG.wetland: T
+# Similarly, to turn off chemistry for fire, set
+# do_chemistry.fire: F
+# Enter all such tag-specific keys below
+# -------------------------------------------------------------------------------------------

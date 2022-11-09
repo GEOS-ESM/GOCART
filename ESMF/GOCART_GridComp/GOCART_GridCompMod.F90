@@ -37,18 +37,18 @@
 
    public SetServices
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !
-!   {\tt GOCART} is a gridded component from the GOCART model and includes 
+!   {\tt GOCART} is a gridded component from the GOCART model and includes
 !  dust, sea salt, sulfates, organic and black carbon. In addition, we
 !  also include closely related components for CO and CO2 with relatively
 !  simple parameterization of the chemical processes, but sharing
 !  consistent emissions with the aerosols.
 !
 !  This code derives from the pre-ESMF Chem component from GEOS-4. This
-!  GEOS-4 Chem "component" used ESMF like constructs (Chem component class, 
-!  import/export states, etc) but no ESMF specific data types because of 
-!  an odd incompatibility with the fvGCM code (the so-called 
+!  GEOS-4 Chem "component" used ESMF like constructs (Chem component class,
+!  import/export states, etc) but no ESMF specific data types because of
+!  an odd incompatibility with the fvGCM code (the so-called
 !  {\tt oldworld} library. Unlike GEOS-4, the Stratospheric Chemistry
 !  component is treated separately here.
 !
@@ -91,7 +91,7 @@ CONTAINS
     type(ESMF_GridComp), intent(INOUT) :: GC  ! gridded component
     integer, optional                  :: RC  ! return code
 
-! !DESCRIPTION: Sets Initialize, Run and Finalize services. 
+! !DESCRIPTION: Sets Initialize, Run and Finalize services.
 !
 ! !REVISION HISTORY:
 !
@@ -128,7 +128,7 @@ CONTAINS
 
 !                              ------------
 
-    
+
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet( GC, NAME=COMP_NAME, CONFIG=CF, __RC__ )
@@ -157,10 +157,10 @@ CONTAINS
        VERIFY_(status)
        state%chemReg = Chem_RegistryCreate(STATUS, rcfile=chem_registry_file)
         VERIFY_(STATUS)
-    end if    
+    end if
 
     r => state%chemReg   ! short hand
-    
+
 
 !                       ------------------------
 !                       ESMF Functional Services
@@ -180,7 +180,7 @@ CONTAINS
         call MAPL_GridCompSetEntryPoint ( GC, ESMF_METHOD_RUN,         Run2_,       __RC__ )
 
         call MAPL_GridCompSetEntryPoint ( GC, ESMF_METHOD_FINALIZE,    Finalize_,   __RC__ )
-        
+
 !       Store internal state in GC
 !       --------------------------
         call ESMF_UserCompSetInternalState ( GC, 'GOCART_state', wrap, STATUS )
@@ -190,7 +190,7 @@ CONTAINS
 
         if (MAPL_AM_I_ROOT()) then
          print *, trim(Iam)//': NOT ACTIVE, defaulting to Generic No-op stubs'
-        end if 
+        end if
 
         call MAPL_GenericSetServices ( GC, __RC__ )
         RETURN_(ESMF_SUCCESS)
@@ -251,11 +251,11 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
        RESTART    = MAPL_RestartSkip,     __RC__)
 
     nq = r%nq     ! total number of chemical tracers
-       
+
 !   Loop over all constituents on registry
 !   --------------------------------------
     do n = r%i_GOCART, r%j_GOCART
-             
+
 !       3D mass mixing ratios
 !       ---------------------
         call MAPL_AddImportSpec(GC,                        &
@@ -272,7 +272,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
 !   --------------------
     IMPORT_DUST_DEP_FLUXES: if (r%doing_DU) then
         do n = 1, r%n_DU
-            ! dry deposition            
+            ! dry deposition
             write (field_name, '(A, I0.3)') 'DUDP', n
 
             call MAPL_AddImportSpec(GC,                    &
@@ -282,8 +282,8 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                DIMS       = MAPL_DimsHorzOnly,             &
                VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
-    
-            ! wet deposition    
+
+            ! wet deposition
             write (field_name, '(A, I0.3)') 'DUWT', n
 
             call MAPL_AddImportSpec(GC,                    &
@@ -302,7 +302,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
 
             ! convective scavenging
@@ -313,7 +313,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
         end do
     end if IMPORT_DUST_DEP_FLUXES
@@ -334,7 +334,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
 
-            ! wet deposition    
+            ! wet deposition
             write (field_name, '(A, I0.3)') 'BCWT', n
 
             call MAPL_AddImportSpec(GC,                    &
@@ -353,7 +353,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
 
             ! convective scavenging
@@ -364,7 +364,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
         end do
     end if IMPORT_BC_DEP_FLUXES
@@ -373,7 +373,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
 !   --------------
     IMPORT_OC_DEP_FLUXES: if (r%doing_OC) then
         do n = 1, r%n_OC
-            ! dry deposition            
+            ! dry deposition
             write (field_name, '(A, I0.3)') 'OCDP', n
 
             call MAPL_AddImportSpec(GC,                    &
@@ -384,7 +384,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip,   __RC__)
 
-            ! wet deposition    
+            ! wet deposition
             write (field_name, '(A, I0.3)') 'OCWT', n
 
             call MAPL_AddImportSpec(GC,                    &
@@ -403,7 +403,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
 
             ! convective scavenging
@@ -414,7 +414,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
         end do
     end if IMPORT_OC_DEP_FLUXES
@@ -434,7 +434,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
 
-            ! wet deposition    
+            ! wet deposition
             write (field_name, '(A, I0.3)') 'SUWT', n
 
             call MAPL_AddImportSpec(GC,                    &
@@ -453,7 +453,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
 
             ! convective scavenging
@@ -464,7 +464,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
         end do
     end if IMPORT_SU_DEP_FLUXES
@@ -484,7 +484,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
 
-            ! wet deposition    
+            ! wet deposition
             write (field_name, '(A, I0.3)') 'SSWT', n
 
             call MAPL_AddImportSpec(GC,                    &
@@ -503,7 +503,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
 
             ! convective scavenging
@@ -514,7 +514,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
                LONG_NAME  = r%vtitle(n),                   &
                UNITS      = r%vunits(n),                   &
                DIMS       = MAPL_DimsHorzOnly,             &
-               VLOCATION  = MAPL_VLocationCenter,          &  
+               VLOCATION  = MAPL_VLocationCenter,          &
                RESTART    = MAPL_RestartSkip, __RC__)
         end do
     end if IMPORT_SS_DEP_FLUXES
@@ -522,7 +522,7 @@ GOCARTdata_IMPORTS: if (state%data_driven) then
 else
 
 !   3-D Quantities
-!   --------------    
+!   --------------
 
 !   GMICHEM species
 !   ---------------
@@ -570,7 +570,7 @@ else
        UNITS      = 'Pa',                                  &
        DIMS       = MAPL_DimsHorzVert,                     &
        VLOCATION  = MAPL_VLocationEdge,                    &
-       RESTART    = MAPL_RestartSkip,     __RC__) 
+       RESTART    = MAPL_RestartSkip,     __RC__)
 
 !   Pressure thickness
 !   ------------------
@@ -622,7 +622,6 @@ else
         VLOCATION  = MAPL_VLocationCenter,                 &
         RESTART    = MAPL_RestartSkip,     __RC__)
 
-
 !   T
 !   -
     call MAPL_AddImportSpec(GC,                            &
@@ -661,7 +660,7 @@ else
        UNITS      = 'kg kg-1',                             &
        DIMS       = MAPL_DimsHorzVert,                     &
        VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)  
+       RESTART    = MAPL_RestartSkip,     __RC__)
 
 !   QITOT + QITOT
 !   -------------
@@ -715,7 +714,7 @@ else
   end if CFC_on
 
 !    2-D Quantities
-!    --------------    
+!    --------------
 
 !    TROPP - Connectivity from SDYN to PHYS is TROPP_BLENDED to TROPP
 !    ----------------------------------------------------------------
@@ -738,7 +737,7 @@ else
       ! RESTART    = MAPL_RestartSkip,                     &
                                           __RC__)
 
-!    PBL 
+!    PBL
 !    ---
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'ZPBL',                               &
@@ -956,16 +955,16 @@ else
         VLOCATION  = MAPL_VLocationNone,                   &
         RESTART    = MAPL_RestartSkip,   __RC__)
 
-     call MAPL_AddImportSpec(GC,                           & 
-         SHORT_NAME = 'CNV_MFD',                           & 
+     call MAPL_AddImportSpec(GC,                           &
+         SHORT_NAME = 'CNV_MFD',                           &
          LONG_NAME  = 'detraining_mass_flux',              &
-         UNITS      = 'kg m-2 s-1',                        &    
-         DIMS       = MAPL_DimsHorzVert,                   &  
+         UNITS      = 'kg m-2 s-1',                        &
+         DIMS       = MAPL_DimsHorzVert,                   &
          VLOCATION  = MAPL_VLocationCenter,                &
          RESTART    = MAPL_RestartSkip,  __RC__)
 
-     call MAPL_AddImportSpec(GC,                           &                  
-         SHORT_NAME = 'CNV_MFC',                           & 
+     call MAPL_AddImportSpec(GC,                           &
+         SHORT_NAME = 'CNV_MFC',                           &
          LONG_NAME  = 'cumulative_mass_flux',              &
          UNITS      = 'kg m-2 s-1',                        &
          DIMS       = MAPL_DimsHorzVert,                   &
@@ -995,7 +994,7 @@ else
         DIMS        = MAPL_DimsHorzOnly,                   &
         VLOCATION   = MAPL_VLocationNone,                  &
         RESTART     = MAPL_RestartSkip,  __RC__)
-     
+
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'CLDTT',                              &
         LONG_NAME  = 'total_cloud_area_fraction',          &
@@ -1004,6 +1003,15 @@ else
         VLOCATION  = MAPL_VLocationNone,                   &
         RESTART    = MAPL_RestartSkip,   __RC__)
 
+!! Sourish Basu
+!!    Imports for calculating dry air mole fraction in GOCART
+!!    ---------------------
+     !call MAPL_AddImportSpec(GC,                           &
+        !SHORT_NAME = 'QTOT',                               &
+        !LONG_NAME  = 'mass_fraction_of_all_water',         &
+        !UNITS      = 'kg kg-1',                            &
+        !DIMS       = MAPL_DimsHorzVert,                    &
+        !VLOCATION  = MAPL_VLocationCenter, __RC__)
 
      call ESMF_ConfigGetAttribute(CF, DO_CO2CNNEE, label='USE_CNNEE:', default=0, __RC__)
 
@@ -1015,7 +1023,7 @@ else
              DIMS       = MAPL_DimsHorzOnly,                    &
              VLOCATION  = MAPL_VLocationNone, __RC__)
      endif
-     
+
 end if GOCARTdata_IMPORTS
 
 
@@ -1025,7 +1033,7 @@ if ( r%doing_GOCART ) then
 ! !INTERNAL STATE:
 
 !
-!  NOTES: 
+!  NOTES:
 !    1)  vtitle as it stands is as the CF definition of long name.
 !        I may need to create a "standard name" in chemReg and pass
 !        this to GEOS Generic
@@ -1033,7 +1041,7 @@ if ( r%doing_GOCART ) then
 !
 
     nq = r%nq     ! total number of chemical tracers
-    
+
 ! Get BOOTSTRAP Default Values for GOCART INTERNAL
 ! ------------------------------------------------
     CALL ESMF_ConfigGetAttribute(CF, DEFVAL_CO2, Default=380.0e-6, Label='DEFVAL_CO2:', __RC__)
@@ -1054,12 +1062,12 @@ if ( r%doing_GOCART ) then
      STATUS = 1
      VERIFY_(STATUS)
     END IF
-     
+
 !   Loop over all constituents on registry
 !   --------------------------------------
-    do n = r%i_GOCART, r%j_GOCART 
+    do n = r%i_GOCART, r%j_GOCART
 
-       if (state%data_driven) then 
+       if (state%data_driven) then
           FRIENDLIES = trim(COMP_NAME)
 
           call ESMF_ConfigGetAttribute(CF, AEROFRIENDLY, Label='AERO_FRIENDLIES:', default=FRIENDLIES, __RC__)
@@ -1104,7 +1112,7 @@ if ( r%doing_GOCART ) then
        call MAPL_AddInternalSpec(GC,               &
           SHORT_NAME = trim(COMP_NAME)//'::'//trim(r%vname(n)), &
           LONG_NAME  = r%vtitle(n),                &
-          UNITS      = r%vunits(n),                &     
+          UNITS      = r%vunits(n),                &
           FRIENDLYTO = FRIENDLIES,                 &
           RESTART    = MAPL_RestartOptional,       &
           DEFAULT    = DEFVAL,                     &
@@ -1113,7 +1121,7 @@ if ( r%doing_GOCART ) then
 
     end do
 
-!   This state is needed by radiation - It will contain 
+!   This state is needed by radiation - It will contain
 !   aerosols and aerosol optics
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                    &
@@ -1310,7 +1318,7 @@ end if ! doing GOCART
 !   --------
 
     RETURN_(ESMF_SUCCESS)
-  
+
   end subroutine SetServices
 
 
@@ -1341,7 +1349,7 @@ end if ! doing GOCART
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -1360,14 +1368,14 @@ end if ! doing GOCART
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    integer                         :: hdt         ! model     timestep (secs)
    integer                         :: rft
 
-   type(ESMF_Grid)                 :: grid       
- 
+   type(ESMF_Grid)                 :: grid
+
    integer                         :: i1=1, i2, ig=0, im  ! dist grid indices
    integer                         :: j1=1, j2, jg=0, jm  ! dist grid indices
    integer                         :: km, nq              ! dist grid indices
@@ -1394,7 +1402,7 @@ end if ! doing GOCART
    character(len=ESMF_MAXSTR)      :: short_name
    real                            :: f_aci_seasalt, maxclean, ccntuning
    character(LEN=ESMF_MAXSTR)      :: CLDMICRO
-     
+
    type(MAPL_VarSpec), pointer     :: InternalSpec(:)
    integer                         :: instance
 
@@ -1412,7 +1420,7 @@ end if ! doing GOCART
 
    type(ESMF_State)           :: providerState
    character(len=ESMF_MAXSTR) :: prefix
-  
+
   real(ESMF_KIND_R4),  dimension(4) :: Vect_Hcts
 
 !  Get my name and set-up traceback handle
@@ -1475,7 +1483,7 @@ end if ! doing GOCART
                            staggerloc = ESMF_STAGGERLOC_CENTER, &
                            computationalCount = DIMS, __RC__)
 
-!  Associate the Internal State fields with our legacy state 
+!  Associate the Internal State fields with our legacy state
 !  ---------------------------------------------------------
    call MAPL_Get ( ggSTATE, INTERNALSPEC = InternalSpec, &
                             INTERNAL_ESMF_STATE = internal, &
@@ -1488,7 +1496,7 @@ end if ! doing GOCART
       CELL_AREA => null()
   else
       call MAPL_GetPointer(impChem, NAME='AREA', ptr=CELL_AREA, __RC__)
-  end if 
+  end if
 
 ! Local sizes of three dimensions
 !--------------------------------
@@ -1536,11 +1544,11 @@ end if ! doing GOCART
 #ifdef PRINT_STATES
 
    if (MAPL_AM_I_ROOT()) then
-       print *, trim(Iam)//': INTERNAL State during Initialize():' 
+       print *, trim(Iam)//': INTERNAL State during Initialize():'
        call ESMF_StatePrint ( internal )
        print *, trim(Iam)//': IMPORT   State during Initialize():'
        call ESMF_StatePrint ( impChem  )
-       print *, trim(Iam)//': EXPORT   State during Initialize():' 
+       print *, trim(Iam)//': EXPORT   State during Initialize():'
        call ESMF_StatePrint ( expChem  )
     end if
 
@@ -1562,14 +1570,14 @@ end if ! doing GOCART
 
         call ESMF_TimeGet(currentTime, YY=year, MM=month, DD=day, H=hh, M=mm, S=ss, RC=STATUS)
         VERIFY_(STATUS)
-        
+
         call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, RC=STATUS)
         VERIFY_(STATUS)
 
         call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, RC=STATUS)
         VERIFY_(STATUS)
 
-        do while (ringTime < currentTime) 
+        do while (ringTime < currentTime)
             ringTime = currentTime + ringInterval
         end do
 
@@ -1590,14 +1598,14 @@ end if ! doing GOCART
 
         call ESMF_TimeGet(currentTime, YY=year, MM=month, DD=day, H=hh, M=mm, S=ss, RC=STATUS)
         VERIFY_(STATUS)
-        
+
         call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, RC=STATUS)
         VERIFY_(STATUS)
 
         call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, RC=STATUS)
         VERIFY_(STATUS)
 
-        do while (ringTime < currentTime) 
+        do while (ringTime < currentTime)
             ringTime = currentTime + ringInterval
         end do
 
@@ -1618,11 +1626,11 @@ end if ! doing GOCART
 !         the subcomponents as bonafide ESMF components
 !-srf added Henrys law constants
 !   --------------------------------------------------------------
-    do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+    do n = ChemReg%i_GOCART, ChemReg%j_GOCART
        call ESMF_StateGet(internal, trim(COMP_NAME)//'::'//trim(ChemReg%vname(n)), field, __RC__)
        call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=ChemReg%fscav(n), __RC__)
-       Vect_Hcts(1:4)= ChemReg%hcts(1:4,n) 
-  
+       Vect_Hcts(1:4)= ChemReg%hcts(1:4,n)
+
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, __RC__)
     end do
 
@@ -1631,8 +1639,8 @@ end if ! doing GOCART
 !   ---------------------------------------------------------------------
     call ESMF_StateGet(expChem, 'AERO', aero, __RC__)
 
-    ! This attribute indicates if the aerosol optics method is implemented or not. 
-    ! Radiation will not call the aerosol optics method unless this attribute is 
+    ! This attribute indicates if the aerosol optics method is implemented or not.
+    ! Radiation will not call the aerosol optics method unless this attribute is
     ! explicitly set to true.
     call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., __RC__)
 
@@ -1674,11 +1682,11 @@ end if ! doing GOCART
            call MAPL_FieldBundleAdd(aero_state_aerosols, fld, __RC__)
         end if
     end do
-    
+
     call ESMF_FieldBundleGet(aero_state_aerosols, fieldCount=n_aerosols, __RC__)
 
     if (n_aerosols > 0) then
-        
+
         if (myState%data_driven) then
             instance = instanceData
         else
@@ -1721,10 +1729,10 @@ end if ! doing GOCART
 
         ! add EXT to aero state
         call ESMF_AttributeGet(aero, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
-        if (fld_name /= '') then 
+        if (fld_name /= '') then
             fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
-            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)            
+            call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
             call MAPL_StateAdd(aero, fld, __RC__)
         end if
 
@@ -1739,13 +1747,13 @@ end if ! doing GOCART
 
         ! add ASY to aero state
         call ESMF_AttributeGet(aero, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, RC=STATUS)
-        if (fld_name /= '') then 
+        if (fld_name /= '') then
             fld = MAPL_FieldCreateEmpty(trim(fld_name), w_c%grid_esmf, __RC__)
 
             call MAPL_FieldAllocCommit(fld, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
             call MAPL_StateAdd(aero, fld, __RC__)
         end if
-       
+
         ! attach the aerosol optics method
         call ESMF_MethodAdd(aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
 
@@ -1764,15 +1772,15 @@ end if ! doing GOCART
 !   ---------------------------------------------------------------------
     call ESMF_StateGet(expChem, 'AERO_ACI', aero_aci, __RC__)
 
-    ! This attribute indicates if the aerosol optics method is implemented or not. 
-    ! Radiation will not call the aerosol optics method unless this attribute is 
+    ! This attribute indicates if the aerosol optics method is implemented or not.
+    ! Radiation will not call the aerosol optics method unless this attribute is
     ! explicitly set to true.
     call ESMF_AttributeSet(aero_aci, name='implements_aerosol_activation_properties_method', value=.true., __RC__)
 
     aero_aci_aerosols = ESMF_FieldBundleCreate(name='AEROSOLS', __RC__)
     call MAPL_StateAdd(aero_aci, aero_aci_aerosols, __RC__)
 
-    do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+    do n = ChemReg%i_GOCART, ChemReg%j_GOCART
         short_name = ESMF_UtilStringUpperCase(trim(ChemReg%vname(n)))
 
         if ( short_name .eq. 'DU001'    .or. &
@@ -1810,11 +1818,11 @@ end if ! doing GOCART
     ! treats every aerosol tracer as a distinctive aerosol mode.
     !
 
-    ! Following the aerosol-cloud-interaction state protocol, next steps are:  
+    ! Following the aerosol-cloud-interaction state protocol, next steps are:
     !  - attach a list with the aerosol modes
     !  - attach required met fields
     !  - attach method that computes the aerosol activation properties
-    
+
     call ESMF_FieldBundleGet(aero_aci_aerosols, fieldCount=n_aerosols, __RC__)
 
     aero_aci_modes =  (/'du001    ', 'du002    ', 'du003    ', &
@@ -1827,7 +1835,7 @@ end if ! doing GOCART
 
 
     if (n_modes > 0 .and. n_aerosols > 0) then
-      
+
         call ESMF_AttributeSet(aero_aci, name='number_of_aerosol_modes', value=n_modes, __RC__)
         call ESMF_AttributeSet(aero_aci, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, __RC__)
 
@@ -1840,10 +1848,10 @@ end if ! doing GOCART
         ! max mixing ratio before switching to "polluted" size distributions
         call ESMF_ConfigGetAttribute(CF, maxclean, default=1.0e-9, label='MAXCLEAN:', __RC__)
         call ESMF_AttributeSet(aero_aci, name='max_q_clean', value=maxclean, __RC__)
-        
-        call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)        
+
+        call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)
         call ESMF_AttributeSet(aero_aci, name='ccn_tuning', value=CCNtuning, __RC__)
-       
+
         call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICRO:',  default="1MOMENT", RC=STATUS)
         call ESMF_AttributeSet(aero_aci, name='cldmicro', value=CLDMICRO, __RC__)
 
@@ -1972,7 +1980,7 @@ end if ! doing GOCART
 
 !   If using GOCART.data, the data is provided in the import
 !   state via ExtData versus the actual GOCART children
-!   -------------------------------------------------------- 
+!   --------------------------------------------------------
     if ( myState%data_driven ) then
        providerState = impChem
        prefix = 'clim'
@@ -2134,7 +2142,7 @@ end if ! doing GOCART
 #ifdef PRINT_STATES
 
    if (MAPL_AM_I_ROOT()) then
-       print *, trim(Iam)//': AERO_DP Bundle during Initialize():' 
+       print *, trim(Iam)//': AERO_DP Bundle during Initialize():'
        call ESMF_FieldBundlePrint ( bundle )
    end if
 
@@ -2190,7 +2198,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -2209,7 +2217,7 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    real                            :: hdt         ! heartbeat time step (secs)
@@ -2253,10 +2261,10 @@ CONTAINS
 !  ----------------------------------
    call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
 
-!  Get heartbeat time step 
+!  Get heartbeat time step
 !  -----------------------
    call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
- 
+
 !  Get pre-ESMF parameters from gc and clock
 !  -----------------------------------------
    call extract_ ( gc, clock, chemReg, gcChem, w_c, nymd, nhms, cdt, STATUS, state=myState )
@@ -2296,7 +2304,7 @@ CONTAINS
 !  Make sure tracers remain positive
 !  ---------------------------------
    in = size(w_c%delp,1);   jn = size(w_c%delp,2)
-   do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+   do n = ChemReg%i_GOCART, ChemReg%j_GOCART
       call Chem_UtilNegFiller ( w_c%qa(n)%data3d, w_c%delp, in, jn, &
                                 qmin=tiny(1.0) )
    end do
@@ -2348,7 +2356,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -2367,7 +2375,7 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: hdt         ! heartbeat timestep (secs)
    real                            :: cdt         ! chemistry timestep (secs)
@@ -2394,7 +2402,7 @@ CONTAINS
    type(GOCART_state), pointer     :: myState
    real, pointer, dimension(:,:,:) :: ptr3d_int
    real, pointer, dimension(:,:,:) :: ptr3d_imp
-   
+
    logical                         :: run_alarm
    logical                         :: alarm_is_ringing
 
@@ -2403,7 +2411,7 @@ CONTAINS
    real, pointer, dimension(:,:)   :: totexttau, totscatau, &
                                       totextt25, totscat25, &
                                       totexttfm, totscatfm, &
-                                      totangstr 
+                                      totangstr
    real, pointer, dimension(:,:)   :: pm,        pm25,      &
                                       pm_rh35,   pm25_rh35, &
                                       pm_rh50,   pm25_rh50
@@ -2452,7 +2460,7 @@ CONTAINS
    call MAPL_TimerOn(ggState, 'TOTAL')
    call MAPL_TimerOn(ggState, 'RUN')
 
-!  Get heartbeat time step 
+!  Get heartbeat time step
 !  -----------------------
    call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
 
@@ -2505,13 +2513,13 @@ CONTAINS
    VERIFY_(STATUS)
 
    if (myState%data_driven) then
-       
+
        call MAPL_Get ( ggState, INTERNAL_ESMF_STATE=internal, __RC__ )
 
        do n = chemReg%i_GOCART, chemReg%j_GOCART
            call MAPL_GetPointer ( internal, NAME=trim(COMP_NAME)//'::'//trim(chemReg%vname(n)), ptr=ptr3d_int, __RC__ )
            call MAPL_GetPointer ( impChem,  NAME='clim'//trim(chemReg%vname(n)), ptr=ptr3d_imp, __RC__ )
-             
+
            ptr3d_int = ptr3d_imp
        end do
 
@@ -2519,7 +2527,7 @@ CONTAINS
        call MAPL_TimerOff(ggState, 'TOTAL')
 
        RETURN_(ESMF_SUCCESS)
-   end if 
+   end if
 
 
    allocate(r4ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
@@ -2550,7 +2558,7 @@ CONTAINS
 !  Make sure tracers remain positive
 !  ---------------------------------
    in = size(w_c%delp,1);   jn = size(w_c%delp,2)
-   do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+   do n = ChemReg%i_GOCART, ChemReg%j_GOCART
       call Chem_UtilNegFiller ( w_c%qa(n)%data3d, w_c%delp, in, jn, &
                                 qmin=tiny(1.0) )
    end do
@@ -2714,7 +2722,7 @@ CONTAINS
 !    Sulfate production by GOCART chemistry (SO4-, kg m-2 s-1)
 !    Philosophy here is there is always "full" sulfate instance
 !    This "full" instance may be accompanied by "volc" instance
-!    in which volcanoes are broken out from rest of "full" and 
+!    in which volcanoes are broken out from rest of "full" and
 !    the sulfur is additive.  Other tagged instances do not get
 !    added.
      call MAPL_GetPointer (expChem, pso4,   'PSO4',       __RC__)
@@ -2777,7 +2785,7 @@ CONTAINS
      if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
      if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
      if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-     if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  ! 
+     if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  !
      if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*ocsmass  ! needs to be revisited: OCpho + 1.24 OCphi
      if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
    endif
@@ -2797,7 +2805,7 @@ CONTAINS
      if(associated(pm)        .and. associated(brcsmass)) pm        = pm        + brcsmass
      if(associated(pm25)      .and. associated(brcsmass)) pm25      = pm25      + brcsmass
      if(associated(pm_rh35)   .and. associated(brcsmass)) pm_rh35   = pm_rh35   + 1.16*brcsmass  ! needs to be revisited: BRCpho + 1.16 BRCphi
-     if(associated(pm25_rh35) .and. associated(brcsmass)) pm25_rh35 = pm25_rh35 + 1.16*brcsmass  ! 
+     if(associated(pm25_rh35) .and. associated(brcsmass)) pm25_rh35 = pm25_rh35 + 1.16*brcsmass  !
      if(associated(pm_rh50)   .and. associated(brcsmass)) pm_rh50   = pm_rh50   + 1.24*brcsmass  ! needs to be revisited: BRCpho + 1.24 BRCphi
      if(associated(pm25_rh50) .and. associated(brcsmass)) pm25_rh50 = pm25_rh50 + 1.24*brcsmass  !
    endif
@@ -2889,7 +2897,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -2909,7 +2917,7 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    type(MAPL_MetaComp), pointer    :: ggState     ! GEOS Generic State
@@ -2947,7 +2955,7 @@ CONTAINS
 
 !  Destroy Chem_Registry
 !  ---------------------
-   call Chem_RegistryDestroy ( chemReg, STATUS ) 
+   call Chem_RegistryDestroy ( chemReg, STATUS )
    VERIFY_(STATUS)
 
 !  Destroy Legacy state
@@ -3080,8 +3088,8 @@ logical function isDataDrivenGC_(gc, rc)
 
    type(ESMF_GridComp), intent(INout) :: gc
    integer, intent(out)               :: rc
- 
-!  local 
+
+!  local
    character(len=ESMF_MAXSTR)         :: IAm
    integer                            :: STATUS
 
@@ -3089,10 +3097,10 @@ logical function isDataDrivenGC_(gc, rc)
    character(len=ESMF_MAXSTR)         :: comp_name
    character(len=*), parameter        :: modifier = '.data'
 
-   call ESMF_GridCompGet(gc, name=comp_name, __RC__)   
+   call ESMF_GridCompGet(gc, name=comp_name, __RC__)
    i = index(trim(comp_name), trim(modifier), back=.true.)
- 
-   if (i > 0) then 
+
+   if (i > 0) then
        ! lets be strict
        if (comp_name(i:) == modifier) then
            isDataDrivenGC_ = .true.
@@ -3165,7 +3173,7 @@ subroutine aerosol_optics(state, rc)
   call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
   offset = band - n_bands
 
-! Pressure at layer edges 
+! Pressure at layer edges
 ! ------------------------
   call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
   call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -3182,15 +3190,15 @@ subroutine aerosol_optics(state, rc)
   i1 = lbound(rh, 1); i2 = ubound(rh, 1)
   j1 = lbound(rh, 2); j2 = ubound(rh, 2)
                       km = ubound(rh, 3)
-  
+
   call ESMF_StateGet(state, 'AEROSOLS', aerosols, __RC__)
   call ESMF_FieldBundleGet(aerosols, fieldCount=n_aerosols, __RC__)
 
   allocate(aerosol_names(n_aerosols), __STAT__)
- 
+
   call ESMF_FieldBundleGet(aerosols, itemorderflag=ESMF_ITEMORDER_ADDORDER, &
                                      FieldNameList=aerosol_names, __RC__)
- 
+
   allocate(ext(i1:i2,j1:j2,km,n_bands), &
            ssa(i1:i2,j1:j2,km,n_bands), &
            asy(i1:i2,j1:j2,km,n_bands), __STAT__)
@@ -3231,21 +3239,21 @@ subroutine aerosol_optics(state, rc)
 
   call mie_(gocartMieTable(instance), aerosol_names, n_bands, offset, q_4d, rh, ext, ssa, asy, __RC__)
 #endif
-  
+
   call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
-  if (fld_name /= '') then 
+  if (fld_name /= '') then
       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
       var = ext(:,:,:,1)
   end if
 
   call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
-  if (fld_name /= '') then 
+  if (fld_name /= '') then
       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
       var = ssa(:,:,:,1)
   end if
 
   call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-  if (fld_name /= '') then 
+  if (fld_name /= '') then
       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
       var = asy(:,:,:,1)
   end if
@@ -3254,16 +3262,16 @@ subroutine aerosol_optics(state, rc)
 
   RETURN_(ESMF_SUCCESS)
 
-contains 
+contains
 
     subroutine mie_(mie_table, aerosol, nb, offset, q, rh, ext, ssa, asy, rc)
-     
+
      implicit none
 
      type(Chem_Mie),    intent(inout):: mie_table    ! mie table
      character(len=*),  intent(in )  :: aerosol(:)   ! list of aerosols
      integer,           intent(in )  :: nb           ! number of bands
-     integer,           intent(in )  :: offset       ! bands offset 
+     integer,           intent(in )  :: offset       ! bands offset
      real,              intent(in )  :: q(:,:,:,:)   ! aerosol mass mixing ratio, kg kg-1
      real,              intent(in )  :: rh(:,:,:)    ! relative humidity
 
@@ -3275,7 +3283,7 @@ contains
 
      ! local
      integer :: STATUS
-     character(len=ESMF_MAXSTR) :: Iam='aerosol_optics::mie_' 
+     character(len=ESMF_MAXSTR) :: Iam='aerosol_optics::mie_'
 
      integer :: l, idx, na
 
@@ -3325,7 +3333,7 @@ subroutine aerosol_activation_properties(state, rc)
 ! Local
 ! ---------
   character(len=ESMF_MAXSTR)      :: mode              ! mode name
-  character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name 
+  character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name
   type(ESMF_FieldBundle)          :: aerosols          ! field bundle containing the aerosol mass mixing ratios
 
   real, dimension(:,:,:), pointer :: ple               ! pressure at the edges of model layers
@@ -3337,20 +3345,20 @@ subroutine aerosol_activation_properties(state, rc)
   real, dimension(:,:,:), pointer :: q                 ! aerosol mass mixing ratio
   real, dimension(:,:,:), pointer :: q_                ! aerosol mass mixing ratio (temporary)
 
-  real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
+  real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles
   real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
   real, dimension(:,:,:), pointer :: sigma             ! width of aerosol mode
   real, dimension(:,:,:), pointer :: density           ! density of aerosol
-  real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol 
+  real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol
   real, dimension(:,:,:), pointer :: f_dust            ! fraction of dust aerosol
-  real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol 
+  real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol
   real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
 
   real                            :: ss_scale          ! sea salt scaling factor
   real                            :: max_clean          ! max mixing ratio before considered polluted
   real                            :: ccn_tuning         ! tunes conversion factors for sulfate
   character(LEN=ESMF_MAXSTR)      :: cld_micro
-  
+
   character(len=ESMF_MAXSTR)      :: fld_name
   type(ESMF_Field)                :: fld
 
@@ -3377,7 +3385,7 @@ subroutine aerosol_activation_properties(state, rc)
   real, parameter :: k_OC    = 0.0001
   real, parameter :: k_BRC   = 0.0001
 
-  integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015 
+  integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015
 
 
   Iam = 'GOCART::aerosol_activation_properties()'
@@ -3387,12 +3395,12 @@ subroutine aerosol_activation_properties(state, rc)
 ! ------------
   call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, __RC__)
 
-! Land fraction 
+! Land fraction
 ! -------------
   call ESMF_AttributeGet(state, name='fraction_of_land_type', value=fld_name, __RC__)
   call MAPL_GetPointer(state, f_land, trim(fld_name), __RC__)
 
-! Pressure at layer edges 
+! Pressure at layer edges
 ! ------------------------
   call ESMF_AttributeGet(state, name='air_pressure', value=fld_name, __RC__)
   call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -3416,7 +3424,7 @@ subroutine aerosol_activation_properties(state, rc)
 
   call ESMF_AttributeGet(state, name='width_of_aerosol_mode', value=fld_name, __RC__)
   call MAPL_GetPointer(state, sigma, trim(fld_name), __RC__)
-  
+
   call ESMF_AttributeGet(state, name='aerosol_density', value=fld_name, __RC__)
   call MAPL_GetPointer(state, density, trim(fld_name), __RC__)
 
@@ -3444,7 +3452,7 @@ subroutine aerosol_activation_properties(state, rc)
   mode_ = trim(mode)
   mode_ = ESMF_UtilStringLowerCase(mode_, __RC__)
 
-  call ESMF_StateGet(state, 'AEROSOLS', aerosols, __RC__) !GOCART state  
+  call ESMF_StateGet(state, 'AEROSOLS', aerosols, __RC__) !GOCART state
 
   allocate(q(i1:i2,j1:j2,km), __STAT__)
   q = 0.0
@@ -3452,14 +3460,14 @@ subroutine aerosol_activation_properties(state, rc)
   hygroscopicity = 0.01
   density = 2200.0
 
-  if (index(mode_, 'du00') > 0) then  
+  if (index(mode_, 'du00') > 0) then
       ! dust is mapped one-to-one
       call ESMF_FieldBundleGet(aerosols, trim(mode), field=fld, __RC__)
-      call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)         
+      call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
       q = q_
       hygroscopicity = k_DU
       density = densDU
-      
+
   else if (index(mode_, 'ss00') > 0) then
       ! compute the total mass mixing ratio and impose a tri-modal size distribution
       call ESMF_FieldBundleGet(aerosols, 'ss001', field=fld, __RC__)
@@ -3492,7 +3500,7 @@ subroutine aerosol_activation_properties(state, rc)
 
       hygroscopicity = k_SS
       density = densSS
-       
+
   else if (index(mode_, 'sulforg') > 0) then
       hygroscopicity = 0.0
       density = 0.0
@@ -3503,7 +3511,7 @@ subroutine aerosol_activation_properties(state, rc)
       q = q + q_
       hygroscopicity = k_SO4*q_ + hygroscopicity
       density = densSO4*q_ + density
-    
+
       call ESMF_FieldBundleGet(aerosols, 'OCphilic', field=fld, __RC__)
       call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
       q = q + q_
@@ -3523,11 +3531,11 @@ subroutine aerosol_activation_properties(state, rc)
 
       ! required by the aap_(...)
       if(adjustl(cld_micro)/="2MOMENT") then ! maintained for compatibility with the single moment
-      
+
        call ESMF_FieldBundleGet(aerosols, 'SO4', field=fld, __RC__)
        call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)  ! only use the mass of sulfate to make the conversion
-     
-      end if 
+
+      end if
 
   else if (index(mode_, 'bcphilic') > 0) then
       call ESMF_FieldBundleGet(aerosols, 'BCphilic', field=fld, __RC__)
@@ -3535,10 +3543,10 @@ subroutine aerosol_activation_properties(state, rc)
       q = q_
       hygroscopicity = k_BC
       density = densBC
- 
+
   else if (index(mode_, 'ocphilic') > 0) then !this does not activate into droplets, only relevant for ice nuc.
       call ESMF_FieldBundleGet(aerosols, 'OCphilic', field=fld, __RC__)
-      call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)         
+      call ESMF_FieldGet(fld, farrayPtr=q_, __RC__)
       q = q_
       hygroscopicity = k_OC
       density = densOC
@@ -3554,7 +3562,7 @@ subroutine aerosol_activation_properties(state, rc)
             q,                  &
             num,                &
             diameter,           &
-            sigma,              &        
+            sigma,              &
             f_dust,             &
             f_soot,             &
             f_organic,          &
@@ -3571,7 +3579,7 @@ contains
 
     subroutine aap_(mode, q, num, diameter, sigma, f_dust, f_soot, f_organic, dens_, q_, &
                     i1, i2, j1, j2, km, rc)
-     
+
      implicit none
 
      integer, intent(in) :: i1, i2                                  ! dimension bounds
@@ -3584,11 +3592,11 @@ contains
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: dens_          ! density
 
 
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles 
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles
      real, intent(out), dimension(i1:i2,j1:j2,km) :: diameter       ! dry size of aerosol
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma          ! width of aerosol mode  
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma          ! width of aerosol mode
      real, intent(out), dimension(i1:i2,j1:j2,km) :: f_dust         ! fraction of dust aerosol
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: f_soot         ! fraction of soot aerosol 
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: f_soot         ! fraction of soot aerosol
      real, intent(out), dimension(i1:i2,j1:j2,km) :: f_organic      ! fraction of organic aerosol
 
      integer, intent(out) :: rc                                     ! return code
@@ -3606,9 +3614,9 @@ contains
      real, dimension(3) :: TPIclean, DPGIclean, SIGIclean
      real, dimension(i1:i2,j1:j2,km) :: qaux
       !real, parameter    :: max_clean = 5.0e-7  !max mixing ratio before considered polluted
- 
 
- 
+
+
 
      mode_ = trim(mode)
      mode_ = ESMF_UtilStringLowerCase(mode_, __RC__)
@@ -3631,11 +3639,11 @@ contains
 
      if (index(mode_, 'ss00') > 0) then
        if(adjustl(cld_micro)=="2MOMENT") then
-         TPI  (1) = 230e6          ! num fraction (reduced 091015)        
-       else       
-         TPI  (1) = 100e6          ! num fraction (reduced 091015)                   
+         TPI  (1) = 230e6          ! num fraction (reduced 091015)
+       else
+         TPI  (1) = 100e6          ! num fraction (reduced 091015)
        end if
-     
+
          DPGI (1) = 0.02e-6        ! modal diameter (m)
          SIGI (1) = log(1.6)       ! geometric dispersion (sigma_g)
          ! accumulation
@@ -3646,14 +3654,14 @@ contains
          TPI  (3) = 3.1e6          ! total concentration (# m-3)
          DPGI (3) = 0.62e-6        ! modal diameter (m)
          SIGI (3) = log(2.7)       ! geometric dispersion (sigma_g)
-          
+
          fmassaux = 0.0
          do kinx = 1, 3
              fmassaux = (TPI(kinx)*densSS*MAPL_PI*exp(4.5*SIGI(kinx)*SIGI(kinx))*DPGI(kinx)*DPGI(kinx)*DPGI(kinx))/6.0 + fmassaux
          end do
      end if
 
-     if (index(mode_, 'sulforg0') > 0) then      
+     if (index(mode_, 'sulforg0') > 0) then
          TPI  (1) = 1.06e11        ! num fraction
          DPGI (1) = .014e-6        ! modal diameter (m)
          SIGI (1) = log(1.8)       ! geometric dispersion (sigma_g)
@@ -3676,22 +3684,22 @@ contains
          ! fine
          TPIclean  (1) = 1.0e9      ! total concentration (# m-3)
          DPGIclean (1) = 0.016e-6   ! modal diameter (m)
-         SIGIclean (1) = log(1.6)   ! geometric dispersion (sigma_g)      
+         SIGIclean (1) = log(1.6)   ! geometric dispersion (sigma_g)
          ! accumulation
          TPIclean  (2) = 8.0e8      ! total concentration (# m-3)
          DPGIclean (2) = 0.067e-6   ! modal diameter (m)
-         SIGIclean (2) = log(2.1)   ! geometric dispersion (sigma_g) 
+         SIGIclean (2) = log(2.1)   ! geometric dispersion (sigma_g)
          !Coarse
          TPIclean  (3) = 2.0e6      ! total concentration (# m-3)
          DPGIclean (3) = 0.93e-6    ! modal diameter (m)
          SIGIclean (3) = log(2.2)   ! geometric dispersion (sigma_g)
-              
+
          fmassclean= 0.0
          do kinx = 1, 3
              fmassclean = (TPIclean(kinx)*MAPL_PI*exp(4.5*SIGIclean(kinx)*SIGIclean(kinx))*DPGIclean(kinx)*DPGIclean(kinx)*DPGIclean(kinx))/6.0 + fmassclean  !
-         end do 
-     end if 
-           
+         end do
+     end if
+
 
 
      select case(mode_)
@@ -3740,17 +3748,17 @@ contains
          sigma    = SIGI(3)
          diameter = DPGI(3)
          num      = TPI(3) * q / fmassaux
-    
+
      case ('sulforg01')  !different distributions for clean and polluted environments
-         where (q > max_clean)          
+         where (q > max_clean)
              sigma    = SIGI(1)
              diameter = DPGI(1)
              num      = TPI(1) * qaux*ccn_tuning / (dens_*fmassaux)             ! only sulfate  mass
-         elsewhere 
+         elsewhere
              sigma    = SIGIclean(1)
              diameter = DPGIclean(1)
-             num      = TPIclean(1) * qaux*ccn_tuning / (dens_*fmassclean)      ! only sulfate 
-         end where 
+             num      = TPIclean(1) * qaux*ccn_tuning / (dens_*fmassclean)      ! only sulfate
+         end where
 
      case ('sulforg02')
          where (q > max_clean)
@@ -3759,20 +3767,20 @@ contains
              num      = TPI(2) * qaux*ccn_tuning / (dens_*fmassaux)            ! only sulfate mass
          elsewhere
              sigma    = SIGIclean(2)
-             diameter = DPGIclean(2)        
+             diameter = DPGIclean(2)
              num      = TPIclean(2) * qaux*ccn_tuning / (dens_*fmassclean)     ! only sulfate
-         end where 
-   
+         end where
+
      case ('sulforg03')
          where (q > max_clean)
              sigma    = SIGI(3)
-             diameter = DPGI(3)        
+             diameter = DPGI(3)
              num      = TPI(3) * qaux*ccn_tuning / (dens_*fmassaux)           ! only sulfate mass
-         elsewhere 
+         elsewhere
              sigma    = SIGIclean(3)
              diameter = DPGIclean(3)
              num      = TPIclean(3) * qaux*ccn_tuning / (dens_*fmassclean)    ! only sulfate
-         end where 
+         end where
 
      case ('bcphilic')
          sigma    = log(2.0)
@@ -3798,7 +3806,7 @@ contains
 
 
     subroutine ocean_correction_(f, f_land, t_air_sfc, ss_scale, i1, i2, j1, j2, km)
-     
+
      implicit none
 
      integer, intent(in) :: i1, i2                               ! dimension bounds
@@ -3822,17 +3830,17 @@ contains
              if (f_land(i,j) < 0.1) then  !ocean
 
                  if(adjustl(cld_micro) .ne."2MOMENT") then
-                    usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 10.0), -10.0) !smooth transition around some T value		   		   	      	      
+                    usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 10.0), -10.0) !smooth transition around some T value
                  else
                     usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 30.0), -30.0) !smooth transition around some T value
-                 end if 
+                 end if
                  usurf = min(ss_scale / (1.0 + exp(usurf)), 20.0)
 
                  f(i,j,:) = (1.0 + usurf)
              end if
          end do
      end do
-          
+
     end subroutine ocean_correction_
 
 end subroutine aerosol_activation_properties
