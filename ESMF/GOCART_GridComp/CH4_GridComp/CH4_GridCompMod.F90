@@ -188,6 +188,15 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
       VLOCATION          = MAPL_VLocationCenter,    &
       RC=STATUS  )
    _VERIFY(STATUS)
+! Sourish Basu
+   call MAPL_AddExportSpec(GC,  &
+      SHORT_NAME         = 'CH4DRY',  &
+      LONG_NAME          = 'CH4 total dry-air mole fraction',  &
+      UNITS              = 'mol mol-1', &
+      DIMS               = MAPL_DimsHorzVert,    &
+      VLOCATION          = MAPL_VLocationCenter,    &
+      RC=STATUS  )
+   _VERIFY(STATUS)
 
    RETURN_(ESMF_SUCCESS)
 
@@ -572,6 +581,16 @@ subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
       RC=STATUS  )
    _VERIFY(STATUS)
 
+   !! Sourish Basu
+   !call MAPL_AddExportSpec(GC,  &
+      !SHORT_NAME         = 'CH4DRY'//trim(iname),  &
+      !LONG_NAME          = 'CH4 '//trim(iname)//' dry air mole fraction',  &
+      !UNITS              = 'mol mol-1', &
+      !DIMS               = MAPL_DimsHorzVert,    &
+      !VLOCATION          = MAPL_VLocationCenter,    &
+      !RC=STATUS  )
+   !_VERIFY(STATUS)
+
    RETURN_(ESMF_SUCCESS)
 
 end subroutine CH4_GridCompSetServices1_
@@ -861,18 +880,18 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 #define CH4LS    CH4_loss
 !#define CH4JL    CH4_phot
 !#define CH4QP    CH4_qprod
-!#define CH4DRY   CH4_dry ! Sourish
+!#define CH4DRY   CH4_dry
 
-!#include "CH4_GetPointer___.h"
-   real, pointer, dimension(:,:)   :: CH4EM ! EXPORT: CH4 Emission
-   real, pointer, dimension(:,:)   :: CH4PD ! EXPORT: CH4 Chemical Production
-   real, pointer, dimension(:,:)   :: CH4LS ! EXPORT: CH4 Chemical Loss
-   real, pointer, dimension(:,:)   :: CH4SC ! EXPORT: CH4 Surface Concentration
-   real, pointer, dimension(:,:)   :: CH4CL ! EXPORT: CH4 Column Burden
-   real, pointer, dimension(:,:,:) :: CH4JL ! EXPORT: CH4 Photolytic Loss
-   real, pointer, dimension(:,:,:) :: CH4QP ! EXPORT: H2O tendency from CH4 photolysis
-   real, pointer, dimension(:,:,:) :: CH4DRY ! EXPORT: CH4_dry_air_mole_fraction
-   real, pointer, dimension(:,:,:) :: CH4_for_rad ! come up with a better name later ! Sourish
+   real, pointer, dimension(:,:)   :: CH4EM => null() ! EXPORT: CH4 Emission
+   real, pointer, dimension(:,:)   :: CH4PD => null() ! EXPORT: CH4 Chemical Production
+   real, pointer, dimension(:,:)   :: CH4LS => null() ! EXPORT: CH4 Chemical Loss
+   real, pointer, dimension(:,:)   :: CH4SC => null() ! EXPORT: CH4 Surface Concentration
+   real, pointer, dimension(:,:)   :: CH4CL => null() ! EXPORT: CH4 Column Burden
+   real, pointer, dimension(:,:,:) :: CH4JL => null() ! EXPORT: CH4 Photolytic Loss
+   real, pointer, dimension(:,:,:) :: CH4QP => null() ! EXPORT: H2O tendency from CH4 photolysis
+   !real, pointer, dimension(:,:,:) :: CH4DRY => null() ! EXPORT: CH4_dry_air_mole_fraction
+   real, pointer, dimension(:,:,:) :: CH4_for_rad => null() ! come up with a better name later ! Sourish
+   real, pointer, dimension(:,:,:) :: CH4_dry => null() ! dry air total methane mole fraction ! Sourish
 
    call MAPL_GetPointer ( EXPORT, CH4EM,  'CH4EM'//iNAME, RC=STATUS )
    _VERIFY(STATUS)
@@ -1164,12 +1183,17 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 !      IF(ASSOCIATED(CH4_dry))     CALL pmaxmin(     'CH4: dry', CH4_dry,     qmin, qmax, iXj, km, 1. )
 !   END IF
 
-! Sourish Basu :: export CH4_total as CH4 for radiation to use
+! Sourish Basu :: export CH4_total as CH4 for radiation to use, and CH4_dry as CH4DRY for CoDAS
    if (trim(iNAME) == "total") then
       call MAPL_GetPointer ( EXPORT, CH4_for_rad, 'CH4', RC=STATUS )
       _VERIFY(STATUS)
       if (associated(CH4_for_rad)) then
          CH4_for_rad(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
+      end if
+
+      call MAPL_GetPointer(EXPORT, CH4_dry, 'CH4DRY', __RC__)
+      if (associated(CH4_dry)) then
+         CH4_dry(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) / (1. - qtot(i1:i2,j1:j2,1:km))
       end if
    end if
 
