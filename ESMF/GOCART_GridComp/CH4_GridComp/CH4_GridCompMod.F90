@@ -136,8 +136,6 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
 
    !  Parse resource file
    !  -------------------
-   ! e.g., for Abhishek's Juventus run, this is [full ind agw bf bb wetl minn minn2 minn3]
-   ! More generally, this could be [CH4_brad CH4_sourish ...]
    n = ESMF_ConfigGetLen(cfg,label='CH4_instances:',rc=status)
    VERIFY_(STATUS)
 
@@ -181,15 +179,15 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
         RESTART    = MAPL_RestartSkip,   &
         RC         = STATUS)
    VERIFY_(STATUS)
-!! Sourish Basu
-   !call MAPL_AddExportSpec(GC,  &
-      !SHORT_NAME         = 'CH4',  &
-      !LONG_NAME          = 'CH4 total mole fraction',  &
-      !UNITS              = 'mol mol-1', &
-      !DIMS               = MAPL_DimsHorzVert,    &
-      !VLOCATION          = MAPL_VLocationCenter,    &
-      !RC=STATUS  )
-   !_VERIFY(STATUS)
+! Sourish Basu
+   call MAPL_AddExportSpec(GC,  &
+      SHORT_NAME         = 'CH4',  &
+      LONG_NAME          = 'CH4 total mole fraction',  &
+      UNITS              = 'mol mol-1', &
+      DIMS               = MAPL_DimsHorzVert,    &
+      VLOCATION          = MAPL_VLocationCenter,    &
+      RC=STATUS  )
+   _VERIFY(STATUS)
 
    RETURN_(ESMF_SUCCESS)
 
@@ -874,7 +872,7 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    real, pointer, dimension(:,:,:) :: CH4JL ! EXPORT: CH4 Photolytic Loss
    real, pointer, dimension(:,:,:) :: CH4QP ! EXPORT: H2O tendency from CH4 photolysis
    real, pointer, dimension(:,:,:) :: CH4DRY ! EXPORT: CH4_dry_air_mole_fraction
-   !real, pointer, dimension(:,:,:) :: CH4_for_rad ! come up with a better name later ! Sourish
+   real, pointer, dimension(:,:,:) :: CH4_for_rad ! come up with a better name later ! Sourish
 
    call MAPL_GetPointer ( EXPORT, CH4EM,  'CH4EM'//iNAME, RC=STATUS )
    _VERIFY(STATUS)
@@ -1166,14 +1164,14 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 !      IF(ASSOCIATED(CH4_dry))     CALL pmaxmin(     'CH4: dry', CH4_dry,     qmin, qmax, iXj, km, 1. )
 !   END IF
 
-!! Sourish Basu
-   !if (trim(iNAME) == "total") then
-      !call MAPL_GetPointer ( EXPORT, CH4_for_rad, 'CH4', RC=STATUS )
-      !_VERIFY(STATUS)
-      !if (associated(CH4_for_rad)) then
-         !CH4_for_rad(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
-      !end if
-   !end if
+! Sourish Basu
+   if (trim(iNAME) == "total") then
+      call MAPL_GetPointer ( EXPORT, CH4_for_rad, 'CH4', RC=STATUS )
+      _VERIFY(STATUS)
+      if (associated(CH4_for_rad)) then
+         CH4_for_rad(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
+      end if
+   end if
 
    !  Housekeeping
    !  ------------
