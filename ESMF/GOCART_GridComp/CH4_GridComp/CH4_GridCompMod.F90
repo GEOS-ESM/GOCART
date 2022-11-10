@@ -929,8 +929,8 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    VERIFY_(status)
    CALL MAPL_GetPointer(impChem, Q,    'Q',           RC=status)
    VERIFY_(status)
-   !CALL MAPL_GetPointer(impChem, qtot,     'QTOT',        RC=status) ! Sourish
-   !VERIFY_(status) ! Sourish
+   CALL MAPL_GetPointer(impChem, qtot,     'QTOT',        RC=status) ! Sourish
+   VERIFY_(status) ! Sourish
    CALL MAPL_GetPointer(impChem, rhowet,   'AIRDENS',     RC=status)
    VERIFY_(status)
    CALL MAPL_GetPointer(impChem, cellArea, 'AREA',        RC=status)
@@ -944,7 +944,7 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
       call pmaxmin('CH4:ZLE',       zle, qmin, qmax, iXj, km+1, 1. )
       call pmaxmin('CH4:T',           T, qmin, qmax, iXj, km,   1. )
       call pmaxmin('CH4:Q',           q, qmin, qmax, iXj, km,   1. )
-      !call pmaxmin('CH4:QTOT',     qtot, qmin, qmax, iXj, km,   1. ) ! Sourish
+      call pmaxmin('CH4:QTOT',     qtot, qmin, qmax, iXj, km,   1. ) ! Sourish
       call pmaxmin('CH4:RHOWET', rhowet, qmin, qmax, iXj, km,   1. )
       call pmaxmin('CH4:PLE',       ple, qmin, qmax, iXj, km+1, 1. )
    endif
@@ -1164,7 +1164,7 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 !      IF(ASSOCIATED(CH4_dry))     CALL pmaxmin(     'CH4: dry', CH4_dry,     qmin, qmax, iXj, km, 1. )
 !   END IF
 
-! Sourish Basu
+! Sourish Basu :: export CH4_total as CH4 for radiation to use
    if (trim(iNAME) == "total") then
       call MAPL_GetPointer ( EXPORT, CH4_for_rad, 'CH4', RC=STATUS )
       _VERIFY(STATUS)
