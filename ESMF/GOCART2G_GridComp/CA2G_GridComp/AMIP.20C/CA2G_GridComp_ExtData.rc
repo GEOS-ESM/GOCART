@@ -6,30 +6,30 @@ PrimaryExports%%
 
 #========== Data Instance ==========================================================
 
-climBCphobic   'kg kg-1'   Y        N               0              0.0      1.0     BCphobic   ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
-climBCphilic   'kg kg-1'   Y        N               0              0.0      1.0     BCphilic   ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
-climOCphobic   'kg kg-1'   Y        N               0              0.0      1.0     OCphobic   ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
-climOCphilic   'kg kg-1'   Y        N               0              0.0      1.0     OCphilic   ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climBCphobic   'kg kg-1'   Y        N               0              0.0      1.0     BCphobic   ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+climBCphilic   'kg kg-1'   Y        N               0              0.0      1.0     BCphilic   ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+climOCphobic   'kg kg-1'   Y        N               0              0.0      1.0     OCphobic   ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+climOCphilic   'kg kg-1'   Y        N               0              0.0      1.0     OCphilic   ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
 
-climBCDP001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climBCWT001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCDP001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCDP001    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
+climBCWT001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCWT001    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
 climBCSD001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSD001    /dev/null
-climBCSV001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCSV001   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSV001    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
 
-climBCDP002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climBCWT002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCDP002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCDP002    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
+climBCWT002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCWT002    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
 climBCSD002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSD002    /dev/null
-climBCSV002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climBCSV002   'kg m-2 s-1'  Y        N               0              0.0      1.0     BCSV002    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
 
-climOCDP001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climOCWT001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCDP001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCDP001    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
+climOCWT001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCWT001    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
 climOCSD001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSD001    /dev/null
-climOCSV001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCSV001   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSV001    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
 
-climOCDP002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climOCWT002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCDP002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCDP002    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
+climOCWT002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCWT002    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
 climOCSD002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSD002    /dev/null
-climOCSV002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climOCSV002   'kg m-2 s-1'  Y        N               0              0.0      1.0     OCSV002    ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
 
 
 #=========== Carbonaceous aerosol sources ===========================================
