@@ -9,10 +9,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-### Fixed  
+### Fixed
 
 ### Changed
 
+## [2.1.2] - 2022-10-07
+
+### Added
+
+- Extinction exports with RH=20% and RH=80%
+
+### Fixed
+
+### Changed
+
+## [2.1.1] - 2022-09-16
+
+### Fixed
+
+- Remove GOCART requirement for gFTL, pFlogger and yaFyaml. These are requirements of MAPL. (#184)
+- Update BCs version in CI for GEOSgcm run
+
+### Added
+
+- Added CI test for building GOCART like UFS does
 
 ## [2.1.0] - 2022-08-24
 
@@ -22,8 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - This matches the styles currently used in MAPL (2 space indents in CMake and yaml, 4 spaces for Python)
 - Add YAML validator GitHub Action
   - This action makes sure all YAML files are valid (to a relaxed standard)
-- Initial implementation of offline simulator for 3D profiles of extinction based on the new GOCART2G-Mie interface. Work for the 2D simulator in progress. 
- 
+- Initial implementation of offline simulator for 3D profiles of extinction based on the new GOCART2G-Mie interface. Work for the 2D simulator in progress.
+
 ### Fixed
 
 - Added protection guard for pointer DU_SRC. fixed issue #148
