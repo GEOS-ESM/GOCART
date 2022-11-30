@@ -9,8 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Extinction/Scattering profile exports at model RH at wavelengths_profile
-- Extinction/Scattering profile exports with RH=20% and RH=80% at wavelengths_profile
 - Aerosol single scattering backscatter coefficient for each instances and total at wavelengths_profile
 - Total (molecular + aerosols) attenuated backscatter coefficient from TOA and sfc at 532nm
 
@@ -18,7 +16,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [2.1.2] - 2022-10-07
+
+## Added
+
+- Extinction/Scattering profile exports at model RH at wavelengths_profile
+- Extinction/Scattering profile exports with RH=20% and RH=80% at wavelengths_profile
+
+### Fixed
+
 ### Changed
+
 ## [2.1.1] - 2022-09-16
 
 ### Fixed
