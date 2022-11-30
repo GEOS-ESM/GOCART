@@ -204,7 +204,6 @@ contains
 
 #include "GOCART2G_Export___.h"
 #include "GOCART2G_Import___.h"
-#include "GOCART2G_Internal___.h"
 
 !   Add connectivities for Nitrate component
 !   Nitrate currently only supports one Nitrate component. Nitrate only 
@@ -1142,7 +1141,7 @@ contains
 
 !  Calculate the total (molecular + aer) single scattering attenuated backscater coef from the TOA
     if(associated(totabcktoa).or.associated(totabcksfc)) then
-        if (.not.associated(totextcoef) .and. .not. associated(totbckcoef)) then
+        if (.not.associated(totextcoef) .or. .not.associated(totbckcoef)) then
              print*,trim(Iam),' : TOTEXTCOEF and TOTBCKCOEF and their children needs to be requested in HISTORY.rc.',&
                            ' Cannot produce TOTABCKTOA or TOTABCKSFC variables without these exports.'
              VERIFY_(100)
