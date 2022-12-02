@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Moved to use GitHub Action for label enforcement
+- Updated CircleCI image to use Baselibs 7.7.0
+- Update `components.yaml` to reflect GEOSgcm
 
 ## [2.1.2] - 2022-10-07
 
