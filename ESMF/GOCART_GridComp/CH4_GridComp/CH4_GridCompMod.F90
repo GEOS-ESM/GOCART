@@ -67,7 +67,6 @@ TYPE CH4_GridComp1
    character(LEN=ESMF_MAXSTR) :: rcfilen     ! resource file name
    character(LEN=ESMF_MAXSTR) :: regionsString   ! Comma-delimited string of regions
    character(LEN=ESMF_MAXSTR) :: CH4Source   ! Source name on emission file (CH4_ANIMLS, for example)
-   character(len=256), allocatable :: categ_names(:) ! each instance can be a sum of multiple categories
 
    integer :: instance                 ! Instantiation number
    integer :: nymd_oh
@@ -91,10 +90,18 @@ TYPE CH4_GridComp1
    real, allocatable :: eCH4(:,:)         ! trying out one category per instance (kg CH4/m2/s)
    real, allocatable :: eCH4_d(:,:)       ! needed if we want diurnal cycle
 
+   ! Sourish Basu: for each instance, read a list of emission sources (could be a single source)
+   character(len=ESMF_MAXSTR), allocatable   :: source_categs(:)
+   real, allocatable :: emis(:,:,:) ! n_categ x i x j
+
    LOGICAL :: DebugIsOn     ! Run-time debug switch
    LOGICAL :: CH4FeedBack   ! Permit increments to CH4 from CH4 + hv => 2H2O + CO
    LOGICAL :: H2OFeedBack   ! Permit increments to   Q from CH4 + hv => 2H2O + CO
    logical :: chemistry     ! Should we do chemistry, such as oxidation and photolysis? Default true
+   logical :: photolysis    ! Separate flag for photolysis (Dec 5, 2022)
+   logical :: diurnal_fire  ! Should we apply a diurnal cycle from Chem_Shared? Default false
+   logical :: pbl_inject    ! Should we spread the emissions through the PBL or just at the surface?
+   logical :: in_total      ! Should this instance be included in a sum to get total CH4?
 
    REAL :: szaCutoff        ! Largest solar zenith angle (degrees) allowed as daytime
 
@@ -108,6 +115,8 @@ END TYPE CH4_GridComp
 real, parameter :: radToDeg = 180./MAPL_PI
 real, parameter :: mwtCH4   = 16.0422
 
+character(len=ESMF_MAXSTR), allocatable :: instances_in_total(:) ! list of instance names that make up total methane
+
 CONTAINS
 
 subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
@@ -117,6 +126,7 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
 
    CHARACTER(LEN=255) :: rcbasen = 'CH4_GridComp'
    CHARACTER(LEN=255) :: name
+   character(len=ESMF_MAXSTR) :: dummy_str
 
    integer            :: status
    character(len=ESMF_MAXSTR) :: Iam
@@ -131,6 +141,7 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
    !  ------------------
    cfg = ESMF_ConfigCreate(rc=status)
    VERIFY_(STATUS)
+
    call ESMF_ConfigLoadFile(cfg,TRIM(rcbasen)//'.rc',rc=status) ! reading CH4_GridComp.rc
    VERIFY_(STATUS)
 
@@ -142,32 +153,34 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
    !  We cannot have fewer instances than the number of
    !   CH4 bins in the registry (it is OK to have less, though)
    !  --------------------------------------------------------
-   if ( n .LT. chemReg%n_CH4 ) then ! nbins_CH4 > number of instances in CH4_GridComp.rc
-        rc = 35
-        return
+   if ( n < chemReg%n_CH4 ) then ! nbins_CH4 > number of instances in CH4_GridComp.rc
+         rc = 35
+         return
    else if ( n .GT. chemReg%n_CH4 ) then
-        if (MAPL_AM_I_ROOT()) &
-        PRINT *, TRIM(Iam)//": Bins = ",chemReg%n_CH4," of ",n," expected."
+         if (MAPL_AM_I_ROOT()) &
+         PRINT *, TRIM(Iam)//": Bins = ",chemReg%n_CH4," of ",n," expected."
    end if
    n = min(n,chemReg%n_CH4 )
-
-   !write(*,'(a, " :: on line ", i0, ", rc = ", i0)') trim(Iam), __LINE__, rc
 
    !  Record name of each instance
    !  ----------------------------
    call ESMF_ConfigFindLabel(cfg,'CH4_instances:',rc=status) ! these could be called 'Basu', 'Weir', etc.
    VERIFY_(STATUS)
+
    do i = 1, n
       call ESMF_ConfigGetAttribute(cfg,name,rc=status)
       VERIFY_(STATUS)
-                                            ! resource file name
-      !IF(TRIM(name) == "full" .or. trim(name) == "total") THEN
-       !name = " "              ! blank instance name for full (1)
-      !ELSE
-       !name = TRIM(name)       ! instance name for others
-      !END IF
       call CH4_GridCompSetServices1_(gc,chemReg,name,rc=status)
       VERIFY_(STATUS)
+   end do
+
+   ! Now read which instances need to be summed to make the total methane
+   n = ESMF_ConfigGetLen(cfg, label='CH4_total_components:', __RC__)
+   allocate(instances_in_total(n))
+   call ESMF_ConfigFindLabel(cfg, 'CH4_total_components:', __RC__)
+   do i = 1, n
+      call ESMF_ConfigGetAttribute(cfg, dummy_str, __RC__)
+      instances_in_total(i) = trim(dummy_str)
    end do
 
    call MAPL_AddImportSpec(GC,           &
@@ -179,6 +192,7 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
         RESTART    = MAPL_RestartSkip,   &
         RC         = STATUS)
    VERIFY_(STATUS)
+
 ! Sourish Basu
    call MAPL_AddExportSpec(GC,  &
       SHORT_NAME         = 'CH4',  &
@@ -188,6 +202,7 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
       VLOCATION          = MAPL_VLocationCenter,    &
       RC=STATUS  )
    _VERIFY(STATUS)
+
 ! Sourish Basu
    call MAPL_AddExportSpec(GC,  &
       SHORT_NAME         = 'CH4DRY',  &
@@ -303,20 +318,14 @@ subroutine CH4_GridCompInitialize ( gcCH4, w_c, impChem, expChem, nymd, nhms, cd
       VERIFY_(status)
       gcCH4%gcs(i)%rcfilen = trim(rcbasen)//'.rc' ! Experiment to read all rc keys from one file
       gcCH4%gcs(i)%instance = i              ! instance number
-      !IF(TRIM(name) == "full" .or. trim(name) == "total") THEN
-         !gcCH4%gcs(i)%iname = " "              ! blank instance name for full (1) ! why?
-      !ELSE
-         !gcCH4%gcs(i)%iname = TRIM(name)       ! instance name for others
-      !END IF
       gcCH4%gcs(i)%iname = TRIM(name)
    END DO
 
    !  Next initialize each instance
    !  -----------------------------
    DO i = 1, gcCH4%n_inst
-      IF(MAPL_AM_I_ROOT()) THEN
-         PRINT *," "
-         PRINT *,TRIM(Iam)//": Initializing instance ",TRIM(gcCH4%gcs(i)%iname)," [",gcCH4%gcs(i)%instance,"]"
+      IF (MAPL_AM_I_ROOT()) THEN
+         write(*,'(a, ": initializing instance ", a, "[", i0, "]")') trim(Iam), TRIM(gcCH4%gcs(i)%iname), gcCH4%gcs(i)%instance
       END IF
       CALL CH4_SingleInstance_ ( CH4_GridCompInitialize1_, i, &
                                 gcCH4%gcs(i), w_c, impChem, expChem,  &
@@ -385,12 +394,38 @@ subroutine CH4_GridCompRun ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc )
    CHARACTER(LEN=ESMF_MAXSTR), PARAMETER :: Iam = 'CH4_GridCompRun'
    INTEGER :: i, status
 
+   real, pointer, dimension(:,:,:) :: CH4_total => null() ! total wet-air methane mole fraction ! Sourish
+   real, pointer, dimension(:,:,:) :: CH4_dry => null() ! total dry-air methane mole fraction ! Sourish
+   REAL, POINTER, DIMENSION(:,:,:) :: qtot => null()
+   integer :: i1, i2, j1, j2, km
+
    DO i = 1, gcCH4%n_inst
       CALL CH4_SingleInstance_ ( CH4_GridCompRun1_, i, &
                                 gcCH4%gcs(i), w_c, impChem, expChem, &
                                 nymd, nhms, cdt, status )
       VERIFY_(status)
    END DO
+
+   call MAPL_GetPointer ( expChem, CH4_total, 'CH4', __RC__ )
+   if (associated(CH4_total)) then
+      i1 = w_c%grid%i1
+      i2 = w_c%grid%i2
+      j1 = w_c%grid%j1
+      j2 = w_c%grid%j2
+      km = w_c%grid%km
+      CH4_total = 0.0
+      do i = 1, gcCH4%n_inst
+         if (gcCH4%gcs(i)%in_total) then
+            CH4_total = CH4_total + w_c%qa(i)%data3d(i1:i2,j1:j2,1:km)
+         end if
+      end do
+
+      ! We need CH4_total for CH4_dry, so keep it within this if block
+      CALL MAPL_GetPointer(impChem, qtot, 'QTOT', __RC__) ! Sourish
+      call MAPL_GetPointer(expChem, CH4_dry, 'CH4DRY', __RC__)
+      if (associated(CH4_dry)) &
+         CH4_dry(i1:i2,j1:j2,1:km) = CH4_total / (1. - qtot(i1:i2,j1:j2,1:km))
+   end if
 
 end subroutine CH4_GridCompRun
 
@@ -450,6 +485,8 @@ subroutine CH4_GridCompFinalize ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt,
    DEALLOCATE ( gcCH4%gcs, stat=status )
    gcCH4%n_inst = -1
 
+   deallocate(instances_in_total)
+
 end subroutine CH4_GridCompFinalize
 
 subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
@@ -470,98 +507,28 @@ subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
       DIMS       = MAPL_DimsHorzOnly, &
       VLOCATION  = MAPL_VLocationNone, &
       RESTART    = MAPL_RestartSkip,     &
-      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC, &
-!      SHORT_NAME = 'CH4_industr'//iname, &
-!      LONG_NAME  = 'source species'  , &
-!      UNITS      = 'kg CH4 m-2 s-1',     &
-!      DIMS       = MAPL_DimsHorzOnly, &
-!      VLOCATION  = MAPL_VLocationNone, &
-!      RESTART    = MAPL_RestartSkip,     &
-!      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC,             &
-!      SHORT_NAME = 'CH4_agwaste'//iname, &
-!      LONG_NAME  = 'source species'  ,   &
-!      UNITS      = 'kg CH4 m-2 s-1',     &
-!      DIMS       = MAPL_DimsHorzOnly,    &
-!      VLOCATION  = MAPL_VLocationNone,   &
-!      RESTART    = MAPL_RestartSkip,     &
-!      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC,             &
-!      SHORT_NAME = 'CH4_bioburn'//iname, &
-!      LONG_NAME  = 'source species'  ,   &
-!      UNITS      = 'kg CH4 m-2 s-1',     &
-!      DIMS       = MAPL_DimsHorzOnly,    &
-!      VLOCATION  = MAPL_VLocationNone,   &
-!      RESTART    = MAPL_RestartSkip,     &
-!      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC,             &
-!      SHORT_NAME = 'CH4_biofuel'//iname, &
-!      LONG_NAME  = 'source species'  ,   &
-!      UNITS      = 'kg CH4 m-2 s-1',     &
-!      DIMS       = MAPL_DimsHorzOnly,    &
-!      VLOCATION  = MAPL_VLocationNone,   &
-!      RESTART    = MAPL_RestartSkip,     &
-!      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC,             &
-!      SHORT_NAME = 'CH4_minnatl'//iname, &
-!      LONG_NAME  = 'source species'  ,   &
-!      UNITS      = 'kg CH4 m-2 s-1',     &
-!      DIMS       = MAPL_DimsHorzOnly,    &
-!      VLOCATION  = MAPL_VLocationNone,   &
-!      RESTART    = MAPL_RestartSkip,     &
-!      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC,             &
-!      SHORT_NAME = 'CH4_wetland'//iname, &
-!      LONG_NAME  = 'source species',     &
-!      UNITS      = 'kg CH4 m-2 s-1',     &
-!      DIMS       = MAPL_DimsHorzOnly,    &
-!      VLOCATION  = MAPL_VLocationNone,   &
-!      RESTART    = MAPL_RestartSkip,     &
-!      RC         = STATUS)
+      __RC__)
    call MAPL_AddImportSpec(GC, &
       SHORT_NAME = 'CH4_oh', &
       LONG_NAME  = 'source species'  , &
       UNITS      = 'molecules cm-3',     &
       DIMS       = MAPL_DimsHorzVert,    &
       VLOCATION  = MAPL_VLocationCenter, &
-      RC         = STATUS)
+      __RC__)
    call MAPL_AddImportSpec(GC,             &
       SHORT_NAME = 'CH4_cl',      &
       LONG_NAME  = 'source species',     &
       UNITS      = 'molecules cm-3',     &
       DIMS       = MAPL_DimsHorzVert,    &
       VLOCATION  = MAPL_VLocationCenter, &
-      RC         = STATUS)
+      __RC__)
    call MAPL_AddImportSpec(GC,             &
       SHORT_NAME = 'CH4_o1d',     &
       LONG_NAME  = 'source species',     &
       UNITS      = 'molecules cm-3',     &
       DIMS       = MAPL_DimsHorzVert, &
       VLOCATION  = MAPL_VLocationCenter, &
-      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC, &
-!      SHORT_NAME = 'CH4_oh'//iname, &
-!      LONG_NAME  = 'source species'  , &
-!      UNITS      = 'molecules cm-3',     &
-!      DIMS       = MAPL_DimsHorzVert,    &
-!      VLOCATION  = MAPL_VLocationCenter, &
-!      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC,             &
-!      SHORT_NAME = 'CH4_cl'//iname,      &
-!      LONG_NAME  = 'source species',     &
-!      UNITS      = 'molecules cm-3',     &
-!      DIMS       = MAPL_DimsHorzVert,    &
-!      VLOCATION  = MAPL_VLocationCenter, &
-!      RC         = STATUS)
-!   call MAPL_AddImportSpec(GC,             &
-!      SHORT_NAME = 'CH4_o1d'//iname,     &
-!      LONG_NAME  = 'source species',     &
-!      UNITS      = 'molecules cm-3',     &
-!      DIMS       = MAPL_DimsHorzVert, &
-!      VLOCATION  = MAPL_VLocationCenter, &
-!      RC         = STATUS)
-   VERIFY_(STATUS)
+      __RC__)
 
    call MAPL_AddExportSpec(GC,  &
       SHORT_NAME         = 'CH4EM'//trim(iname),  &
@@ -569,27 +536,21 @@ subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
       UNITS              = 'kg m-2 s-1', &
       DIMS               = MAPL_DimsHorzOnly,    &
       VLOCATION          = MAPL_VLocationNone,    &
-      RC=STATUS  )
-   _VERIFY(STATUS)
-
+      __RC__)
    call MAPL_AddExportSpec(GC,  &
       SHORT_NAME         = 'CH4LS'//trim(iname),  &
       LONG_NAME          = 'CH4 Loss '//trim(iname),  &
       UNITS              = 'kg m-2 s-1', &
       DIMS               = MAPL_DimsHorzOnly,    &
       VLOCATION          = MAPL_VLocationNone,    &
-      RC=STATUS  )
-   _VERIFY(STATUS)
-
-   !! Sourish Basu
-   !call MAPL_AddExportSpec(GC,  &
-      !SHORT_NAME         = 'CH4DRY'//trim(iname),  &
-      !LONG_NAME          = 'CH4 '//trim(iname)//' dry air mole fraction',  &
-      !UNITS              = 'mol mol-1', &
-      !DIMS               = MAPL_DimsHorzVert,    &
-      !VLOCATION          = MAPL_VLocationCenter,    &
-      !RC=STATUS  )
-   !_VERIFY(STATUS)
+      __RC__)
+   call MAPL_AddExportSpec(GC,  &
+      SHORT_NAME         = 'CH4JL'//trim(iname),  &
+      LONG_NAME          = 'CH4 Loss '//trim(iname),  &
+      UNITS              = 'kg m-2 s-1', &
+      DIMS               = MAPL_DimsHorzOnly,    &
+      VLOCATION          = MAPL_VLocationNone,    &
+      __RC__)
 
    RETURN_(ESMF_SUCCESS)
 
@@ -651,7 +612,7 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
    CHARACTER(LEN=ESMF_MAXSTR)   :: rcfilen
    type(ESMF_Config) :: cfg
 
-   INTEGER :: j, n, status
+   INTEGER :: j, n, comps_total, i, status
    INTEGER :: i1, i2, im, j1, j2, jm, km
    INTEGER :: nTimes, begTime, incSecs
    INTEGER :: nbeg, nend, nymd1, nhms1
@@ -662,6 +623,7 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
    real, pointer     :: ptr2d(:,:) => null()
    real :: dummy_float
    logical :: dummy_bool
+   integer :: dummy_int
    character(LEN=ESMF_MAXSTR) :: dummy_string
 
    rcfilen = gcCH4%rcfilen
@@ -694,14 +656,7 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
 
    !  Allocate memory, etc
    !  --------------------
-   ALLOCATE ( gcCH4%eCH4(i1:i2,j1:j2),     &
-!            gcCH4%eCH4_ind(i1:i2,j1:j2),   &
-!            gcCH4%eCH4_wetl(i1:i2,j1:j2),  &
-!            gcCH4%eCH4_agw(i1:i2,j1:j2),   &
-!            gcCH4%eCH4_bb(i1:i2,j1:j2),    &
-!            gcCH4%eCH4_bb_(i1:i2,j1:j2),   &
-!            gcCH4%eCH4_bf(i1:i2,j1:j2),    &
-!            gcCH4%eCH4_mnat(i1:i2,j1:j2),  &
+   ALLOCATE(gcCH4%eCH4(i1:i2,j1:j2),       &
             gcCH4%regionMask(i1:i2,j1:j2), &
             gcCH4%OHnd(i1:i2,j1:j2,km),    &
             gcCH4%Clnd(i1:i2,j1:j2,km),    &
@@ -713,6 +668,19 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
    cfg = ESMF_ConfigCreate()
    call ESMF_ConfigLoadFile(cfg, trim(rcfilen), rc=status)
    VERIFY_(status)
+
+   ! Is this instance part of 'total CH4' diagnostic?
+   !  -------------------------------------------------
+   gcCH4%in_total = .false.
+   comps_total = size(instances_in_total)
+   do i = 1, comps_total
+      dummy_int = index(instances_in_total(i), trim(gcCH4%iname))
+      if (dummy_int > 0) gcCH4%in_total = .true.
+   end do
+   if (MAPL_AM_I_ROOT()) then
+      if (gcCH4%in_total) write(*,'("Total methane contains component ", a)') trim(gcCH4%iname)
+      if (.not. gcCH4%in_total) write(*,'("Total methane does not contain component ", a)') trim(gcCH4%iname)
+   end if
 
    !  Maximum allowed solar zenith angle for "daylight"
    !  -------------------------------------------------
@@ -744,11 +712,25 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
 
    ! Should we do chemistry?
    !  ----------------------
-   call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='do_chemistry:', default=.true., rc=status)
-   VERIFY_(STATUS)
-   call ESMF_ConfigGetAttribute(cfg, value=gcCH4%chemistry, label='do_chemistry.'//trim(gcCH4%iname)//':', default=dummy_bool, rc=status)
-   VERIFY_(STATUS)
+   call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='do_chemistry:', default=.true., __RC__)
+   call ESMF_ConfigGetAttribute(cfg, value=gcCH4%chemistry, label='do_chemistry.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
    if (MAPL_AM_I_ROOT() .and. (.not. gcCH4%chemistry)) write(*,'("Chemistry turned off for ", a)') trim(gcCH4%iname)
+
+   ! Should we do photolysis?
+   !  ----------------------
+   call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='do_photolysis:', default=.false., __RC__)
+   call ESMF_ConfigGetAttribute(cfg, value=gcCH4%photolysis, label='do_photolysis.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
+   if (MAPL_AM_I_ROOT() .and. gcCH4%photolysis) write(*,'("Photolytic loss turned on for ", a)') trim(gcCH4%iname)
+
+   ! Should we apply a fire-like diurnal cycle?
+   !  ----------------------
+   call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='diurnal_fire:', default=.false., __RC__)
+   call ESMF_ConfigGetAttribute(cfg, value=gcCH4%diurnal_fire, label='diurnal_fire.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
+   if (MAPL_AM_I_ROOT() .and. gcCH4%diurnal_fire) write(*,'("Fire-like diurnal cycle applied for ", a)') trim(gcCH4%iname)
+
+   call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='pbl_injection:', default=.false., __RC__)
+   call ESMF_ConfigGetAttribute(cfg, value=gcCH4%pbl_inject, label='pbl_injection.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
+   if (MAPL_AM_I_ROOT() .and. gcCH4%pbl_inject) write(*,'("Emission of ", a, " to be spread through the PBL")') trim(gcCH4%iname)
 
    call MAPL_GetPointer(impChem,ptr2D,'CH4_regionMask',rc=status)
    VERIFY_(STATUS)
@@ -878,7 +860,7 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 !#define CH4SC    CH4_surface
 !#define CH4PD    CH4_prod
 #define CH4LS    CH4_loss
-!#define CH4JL    CH4_phot
+#define CH4JL    CH4_phot
 !#define CH4QP    CH4_qprod
 !#define CH4DRY   CH4_dry
 
@@ -887,11 +869,8 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    real, pointer, dimension(:,:)   :: CH4LS => null() ! EXPORT: CH4 Chemical Loss
    real, pointer, dimension(:,:)   :: CH4SC => null() ! EXPORT: CH4 Surface Concentration
    real, pointer, dimension(:,:)   :: CH4CL => null() ! EXPORT: CH4 Column Burden
-   real, pointer, dimension(:,:,:) :: CH4JL => null() ! EXPORT: CH4 Photolytic Loss
+   real, pointer, dimension(:,:)   :: CH4JL => null() ! EXPORT: CH4 Photolytic Loss
    real, pointer, dimension(:,:,:) :: CH4QP => null() ! EXPORT: H2O tendency from CH4 photolysis
-   !real, pointer, dimension(:,:,:) :: CH4DRY => null() ! EXPORT: CH4_dry_air_mole_fraction
-   real, pointer, dimension(:,:,:) :: CH4_for_rad => null() ! come up with a better name later ! Sourish
-   real, pointer, dimension(:,:,:) :: CH4_dry => null() ! dry air total methane mole fraction ! Sourish
 
    call MAPL_GetPointer ( EXPORT, CH4EM,  'CH4EM'//iNAME, RC=STATUS )
    _VERIFY(STATUS)
@@ -903,8 +882,8 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    !_VERIFY(STATUS)
    !call MAPL_GetPointer ( EXPORT, CH4CL,  'CH4CL'//iNAME, RC=STATUS )
    !_VERIFY(STATUS)
-   !call MAPL_GetPointer ( EXPORT, CH4JL,  'CH4JL'//iNAME, RC=STATUS )
-   !_VERIFY(STATUS)
+   call MAPL_GetPointer ( EXPORT, CH4JL,  'CH4JL'//iNAME, RC=STATUS )
+   _VERIFY(STATUS)
    !call MAPL_GetPointer ( EXPORT, CH4QP,  'CH4QP'//iNAME, RC=STATUS )
    !_VERIFY(STATUS)
    !call MAPL_GetPointer ( EXPORT, CH4DRY,  'CH4DRY'//iNAME, RC=STATUS ) ! Sourish
@@ -940,22 +919,14 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 
    !  Get imports
    !  -----------
-   CALL MAPL_GetPointer(impChem, PBLH,     'ZPBL',        RC=status)
-   VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, ZLE,      'ZLE',         RC=status)
-   VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, T,    'T',           RC=status)
-   VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, Q,    'Q',           RC=status)
-   VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, qtot,     'QTOT',        RC=status) ! Sourish
-   VERIFY_(status) ! Sourish
-   CALL MAPL_GetPointer(impChem, rhowet,   'AIRDENS',     RC=status)
-   VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, cellArea, 'AREA',        RC=status)
-   VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, ple,      'PLE',         RC=status)
-   VERIFY_(status)
+   CALL MAPL_GetPointer(impChem, PBLH,     'ZPBL',    __RC__)
+   CALL MAPL_GetPointer(impChem, ZLE,      'ZLE',     __RC__)
+   CALL MAPL_GetPointer(impChem, T,        'T',       __RC__)
+   CALL MAPL_GetPointer(impChem, Q,        'Q',       __RC__)
+   CALL MAPL_GetPointer(impChem, qtot,     'QTOT',    __RC__)
+   CALL MAPL_GetPointer(impChem, rhowet,   'AIRDENS', __RC__)
+   CALL MAPL_GetPointer(impChem, cellArea, 'AREA',    __RC__)
+   CALL MAPL_GetPointer(impChem, ple,      'PLE',     __RC__)
 
    if (gcCH4%DebugIsOn) then
       call pmaxmin('CH4:AREA', cellArea, qmin, qmax, iXj,  1,   1. )
@@ -977,20 +948,6 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    VERIFY_(STATUS)
    gcCH4%eCH4 = ptr2d
 
-
-   !  Background OH, Cl, and O(1D) for loss term
-   !  ------------------------------------------
-!   call MAPL_GetPointer(impChem,ptr3d,'CH4_oh'//trim(iNAME),rc=status)
-!   VERIFY_(STATUS)
-!   gcCH4%OHnd=ptr3d
-
-!   call MAPL_GetPointer(impChem,ptr3d,'CH4_cl'//trim(iNAME),rc=status)
-!   VERIFY_(STATUS)
-!   gcCH4%Clnd=ptr3d
-
-!   call MAPL_GetPointer(impChem,ptr3d,'CH4_o1d'//trim(iNAME),rc=status)
-!   VERIFY_(STATUS)
-!   gcCH4%O1Dnd=ptr3d
 
    call MAPL_GetPointer(impChem,ptr3d,'CH4_oh', rc=status)
    VERIFY_(STATUS)
@@ -1060,78 +1017,57 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    !  ---------------------------------
    call CH4_Emission(rc)
 
-   !  Loss rate [m^3 s^-1] for OH + CH4 => CO + products
-   !  --------------------------------------------------
-   rkoh(i1:i2,j1:j2,1:km)  = 2.45E-12*1.00E-06*exp(-1775./T(i1:i2,j1:j2,1:km))
+   if (gcCH4%chemistry) then
+      !  Loss rate [m^3 s^-1] for OH + CH4 => CO + products
+      rkoh(i1:i2,j1:j2,1:km)  = 2.45E-12*1.00E-06*exp(-1775./T(i1:i2,j1:j2,1:km))
+      !  Loss rate [m^3 s^-1] for Cl + CH4 => CO + products
+      rkcl(i1:i2,j1:j2,1:km)  = 7.10E-12*1.00E-06*exp(-1270./T(i1:i2,j1:j2,1:km))
+      !  Loss rate [m^3 s^-1] for O(1D) + CH4 => CO + products
+      rko1d(i1:i2,j1:j2,1:km) = 1.75E-10*1.00E-06
+      !  Combine the three loss mechanisms
+      rktot = rkoh*gcCH4%OHnd(i1:i2,j1:j2,1:km) + rkcl*gcCH4%Clnd(i1:i2,j1:j2,1:km) + rko1d*gcCH4%O1Dnd(i1:i2,j1:j2,1:km)
+      !  Change in CH4 mole fraction due to oxidation
+      dCH4ox = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) * (exp(-cdt*rktot)-1.0)
+      !w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) + dCH4ox
+      !w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = merge(w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km), 0.0, w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) > 0.0)
+      w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) * exp(-cdt*rktot) ! avoid negatives
+   else
+      dCH4ox = 0.0
+   end if
 
-   !  Loss rate [m^3 s^-1] for Cl + CH4 => CO + products
-   !  --------------------------------------------------
-   rkcl(i1:i2,j1:j2,1:km)  = 7.10E-12*1.00E-06*exp(-1270./T(i1:i2,j1:j2,1:km))
+   if (gcCH4%photolysis) then
+      !  Calculate photolytic loss rates, J [s^-1], for CH4 + hv => 2H2O + CO
+      ALLOCATE(photJ(i1:i2,j1:j2,1:km), dCH4Phot(i1:i2,j1:j2,1:km), STAT=status)
+      VERIFY_(STATUS)
+      photJ(:,:,:) = 0.
+      CALL getJRates(status)
+      VERIFY_(status)
+      !  Michael Long says (email Dec 5, 2022) that photJ is 'per second', i.e., it's a decay rate
+      dCH4Phot(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) * (exp(-cdt*photJ(i1:i2,j1:j2,1:km))-1.0)
+      !  Change the mole fraction accordingly
+      w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) * exp(-cdt*photJ(i1:i2,j1:j2,1:km))
+   else
+      dCH4Phot = 0.0
+   end if
 
-   !  Loss rate [m^3 s^-1] for O(1D) + CH4 => CO + products
-   !  -----------------------------------------------------
-   rko1d(i1:i2,j1:j2,1:km) = 1.75E-10*1.00E-06
-
-   !  Change in CH4 mole fraction due to oxidation
-   !  --------------------------------------------
-!   dCH4ox(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)                         &
-!                              * (    rkoh(i1:i2,j1:j2,1:km)*gcCH4%OHnd(i1:i2,j1:j2,1:km)    &
-!                                  +  rkcl(i1:i2,j1:j2,1:km)*gcCH4%Clnd(i1:i2,j1:j2,1:km)    &
-!                                  + rko1d(i1:i2,j1:j2,1:km)*gcCH4%O1Dnd(i1:i2,j1:j2,1:km) )
-
-    if (gcCH4%chemistry) then
-        rktot = rkoh*gcCH4%OHnd(i1:i2,j1:j2,1:km) + rkcl*gcCH4%Clnd(i1:i2,j1:j2,1:km) + rko1d*gcCH4%O1Dnd(i1:i2,j1:j2,1:km)
-        dCH4ox = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) * (exp(-cdt*rktot)-1.0)
-        !w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) + dCH4ox
-        !w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = merge(w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km), 0.0, w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) > 0.0)
-        w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) * exp(-cdt*rktot) ! avoid negatives
-    else
-        dCH4ox = 0.0
-    end if
-
-   !  Vertically integrated CH4 loss due to oxidation (only)
-   !  ------------------------------------------------------
+   !  Summarize the loss as an export, vertically integrated
    if (associated(CH4_loss)) then
       CH4_loss(i1:i2,j1:j2) = 0.
-      do k = 1,km
-         CH4_loss(i1:i2,j1:j2) = CH4_loss(i1:i2,j1:j2) &
-                               + dCH4ox(i1:i2,j1:j2,k) * (mwtCH4/MAPL_AIRMW) * w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV ! kg/m^2 over this time step
+      do k = 1, km
+         CH4_loss(i1:i2,j1:j2) = CH4_loss(i1:i2,j1:j2) + &
+                                 dCH4ox(i1:i2,j1:j2,k) * (mwtCH4/MAPL_AIRMW) * w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV ! kg/m^2 over this time step
       end do
       CH4_loss(i1:i2,j1:j2) = CH4_loss(i1:i2,j1:j2)/cdt ! convert to kg/m^2/s, then history can export a time-averaged value
    end if
-
-   !  CH4 production (none)
-   !  ---------------------
-!   if (associated(CH4_prod)) CH4_prod(i1:i2,j1:j2) = 0.
-
-   !  Calculate photolytic loss rates, J [s^-1], for CH4 + hv => 2H2O + CO
-   !  Notice that J and the losses are always computed. However, the setting
-   !  of the feedback switch(es) determines if the increments are actually applied
-   !  ----------------------------------------------------------------------------
-   ALLOCATE(photJ(i1:i2,j1:j2,1:km), dCH4Phot(i1:i2,j1:j2,1:km), STAT=status)
-   VERIFY_(STATUS)
-
-   photJ(:,:,:) = 0.
-   CALL getJRates(status)
-   VERIFY_(status)
-
-   !  Change in CH4 number density [m^-3 s^-1] due to photolysis
-   !  ----------------------------------------------------------
-   dCH4Phot(i1:i2,j1:j2,1:km) = photJ(i1:i2,j1:j2,1:km)*w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
-
-!   if (associated(CH4_phot)) THEN
-!      CH4_phot(i1:i2,j1:j2,1:km) = dCH4Phot(i1:i2,j1:j2,1:km)*ndwet(i1:i2,j1:j2,1:km)
-!   endif
-
-!   !  Increment the CH4 mole fraction due to oxidation
-!   !  ------------------------------------------------
-!   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) - cdt*dCH4ox(i1:i2,j1:j2,1:km)
-
-   !  Increment the CH4 mole fraction due to photolysis when the switch is on
-   !  -----------------------------------------------------------------------
-   if (gcCH4%CH4FeedBack .and. gcCH4%chemistry) then
-      w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) - cdt*dCH4Phot(i1:i2,j1:j2,1:km)
-   end if
+   ! Also summarize photolytic loss
+   if (associated(CH4_phot)) THEN
+      CH4_phot(i1:i2,j1:j2) = 0.
+      do k = 1, km
+         CH4_phot(i1:i2,j1:j2) = CH4_phot(i1:i2,j1:j2) + &
+                                 dCH4Phot(i1:i2,j1:j2,k) * (mwtCH4/MAPL_AIRMW) * w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV ! kg/m^2 over this time step
+      end do
+      CH4_phot(i1:i2,j1:j2) = CH4_phot(i1:i2,j1:j2)/cdt ! convert to kg/m^2/s, then history can export a time-averaged value
+   endif
 
    !  If both feedback switches are on, increment water vapor by
    !  adding two molecules of H2O for each CH4 molecule lost
@@ -1165,13 +1101,6 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 !      end do
 !   end if
 
-!! Sourish Basu
-   !!  Dry-air mole fraction [mol mol-1]
-   !!  ---------------------------------
-   !if (associated(CH4_dry)) then
-      !CH4_dry(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) / (1. - qtot(i1:i2,j1:j2,1:km))
-   !end if
-
 !   IF(gcCH4%DebugIsOn) THEN
 !      IF(ASSOCIATED(CH4_emis))    CALL pmaxmin(    'CH4: emis', CH4_emis,    qmin, qmax, iXj,  1, 1. )
 !      IF(ASSOCIATED(CH4_loss))    CALL pmaxmin(    'CH4: loss', CH4_loss,    qmin, qmax, iXj,  1, 1. )
@@ -1183,26 +1112,19 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 !      IF(ASSOCIATED(CH4_dry))     CALL pmaxmin(     'CH4: dry', CH4_dry,     qmin, qmax, iXj, km, 1. )
 !   END IF
 
-! Sourish Basu :: export CH4_total as CH4 for radiation to use, and CH4_dry as CH4DRY for CoDAS
-   if (trim(iNAME) == "total") then
-      call MAPL_GetPointer ( EXPORT, CH4_for_rad, 'CH4', RC=STATUS )
-      _VERIFY(STATUS)
-      if (associated(CH4_for_rad)) then
-         CH4_for_rad(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
-      end if
-
-      call MAPL_GetPointer(EXPORT, CH4_dry, 'CH4DRY', __RC__)
-      if (associated(CH4_dry)) then
-         CH4_dry(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) / (1. - qtot(i1:i2,j1:j2,1:km))
-      end if
-   end if
+   !! Figure out what nbeg is as function of name
+   !if (MAPL_AM_I_ROOT()) then
+      !write(*,'(a, " :: for instance ", a, " nbeg = ", i0)') trim(Iam), trim(iNAME), nbeg
+   !end if
 
    !  Housekeeping
    !  ------------
    DEALLOCATE(p, rkoh, rkcl, rko1d, rktot, dCH4ox, cellDepth, cellVolume, STAT=status)
    VERIFY_(status)
-   DEALLOCATE(photJ, dCH4Phot, STAT=status)
-   VERIFY_(status)
+   if (gcCH4%photolysis) then
+      DEALLOCATE(photJ, dCH4Phot, STAT=status)
+      VERIFY_(status)
+   end if
 
    RETURN
 
@@ -1232,22 +1154,14 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
       allocate(   fPBL(i1:i2,j1:j2,1:km), STAT=rc)      ! partitioning of BB
       allocate(mf_to_be_added(i1:i2,j1:j2), mf_current(i1:i2,j1:j2), STAT=rc)
 
-!      ! Apply biomass burning diurnal cycle if desired
-!      ! ----------------------------------------------
-!   SB: Commented out for now because I'm not sure how the daily average is preserved in successive calls
-!      if (w_c%diurnal_bb) then
-!         allocate(gcCH4%eCH4_d(i1:i2,j1:j2))
-!         gcCH4%eCH4_d = gcCH4%eCH4 ! temp storage, put the daily average in eCH4_d
-!!         gcCH4%eCH4_bb_(:,:) = gcCH4%eCH4_bb(:,:)
-
-!!         call Chem_BiomassDiurnal ( gcCH4%eCH4_bb, gcCH4%eCH4_bb_,   &
-!!                                w_c%grid%lon(:,:)*radToDeg,      &
-!!                                w_c%grid%lat(:,:)*radToDeg, nhms, cdt )
-!         call Chem_BiomassDiurnal ( gcCH4%eCH4, gcCH4%eCH4_d,   &
-!                                w_c%grid%lon(:,:)*radToDeg,      &
-!                                w_c%grid%lat(:,:)*radToDeg, nhms, cdt )
-!         deallocate(gcCH4%eCH4_d)
-!      end if
+      ! Apply biomass burning diurnal cycle if desired
+      ! ----------------------------------------------
+      if (gcCH4%diurnal_fire) then
+         allocate(gcCH4%eCH4_d(i1:i2,j1:j2))
+         gcCH4%eCH4_d = gcCH4%eCH4 ! temp storage, put the daily average in eCH4_d so that eCH4 can contain the instantaneous emission
+         call Chem_BiomassDiurnal(gcCH4%eCH4, gcCH4%eCH4_d, w_c%grid%lon(:,:)*radToDeg, w_c%grid%lat(:,:)*radToDeg, nhms, cdt)
+         deallocate(gcCH4%eCH4_d)
+      end if
 
       ! Find the layer that contains the PBL
       ! Layer thicknesses are ZLE(:,:,0:km)
