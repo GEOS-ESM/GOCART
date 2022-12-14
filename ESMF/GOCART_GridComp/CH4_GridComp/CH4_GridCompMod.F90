@@ -66,7 +66,6 @@ TYPE CH4_GridComp1
    character(LEN=ESMF_MAXSTR) :: iname       ! instance name
    character(LEN=ESMF_MAXSTR) :: rcfilen     ! resource file name
    character(LEN=ESMF_MAXSTR) :: regionsString   ! Comma-delimited string of regions
-   character(LEN=ESMF_MAXSTR) :: CH4Source   ! Source name on emission file (CH4_ANIMLS, for example)
 
    integer :: instance                 ! Instantiation number
    integer :: nymd_oh
@@ -87,20 +86,23 @@ TYPE CH4_GridComp1
 !   REAL, POINTER :: eCH4_agwaste(:,:)    ! kgCH4/m2/s, PBL (before diurnal)
 !   REAL, POINTER :: eCH4_onat(:,:)       ! kgCH4/m2/s, PBL
 !   REAL, POINTER :: eCH4_fire(:,:)       ! kgCH4/m2/s, Earth surface
-   real, allocatable :: eCH4(:,:)         ! trying out one category per instance (kg CH4/m2/s)
-   real, allocatable :: eCH4_d(:,:)       ! needed if we want diurnal cycle
+   !real, allocatable :: eCH4(:,:)         ! trying out one category per instance (kg CH4/m2/s)
+   !real, allocatable :: eCH4_d(:,:)       ! needed if we want diurnal cycle
 
    ! Sourish Basu: for each instance, read a list of emission sources (could be a single source)
    character(len=ESMF_MAXSTR), allocatable   :: source_categs(:)
-   real, allocatable :: emis(:,:,:) ! n_categ x i x j
+   integer                                   :: n_sources
+   real, allocatable                         :: emis(:,:,:) ! n_sources x i x j
+   logical, allocatable                      :: diurnal_fire(:) ! each source type can decide whether diurnal cycle is to be applied or not
+   logical, allocatable                      :: pbl_inject(:) ! ditto for PBL injection
 
    LOGICAL :: DebugIsOn     ! Run-time debug switch
    LOGICAL :: CH4FeedBack   ! Permit increments to CH4 from CH4 + hv => 2H2O + CO
    LOGICAL :: H2OFeedBack   ! Permit increments to   Q from CH4 + hv => 2H2O + CO
    logical :: chemistry     ! Should we do chemistry, such as oxidation and photolysis? Default true
    logical :: photolysis    ! Separate flag for photolysis (Dec 5, 2022)
-   logical :: diurnal_fire  ! Should we apply a diurnal cycle from Chem_Shared? Default false
-   logical :: pbl_inject    ! Should we spread the emissions through the PBL or just at the surface?
+   !logical :: diurnal_fire  ! Should we apply a diurnal cycle from Chem_Shared? Default false
+   !logical :: pbl_inject    ! Should we spread the emissions through the PBL or just at the surface?
    logical :: in_total      ! Should this instance be included in a sum to get total CH4?
 
    REAL :: szaCutoff        ! Largest solar zenith angle (degrees) allowed as daytime
@@ -149,6 +151,15 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
    !  -------------------
    n = ESMF_ConfigGetLen(cfg,label='CH4_instances:',rc=status)
    VERIFY_(STATUS)
+
+   ! Debug :: print what is already in Chem_Registry
+   if (MAPL_AM_I_ROOT()) then
+      do i = chemReg%i_CH4, chemReg%j_CH4
+         write(*,'("    ", a, ": from Chem_Registry, tracer ", i0, " is methane instance ", i0, " with name ", a)') &
+            trim(Iam), i, (i-chemReg%i_CH4+1), chemReg%vname(i)
+      end do
+   end if
+   ! End debug
 
    !  We cannot have fewer instances than the number of
    !   CH4 bins in the registry (it is OK to have less, though)
@@ -325,7 +336,7 @@ subroutine CH4_GridCompInitialize ( gcCH4, w_c, impChem, expChem, nymd, nhms, cd
    !  -----------------------------
    DO i = 1, gcCH4%n_inst
       IF (MAPL_AM_I_ROOT()) THEN
-         write(*,'(a, ": initializing instance ", a, "[", i0, "]")') trim(Iam), TRIM(gcCH4%gcs(i)%iname), gcCH4%gcs(i)%instance
+         write(*,'("    ", a, ": initializing instance ", a, "[", i0, "]")') trim(Iam), TRIM(gcCH4%gcs(i)%iname), gcCH4%gcs(i)%instance
       END IF
       CALL CH4_SingleInstance_ ( CH4_GridCompInitialize1_, i, &
                                 gcCH4%gcs(i), w_c, impChem, expChem,  &
@@ -495,19 +506,54 @@ subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
    character(len=*),    intent(IN   ) :: iname
    integer,             intent(OUT  ) :: rc
 
-   integer :: Status
+   integer :: Status, n_sources, i
    character(len=ESMF_MAXSTR) :: Iam
+   type(ESMF_Config) :: cfg
+   CHARACTER(LEN=255) :: rcbasen = 'CH4_GridComp'
+   character(len=ESMF_MAXSTR) :: emis_varname
 
    Iam ="CH4_GridCOmpSetServices1_"
 
-   call MAPL_AddImportSpec(GC, &
-      SHORT_NAME = 'CH4_'//trim(iname), &
-      LONG_NAME  = 'source species'  , &
-      UNITS      = 'kg CH4 m-2 s-1',     &
-      DIMS       = MAPL_DimsHorzOnly, &
-      VLOCATION  = MAPL_VLocationNone, &
-      RESTART    = MAPL_RestartSkip,     &
-      __RC__)
+   ! Figure out where the emissions are coming from and add imports
+   cfg = ESMF_ConfigCreate(rc=status)
+   VERIFY_(STATUS)
+   call ESMF_ConfigLoadFile(cfg,TRIM(rcbasen)//'.rc',rc=status) ! reading CH4_GridComp.rc
+   VERIFY_(STATUS)
+   call ESMF_ConfigFindLabel(cfg, 'emissions.'//trim(iname)//':', rc=status)
+   if (status .ne. ESMF_SUCCESS) then
+      emis_varname = 'CH4_'//trim(iname)
+      call MAPL_AddImportSpec(GC, &
+         SHORT_NAME = trim(emis_varname), &
+         LONG_NAME  = 'source species'  , &
+         UNITS      = 'kg CH4 m-2 s-1',     &
+         DIMS       = MAPL_DimsHorzOnly, &
+         VLOCATION  = MAPL_VLocationNone, &
+         RESTART    = MAPL_RestartSkip,     &
+         __RC__)
+   else
+      n_sources = ESMF_ConfigGetLen(cfg, label='emissions.'//trim(iname)//':', __RC__)
+      call ESMF_ConfigFindLabel(cfg, 'emissions.'//trim(iname)//':', __RC__)
+      do i = 1, n_sources
+         call ESMF_ConfigGetAttribute(cfg, emis_varname, __RC__)
+         call MAPL_AddImportSpec(GC, &
+            SHORT_NAME = trim(emis_varname), &
+            LONG_NAME  = 'source species'  , &
+            UNITS      = 'kg CH4 m-2 s-1',     &
+            DIMS       = MAPL_DimsHorzOnly, &
+            VLOCATION  = MAPL_VLocationNone, &
+            RESTART    = MAPL_RestartSkip,     &
+            __RC__)
+      end do
+   end if
+
+   !call MAPL_AddImportSpec(GC, &
+      !SHORT_NAME = 'CH4_'//trim(iname), &
+      !LONG_NAME  = 'source species'  , &
+      !UNITS      = 'kg CH4 m-2 s-1',     &
+      !DIMS       = MAPL_DimsHorzOnly, &
+      !VLOCATION  = MAPL_VLocationNone, &
+      !RESTART    = MAPL_RestartSkip,     &
+      !__RC__)
    call MAPL_AddImportSpec(GC, &
       SHORT_NAME = 'CH4_oh', &
       LONG_NAME  = 'source species'  , &
@@ -609,7 +655,7 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
 
    CHARACTER(LEN=*), PARAMETER  :: Iam = 'CH4_GridCompInitialize1_'
 
-   CHARACTER(LEN=ESMF_MAXSTR)   :: rcfilen
+   CHARACTER(LEN=ESMF_MAXSTR)   :: rcfilen, dummy_str
    type(ESMF_Config) :: cfg
 
    INTEGER :: j, n, comps_total, i, status
@@ -656,7 +702,8 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
 
    !  Allocate memory, etc
    !  --------------------
-   ALLOCATE(gcCH4%eCH4(i1:i2,j1:j2),       &
+   ALLOCATE( &
+            !gcCH4%eCH4(i1:i2,j1:j2),       &
             gcCH4%regionMask(i1:i2,j1:j2), &
             gcCH4%OHnd(i1:i2,j1:j2,km),    &
             gcCH4%Clnd(i1:i2,j1:j2,km),    &
@@ -678,9 +725,43 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
       if (dummy_int > 0) gcCH4%in_total = .true.
    end do
    if (MAPL_AM_I_ROOT()) then
-      if (gcCH4%in_total) write(*,'("Total methane contains component ", a)') trim(gcCH4%iname)
-      if (.not. gcCH4%in_total) write(*,'("Total methane does not contain component ", a)') trim(gcCH4%iname)
+      if (gcCH4%in_total) write(*,'("    Total methane contains component ", a)') trim(gcCH4%iname)
+      if (.not. gcCH4%in_total) write(*,'("    Total methane does not contain component ", a)') trim(gcCH4%iname)
    end if
+
+   ! Which emission categories will contribute to this instance? By default assign 'CH4_instance' if not specified
+   !  -------------------------------------------------
+   call ESMF_ConfigFindLabel(cfg, 'emissions.'//trim(gcCH4%iname)//':', rc=status)
+   if (status .ne. ESMF_SUCCESS) then
+      gcCH4%n_sources = 1
+      allocate(gcCH4%source_categs(1))
+      gcCH4%source_categs(1) = 'CH4_'//trim(gcCH4%iname) ! for backward compatibility with older rc files
+      if (MAPL_AM_I_ROOT()) write(*,'("    ", a, ": emission from ", a, " to be added to ", a)') trim(Iam), trim(gcCH4%source_categs(1)), trim(gcCH4%iname)
+   else
+      gcCH4%n_sources = ESMF_ConfigGetLen(cfg, label='emissions.'//trim(gcCH4%iname)//':', __RC__)
+      allocate(gcCH4%source_categs(gcCH4%n_sources))
+      call ESMF_ConfigFindLabel(cfg, 'emissions.'//trim(gcCH4%iname)//':', __RC__)
+      do i = 1, gcCH4%n_sources
+         call ESMF_ConfigGetAttribute(cfg, dummy_str, __RC__)
+         gcCH4%source_categs(i) = trim(dummy_str)
+         if (MAPL_AM_I_ROOT()) write(*,'("    ", a, ": emission from ", a, " to be added to ", a)') trim(Iam), trim(gcCH4%source_categs(i)), trim(gcCH4%iname)
+      end do
+   end if
+   allocate(gcCH4%emis(gcCH4%n_sources, i1:i2, j1:j2))
+   allocate(gcCH4%diurnal_fire(gcCH4%n_sources))
+   allocate(gcCH4%pbl_inject(gcCH4%n_sources))
+   do i = 1, gcCH4%n_sources
+      ! Should we apply a fire-like diurnal cycle for this source?
+      call ESMF_ConfigGetAttribute(cfg, value=gcCH4%diurnal_fire(i), label=trim(gcCH4%source_categs(i))//'.diurnal_fire:', &
+         default=.false., __RC__)
+      if (MAPL_AM_I_ROOT() .and. gcCH4%diurnal_fire(i)) &
+         write(*,'("    Fire-like diurnal cycle applied for source ", a, " in instance ", a)') trim(gcCH4%source_categs(i)), trim(gcCH4%iname)
+      ! Should we distribute this source throughout the PBL instead of at the surface?
+      call ESMF_ConfigGetAttribute(cfg, value=gcCH4%pbl_inject(i), label=trim(gcCH4%source_categs(i))//'.pbl_injection:', &
+         default=.false., __RC__)
+      if (MAPL_AM_I_ROOT() .and. gcCH4%pbl_inject(i)) &
+         write(*,'("    Emission of ", a, " in category ", a, " to be spread through the PBL")') trim(gcCH4%source_categs(i)), trim(gcCH4%iname)
+   end do
 
    !  Maximum allowed solar zenith angle for "daylight"
    !  -------------------------------------------------
@@ -714,23 +795,23 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
    !  ----------------------
    call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='do_chemistry:', default=.true., __RC__)
    call ESMF_ConfigGetAttribute(cfg, value=gcCH4%chemistry, label='do_chemistry.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
-   if (MAPL_AM_I_ROOT() .and. (.not. gcCH4%chemistry)) write(*,'("Chemistry turned off for ", a)') trim(gcCH4%iname)
+   if (MAPL_AM_I_ROOT() .and. (.not. gcCH4%chemistry)) write(*,'("    Chemistry turned off for ", a)') trim(gcCH4%iname)
 
    ! Should we do photolysis?
    !  ----------------------
    call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='do_photolysis:', default=.false., __RC__)
    call ESMF_ConfigGetAttribute(cfg, value=gcCH4%photolysis, label='do_photolysis.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
-   if (MAPL_AM_I_ROOT() .and. gcCH4%photolysis) write(*,'("Photolytic loss turned on for ", a)') trim(gcCH4%iname)
+   if (MAPL_AM_I_ROOT() .and. gcCH4%photolysis) write(*,'("    Photolytic loss turned on for ", a)') trim(gcCH4%iname)
 
-   ! Should we apply a fire-like diurnal cycle?
-   !  ----------------------
-   call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='diurnal_fire:', default=.false., __RC__)
-   call ESMF_ConfigGetAttribute(cfg, value=gcCH4%diurnal_fire, label='diurnal_fire.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
-   if (MAPL_AM_I_ROOT() .and. gcCH4%diurnal_fire) write(*,'("Fire-like diurnal cycle applied for ", a)') trim(gcCH4%iname)
+   !! Should we apply a fire-like diurnal cycle?
+   !!  ----------------------
+   !call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='diurnal_fire:', default=.false., __RC__)
+   !call ESMF_ConfigGetAttribute(cfg, value=gcCH4%diurnal_fire, label='diurnal_fire.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
+   !if (MAPL_AM_I_ROOT() .and. gcCH4%diurnal_fire) write(*,'("Fire-like diurnal cycle applied for ", a)') trim(gcCH4%iname)
 
-   call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='pbl_injection:', default=.false., __RC__)
-   call ESMF_ConfigGetAttribute(cfg, value=gcCH4%pbl_inject, label='pbl_injection.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
-   if (MAPL_AM_I_ROOT() .and. gcCH4%pbl_inject) write(*,'("Emission of ", a, " to be spread through the PBL")') trim(gcCH4%iname)
+   !call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='pbl_injection:', default=.false., __RC__)
+   !call ESMF_ConfigGetAttribute(cfg, value=gcCH4%pbl_inject, label='pbl_injection.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
+   !if (MAPL_AM_I_ROOT() .and. gcCH4%pbl_inject) write(*,'("Emission of ", a, " to be spread through the PBL")') trim(gcCH4%iname)
 
    call MAPL_GetPointer(impChem,ptr2D,'CH4_regionMask',rc=status)
    VERIFY_(STATUS)
@@ -770,9 +851,9 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
       END IF
    END IF
 
-   !  Use instance name as key to CH4 emission source
-   !  -----------------------------------------------
-   gcCH4%CH4Source = "CH4_"//trim(gcCH4%iname)
+   !!  Use instance name as key to CH4 emission source
+   !!  -----------------------------------------------
+   !gcCH4%CH4Source = "CH4_"//trim(gcCH4%iname)
 
    return
 
@@ -943,11 +1024,16 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    !  (in molec cm^-3) once each day
    !  ------------------------------------------------------------
 
-   ! All sources
-   call MAPL_GetPointer(impChem, ptr2d, 'CH4_'//trim(iNAME), rc=status)
-   VERIFY_(STATUS)
-   gcCH4%eCH4 = ptr2d
+   !! All sources
+   !call MAPL_GetPointer(impChem, ptr2d, 'CH4_'//trim(iNAME), rc=status)
+   !VERIFY_(STATUS)
+   !gcCH4%eCH4 = ptr2d
 
+   ! Read sources for this instance
+   do i = 1, gcCH4%n_sources
+      call MAPL_GetPointer(impChem, ptr2d, trim(gcCH4%source_categs(i)), __RC__)
+      gcCH4%emis(i,:,:) = ptr2d(:,:)
+   end do
 
    call MAPL_GetPointer(impChem,ptr3d,'CH4_oh', rc=status)
    VERIFY_(STATUS)
@@ -1112,10 +1198,6 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 !      IF(ASSOCIATED(CH4_dry))     CALL pmaxmin(     'CH4: dry', CH4_dry,     qmin, qmax, iXj, km, 1. )
 !   END IF
 
-   !! Figure out what nbeg is as function of name
-   !if (MAPL_AM_I_ROOT()) then
-      !write(*,'(a, " :: for instance ", a, " nbeg = ", i0)') trim(Iam), trim(iNAME), nbeg
-   !end if
 
    !  Housekeeping
    !  ------------
@@ -1144,24 +1226,16 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
       INTEGER ::  i, j, k, kt, minkPBL
       INTEGER, ALLOCATABLE :: index(:)
 
-      REAL, ALLOCATABLE, dimension(:,:) :: pblLayer, sfcFlux, myMask, mf_to_be_added, mf_current
-      REAL, ALLOCATABLE :: fPBL(:,:,:)
+      REAL, ALLOCATABLE, dimension(:,:)   :: pblLayer, sfcFlux, myMask
+      REAL, ALLOCATABLE, dimension(:,:,:) :: fPBL, flux_3d, mf_to_be_added, mf_current
 
       rc = 0
 
-      allocate(sfcFlux(i1:i2,j1:j2),      STAT=rc)      ! emissions
-      allocate( myMask(i1:i2,j1:j2),      STAT=rc)      ! region mask
-      allocate(   fPBL(i1:i2,j1:j2,1:km), STAT=rc)      ! partitioning of BB
-      allocate(mf_to_be_added(i1:i2,j1:j2), mf_current(i1:i2,j1:j2), STAT=rc)
-
-      ! Apply biomass burning diurnal cycle if desired
-      ! ----------------------------------------------
-      if (gcCH4%diurnal_fire) then
-         allocate(gcCH4%eCH4_d(i1:i2,j1:j2))
-         gcCH4%eCH4_d = gcCH4%eCH4 ! temp storage, put the daily average in eCH4_d so that eCH4 can contain the instantaneous emission
-         call Chem_BiomassDiurnal(gcCH4%eCH4, gcCH4%eCH4_d, w_c%grid%lon(:,:)*radToDeg, w_c%grid%lat(:,:)*radToDeg, nhms, cdt)
-         deallocate(gcCH4%eCH4_d)
-      end if
+      allocate(sfcFlux(i1:i2,j1:j2),        STAT=rc)  ! emissions
+      allocate(flux_3d(i1:i2, j1:j2, 1:km), stat=rc)  ! 3D emissions
+      allocate( myMask(i1:i2,j1:j2),        STAT=rc)  ! region mask
+      allocate(   fPBL(i1:i2,j1:j2,1:km),   STAT=rc)  ! partitioning of BB
+      allocate(mf_to_be_added(i1:i2,j1:j2,1:km), mf_current(i1:i2,j1:j2,1:km), STAT=rc)
 
       ! Find the layer that contains the PBL
       ! Layer thicknesses are ZLE(:,:,0:km)
@@ -1193,62 +1267,49 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 
       ! Establish range of layers on which to work
       ! ------------------------------------------
-      kt = minkPBL
+      kt = minkPBL ! kt means 'k top'
 
-!      Layer: do k = kt,km
+      ! Accumulate total 3D flux to be added in flux_3d
+      flux_3d = 0.0
+      do i = 1, gcCH4%n_sources
+         ! Diurnal cycle needed for this source?
+         if (gcCH4%diurnal_fire(i)) then
+            !allocate(gcCH4%eCH4_d(i1:i2,j1:j2))
+            !gcCH4%eCH4_d = gcCH4%emis(i) ! temp storage, put the daily average in eCH4_d so that emis can contain the instantaneous emission
+            sfcFlux(:,:) = gcCH4%emis(i,:,:) ! temp storage, put the daily average in eCH4_d so that emis can contain the instantaneous emission
+            !call Chem_BiomassDiurnal(gcCH4%emis(i), gcCH4%eCH4_d, w_c%grid%lon(:,:)*radToDeg, w_c%grid%lat(:,:)*radToDeg, nhms, cdt)
+            call Chem_BiomassDiurnal(gcCH4%emis(i,:,:), sfcFlux(:,:), w_c%grid%lon(:,:)*radToDeg, w_c%grid%lat(:,:)*radToDeg, nhms, cdt)
+            !deallocate(gcCH4%eCH4_d)
+         end if
+         ! Do we need to spread this throughout the PBL?
+         if (gcCH4%pbl_inject(i)) then
+            do k = kt, km
+               flux_3d(:,:,k) = flux_3d(:,:,k) + gcCH4%emis(i,:,:) * fPBL(:,:,k)
+            end do
+         else
+            flux_3d(:,:,km) = flux_3d(:,:,km) + gcCH4%emis(i,:,:)
+         end if
+      end do
 
-!         !    Emissions: Weighted biomass burning
-!         !    -----------------------------------
-!         sfcFlux(i1:i2,j1:j2) = gcCH4%eCH4_BB(i1:i2,j1:j2)*fPBL(i1:i2,j1:j2,k)
-
-!         ! Add other emission components when in surface layer
-!         ! ---------------------------------------------------
-!         if (k == km) then
-!            sfcFlux(i1:i2,j1:j2) = sfcFlux(i1:i2,j1:j2) &
-!                                    + gcCH4%eCH4_bf(i1:i2,j1:j2)   &
-!                                    + gcCH4%eCH4_ind(i1:i2,j1:j2)  &
-!                                    + gcCH4%eCH4_agw(i1:i2,j1:j2)  &
-!                                    + gcCH4%eCH4_mnat(i1:i2,j1:j2) &
-!                                    + gcCH4%eCH4_wetl(i1:i2,j1:j2)
-!         end if
-
-!      !    Update CH4 at this level
-!      !    ------------------------
-!         w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)           &
-!                                             + cdt * sfcFlux(i1:i2,j1:j2)*MAPL_AIRMW/mwtCH4 &
-!                                                   / (w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV)
-!      end do Layer
-
-      ! debug
-      mf_current = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km)
-      mf_to_be_added = cdt * gcCH4%eCH4(i1:i2,j1:j2)*MAPL_AIRMW / mwtCH4 / (w_c%delp(i1:i2,j1:j2,km)/MAPL_GRAV)
+      ! Debug to check if any of the mole fractions will turn negative after adding fluxes
+      mf_current = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
+      mf_to_be_added = cdt * flux_3d*MAPL_AIRMW / mwtCH4 / (w_c%delp(i1:i2,j1:j2,1:km)/MAPL_GRAV)
       if (any(mf_current+mf_to_be_added .le. 0.0)) then
-         !do j = j1,j2
-            !do i = i1,i2
-               !if (mf_current(i,j)+mf_to_be_added(i,j) .le. 0.0) then
-                  !write(*,'("NEG MF :: Tag ", a, " at cell i=", i4, ", j=", i4, " has mf = ", es14.7, ", after adding ", es14.7, " will end up with negative MF")') &
-                     !trim(gcCH4%iname), i, j, mf_current(i,j), mf_to_be_added(i,j)
-               !end if
-            !end do
-         !end do
-         write(*,'("For tag ", a, ", pixels where adding emissions makes MF negative = ", i7)') trim(gcCH4%iname), count(mf_current+mf_to_be_added .le. 0.0)
+         write(*,'("    For tag ", a, ", cells where adding emissions makes MF negative = ", i0)') &
+            trim(gcCH4%iname), count(mf_current+mf_to_be_added .le. 0.0)
       end if
-      ! end debug
+      ! End debug
 
-      w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km) + &
-            cdt * gcCH4%eCH4(i1:i2,j1:j2)*MAPL_AIRMW / mwtCH4 / (w_c%delp(i1:i2,j1:j2,km)/MAPL_GRAV)
-
+      ! Update mole fraction
+      w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) + mf_to_be_added
 
       ! Update Surface flux diagnostic for this bin
       ! -------------------------------------------
       if (associated(CH4_emis)) then
-         CH4_emis(i1:i2,j1:j2) = gcCH4%eCH4(i1:i2,j1:j2)
-!!         CH4_emis(i1:i2,j1:j2) = gcCH4%eCH4_bb(i1:i2,j1:j2)   + gcCH4%eCH4_bf(i1:i2,j1:j2)   &
-!!                           + gcCH4%eCH4_ind(i1:i2,j1:j2)  + gcCH4%eCH4_agw(i1:i2,j1:j2)  &
-!!                           + gcCH4%eCH4_mnat(i1:i2,j1:j2) + gcCH4%eCH4_wetl(i1:i2,j1:j2)
+         CH4_emis(i1:i2,j1:j2) = sum(flux_3d, dim=3)
       end if
 
-      deallocate(fPBL, myMask, sfcFlux, mf_to_be_added, mf_current, STAT=rc)
+      deallocate(fPBL, myMask, sfcFlux, mf_to_be_added, mf_current, flux_3d, STAT=rc)
 
       return
 
@@ -1481,13 +1542,17 @@ subroutine CH4_GridCompFinalize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cd
    CHARACTER(LEN=*), PARAMETER :: Iam = 'CH4_GridCompFinalize1_'
    rc = 0
 
-   DEALLOCATE(gcCH4%eCH4,                                         &
+   DEALLOCATE( &
+               !gcCH4%eCH4,                                         &
 !              gcCH4%eCH4_ind, gcCH4%eCH4_wetl,  gcCH4%eCH4_agw,  &
 !              gcCH4%eCH4_bb,  gcCH4%eCH4_bb_,   gcCH4%eCH4_mnat, &
 !              gcCH4%eCH4_bf,  gcCH4%regionMask, gcCH4%OHnd,      &
 !              gcCH4%Clnd,     gcCH4%O1Dnd,                       &
                gcCH4%regionMask, gcCH4%OHnd, gcCH4%Clnd, gcCH4%O1Dnd, &
                STAT=rc)
+   VERIFY_(rc)
+
+   deallocate(gcCH4%emis, gcCH4%source_categs, gcCH4%diurnal_fire, gcCH4%pbl_inject, stat=rc)
    VERIFY_(rc)
 
    return
