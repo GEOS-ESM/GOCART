@@ -118,6 +118,7 @@ real, parameter :: radToDeg = 180./MAPL_PI
 real, parameter :: mwtCH4   = 16.0422
 
 character(len=ESMF_MAXSTR), allocatable :: instances_in_total(:) ! list of instance names that make up total methane
+character(len=ESMF_MAXSTR), allocatable :: all_instance_names(:) ! list of all instances from variable_table_CH4
 
 CONTAINS
 
@@ -147,10 +148,10 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
    call ESMF_ConfigLoadFile(cfg,TRIM(rcbasen)//'.rc',rc=status) ! reading CH4_GridComp.rc
    VERIFY_(STATUS)
 
-   !  Parse resource file
-   !  -------------------
-   n = ESMF_ConfigGetLen(cfg,label='CH4_instances:',rc=status)
-   VERIFY_(STATUS)
+   !!  Parse resource file
+   !!  -------------------
+   !n = ESMF_ConfigGetLen(cfg,label='CH4_instances:',rc=status)
+   !VERIFY_(STATUS)
 
    ! Debug :: print what is already in Chem_Registry
    if (MAPL_AM_I_ROOT()) then
@@ -161,28 +162,35 @@ subroutine CH4_GridCompSetServices(  gc, chemReg, rc)
    end if
    ! End debug
 
-   !  We cannot have fewer instances than the number of
-   !   CH4 bins in the registry (it is OK to have less, though)
-   !  --------------------------------------------------------
-   if ( n < chemReg%n_CH4 ) then ! nbins_CH4 > number of instances in CH4_GridComp.rc
-         rc = 35
-         return
-   else if ( n .GT. chemReg%n_CH4 ) then
-         if (MAPL_AM_I_ROOT()) &
-         PRINT *, TRIM(Iam)//": Bins = ",chemReg%n_CH4," of ",n," expected."
-   end if
-   n = min(n,chemReg%n_CH4 )
+   !!  We cannot have fewer instances than the number of
+   !!   CH4 bins in the registry (it is OK to have less, though)
+   !!  --------------------------------------------------------
+   !if ( n < chemReg%n_CH4 ) then ! nbins_CH4 > number of instances in CH4_GridComp.rc
+         !rc = 35
+         !return
+   !else if ( n .GT. chemReg%n_CH4 ) then
+         !if (MAPL_AM_I_ROOT()) &
+         !PRINT *, TRIM(Iam)//": Bins = ",chemReg%n_CH4," of ",n," expected."
+   !end if
+   !n = min(n,chemReg%n_CH4 )
 
    !  Record name of each instance
-   !  ----------------------------
-   call ESMF_ConfigFindLabel(cfg,'CH4_instances:',rc=status) ! these could be called 'Basu', 'Weir', etc.
-   VERIFY_(STATUS)
+   !!  ----------------------------
+   !call ESMF_ConfigFindLabel(cfg,'CH4_instances:',rc=status) ! these could be called 'Basu', 'Weir', etc.
+   !VERIFY_(STATUS)
 
-   do i = 1, n
-      call ESMF_ConfigGetAttribute(cfg,name,rc=status)
+   !do i = 1, n
+      !call ESMF_ConfigGetAttribute(cfg,name,rc=status)
+      !VERIFY_(STATUS)
+      !call CH4_GridCompSetServices1_(gc,chemReg,name,rc=status)
+      !VERIFY_(STATUS)
+   !end do
+
+   allocate(all_instance_names(chemReg%i_CH4:chemReg%j_CH4))
+   do i = chemReg%i_CH4, chemReg%j_CH4
+      call CH4_GridCompSetServices1_(gc, chemReg%vname(i), rc=status)
       VERIFY_(STATUS)
-      call CH4_GridCompSetServices1_(gc,chemReg,name,rc=status)
-      VERIFY_(STATUS)
+      all_instance_names(i) = trim(chemReg%vname(i))
    end do
 
    ! Now read which instances need to be summed to make the total methane
@@ -275,68 +283,71 @@ subroutine CH4_GridCompInitialize ( gcCH4, w_c, impChem, expChem, nymd, nhms, cd
    CHARACTER(LEN=ESMF_MAXSTR) :: rcbasen = 'CH4_GridComp'
    CHARACTER(LEN=ESMF_MAXSTR) :: name
 
-   INTEGER :: i, n, status
+   INTEGER :: i, n, status, min_i
    !   REAL :: c1,c2,c3,c4
 
    !  Load resource file
    !  ------------------
-   CALL I90_loadf ( TRIM(rcbasen)//'.rc', status ) ! read from CH4_GridComp.rc (must be in current folder?)
-   VERIFY_(status)
+   !CALL I90_loadf ( TRIM(rcbasen)//'.rc', status ) ! read from CH4_GridComp.rc (must be in current folder?)
+   !VERIFY_(status)
 
    !  Parse resource file
    !  -------------------
-   CALL I90_label ( 'CH4_instances:', status ) ! e.g., 'wetland industrial extract transport agwaste onat fire total'
-   VERIFY_(status)
+   !CALL I90_label ( 'CH4_instances:', status ) ! e.g., 'wetland industrial extract transport agwaste onat fire total'
+   !VERIFY_(status)
 
    !  First determine how many instances we have
    !  ------------------------------------------
-   n = 0
-   status = 0
+   !n = 0
+   !status = 0
 
-   DO WHILE ( status == 0 )
-      CALL I90_gtoken( name, status )
-      IF(status == 0) n = n + 1
-   END DO
-   IF ( n == 0 ) THEN
-      status = 1
-      VERIFY_(status)
-   END IF
+   !DO WHILE ( status == 0 )
+      !CALL I90_gtoken( name, status )
+      !IF(status == 0) n = n + 1
+   !END DO
+   !IF ( n == 0 ) THEN
+      !status = 1
+      !VERIFY_(status)
+   !END IF
 
-   !  We cannot have fewer instances than the number of
-   !   CH4 bins in the registry (it is OK to have less, though)
-   !  --------------------------------------------------------
-   ! SB :: Don't understand this yet, will get to it later
-   IF ( n < w_c%reg%n_CH4 ) THEN
-      status = 1
-      VERIFY_(status)
-   ELSE IF ( n >= w_c%reg%n_CH4 ) THEN
-      IF(MAPL_AM_I_ROOT()) PRINT *, TRIM(Iam)//": Bins = ",w_c%reg%n_CH4," of ",n," expected."
-   END IF
-   n = min(n,w_c%reg%n_CH4 )
-   gcCH4%n_inst = n
+   !!  We cannot have fewer instances than the number of
+   !!   CH4 bins in the registry (it is OK to have less, though)
+   !!  --------------------------------------------------------
+   !! SB :: Don't understand this yet, will get to it later
+   !IF ( n < w_c%reg%n_CH4 ) THEN
+      !status = 1
+      !VERIFY_(status)
+   !ELSE IF ( n >= w_c%reg%n_CH4 ) THEN
+      !IF(MAPL_AM_I_ROOT()) PRINT *, TRIM(Iam)//": Bins = ",w_c%reg%n_CH4," of ",n," expected."
+   !END IF
+   !n = min(n,w_c%reg%n_CH4 )
+   !gcCH4%n_inst = n
+   gcCH4%n_inst = size(all_instance_names)
+   min_i = lbound(all_instance_names, dim=1) ! i_CH4
 
    !  Next allocate necessary memory
    !  ------------------------------
-   ALLOCATE ( gcCH4%gcs(n), STAT=status ) ! each instance gets a gcCH4%gcs
+   ALLOCATE ( gcCH4%gcs(gcCH4%n_inst), STAT=status ) ! each instance gets a gcCH4%gcs
    VERIFY_(status)
 
    !  Record name of each instance
    !  ----------------------------
-   CALL I90_label ( 'CH4_instances:', status )
-   VERIFY_(status)
-   DO i = 1, n
-      CALL I90_gtoken( name, status )
-      VERIFY_(status)
+   !CALL I90_label ( 'CH4_instances:', status )
+   !VERIFY_(status)
+   DO i = 1, gcCH4%n_inst
+      !CALL I90_gtoken( name, status )
+      !VERIFY_(status)
       gcCH4%gcs(i)%rcfilen = trim(rcbasen)//'.rc' ! Experiment to read all rc keys from one file
       gcCH4%gcs(i)%instance = i              ! instance number
-      gcCH4%gcs(i)%iname = TRIM(name)
+      !gcCH4%gcs(i)%iname = TRIM(name)
+      gcCH4%gcs(i)%iname = trim(all_instance_names(min_i+i-1))
    END DO
 
    !  Next initialize each instance
    !  -----------------------------
    DO i = 1, gcCH4%n_inst
       IF (MAPL_AM_I_ROOT()) THEN
-         write(*,'("    ", a, ": initializing instance ", a, "[", i0, "]")') trim(Iam), TRIM(gcCH4%gcs(i)%iname), gcCH4%gcs(i)%instance
+         write(*,'("    ", a, ": initializing instance ", i0, ", ", a)') trim(Iam), gcCH4%gcs(i)%instance, TRIM(gcCH4%gcs(i)%iname)
       END IF
       CALL CH4_SingleInstance_ ( CH4_GridCompInitialize1_, i, &
                                 gcCH4%gcs(i), w_c, impChem, expChem,  &
@@ -354,8 +365,8 @@ subroutine CH4_GridCompInitialize ( gcCH4, w_c, impChem, expChem, nymd, nhms, cd
 
    !  All done
    !  --------
-   CALL I90_FullRelease( status )
-   VERIFY_(status)
+   !CALL I90_FullRelease( status )
+   !VERIFY_(status)
 
 end subroutine CH4_GridCompInitialize
 
@@ -496,13 +507,14 @@ subroutine CH4_GridCompFinalize ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt,
    DEALLOCATE ( gcCH4%gcs, stat=status )
    gcCH4%n_inst = -1
 
-   deallocate(instances_in_total)
+   deallocate(instances_in_total, all_instance_names)
 
 end subroutine CH4_GridCompFinalize
 
-subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
+!subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
+subroutine CH4_GridCompSetServices1_(  gc, iname, rc)
    type(ESMF_GridComp), intent(INOUT) :: GC
-   type(Chem_Registry), intent(INOUT) :: chemReg
+   !type(Chem_Registry), intent(INOUT) :: chemReg
    character(len=*),    intent(IN   ) :: iname
    integer,             intent(OUT  ) :: rc
 
@@ -521,7 +533,7 @@ subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
    VERIFY_(STATUS)
    call ESMF_ConfigFindLabel(cfg, 'emissions.'//trim(iname)//':', rc=status)
    if (status .ne. ESMF_SUCCESS) then
-      emis_varname = 'CH4_'//trim(iname)
+      emis_varname = 'emis_'//trim(iname)
       call MAPL_AddImportSpec(GC, &
          SHORT_NAME = trim(emis_varname), &
          LONG_NAME  = 'source species'  , &
@@ -577,21 +589,21 @@ subroutine CH4_GridCompSetServices1_(  gc, chemReg, iname, rc)
       __RC__)
 
    call MAPL_AddExportSpec(GC,  &
-      SHORT_NAME         = 'CH4EM'//trim(iname),  &
+      SHORT_NAME         = 'EM_'//trim(iname),  &
       LONG_NAME          = 'CH4 Emission '//trim(iname),  &
       UNITS              = 'kg m-2 s-1', &
       DIMS               = MAPL_DimsHorzOnly,    &
       VLOCATION          = MAPL_VLocationNone,    &
       __RC__)
    call MAPL_AddExportSpec(GC,  &
-      SHORT_NAME         = 'CH4LS'//trim(iname),  &
+      SHORT_NAME         = 'LS_'//trim(iname),  &
       LONG_NAME          = 'CH4 Loss '//trim(iname),  &
       UNITS              = 'kg m-2 s-1', &
       DIMS               = MAPL_DimsHorzOnly,    &
       VLOCATION          = MAPL_VLocationNone,    &
       __RC__)
    call MAPL_AddExportSpec(GC,  &
-      SHORT_NAME         = 'CH4JL'//trim(iname),  &
+      SHORT_NAME         = 'JL_'//trim(iname),  &
       LONG_NAME          = 'CH4 Loss '//trim(iname),  &
       UNITS              = 'kg m-2 s-1', &
       DIMS               = MAPL_DimsHorzOnly,    &
@@ -725,17 +737,17 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
       if (dummy_int > 0) gcCH4%in_total = .true.
    end do
    if (MAPL_AM_I_ROOT()) then
-      if (gcCH4%in_total) write(*,'("    Total methane contains component ", a)') trim(gcCH4%iname)
-      if (.not. gcCH4%in_total) write(*,'("    Total methane does not contain component ", a)') trim(gcCH4%iname)
+      if (gcCH4%in_total) write(*,'("    ", a, ": total methane contains component ", a)') trim(Iam), trim(gcCH4%iname)
+      if (.not. gcCH4%in_total) write(*,'("    ", a, ": total methane does not contain component ", a)') trim(Iam), trim(gcCH4%iname)
    end if
 
-   ! Which emission categories will contribute to this instance? By default assign 'CH4_instance' if not specified
+   ! Which emission categories will contribute to this instance? By default assign 'emis_CH4instance' if not specified
    !  -------------------------------------------------
    call ESMF_ConfigFindLabel(cfg, 'emissions.'//trim(gcCH4%iname)//':', rc=status)
    if (status .ne. ESMF_SUCCESS) then
       gcCH4%n_sources = 1
       allocate(gcCH4%source_categs(1))
-      gcCH4%source_categs(1) = 'CH4_'//trim(gcCH4%iname) ! for backward compatibility with older rc files
+      gcCH4%source_categs(1) = 'emis_'//trim(gcCH4%iname)
       if (MAPL_AM_I_ROOT()) write(*,'("    ", a, ": emission from ", a, " to be added to ", a)') trim(Iam), trim(gcCH4%source_categs(1)), trim(gcCH4%iname)
    else
       gcCH4%n_sources = ESMF_ConfigGetLen(cfg, label='emissions.'//trim(gcCH4%iname)//':', __RC__)
@@ -755,12 +767,12 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
       call ESMF_ConfigGetAttribute(cfg, value=gcCH4%diurnal_fire(i), label=trim(gcCH4%source_categs(i))//'.diurnal_fire:', &
          default=.false., __RC__)
       if (MAPL_AM_I_ROOT() .and. gcCH4%diurnal_fire(i)) &
-         write(*,'("    Fire-like diurnal cycle applied for source ", a, " in instance ", a)') trim(gcCH4%source_categs(i)), trim(gcCH4%iname)
+         write(*,'("    ", a, ": fire-like diurnal cycle applied for source ", a, " in instance ", a)') trim(Iam), trim(gcCH4%source_categs(i)), trim(gcCH4%iname)
       ! Should we distribute this source throughout the PBL instead of at the surface?
       call ESMF_ConfigGetAttribute(cfg, value=gcCH4%pbl_inject(i), label=trim(gcCH4%source_categs(i))//'.pbl_injection:', &
          default=.false., __RC__)
       if (MAPL_AM_I_ROOT() .and. gcCH4%pbl_inject(i)) &
-         write(*,'("    Emission of ", a, " in category ", a, " to be spread through the PBL")') trim(gcCH4%source_categs(i)), trim(gcCH4%iname)
+         write(*,'("    ", a, ": emission of ", a, " in category ", a, " to be spread through the PBL")') trim(Iam), trim(gcCH4%source_categs(i)), trim(gcCH4%iname)
    end do
 
    !  Maximum allowed solar zenith angle for "daylight"
@@ -802,16 +814,6 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
    call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='do_photolysis:', default=.false., __RC__)
    call ESMF_ConfigGetAttribute(cfg, value=gcCH4%photolysis, label='do_photolysis.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
    if (MAPL_AM_I_ROOT() .and. gcCH4%photolysis) write(*,'("    Photolytic loss turned on for ", a)') trim(gcCH4%iname)
-
-   !! Should we apply a fire-like diurnal cycle?
-   !!  ----------------------
-   !call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='diurnal_fire:', default=.false., __RC__)
-   !call ESMF_ConfigGetAttribute(cfg, value=gcCH4%diurnal_fire, label='diurnal_fire.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
-   !if (MAPL_AM_I_ROOT() .and. gcCH4%diurnal_fire) write(*,'("Fire-like diurnal cycle applied for ", a)') trim(gcCH4%iname)
-
-   !call ESMF_ConfigGetAttribute(cfg, value=dummy_bool, label='pbl_injection:', default=.false., __RC__)
-   !call ESMF_ConfigGetAttribute(cfg, value=gcCH4%pbl_inject, label='pbl_injection.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
-   !if (MAPL_AM_I_ROOT() .and. gcCH4%pbl_inject) write(*,'("Emission of ", a, " to be spread through the PBL")') trim(gcCH4%iname)
 
    call MAPL_GetPointer(impChem,ptr2D,'CH4_regionMask',rc=status)
    VERIFY_(STATUS)
@@ -936,34 +938,34 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
 #define EXPORT   expChem
 #define iNAME    TRIM(gcCH4%iname)
 
-#define CH4EM    CH4_emis
+!#define CH4EM    CH4_emis
 !#define CH4CL    CH4_column
 !#define CH4SC    CH4_surface
 !#define CH4PD    CH4_prod
-#define CH4LS    CH4_loss
-#define CH4JL    CH4_phot
+!#define CH4LS    CH4_loss
+!#define CH4JL    CH4_phot
 !#define CH4QP    CH4_qprod
 !#define CH4DRY   CH4_dry
 
-   real, pointer, dimension(:,:)   :: CH4EM => null() ! EXPORT: CH4 Emission
+   real, pointer, dimension(:,:)   :: CH4_emis => null() ! EXPORT: CH4 Emission
    real, pointer, dimension(:,:)   :: CH4PD => null() ! EXPORT: CH4 Chemical Production
-   real, pointer, dimension(:,:)   :: CH4LS => null() ! EXPORT: CH4 Chemical Loss
+   real, pointer, dimension(:,:)   :: CH4_loss => null() ! EXPORT: CH4 Chemical Loss
    real, pointer, dimension(:,:)   :: CH4SC => null() ! EXPORT: CH4 Surface Concentration
    real, pointer, dimension(:,:)   :: CH4CL => null() ! EXPORT: CH4 Column Burden
-   real, pointer, dimension(:,:)   :: CH4JL => null() ! EXPORT: CH4 Photolytic Loss
+   real, pointer, dimension(:,:)   :: CH4_phot => null() ! EXPORT: CH4 Photolytic Loss
    real, pointer, dimension(:,:,:) :: CH4QP => null() ! EXPORT: H2O tendency from CH4 photolysis
 
-   call MAPL_GetPointer ( EXPORT, CH4EM,  'CH4EM'//iNAME, RC=STATUS )
+   call MAPL_GetPointer ( EXPORT, CH4_emis,  'EM_'//iNAME, RC=STATUS )
    _VERIFY(STATUS)
    !call MAPL_GetPointer ( EXPORT, CH4PD,  'CH4PD'//iNAME, RC=STATUS )
    !_VERIFY(STATUS)
-   call MAPL_GetPointer ( EXPORT, CH4LS,  'CH4LS'//iNAME, RC=STATUS )
+   call MAPL_GetPointer ( EXPORT, CH4_loss,  'LS_'//iNAME, RC=STATUS )
    _VERIFY(STATUS)
    !call MAPL_GetPointer ( EXPORT, CH4SC,  'CH4SC'//iNAME, RC=STATUS )
    !_VERIFY(STATUS)
    !call MAPL_GetPointer ( EXPORT, CH4CL,  'CH4CL'//iNAME, RC=STATUS )
    !_VERIFY(STATUS)
-   call MAPL_GetPointer ( EXPORT, CH4JL,  'CH4JL'//iNAME, RC=STATUS )
+   call MAPL_GetPointer ( EXPORT, CH4_phot,  'JL_'//iNAME, RC=STATUS )
    _VERIFY(STATUS)
    !call MAPL_GetPointer ( EXPORT, CH4QP,  'CH4QP'//iNAME, RC=STATUS )
    !_VERIFY(STATUS)
