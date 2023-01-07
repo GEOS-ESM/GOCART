@@ -54,6 +54,7 @@
 !
 !  25feb2005  da Silva  First crack.
 !  19jul2006  da Silva  First separate GOCART component.
+!  24oct2019      Weir  Connectivity for CoDAS.
 !
 !EOP
 !-------------------------------------------------------------------------
@@ -69,6 +70,10 @@
   type GOCART_WRAP
      type (GOCART_State), pointer :: PTR => null()
   end type GOCART_WRAP
+
+! Use analyzed tracer fields? (for CoDAS IAU only)
+  logical, allocatable :: doCODAS(:)
+  character(len=ESMF_MAXSTR) :: codas_name
 
 CONTAINS
 
@@ -123,6 +128,9 @@ CONTAINS
 
     character(len=ESMF_MAXSTR)      :: field_name
     character(len=ESMF_MAXSTR)      :: chem_registry_file
+
+!   Variables for CoDAS IAU
+    integer                         :: i, m
 
 !                              ------------
 
@@ -649,10 +657,11 @@ CONTAINS
         RESTART    = MAPL_RestartSkip,   __RC__)
 
 
+!    bweir: This doesn't belong here and should be removed
      call ESMF_ConfigGetAttribute(CF, DO_CO2CNNEE, label='USE_CNNEE:', default=0, __RC__)
 
      if (DO_CO2CNNEE == 1) then
-        call MAPL_AddImportSpec(GC,                           &
+        call MAPL_AddImportSpec(GC,                             &
              SHORT_NAME = 'CNNEE',                              &
              LONG_NAME  = 'CN_net_ecosystem_exchange',          &
              UNITS      = 'kg m-2 s-1',                         &
@@ -660,6 +669,46 @@ CONTAINS
              VLOCATION  = MAPL_VLocationNone, __RC__)
      endif
 
+!    Imports for CoDAS IAU
+!    ---------------------
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'QTOT',                               &
+        LONG_NAME  = 'mass_fraction_of_all_water',         &
+        UNITS      = 'kg kg-1',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter, __RC__)
+
+     m = state%chemReg%i_GOCART
+     n = state%chemReg%j_GOCART
+
+     ALLOCATE(doCODAS(m:n), STAT=STATUS)
+     VERIFY_(STATUS)
+     doCODAS(:) = .false.
+
+     do i = m,n
+        field_name = state%chemReg%vname(i)
+
+        call ESMF_ConfigGetAttribute(CF, codas_name, Default="None", &
+             Label="CODAS_"//trim(field_name)//"_PROVIDER:", RC=STATUS)
+        VERIFY_(STATUS)
+
+        if (codas_name == comp_name) doCODAS(i) = .true.
+
+        if (doCODAS(i)) then
+           if (MAPL_AM_I_ROOT()) print *, "CoDAS: Applying IAU to ", &
+                                 trim(comp_name)//"::"//trim(field_name)
+
+           call MAPL_AddImportSpec(GC,                 &
+                SHORT_NAME = "INC_"//trim(field_name), &
+                LONG_NAME  = "analyzed_"//trim(field_name)//"_increment", &
+                UNITS      = "mol mol-1",              &
+                DIMS       = MAPL_DimsHorzVert,        &
+                VLOCATION  = MAPL_VLocationCenter,     &
+                RESTART    = MAPL_RestartSkip,         &
+                RC         = STATUS)
+           VERIFY_(STATUS)
+        endif
+     enddo
      
 if ( r%doing_GOCART ) then
 
@@ -1130,6 +1179,10 @@ CONTAINS
 
    type(GOCART_state), pointer     :: myState
 
+!  Variables for CoDAS IAU
+   real, pointer, dimension(:,:,:) :: ptr_inc => null()
+   real, pointer, dimension(:,:,:) ::    qtot => null()
+   integer                         :: i, m
 
 !                               ---
 
@@ -1188,6 +1241,27 @@ CONTAINS
 !  ----------
    call MAPL_GetPointer ( impChem, rh2, 'RH2', __RC__ )
    w_c%rh = rh2
+
+!  Apply CoDAS IAU if apropros 
+!  ---------------------------
+   m = ChemReg%i_GOCART
+   n = ChemReg%j_GOCART
+
+   do i = m,n
+      if (doCODAS(i)) then
+         call MAPL_GetPointer ( impChem, ptr_inc,               &
+                                "INC_"//TRIM(ChemReg%vname(i)), &
+                                notFoundOK=.TRUE., RC=STATUS )
+         VERIFY_(STATUS)
+         call MAPL_GetPointer ( impChem, qtot, "QTOT", rc=STATUS )
+         VERIFY_(STATUS)
+
+!        Make increment total air, then apply
+!        (6 hour divisor should be read from RC file)
+         ptr_inc = ptr_inc * (1. - qtot)
+         w_c%qa(i)%data3d = w_c%qa(i)%data3d + ptr_inc*cdt/(6.*60.*60.)
+      endif
+   enddo
 
 !  Make sure tracers remain positive
 !  ---------------------------------
@@ -1534,6 +1608,11 @@ CONTAINS
 !  Destroy Legacy state
 !  --------------------
    deallocate ( state%chemReg, state%gcChem, state%w_c, stat = STATUS )
+   VERIFY_(STATUS)
+
+!  Destroy CoDAS IAU instructions
+!  ------------------------------
+   deallocate ( doCODAS, stat = STATUS )
    VERIFY_(STATUS)
 
    call MAPL_TimerOff(ggState, 'FINALIZE')

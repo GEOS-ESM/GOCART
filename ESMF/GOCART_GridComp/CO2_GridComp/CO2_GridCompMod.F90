@@ -20,7 +20,6 @@
    use Chem_StateMod         ! Chemistry State
    use Chem_UtilMod
    use m_inpak90             ! Resource file management
-   USE Henrys_law_ConstantsMod, ONLY: get_HenrysLawCts
 
    implicit none
 
@@ -78,10 +77,10 @@
         logical            :: OCN_FLUX_CALC      ! Method of ocean flux calculation from input file name
   end type CO2_GridComp
 
-  real, parameter :: radToDeg = 57.2957795
-
-  real, parameter :: mwtCO2   = 44.00
-  real, parameter :: mwtC     = 12.00
+! real, parameter :: radToDeg = 57.2957795
+  real, parameter :: radToDeg = 180./MAPL_PI
+  real, parameter :: mwtCO2   = 44.0098
+  real, parameter :: mwtC     = 12.0110
 
 CONTAINS
 
@@ -304,7 +303,6 @@ CONTAINS
    integer :: nbins, nbeg, nend, nbins_rc, nymd1, nhms1
    integer :: nTimes, begTime, incSecs
    real    :: qmin, qmax
-   REAL    :: c1,c2,c3,c4
 
    gcCO2%name = 'CO2 Constituent Package'
 
@@ -431,14 +429,6 @@ CONTAINS
      gcCO2%OCN_FLUX_CALC=.false.
    end if
 
-!  Get Henrys Law cts for the parameterized convective wet removal
-!  -----------------------------------------------------------
-   CALL get_HenrysLawCts('CO2',c1,c2,c3,c4)  
-   w_c%reg%Hcts(1,w_c%reg%i_CO2 : w_c%reg%j_CO2)=c1
-   w_c%reg%Hcts(2,w_c%reg%i_CO2 : w_c%reg%j_CO2)=c2
-   w_c%reg%Hcts(3,w_c%reg%i_CO2 : w_c%reg%j_CO2)=c3
-   w_c%reg%Hcts(4,w_c%reg%i_CO2 : w_c%reg%j_CO2)=c4
-
    DEALLOCATE(ier)
 
    return
@@ -492,23 +482,23 @@ CONTAINS
 
 ! !USES:
 
-  implicit NONE
+   implicit none
 
 ! !INPUT/OUTPUT PARAMETERS:
 
    type(CO2_GridComp), intent(inout) :: gcCO2   ! Grid Component
-   type(Chem_Bundle), intent(inout) :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle),  intent(inout) :: w_c     ! Chemical tracer fields   
 
 ! !INPUT PARAMETERS:
 
-   type(ESMF_State), intent(inout) :: impChem    ! Import State
-   integer, intent(in) :: nymd, nhms          ! time
-   real,    intent(in) :: cdt                 ! chemical timestep (secs)
+   type(ESMF_State), intent(inout) :: impChem   ! Import State
+   integer, intent(in) :: nymd, nhms            ! time
+   real,    intent(in) :: cdt                   ! chemical timestep (secs)
 
 
 ! !OUTPUT PARAMETERS:
 
-   type(ESMF_State), intent(inout) :: expChem     ! Export State
+   type(ESMF_State), intent(inout) :: expChem   ! Export State
    integer, intent(out) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 -
@@ -526,14 +516,9 @@ CONTAINS
 !  25OCT2005     Bian  Mods for 5 regions
 !  29SEP2017     Weir  Lots of zero diff (hopefully) changes to make
 !                      understandable
+!  19SEP2019     Weir  More zero diff (hopefully) changes to make
+!                      understandable
 
-!  Mask  Region
-!  ----  -------------
-!    1   North America
-!    2   Mexico
-!    3   Europe
-!    4   Asia
-!    5   Africa
 !
 !EOP
 !-------------------------------------------------------------------------
@@ -544,13 +529,11 @@ CONTAINS
 !  Input fields from fvGCM
 !  -----------------------
    REAL, POINTER, DIMENSION(:,:)   ::  pblh  => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  zle   => null()
    REAL, POINTER, DIMENSION(:,:)   ::  ps    => null()
    REAL, POINTER, DIMENSION(:,:)   ::  v10m  => null()
    REAL, POINTER, DIMENSION(:,:)   ::  u10m  => null()
    REAL, POINTER, DIMENSION(:,:,:) ::  T     => null()
-   REAL, POINTER, DIMENSION(:,:,:) ::  zle   => null()
-   REAL, POINTER, DIMENSION(:,:,:) ::  q     => null()
-   REAL, POINTER, DIMENSION(:,:,:) ::  qctot => null()
    REAL, POINTER, DIMENSION(:,:,:) ::  qtot  => null()
 
    integer :: i1, i2, im, j1, j2, jm, km, idiag, ios, ijl
@@ -562,10 +545,14 @@ CONTAINS
    REAL, POINTER, DIMENSION(:,:)   :: ptr2d => null()
    REAL, POINTER, DIMENSION(:,:,:) :: ptr3d => null()
 
+   REAL, ALLOCATABLE, DIMENSION(:,:) :: tpsdry
+   REAL, ALLOCATABLE, DIMENSION(:,:) :: tco2dry
+
 #define EXPORT     expChem
 
 #define ptrCO2EM      CO2_emis
 #define ptrCO2CL      CO2_column
+#define ptrCO2CD      CO2_coldry
 #define ptrCO2SC      CO2_surface
 #define ptrCO2DRY     CO2_dry
 
@@ -598,9 +585,9 @@ CONTAINS
       call die(myname,'nbins in chem registry must be <= those in component registry')
    end if
 
-!   Read climatological emissions, if specified
-!   -------------------------------------------
-    IF ( .NOT. gcCO2%CMS_EMIS ) THEN
+!  Read climatological emissions, if specified
+!  -------------------------------------------
+   IF ( .NOT. gcCO2%CMS_EMIS ) THEN
 
 !     Biomass burning
 !     ---------------
@@ -631,11 +618,13 @@ CONTAINS
 !     In principle this adds a factor that needs to be balanced on an
 !     interannual basis.  For year 2000 TRMM (GFED v 1.2) emissions this
 !     factor is 1.2448
+!     bweir: WHA?!?
 !     ------------------------------------------------------------------
-      WHERE(gcCO2%eCO2_NEP(i1:i2,j1:j2) .le. 0.0) &
+      where (gcCO2%eCO2_NEP(i1:i2,j1:j2) .le. 0.0)
           gcCO2%eCO2_NEP(i1:i2,j1:j2) = gcCO2%eCO2_NEP(i1:i2,j1:j2)*gcCO2%BioDrawDownFactor
+      end where
 
-    ELSE ! TYPE OF EMISS IS CMS			     
+   ELSE ! TYPE OF EMISS IS CMS			     
 
       call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_BIOMASS',rc=status)
       VERIFY_(STATUS)
@@ -649,7 +638,7 @@ CONTAINS
       VERIFY_(STATUS)
       gcCO2%eCO2_NEP = ptr2d
 
-      IF( gcCO2%OCN_FLUX_CALC )  THEN
+      if ( gcCO2%OCN_FLUX_CALC ) then
          call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_T',rc=status)
          VERIFY_(STATUS)
          gcCO2%sst = ptr2d
@@ -681,12 +670,12 @@ CONTAINS
    gcCO2%eCO2_OCN(i1:i2,j1:j2) = gcCO2%eCO2_OCN(i1:i2,j1:j2) * c2co2
    gcCO2%eCO2_FF(i1:i2,j1:j2)  = gcCO2%eCO2_FF(i1:i2,j1:j2)  * c2co2
 !  Mimicking original code: only convert biomass burning for CMS emissions case
-   IF ( gcCO2%CMS_EMIS ) THEN
+   if ( gcCO2%CMS_EMIS ) then
       gcCO2%eCO2_BB(i1:i2,j1:j2) = gcCO2%eCO2_BB(i1:i2,j1:j2) * c2co2
-   END IF
+   end if
 
-!  Apply diurnal cycle if so desired
-!  ---------------------------------
+!  Apply diurnal cycle if desired
+!  ------------------------------
    if ( w_c%diurnal_bb ) then
       gcCO2%eCO2_BB_(:,:) = gcCO2%eCO2_BB(:,:)
 
@@ -698,79 +687,90 @@ CONTAINS
 !  Get imports
 !  -----------
    call MAPL_GetPointer ( impChem, pblh, 'ZPBL',    rc=ier(1) ) 
-   call MAPL_GetPointer ( impChem, T,    'T',       rc=ier(2) ) 
    call MAPL_GetPointer ( impChem, zle,  'ZLE',     rc=ier(4) ) 
+   call MAPL_GetPointer ( impChem, T,    'T',       rc=ier(2) ) 
    call MAPL_GetPointer ( impChem, u10m, 'U10M',    rc=ier(5) )
    call MAPL_GetPointer ( impChem, v10m, 'V10M',    rc=ier(6) )
    call MAPL_GetPointer ( impChem, ps,   'PS',      rc=ier(7) )
-   call MAPL_GetPointer ( impChem, q,    'Q',       rc=ier(8) ) 
-   call MAPL_GetPointer ( impChem, qctot,'QCTOT',   rc=ier(9) ) 
+   call MAPL_GetPointer ( impChem, qtot, 'QTOT',    rc=ier(8) ) 
 
-   IF(gcCO2%DBG) THEN
-    CALL pmaxmin('CO2: e_ff',  gcCO2%eCO2_FF,  qmin, qmax, ijl, 1, 1. )
-    CALL pmaxmin('CO2: e_nep', gcCO2%eCO2_NEP, qmin, qmax, ijl, 1, 1. )
-    CALL pmaxmin('CO2: e_ocn', gcCO2%eCO2_OCN, qmin, qmax, ijl, 1, 1. )
-    CALL pmaxmin('CO2: e_bb',  gcCO2%eCO2_BB,  qmin, qmax, ijl, 1, 1. )
+   if (gcCO2%DBG) then
+      call pmaxmin('CO2: e_ff',  gcCO2%eCO2_FF,  qmin, qmax, ijl, 1, 1. )
+      call pmaxmin('CO2: e_nep', gcCO2%eCO2_NEP, qmin, qmax, ijl, 1, 1. )
+      call pmaxmin('CO2: e_ocn', gcCO2%eCO2_OCN, qmin, qmax, ijl, 1, 1. )
+      call pmaxmin('CO2: e_bb',  gcCO2%eCO2_BB,  qmin, qmax, ijl, 1, 1. )
 
-    CALL pmaxmin('CO2: pblh', pblh, qmin, qmax, ijl, 1,    1. )
-    CALL pmaxmin('CO2: ps',   ps,   qmin, qmax, ijl, 1,    1. )
-    CALL pmaxmin('CO2: u10m', u10m, qmin, qmax, ijl, 1,    1. )
-    CALL pmaxmin('CO2: v10m', v10m, qmin, qmax, ijl, 1,    1. )
-    CALL pmaxmin('CO2: T',    T,    qmin, qmax, ijl, km,   1. )
-    CALL pmaxmin('CO2: zle',  zle,  qmin, qmax, ijl, km+1, 1. )
-    CALL pmaxmin('CO2: q',    q,    qmin, qmax, ijl, km,   1. )
-    CALL pmaxmin('CO2: qc',   qctot,qmin, qmax, ijl, km,   1. )
-   END IF
+      call pmaxmin('CO2: pblh', pblh, qmin, qmax, ijl, 1,    1. )
+      call pmaxmin('CO2: ps',   ps,   qmin, qmax, ijl, 1,    1. )
+      call pmaxmin('CO2: u10m', u10m, qmin, qmax, ijl, 1,    1. )
+      call pmaxmin('CO2: v10m', v10m, qmin, qmax, ijl, 1,    1. )
+      call pmaxmin('CO2: T',    T,    qmin, qmax, ijl, km,   1. )
+      call pmaxmin('CO2: zle',  zle,  qmin, qmax, ijl, km+1, 1. )
+      call pmaxmin('CO2: qtot', qtot, qmin, qmax, ijl, km,   1. )
+   end if
 
-!  CO2 Emissions
-!  -------------
-   CALL CO2_Emission(rc)
-
+!  Read and apply CO2 Emissions
+!  ----------------------------
+   call CO2_Emission(rc)
 
 !  Fill the export states
 !  ----------------------
-!  Surface concentration in ppmv
-   do n = 1, nbins
+
+!  Surface concentration [ppmv]
+!  ----------------------------
+   do n = 1,nbins
     if(associated(CO2_surface(n)%data2d)) &
-      CO2_surface(n)%data2d(i1:i2,j1:j2) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,km)*1.e6
+      CO2_surface(n)%data2d(i1:i2,j1:j2) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,km)*1.00E6
    enddo
 
-!  Column burden in kg m-2
-!  -----------------------
-   do n = 1, nbins
-     if(associated(CO2_column(n)%data2d)) then
-      CO2_column(n)%data2d(i1:i2,j1:j2) = 0.
-      do k = 1, km
-       CO2_column(n)%data2d(i1:i2,j1:j2) &
-        =   CO2_column(n)%data2d(i1:i2,j1:j2) &
-          +   w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)*w_c%delp(i1:i2,j1:j2,k)
-      enddo
-      CO2_column(n)%data2d(i1:i2,j1:j2)=CO2_column(n)%data2d(i1:i2,j1:j2)/(ps(i1:i2,j1:j2)-w_c%grid%ptop)
-    endif
+!  Column burden [kg m-2]
+!  ----------------------
+   do n = 1,nbins
+      if (associated(CO2_column(n)%data2d)) then
+         CO2_column(n)%data2d(i1:i2,j1:j2) = 0.
+         do k = 1,km
+           CO2_column(n)%data2d(i1:i2,j1:j2) = CO2_column(n)%data2d(i1:i2,j1:j2) &
+                 + w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)*mwtCO2/MAPL_AIRMW      &
+                            * w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV
+         enddo
+      endif
    enddo
 
-!  Dry-air molar mixing ratio
-!  --------------------------
-   ALLOCATE(qtot(i1:i2,j1:j2,1:km),STAT=ios)
-   qtot(i1:i2,j1:j2,1:km) = q(i1:i2,j1:j2,1:km)+qctot(i1:i2,j1:j2,1:km)
-   do n = 1, nbins
+!  Dry-air mole fraction [mol mol-1]
+!  ---------------------------------
+   do n = 1,nbins
      if(associated(CO2_dry(n)%data3d)) then
-      CO2_dry(n)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,1:km) / &
-                                            (1.0 - qtot(i1:i2,j1:j2,1:km))
+      CO2_dry(n)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,1:km) &
+                                                       / (1. - qtot(i1:i2,j1:j2,1:km))
      endif
    enddo
-   DEALLOCATE(qtot,STAT=ios)
+
+!  Dry-air column average [mol mol-1]
+!  ----------------------------------
+   allocate(tpsdry(i1:i2,j1:j2),  stat=ios)    ! total dry-air surface pressure
+   allocate(tco2dry(i1:i2,j1:j2), stat=ios)    ! total co2     surface pressure
+
+   do n = 1,nbins
+     if(associated(CO2_coldry(n)%data2d)) then
+         tpsdry(i1:i2,j1:j2)  = 0.
+         tco2dry(i1:i2,j1:j2) = 0.
+         do k = 1,km
+           tpsdry(i1:i2,j1:j2)  = tpsdry(i1:i2,j1:j2)  + w_c%delp(i1:i2,j1:j2,k)*(1. - qtot(i1:i2,j1:j2,k))
+           tco2dry(i1:i2,j1:j2) = tco2dry(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)
+         enddo
+         CO2_coldry(n)%data2d(i1:i2,j1:j2) = tco2dry(i1:i2,j1:j2)/tpsdry(i1:i2,j1:j2)
+      endif
+   enddo
+
+   deallocate(tpsdry, tco2dry)
 
 !  Fill the export state with current mixing ratios
 !  ------------------------------------------------
-   if(associated(CO2%data3d)) &
-      CO2%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
-   if(associated(CO2NAMER%data3d)) &
-      CO2NAMER%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg+1)%data3d(i1:i2,j1:j2,1:km)
-   if(associated(CO2SAMER%data3d)) &
-      CO2SAMER%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg+2)%data3d(i1:i2,j1:j2,1:km)
-   if(associated(CO2AFRIC%data3d)) &
-      CO2AFRIC%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg+3)%data3d(i1:i2,j1:j2,1:km)
+   do n = 1,nbins
+      if (associated(CO2BIN(n)%data3d)) then
+         CO2BIN(n)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,1:km)
+      endif
+   enddo
 
    return
 
@@ -799,172 +799,148 @@ CONTAINS
 !
 !EOP
 !-------------------------------------------------------------------------
-   SUBROUTINE CO2_Emission ( rc )
+     SUBROUTINE CO2_Emission ( rc )
 !-------------------------------------------------------------------------
 
-! !USES:
+     IMPLICIT NONE
 
-  IMPLICIT NONE
+!    OUTPUT VARIABLES
+     INTEGER, INTENT(OUT) :: rc ! Error return code
 
-! !INPUT PARAMETERS:
+!    LOCAL VARIABLES
+     CHARACTER(LEN=*), PARAMETER :: myname = 'CO2_Emission'
 
-! !OUTPUT PARAMETERS:
+     INTEGER ::  i, j, k, kt, minkPBL
+     INTEGER, ALLOCATABLE :: index(:)
 
-   INTEGER, INTENT(OUT) :: rc ! Error return code
+     REAL, ALLOCATABLE :: pblLayer(:,:),sfcFlux(:,:),myMask(:,:)
+     REAL, ALLOCATABLE :: fPBL(:,:,:)
 
-! !LOCAL VARIABLES
+     real :: scco2, scco2arg,wssq,rkwco2,tk,tk100,tk1002,ff
+     real :: ffuatm,xco2,deltco2,wspd,flxmolm2
 
-   CHARACTER(LEN=*), PARAMETER :: myname = 'CO2_Emission'
+     rc = 0
 
-   INTEGER ::  i, j, k, kt, minkPBL
-   INTEGER, ALLOCATABLE :: index(:)
+     ALLOCATE(sfcFlux(i1:i2,j1:j2),STAT=ios)        ! emissions
+     ALLOCATE(myMask(i1:i2,j1:j2),STAT=ios)         ! region mask
+     ALLOCATE(fPBL(i1:i2,j1:j2,1:km),STAT=ios)      ! partitioning of BB
 
-   REAL, ALLOCATABLE :: pblLayer(:,:),sfcFlux(:,:),myMask(:,:)
-   REAL, ALLOCATABLE :: fPBL(:,:,:)
-
-   real :: scco2, scco2arg,wssq,rkwco2,tk,tk100,tk1002,ff
-   real :: ffuatm,xco2,deltco2,wspd,flxmolm2
-
-   rc = 0
-
-! Grab some memory for manipulating emissions, ...
-! ------------------------------------------------
-   ALLOCATE(sfcFlux(i1:i2,j1:j2),STAT=ios)
-
-! ... for the partitioning of BB, ...
-! -----------------------------------
-   ALLOCATE(fPBL(i1:i2,j1:j2,1:km),STAT=ios)
-   fPBL(i1:i2,j1:j2,1:km)=0.00
-
-! ... and for local copy of the region mask.
-! ------------------------------------------
-   ALLOCATE(myMask(i1:i2,j1:j2),STAT=ios)
-
-! Find the layer that contains the PBL.
-! Layer thicknesses are ZLE(:,:,0:km).
-! -------------------------------------
-   ALLOCATE(index(0:km),STAT=ios)
-   ALLOCATE(pblLayer(i1:i2,j1:j2),STAT=ios)
-   DO j=j1,j2
-     DO i=i1,i2
-      index(0:km)=0
-      WHERE(zle(i,j,0:km)-zle(i,j,km) > pblh(i,j)) index(0:km)=1
-      pblLayer(i,j)=SUM(index)
+!    Find the layer that contains the PBL.
+!    Layer thicknesses are ZLE(:,:,0:km).
+!    -------------------------------------
+     ALLOCATE(index(0:km),STAT=ios)
+     ALLOCATE(pblLayer(i1:i2,j1:j2),STAT=ios)
+     DO j=j1,j2
+       DO i=i1,i2
+        index(0:km)=0
+        WHERE(zle(i,j,0:km)-zle(i,j,km) > pblh(i,j)) index(0:km)=1
+        pblLayer(i,j)=SUM(index)
+       END DO
      END DO
-   END DO
-   minkPBL=MINVAL(pblLayer)
+     minkPBL=MINVAL(pblLayer)
 
-! Determine partitioning fraction based on layer thicknesses
-! ----------------------------------------------------------
-   DO j=j1,j2
-     DO i=i1,i2
-      kt=pblLayer(i,j)
-      DO k=kt,km
-       fPBL(i,j,k)=(zle(i,j,k-1)-zle(i,j,k))/(zle(i,j,kt-1)-zle(i,j,km))
-      END DO
+!    Determine partitioning fraction based on layer thicknesses
+!    ----------------------------------------------------------
+     fPBL(i1:i2,j1:j2,1:km)=0.00
+     DO j=j1,j2
+       DO i=i1,i2
+        kt=pblLayer(i,j)
+        DO k=kt,km
+         fPBL(i,j,k)=(zle(i,j,k-1)-zle(i,j,k))/(zle(i,j,kt-1)-zle(i,j,km))
+        END DO
+       END DO
      END DO
-   END DO
 
-! Calculate NOBM fluxes using archived ocean fields.
-! --------------------------------------------------
-   IF (gcCO2%OCN_FLUX_CALC ) then
-      if ( gcCO2%sst(i,j) .lt. 1000.) THEN
-       scco2 = 2073.1 - 125.62*gcCO2%sst(i,j) + 3.6276*gcCO2%sst(i,j)**2. - &
-               0.043219*gcCO2%sst(i,j)**3.
-       scco2arg = (scco2/660.0)**(-0.5)
-       wspd = (u10m(i,j)**2 + v10m(i,j)**2)**0.5
-       wssq = wspd*wspd
-       rkwco2 = wssq*scco2arg*0.337/(3.6E5) 
-       tk = gcCO2%sst(i,j) + 273.15
-       tk100 = tk*0.01
-       tk1002 = tk100*tk100
-       ff = exp(-162.8301 + 218.2968/tk100  +                       &
-               90.9241*log(tk100) - 1.47696*tk1002 +                &
-               gcCO2%sss(i,j) * (.025695 - .025225*tk100 +          &
-               0.0049867*tk1002))   
-       ffuatm = ff*1.0E-6                    
-       xco2 = w_c%qa(nbeg)%data3d(i,j,km)*ps(i,j)*1.0E4/1013.25
-       deltco2 = (xco2-gcCO2%pco2(i,j))*ffuatm*1024.5   ! mol/m3
-       flxmolm2 = rkwco2*deltco2                        ! units of mol/m2/s
-       gcCO2%eCO2_OCN(i,j) = -flxmolm2*mwtC*1E-3*(100.-gcCO2%pice(i,j))/100. 
-      ELSE  ! SST must be undef
-       gcCO2%eCO2_OCN(i,j) = 0.   
-      END IF 
-   END IF
+!    Calculate NOBM fluxes using archived ocean fields.
+!    --------------------------------------------------
+     IF (gcCO2%OCN_FLUX_CALC ) then
+        if ( gcCO2%sst(i,j) .lt. 1000.) THEN
+         scco2 = 2073.1 - 125.62*gcCO2%sst(i,j) + 3.6276*gcCO2%sst(i,j)**2. - &
+                 0.043219*gcCO2%sst(i,j)**3.
+         scco2arg = (scco2/660.0)**(-0.5)
+         wspd = (u10m(i,j)**2 + v10m(i,j)**2)**0.5
+         wssq = wspd*wspd
+         rkwco2 = wssq*scco2arg*0.337/(3.6E5) 
+         tk = gcCO2%sst(i,j) + 273.15
+         tk100 = tk*0.01
+         tk1002 = tk100*tk100
+         ff = exp(-162.8301 + 218.2968/tk100  +                       &
+                 90.9241*log(tk100) - 1.47696*tk1002 +                &
+                 gcCO2%sss(i,j) * (.025695 - .025225*tk100 +          &
+                 0.0049867*tk1002))   
+         ffuatm = ff*1.0E-6                    
+         xco2 = w_c%qa(nbeg)%data3d(i,j,km)*ps(i,j)*1.0E4/1013.25
+         deltco2 = (xco2-gcCO2%pco2(i,j))*ffuatm*1024.5   ! mol/m3
+         flxmolm2 = rkwco2*deltco2                        ! units of mol/m2/s
+         gcCO2%eCO2_OCN(i,j) = -flxmolm2*mwtC*1E-3*(100.-gcCO2%pice(i,j))/100. 
+        ELSE  ! SST must be undef
+         gcCO2%eCO2_OCN(i,j) = 0.   
+        END IF 
+     END IF
 
-! Release memory
-! --------------
-   DEALLOCATE(index,STAT=ios)
-   DEALLOCATE(pblLayer,STAT=ios)
+     DEALLOCATE(index,STAT=ios)
+     DEALLOCATE(pblLayer,STAT=ios)
 
-! For each CO2 bin ...
-! --------------------
-   CO2_Bin: DO n=1,nbins
+     CO2_Bin: DO n=1,nbins
 
-! Finalize the mask. Update CO2 globally if the region index is -1.
-! Otherwise update only where the mask's value is the region index.
-! -----------------------------------------------------------------
-    IF(gcCO2%regionIndex(n) == -1) THEN
-     myMask(i1:i2,j1:j2)=gcCO2%regionIndex(n)
-    ELSE
-     myMask(i1:i2,j1:j2)=gcCO2%regionMask(i1:i2,j1:j2)
-    END IF
+!      Finalize the mask. Update CO2 globally if the region index is -1.
+!      Otherwise update only where the mask's value is the region index.
+!      -----------------------------------------------------------------
+       IF (gcCO2%regionIndex(n) == -1) THEN
+         myMask(i1:i2,j1:j2)=gcCO2%regionIndex(n)
+       ELSE
+         myMask(i1:i2,j1:j2)=gcCO2%regionMask(i1:i2,j1:j2)
+       END IF
 
-! Establish range of layers on which to work
-! ------------------------------------------
-    kt=minkPBL
+!      Establish range of layers on which to work
+!      ------------------------------------------
+       kt = minkPBL
 
-! For each layer ...
-! --------------------
-    Layer: DO k=kt,km
+       Layer: do k=kt,km
 
-! Emissions: Weighted biomass burning if active
-! ---------------------------------------------
-     sfcFlux(i1:i2,j1:j2)=gcCO2%eCO2_BB(i1:i2,j1:j2)*fPBL(i1:i2,j1:j2,k)
+!        Emissions: Weighted biomass burning
+!        -----------------------------------
+         sfcFlux(i1:i2,j1:j2) = gcCO2%eCO2_BB(i1:i2,j1:j2)*fPBL(i1:i2,j1:j2,k)
 
-! Add Fossil fuel, net ecosystem production, and ocean source when in surface layer
-! ---------------------------------------------------------------------------------
-     IF(k == km) sfcFlux(i1:i2,j1:j2)= sfcFlux(i1:i2,j1:j2)+ &
-                                       gcCO2%eCO2_FF(i1:i2,j1:j2)+             &
-                                       gcCO2%eCO2_NEP(i1:i2,j1:j2)+            &
-                                       gcCO2%eCO2_OCN(i1:i2,j1:j2)
+!        Add Fossil fuel, net ecosystem production, and ocean source when in surface layer
+!        ---------------------------------------------------------------------------------
+         if (k == km) sfcFlux(i1:i2,j1:j2) = sfcFlux(i1:i2,j1:j2)        &
+                                           + gcCO2%eCO2_FF(i1:i2,j1:j2)  &
+                                           + gcCO2%eCO2_NEP(i1:i2,j1:j2) &
+                                           + gcCO2%eCO2_OCN(i1:i2,j1:j2)
 
-! Update CO2 for this bin
-! -----------------------
-     WHERE(myMask(i1:i2,j1:j2) == gcCO2%regionIndex(n)) &
-      w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)+ &
-                                               cdt*sfcFlux(i1:i2,j1:j2)* &
-                                               (MAPL_AIRMW/mwtCO2)/(w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV)
-! Next layer
-! ----------
-    END DO Layer
+!        Update CO2 for this bin
+!        -----------------------
+         where (myMask(i1:i2,j1:j2) == gcCO2%regionIndex(n))
+            w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k) &
+                  + cdt * sfcFlux(i1:i2,j1:j2)*MAPL_AIRMW/mwtCO2                            &
+                        / (w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV)
+         end where
+       end do Layer
 
-! Update Surface flux diagnostic for this bin
-! -------------------------------------------
-    IF(ASSOCIATED(CO2_emis(n)%data2d)) THEN
-     CO2_emis(n)%data2d(i1:i2,j1:j2)=0.00
+!      Update Surface flux diagnostic for this bin
+!      -------------------------------------------
+       if (ASSOCIATED(CO2_emis(n)%data2d)) then
+         CO2_emis(n)%data2d(i1:i2,j1:j2) = 0.
 
-     sfcFlux(i1:i2,j1:j2)=gcCO2%eCO2_FF(i1:i2,j1:j2)  + gcCO2%eCO2_NEP(i1:i2,j1:j2) + &
-                          gcCO2%eCO2_OCN(i1:i2,j1:j2) + gcCO2%eCO2_BB(i1:i2,j1:j2)
+         sfcFlux(i1:i2,j1:j2) = gcCO2%eCO2_FF(i1:i2,j1:j2)  + gcCO2%eCO2_NEP(i1:i2,j1:j2) &
+                              + gcCO2%eCO2_OCN(i1:i2,j1:j2) + gcCO2%eCO2_BB(i1:i2,j1:j2)
 
-     WHERE(myMask(i1:i2,j1:j2) == gcCO2%regionIndex(n)) &
-       CO2_emis(n)%data2d(i1:i2,j1:j2)=sfcFlux(i1:i2,j1:j2)
-    END IF
+         where (myMask(i1:i2,j1:j2) == gcCO2%regionIndex(n))
+           CO2_emis(n)%data2d(i1:i2,j1:j2) = sfcFlux(i1:i2,j1:j2)
+         end where
+       end if
+     end do CO2_Bin
 
-! Next bin
-! --------
-   END DO CO2_Bin
+     DEALLOCATE(fPBL,STAT=ios)
+     DEALLOCATE(myMask,STAT=ios)
+     DEALLOCATE(sfcFlux,STAT=ios)
 
-! Release memory
-! --------------
-    DEALLOCATE(fPBL,STAT=ios)
-    DEALLOCATE(myMask,STAT=ios)
-    DEALLOCATE(sfcFlux,STAT=ios)
+     RETURN
 
-   RETURN
-   END SUBROUTINE CO2_Emission
+     END SUBROUTINE CO2_Emission
 
- END SUBROUTINE CO2_GridCompRun
+   END SUBROUTINE CO2_GridCompRun
 
 !-------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 610.1     !
