@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Added `*` to CA State specs file to allow for ACG to substitute in the instance name
+
 ### Fixed
 
 ### Changed
