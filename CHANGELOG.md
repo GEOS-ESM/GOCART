@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Changed
+-removed lines for anthropogenic emissions of OC, BC, SO2, SO4, and NH3 in their repsective ExtData yaml files.
 
 ## [2.1.2] - 2022-10-07
 
