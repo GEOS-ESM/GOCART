@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved to use GitHub Action for label enforcement
 - Updated CircleCI image to use Baselibs 7.7.0
 - Update `components.yaml` to reflect GEOSgcm
+- CA restarts will have a change in longname for `philic` and `phobic` variables due to addition of `*` in the CA State specs file
+  for the Internal state variables
 
 ## [2.1.2] - 2022-10-07
 
