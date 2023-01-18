@@ -21,8 +21,11 @@
 
    USE Chem_Mod                        ! Chemistry Base Class
    USE Chem_StateMod                   ! Chemistry State
-   USE Chem_ConstMod, only: grav
    USE Chem_UtilMod                    ! I/O
+
+!  bweir: for photolysis
+   USE ESMF_CFIOFileMOD
+   USE MAPL_CFIOMOD
 
    USE m_inpak90                       ! Resource file management
    USE m_die, ONLY: die
@@ -92,17 +95,34 @@
         REAL, POINTER ::     eCO_mon(:,:)    ! mgC/m2/s, Earth surface
         REAL, POINTER ::     eCO_mtn(:,:)    ! mgC/m2/s, Earth surface
 
-        REAL, POINTER ::       CH4(:,:,:)    ! CH4 mixing ratio (ppb)
-        REAL, POINTER ::      OHnd(:,:,:)    ! OH number density (#/cm3 or mol mol-1)
+        REAL, POINTER ::       CH4(:,:,:)    ! CH4 mixing ratio (mol/mol)
+        REAL, POINTER ::      OHnd(:,:,:)    ! OH number density (#/cm3)
+        REAL, POINTER ::      Clnd(:,:,:)    ! Cl number density (#/cm3)
+        REAL, POINTER ::     O1Dnd(:,:,:)    ! O(1D) number density (#/cm3)
 
-        REAL, POINTER ::   COsfcFlux(:,:)    ! CO surface flux kg m^-2 s^-1
+        REAL, POINTER :: COsfcFlux(:,:)      ! CO surface flux kg m^-2 s^-1
 
         LOGICAL :: DBG                       ! Run-time debug switch
         LOGICAL :: doingBB = .true.          ! Switch to consider biomass burning
         CHARACTER(LEN=ESMF_MAXSTR) :: units_oh ! Units for OH 
-        CHARACTER(LEN=ESMF_MAXSTR) :: units_ff ! Units for fossil fuel
-        CHARACTER(LEN=ESMF_MAXSTR) :: units_bf ! Units for biofuel
 
+!       Photolysis tables (bweir: from StratChem)
+!       -----------------
+        INTEGER :: numphoto
+        INTEGER :: nxdo
+        INTEGER :: nlam
+        INTEGER :: nsza
+        INTEGER :: numo3
+        INTEGER :: nts
+        INTEGER :: aqsize
+
+        REAL, POINTER :: sdat(:,:,:,:)
+        REAL, POINTER :: o2jdat(:,:,:)
+        REAL, POINTER :: sza_tab(:)
+        REAL, POINTER :: o3_tab(:,:)
+        REAL, POINTER :: xtab(:,:,:)
+        REAL, POINTER :: CH2O_aq(:)
+        REAL, POINTER :: rlam(:)
   END TYPE CO_GridComp1
 
   TYPE CO_GridComp
@@ -110,7 +130,9 @@
      TYPE(CO_GridComp1), POINTER ::  gcs(:)   ! instances
   END TYPE CO_GridComp
 
-  REAL, PARAMETER :: radToDeg = 57.2957795
+! REAL, PARAMETER :: radToDeg = 57.2957795
+  REAL, PARAMETER :: radToDeg = 180./MAPL_PI
+  REAL, PARAMETER :: mwtCO    = 28.0104
 
 CONTAINS
 
@@ -144,8 +166,8 @@ CONTAINS
    VERIFY_(STATUS)
 
 !  We cannot have fewer instances than the number of
-!   CO bins in the registry (it is OK to have less, though)
-!  --------------------------------------------------------
+!  CO bins in the registry (it is OK to have less, though)
+!  -------------------------------------------------------
    if ( n .LT. chemReg%n_CO ) then
         rc = 35
         return
@@ -155,7 +177,7 @@ CONTAINS
                  ': fewer CO bins than possible CO instances: ',&
                  n, chemReg%n_CO
    end if
-   n = min(n,chemReg%n_CO )
+   n = min(n, chemReg%n_CO)
 
 !  Record name of each instance
 !  ----------------------------
@@ -225,8 +247,8 @@ CONTAINS
    CHARACTER(LEN=255) :: rcbasen = 'CO_GridComp'
    CHARACTER(LEN=255) :: name
    
-   integer i, ier, n
-   REAL :: c1,c2,c3,c4
+   integer :: i, ier, n
+   real :: c1, c2, c3, c4
 
 !  Load resource file
 !  ------------------
@@ -257,8 +279,8 @@ CONTAINS
    end if
    
 !  We cannot have fewer instances than the number of
-!   CO bins in the registry (it is OK to have less, though)
-!  --------------------------------------------------------
+!  CO bins in the registry (it is OK to have less, though)
+!  -------------------------------------------------------
    if ( n .LT. w_c%reg%n_CO ) then
         rc = 35
         return
@@ -268,7 +290,7 @@ CONTAINS
                  ': fewer CO bins than possible CO instances: ',&
                  n, w_c%reg%n_CO
    end if
-   n = min(n,w_c%reg%n_CO )
+   n = min(n, w_c%reg%n_CO)
    gcCO%n = n
 
 !  Next allocate necessary memory
@@ -316,12 +338,11 @@ CONTAINS
 
 !  Get Henrys Law cts for the parameterized convective wet removal
 !  -----------------------------------------------------------
-   CALL get_HenrysLawCts('CO',c1,c2,c3,c4)  
-   w_c%reg%Hcts(1,w_c%reg%i_CO : w_c%reg%j_CO)=c1
-   w_c%reg%Hcts(2,w_c%reg%i_CO : w_c%reg%j_CO)=c2
-   w_c%reg%Hcts(3,w_c%reg%i_CO : w_c%reg%j_CO)=c3
-   w_c%reg%Hcts(4,w_c%reg%i_CO : w_c%reg%j_CO)=c4
-
+   call get_HenrysLawCts('CO', c1, c2, c3, c4)
+   w_c%reg%Hcts(1,w_c%reg%i_CO:w_c%reg%j_CO) = c1
+   w_c%reg%Hcts(2,w_c%reg%i_CO:w_c%reg%j_CO) = c2
+   w_c%reg%Hcts(3,w_c%reg%i_CO:w_c%reg%j_CO) = c3
+   w_c%reg%Hcts(4,w_c%reg%i_CO:w_c%reg%j_CO) = c4
 
 !  All done
 !  --------
@@ -330,7 +351,6 @@ CONTAINS
     PRINT *,myname,": I90_FullRelease not successful."
     rc = 40
    END IF
-
 
  end subroutine CO_GridCompInitialize
 
@@ -465,7 +485,25 @@ CONTAINS
 
   call MAPL_AddImportSpec(GC,             &
        SHORT_NAME = 'CO_OH'//iname,       &
-       LONG_NAME  = 'source species'  ,   &
+       LONG_NAME  = 'source species',     &
+       UNITS      = '1',                  &
+       DIMS       = MAPL_DimsHorzVert,    &
+       VLOCATION  = MAPL_VLocationCenter, &
+       RESTART    = MAPL_RestartSkip,     &
+       RC         = STATUS)
+  VERIFY_(STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CO_Cl'//iname,       &
+       LONG_NAME  = 'source species',     &
+       UNITS      = '1',                  &
+       DIMS       = MAPL_DimsHorzVert,    &
+       VLOCATION  = MAPL_VLocationCenter, &
+       RESTART    = MAPL_RestartSkip,     &
+       RC         = STATUS)
+  VERIFY_(STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CO_O1D'//iname,      &
+       LONG_NAME  = 'source species',     &
        UNITS      = '1',                  &
        DIMS       = MAPL_DimsHorzVert,    &
        VLOCATION  = MAPL_VLocationCenter, &
@@ -474,7 +512,7 @@ CONTAINS
   VERIFY_(STATUS)
   call MAPL_AddImportSpec(GC,             &
        SHORT_NAME = 'CO_CH4'//iname,      &
-       LONG_NAME  = 'source species'  ,   &
+       LONG_NAME  = 'source species',     &
        UNITS      = '1',                  &
        DIMS       = MAPL_DimsHorzVert,    &
        VLOCATION  = MAPL_VLocationCenter, &
@@ -483,56 +521,56 @@ CONTAINS
   VERIFY_(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_BF'//iname,     &
-       LONG_NAME  = 'source species'  , &
+       LONG_NAME  = 'source species',   &
        UNITS      = '1',                &
        DIMS       = MAPL_DimsHorzOnly,  &
        VLOCATION  = MAPL_VLocationNone, &
-       RESTART    = MAPL_RestartSkip,     &
+       RESTART    = MAPL_RestartSkip,   &
        RC         = STATUS)
   VERIFY_(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_FS'//iname,     &
-       LONG_NAME  = 'source species'  , &
+       LONG_NAME  = 'source species',   &
        UNITS      = '1',                &
        DIMS       = MAPL_DimsHorzOnly,  &
        VLOCATION  = MAPL_VLocationNone, &
-       RESTART    = MAPL_RestartSkip,     &
+       RESTART    = MAPL_RestartSkip,   &
        RC         = STATUS)
   VERIFY_(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_ISOP'//iname,   &
-       LONG_NAME  = 'source species'  , &
+       LONG_NAME  = 'source species',   &
        UNITS      = '1',                &
        DIMS       = MAPL_DimsHorzOnly,  &
        VLOCATION  = MAPL_VLocationNone, &
-       RESTART    = MAPL_RestartSkip,     &
+       RESTART    = MAPL_RestartSkip,   &
        RC         = STATUS)
   VERIFY_(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_NVOC'//iname,   &
-       LONG_NAME  = 'source species'  , &
+       LONG_NAME  = 'source species',   &
        UNITS      = '1',                &
        DIMS       = MAPL_DimsHorzOnly,  &
        VLOCATION  = MAPL_VLocationNone, &
-       RESTART    = MAPL_RestartSkip,     &
+       RESTART    = MAPL_RestartSkip,   &
        RC         = STATUS)
   VERIFY_(STATUS)
   call MAPL_AddImportSpec(GC, &
        SHORT_NAME = 'CO_TERP'//iname,   &
-       LONG_NAME  = 'source species'  , &
+       LONG_NAME  = 'source species',   &
        UNITS      = '1',                &
        DIMS       = MAPL_DimsHorzOnly,  &
        VLOCATION  = MAPL_VLocationNone, &
-       RESTART    = MAPL_RestartSkip,     &
+       RESTART    = MAPL_RestartSkip,   &
        RC         = STATUS)
   VERIFY_(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_BIOMASS'//iname,&
-       LONG_NAME  = 'source species'  , &
+       LONG_NAME  = 'source species',   &
        UNITS      = '1',                &
        DIMS       = MAPL_DimsHorzOnly,  &
        VLOCATION  = MAPL_VLocationNone, &
-       RESTART    = MAPL_RestartSkip,     &
+       RESTART    = MAPL_RestartSkip,   &
        RC         = STATUS)
   VERIFY_(STATUS)
 
@@ -592,6 +630,7 @@ CONTAINS
 !-------------------------------------------------------------------------
 
    CHARACTER(LEN=*), PARAMETER :: myname = 'CO_GridCompInitialize1'
+   CHARACTER(LEN=*), PARAMETER :: Iam = myname
 
    CHARACTER(LEN=255) :: rcfilen 
 
@@ -603,6 +642,9 @@ CONTAINS
 
    REAL :: limitN, limitS
    REAL, ALLOCATABLE :: var2d(:,:)
+
+!  Photolysis (bweir: from StratChem)
+   CHARACTER(LEN=ESMF_MAXSTR) :: fnphoto
 
    rcfilen = gcCO%rcfilen
    gcCO%name = 'GEOS-5/GOCART Parameterized CO Package'
@@ -645,7 +687,6 @@ CONTAINS
    END IF
    ier(:)=0
 
-
 !  Run-time debug switch
 !  ---------------------
    call i90_label ( 'DEBUG:', ier(1) )
@@ -656,7 +697,7 @@ CONTAINS
     gcco%dbg = .false.
    end if
 
-!  Possibly OH is in a different unit
+!  Possibly oxidants are in a different unit
 !  Allowable choices are: "mol/mol" or "mol mol-1"
 !  or else behavior is as though input in 
 !  "molecules cm-3"
@@ -681,6 +722,19 @@ CONTAINS
 
    DEALLOCATE(ier)
 
+!  Read photolysis tables (bweir: from StratChem)
+!  ----------------------
+   CALL I90_label('photolysisFile:', ios)
+   IF( ios == 0 ) THEN
+      gcCO%numphoto = 55
+      CALL I90_Gtoken(fnphoto, ios)
+      VERIFY_(ios)
+      CALL readPhotTables(trim(fnphoto), ios)
+      VERIFY_(ios)
+   ELSE
+      gcCO%numphoto = 0
+   END IF
+
    RETURN
 
 CONTAINS
@@ -689,32 +743,264 @@ CONTAINS
 
    INTEGER ios, nerr
    nerr = 128
-   ALLOCATE ( gcCO%eCO_bioburn(i1:i2,j1:j2), & 
+   ALLOCATE ( gcCO%eCO_bioburn(i1:i2,j1:j2),  & 
               gcCO%eCO_bioburn_(i1:i2,j1:j2), & 
-              gcCO%eCO_biofuel(i1:i2,j1:j2), &
-              gcCO%eCO_fosfuel(i1:i2,j1:j2), &
-              gcCO%COsfcFlux(i1:i2,j1:j2), &
-              gcCO%eCO_iso(i1:i2,j1:j2), &
-              gcCO%eCO_mon(i1:i2,j1:j2), &
-              gcCO%eCO_mtn(i1:i2,j1:j2), &
-              gcCO%CH4(i1:i2,j1:j2,km), &
-              gcCO%OHnd(i1:i2,j1:j2,km), &
-              ier(nerr),STAT=ios )
-   ier = 0
+              gcCO%eCO_biofuel(i1:i2,j1:j2),  &
+              gcCO%eCO_fosfuel(i1:i2,j1:j2),  &
+              gcCO%COsfcFlux(i1:i2,j1:j2),    &
+              gcCO%eCO_iso(i1:i2,j1:j2),      &
+              gcCO%eCO_mon(i1:i2,j1:j2),      &
+              gcCO%eCO_mtn(i1:i2,j1:j2),      &
+              gcCO%CH4(i1:i2,j1:j2,km),       &
+              gcCO%OHnd(i1:i2,j1:j2,km),      &
+              gcCO%Clnd(i1:i2,j1:j2,km),      &
+              gcCO%O1Dnd(i1:i2,j1:j2,km),     &
+              ier(nerr), STAT=ios )
    IF ( ios /= 0 ) rc = 100
    END SUBROUTINE init_
 
    SUBROUTINE final_(ierr)
    INTEGER :: ierr
    INTEGER ios
-   DEALLOCATE ( gcCO%eCO_bioburn, gcCO%eCO_biofuel, gcCO%eCO_fosfuel, & 
-                gcCO%eCO_bioburn_, &
-                gcCO%COsfcFlux, gcCO%eCO_iso, gcCO%eCO_mon, &
-                gcCO%eCO_mtn, gcCO%CH4, gcCO%OHnd, &
-                ier, STAT=ios )
+   DEALLOCATE ( gcCO%eCO_bioburn, gcCO%eCO_biofuel, gcCO%eCO_fosfuel,  & 
+                gcCO%eCO_bioburn_, gcCO%COsfcFlux, gcCO%eCO_iso,       &
+                gcCO%eCO_mon, gcCO%eCO_mtn, gcCO%CH4, gcCO%OHnd,       &
+                gcCO%Clnd, gcCO%O1Dnd, ier, STAT=ios )
+!  Photolysis (bweir: from StratChem)
+   DEALLOCATE ( gcCO%sdat, gcCO%o2jdat, gcCO%o3_tab, gcCO%xtab,        & 
+                gcCO%sza_tab, gcCO%CH2O_aq, gcCO%rlam, ier, STAT=ios )
    CALL I90_release()
    rc = ierr
    END SUBROUTINE final_
+
+   SUBROUTINE readPhotTables(fileName, rc)
+
+   IMPLICIT NONE
+
+!  Read tables for photolysis in GOCART ... from a NetCDF file
+!
+!  Input parameters:
+!
+   CHARACTER(LEN=*), INTENT(IN) :: fileName
+!
+!  Output parameters:
+!
+   INTEGER, INTENT(OUT) :: rc
+!
+!  Restrictions:
+!  ASSERT that the number of pressure layers in the dataset equals km.
+!
+!  REVISION HISTORY:
+!  Nielsen     11 May 2012: First crack.
+!  Weir        29 Jan 2021: Pilferd from StratChem
+!-----------------------------------------------------------------------
+
+  CHARACTER(LEN=ESMF_MAXSTR) :: Iam = "CO::readPhotTables"
+
+  TYPE(ESMF_VM) :: vm
+
+  INTEGER :: comm, info, unit, status
+  INTEGER :: dimid, i, n
+
+  INTEGER :: length
+
+  INTEGER, PARAMETER :: nD = 7
+  CHARACTER(LEN=ESMF_MAXSTR) :: dimName(nD)= (/"nsza  ", "numO3 ", "layers", &
+                                               "nlam  ", "nts   ", "nxdo  ", "aqsize" /)
+
+  INTEGER, PARAMETER :: nV = 7
+  CHARACTER(LEN=ESMF_MAXSTR) :: varName(nV)= (/"sza    ", &
+                        "lambda ", "O3TAB  ",  "SDAT   ", &
+                        "O2JDAT ", "XTAB   ",  "CH2O_AQ" /)
+  rc = 0
+
+! Grab the virtual machine
+! ------------------------
+  CALL ESMF_VMGetCurrent(vm, RC=status)
+  VERIFY_(status)
+
+  CALL ESMF_VMGet(vm, MPICOMMUNICATOR=comm, rc=status)
+  VERIFY_(status)
+
+#ifdef H5_HAVE_PARALLEL
+
+  CALL MPI_Info_create(info, status)
+  VERIFY_(status)
+  CALL MPI_Info_set(info, "romio_cb_read", "automatic", status)
+  VERIFY_(status)
+
+#ifdef NETCDF_NEED_NF_MPIIO
+  status = NF_OPEN_PAR(TRIM(fileName), IOR(NF_NOWRITE,NF_MPIIO), comm, info, unit)
+#else
+  status = NF_OPEN_PAR(TRIM(fileName), NF_NOWRITE, comm, info, unit)
+#endif
+
+#else
+
+  IF(MAPL_AM_I_ROOT(vm)) THEN 
+   status = NF_OPEN(TRIM(fileName), NF_NOWRITE, unit)
+
+#endif
+
+   IF(status /= NF_NOERR) THEN
+    PRINT *,'Error opening file ',TRIM(fileName), status
+    PRINT *, NF_STRERROR(status)
+    VERIFY_(status)
+   END IF
+
+   DO i = 1,nD
+
+    status = NF_INQ_DIMID(unit, TRIM(dimName(i)), dimid)
+    IF(status /= NF_NOERR) THEN
+     PRINT *,"Error inquiring dimension ID for ", TRIM(dimName(i)), status
+     PRINT *, NF_STRERROR(status)
+     VERIFY_(status)
+    END IF
+
+    status = NF_INQ_DIMLEN(unit, dimid, n)
+    IF(status /= NF_NOERR) THEN
+     PRINT *,"Error inquiring  dimension length for ", TRIM(dimName(i)), status
+     PRINT *, NF_STRERROR(status)
+    END IF
+
+    SELECT CASE (i)
+     CASE (1)
+      gcCO%nsza = n
+     CASE (2)
+      gcCO%numO3 = n
+     CASE (3)
+      ASSERT_(n == km)
+     CASE (4)
+      gcCO%nlam = n
+     CASE (5)
+      gcCO%nts = n
+     CASE (6)
+      gcCO%nxdo = n
+     CASE (7)
+      gcCO%aqsize = n
+     CASE DEFAULT
+    END SELECT
+
+   END DO
+
+#ifndef H5_HAVE_PARALLEL
+
+  END IF ! MAPL_AM_I_ROOT
+
+  CALL MAPL_CommsBcast(vm, gcCO%nsza, 1, 0, RC=status)
+  VERIFY_(status)
+  CALL MAPL_CommsBcast(vm, gcCO%numO3, 1, 0, RC=status)
+  VERIFY_(status)
+  CALL MAPL_CommsBcast(vm, gcCO%nlam, 1, 0, RC=status)
+  VERIFY_(status)
+  CALL MAPL_CommsBcast(vm, gcCO%nts, 1, 0, RC=status)
+  VERIFY_(status)
+  CALL MAPL_CommsBcast(vm, gcCO%nxdo, 1, 0, RC=status)
+  VERIFY_(status)
+  CALL MAPL_CommsBcast(vm, gcCO%aqSize, 1, 0, RC=status)
+  VERIFY_(status)
+
+#endif
+
+  ALLOCATE(gcCO%sdat(gcCO%nsza,gcCO%numo3,km,gcCO%nlam), STAT=status)
+  VERIFY_(status)
+  ALLOCATE(gcCO%o2jdat(gcCO%nsza,gcCO%numo3,km), STAT=status)
+  VERIFY_(status)
+  ALLOCATE(gcCO%o3_tab(gcCO%numo3,km), STAT=status)
+  VERIFY_(status)
+  ALLOCATE(gcCO%xtab(gcCO%nlam,gcCO%nxdo,gcCO%nts), STAT=status)
+  VERIFY_(status)
+  ALLOCATE(gcCO%sza_tab(gcCO%nsza), STAT=status)
+  VERIFY_(status)
+  ALLOCATE(gcCO%CH2O_aq(gcCO%aqSize), STAT=status)
+  VERIFY_(status)
+  ALLOCATE(gcCO%rlam(gcCO%nlam), STAT=status)
+  VERIFY_(status)
+
+#ifndef H5_HAVE_PARALLEL
+
+  IF(MAPL_AM_I_ROOT()) THEN
+
+#endif
+
+   DO i = 1,nV
+
+    status = NF_INQ_VARID(unit, TRIM(varName(i)), n)
+    IF(status /= NF_NOERR) THEN
+     PRINT *,"Error getting varid for ", TRIM(varName(i)), status
+     PRINT *, NF_STRERROR(status)
+     VERIFY_(status)
+    END IF
+
+    SELECT CASE (i)
+     CASE (1)
+      status = NF_GET_VAR_REAL(unit, n, gcCO%sza_tab)
+     CASE (2)
+      status = NF_GET_VAR_REAL(unit, n, gcCO%rlam)
+     CASE (3)
+      status = NF_GET_VAR_REAL(unit, n, gcCO%o3_tab)
+     CASE (4)
+      status = NF_GET_VAR_REAL(unit, n, gcCO%sdat)
+     CASE (5)
+      status = NF_GET_VAR_REAL(unit, n, gcCO%o2jdat)
+     CASE (6)
+      status = NF_GET_VAR_REAL(unit, n, gcCO%xtab)
+     CASE (7)
+      status = NF_GET_VAR_REAL(unit, n, gcCO%CH2O_aq)
+     CASE DEFAULT
+    END SELECT
+
+    IF(status /= NF_NOERR) THEN
+     PRINT *,"Error getting values for ", TRIM(varName(i)), status
+     PRINT *, NF_STRERROR(status)
+     VERIFY_(status)
+    END IF
+
+   END DO
+
+#ifdef H5_HAVE_PARALLEL
+
+   CALL MPI_Info_free(info, status)
+   VERIFY_(status)
+
+#else
+
+  END IF ! MAPL_AM_I_ROOT
+
+  length = SIZE(gcCO%sza_tab)
+  CALL MPI_Bcast(gcCO%sza_tab, length, MPI_REAL, 0, comm, status)
+  VERIFY_(status)
+
+  length = SIZE(gcCO%rlam)
+  CALL MPI_Bcast(gcCO%rlam, length, MPI_REAL, 0, comm, status)
+  VERIFY_(status)
+
+  length = SIZE(gcCO%o3_tab)
+  CALL MPI_Bcast(gcCO%o3_tab, length, MPI_REAL, 0, comm, status)
+  VERIFY_(status)
+
+  length = SIZE(gcCO%sdat)
+  CALL MPI_Bcast(gcCO%sdat, length, MPI_REAL, 0, comm, status)
+  VERIFY_(status)
+
+  length = SIZE(gcCO%o2jdat)
+  CALL MPI_Bcast(gcCO%o2jdat, length, MPI_REAL, 0, comm, status)
+  VERIFY_(status)
+
+  length = SIZE(gcCO%xtab)
+  CALL MPI_Bcast(gcCO%xtab, length, MPI_REAL, 0, comm, status)
+  VERIFY_(status)
+
+  CALL MAPL_CommsBcast(vm, gcCO%CH2O_aq, gcCO%aqsize, 0, RC=status)
+  VERIFY_(status)
+
+#endif
+
+  status = NF_CLOSE(unit)
+  VERIFY_(status)
+
+  RETURN
+ END SUBROUTINE readPhotTables
 
  END SUBROUTINE CO_GridCompInitialize1_
 
@@ -730,9 +1016,6 @@ CONTAINS
 
    SUBROUTINE CO_GridCompRun1_ ( gcCO, w_c, impChem, expChem, &
                                  nymd, nhms, cdt, rc )
-
-#define MR_PBL
-!#define SFLUX_PBL
 
 ! !USES:
 
@@ -777,29 +1060,29 @@ CONTAINS
 
 !  Input fields from fvGCM
 !  -----------------------
-   REAL, POINTER, DIMENSION(:,:)   ::  pblh  => null()
-   REAL, POINTER, DIMENSION(:,:,:) ::  T     => null()
-   REAL, POINTER, DIMENSION(:,:,:) ::  rhoa  => null()
-   REAL, POINTER, DIMENSION(:,:,:) ::  zle   => null()
+   REAL, POINTER, DIMENSION(:,:)   ::  pblh   => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  T      => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  rhowet => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  zle    => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  qtot   => null()
 
    INTEGER :: i1, i2, im, j1, j2, jm, km, ios, idiag, iXj
    INTEGER :: i, j, k, kReverse, n, nbeg, nend
    INTEGER :: nymd1, nhms1, ier(8)
    integer :: iregWant
 
-   REAL, PARAMETER :: nsuba=6.022E+26
-   REAL, PARAMETER :: mwtAir=28.97
-   REAL, PARAMETER :: mwtCO=28.01
-   REAL, PARAMETER :: rstar=8.3143E+03
-   REAL, PARAMETER :: rpstd=1.00E-05
-
-   REAL    :: qmin, qmax, toMass, c2co
+   REAL    :: qmin, qmax
    REAL    :: fiso, fmtn, fmon
 
-   REAL, ALLOCATABLE :: CH4nd(:,:,:)
-   REAL, ALLOCATABLE :: OHnd(:,:,:)
-   REAL, ALLOCATABLE :: pe(:,:,:),p(:,:,:),nd(:,:,:)
-   REAL, ALLOCATABLE :: rkoh(:,:,:),rkch4(:,:,:)
+   REAL, ALLOCATABLE :: pe(:,:,:), p(:,:,:), ndwet(:,:,:)
+   REAL, ALLOCATABLE :: rkoh(:,:,:), rkch4_oh(:,:,:)
+   REAL, ALLOCATABLE :: rkch4_cl(:,:,:), rkch4_o1d(:,:,:)
+
+!  Photolysis (bweir: from StratChem, but aj is SINGLE)
+!  ----------
+   REAL, ALLOCATABLE :: photJ(:,:,:), dCOPhot(:,:,:)
+   REAL, ALLOCATABLE :: aj(:)
+   REAL    :: szan
 
    real, pointer, dimension(:,:,:) :: ptr3d => null()
    real, pointer, dimension(:,:)   :: ptr2d => null()
@@ -812,6 +1095,8 @@ CONTAINS
 #define COSC     CO_surface
 #define COPD     CO_prod
 #define COLS     CO_loss
+#define COJP	 CO_phot
+#define CODRY	 CO_dry
 
    integer :: STATUS
 
@@ -836,273 +1121,310 @@ CONTAINS
 
 !  It requires 1 bin
 !  -----------------
-   if ( nbeg /= nend ) then
-      IF(MAPL_AM_I_ROOT()) PRINT *,myname,": Must have only 1 bin at the single instance level"
+   if (nbeg /= nend) then
+      if (MAPL_AM_I_ROOT()) print *, myname, ": Must have only 1 bin at the single instance level"
       rc = 1
       return 
-   end if
+   endif
 
-!  Conversion factor, molecules CO cm^-2 s^-1 to kg CO m^-2 s^-1
-!  -------------------------------------------------------------
-   toMass = 1.00E+04*mwtCO/nsuba
-   c2co   = mwtCO/12.00
+!  Biomass Burning
+!  ---------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CO_BIOMASS'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%eCO_bioburn = ptr2d
 
-!  Update emissions and OH number density once each day.
-!  The latter appears to be in molecules cm^-3.
-!  -----------------------------------------------------
-   
-!   Selections based on biomass burning emission set chosen
-!   Currently, parse on:
-!    harvard   -> molecules cm-2 s-1, need to convert to mass
-!    modisfire -> kg CO m-2 s-1
-!    else      -> based on dry matter consumed
+!  Biofuel source
+!  --------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CO_BF'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%eCO_biofuel = ptr2d
 
-!   Biomass Burning -- select on known inventories
-!   ----------------------------------------------
+!  Fossil fuel source
+!  ------------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CO_FS'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%eCO_fosfuel = ptr2d
 
-!   Harvard biomass burning climatology, is in molecules cm^-2 s^-1
-!   ---------------------------------------------------------------
-    call MAPL_GetPointer(impChem, ptr2d, 'CO_BIOMASS'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%eCO_bioburn = ptr2d
+!  Background OH, for loss term
+!  ----------------------------
+   call MAPL_GetPointer(impChem, ptr3d, 'CO_OH'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%OHnd = ptr3d
 
-! Background OH, for loss term
-! ----------------------------
-    call MAPL_GetPointer(impChem, ptr3d, 'CO_OH'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%OHnd = ptr3d
+!  Background Cl, for loss term
+!  ----------------------------
+   call MAPL_GetPointer(impChem, ptr3d, 'CO_Cl'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%Clnd = ptr3d
 
-! Background CH4, for source term.
-! NOTE: Return zeroes in all but the global instantiation.
-! --------------------------------------------------------
-    call MAPL_GetPointer(impChem, ptr3d, 'CO_CH4'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%CH4 = ptr3d
+!  Background O1D, for loss term
+!  ----------------------------
+   call MAPL_GetPointer(impChem, ptr3d, 'CO_O1D'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%O1Dnd = ptr3d
 
-! Biofuel source
-! --------------
-    call MAPL_GetPointer(impChem, ptr2d, 'CO_BF'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%eCO_biofuel = ptr2d
+!  Background CH4, for source term
+!  NOTE: Return zeroes in all but the global instantiation
+!  NOTE: Not sure this NOTE is true anymore
+!  -------------------------------------------------------
+   call MAPL_GetPointer(impChem, ptr3d, 'CO_CH4'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%CH4 = ptr3d
 
-! Fossil fuel source
-! ------------------
-    call MAPL_GetPointer(impChem, ptr2d, 'CO_FS'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%eCO_fosfuel = ptr2d
+!  Isoprene source
+!  ---------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CO_ISOP'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%eCO_iso = ptr2d
 
-! Isoprene source
-! ---------------
-    call MAPL_GetPointer(impChem, ptr2d, 'CO_ISOP'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%eCO_iso = ptr2d
+!  VOC source
+!  ----------
+   call MAPL_GetPointer(impChem, ptr2d, 'CO_NVOC'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%eCO_mon = ptr2d
 
-! VOC source
-! ----------
-    call MAPL_GetPointer(impChem, ptr2d, 'CO_NVOC'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%eCO_mon = ptr2d
+!  Monoterpene source
+!  ------------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CO_TERP'//iNAME, rc=status)
+   VERIFY_(STATUS)
+   gcCO%eCO_mtn = ptr2d
 
-! Monoterpene source
-! ------------------
-    call MAPL_GetPointer(impChem, ptr2d, 'CO_TERP'//iNAME,rc=status)
-    VERIFY_(STATUS)
-    gcCO%eCO_mtn = ptr2d
-
-   IF(gcCO%DBG) THEN
-    CALL pmaxmin('CO: eCO_bioburn', gcCO%eCO_bioburn, qmin, qmax, iXj,1, 1. )
-    CALL pmaxmin('CO: eCO_biofuel', gcCO%eCO_biofuel, qmin, qmax, iXj,1, 1. )
-    CALL pmaxmin('CO: eCO_fosfuel', gcCO%eCO_fosfuel, qmin, qmax, iXj,1, 1. )
-    CALL pmaxmin('CO: eCO_iso',     gcCO%eCO_iso,     qmin, qmax, iXj,1, 1. )
-    CALL pmaxmin('CO: eCO_mon',     gcCO%eCO_mon,     qmin, qmax, iXj,1, 1. )
-    CALL pmaxmin('CO: eCO_mtn',     gcCO%eCO_mtn,     qmin, qmax, iXj,1, 1. )
-   END IF
-
-!   Save this in case we need to apply diurnal cycle
-!   ------------------------------------------------
-   if ( w_c%diurnal_bb ) then
-        gcCO%eCO_bioburn_(:,:) = gcCO%eCO_bioburn(:,:)
-   end if
+   if (gcCO%DBG) then
+      call pmaxmin('CO: eCO_bioburn', gcCO%eCO_bioburn, qmin, qmax, iXj,1, 1. )
+      call pmaxmin('CO: eCO_biofuel', gcCO%eCO_biofuel, qmin, qmax, iXj,1, 1. )
+      call pmaxmin('CO: eCO_fosfuel', gcCO%eCO_fosfuel, qmin, qmax, iXj,1, 1. )
+      call pmaxmin('CO: eCO_iso',     gcCO%eCO_iso,     qmin, qmax, iXj,1, 1. )
+      call pmaxmin('CO: eCO_mon',     gcCO%eCO_mon,     qmin, qmax, iXj,1, 1. )
+      call pmaxmin('CO: eCO_mtn',     gcCO%eCO_mtn,     qmin, qmax, iXj,1, 1. )
+   endif
 
 !  Apply diurnal cycle if so desired
 !  ---------------------------------
-   if ( w_c%diurnal_bb ) then
-      call Chem_BiomassDiurnal ( gcCO%eCO_bioburn, gcCO%eCO_bioburn_,   &
-                                 w_c%grid%lon(:,:)*radToDeg, &
-                                 w_c%grid%lat(:,:)*radToDeg, nhms, cdt )      
-   end if
+   if (w_c%diurnal_bb) then
+      gcCO%eCO_bioburn_(:,:) = gcCO%eCO_bioburn(:,:)
 
+      call Chem_BiomassDiurnal(gcCO%eCO_bioburn, gcCO%eCO_bioburn_,   &
+                               w_c%grid%lon(:,:)*radToDeg,            &
+                               w_c%grid%lat(:,:)*radToDeg, nhms, cdt)      
+   endif
 
 !  Allocate temporary workspace
 !  ----------------------------
-   allocate ( pe(i1:i2,j1:j2,km+1), p(i1:i2,j1:j2,km), nd(i1:i2,j1:j2,km), &
-              rkoh(i1:i2,j1:j2,km), rkch4(i1:i2,j1:j2,km), &
-              CH4nd(i1:i2,j1:j2,km), OHnd(i1:i2,j1:j2,km), stat = ios )
+   allocate(pe(i1:i2,j1:j2,km+1), p(i1:i2,j1:j2,km), ndwet(i1:i2,j1:j2,km), &
+            rkoh(i1:i2,j1:j2,km), rkch4_oh(i1:i2,j1:j2,km),                 &
+            rkch4_cl(i1:i2,j1:j2,km), rkch4_o1d(i1:i2,j1:j2,km), stat = ios )
 
-   if ( ios /= 0 ) then
+   if (ios /= 0) then
       rc = 3
       return
-   end if
+   endif
 
 !  Layer interface pressures
 !  -------------------------
-   pe(i1:i2,j1:j2,1)=w_c%grid%ptop
-   DO k=2,km+1
-    pe(i1:i2,j1:j2,k)=pe(i1:i2,j1:j2,k-1)+w_c%delp(i1:i2,j1:j2,k-1)
-   END DO
+   pe(i1:i2,j1:j2,1) = w_c%grid%ptop
+   do k=2,km+1
+      pe(i1:i2,j1:j2,k) = pe(i1:i2,j1:j2,k-1) + w_c%delp(i1:i2,j1:j2,k-1)
+   enddo
 
 !  Layer mean pressures
 !  --------------------
-   DO k=1,km
-    p(i1:i2,j1:j2,k)=(pe(i1:i2,j1:j2,k)+pe(i1:i2,j1:j2,k+1))*0.50
-   END DO
+   do k=1,km
+      p(i1:i2,j1:j2,k) = (pe(i1:i2,j1:j2,k)+pe(i1:i2,j1:j2,k+1))*0.50
+   enddo
  
 !  Get imports
 !  -----------
-   call MAPL_GetPointer( impChem, pblh,  'ZPBL',    rc=ier(1) ) 
-   call MAPL_GetPointer( impChem, T,     'T',       rc=ier(2) ) 
-   call MAPL_GetPointer( impChem, rhoa,  'AIRDENS', rc=ier(3) ) 
-   call MAPL_GetPointer( impChem, zle,   'ZLE',     rc=ier(4) ) 
+   call MAPL_GetPointer( impChem, pblh,   'ZPBL',    rc=ier(1) ) 
+   call MAPL_GetPointer( impChem, T,      'T',       rc=ier(2) ) 
+   call MAPL_GetPointer( impChem, rhowet, 'AIRDENS', rc=ier(3) ) 
+   call MAPL_GetPointer( impChem, zle,    'ZLE',     rc=ier(4) ) 
+   call MAPL_GetPointer( impChem, qtot,   'QTOT',    rc=ier(5) ) 
 
-   if ( any(ier(1:4) /= 0) ) then
-        rc = 10
-        return
+   if (any(ier(1:5) /= 0)) then
+      rc = 10
+      return
+   endif
+
+   if (gcCO%DBG) then
+      call pmaxmin('CO:PBLH',     pblh, qmin, qmax, iXj,    1, 1. )
+      call pmaxmin('CO:T',           T, qmin, qmax, iXj,   km, 1. )
+      call pmaxmin('CO:RHOWET', rhowet, qmin, qmax, iXj,   km, 1. )
+      call pmaxmin('CO:ZLE',       zle, qmin, qmax, iXj, km+1, 1. )
+      call pmaxmin('CO:QTOT',     qtot, qmin, qmax, iXj,   km, 1. )
+   endif
+
+!  Wet-air number density
+!  ----------------------
+   ndwet(i1:i2,j1:j2,1:km) = rhowet(i1:i2,j1:j2,1:km)*MAPL_AVOGAD/MAPL_AIRMW
+
+!  Handle mole fraction or number density units of oxidants
+!  --------------------------------------------------------
+   if (trim(gcCO%units_oh) == 'mol/mol' .or. trim(gcCO%units_oh) == 'mol mol-1') then
+       gcCO%OHnd(i1:i2,j1:j2,1:km)  = gcCO%OHnd(i1:i2,j1:j2,1:km) &
+                                    * ndwet(i1:i2,j1:j2,1:km)
+       gcCO%Clnd(i1:i2,j1:j2,1:km)  = gcCO%Clnd(i1:i2,j1:j2,1:km) &
+                                    * ndwet(i1:i2,j1:j2,1:km)
+       gcCO%O1Dnd(i1:i2,j1:j2,1:km) = gcCO%O1Dnd(i1:i2,j1:j2,1:km) &
+                                    * ndwet(i1:i2,j1:j2,1:km)
+   else
+!      Otherwise, assume units are molec cm^-3 and convert to molec m^-3
+       gcCO%OHnd(i1:i2,j1:j2,1:km)  =  gcCO%OHnd(i1:i2,j1:j2,1:km)*1.00E+06
+       gcCO%Clnd(i1:i2,j1:j2,1:km)  =  gcCO%Clnd(i1:i2,j1:j2,1:km)*1.00E+06
+       gcCO%O1Dnd(i1:i2,j1:j2,1:km) = gcCO%O1Dnd(i1:i2,j1:j2,1:km)*1.00E+06
    end if
 
-   IF(gcCO%DBG) THEN
-    CALL pmaxmin('CO: pblh', pblh, qmin, qmax, iXj,    1, 1. )
-    CALL pmaxmin('CO:    T',    T, qmin, qmax, iXj,   km, 1. )
-    CALL pmaxmin('CO: rhoa', rhoa, qmin, qmax, iXj,   km, 1. )
-    CALL pmaxmin('CO:  zle',  zle, qmin, qmax, iXj, km+1, 1. )
-   END IF
-
-!  Number density
+!  Loss due to OH
 !  --------------
-   nd(i1:i2,j1:j2,1:km)= nsuba*p(i1:i2,j1:j2,1:km)/ &
-                        (rstar*t(i1:i2,j1:j2,1:km))
+   rkoh(i1:i2,j1:j2,1:km) = 1.50E-13*1.00E-06*(1.00+0.60E-05*p(i1:i2,j1:j2,1:km))
 
-!  CH4 number density.  CH4 on file is in mole fraction.
-!  -----------------------------------------------------
-   CH4nd(i1:i2,j1:j2,1:km)=gcCO%CH4(i1:i2,j1:j2,1:km)* &
-                                 nd(i1:i2,j1:j2,1:km)
+   if (associated(CO_loss)) then
+      CO_loss(i1:i2,j1:j2) = 0.
+      do k = 1,km
+         CO_loss(i1:i2,j1:j2) = CO_loss(i1:i2,j1:j2)                                        &
+                              + w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)*mwtCO/MAPL_AIRMW         &
+                                         *     rkoh(i1:i2,j1:j2,k)*gcCO%OHnd(i1:i2,j1:j2,k) &
+                                         * w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV
+      enddo
+   endif
 
-!  OH number density. Handle mole fraction or number density.
-!  ----------------------------------------------------------
-   if ( (trim(gcCO%units_oh) .eq. 'mol/mol') .or. (trim(gcCO%units_oh) .eq. 'mol mol-1') ) then
-       OHnd(i1:i2,j1:j2,1:km) = gcCO%OHnd(i1:i2,j1:j2,1:km)* &
-                                       nd(i1:i2,j1:j2,1:km)
-   else
-       ! assume that units are 'molecules cm-3' and convert to 'molecules m^-3'
-       OHnd(i1:i2,j1:j2,1:km) = gcCO%OHnd(i1:i2,j1:j2,1:km)*1.00E+06
-   end if    
+!  Production due to CH4
+!  ---------------------
+   rkch4_oh(i1:i2,j1:j2,1:km)  = 2.45E-12*1.00E-06*exp(-1775./t(i1:i2,j1:j2,1:km))
+   rkch4_cl(i1:i2,j1:j2,1:km)  = 7.10E-12*1.00E-06*exp(-1270./t(i1:i2,j1:j2,1:km))
+   rkch4_o1d(i1:i2,j1:j2,1:km) = 1.75E-10*1.00E-06
 
-!  Clear surface flux array
-!  ------------------------
-   gcCO%COsfcFlux(i1:i2,j1:j2) = 0.0
+   if (associated(CO_prod)) then
+      CO_prod(i1:i2,j1:j2) = 0.
+      do k = 1,km
+         CO_prod(i1:i2,j1:j2) = CO_prod(i1:i2,j1:j2)                                    &
+                              + (    rkch4_oh(i1:i2,j1:j2,k)* gcCO%OHnd(i1:i2,j1:j2,k)  &
+                                  +  rkch4_cl(i1:i2,j1:j2,k)* gcCO%Clnd(i1:i2,j1:j2,k)  &
+                                  + rkch4_o1d(i1:i2,j1:j2,k)*gcCO%O1Dnd(i1:i2,j1:j2,k)) &
+                                * gcCO%CH4(i1:i2,j1:j2,k)*mwtCO/MAPL_AIRMW              &
+                                * w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV
+      enddo
+   endif
 
-#if defined( MR_PBL)
-!  Emissions, direct update of mixing ratio 
-!  ----------------------------------------
+!  Calculate photolytic loss rates, J [s^-1] for
+!     CH4 + hv => 2H2O + CO
+!     CO2 + hv => CO + ???
+!  Notice that J and the losses are always computed. However, the setting 
+!  of the feedback switch(es) determines if the increments are actually applied
+!  ----------------------------------------------------------------------------
+   allocate(photJ(i1:i2,j1:j2,1:km), dCOPhot(i1:i2,j1:j2,1:km), STAT=status)
+   VERIFY_(STATUS)
+   dCOPhot = 0.
+
+!  Change in CO number density [m^-3 s^-1] due to CH4 photolysis
+!  -------------------------------------------------------------
+!  photJ = 0.
+!  call getJRates(status)
+!  VERIFY_(status)
+!
+!  dCOPhot = photJ*gcCO%CH4(i1:i2,j1:j2,1:km)
+
+!  Change in CO number density [m^-3 s^-1] due to CO2 photolysis
+!  -------------------------------------------------------------
+   if (gcCO%numphoto > 0) then
+      photJ = 0.
+      allocate(aj(gcCO%numphoto), STAT=status)
+      VERIFY_(STATUS)
+
+      do k = 1,km
+         do j = j1,j2
+            do i = i1,i2
+               szan = 0.
+               if (w_c%cosz(i,j) <= 1.) szan = acos(w_c%cosz(i,j))
+!              bweir: Using 0 for O3 (FIXME)
+               call jcalc4(km-k+1, szan, 0., p(i,j,k), t(i,j,k), aj, gcCO)
+               photJ(i,j,k) = aj(12)
+            enddo
+         enddo
+      enddo
+   endif
+
+!  dCOPhot = photJ*gcCO%CO2(i1:i2,j1:j2,1:km)
+!  bweir: Using 400 ppm for CO2 (FIXME)
+   dCOPhot = photJ*400.e-6
+
+!  Photolysis (bweir: why are we multiplying by ndwet?)
+!  ----------
+   if (associated(CO_phot)) THEN
+      CO_phot(i1:i2,j1:j2,1:km) = dCOPhot(i1:i2,j1:j2,1:km)*ndwet(i1:i2,j1:j2,1:km)
+   endif
+
+!  Decrement the CO mole fraction due to oxidation 
+!  -----------------------------------------------
+   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) &
+         - cdt * rkoh(i1:i2,j1:j2,1:km)*gcCO%OHnd(i1:i2,j1:j2,1:km)              &
+               * w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
+
+!  bweir: just checking
+   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = max(w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km), 0.)
+
+!  Compute and add surface emissions
+!  ---------------------------------
+   gcCO%COsfcFlux(i1:i2,j1:j2) = 0.
    call CO_Emission(rc)
-#endif
 
-!  Convert carbon monoxide from mole fraction to number density
-!  ------------------------------------------------------------
-   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = &
-                  w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)*nd(i1:i2,j1:j2,1:km)
+!  Increment the CO mole fraction due to photolysis
+!  ------------------------------------------------
+   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) + cdt*dCOPhot(i1:i2,j1:j2,1:km)
 
-!  Loss due to OH.
-!  ---------------
-   rkoh(i1:i2,j1:j2,1:km) = &
-                  1.5E-13*1.00E-06*(1.00+0.6*p(i1:i2,j1:j2,1:km)*rpstd)
-   n = gcCO%instance 
-   IF(ASSOCIATED(CO_loss)) CO_loss(i1:i2,j1:j2) = 0.
-   DO k = 1, km
+!  Increment the CO mole fraction due to production
+!  ------------------------------------------------
+   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) &
+         + cdt * (    rkch4_oh(i1:i2,j1:j2,1:km)* gcCO%OHnd(i1:i2,j1:j2,1:km)    &
+                   +  rkch4_cl(i1:i2,j1:j2,1:km)* gcCO%Clnd(i1:i2,j1:j2,1:km)    &
+                   + rkch4_o1d(i1:i2,j1:j2,1:km)*gcCO%O1Dnd(i1:i2,j1:j2,1:km))   &
+               * gcCO%CH4(i1:i2,j1:j2,1:km)
 
-    IF(ASSOCIATED(CO_loss)) CO_loss(i1:i2,j1:j2) = CO_loss(i1:i2,j1:j2) &
-       + w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)*rkoh(i1:i2,j1:j2,k) &
-       * OHnd(i1:i2,j1:j2,k)/nd(i1:i2,j1:j2,k) &
-       * mwtCO/mwtAir*w_c%delp(i1:i2,j1:j2,k)/grav
-
-    w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k) = &
-         w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)*(1.00-cdt* &
-         rkoh(i1:i2,j1:j2,k)*OHnd(i1:i2,j1:j2,k))
-
-   END DO ! Next layer, k
-
-!  CH4 production
-!  --------------
-   rkch4(i1:i2,j1:j2,1:km)= &
-                 2.45e-12*1.00E-06*exp(-1775./t(i1:i2,j1:j2,1:km))
-   n = gcCO%instance 
-   IF(ASSOCIATED(CO_prod)) CO_prod(i1:i2,j1:j2) = 0.
-   DO k = 1, km
-
-    IF(ASSOCIATED(CO_prod)) CO_prod(i1:i2,j1:j2) = CO_prod(i1:i2,j1:j2) &
-       + rkch4(i1:i2,j1:j2,k)*OHnd(i1:i2,j1:j2,k)*CH4nd(i1:i2,j1:j2,k) &
-       / nd(i1:i2,j1:j2,k) * mwtCO/mwtAir*w_c%delp(i1:i2,j1:j2,k)/grav
-
-    w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)=w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)+cdt* &
-         rkch4(i1:i2,j1:j2,k)*OHnd(i1:i2,j1:j2,k)* &
-         CH4nd(i1:i2,j1:j2,k)
-
-   END DO ! Next layer, k
-
-!  Return to mole fraction
-!  -----------------------
-   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)=w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)/nd(i1:i2,j1:j2,1:km)
-
-!  Surface concentration in ppbv
-!  -----------------------------
-   n = gcCO%instance 
-    if(associated(CO_surface)) &
+!  Surface concentration [ppbv]
+!  ----------------------------
+   if (associated(CO_surface)) then
       CO_surface(i1:i2,j1:j2) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km)*1.e9
+   endif
 
-!  Column burden in kg m-2
-!  -----------------------
-   n = gcCO%instance 
-    if(associated(CO_column)) then
-     CO_column(i1:i2,j1:j2) = 0.
-     do k = 1, km
-      CO_column(i1:i2,j1:j2) &
-       =   CO_column(i1:i2,j1:j2) &
-         +   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)*mwtCO/mwtAir &
-           * w_c%delp(i1:i2,j1:j2,k)/grav
+!  Column burden [kg m-2]
+!  ----------------------
+   if (associated(CO_column)) then
+      CO_column(i1:i2,j1:j2) = 0.
+      do k = 1, km
+         CO_column(i1:i2,j1:j2) = CO_column(i1:i2,j1:j2)                                &
+                                + w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)*mwtCO/MAPL_AIRMW * &
+                                             w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV
      enddo
-    endif
+   endif
+
+!  Dry-air mole fraction
+!  ---------------------
+   if (associated(CO_dry)) then
+      CO_dry(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) &
+                                        / (1. - qtot(i1:i2,j1:j2,1:km))
+   endif
 
 !  CO Surface Emission Flux in kg m-2 s-1
 !  --------------------------------------
-    n = gcCO%instance 
-    if(associated(CO_emis)) &
-         CO_emis(i1:i2,j1:j2) = gcCO%COsfcFlux(i1:i2,j1:j2)
+   if (associated(CO_emis)) CO_emis(i1:i2,j1:j2) = gcCO%COsfcFlux(i1:i2,j1:j2)
 
-   IF(gcCO%DBG) THEN
-     n = gcCO%instance 
-     if(associated(CO_emis)) &
-     CALL pmaxmin('CO: emis', CO_emis(i1:i2,j1:j2), qmin, qmax, &
-                   iXj,1, 1. )
-     if(associated(CO_loss)) &
-     CALL pmaxmin('CO: loss', CO_loss(i1:i2,j1:j2), qmin, qmax, &
-                   iXj,1, 1. )
-     if(associated(CO_prod)) &
-     CALL pmaxmin('CO: prod', CO_prod(i1:i2,j1:j2), qmin, qmax, &
-                   iXj,1, 1. )
-     if(associated(CO_column)) &
-     CALL pmaxmin('CO: column', CO_column(i1:i2,j1:j2), qmin, qmax, &
-                   iXj,1, 1. )
-     if(associated(CO_surface)) &
-     CALL pmaxmin('CO: surface', CO_surface(i1:i2,j1:j2), qmin, qmax,&
-                   iXj,1, 1. )
-   END IF
+   if (gcCO%DBG) then
+      if (associated(CO_emis))    call pmaxmin('CO: emis',       CO_emis, qmin, qmax, iXj,  1, 1. )
+      if (associated(CO_loss))    call pmaxmin('CO: loss',       CO_loss, qmin, qmax, iXj,  1, 1. )
+      if (associated(CO_prod))    call pmaxmin('CO: prod',       CO_prod, qmin, qmax, iXj,  1, 1. )
+      if (associated(CO_phot))    call pmaxmin('CO: phot',       CO_phot, qmin, qmax, iXj,  1, 1. )
+      if (associated(CO_column))  call pmaxmin('CO: column',   CO_column, qmin, qmax, iXj,  1, 1. )
+      if (associated(CO_surface)) call pmaxmin('CO: surface', CO_surface, qmin, qmax, iXj,  1, 1. )
+      if (associated(CO_dry))     call pmaxmin('CO: dry',         CO_dry, qmin, qmax, iXj, km, 1. )
+   endif
 
 !  Housekeeping
 !  ------------
-   DEALLOCATE(nd,p,pe,rkoh,rkch4,CH4nd,OHnd,STAT=ier(1))
+   deallocate(ndwet, p, pe, rkoh, rkch4_oh, rkch4_cl, rkch4_o1d, STAT=ier(1))
+   deallocate(photJ, dCOPhot, aj, STAT=ier(1))
 
-   RETURN
+   return
 
-CONTAINS
+contains
 !-------------------------------------------------------------------------
 !     NASA/GSFC, Global Modeling and Assimilation Office, Code 610.1     !
 !-------------------------------------------------------------------------
@@ -1151,11 +1473,9 @@ CONTAINS
    INTEGER :: i, j, k, kt, minkPBL
    INTEGER, ALLOCATABLE :: index(:)
 
-   REAL, PARAMETER :: mwtAir=28.97
-   REAL, PARAMETER :: mwtCO=28.01
-   REAL, ALLOCATABLE :: pblLayer(:,:),sfcFlux(:,:),fPBL(:,:,:)
+   REAL, ALLOCATABLE :: pblLayer(:,:), sfcFlux(:,:), fPBL(:,:,:)
 
-   rc    = 0
+   rc = 0
 
 ! Grab some memory for manipulating surface fluxes
 ! ------------------------------------------------
@@ -1164,7 +1484,6 @@ CONTAINS
 ! Biomass burning
 ! ---------------
    BioBurn: IF(gcCO%doingBB) THEN
-
     sfcFlux(i1:i2,j1:j2)=gcCO%eCO_bioburn(i1:i2,j1:j2)
     gcCO%COsfcFlux(i1:i2,j1:j2)=gcCO%COsfcFlux(i1:i2,j1:j2)+sfcFlux(i1:i2,j1:j2)
 
@@ -1201,7 +1520,7 @@ CONTAINS
     DO k=minkPBL,km
      w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)+ &
                                           sfcFlux(i1:i2,j1:j2)*fPBL(i1:i2,j1:j2,k)*cdt* &
-                                          (mwtAir/mwtCO)/(w_c%delp(i1:i2,j1:j2,k)/grav)
+                                          (MAPL_AIRMW/mwtCO)/(w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV)
     END DO
 
 ! Release memory
@@ -1216,19 +1535,593 @@ CONTAINS
    sfcFlux(i1:i2,j1:j2) = gcCO%eCO_iso(i1:i2,j1:j2)+gcCO%eCO_mon(i1:i2,j1:j2)+gcCO%eCO_mtn(i1:i2,j1:j2)
    gcCO%COsfcFlux(i1:i2,j1:j2) = gcCO%COsfcFlux(i1:i2,j1:j2)+sfcFlux(i1:i2,j1:j2)
    w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km)+sfcFlux(i1:i2,j1:j2)*cdt* &
-                                         (mwtAir/mwtCO)/(w_c%delp(i1:i2,j1:j2,km)/grav)
+                                         (MAPL_AIRMW/mwtCO)/(w_c%delp(i1:i2,j1:j2,km)/MAPL_GRAV)
 ! Fossil fuel and biofuel
 ! -----------------------
    sfcFlux(i1:i2,j1:j2) = gcCO%eCO_fosfuel(i1:i2,j1:j2)+gcCO%eCO_biofuel(i1:i2,j1:j2)
    gcCO%COsfcFlux(i1:i2,j1:j2) = gcCO%COsfcFlux(i1:i2,j1:j2)+sfcFlux(i1:i2,j1:j2)
    w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km)+sfcFlux(i1:i2,j1:j2)*cdt* &
-                                        (mwtAir/mwtCO)/(w_c%delp(i1:i2,j1:j2,km)/grav)
+                                        (MAPL_AIRMW/mwtCO)/(w_c%delp(i1:i2,j1:j2,km)/MAPL_GRAV)
 ! Release memory
 ! --------------
    DEALLOCATE(sfcFlux,STAT=ios)
 
    RETURN
    END SUBROUTINE CO_Emission
+
+!-------------------------------------------------------------------------
+!  Borrowed from meso_phot.F of StratChem, where number densities are cgs [cm^{-3}]
+   SUBROUTINE getJRates(rc)
+
+   IMPLICIT NONE
+
+   INTEGER, INTENT(out) :: rc
+
+   REAL, ALLOCATABLE :: o2Column(:,:,:)
+   REAL, ALLOCATABLE :: SZARad(:,:)
+   REAL, ALLOCATABLE :: SZADeg(:,:)
+   REAL, ALLOCATABLE :: sinSZA(:,:)
+   REAL, ALLOCATABLE :: zgrz(:,:)
+   REAL, ALLOCATABLE :: sfaca(:,:)
+   REAL, ALLOCATABLE :: arg(:,:)
+
+   REAL, PARAMETER :: wavel = 1215.7
+   REAL, PARAMETER :: O2xs  = 1.000E-20
+   REAL, PARAMETER :: CH4xs = 2.000E-17
+   REAL, PARAMETER :: sflux = 4.006E+11
+
+!  Constants for Chapman function at high solar zenith angle
+!  ---------------------------------------------------------
+   REAL, PARAMETER :: hbar = 6.79
+   REAL, PARAMETER :: zbar = 30.0
+   REAL, PARAMETER :: r0   = 6.371E+03
+   REAL, PARAMETER :: zp   = 60.0
+
+   REAL, PARAMETER :: d1 = 1.060693
+   REAL, PARAMETER :: d2 = 0.55643831
+   REAL, PARAMETER :: d3 = 1.0619896
+   REAL, PARAMETER :: d4 = 1.7245609
+   REAL, PARAMETER :: d5 = 0.56498823
+   REAL, PARAMETER :: d6 = 0.06651874
+
+   REAL, PARAMETER :: O2ABV80KM = 7.072926E+19 ![cm^{-2}]
+   REAL, PARAMETER :: O2VMR = 0.20946
+
+!  bweir: Hardcoding because I don't want to brick old RC files (FIXME)
+   REAL, PARAMETER :: SZACUTOFF = 70.0
+
+   REAL :: b, r, s
+   REAL :: fO2VMR
+
+   INTEGER :: status
+
+   CHARACTER(LEN=ESMF_MAXSTR) :: Iam = "CO::getJRates"
+
+   rc = 0
+   b = SQRT(0.50*r0/hbar)
+
+!  O2 overhead number density profile [cm^{-2}]
+!  --------------------------------------------
+   ALLOCATE(O2Column(i1:i2,j1:j2,1:km), STAT=status)
+   VERIFY_(status)
+
+   fO2VMR = O2VMR*5.00E-05
+!  O2Column(:,:,1) = O2ABV80KM+cellDepth(:,:,1)*ndwet(:,:,1)*fO2VMR
+   O2Column(i1:i2,j1:j2,1) = O2ABV80KM + w_c%delp(i1:i2,j1:j2,1)*MAPL_AVOGAD/(MAPL_AIRMW*MAPL_GRAV)*fO2VMR
+
+   DO k = 2,km
+!     O2Column(:,:,k) = O2Column(:,:,k-1)+(cellDepth(:,:,k-1)*ndwet(:,:,k-1)+ &
+!                                          cellDepth(:,:,  k)*ndwet(:,:,  k))*fO2VMR
+      O2Column(i1:i2,j1:j2,k) = O2Column(i1:i2,j1:j2,k-1) &
+                              + (w_c%delp(i1:i2,j1:j2,k-1) + w_c%delp(i1:i2,j1:j2,k)) &
+                                *MAPL_AVOGAD/(MAPL_AIRMW*MAPL_GRAV)*fO2VMR
+   END DO
+
+   IF(gcCO%dbg) THEN
+      CALL pmaxmin('CO: O2Column', O2Column, qmin, qmax, iXj, km,  1. )
+   END IF
+
+!  Grab some memory
+!  ----------------
+   ALLOCATE(SZARad(i1:i2,j1:j2), STAT=status)
+   VERIFY_(status)
+   ALLOCATE(SZADeg(i1:i2,j1:j2), STAT=status)
+   VERIFY_(status)
+   ALLOCATE(sinSZA(i1:i2,j1:j2), STAT=status)
+   VERIFY_(status)
+
+   WHERE(w_c%cosz(i1:i2,j1:j2) > 1.00)
+      SZARad(i1:i2,j1:j2) = 0.00
+   ELSEWHERE
+      SZARad(i1:i2,j1:j2) = ACOS(w_c%cosz(i1:i2,j1:j2))
+   ENDWHERE
+   SZADeg(i1:i2,j1:j2) = SZARad(i1:i2,j1:j2)*radToDeg
+   sinSZA(i1:i2,j1:j2) = SIN(SZARad(i1:i2,j1:j2))
+
+   ALLOCATE(zgrz(i1:i2,j1:j2), STAT=status)
+   VERIFY_(status)
+
+   WHERE(SZADeg(i1:i2,j1:j2) <= 90.00)
+      zgrz(i1:i2,j1:j2) = 1000.00
+   ELSEWHERE
+      zgrz(i1:i2,j1:j2) = sinSZA(i1:i2,j1:j2)*(zp+r0)-r0
+   ENDWHERE
+
+   IF(gcCO%dbg) THEN
+      CALL pmaxmin('CO: zgrz',     zgrz, qmin, qmax, iXj, 1,  1. )
+      CALL pmaxmin('CO: cosz', w_c%cosz, qmin, qmax, iXj, 1,  1. )
+   END IF
+
+   ALLOCATE(sfaca(i1:i2,j1:j2), STAT=status)
+   VERIFY_(status)
+   sfaca(i1:i2,j1:j2) = 0.00
+
+!  Chapman function calculation from ACDB 2-D model
+!  ------------------------------------------------
+   DO j = j1,j2
+      DO i = i1,i2
+         Daytime: IF(SZADeg(i,j) < SZACUTOFF) THEN
+            IF(SZADeg(i,j) < 70.00) THEN
+               sfaca(i,j) = 1.00/w_c%cosz(i,j)
+            ELSE IF(zgrz(i,j) > 0.00) THEN
+               s = b*ABS(w_c%cosz(i,j))
+               IF(s <= 8.00) THEN
+                  s = (d1+d2*s)/(d3+d4*s+s**2)
+               ELSE
+                  s = d5/(d6+s)
+               ENDIF
+
+               r = b*SQRT(MAPL_PI)
+               sfaca(i,j) = r*s
+
+               IF(SZADeg(i,j) > 90.00) THEN
+                  sfaca(i,j) = 2.00*r*EXP((r0+zbar)*(1.00-sinSZA(i,j))/hbar)-sfaca(i,j)
+               ENDIF
+            ENDIF
+         ENDIF Daytime
+      ENDDO
+   ENDDO
+
+   IF(gcCO%dbg) THEN
+      CALL pmaxmin('CO: sfaca', sfaca, qmin, qmax, iXj, 1,  1. )
+   END IF
+
+   ALLOCATE(arg(i1:i2,j1:j2), STAT=status)
+   VERIFY_(status)
+
+!  At each layer, compute the rate constant, J [s^{-1}], if the sun is up
+!  ----------------------------------------------------------------------
+   DO k = 1,km
+      WHERE(SZADeg(i1:i2,j1:j2) < SZACUTOFF)
+         arg(i1:i2,j1:j2) = O2Column(i1:i2,j1:j2,k)*O2xs*sfaca(i1:i2,j1:j2)
+         photJ(i1:i2,j1:j2,k) = sflux*EXP(-arg(i1:i2,j1:j2))*CH4xs
+      ENDWHERE
+   ENDDO
+
+   IF(gcCO%dbg) THEN
+      CALL pmaxmin('CO: photJ', photJ, qmin, qmax, iXj, km,  1. )
+   ENDIF
+
+   DEALLOCATE(SZARad, STAT=status)
+   VERIFY_(status)
+   DEALLOCATE(SZADeg, STAT=status)
+   VERIFY_(status)
+   DEALLOCATE(sinSZA, STAT=status)
+   VERIFY_(status)
+   DEALLOCATE(zgrz, STAT=status)
+   VERIFY_(status)
+   DEALLOCATE(sfaca, STAT=status)
+   VERIFY_(status)
+   DEALLOCATE(arg, STAT=status)
+   VERIFY_(status)
+   DEALLOCATE(O2Column, STAT=status)
+   VERIFY_(status)
+
+   RETURN
+   END SUBROUTINE getJRates
+
+   SUBROUTINE interp_s(k,sza,o3column,s,jo2,gcCO)
+! ----------------------------------------------------------------------------
+! NAME:
+!   interp_s
+!
+! PURPOSE:
+!   Interpolate S values for each wavelength in table to specified O3
+!   column and zenith angle
+!
+! INPUTS:
+!   k         Current layer number
+!   szaRad    Solar zenith angle [radians]
+!   o3column  Overhead o3 column value [cm^{-2}]
+!   gcCO      The GOCART::CO grid component, which contains
+!     sza_tab Solar zenith angle table
+!     o3_tab  Overhead O3 values table
+!     sdat    Radiative source function 
+!     o2jdat  Table of J(O2) values
+!
+! OUTPUTS:
+!   s         S value for each wavelength at current k, interpolated to
+!               the given o3column and sza
+!   jo2       J(O2) values interpolated as above
+!
+! 
+! PROCEDURE:
+!   Bi-linear interpolation, for sza > 94 s=0, for O3 out of range use min/max
+!
+! MODIFICATION HISTORY: 
+!   25 Aug 1993  Kawa
+!   10 Jul 1996  Kawa    For 28 levels and to handle J(O2) separately
+!   11 May 2012  Nielsen Accomodation for GEOS-5 FV cubed release
+!   30 Jan 2021  Weir    Copied from StratChem
+! ----------------------------------------------------------------------------
+       
+   IMPLICIT NONE
+
+   TYPE(CO_GridComp1), INTENT(IN) :: gcCO   ! Grid Component
+
+   INTEGER, INTENT(IN) :: k
+   REAL, INTENT(IN) :: sza, o3column 
+   REAL, INTENT(OUT) :: s(gcCO%nlam), jo2
+
+   INTEGER :: ijj, ik, ikk, ikkm, il, is
+   REAL :: omt, omu, t, u
+   REAL, PARAMETER :: PI = 3.14159265
+
+! For each input solar zenith angle, find the first element of gcCO%sza_tab that 
+! is greater.  Use this element and previous one to determine the interpolated value.
+! -----------------------------------------------------------------------------------
+   DO is = 1,gcCO%nsza
+      ijj = is 
+      IF(gcCO%sza_tab(is) > sza) EXIT 
+   ENDDO
+      
+! Zenith angle test       
+! -----------------
+   IF(sza > gcCO%sza_tab(gcCO%nsza)) THEN
+!     Cell is dark, set s and jo2=0        
+!     -----------------------------
+      s(1:gcCO%nlam) = 0.
+      jo2 = 0.
+   ELSE  
+!     Cell is illuminated     
+!     -------------------
+      t = (sza-gcCO%sza_tab(ijj-1))/(gcCO%sza_tab(ijj)-gcCO%sza_tab(ijj-1))
+      omt = 1.-t
+         
+! For each overhead O3 column, find the first element in gcCO%o3_tab that is
+! greater. Use this element and previous one to determine the interpolated value.
+! -------------------------------------------------------------------------------
+      DO is = 1,gcCO%numo3
+         ikk = is 
+         IF(gcCO%o3_tab(is,k) > o3column) EXIT
+      ENDDO
+
+      ikkm = ikk-1 
+      IF(ikk > 1 .AND. o3column <= gcCO%o3_tab(gcCO%numo3,k)) THEN
+         u = (o3column-gcCO%o3_tab(ikkm,k))/(gcCO%o3_tab(ikk,k)-gcCO%o3_tab(ikkm,k))
+         omu = 1.-u
+
+! Do bilinear interpolation for each wavelength.
+! ----------------------------------------------
+         DO il = 1,gcCO%nlam       
+            s(il) = omt*omu*gcCO%sdat(ijj-1,ikkm,k,il)+t*omu*gcCO%sdat(ijj,ikkm,k,il)+ &
+                    t*u*gcCO%sdat(ijj,ikk,k,il)+omt*u*gcCO%sdat(ijj-1,ikk,k,il)
+         ENDDO
+         jo2 = omt*omu*gcCO%o2jdat(ijj-1,ikkm,k)+t*omu*gcCO%o2jdat(ijj,ikkm,k)+ &
+               t*u*gcCO%o2jdat(ijj,ikk,k)+omt*u*gcCO%o2jdat(ijj-1,ikk,k)
+    
+! Extrapolate ahead of table
+! --------------------------
+      ELSE IF (ikk == 1) THEN
+         DO il = 1,gcCO%nlam
+            s(il) = omt*gcCO%sdat(ijj-1,1,k,il)+t*gcCO%sdat(ijj,1,k,il)
+         ENDDO
+         jo2 = omt*gcCO%o2jdat(ijj-1,1,k)+t*gcCO%o2jdat(ijj,1,k)
+
+! Extrapolate beyond table
+! ------------------------
+      ELSE
+         DO il = 1,gcCO%nlam
+            s(il) = omt*gcCO%sdat(ijj-1,gcCO%numo3,k,il)+t*gcCO%sdat(ijj,gcCO%numo3,k,il)
+         END DO 
+         jo2 = omt*gcCO%o2jdat(ijj-1,gcCO%numo3,k)+t*gcCO%o2jdat(ijj,gcCO%numo3,k)
+      ENDIF  
+   ENDIF
+      
+   RETURN
+   END SUBROUTINE interp_s
+
+   SUBROUTINE jcalc4(k,szan,o3column,press,kel,aj,gcCO)
+! ---------------------------------------------------------------------------------
+! NAME: jcalc4
+! PURPOSE:
+!   Calculate photolysis rates
+! INPUT:
+!   k         Current layer number
+!   levels    Number of layers
+!   szan      Solar zenith angle (radians)
+!   o3column  Overhead O3 values
+!   press     Mid-layer pressure (hPa)
+!   kel       Mid-layer temperature (K)
+! OUTPUT:
+!   aj        Array of photolysis rates
+! RESTRICTIONS:
+!   Currently set up for 23-J set (see var gcCO%nxdo)
+! REQUIRED ROUTINES:
+!   interp_s
+! MODIFICATION HISTORY: 
+!   26 Aug 1993 Kawa    Created
+!   23 Nov 1993 Kawa    Remade xtab to do multiplication by solar flux beforehand 
+!                        and removed inputs.
+!   25 Feb 1994         Add 3 additional Js, incl N2O
+!   18 Sep 1995         Add 2 additional Js, up to 22, and do CH2O special
+!   13 May 1996 Crum    Removed fossils, move toward Fortran 90
+!   10 Jul 1996         Modified to handle J(O2) separately and use 28 levels
+!    1 Apr 2009 Nielsen GEOS-5 form with standardized SC_GridComp interface.
+!    1 Jun 2009 Nielsen Updated to JPL 2006
+!   12 Dec 2010 Nielsen Updated to JPL 2010 following Luke Oman's testing.
+!   11 May 2012 Nielsen Accomodation for GEOS-5 FV cubed release
+!    3 Jun 2015 Liang   Updated to the new 50-slot table with addition of halons,
+!                       HCFCs, and 5 VSLSs
+!                       numphoto is now updated to 52
+!   30 Jan 2021 Weir    Copied from StratChem
+!
+! WARNING: Photolysis reaction rate numbers 38-42 are calculated in MESO_PHOT.
+! ---------------------------------------------------------------------------------
+   IMPLICIT NONE
+   INTEGER, PARAMETER :: DBL = KIND(0.00D+00)
+
+   TYPE(CO_GridComp1), INTENT(INOUT) :: gcCO   ! Grid Component
+
+   INTEGER, INTENT(IN) :: k
+   REAL, INTENT(IN) :: szan, o3column, press, kel
+!  REAL(KIND=DBL), INTENT(OUT) :: aj(gcCO%numphoto)
+!  bweir: demoted to single
+   REAL, INTENT(OUT) :: aj(gcCO%numphoto)
+
+   INTEGER :: ilam,indt,ix
+
+   REAL :: alpha300, alphat, jo2, rjs(gcCO%nxdo), q1, q2, r1mq1
+   REAL :: s(gcCO%nlam), sx(2,gcCO%nlam), tfac, wvl
+
+! Start with a clean slate
+! ------------------------
+   aj(1:gcCO%numphoto) = 0.
+
+! Interpolate radiative flux function values to model conditions
+! --------------------------------------------------------------
+   CALL interp_s(k,szan,o3column,s,jo2,gcCO)
+   indt = kel-148.5
+   indt = MAX(1,indt)
+   indt = MIN(indt,200)
+
+! Preliminaries for CH2O quantum yield dependence on m, T, wavelength
+! -------------------------------------------------------------------
+   tfac = (kel-80.0)/80.0
+
+   DO ilam=1,gcCO%nlam
+      ZeroS: IF(s(ilam) == 0.) THEN
+         sx(1,ilam) = 0.00
+         sx(2,ilam) = 0.00
+      ELSE 
+
+         wvl = gcCO%rlam(ilam)*0.10
+
+         IF(wvl < 250.00) THEN
+            q1 = 0.24
+         ELSE IF(wvl >= 339.00) THEN
+            q1 = 0.00
+         ELSE
+            q1 = gcCO%CH2O_aq(1) + gcCO%CH2O_aq(2)*wvl         + &
+                                   gcCO%CH2O_aq(3)*wvl*wvl     + &
+                                   gcCO%CH2O_aq(4)*wvl*wvl*wvl + &
+                                   gcCO%CH2O_aq(5)*wvl*wvl*wvl*wvl
+         ENDIF
+
+         r1mq1 = 1./(1.-q1)
+
+         IF(wvl < 330.00) THEN
+            q2 = gcCO%xtab(ilam,22,indt)
+         ELSE IF(wvl > 360.00) THEN
+            q2 = 0.00
+         ELSE
+            alpha300 = 1.00E-03*(1./gcCO%xtab(ilam,22,1)-r1mq1)
+            alphat = alpha300*(1.+0.05*(wvl-329.)*((300.-kel)/80.))
+            q2 = 1.00/(r1mq1+alphat*press)
+         ENDIF
+
+         IF(wvl .LT. 250.00) q2=0.5
+
+         sx(2,ilam) = s(ilam)*gcCO%xtab(ilam,21,indt)*q2
+         sx(1,ilam) = s(ilam)*gcCO%xtab(ilam,21,indt)*q1
+      ENDIF ZeroS
+   ENDDO
+
+! J(BrONO2) through J(OCLO)
+! -------------------------
+   DO ix=1,14
+      rjs(ix) = 0.
+
+      DO ilam=1,gcCO%nlam
+         rjs(ix) = rjs(ix)+s(ilam)*gcCO%xtab(ilam,ix,indt)
+      ENDDO
+   ENDDO
+
+! J(O2)
+! -----
+   rjs(15) = jo2
+
+! J(O3_O1D) through J(N2O)
+! ------------------------
+   DO ix=16,20
+      rjs(ix) = 0.
+
+      DO ilam=1,gcCO%nlam
+         rjs(ix) = rjs(ix)+s(ilam)*gcCO%xtab(ilam,ix,indt)
+      ENDDO
+   ENDDO
+
+! J(CH2O)
+! -------
+   rjs(21) = 0.
+   rjs(22) = 0.
+   DO ilam=1,gcCO%nlam
+      rjs(21) = rjs(21)+sx(1,ilam)
+      rjs(22) = rjs(22)+sx(2,ilam)
+   ENDDO
+
+! J(CO2 -> CO + O) through xH1211
+! -------------------------------
+   DO ix=23,gcCO%nxdo
+      rjs(ix) = 0.
+
+      DO ilam=1,gcCO%nlam
+         rjs(ix) = rjs(ix)+s(ilam)*gcCO%xtab(ilam,ix,indt)
+      ENDDO
+   ENDDO
+               
+! ---------------------------------------------------------------
+! Order photolysis rates to match order in full chemistry model.  
+! Sort rjs into CTM photolysis rate array, aj.  Order of rjs:
+!
+!  1-J(BrONO2)
+!  2-J(BrO)
+!  3-J(Cl2O2)
+!  4-J(ClONO2)
+!  5-J(H2O2)
+!  6-J(HCl)
+!  7-J(HNO3)
+!  8-J(HO2NO2)
+!  9-J(HOCl)
+! 10-J(N2O5)
+! 11-J(NO2)
+! 12-J(NO3_NO)
+! 13-J(NO3_NO2)
+! 14-J(OClO)
+! 15-J(O2)
+! 16-J(O3_O1D)
+! 17-J(O3_3P)
+! 18-J(HOBr)
+! 19-J(CH3OOH)
+! 20-J(N2O)
+! 21-J(CH2O_HCO)
+! 22-J(CH2O_CO)
+! 23-J(CO2 -> CO + O)
+! 24-xCFC-11
+! 25-xCFC-12
+! 26-xCCl4
+! 27-xCH3CCl3
+! 28-xHCFC-22
+! 29-xCFC-113
+! 30-xCH3Cl
+! 31-xCH3Br
+! 32-xH1301
+! 33-xH1211 
+! 34-xH1202
+! 35-xH2402
+! 36-xCHBr3
+! 37-xCH2Br2
+! 38-xCH2ClBr
+! 39-xCHClBr2
+! 40-xCHCl2Br
+! 41-xHCFC-141b
+! 42-xHCFC-142b
+! 43-xCFC-114 
+! 44-xCFC-115
+! 45-xOCS
+! 46-
+! 47-
+! 48-
+! 49-
+! 50-
+! ---------------------------------------------------------------
+! Solar cycle goes here when ready  
+!     aj( 1) = rjs(15)*gcCO%s_cycle(3,gcCO%iscyr)
+! ----------------------------------------------------------------
+   aj( 1) = rjs(15)
+   aj( 2) = rjs(16)
+   aj( 3) = rjs(17)
+! H2O
+! ---
+   aj( 4) = 0.
+   aj( 5) = rjs(13)
+   aj( 6) = rjs(7)
+   aj( 7) = rjs(11)
+   aj( 8) = rjs(5)
+   aj( 9) = rjs(10)
+   aj(10) = rjs(21)
+   aj(11) = rjs(22)
+   aj(12) = rjs(23)
+   aj(13) = rjs(19)
+   aj(14) = rjs(20)
+   aj(15) = rjs(4)
+   aj(16) = 0.
+   aj(17) = rjs(12)
+   aj(18) = rjs(6)
+   aj(19) = 0.
+
+! CH3Br(20) H1301(21) H12_24(22)
+! ------------------------------
+   aj(20) = rjs(31)
+   aj(21) = rjs(32)
+   aj(22) = rjs(33)
+   aj(23) = rjs(9)
+   aj(24) = rjs(8)
+   aj(25) = rjs(18)
+   aj(26) = 0.
+   aj(27) = rjs(2)
+   aj(28) = rjs(1)
+
+! F11(29) F12(30) CCl4(31) CHCCl3(32) HCFC(33) F113(34) CH3Cl(35)
+! ---------------------------------------------------------------
+   aj(29) = rjs(24)
+   aj(30) = rjs(25)
+   aj(31) = rjs(26)
+   aj(32) = rjs(27)
+   aj(33) = rjs(28)
+   aj(34) = rjs(29)
+   aj(35) = rjs(30)
+   aj(36) = rjs(3)
+   aj(37) = rjs(14)
+
+! ------------------------------------------
+! WARNING: Photolysis reaction rate
+! numbers 38-42 are calculated in MESO_PHOT.
+! ------------------------------------------
+! Add aj(43) which is J(Cl2O2) for partitioning but not Ox loss 
+! which is aj(36). In lookup table J(Cl2O2) is J*qy where qy is 0.8 
+! so multiply by 1.25 to equal J and used in part.F and partest.F
+
+   aj(43) = rjs(3)*1.25
+
+! QingLiang -- 06/03/2015
+! CHBr3(44) CH2Br2(45) CH2BrCl(46) CHBrCl2(47) CHBr2Cl(48)
+   aj(44) = rjs(36)
+   aj(45) = rjs(37)
+   aj(46) = rjs(38)
+   aj(47) = rjs(39)
+   aj(48) = rjs(40)
+
+! QingLiang -- 06/03/2015
+! Add two new halons: H-1202 (49) H2402 (50) 
+! and two new HCFCs: HCFC-141b (51) HCFC-142b (52) 
+   aj(49) = rjs(34)
+   aj(50) = rjs(35)
+   aj(51) = rjs(41)
+   aj(52) = rjs(42)
+
+! QingLiang -- 02/05/2016
+! Add CFC-114 and CFC-115
+! Add OCS for GOCART module
+   aj(53) = rjs(43)
+   aj(54) = rjs(44)
+   aj(55) = rjs(45)
+!  aj(53) = rjs(34)
+!  aj(54) = rjs(34)
+!  aj(55) = rjs(34)
+
+   RETURN
+   END SUBROUTINE jcalc4
 
  END SUBROUTINE CO_GridCompRun1_
 
@@ -1282,8 +2175,7 @@ CONTAINS
 
    DEALLOCATE ( gcCO%eCO_bioburn, gcCO%eCO_biofuel, gcCO%eCO_fosfuel, & 
                 gcCO%COsfcFlux, gcCO%eCO_iso, gcCO%eCO_mon, &
-                gcCO%eCO_mtn, gcCO%CH4, gcCO%OHnd, &
-                STAT=ios )
+                gcCO%eCO_mtn, gcCO%CH4, gcCO%OHnd, STAT=ios )
    rc = 0
    IF ( ios /= 0 ) rc = 1
 

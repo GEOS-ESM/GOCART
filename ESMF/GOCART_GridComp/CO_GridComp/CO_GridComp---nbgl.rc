@@ -6,8 +6,8 @@
 # -----------------------------------
 DEBUG: 0
 
-# Run-time switch on OH provider units
-# Permissable string is "mol/mol" or "mol mol-1"
-# else resorts to assuming "molecules cm-3"
-#------------------------------------------
-units_oh: 0
+# Run-time switch on OH, Cl, O(O1D) units
+# Permissable string is "mol/mol" or "mol mol-1",
+# otherwise resorts to assuming "molecules cm-3"
+#------------------------------------------------
+units_oh: "mol/mol"

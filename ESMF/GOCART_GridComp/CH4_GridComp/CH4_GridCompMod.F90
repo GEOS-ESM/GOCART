@@ -15,11 +15,12 @@
 
    USE ESMF
    USE MAPL
-   USE Chem_Mod 	     ! Chemistry Base Class
-   USE Chem_StateMod	     ! Chemistry State
-   USE Chem_UtilMod	     ! I/O
-   USE m_inpak90	     ! Resource file management
+   USE Chem_Mod              ! Chemistry Base Class
+   USE Chem_StateMod         ! Chemistry State
+   USE Chem_UtilMod          ! I/O
+   USE m_inpak90             ! Resource file management
    USE Henrys_law_ConstantsMod, ONLY: get_HenrysLawCts
+   USE m_chars, ONLY: lowercase, uppercase
 
    IMPLICIT NONE
 
@@ -47,40 +48,49 @@
 !
 !  24 Jun 2010 Nielsen:  First crack.
 !  25 Oct 2012 Nielsen:  Added photolysis.
+!  06 Oct 2017 Weir:     Fixing whitespace (STOP USING TABS IN FORTRAN!).
 !
 !EOP
 !-------------------------------------------------------------------------
 
   TYPE CH4_GridComp1
 
-   CHARACTER(LEN=ESMF_MAXSTR) :: name		 ! generic name of the package
-   CHARACTER(LEN=ESMF_MAXSTR) :: iname  	 ! instance name
-   CHARACTER(LEN=ESMF_MAXSTR) :: rcfilen	 ! resource file name
-   CHARACTER(LEN=ESMF_MAXSTR) :: regionsString   ! Comma-delimited string of regions
-   CHARACTER(LEN=ESMF_MAXSTR) :: CH4Source	 ! Source name on emission file (CH4_ANIMLS, for example)
+   CHARACTER(LEN=ESMF_MAXSTR) :: name            ! generic name of the package
+   CHARACTER(LEN=ESMF_MAXSTR) :: iname           ! instance name
+   CHARACTER(LEN=ESMF_MAXSTR) :: rcfilen         ! resource file name
+   CHARACTER(LEN=ESMF_MAXSTR) :: CH4Source       ! Source name on emission file (CH4_ANIMLS, for example)
 
    INTEGER :: instance                 ! Instantiation number
-   INTEGER :: nymd_oh
-   INTEGER :: nymd_ch4
-   INTEGER :: BCnymd                   ! Date of last emissions/prodction read
 
-   REAL, POINTER :: regionMask(:,:)    ! regional mask
-   REAL, POINTER ::	 CH4(:,:,:)    ! CH4 mixing ratio mol/mol
-   REAL, POINTER ::	OHnd(:,:,:)    ! OH number density (cm^{-3})
-   REAL, POINTER :: CH4sfcFlux(:,:)    ! CH4 surface flux kg m^-2 s^-1
+   REAL, POINTER ::      CH4(:,:,:)    ! CH4 mixing ratio mol/mol
+   REAL, POINTER ::     OHnd(:,:,:)    ! OH number density (cm^{-3})
+   REAL, POINTER ::     Clnd(:,:,:)    ! Cl number density (cm^{-3})
+   REAL, POINTER ::    O1Dnd(:,:,:)    ! O(1D) number density (cm^{-3})
+
+   REAL, POINTER :: eCH4_agw(:,:)      ! kgCH4/m2/s, Earth surface
+   REAL, POINTER :: eCH4_ind(:,:)      ! kgCH4/m2/s, Earth surface
+   REAL, POINTER :: eCH4_wetl(:,:)     ! kgCH4/m2/s, Earth surface
+   REAL, POINTER :: eCH4_mnat(:,:)     ! kgCH4/m2/s, Earth surface
+   REAL, POINTER :: eCH4_bb(:,:)       ! kgCH4/m2/s, PBL (before diurnal)
+   REAL, POINTER :: eCH4_bb_(:,:)      ! kgCH4/m2/s, PBL
+   REAL, POINTER :: eCH4_bf(:,:)       ! kgCH4/m2/s, Earth surface
 
    LOGICAL :: DebugIsOn     ! Run-time debug switch
    LOGICAL :: CH4FeedBack   ! Permit increments to CH4 from CH4 + hv => 2H2O + CO
    LOGICAL :: H2OFeedBack   ! Permit increments to   Q from CH4 + hv => 2H2O + CO
+   CHARACTER(LEN=ESMF_MAXSTR) :: units_oh ! Units for OH 
 
    REAL :: szaCutoff        ! Largest solar zenith angle (degrees) allowed as daytime
-	
+
   END TYPE CH4_GridComp1
 
   TYPE CH4_GridComp
      INTEGER                      ::  n        ! number of instances 
      TYPE(CH4_GridComp1), pointer ::  gcs(:)   ! instances
   END TYPE CH4_GridComp
+
+  real, parameter :: radToDeg = 180./MAPL_PI
+  real, parameter :: mwtCH4   = 16.0422
 
 CONTAINS
 
@@ -114,7 +124,7 @@ CONTAINS
    VERIFY_(STATUS)
 
 !  We cannot have fewer instances than the number of
-!   CH4 bins in the registry (it is OK to have less, though)
+!  CH4 bins in the registry (it is OK to have less, though)
 !  --------------------------------------------------------
    if ( n .LT. chemReg%n_CH4 ) then
         rc = 35
@@ -123,7 +133,7 @@ CONTAINS
         if (MAPL_AM_I_ROOT()) &
         PRINT *, TRIM(Iam)//": Bins = ",chemReg%n_CH4," of ",n," expected."
    end if
-   n = min(n,chemReg%n_CH4 )
+   n = min(n, chemReg%n_CH4)
 
 !  Record name of each instance
 !  ----------------------------
@@ -141,16 +151,6 @@ CONTAINS
       call CH4_GridCompSetServices1_(gc,chemReg,name,rc=status)
       VERIFY_(STATUS)
    end do
-
-   call MAPL_AddImportSpec(GC,           &
-        SHORT_NAME = 'CH4_regionMask',   &
-        LONG_NAME  = 'source species'  , &
-        UNITS      = '1',                &
-        DIMS       = MAPL_DimsHorzOnly,  &
-        VLOCATION  = MAPL_VLocationNone, &
-        RESTART    = MAPL_RestartSkip,   &
-        RC         = STATUS)
-   VERIFY_(STATUS)
 
    RETURN_(ESMF_SUCCESS)
 
@@ -175,8 +175,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 
    TYPE(Chem_Bundle), intent(in) :: w_c        ! Chemical tracer fields      
-   INTEGER, INTENT(IN) :: nymd, nhms	       ! time
-   REAL,    INTENT(IN) :: cdt		       ! chemical timestep (secs)
+   INTEGER, INTENT(IN) :: nymd, nhms           ! time
+   REAL,    INTENT(IN) :: cdt                  ! chemical timestep (secs)
 
 
 ! !OUTPUT PARAMETERS:
@@ -203,8 +203,8 @@ CONTAINS
    CHARACTER(LEN=ESMF_MAXSTR) :: rcbasen = 'CH4_GridComp'
    CHARACTER(LEN=ESMF_MAXSTR) :: name
    
-   INTEGER :: i, n, status
-   REAL :: c1,c2,c3,c4
+   integer :: i, n, status
+   real :: c1, c2, c3, c4
 
 !  Load resource file
 !  ------------------
@@ -231,7 +231,7 @@ CONTAINS
    END IF
    
 !  We cannot have fewer instances than the number of
-!   CH4 bins in the registry (it is OK to have less, though)
+!  CH4 bins in the registry (it is OK to have less, though)
 !  --------------------------------------------------------
    IF ( n < w_c%reg%n_CH4 ) THEN
     status = 1
@@ -278,12 +278,12 @@ CONTAINS
    END DO
 
 !  Get Henrys Law cts for the parameterized convective wet removal
-!  -----------------------------------------------------------
-   CALL get_HenrysLawCts('CH4',c1,c2,c3,c4)  
-   w_c%reg%Hcts(1,w_c%reg%i_CH4 : w_c%reg%j_CH4)=c1
-   w_c%reg%Hcts(2,w_c%reg%i_CH4 : w_c%reg%j_CH4)=c2
-   w_c%reg%Hcts(3,w_c%reg%i_CH4 : w_c%reg%j_CH4)=c3
-   w_c%reg%Hcts(4,w_c%reg%i_CH4 : w_c%reg%j_CH4)=c4
+!  ---------------------------------------------------------------
+   CALL get_HenrysLawCts('CH4', c1, c2, c3, c4)
+   w_c%reg%Hcts(1,w_c%reg%i_CH4:w_c%reg%j_CH4) = c1
+   w_c%reg%Hcts(2,w_c%reg%i_CH4:w_c%reg%j_CH4) = c2
+   w_c%reg%Hcts(3,w_c%reg%i_CH4:w_c%reg%j_CH4) = c3
+   w_c%reg%Hcts(4,w_c%reg%i_CH4:w_c%reg%j_CH4) = c4
 
 !  All done
 !  --------
@@ -311,8 +311,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 
    TYPE(Chem_Bundle), intent(in) :: w_c        ! Chemical tracer fields      
-   INTEGER, INTENT(IN) :: nymd, nhms	       ! time
-   REAL,    INTENT(IN) :: cdt		       ! chemical timestep (secs)
+   INTEGER, INTENT(IN) :: nymd, nhms           ! time
+   REAL,    INTENT(IN) :: cdt                  ! chemical timestep (secs)
 
 
 ! !OUTPUT PARAMETERS:
@@ -367,8 +367,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 
    TYPE(Chem_Bundle), intent(in) :: w_c        ! Chemical tracer fields      
-   INTEGER, INTENT(IN) :: nymd, nhms	       ! time
-   REAL,    INTENT(IN) :: cdt		       ! chemical timestep (secs)
+   INTEGER, INTENT(IN) :: nymd, nhms           ! time
+   REAL,    INTENT(IN) :: cdt                  ! chemical timestep (secs)
 
 
 ! !OUTPUT PARAMETERS:
@@ -416,19 +416,73 @@ CONTAINS
 
  Iam ="CH4_GridCOmpSetServices1_"
 
-  call MAPL_AddImportSpec(GC, &
-       SHORT_NAME = 'CH4_sfcFlux'//iname, &
-       LONG_NAME  = 'source species'  , &
-       UNITS      = '1', &
-       DIMS       = MAPL_DimsHorzOnly, &
-       VLOCATION  = MAPL_VLocationNone, &
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_industr'//iname, &
+       LONG_NAME  = 'source species'  ,   &
+       UNITS      = 'kg CH4 m-2 s-1',     &
+       DIMS       = MAPL_DimsHorzOnly,    &
+       VLOCATION  = MAPL_VLocationNone,   &
+       RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
-  call MAPL_AddImportSpec(GC, &
-       SHORT_NAME = 'CH4_oh'//iname, &
-       LONG_NAME  = 'source species'  , &
-       UNITS      = '1', &
-       DIMS       = MAPL_DimsHorzVert, &
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_agwaste'//iname, &
+       LONG_NAME  = 'source species'  ,   &
+       UNITS      = 'kg CH4 m-2 s-1',     &
+       DIMS       = MAPL_DimsHorzOnly,    &
+       VLOCATION  = MAPL_VLocationNone,   &
+       RESTART    = MAPL_RestartSkip,     &
+       RC         = STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_bioburn'//iname, &
+       LONG_NAME  = 'source species'  ,   &
+       UNITS      = 'kg CH4 m-2 s-1',     &
+       DIMS       = MAPL_DimsHorzOnly,    &
+       VLOCATION  = MAPL_VLocationNone,   &
+       RESTART    = MAPL_RestartSkip,     &
+       RC         = STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_biofuel'//iname, &
+       LONG_NAME  = 'source species'  ,   &
+       UNITS      = 'kg CH4 m-2 s-1',     &
+       DIMS       = MAPL_DimsHorzOnly,    &
+       VLOCATION  = MAPL_VLocationNone,   &
+       RESTART    = MAPL_RestartSkip,     &
+       RC         = STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_minnatl'//iname, &
+       LONG_NAME  = 'source species'  ,   &
+       UNITS      = 'kg CH4 m-2 s-1',     &
+       DIMS       = MAPL_DimsHorzOnly,    &
+       VLOCATION  = MAPL_VLocationNone,   &
+       RESTART    = MAPL_RestartSkip,     &
+       RC         = STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_wetland'//iname, &
+       LONG_NAME  = 'source species',     &
+       UNITS      = 'kg CH4 m-2 s-1',     &
+       DIMS       = MAPL_DimsHorzOnly,    &
+       VLOCATION  = MAPL_VLocationNone,   &
+       RESTART    = MAPL_RestartSkip,     &
+       RC         = STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_oh'//iname,      &
+       LONG_NAME  = 'source species',     &
+       UNITS      = 'molecules cm-3',     &
+       DIMS       = MAPL_DimsHorzVert,    &
+       VLOCATION  = MAPL_VLocationCenter, &
+       RC         = STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_cl'//iname,      &
+       LONG_NAME  = 'source species',     &
+       UNITS      = 'molecules cm-3',     &
+       DIMS       = MAPL_DimsHorzVert,    &
+       VLOCATION  = MAPL_VLocationCenter, &
+       RC         = STATUS)
+  call MAPL_AddImportSpec(GC,             &
+       SHORT_NAME = 'CH4_o1d'//iname,     &
+       LONG_NAME  = 'source species',     &
+       UNITS      = 'molecules cm-3',     &
+       DIMS       = MAPL_DimsHorzVert,    &
        VLOCATION  = MAPL_VLocationCenter, &
        RC         = STATUS)
   VERIFY_(STATUS)
@@ -460,8 +514,8 @@ CONTAINS
 ! !INPUT PARAMETERS:
 
    TYPE(Chem_Bundle), intent(in) :: w_c        ! Chemical tracer fields      
-   INTEGER, INTENT(IN) :: nymd, nhms	       ! time
-   REAL,    INTENT(IN) :: cdt		       ! chemical timestep (secs)
+   INTEGER, INTENT(IN) :: nymd, nhms           ! time
+   REAL,    INTENT(IN) :: cdt                  ! chemical timestep (secs)
 
 
 ! !OUTPUT PARAMETERS:
@@ -496,7 +550,6 @@ CONTAINS
    INTEGER :: i1, i2, im, j1, j2, jm, km
    INTEGER :: nTimes, begTime, incSecs
    INTEGER :: nbeg, nend, nymd1, nhms1
-   LOGICAL :: NoRegionalConstraint 
 
    REAL :: limitN, limitS, radTODeg
    REAL, ALLOCATABLE :: var2D(:,:)
@@ -504,7 +557,6 @@ CONTAINS
 
    rcfilen = gcCH4%rcfilen
    gcCH4%name = 'GEOS-5/GOCART Parameterized CH4 Package'
-   gcCH4%BCnymd = -1
    radTODeg = 57.2957795
 
 !  Initialize local variables
@@ -530,13 +582,6 @@ CONTAINS
       status = 1
       VERIFY_(status)
    end if
-
-!  Allocate memory, etc
-!  --------------------
-   ALLOCATE ( gcCH4%CH4sfcFlux(i1:i2,j1:j2), &
-              gcCH4%regionMask(i1:i2,j1:j2), &
-              gcCH4%OHnd(i1:i2,j1:j2,km), STAT=status )
-   VERIFY_(status)
 
 !  Load resource file
 !  ------------------
@@ -586,51 +631,23 @@ CONTAINS
     gcCH4%H2OFeedBack = .FALSE.
    END IF
 
-   call MAPL_GetPointer(impChem,ptr2D,'CH4_regionMask',rc=status)
-   VERIFY_(STATUS)
-
-!  Grab the region string.
-!  -----------------------
-   CALL I90_label ( 'CH4_regions_indices:', status )
+!  Possibly oxidants are in a different unit
+!  Allowable choices are: "mol/mol" or "mol mol-1"
+!  or else behavior is as though input in 
+!  "molecules cm-3"
+!  Should this checking be done now in ExtData?
+!  --------------------------------------------
+   call i90_label('units_oh:', status)
+   if (status /= 0) then
+      gcCH4%units_oh = " "
+   else
+      call I90_gtoken(gcCH4%units_oh, status)
+   end if
    VERIFY_(status)
-   CALL I90_gtoken( gcCH4%regionsString, status )
-   VERIFY_(status)
-
-!  Is this instantiation a global case?
-!  -----------------------------------
-   IF(gcCH4%regionsString(1:2) == "-1") THEN
-    NoRegionalConstraint = .TRUE.
-   ELSE
-    SELECT CASE (ESMF_UtilStringLowerCase(gcCH4%regionsString(1:2)))
-     CASE ("gl") 
-      NoRegionalConstraint = .TRUE.
-     CASE ("al") 
-      NoRegionalConstraint = .TRUE.
-     CASE DEFAULT
-      NoRegionalConstraint = .FALSE.
-    END SELECT
-   END IF
-
-!  Set regionsString to "-1" for the global case
-!  ---------------------------------------------
-   IF(NoRegionalConstraint) gcCH4%regionsString = "-1"
-
-   IF(MAPL_AM_I_ROOT()) THEN
-    IF(NoRegionalConstraint) THEN
-     PRINT *,TRIM(Iam)//": This instantiation has no regional constraints."
-    ELSE
-     PRINT *,TRIM(Iam)//": This instantiation is regionally constrained."
-     PRINT *,TRIM(Iam)//": List of region numbers included: ",TRIM(gcCH4%regionsString)
-    END IF
-   END IF
-
-!  Set the initial CH4 surface fluxes to zero
-!  ------------------------------------------
-   gcCH4%CH4sfcFlux(i1:i2,j1:j2) = 0.00
 
 !  Use instance name as key to CH4 emission source
 !  -----------------------------------------------
-   gcCH4%CH4Source = "CH4_"//TRIM(ESMF_UtilStringUpperCase(gcCH4%iname))
+   gcCH4%CH4Source = "CH4_"//TRIM(UPPERCASE(gcCH4%iname))
 
    RETURN
 
@@ -655,21 +672,21 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    TYPE(CH4_GridComp1), INTENT(INOUT) :: gcCH4   ! Grid Component
-   TYPE(Chem_Bundle), INTENT(INOUT) :: w_c	! Chemical tracer fields   
+   TYPE(Chem_Bundle), INTENT(INOUT) :: w_c       ! Chemical tracer fields   
 
 ! !INPUT PARAMETERS:
 
    TYPE(ESMF_State), INTENT(inout) :: impChem    ! Import State
-   INTEGER, INTENT(IN) :: nymd, nhms	      ! time
-   REAL,    INTENT(IN) :: cdt		      ! chemical timestep (secs)
+   INTEGER, INTENT(IN) :: nymd, nhms             ! time
+   REAL,    INTENT(IN) :: cdt                    ! chemical timestep (secs)
 
 
 ! !OUTPUT PARAMETERS:
 
-   TYPE(ESMF_State), intent(inout) :: expChem     ! Export State
-   INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
-                                                !  0 - all is well
-                                                !  1 -
+   TYPE(ESMF_State), intent(inout) :: expChem    ! Export State
+   INTEGER, INTENT(OUT) ::  rc                   ! Error return code:
+                                                 !  0 - all is well
+                                                 !  1 -
  
 ! !DESCRIPTION: This routine implements the CH4 Driver for GOCART.
 !
@@ -686,23 +703,24 @@ CONTAINS
 !  Input fields from fvGCM
 !  -----------------------
    REAL, POINTER, DIMENSION(:,:)   ::  cellArea => null()
+   REAL, POINTER, DIMENSION(:,:)   ::  pblh     => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  zle      => null()
    REAL, POINTER, DIMENSION(:,:,:) ::  T        => null()
    REAL, POINTER, DIMENSION(:,:,:) ::  Q        => null()
-   REAL, POINTER, DIMENSION(:,:,:) ::  rhoWet   => null()
-   REAL, POINTER, DIMENSION(:,:,:) ::  rhoDry   => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  qtot     => null()
+   REAL, POINTER, DIMENSION(:,:,:) ::  rhowet   => null()
    REAL, POINTER, DIMENSION(:,:,:) ::  ple      => null()
 
    INTEGER :: i1, i2, im, j1, j2, jm, km, idiag, iXj
    INTEGER :: i, j, k, kReverse, n, nbeg, nend
    INTEGER :: nymd1, nhms1, status
 
-   REAL, PARAMETER :: mwtCH4 = 16.043
-
    REAL    :: qmin, qmax
 
-   REAL, ALLOCATABLE :: cellDepth(:,:,:), cellVolume(:,:,:),     rkoh(:,:,:)
-   REAL, ALLOCATABLE ::         p(:,:,:),      ndWet(:,:,:),    ndDry(:,:,:)
-   REAL, ALLOCATABLE ::    dCH4nd(:,:,:),      photJ(:,:,:), dCH4Phot(:,:,:)
+   REAL, ALLOCATABLE :: cellDepth(:,:,:), cellVolume(:,:,:)
+   REAL, ALLOCATABLE ::      rkoh(:,:,:),       rkcl(:,:,:),    rko1d(:,:,:)
+   REAL, ALLOCATABLE ::         p(:,:,:),      ndwet(:,:,:)
+   REAL, ALLOCATABLE ::    dCH4ox(:,:,:),      photJ(:,:,:), dCH4Phot(:,:,:)
 
    CHARACTER(LEN=256) :: CH4Source
  
@@ -742,243 +760,411 @@ CONTAINS
 
 !  It requires 1 bin
 !  -----------------
-   IF ( nbeg /= nend ) THEN
-    IF(MAPL_AM_I_ROOT()) PRINT *,TRIM(Iam)//": Must have only 1 bin at the single instance level"
-    status = 1
-    VERIFY_(status)
-   END IF
+   if (nbeg /= nend) then
+      if (MAPL_AM_I_ROOT()) then
+         print *, trim(iNAME)//": Must have only 1 bin at the single instance level"
+      endif
+      status = 1
+      VERIFY_(status)
+   endif
 
 !  Get imports
 !  -----------
-   CALL MAPL_GetPointer(impChem, T,	   'T',           RC=status)
+   CALL MAPL_GetPointer(impChem, PBLH,     'ZPBL',        RC=status)
    VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, Q,	   'Q',           RC=status)
+   CALL MAPL_GetPointer(impChem, ZLE,      'ZLE',         RC=status)
    VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, rhoWet,   'AIRDENS',     RC=status)
+   CALL MAPL_GetPointer(impChem, T,        'T',           RC=status)
    VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, rhoDry,   'AIRDENS_DRYP',RC=status)
+   CALL MAPL_GetPointer(impChem, Q,        'Q',           RC=status)
+   VERIFY_(status)
+   CALL MAPL_GetPointer(impChem, qtot,     'QTOT',        RC=status)
+   VERIFY_(status)
+   CALL MAPL_GetPointer(impChem, rhowet,   'AIRDENS',     RC=status)
    VERIFY_(status)
    CALL MAPL_GetPointer(impChem, cellArea, 'AREA',        RC=status)
    VERIFY_(status)
-   CALL MAPL_GetPointer(impChem, ple,	   'PLE',         RC=status)
+   CALL MAPL_GetPointer(impChem, ple,      'PLE',         RC=status)
    VERIFY_(status)
 
-   IF(gcCH4%DebugIsOn) THEN
-    CALL pmaxmin('CH4:AREA', cellArea, qmin, qmax, iXj,  1,   1. )
-    CALL pmaxmin('CH4:T',           T, qmin, qmax, iXj, km,   1. )
-    CALL pmaxmin('CH4:Q',           q, qmin, qmax, iXj, km,   1. )
-    CALL pmaxmin('CH4:rhoWet', rhoWet, qmin, qmax, iXj, km,   1. )
-    CALL pmaxmin('CH4:rhoDry', rhoDry, qmin, qmax, iXj, km,   1. )
-    CALL pmaxmin('CH4:ple',       ple, qmin, qmax, iXj, km+1, 1. )
-   END IF
+   if (gcCH4%DebugIsOn) then
+      call pmaxmin('CH4:AREA', cellArea, qmin, qmax, iXj,  1,   1. )
+      call pmaxmin('CH4:ZPBL',     pblh, qmin, qmax, iXj,  1,   1. )
+      call pmaxmin('CH4:ZLE',       zle, qmin, qmax, iXj, km+1, 1. )
+      call pmaxmin('CH4:T',           T, qmin, qmax, iXj, km,   1. )
+      call pmaxmin('CH4:Q',           q, qmin, qmax, iXj, km,   1. )
+      call pmaxmin('CH4:QTOT',     qtot, qmin, qmax, iXj, km,   1. )
+      call pmaxmin('CH4:RHOWET', rhowet, qmin, qmax, iXj, km,   1. )
+      call pmaxmin('CH4:PLE',       ple, qmin, qmax, iXj, km+1, 1. )
+   endif
 
-!  Update CH4 emissions and OH number density once each day.
-!  The latter appears to be in molecules cm^-3.
-!  ---------------------------------------------------------
-    call MAPL_GetPointer(impChem,ptr2d,'CH4_sfcFlux'//trim(iNAME),rc=status)
-    VERIFY_(STATUS)
-    gcCH4%CH4sfcFlux=ptr2d
+!  Allocate memory, etc
+!  --------------------
+   ALLOCATE ( gcCH4%eCH4_ind(i1:i2,j1:j2),   &
+              gcCH4%eCH4_wetl(i1:i2,j1:j2),  &
+              gcCH4%eCH4_agw(i1:i2,j1:j2),   &
+              gcCH4%eCH4_bb(i1:i2,j1:j2),    &
+              gcCH4%eCH4_bb_(i1:i2,j1:j2),   &
+              gcCH4%eCH4_bf(i1:i2,j1:j2),    &
+              gcCH4%eCH4_mnat(i1:i2,j1:j2),  &
+              gcCH4%OHnd(i1:i2,j1:j2,km),    &
+              gcCH4%Clnd(i1:i2,j1:j2,km),    &
+              gcCH4%O1Dnd(i1:i2,j1:j2,km), STAT=status )
+   VERIFY_(status)
 
-    call MAPL_GetPointer(impChem,ptr3d,'CH4_oh'//trim(iNAME),rc=status)
-    VERIFY_(STATUS)
-    gcCH4%OHnd=ptr3d
+!  Update CH4 emissions and OH, Cl, and O(1D) number densities
+!  (in molec cm^-3) once each day
+!  ------------------------------------------------------------
 
-!  OH number density from molecules cm^-3 to molecules m^-3
-!  --------------------------------------------------------
-    gcCH4%OHnd(i1:i2,j1:j2,1:km) = gcCH4%OHnd(i1:i2,j1:j2,1:km)*1.00E+06
+!  Industrial Sources
+!  ------------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CH4_industr'//iNAME,rc=status)
+   VERIFY_(STATUS)
+   gcCH4%eCH4_ind = ptr2d
+
+!  Ag/Waste Sources
+!  ----------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CH4_agwaste'//iNAME,rc=status)
+   VERIFY_(STATUS)
+   gcCH4%eCH4_agw = ptr2d
+
+!  Biomass Burning
+!  ---------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CH4_bioburn'//iNAME,rc=status)
+   VERIFY_(STATUS)
+   gcCH4%eCH4_bb = ptr2d
+
+!  Biofuel
+!  -------
+   call MAPL_GetPointer(impChem, ptr2d, 'CH4_biofuel'//iNAME,rc=status)
+   VERIFY_(STATUS)
+   gcCH4%eCH4_bf = ptr2d
+
+!  Wetlands
+!  --------
+   call MAPL_GetPointer(impChem, ptr2d, 'CH4_wetland'//iNAME,rc=status)
+   VERIFY_(STATUS)
+   gcCH4%eCH4_wetl = ptr2d
+
+!  Minor Natural (currently termites, soil absorption)
+!  ---------------------------------------------------
+   call MAPL_GetPointer(impChem, ptr2d, 'CH4_minnatl'//iNAME,rc=status)
+   VERIFY_(STATUS)
+   gcCH4%eCH4_mnat = ptr2d
+
+!  Background OH, Cl, and O(1D) for loss term
+!  ------------------------------------------
+   call MAPL_GetPointer(impChem,ptr3d,'CH4_oh'//trim(iNAME),rc=status)
+   VERIFY_(STATUS)
+   gcCH4%OHnd=ptr3d
+
+   call MAPL_GetPointer(impChem,ptr3d,'CH4_cl'//trim(iNAME),rc=status)
+   VERIFY_(STATUS)
+   gcCH4%Clnd=ptr3d
+
+   call MAPL_GetPointer(impChem,ptr3d,'CH4_o1d'//trim(iNAME),rc=status)
+   VERIFY_(STATUS)
+   gcCH4%O1Dnd=ptr3d
 
 !  Allocate temporary workspace
 !  ----------------------------
-   ALLOCATE( p(i1:i2,j1:j2,km), &
-         ndWet(i1:i2,j1:j2,km), &
-         ndDry(i1:i2,j1:j2,km), &
+   allocate( p(i1:i2,j1:j2,km), &
+         ndwet(i1:i2,j1:j2,km), &
           rkoh(i1:i2,j1:j2,km), &
-        dCH4nd(i1:i2,j1:j2,km), &
-    cellVolume(i1:i2,j1:j2,km), &
-     cellDepth(i1:i2,j1:j2,km), STAT=status)
+          rkcl(i1:i2,j1:j2,km), &
+         rko1d(i1:i2,j1:j2,km), &
+        dCH4ox(i1:i2,j1:j2,km), &
+     cellDepth(i1:i2,j1:j2,km), &
+    cellVolume(i1:i2,j1:j2,km), STAT=status)
    VERIFY_(status)
 
 !  Layer mean pressures
 !  --------------------
-   DO k=1,km
-    p(i1:i2,j1:j2,k) = (ple(i1:i2,j1:j2,k-1)+ple(i1:i2,j1:j2,k))*0.50
-   END DO
- 
-!  Moist air number density
-!  ------------------------
-   ndWet(i1:i2,j1:j2,1:km) = rhoWet(i1:i2,j1:j2,1:km)*MAPL_AVOGAD/MAPL_AIRMW
- 
-!  Dry air number density
+   do k=1,km
+      p(i1:i2,j1:j2,k) = (ple(i1:i2,j1:j2,k-1)+ple(i1:i2,j1:j2,k))*0.50
+   enddo
+
+!  Wet-air number density
 !  ----------------------
-   ndDry(i1:i2,j1:j2,1:km) = rhoDry(i1:i2,j1:j2,1:km)*MAPL_AVOGAD/MAPL_AIRMW
+   ndwet(i1:i2,j1:j2,1:km) = rhowet(i1:i2,j1:j2,1:km)*MAPL_AVOGAD/MAPL_AIRMW
+ 
+!  Handle mole fraction or number density units of oxidants
+!  --------------------------------------------------------
+   if (trim(gcCH4%units_oh) == 'mol/mol' .or. trim(gcCH4%units_oh) == 'mol mol-1') then
+       gcCH4%OHnd(i1:i2,j1:j2,1:km)  = gcCH4%OHnd(i1:i2,j1:j2,1:km)  &
+                                     * ndwet(i1:i2,j1:j2,1:km)
+       gcCH4%Clnd(i1:i2,j1:j2,1:km)  = gcCH4%Clnd(i1:i2,j1:j2,1:km)  &
+                                     * ndwet(i1:i2,j1:j2,1:km)
+       gcCH4%O1Dnd(i1:i2,j1:j2,1:km) = gcCH4%O1Dnd(i1:i2,j1:j2,1:km) &
+                                     * ndwet(i1:i2,j1:j2,1:km)
+   else
+!      Otherwise, assume units are molec cm^-3 and convert to molec m^-3
+       gcCH4%OHnd(i1:i2,j1:j2,1:km)  =  gcCH4%OHnd(i1:i2,j1:j2,1:km)*1.00E+06
+       gcCH4%Clnd(i1:i2,j1:j2,1:km)  =  gcCH4%Clnd(i1:i2,j1:j2,1:km)*1.00E+06
+       gcCH4%O1Dnd(i1:i2,j1:j2,1:km) = gcCH4%O1Dnd(i1:i2,j1:j2,1:km)*1.00E+06
+   end if
 
 !  Cell depth and volume
 !  ---------------------
-   DO k=1,km
-    cellDepth(i1:i2,j1:j2,k) = (ple(i1:i2,j1:j2,k)-ple(i1:i2,j1:j2,k-1))/(rhoWet(i1:i2,j1:j2,k)*MAPL_GRAV)
-    cellVolume(i1:i2,j1:j2,k) = cellArea(i1:i2,j1:j2)*cellDepth(i1:i2,j1:j2,k)
-   END DO
+   do k=1,km
+      cellDepth(i1:i2,j1:j2,k)  = (ple(i1:i2,j1:j2,k)-ple(i1:i2,j1:j2,k-1)) &
+                                / (rhowet(i1:i2,j1:j2,k)*MAPL_GRAV)
+      cellVolume(i1:i2,j1:j2,k) = cellArea(i1:i2,j1:j2)*cellDepth(i1:i2,j1:j2,k)
+   enddo
 
-   IF(gcCH4%DebugIsOn) THEN
-    CALL pmaxmin('CH4: SfcFlux', gcCH4%CH4sfcFlux, qmin, qmax, iXj, 1,  1. )
-    CALL pmaxmin('CH4: OH Conc',       gcCH4%OHnd, qmin, qmax, iXj, 1,  1. )
-    CALL pmaxmin('CH4: Cell Vol',      cellVolume, qmin, qmax, iXj, km, 1. )
-    CALL pmaxmin('CH4: Cell Depth',     cellDepth, qmin, qmax, iXj, km, 1. )
-    CALL pmaxmin('CH4: Wet air nd',         ndWet, qmin, qmax, iXj, km, 1. )
-    CALL pmaxmin('CH4: Dry air nd',         ndDry, qmin, qmax, iXj, km, 1. )
-   END IF
+   if (gcCH4%DebugIsOn) then
+      call pmaxmin('CH4: eCH4_ind',   gcCH4%eCH4_ind, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: eCH4_agw',   gcCH4%eCH4_agw, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: eCH4_bb',     gcCH4%eCH4_bb, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: eCH4_bf',     gcCH4%eCH4_bf, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: eCH4_wetl', gcCH4%eCH4_wetl, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: eCH4_mnat', gcCH4%eCH4_mnat, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: OH Conc',        gcCH4%OHnd, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: Cl Conc',        gcCH4%Clnd, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: O(1D) Conc',    gcCH4%O1Dnd, qmin, qmax, iXj, 1,  1. )
+      call pmaxmin('CH4: Cell Depth',      cellDepth, qmin, qmax, iXj, km, 1. )
+      call pmaxmin('CH4: Cell Vol',       cellVolume, qmin, qmax, iXj, km, 1. )
+      call pmaxmin('CH4: Wet-air ND',          ndwet, qmin, qmax, iXj, km, 1. )
+   endif
 
-!  Convert methane from mole fraction to number density
-!  ----------------------------------------------------
-   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = &
-                  w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)*ndWet(i1:i2,j1:j2,1:km)
-
-!  Loss rate [m^{3} s^{-1}] for OH + CH4 => CH3 + H2O
+!  Loss rate [m^3 s^-1] for OH + CH4 => CO + products
 !  --------------------------------------------------
-   rkoh(i1:i2,j1:j2,1:km) = 2.45e-12*1.00E-06*exp(-1775./T(i1:i2,j1:j2,1:km))
+   rkoh(i1:i2,j1:j2,1:km)  = 2.45E-12*1.00E-06*exp(-1775./T(i1:i2,j1:j2,1:km))
 
-!  Change in CH4 number density [m^{-3} s^{-1}] due to oxydation
-!  -------------------------------------------------------------
-   dCH4nd(i1:i2,j1:j2,1:km) = rkoh(i1:i2,j1:j2,1:km)*gcCH4%OHnd(i1:i2,j1:j2,1:km)*w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
+!  Loss rate [m^3 s^-1] for Cl + CH4 => CO + products
+!  --------------------------------------------------
+   rkcl(i1:i2,j1:j2,1:km)  = 7.10E-12*1.00E-06*exp(-1270./T(i1:i2,j1:j2,1:km))
 
-!  Increment the CH4 number density 
-!  --------------------------------
-   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)-cdt*dCH4nd(i1:i2,j1:j2,1:km)
+!  Loss rate [m^3 s^-1] for O(1D) + CH4 => CO + products
+!  -----------------------------------------------------
+   rko1d(i1:i2,j1:j2,1:km) = 1.75E-10*1.00E-06
 
-!  Calculate photolytic loss rates, J [s^{-1}], for CH4 + hv => 2H2O + CO.
+!  Change in CH4 mole fraction due to oxidation
+!  --------------------------------------------
+   dCH4ox(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)                         &
+                              * (    rkoh(i1:i2,j1:j2,1:km)*gcCH4%OHnd(i1:i2,j1:j2,1:km)    &
+                                  +  rkcl(i1:i2,j1:j2,1:km)*gcCH4%Clnd(i1:i2,j1:j2,1:km)    &
+                                  + rko1d(i1:i2,j1:j2,1:km)*gcCH4%O1Dnd(i1:i2,j1:j2,1:km) )
+
+!  Vertically integrated CH4 loss due to oxidation (only)
+!  ------------------------------------------------------
+   if (associated(CH4_loss)) then
+      CH4_loss(i1:i2,j1:j2) = 0.
+      do k = 1,km
+         CH4_loss(i1:i2,j1:j2) = CH4_loss(i1:i2,j1:j2)                       &
+                               +     dCH4ox(i1:i2,j1:j2,k)*mwtCH4/MAPL_AIRMW &
+                                 * w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV
+      enddo
+   endif
+
+!  CH4 production (none)
+!  ---------------------
+   if (associated(CH4_prod)) CH4_prod(i1:i2,j1:j2) = 0.
+
+!  Calculate photolytic loss rates, J [s^-1], for CH4 + hv => 2H2O + CO
 !  Notice that J and the losses are always computed. However, the setting 
-!  of the feedback switch(es) determines if the increments are actually applied.
-!  -----------------------------------------------------------------------------
-   ALLOCATE(photJ(i1:i2,j1:j2,1:km), STAT=status)
+!  of the feedback switch(es) determines if the increments are actually applied
+!  ----------------------------------------------------------------------------
+   ALLOCATE(photJ(i1:i2,j1:j2,1:km), dCH4Phot(i1:i2,j1:j2,1:km), STAT=status)
    VERIFY_(STATUS)
-   photJ(:,:,:) = 0.00
 
+   photJ(:,:,:) = 0.
    CALL getJRates(status)
    VERIFY_(status)
 
-!  Change in CH4 number density [m^{-3} s^{-1}] due to photolysis
-!  --------------------------------------------------------------
-   ALLOCATE(dCH4Phot(i1:i2,j1:j2,1:km), STAT=status)
-   VERIFY_(STATUS)
-
+!  Change in CH4 number density [m^-3 s^-1] due to photolysis
+!  ----------------------------------------------------------
    dCH4Phot(i1:i2,j1:j2,1:km) = photJ(i1:i2,j1:j2,1:km)*w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
 
-   IF(ASSOCIATED(CH4_phot)) THEN
-    CH4_phot(i1:i2,j1:j2,1:km) = dCH4Phot(i1:i2,j1:j2,1:km)
-   END IF
+   if (associated(CH4_phot)) THEN
+      CH4_phot(i1:i2,j1:j2,1:km) = dCH4Phot(i1:i2,j1:j2,1:km)*ndwet(i1:i2,j1:j2,1:km)
+   endif
 
-   DEALLOCATE(photJ, STAT=status)
-   VERIFY_(STATUS)
-
-!  Increment the CH4 number density when the switch is on
-!  ------------------------------------------------------
-   IF(gcCH4%CH4FeedBack) &
-    w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)-cdt*dCH4Phot(i1:i2,j1:j2,1:km)
-
-!  Vertically integrated CH4 loss due to oxydation (only)
-!  ------------------------------------------------------
-   IF(ASSOCIATED(CH4_loss)) THEN
-    CH4_loss(i1:i2,j1:j2) = 0.
-    DO k = 1, km
-     CH4_loss(i1:i2,j1:j2) = CH4_loss(i1:i2,j1:j2) &
-   	 + w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)*rkoh(i1:i2,j1:j2,k) &
-   	 * gcCH4%OHnd(i1:i2,j1:j2,k)/ndWet(i1:i2,j1:j2,k) &
-   	 * mwtCH4/MAPL_AIRMW*w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV
-    END DO
-   END IF
-
-!  CH4 production (None)
-!  ---------------------
-   IF(ASSOCIATED(CH4_prod)) CH4_prod(i1:i2,j1:j2) = 0.00
-
-!  CH4 Emission: kg cell^{-1} s^{-1}.  Convert to m^{-3} s^{-1}, 
-!  multiply by dt, and add to the number density.  Note: No need
-!  for regionMask when using a B. Duncan GMI emission dataset.
-!  -------------------------------------------------------------
-   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km) + cdt*MAPL_AVOGAD*gcCH4%CH4sfcFlux(i1:i2,j1:j2)/ &
-                                         (mwtCH4 * cellVolume(i1:i2,j1:j2,km) )
-
-!  Column burden [kg m^{-2}]
-!  -------------------------
-   IF(ASSOCIATED(CH4_column)) THEN
-    CH4_column(i1:i2,j1:j2) = 0.00
-    DO k = 1, km
-     CH4_column(i1:i2,j1:j2) = CH4_column(i1:i2,j1:j2) + w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)* &
-                               cellDepth(i1:i2,j1:j2,k)*mwtCH4/MAPL_AVOGAD
-    END DO
-   END IF
-
-!  Fill export state for CH4 mole fraction in dry air
-!  --------------------------------------------------
-   IF(ASSOCIATED(CH4_dry)) THEN
-    CH4_dry(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)/ndDry(i1:i2,j1:j2,1:km)
-   END IF
-
-!  Return internal state CH4 to moist-air mole fraction
-!  ----------------------------------------------------
-   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)/ndWet(i1:i2,j1:j2,1:km)
-
-!  Surface concentration in ppmv
-!  -----------------------------
-   IF(ASSOCIATED(CH4_surface)) &
-     CH4_surface(i1:i2,j1:j2) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km)*1.00E+06
-
-!  CH4 surface flux [kg m^{-2} s^{-1}] diagnostic
-!  ----------------------------------------------
-   IF(ASSOCIATED(CH4_emis)) &
-        CH4_emis(i1:i2,j1:j2) = gcCH4%CH4sfcFlux(i1:i2,j1:j2)/cellArea(i1:i2,j1:j2)
-
-!  Allow changes to water vapor when the switch is on
-!  --------------------------------------------------
-   ChangeH2O: IF(gcCH4%CH4FeedBack .AND. gcCH4%H2OFeedBack) THEN
-
-!  Convert water vapor to number density
-!  -------------------------------------
-    Q(i1:i2,j1:j2,1:km) = Q(i1:i2,j1:j2,1:km)*rhoWet(i1:i2,j1:j2,1:km)*MAPL_AVOGAD/MAPL_H2OMW
-
-!  Increment the water vapor number density by
-!  adding two molecules for each CH4 molecule lost.
+!  Increment the CH4 mole fraction due to oxidation 
 !  ------------------------------------------------
-    Q(i1:i2,j1:j2,1:km) = Q(i1:i2,j1:j2,1:km)+2.00*cdt*dCH4Phot(i1:i2,j1:j2,1:km)
+   w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) - cdt*dCH4ox(i1:i2,j1:j2,1:km)
 
-!  Convert water vapor back to mass mixing ratio
-!  ---------------------------------------------
-    Q(i1:i2,j1:j2,1:km) = Q(i1:i2,j1:j2,1:km)*MAPL_H2OMW/(rhoWet(i1:i2,j1:j2,1:km)*MAPL_AVOGAD)
+!  Increment the CH4 mole fraction due to photolysis when the switch is on
+!  -----------------------------------------------------------------------
+   if (gcCH4%CH4FeedBack) then
+      w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) - cdt*dCH4Phot(i1:i2,j1:j2,1:km)
+   endif
 
-   END IF ChangeH2O
+!  If both feedback switches are on, increment water vapor by
+!  adding two molecules of H2O for each CH4 molecule lost
+!  ----------------------------------------------------------
+   if (associated(CH4_qprod)) CH4_qprod(i1:i2,j1:j2,1:km) = 0.
 
-!  Water vapor tendency [kg kg^{-1} s^{-1}]
-!  ----------------------------------------
-   IF(ASSOCIATED(CH4_qprod)) THEN
-    CH4_qprod(i1:i2,j1:j2,1:km) = 2.00*dCH4Phot(i1:i2,j1:j2,1:km)*MAPL_H2OMW/(ndWet(i1:i2,j1:j2,1:km)*MAPL_AIRMW)
-   END IF
+   if (gcCH4%CH4FeedBack .and. gcCH4%H2OFeedBack) then
+      Q(i1:i2,j1:j2,1:km) = Q(i1:i2,j1:j2,1:km) + 2.00*cdt*dCH4Phot(i1:i2,j1:j2,1:km)*MAPL_H2OMW/MAPL_AIRMW
+
+!     Water vapor tendency [kg kg^-1 s^-1]
+!     ------------------------------------
+      if (associated(CH4_qprod)) then
+         CH4_qprod(i1:i2,j1:j2,1:km) = 2.00*dCH4Phot(i1:i2,j1:j2,1:km)*MAPL_H2OMW/MAPL_AIRMW
+      endif
+   endif
+
+!  Compute and add surface emissions
+!  ---------------------------------
+   call CH4_Emission(rc)
+
+!  Surface concentration [ppbv]
+!  ----------------------------
+   if (associated(CH4_surface)) then
+      CH4_surface(i1:i2,j1:j2) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km)*1.00E+09
+   endif
+
+!  Column burden [kg m-2]
+!  ----------------------
+   if (associated(CH4_column)) then
+      CH4_column(i1:i2,j1:j2) = 0.
+      do k = 1,km
+        CH4_column(i1:i2,j1:j2) = CH4_column(i1:i2,j1:j2)                              &
+                                + w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)*mwtCH4/MAPL_AIRMW &
+                                           * w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV
+      enddo
+   endif
+
+!  Dry-air mole fraction [mol mol-1]
+!  ---------------------------------
+   if (associated(CH4_dry)) then
+      CH4_dry(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) &
+                                         / (1. - qtot(i1:i2,j1:j2,1:km))
+   endif
 
    IF(gcCH4%DebugIsOn) THEN
-     IF(ASSOCIATED(CH4_emis))    CALL pmaxmin(    'CH4: emis', CH4_emis,    qmin, qmax, iXj,  1, 1. )
-     IF(ASSOCIATED(CH4_loss))    CALL pmaxmin(    'CH4: loss', CH4_loss,    qmin, qmax, iXj,  1, 1. )
-     IF(ASSOCIATED(CH4_prod))    CALL pmaxmin(    'CH4: prod', CH4_prod,    qmin, qmax, iXj,  1, 1. )
-     IF(ASSOCIATED(CH4_column))  CALL pmaxmin(  'CH4: column', CH4_column,  qmin, qmax, iXj,  1, 1. )
-     IF(ASSOCIATED(CH4_surface)) CALL pmaxmin( 'CH4: surface', CH4_surface, qmin, qmax, iXj,  1, 1. )
-     IF(ASSOCIATED(CH4_qprod))   CALL pmaxmin('CH4: H2O_prod', CH4_qprod,   qmin, qmax, iXj, km, 1. )
-     IF(ASSOCIATED(CH4_phot))    CALL pmaxmin('CH4: dCH4phot', dCH4phot,    qmin, qmax, iXj, km, 1. )
-     IF(ASSOCIATED(CH4_dry))     CALL pmaxmin(     'CH4: dry', CH4_dry,     qmin, qmax, iXj, km, 1. )
+     IF(ASSOCIATED(CH4_emis))    CALL pmaxmin('CH4: emis',     CH4_emis,    qmin, qmax, iXj,  1, 1. )
+     IF(ASSOCIATED(CH4_loss))    CALL pmaxmin('CH4: loss',     CH4_loss,    qmin, qmax, iXj,  1, 1. )
+     IF(ASSOCIATED(CH4_prod))    CALL pmaxmin('CH4: prod',     CH4_prod,    qmin, qmax, iXj,  1, 1. )
+     IF(ASSOCIATED(CH4_column))  CALL pmaxmin('CH4: column',   CH4_column,  qmin, qmax, iXj,  1, 1. )
+     IF(ASSOCIATED(CH4_surface)) CALL pmaxmin('CH4: surface',  CH4_surface, qmin, qmax, iXj,  1, 1. )
+     IF(ASSOCIATED(CH4_qprod))   CALL pmaxmin('CH4: qprod',    CH4_qprod,   qmin, qmax, iXj, km, 1. )
+     IF(ASSOCIATED(CH4_phot))    CALL pmaxmin('CH4: dch4phot', dCH4phot,    qmin, qmax, iXj, km, 1. )
+     IF(ASSOCIATED(CH4_dry))     CALL pmaxmin('CH4: dry',      CH4_dry,     qmin, qmax, iXj, km, 1. )
    END IF
 
 !  Housekeeping
 !  ------------
-   DEALLOCATE(ndDry, ndWet, p, rkoh, dCH4nd, cellDepth, cellVolume, STAT=status)
+   DEALLOCATE(gcCH4%eCH4_ind,  gcCH4%eCH4_wetl,  gcCH4%eCH4_agw, &
+              gcCH4%eCH4_bb,   gcCH4%eCH4_bb_,   gcCH4%eCH4_bf,  &
+              gcCH4%eCH4_mnat, gcCH4%OHnd,       gcCH4%Clnd,     &
+              gcCH4%O1Dnd,     STAT=status)
    VERIFY_(status)
-   DEALLOCATE(dCH4Phot, STAT=status)
+   DEALLOCATE(p, ndwet, rkoh, rkcl, rko1d, dCH4ox, cellDepth, cellVolume, STAT=status)
+   VERIFY_(status)
+   DEALLOCATE(photJ, dCH4Phot, STAT=status)
    VERIFY_(status)
 
    RETURN
 
  CONTAINS
  
- SUBROUTINE getJRates(rc)
+!-------------------------------------------------------------------------
+  SUBROUTINE CH4_Emission ( rc )
 
+  IMPLICIT NONE
+
+! OUTPUT VARIABLES
+  INTEGER, INTENT(OUT) :: rc ! Error return code
+
+! LOCAL VARIABLES
+  CHARACTER(LEN=*), PARAMETER :: myname = 'CH4_Emission'
+
+  INTEGER ::  i, j, k, kt, minkPBL
+  INTEGER, ALLOCATABLE :: index(:)
+
+  REAL, ALLOCATABLE :: pblLayer(:,:), sfcFlux(:,:)
+  REAL, ALLOCATABLE :: fPBL(:,:,:)
+
+  rc = 0
+
+  allocate(sfcFlux(i1:i2,j1:j2),      STAT=rc)      ! emissions
+  allocate(   fPBL(i1:i2,j1:j2,1:km), STAT=rc)      ! partitioning of BB
+
+! Apply biomass burning diurnal cycle if desired
+! ----------------------------------------------
+  if (w_c%diurnal_bb) then
+     gcCH4%eCH4_bb_(:,:) = gcCH4%eCH4_bb(:,:)
+
+     call Chem_BiomassDiurnal ( gcCH4%eCH4_bb, gcCH4%eCH4_bb_,   &
+                                w_c%grid%lon(:,:)*radToDeg,      &
+                                w_c%grid%lat(:,:)*radToDeg, nhms, cdt )      
+  endif
+
+! Find the layer that contains the PBL
+! Layer thicknesses are ZLE(:,:,0:km)
+! ------------------------------------
+  allocate(index(0:km), STAT=rc)
+  allocate(pblLayer(i1:i2,j1:j2), STAT=rc)
+  do j = j1,j2
+     do i = i1,i2
+        index(0:km) = 0
+        where(zle(i,j,0:km) - zle(i,j,km) > pblh(i,j)) index(0:km) = 1
+        pblLayer(i,j) = sum(index)
+     enddo
+  enddo
+  minkPBL = minval(pblLayer)
+
+! Determine partitioning fraction based on layer thicknesses
+! ----------------------------------------------------------
+  fPBL(i1:i2,j1:j2,1:km) = 0.
+  do j = j1,j2
+     do i = i1,i2
+        kt = pblLayer(i,j)
+        do k = kt,km
+           fPBL(i,j,k) = (zle(i,j, k-1) - zle(i,j,k))  &
+                       / (zle(i,j,kt-1) - zle(i,j,km))
+        enddo
+     enddo
+  enddo
+
+  deallocate(index, pblLayer, STAT=rc)
+
+! Establish range of layers on which to work
+! ------------------------------------------
+  kt = minkPBL
+
+  Layer: do k = kt,km
+
+!    Emissions: Weighted biomass burning
+!    -----------------------------------
+     sfcFlux(i1:i2,j1:j2) = gcCH4%eCH4_BB(i1:i2,j1:j2)*fPBL(i1:i2,j1:j2,k)
+
+!    Add other emission components when in surface layer
+!    ---------------------------------------------------
+     if (k == km) sfcFlux(i1:i2,j1:j2) = sfcFlux(i1:i2,j1:j2)         &
+                                       + gcCH4%eCH4_bf(i1:i2,j1:j2)   &
+                                       + gcCH4%eCH4_ind(i1:i2,j1:j2)  &
+                                       + gcCH4%eCH4_agw(i1:i2,j1:j2)  &
+                                       + gcCH4%eCH4_mnat(i1:i2,j1:j2) &
+                                       + gcCH4%eCH4_wetl(i1:i2,j1:j2)
+
+!    Update CH4 at this level
+!    ------------------------
+     w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)           &
+                                        + cdt * sfcFlux(i1:i2,j1:j2)*MAPL_AIRMW/mwtCH4 &
+                                              / (w_c%delp(i1:i2,j1:j2,k)/MAPL_GRAV)
+  enddo Layer
+
+! Update Surface flux diagnostic for this bin
+! -------------------------------------------
+  if (associated(CH4_emis)) then
+     CH4_emis(i1:i2,j1:j2) = gcCH4%eCH4_bb(i1:i2,j1:j2)   + gcCH4%eCH4_bf(i1:i2,j1:j2)   &
+                           + gcCH4%eCH4_ind(i1:i2,j1:j2)  + gcCH4%eCH4_agw(i1:i2,j1:j2)  &
+                           + gcCH4%eCH4_mnat(i1:i2,j1:j2) + gcCH4%eCH4_wetl(i1:i2,j1:j2)
+  endif
+
+  deallocate(fPBL, sfcFlux, STAT=rc)
+
+  return
+
+  end subroutine CH4_Emission
+
+!-------------------------------------------------------------------------
 ! Borrowed from meso_phot.F of StratChem, where number densities are cgs [cm^{-3}]
-! --------------------------------------------------------------------------------
+  SUBROUTINE getJRates(rc)
+
   IMPLICIT NONE
 
   INTEGER, INTENT(out) :: rc
@@ -1015,14 +1201,13 @@ CONTAINS
 
   REAL :: b
   REAL :: f
-  REAL :: r, radToDeg
+  REAL :: r
   REAL :: s
 
   INTEGER :: status
 
   CHARACTER(LEN=ESMF_MAXSTR) :: Iam = "CH4::getJRates"
 
-  radToDeg  = 180.00/MAPL_PI
   rc = 0
   b = SQRT(0.50*r0/hbar)
 
@@ -1032,11 +1217,11 @@ CONTAINS
   VERIFY_(status)
 
   f = O2VMR*5.00E-05
-  O2Column(:,:,1) = O2Abv80km+cellDepth(:,:,1)*ndWet(:,:,1)*f
+  O2Column(:,:,1) = O2Abv80km+cellDepth(:,:,1)*ndwet(:,:,1)*f
 
   DO k = 2,km
-   O2Column(:,:,k) = O2Column(:,:,k-1)+(cellDepth(:,:,k-1)*ndWet(:,:,k-1)+ &
-                                        cellDepth(:,:,  k)*ndWet(:,:,  k))*f
+   O2Column(:,:,k) = O2Column(:,:,k-1)+(cellDepth(:,:,k-1)*ndwet(:,:,k-1)+ &
+                                        cellDepth(:,:,  k)*ndwet(:,:,  k))*f
   END DO
 
   IF(gcCH4%DebugIsOn) THEN
@@ -1179,14 +1364,14 @@ CONTAINS
 ! !INPUT PARAMETERS:
 
    TYPE(Chem_Bundle), INTENT(IN)  :: w_c      ! Chemical tracer fields   
-   INTEGER, INTENT(IN) :: nymd, nhms	      ! time
-   REAL,    INTENT(IN) :: cdt		      ! chemical timestep (secs)
+   INTEGER, INTENT(IN) :: nymd, nhms          ! time
+   REAL,    INTENT(IN) :: cdt                 ! chemical timestep (secs)
 
 
 ! !OUTPUT PARAMETERS:
 
-   TYPE(ESMF_State), INTENT(INOUT) :: impChem	! Import State
-   TYPE(ESMF_State), INTENT(INOUT) :: expChem	! Import State
+   TYPE(ESMF_State), INTENT(INOUT) :: impChem   ! Import State
+   TYPE(ESMF_State), INTENT(INOUT) :: expChem   ! Import State
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
                                                 !  0 - all is well
                                                 !  1 -
@@ -1201,12 +1386,7 @@ CONTAINS
 !-------------------------------------------------------------------------
 
    CHARACTER(LEN=*), PARAMETER :: Iam = 'CH4_GridCompFinalize1_'
-   INTEGER :: status
    rc = 0
-
-   DEALLOCATE ( gcCH4%CH4sfcFlux, gcCH4%regionMask, gcCH4%OHnd, STAT=status )
-   rc = status
-   VERIFY_(status)
 
    RETURN
 
@@ -1233,10 +1413,10 @@ CONTAINS
 
 ! !USES:
 
-  Use CH4_GridCompMod
-  Use ESMF
-  Use MAPL
-  Use Chem_Mod 
+  use CH4_GridCompMod
+  use ESMF
+  use MAPL
+  use Chem_Mod 
 
   IMPLICIT NONE
 
@@ -1246,16 +1426,16 @@ CONTAINS
 !  -----------------------
    interface 
      subroutine Method_ (gc, w, imp, exp, ymd, hms, dt, rcode )
-       Use CH4_GridCompMod
-       Use ESMF
-       Use MAPL
-       Use Chem_Mod 
-       type(CH4_GridComp1),  intent(inout)  :: gc
+       use CH4_GridCompMod
+       use ESMF
+       use MAPL
+       use Chem_Mod 
+       type(CH4_GridComp1), intent(inout)  :: gc
        type(Chem_Bundle),   intent(in)     :: w
        type(ESMF_State),    intent(inout)  :: imp
        type(ESMF_State),    intent(inout)  :: exp
        integer,             intent(in)     :: ymd, hms
-       real,                intent(in)     :: dt	
+       real,                intent(in)     :: dt
        integer,             intent(out)    :: rcode
      end subroutine Method_
    end interface
@@ -1263,13 +1443,13 @@ CONTAINS
    integer, intent(in)           :: instance   ! instance number
 
    TYPE(Chem_Bundle), intent(inout) :: w_c     ! Chemical tracer fields      
-   INTEGER, INTENT(IN) :: nymd, nhms	       ! time
-   REAL,    INTENT(IN) :: cdt		       ! chemical timestep (secs)
+   INTEGER, INTENT(IN) :: nymd, nhms           ! time
+   REAL,    INTENT(IN) :: cdt                  ! chemical timestep (secs)
 
 
 ! !OUTPUT PARAMETERS:
 
-   TYPE(CH4_GridComp1), INTENT(INOUT) :: gcCH4    ! Grid Component
+   TYPE(CH4_GridComp1), INTENT(INOUT) :: gcCH4  ! Grid Component
    TYPE(ESMF_State), INTENT(INOUT)  :: impChem  ! Import State
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem  ! Export State
    INTEGER, INTENT(OUT) ::  rc                  ! Error return code:
