@@ -2,7 +2,7 @@
 # Resource file for CO2 parameters. 
 #
 
-number_CO2_bins:      2
+number_CO2_bins:      1
 CO2_regions_indices: -1 -1 -1 -1
 
 # Run-time debug switch (0 off, 1 on)
