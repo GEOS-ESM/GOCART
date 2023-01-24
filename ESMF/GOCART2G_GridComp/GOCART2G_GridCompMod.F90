@@ -110,6 +110,8 @@ contains
 
     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
     integer, allocatable, dimension(:) :: wavelengths_diagmie
+    type (MAPL_MetaComp),       pointer    :: MAPL
+    logical :: use_threads
 
     __Iam__('SetServices')
 
@@ -157,6 +159,13 @@ contains
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, use_threads, label='use_threads:', default=.FALSE., __RC__)
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+!   set use_threads
+    call MAPL%set_use_threads(use_threads)
 
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------
@@ -478,7 +487,7 @@ contains
      end subroutine add_aero_states_
 
  end subroutine Initialize
- 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !BOP
 ! !IROUTINE: RUN -- Run method for GOCART2G 
@@ -523,8 +532,7 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
-    VERIFY_(STATUS)
+    call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -547,7 +555,7 @@ contains
 
 ! !INTERFACE:
 
-  subroutine Run2 (GC, import, export, clock, RC)
+ subroutine Run2 (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
     type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
@@ -721,8 +729,10 @@ contains
        end do
 
        if (ind550 == 0) then
+          !$omp critical (G2G_1)
           print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',& 
                            ' Cannot produce TOTANGSTR variable without 550nm wavelength.'
+          !$omp end critical (G2G_1)
           VERIFY_(100)
        end if
 
@@ -2414,7 +2424,9 @@ contains
           end if
 
        case default
+          !$omp critical (G2G_2)
           print *,"Invalid aerosolName of '",trim(aeroName), "' in GOCART2G::get_mixRatioSum"
+          !$omp end critical (G2G_2)
     end select
 
 contains
