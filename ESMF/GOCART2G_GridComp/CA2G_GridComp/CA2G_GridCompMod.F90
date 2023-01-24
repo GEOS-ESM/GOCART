@@ -18,6 +18,7 @@ module CA2G_GridCompMod
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
+   !$ use omp_lib
 
    implicit none
    private
@@ -38,6 +39,15 @@ module CA2G_GridCompMod
 !===========================================================================
 
 !  !Carbonaceous aerosol state
+   type :: ThreadWorkspace
+      integer                         :: nPts = -1
+      integer, allocatable, dimension(:)  :: pstart, pend
+      real, allocatable, dimension(:)     :: pLat, &
+           pLon, &
+           pBase, &
+           pTop, &
+           pEmis
+   end type ThreadWorkspace
       type, extends(GA_Environment) :: CA2G_GridComp
        integer            :: myDOW = -1   ! my Day of the week: Sun=1, Mon=2,...,Sat=7
        real               :: ratPOM = 1.0  ! Ratio of POM to OC mass
@@ -50,18 +60,11 @@ module CA2G_GridCompMod
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
-       integer                         :: nPts = -1
-       integer, allocatable, dimension(:)  :: pstart, pend
-       real, allocatable, dimension(:)     :: pLat, &
-                                              pLon, &
-                                              pBase, &
-                                              pTop, &
-                                              pEmis
-
+       type(ThreadWorkspace), allocatable :: workspaces(:)
    end type CA2G_GridComp 
 
    type wrap_
-      type (CA2G_GridComp), pointer     :: PTR => null()
+      type (CA2G_GridComp), pointer     :: PTR !=> null()
    end type wrap_
 
 contains
@@ -102,6 +105,7 @@ contains
     integer                                  :: i, nbins
     real                                     :: DEFVAL
     logical                                  :: data_driven = .true.
+    integer :: num_threads
 
     __Iam__('SetServices')
 
@@ -125,6 +129,8 @@ contains
 !   -------------------------------------
     allocate (self, __STAT__)
     wrap%ptr => self
+    num_threads = MAPL_get_num_threads()
+    allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file  
 !   -------------------
@@ -678,6 +684,8 @@ contains
     logical :: fileExists
 
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
+    type(ThreadWorkspace), pointer :: workspace
+    integer :: thread, jstart, jend
 
 #include "CA2G_DeclarePointer___.h"
 
@@ -688,12 +696,14 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -738,7 +748,9 @@ contains
        intPtr_phobic = tiny(1.) ! avoid division by zero
        intPtr_philic = tiny(1.) ! avoid division by zero
        if ( MAPL_AM_I_ROOT() ) then
+          !$omp critical (CA_1)
           print *, '<> CA '//cdow//' tracer being set to zero on ', nymd, nhms
+          !$omp end critical (CA_1)
        end if
     end if
 
@@ -822,36 +834,42 @@ contains
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
+    thread = MAPL_get_current_thread()
+    workspace => self%workspaces(thread)
     if(self%doing_point_emissions) then
        call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                         nymd=nymd, nhms=120000 )
        inquire( file=fname, exist=fileExists)
        if (fileExists) then
-          call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                   self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                   self%pEnd, label='source', __RC__)
+          call ReadPointEmissions (nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
+                                   workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
+                                   workspace%pEnd, label='source', __RC__)
        else if (.not. fileExists) then
+         !$omp critical (CA_2)
          if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
-         self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
+         !$omp end critical (CA_2)
+         workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
        end if
     end if
 
 !   Get indices for point emissions
 !   -------------------------------
-    if (self%nPts > 0) then
-        allocate(iPoint(self%nPts), jPoint(self%nPts),  __STAT__)
-        call MAPL_GetHorzIJIndex(self%nPts, iPoint, jPoint, &
+    if (workspace%nPts > 0) then
+        allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
+        call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
                                  grid = grid,               &
-                                 lon  = self%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                 lat  = self%pLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                 lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                 lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
                                  rc   = status)
             if ( status /= 0 ) then
+                !$omp critical (CA_3)
                 if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
+                !$omp end critical (CA_3)
                 VERIFY_(status)
             end if
 
-        call updatePointwiseEmissions (self%km, self%pBase, self%pTop, self%pEmis, self%nPts, &
-                                       self%pStart, self%pEnd, zle, &
+        call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
+                                       workspace%pStart, workspace%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
 
        intPtr_phobic = intPtr_phobic + self%fHydrophobic * self%cdt * MAPL_GRAV / delp * emissions_point
@@ -1023,8 +1041,8 @@ contains
                              sfcmass=SMASS, colmass=CMASS, mass=MASS,&
                              exttau=EXTTAU,stexttau=STEXTTAU, scatau=SCATAU, stscatau=STSCATAU,&
                              fluxu=FLUXU, fluxv=FLUXV, &
-                             conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, angstrom=ANGSTR, aerindx=AERIDX,&
-                             NO3nFlag=.false., __RC__)
+                             conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, bckcoef=BCKCOEF, angstrom=ANGSTR,&
+                             aerindx=AERIDX, NO3nFlag=.false., __RC__)
 
 
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
@@ -1334,7 +1352,6 @@ contains
 !   Radiation wavelength
 !   --------------------
     call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
-
 
 !   Pressure at layer edges 
 !   ------------------------

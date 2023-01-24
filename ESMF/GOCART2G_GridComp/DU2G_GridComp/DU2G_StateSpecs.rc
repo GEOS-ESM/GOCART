@@ -67,6 +67,7 @@ category: EXPORT
  DUSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient
  DUSCACOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient - Fixed RH=20%
  DUSCACOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient - Fixed RH=80%
+ DUBCKCOEF     | m-1 sr-1   | xyz  | C    | size(self%wavelengths_profile) | Dust Backscatter Coefficient
 #........................................................................................
  DUSMASS       | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration
  DUCMASS       | kg m-2     | xy   | N    |                                | Dust Column Mass Density
