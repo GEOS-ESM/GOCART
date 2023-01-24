@@ -991,7 +991,7 @@ contains
                             delp=delp, ple=ple, tropp=tropp,sfcmass=NISMASS, colmass=NICMASS, mass=NIMASS, conc=NICONC, &
                             exttau=NIEXTTAU, stexttau=NISTEXTTAU,scatau=NISCATAU, stscatau=NISTSCATAU,&
                             fluxu=NIFLUXU, fluxv=NIFLUXV, extcoef=NIEXTCOEF, scacoef=NISCACOEF, &
-                            angstrom=NIANGSTR, __RC__ )
+                            bckcoef=NIBCKCOEF,angstrom=NIANGSTR, __RC__ )
 
    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)

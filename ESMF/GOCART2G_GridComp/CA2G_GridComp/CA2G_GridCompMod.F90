@@ -1041,8 +1041,8 @@ contains
                              sfcmass=SMASS, colmass=CMASS, mass=MASS,&
                              exttau=EXTTAU,stexttau=STEXTTAU, scatau=SCATAU, stscatau=STSCATAU,&
                              fluxu=FLUXU, fluxv=FLUXV, &
-                             conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, angstrom=ANGSTR, aerindx=AERIDX,&
-                             NO3nFlag=.false., __RC__)
+                             conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, bckcoef=BCKCOEF, angstrom=ANGSTR,&
+                             aerindx=AERIDX, NO3nFlag=.false., __RC__)
 
 
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)

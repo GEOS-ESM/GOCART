@@ -17,6 +17,9 @@ the 'mini' ESMF sates are created. Those arrays are xhno3 for NI2G, h202_init
 for SU2G, and deep_lakes_mask for SS2G. All of these arrays have MAPL_RestartSkip
 option so they are not written to restart.
 
+- Aerosol single scattering backscatter coefficient for each instances and total at wavelengths_profile
+- Total (molecular + aerosols) attenuated backscatter coefficient from TOA and sfc at 532nm
+
 ### Fixed
 
 ### Changed
@@ -27,9 +30,10 @@ option so they are not written to restart.
 
 ## [2.1.2] - 2022-10-07
 
-### Added
+## Added
 
-- Extinction exports with RH=20% and RH=80%
+- Extinction/Scattering profile exports at model RH at wavelengths_profile
+- Extinction/Scattering profile exports with RH=20% and RH=80% at wavelengths_profile
 
 ### Fixed
 

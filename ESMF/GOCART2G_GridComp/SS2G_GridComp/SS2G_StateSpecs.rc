@@ -50,6 +50,7 @@ category: EXPORT
  SSSCACOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient
  SSSCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient - Fixed RH=20%
  SSSCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient - Fixed RH=80%
+ SSBCKCOEF     | m-1 sr-1     | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Backscatter Coefficient
 #............. | ............ | ..... | ..... | ............                   | ..................................
  SSEM          | kg m-2 s-1   | xy    | N     | self%nbins                     | Sea Salt Emission (Bin %d)
  SSSD          | kg m-2 s-1   | xy    | N     | self%nbins                     | Sea Salt Sedimentation (Bin %d)
