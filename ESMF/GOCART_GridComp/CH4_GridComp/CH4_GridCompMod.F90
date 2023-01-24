@@ -968,16 +968,17 @@ CONTAINS
    ALLOCATE(photJ(i1:i2,j1:j2,1:km), dCH4Phot(i1:i2,j1:j2,1:km), STAT=status)
    VERIFY_(STATUS)
 
-   photJ(:,:,:) = 0.
+   photJ(i1:i2,j1:j2,1:km) = 0.
+
    CALL getJRates(status)
    VERIFY_(status)
 
-!  Change in CH4 number density [m^-3 s^-1] due to photolysis
-!  ----------------------------------------------------------
-   dCH4Phot(i1:i2,j1:j2,1:km) = photJ(i1:i2,j1:j2,1:km)*w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
+!  Change in CH4 due to photolysis
+!  -------------------------------
+   dCH4Phot(i1:i2,j1:j2,1:km) = photJ(i1:i2,j1:j2,1:km) * w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km)
 
    if (associated(CH4_phot)) THEN
-      CH4_phot(i1:i2,j1:j2,1:km) = dCH4Phot(i1:i2,j1:j2,1:km)*ndwet(i1:i2,j1:j2,1:km)
+      CH4_phot(i1:i2,j1:j2,1:km) = dCH4Phot(i1:i2,j1:j2,1:km)
    endif
 
 !  Increment the CH4 mole fraction due to oxidation 

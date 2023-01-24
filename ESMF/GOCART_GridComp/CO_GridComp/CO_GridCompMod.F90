@@ -555,7 +555,7 @@ CONTAINS
        RESTART    = MAPL_RestartSkip,   &
        RC         = STATUS)
   VERIFY_(STATUS)
-  call MAPL_AddImportSpec(GC, &
+  call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_TERP'//iname,   &
        LONG_NAME  = 'source species',   &
        UNITS      = '1',                &
@@ -1313,20 +1313,21 @@ CONTAINS
 !  ----------------------------------------------------------------------------
    allocate(photJ(i1:i2,j1:j2,1:km), dCOPhot(i1:i2,j1:j2,1:km), STAT=status)
    VERIFY_(STATUS)
-   dCOPhot = 0.
 
-!  Change in CO number density [m^-3 s^-1] due to CH4 photolysis
-!  -------------------------------------------------------------
-!  photJ = 0.
+   photJ(i1:i2,j1:j2,1:km) = 0.
+   dCOPhot(i1:i2,j1:j2,1:km) = 0.
+
+!  Change in CO due to CH4 photolysis
+!  ----------------------------------
 !  call getJRates(status)
 !  VERIFY_(status)
 !
-!  dCOPhot = photJ*gcCO%CH4(i1:i2,j1:j2,1:km)
+!  dCOPhot(i1:i2,j1:j2,1:km) = photJ(i1:i2,j1:j2,1:km) * CH4(i1:i2,j1:j2,1:km)
 
-!  Change in CO number density [m^-3 s^-1] due to CO2 photolysis
-!  -------------------------------------------------------------
+!  Change in CO due to CO2 photolysis
+!  ----------------------------------
    if (gcCO%numphoto > 0) then
-      photJ = 0.
+      photJ(i1:i2,j1:j2,1:km) = 0.
       allocate(aj(gcCO%numphoto), STAT=status)
       VERIFY_(STATUS)
 
@@ -1343,14 +1344,14 @@ CONTAINS
       enddo
    endif
 
-!  dCOPhot = photJ*gcCO%CO2(i1:i2,j1:j2,1:km)
 !  bweir: Using 400 ppm for CO2 (FIXME)
-   dCOPhot = photJ*400.e-6
+!  dCOPhot(i1:i2,j1:j2,1:km) = dCOPhot(i1:i2,j1:j2,1:km) + photJ(i1:i2,j1:j2,1:km) * CO2(i1:i2,j1:j2,1:km)
+   dCOPhot(i1:i2,j1:j2,1:km) = dCOPhot(i1:i2,j1:j2,1:km) + photJ(i1:i2,j1:j2,1:km) * 400.e-6
 
-!  Photolysis (bweir: why are we multiplying by ndwet?)
+!  Photolysis
 !  ----------
-   if (associated(CO_phot)) THEN
-      CO_phot(i1:i2,j1:j2,1:km) = dCOPhot(i1:i2,j1:j2,1:km)*ndwet(i1:i2,j1:j2,1:km)
+   if (associated(CO_phot)) then
+      CO_phot(i1:i2,j1:j2,1:km) = dCOPhot(i1:i2,j1:j2,1:km)
    endif
 
 !  Decrement the CO mole fraction due to oxidation 
