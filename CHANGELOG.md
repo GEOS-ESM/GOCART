@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+Changes were made so GOCART2G and its children can be run with component level 
+OpenMP threading. The key change is to create the data structure ThreadWorkspace 
+to hold variables that should be private to each thread to avoid race conditions.
+Additionally spatially distributed arrays that are not in any of the ESMF states
+were added to the ESMF internal state so they could be properly handled when
+the 'mini' ESMF sates are created. Those arrays are xhno3 for NI2G, h202_init
+for SU2G, and deep_lakes_mask for SS2G. All of these arrays have MAPL_RestartSkip
+option so they are not written to restart.
 
 ### Fixed
 

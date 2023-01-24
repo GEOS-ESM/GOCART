@@ -75,13 +75,13 @@ category: EXPORT
 
 
 category: INTERNAL
-#--------------------------------------------------------------------------------------------------------------------------
-#  VARIABLE      | DIMENSION   |          Additional Metadata
-#--------------------------------------------------------------------------------------------------------------------------
-  NAME | UNITS   | DIMS | VLOC | UNGRIDDED  | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
-#--------------------------------------------------------------------------------------------------------------------------
- SS    | kg kg-1 | xyz  | C    | self%nbins | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio (bin %d)
-
+#----------------------------------------------------------------------------------------
+#  VARIABLE                | DIMENSION        |          Additional Metadata
+#----------------------------------------------------------------------------------------
+  NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
+#----------------------------------------------------------------------------------------
+ SS              |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio (bin %d)
+ DEEP_LAKES_MASK |   1   | xy   | N    |            | MAPL_RestartSkip     | F |                           | Deep Lakes Mask
 
 #********************************************************
 #
