@@ -61,6 +61,7 @@ category: EXPORT
   NISCACOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient
   NISCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient - fixed RH=20%
   NISCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient - fixed RH=80%
+  NIBCKCOEF     | m-1 sr-1     | xyz   | C     | size(self%wavelengths_profile) | Nitrate Backscatter Coefficient
 # ............. | ............ | ..... | ..... | ...........                    | ..................................
   NIPNO3AQ      | kg m-2 s-1   | xy    | N     |                                | Nitrate Production from Aqueous Chemistry
   NIPNH4AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonium Production from Aqueous Chemistry
@@ -101,17 +102,17 @@ category: EXPORT
   NIFLUXV       | kg m-1 s-1   | xy    | N     |                                | Nitrate column v-wind mass flux
 
 category: INTERNAL
-#---------------------------------------------------------------------------------------------------------------
-#  VARIABLE       | DIMENSION   |          Additional Metadata
-#---------------------------------------------------------------------------------------------------------------
-  NAME  | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
-#---------------------------------------------------------------------------------------------------------------
- NH3    | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Ammonia (NH3, gas phase)
- NH4a   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Ammonium ion (NH4+, aerosol phase)
- NO3an1 | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 001
- NO3an2 | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 002
- NO3an3 | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 003
-
+#----------------------------------------------------------------------------------------
+#  VARIABLE                | DIMENSION        |          Additional Metadata
+#----------------------------------------------------------------------------------------
+  NAME  | UNITS | DIMS | VLOC | RESTART         | ADD2EXPORT | FRIENDLYTO | LONG NAME
+#----------------------------------------------------------------------------------------
+ NH3    |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Ammonia (NH3, gas phase)
+ NH4a   |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Ammonium ion (NH4+, aerosol phase)
+ NO3an1 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 001
+ NO3an2 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 002
+ NO3an3 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 003
+ XHNO3  |kg m-2 s-1| xyz  | C    | MAPL_RestartSkip | F |                           | buffer for NITRATE_HNO3
 
 #********************************************************
 #
