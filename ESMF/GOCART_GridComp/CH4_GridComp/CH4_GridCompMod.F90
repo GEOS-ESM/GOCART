@@ -470,6 +470,7 @@ CONTAINS
        UNITS      = 'molecules cm-3',     &
        DIMS       = MAPL_DimsHorzVert,    &
        VLOCATION  = MAPL_VLocationCenter, &
+       RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
   call MAPL_AddImportSpec(GC,             &
        SHORT_NAME = 'CH4_cl'//iname,      &
@@ -477,6 +478,7 @@ CONTAINS
        UNITS      = 'molecules cm-3',     &
        DIMS       = MAPL_DimsHorzVert,    &
        VLOCATION  = MAPL_VLocationCenter, &
+       RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
   call MAPL_AddImportSpec(GC,             &
        SHORT_NAME = 'CH4_o1d'//iname,     &
@@ -484,6 +486,7 @@ CONTAINS
        UNITS      = 'molecules cm-3',     &
        DIMS       = MAPL_DimsHorzVert,    &
        VLOCATION  = MAPL_VLocationCenter, &
+       RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
   VERIFY_(STATUS)
 
