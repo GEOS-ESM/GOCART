@@ -6,10 +6,23 @@
 # ------------------|-------|------------
 #  All instances    | full  | -1
 # ------------------|-------|------------
+# The instances are defined in Chem_Registry.rc, not here
 
-CH4_instances: wetland industrial extract transport agwaste biofuel onat fire null total
+# Which components/instances should be combined to for total CH4?
+CH4_total_components: CH4wetland CH4industrial CH4extract CH4transport CH4agwaste CH4biofuel CH4onat CH4fire
 
-# The keys below apply to all CH4 tags, unless overridden by a tag specific key (see below)
+# Instance CH4xxx will get emissions from a variable called emis_CH4xxx in ExtData by default. However, for some
+# composite instances such as CH4microbial, there is no separate emis_CH4microbial. For those instances, list
+# the variables (from ExtData) that should be summed to calculate emissions.
+emissions.CH4pyrogenic: emis_CH4biofuel emis_CH4fire
+emissions.CH4anthropogenic: emis_CH4industrial emis_CH4extract emis_CH4transport emis_CH4agwaste emis_CH4biofuel
+
+# -------------------------------------------------------------------------------------------
+# The keys below apply to all CH4 tags, unless overridden by a tag specific key. For example, if DEBUG is false,
+# to turn it on just for CH4wetland,
+# DEBUG.CH4wetland: T
+# Similarly, say do_chemistry is turned on. Then to turn it off for CH4fire,
+# do_chemistry.CH4fire: F
 
 # Indicate regions using a comma-delimited list of integers.
 # To activate all land boxes, use -1, or all or global (not case sensitive)
@@ -27,11 +40,11 @@ DEBUG: F
 # Turn chemistry on in the model to simulate oxidation by OH, Cl and O1D
 # -------------------------------------------------------------------------------------------
 do_chemistry: T
+do_chemistry.CH4noemi: F
 
-# The keys above apply to all CH4 tags. To override any of those with a different value for
-# a specific tag, e.g., to turn debuggin on for wetland, set
-# DEBUG.wetland: T
-# Similarly, to turn off chemistry for fire, set
-# do_chemistry.fire: F
-# Enter all such tag-specific keys below
 # -------------------------------------------------------------------------------------------
+# The keys below apply to CH4 emission variables defined in ExtData. E.g., emis_CH4fire, no matter which
+# instance it is added to, must always have PBL injection turned on.
+
+emis_CH4fire.diurnal_fire: T
+emis_CH4fire.pbl_injection: T
