@@ -320,7 +320,9 @@ subroutine CH4_GridCompRun ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc )
    real, pointer, dimension(:,:,:) :: CH4_total => null() ! total wet-air methane mole fraction ! Sourish
    real, pointer, dimension(:,:,:) :: CH4_dry => null() ! total dry-air methane mole fraction ! Sourish
    real, pointer, dimension(:,:,:) :: qtot => null()
-   integer :: i1, i2, j1, j2, km
+   integer :: i1, i2, j1, j2, km, nbeg
+
+   nbeg  = w_c%reg%i_CH4-1
 
    do i = 1, gcCH4%n_inst
       call CH4_SingleInstance_ ( CH4_GridCompRun1_, i, &
@@ -339,7 +341,7 @@ subroutine CH4_GridCompRun ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc )
       CH4_total = 0.0
       do i = 1, gcCH4%n_inst
          if (gcCH4%gcs(i)%in_total) then
-            CH4_total = CH4_total + w_c%qa(i)%data3d(i1:i2,j1:j2,1:km)
+            CH4_total = CH4_total + w_c%qa(nbeg+i)%data3d(i1:i2,j1:j2,1:km)
          end if
       end do
 
