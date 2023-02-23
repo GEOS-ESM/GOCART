@@ -47,28 +47,6 @@
   CO2EM009   | kg m-2 s-1  | xy  |   |    |   |   |     | CO2 Emission Bin 009
   CO2EM010   | kg m-2 s-1  | xy  |   |    |   |   |     | CO2 Emission Bin 010
 #------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CO2CL001   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 001
-  CO2CL002   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 002
-  CO2CL003   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 003
-  CO2CL004   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 004
-  CO2CL005   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 005
-  CO2CL006   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 006
-  CO2CL007   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 007
-  CO2CL008   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 008
-  CO2CL009   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 009
-  CO2CL010   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 010
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CO2CD001   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 001
-  CO2CD002   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 002
-  CO2CD003   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 003
-  CO2CD004   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 004
-  CO2CD005   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 005
-  CO2CD006   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 006
-  CO2CD007   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 007
-  CO2CD008   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 008
-  CO2CD009   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 009
-  CO2CD010   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 010
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
   CO2SC001   | ppmv        | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 001
   CO2SC002   | ppmv        | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 002
   CO2SC003   | ppmv        | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 003
@@ -80,6 +58,17 @@
   CO2SC009   | ppmv        | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 009
   CO2SC010   | ppmv        | xy  |   |    |   |   |     | CO2 Surface Concentration Bin 010
 #------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CO2CL001   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 001
+  CO2CL002   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 002
+  CO2CL003   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 003
+  CO2CL004   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 004
+  CO2CL005   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 005
+  CO2CL006   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 006
+  CO2CL007   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 007
+  CO2CL008   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 008
+  CO2CL009   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 009
+  CO2CL010   | kg m-2      | xy  |   |    |   |   |     | CO2 Column Burden Bin 010
+#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
   CO2DRY001  | mol mol-1   | xyz | C |    |   |   |     | CO2 Dry-Air Mole Fraction Bin 001
   CO2DRY002  | mol mol-1   | xyz | C |    |   |   |     | CO2 Dry-Air Mole Fraction Bin 002
   CO2DRY003  | mol mol-1   | xyz | C |    |   |   |     | CO2 Dry-Air Mole Fraction Bin 003
@@ -90,5 +79,27 @@
   CO2DRY008  | mol mol-1   | xyz | C |    |   |   |     | CO2 Dry-Air Mole Fraction Bin 008
   CO2DRY009  | mol mol-1   | xyz | C |    |   |   |     | CO2 Dry-Air Mole Fraction Bin 009
   CO2DRY010  | mol mol-1   | xyz | C |    |   |   |     | CO2 Dry-Air Mole Fraction Bin 010
+#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CO2SD001   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 001
+  CO2SD002   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 002
+  CO2SD003   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 003
+  CO2SD004   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 004
+  CO2SD005   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 005
+  CO2SD006   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 006
+  CO2SD007   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 007
+  CO2SD008   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 008
+  CO2SD009   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 009
+  CO2SD010   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Surface Concentration Bin 010
+#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CO2CD001   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 001
+  CO2CD002   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 002
+  CO2CD003   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 003
+  CO2CD004   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 004
+  CO2CD005   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 005
+  CO2CD006   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 006
+  CO2CD007   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 007
+  CO2CD008   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 008
+  CO2CD009   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 009
+  CO2CD010   | mol mol-1   | xy  |   |    |   |   |     | CO2 Dry-Air Column Average Bin 010
 #------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
 </CO2::ExportSpec>

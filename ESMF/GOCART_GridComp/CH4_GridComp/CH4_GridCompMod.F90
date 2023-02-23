@@ -58,7 +58,6 @@
    CHARACTER(LEN=ESMF_MAXSTR) :: name            ! generic name of the package
    CHARACTER(LEN=ESMF_MAXSTR) :: iname           ! instance name
    CHARACTER(LEN=ESMF_MAXSTR) :: rcfilen         ! resource file name
-   CHARACTER(LEN=ESMF_MAXSTR) :: CH4Source       ! Source name on emission file (CH4_ANIMLS, for example)
 
    INTEGER :: instance                 ! Instantiation number
 
@@ -648,10 +647,6 @@ CONTAINS
    end if
    VERIFY_(status)
 
-!  Use instance name as key to CH4 emission source
-!  -----------------------------------------------
-   gcCH4%CH4Source = "CH4_"//TRIM(UPPERCASE(gcCH4%iname))
-
    RETURN
 
  END SUBROUTINE CH4_GridCompInitialize1_
@@ -725,22 +720,24 @@ CONTAINS
    REAL, ALLOCATABLE ::         p(:,:,:),      ndwet(:,:,:)
    REAL, ALLOCATABLE ::    dCH4ox(:,:,:),      photJ(:,:,:), dCH4Phot(:,:,:)
 
-   CHARACTER(LEN=256) :: CH4Source
- 
    REAL, POINTER :: ptr2d(:,:)   => null()
    REAL, POINTER :: ptr3d(:,:,:) => null()
+
+   REAL, ALLOCATABLE, DIMENSION(:,:) :: psdry, psch4
 
 #define EXPORT   expChem
 #define iNAME    TRIM(gcCH4%iname)
 
 #define CH4EM	CH4_emis
-#define CH4CL	CH4_column
 #define CH4SC	CH4_surface
+#define CH4CL	CH4_column
+#define CH4DRY	CH4_dry
+#define CH4SD	CH4_surfdry
+#define CH4CD	CH4_coldry
 #define CH4PD	CH4_prod
 #define CH4LS	CH4_loss
 #define CH4JL	CH4_phot
 #define CH4QP	CH4_qprod
-#define CH4DRY	CH4_dry
 
 #include "CH4_GetPointer___.h"
 
@@ -1036,6 +1033,29 @@ CONTAINS
       CH4_dry(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) &
                                          / (1. - qtot(i1:i2,j1:j2,1:km))
    endif
+
+!  Dry-air surface concentration [mol mol-1]
+!  -----------------------------------------
+   if (associated(CH4_surfdry)) then
+      CH4_surfdry(i1:i2,j1:j2) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km)*(1. - qtot(i1:i2,j1:j2,km))
+   endif
+
+!  Dry-air column average [mol mol-1]
+!  ----------------------------------
+   allocate(psdry(i1:i2,j1:j2), stat=status)    ! dry-air surface pressure
+   allocate(psch4(i1:i2,j1:j2), stat=status)    ! ch4     surface pressure
+
+   if (associated(CH4_coldry)) then
+      psdry(i1:i2,j1:j2) = 0.
+      psch4(i1:i2,j1:j2) = 0.
+      do k = 1,km
+         psdry(i1:i2,j1:j2) = psdry(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*(1. - qtot(i1:i2,j1:j2,k))
+         psch4(i1:i2,j1:j2) = psch4(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)
+      enddo
+      CH4_coldry(i1:i2,j1:j2) = psch4(i1:i2,j1:j2)/psdry(i1:i2,j1:j2)
+   endif
+
+   deallocate(psdry, psch4)
 
    IF(gcCH4%DebugIsOn) THEN
      IF(ASSOCIATED(CH4_emis))    CALL pmaxmin('CH4: emis',     CH4_emis,    qmin, qmax, iXj,  1, 1. )

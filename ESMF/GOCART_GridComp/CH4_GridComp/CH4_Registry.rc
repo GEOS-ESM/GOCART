@@ -99,4 +99,22 @@
   CH4DRYwetl | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Wetlands)
   CH4DRYminn | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Minor Natural)
 #------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4SD      | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration __ENSEMBLE__
+  CH4SDsim   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (All Sources; No Assimilation)
+  CH4SDind   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Industrial)
+  CH4SDagw   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Ag/Waste)
+  CH4SDbf    | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Biofuel)
+  CH4SDbb    | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Biomass Burning)
+  CH4SDwetl  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Wetlands)
+  CH4SDminn  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Minor Natural)
+#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4CD      | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden __ENSEMBLE__
+  CH4CDsim   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (All Sources; No Assimilation)
+  CH4CDind   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Industrial)
+  CH4CDagw   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Ag/Waste)
+  CH4CDbf    | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Biofuel)
+  CH4CDbb    | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Biomass Burning)
+  CH4CDwetl  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Wetlands)
+  CH4CDminn  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Minor Natural)
+#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
 </CH4::ExportSpec>

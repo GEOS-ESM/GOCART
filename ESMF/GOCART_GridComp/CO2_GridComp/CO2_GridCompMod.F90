@@ -545,16 +545,16 @@ CONTAINS
    REAL, POINTER, DIMENSION(:,:)   :: ptr2d => null()
    REAL, POINTER, DIMENSION(:,:,:) :: ptr3d => null()
 
-   REAL, ALLOCATABLE, DIMENSION(:,:) :: tpsdry
-   REAL, ALLOCATABLE, DIMENSION(:,:) :: tco2dry
+   REAL, ALLOCATABLE, DIMENSION(:,:) :: psdry, psco2
 
 #define EXPORT     expChem
 
 #define ptrCO2EM      CO2_emis
-#define ptrCO2CL      CO2_column
-#define ptrCO2CD      CO2_coldry
 #define ptrCO2SC      CO2_surface
+#define ptrCO2CL      CO2_column
 #define ptrCO2DRY     CO2_dry
+#define ptrCO2SD      CO2_surfdry
+#define ptrCO2CD      CO2_coldry
 
    integer :: STATUS
 
@@ -719,8 +719,9 @@ CONTAINS
 !  Surface concentration [ppmv]
 !  ----------------------------
    do n = 1,nbins
-    if(associated(CO2_surface(n)%data2d)) &
-      CO2_surface(n)%data2d(i1:i2,j1:j2) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,km)*1.00E6
+      if (associated(CO2_surface(n)%data2d)) then
+         CO2_surface(n)%data2d(i1:i2,j1:j2) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,km)*1.00E6
+      endif
    enddo
 
 !  Column burden [kg m-2]
@@ -739,30 +740,38 @@ CONTAINS
 !  Dry-air mole fraction [mol mol-1]
 !  ---------------------------------
    do n = 1,nbins
-     if(associated(CO2_dry(n)%data3d)) then
-      CO2_dry(n)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,1:km) &
-                                                       / (1. - qtot(i1:i2,j1:j2,1:km))
-     endif
+      if (associated(CO2_dry(n)%data3d)) then
+         CO2_dry(n)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,1:km) &
+                                             / (1. - qtot(i1:i2,j1:j2,1:km))
+      endif
+   enddo
+
+!  Dry-air surface concentration [mol mol-1]
+!  -----------------------------------------
+   do n = 1,nbins
+      if (associated(CO2_surfdry(n)%data2d)) then
+         CO2_surfdry(n)%data2d(i1:i2,j1:j2) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,km)*(1. - qtot(i1:i2,j1:j2,km))
+      endif
    enddo
 
 !  Dry-air column average [mol mol-1]
 !  ----------------------------------
-   allocate(tpsdry(i1:i2,j1:j2),  stat=ios)    ! total dry-air surface pressure
-   allocate(tco2dry(i1:i2,j1:j2), stat=ios)    ! total co2     surface pressure
+   allocate(psdry(i1:i2,j1:j2), stat=ios)    ! dry-air surface pressure
+   allocate(psco2(i1:i2,j1:j2), stat=ios)    ! co2     surface pressure
 
    do n = 1,nbins
-     if(associated(CO2_coldry(n)%data2d)) then
-         tpsdry(i1:i2,j1:j2)  = 0.
-         tco2dry(i1:i2,j1:j2) = 0.
+      if (associated(CO2_coldry(n)%data2d)) then
+         psdry(i1:i2,j1:j2) = 0.
+         psco2(i1:i2,j1:j2) = 0.
          do k = 1,km
-           tpsdry(i1:i2,j1:j2)  = tpsdry(i1:i2,j1:j2)  + w_c%delp(i1:i2,j1:j2,k)*(1. - qtot(i1:i2,j1:j2,k))
-           tco2dry(i1:i2,j1:j2) = tco2dry(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)
+            psdry(i1:i2,j1:j2) = psdry(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*(1. - qtot(i1:i2,j1:j2,k))
+            psco2(i1:i2,j1:j2) = psco2(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)
          enddo
-         CO2_coldry(n)%data2d(i1:i2,j1:j2) = tco2dry(i1:i2,j1:j2)/tpsdry(i1:i2,j1:j2)
+         CO2_coldry(n)%data2d(i1:i2,j1:j2) = psco2(i1:i2,j1:j2)/psdry(i1:i2,j1:j2)
       endif
    enddo
 
-   deallocate(tpsdry, tco2dry)
+   deallocate(psdry, psco2)
 
 !  Fill the export state with current mixing ratios
 !  ------------------------------------------------
