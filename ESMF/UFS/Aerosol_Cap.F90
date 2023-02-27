@@ -243,6 +243,7 @@ contains
     type(MAPL_CapOptions)     :: maplCapOptions
     type(Aerosol_InternalState_T) :: is
     type(Aerosol_Tracer_T), pointer :: trp
+    character(len=ESMF_MAXSTR)   :: grid_type
 
     ! begin
     rc = ESMF_SUCCESS
@@ -337,9 +338,10 @@ contains
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
-
+    
+    call ESMF_ConfigGetAttribute(cap%cf_root, value = grid_type, Label="GridType:", default="Cubed-Sphere", _RC)
     ! provide model grid to MAPL
-    call cap % cap_gc % set_grid(grid, lm=nlev, _RC)
+    call cap % cap_gc % set_grid(grid, lm=nlev, grid_type = trim(grid_type), _RC)
 
     ! provide model clock to MAPL
     call cap % cap_gc % set_clock(clock, _RC)
