@@ -1372,7 +1372,11 @@ CONTAINS
 
        do n = chemReg%i_GOCART, chemReg%j_GOCART
            call MAPL_GetPointer ( internal, NAME=trim(COMP_NAME)//'::'//trim(chemReg%vname(n)), ptr=ptr3d_int, __RC__ )
-           call MAPL_GetPointer ( impChem,  NAME='clim'//trim(chemReg%vname(n)), ptr=ptr3d_imp, __RC__ )
+           call MAPL_GetPointer ( impChem,  NAME='clim'//trim(chemReg%vname(n)), ptr=ptr3d_imp, notFoundOk=.true., RC=status )
+           if ( .not. associated(ptr3d_imp) ) then
+              ! print *, 'GOCART clim GetPointer returned non-zero status:' // 'clim'//trim(chemReg%vname(n))
+              cycle
+           end if
              
            ptr3d_int = ptr3d_imp
        end do
