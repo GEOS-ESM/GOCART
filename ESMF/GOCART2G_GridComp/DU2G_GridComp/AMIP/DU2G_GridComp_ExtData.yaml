@@ -8,7 +8,7 @@ Collections:
   DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
     template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
   DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4:
-    template: ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
+    template: /dev/null
   DU2G_gocart.dust_source.v5a.x1152_y721.nc:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/gocart.dust_source.v5a.x1152_y721.nc
   DU2G_qvi.006.%y4.nc4:
@@ -150,21 +150,21 @@ Exports:
   climdu001:
     collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
-    variable: du001
+    variable: DU001
   climdu002:
     collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
-    variable: du002
+    variable: DU002
   climdu003:
     collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
-    variable: du003
+    variable: DU003
   climdu004:
     collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
-    variable: du004
+    variable: DU004
   climdu005:
     collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
-    variable: du005
+    variable: DU005
 

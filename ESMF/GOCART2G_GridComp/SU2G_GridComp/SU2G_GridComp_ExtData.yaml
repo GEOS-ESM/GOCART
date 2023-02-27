@@ -122,19 +122,19 @@ Exports:
     sample: SU2G_sample_0
     variable: SUDP004
   climSUSD001:
-    collection: /dev/null
+    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: SU2G_sample_0
     variable: SUSD001
   climSUSD002:
-    collection: /dev/null
+    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: SU2G_sample_0
     variable: SUSD002
   climSUSD003:
-    collection: /dev/null
+    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: SU2G_sample_0
     variable: SUSD003
   climSUSD004:
-    collection: /dev/null
+    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: SU2G_sample_0
     variable: SUSD004
   climSUSV001:

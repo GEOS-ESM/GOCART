@@ -2,7 +2,7 @@ Collections:
   SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
     template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
   SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4:
-    template: ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
+    template: /dev/null
 
 Samplings:
   SS2G_sample_0:
@@ -92,21 +92,21 @@ Exports:
   climss001:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss001
+    variable: SS001
   climss002:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss002
+    variable: SS002
   climss003:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss003
+    variable: SS003
   climss004:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss004
+    variable: SS004
   climss005:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss005
+    variable: SS005
 

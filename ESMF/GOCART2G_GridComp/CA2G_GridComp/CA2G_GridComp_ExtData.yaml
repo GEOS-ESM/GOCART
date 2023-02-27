@@ -220,11 +220,11 @@ Exports:
   climBCphilic:
     collection: CA2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: CA2G_sample_0
-    variable: BCphilic
+    variable: BCPHILIC
   climBCphobic:
     collection: CA2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: CA2G_sample_0
-    variable: BCphobic
+    variable: BCPHOBIC
   climOCDP001:
     collection: CA2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: CA2G_sample_0
@@ -260,11 +260,51 @@ Exports:
   climOCphilic:
     collection: CA2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: CA2G_sample_0
-    variable: OCphilic
+    variable: OCPHILIC
   climOCphobic:
     collection: CA2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: CA2G_sample_0
-    variable: OCphobic
+    variable: OCPHOBIC
+  climBRDP001:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRDP001
+  climBRDP002:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRDP002
+  climBRSD001:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRSD001
+  climBRSD002:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRSD002
+  climBRSV001:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRSV001
+  climBRSV002:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRSV002
+  climBRWT001:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRWT001
+  climBRWT002:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRWT002
+  climBRphilic:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRPHILIC
+  climBRphobic:
+    collection: /dev/null
+    sample: CA2G_sample_0
+    variable: BRPHOBIC
   pSOA_ANTHRO_VOC:
     collection: /dev/null
     regrid: CONSERVE

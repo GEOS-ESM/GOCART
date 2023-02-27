@@ -167,6 +167,16 @@ contains
          add2export=.true., __RC__)
 
 
+   call MAPL_AddInternalSpec(gc,&
+        & short_name='DEEP_LAKES_MASK', &
+        & units='1', &
+        & dims=MAPL_DimsHorzOnly, &
+        & vlocation=MAPL_VlocationNone, &
+        & add2export=.false., &
+        & long_name='Deep Lakes Mask', &
+        & _RC)
+
+
 !      Pressure at layer edges
 !      -----------------------
        call MAPL_AddImportSpec(GC,                            &
@@ -416,7 +426,7 @@ contains
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, 'SS', field, __RC__)
-    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
+!    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
     fld = MAPL_FieldCreate (field, 'SS', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
@@ -493,22 +503,17 @@ contains
 !   call MAPL_StateAdd (aero, field, __RC__)
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
-
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
-
     call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
     call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
-
     mieTable_pointer = transfer(c_loc(self), [1])
     call ESMF_AttributeSet (aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
-
     call ESMF_AttributeSet (aero, name='internal_variable_name', value='SS', __RC__)
-
     call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
@@ -519,7 +524,6 @@ contains
     !call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
     call MAPL_GetPointer (internal, NAME='DEEP_LAKES_MASK', ptr=deep_lakes_mask, __RC__)
     call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, __RC__)
-
 
     RETURN_(ESMF_SUCCESS)
 
