@@ -415,17 +415,12 @@ contains
     call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)
     call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, __RC__)
 
-    call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICRO:',  default="1MOMENT", RC=STATUS)
+    call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICR_OPTION:',  default="BACM_1M", RC=STATUS)
     call ESMF_AttributeSet(aero, name='cldmicro', value=CLDMICRO, __RC__)
 
     ! scaling factor for sea salt
-    if(adjustl(CLDMICRO)=="2MOMENT") then
-       call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=4.0, label='SS_SCALE:', __RC__)
-       call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
-    else
-       call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=14.0, label='SS_SCALE:', __RC__)
-       call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
-    endif
+    call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=0.0, label='SS_SCALE:', __RC__)
+    call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
 
 !   Add variables to AERO state
     call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
@@ -1695,7 +1690,7 @@ contains
           end if
 
           ! required by the aap_(...)
-          if((adjustl(cld_micro)/="2MOMENT") .and. (index(aeroList(i), 'SU') > 0)) then ! maintained for compatibility with the single moment
+          if((adjustl(cld_micro)/="MGB2_2M") .and. (index(aeroList(i), 'SU') > 0)) then ! maintained for compatibility with the single moment
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
           end if
@@ -1824,7 +1819,7 @@ contains
      f_soot    = 0.0
      f_organic = 0.0
 
-      if(adjustl(cld_micro)=="2MOMENT") then
+      if(adjustl(cld_micro)=="MGB2_2M") then
         qaux=q !this corrects a bug
       else
         qaux  =  q_ !keep it to get zero diff with the single moment
@@ -1834,7 +1829,7 @@ contains
 
 
      if (index(mode_, 'ss00') > 0) then
-       if(adjustl(cld_micro)=="2MOMENT") then
+       if(adjustl(cld_micro)=="MGB2_2M") then
          TPI  (1) = 230e6          ! num fraction (reduced 091015)        
        else
          TPI  (1) = 100e6          ! num fraction (reduced 091015)                   
@@ -2028,7 +2023,7 @@ contains
          do i = i1, i2
              if (f_land(i,j) < 0.1) then  !ocean
 
-                 if(adjustl(cld_micro) .ne."2MOMENT") then
+                 if(adjustl(cld_micro) .ne."MGB2_2M") then
                     usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 10.0), -10.0) !smooth transition around some T value                                                      
                  else
                     usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 30.0), -30.0) !smooth transition around some T value
