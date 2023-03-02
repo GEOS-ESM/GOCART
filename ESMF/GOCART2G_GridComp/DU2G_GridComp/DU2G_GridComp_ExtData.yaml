@@ -5,12 +5,11 @@ Collections:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/_gldas-fao.soil_texture.x1152_y721_t1.nc4
   DU2G_arlems-roughness.x1151_y720_t1.nc4:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/arlems-roughness.x1151_y720_t1.nc4
-  DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
-    template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
-  DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4:
-    template: /dev/null
   DU2G_gocart.dust_source.v5a.x1152_y721.nc:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/gocart.dust_source.v5a.x1152_y721.nc
+  DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
+    template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+    valid_range: "2008-01-01T12:00:00/2008-12-15T12:00:00"
   DU2G_qvi.006.%y4.nc4:
     template: ExtData/chemistry/NDVI/v1.0.r3/sfc/qvi.006.%y4.nc4
   DU2G_veg20.x1152_y721_t1.nc4:
@@ -25,6 +24,9 @@ Samplings:
     update_reference_time: '0'
   DU2G_sample_2:
     extrapolation: clim
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
 
 Exports:
   DU_CLAY:
@@ -68,85 +70,45 @@ Exports:
     sample: DU2G_sample_0
     variable: roughness
   climDUDP001:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUDP001
+    collection: /dev/null
   climDUDP002:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUDP002
+    collection: /dev/null
   climDUDP003:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUDP003
+    collection: /dev/null
   climDUDP004:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUDP004
+    collection: /dev/null
   climDUDP005:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUDP005
+    collection: /dev/null
   climDUSD001:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSD001
+    collection: /dev/null
   climDUSD002:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSD002
+    collection: /dev/null
   climDUSD003:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSD003
+    collection: /dev/null
   climDUSD004:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSD004
+    collection: /dev/null
   climDUSD005:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSD005
+    collection: /dev/null
   climDUSV001:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSV001
+    collection: /dev/null
   climDUSV002:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSV002
+    collection: /dev/null
   climDUSV003:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSV003
+    collection: /dev/null
   climDUSV004:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSV004
+    collection: /dev/null
   climDUSV005:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUSV005
+    collection: /dev/null
   climDUWT001:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUWT001
+    collection: /dev/null
   climDUWT002:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUWT002
+    collection: /dev/null
   climDUWT003:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUWT003
+    collection: /dev/null
   climDUWT004:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUWT004
+    collection: /dev/null
   climDUWT005:
-    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: DU2G_sample_2
-    variable: DUWT005
+    collection: /dev/null
   climdu001:
     collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
@@ -167,4 +129,5 @@ Exports:
     collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DU005
+
 

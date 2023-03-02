@@ -15,8 +15,7 @@ Collections:
     template: ExtData/chemistry/CEDS/v2021-04-21/sfc/SO4-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
   SU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
     template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
-  SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4:
-    template: ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
+    valid_range: "2008-01-01T12:00:00/2008-12-15T12:00:00"
   SU2G_qfed2.emis_so2.006.%y4%m2%d2.nc4:
     template: ExtData/chemistry/QFED/v2.5r1-nrt/sfc/0.1/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
@@ -27,6 +26,9 @@ Collections:
 Samplings:
   SU2G_sample_0:
     extrapolation: clim
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
   SU2G_sample_1:
     update_frequency: PT24H
     update_offset: PT12H
@@ -106,69 +108,37 @@ Exports:
     sample: SU2G_sample_0
     variable: SO4
   climSUDP001:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUDP001
+    collection: /dev/null
   climSUDP002:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUDP002
+    collection: /dev/null
   climSUDP003:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUDP003
+    collection: /dev/null
   climSUDP004:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUDP004
+    collection: /dev/null
   climSUSD001:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUSD001
+    collection: /dev/null
   climSUSD002:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUSD002
+    collection: /dev/null
   climSUSD003:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUSD003
+    collection: /dev/null
   climSUSD004:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUSD004
+    collection: /dev/null
   climSUSV001:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUSV001
+    collection: /dev/null
   climSUSV002:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUSV002
+    collection: /dev/null
   climSUSV003:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUSV003
+    collection: /dev/null
   climSUSV004:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUSV004
+    collection: /dev/null
   climSUWT001:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUWT001
+    collection: /dev/null
   climSUWT002:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUWT002
+    collection: /dev/null
   climSUWT003:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUWT003
+    collection: /dev/null
   climSUWT004:
-    collection: SU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SU2G_sample_0
-    variable: SUWT004
+    collection: /dev/null
   pSO2_OCS:
     collection: /dev/null
     regrid: CONSERVE
