@@ -26,9 +26,6 @@ Collections:
 Samplings:
   SU2G_sample_0:
     extrapolation: clim
-    update_frequency: PT24H
-    update_offset: PT12H
-    update_reference_time: '0'
   SU2G_sample_1:
     update_frequency: PT24H
     update_offset: PT12H

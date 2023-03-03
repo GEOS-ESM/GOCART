@@ -24,9 +24,6 @@ Samplings:
     update_reference_time: '0'
   DU2G_sample_2:
     extrapolation: clim
-    update_frequency: PT24H
-    update_offset: PT12H
-    update_reference_time: '0'
 
 Exports:
   DU_CLAY:
