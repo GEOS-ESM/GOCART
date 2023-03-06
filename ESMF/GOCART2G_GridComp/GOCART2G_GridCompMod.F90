@@ -223,6 +223,8 @@ contains
                                           call MAPL_AddExportSpec (GC, SHORT_NAME='CASCACOEFCA.bc', CHILD_ID=self%CA%instances(n)%id, __RC__)
        if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,        'CA.oc') > 0)) &
                                           call MAPL_AddExportSpec (GC, SHORT_NAME='CASCACOEFCA.oc', CHILD_ID=self%CA%instances(n)%id, __RC__)
+       if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,        'CA.br') > 0)) &
+                                          call MAPL_AddExportSpec (GC, SHORT_NAME='CASCACOEFCA.br', CHILD_ID=self%CA%instances(n)%id, __RC__)
     end do
 ! MAY NEED THIS with the DEVELOP version:
 !   do n = 1, size(self%CA%instances)
@@ -230,6 +232,8 @@ contains
 !                                    call MAPL_AddExportSpec (GC, SHORT_NAME='CA.bcSCACOEF', CHILD_ID=self%CA%instances(n)%id, __RC__)
 !      if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,   'CA.oc') > 0)) &
 !                                    call MAPL_AddExportSpec (GC, SHORT_NAME='CA.ocSCACOEF', CHILD_ID=self%CA%instances(n)%id, __RC__)
+!      if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,   'CA.br') > 0)) &
+!                                    call MAPL_AddExportSpec (GC, SHORT_NAME='CA.brSCACOEF', CHILD_ID=self%CA%instances(n)%id, __RC__)
 !   end do
 
 !   Add connectivities for Nitrate component
