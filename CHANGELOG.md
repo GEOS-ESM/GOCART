@@ -14,15 +14,47 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 -removed lines for anthropogenic emissions of OC, BC, SO2, SO4, and NH3 in their repsective ExtData yaml files.
 
-## [2.1.2] - 2022-10-07
+
+## [2.1.3] - 2023-02-27
 
 ### Added
 
-- Extinction exports with RH=20% and RH=80%
+- Added `*` to CA State specs file to allow for ACG to substitute in the long name
+- Changes were made so GOCART2G and its children can be run with component level 
+OpenMP threading. The key change is to create the data structure ThreadWorkspace 
+to hold variables that should be private to each thread to avoid race conditions.
+Additionally spatially distributed arrays that are not in any of the ESMF states
+were added to the ESMF internal state so they could be properly handled when
+the 'mini' ESMF sates are created. Those arrays are xhno3 for NI2G, h202_init
+for SU2G, and deep_lakes_mask for SS2G. All of these arrays have MAPL_RestartSkip
+option so they are not written to restart.
+- Aerosol single scattering backscatter coefficient for each instances and total at wavelengths_profile
+- Total (molecular + aerosols) attenuated backscatter coefficient from TOA and sfc at 532nm
 
 ### Fixed
 
 ### Changed
+
+- Moved to use GitHub Action for label enforcement
+- For OPS configuration: removal of links, change of QFED paths from vNRT/ to v2.5r1-nrt/ (note after November 2021, files are v2.6r1)
+- For AMIP configuration: update of QFED from v2.5r1 to v2.6r1
+- Update of climatological paths from MERRAero to MERRA-2
+- Updated CircleCI image to use Baselibs 7.7.0
+- Update `components.yaml` to reflect GEOSgcm
+- CA restarts will have a change in longname for `philic` and `phobic` variables due to addition of `*` in the CA State specs file
+  for the Internal state variables
+
+## [2.1.2] - 2022-10-07
+
+## Added
+
+- Extinction/Scattering profile exports at model RH at wavelengths_profile
+- Extinction/Scattering profile exports with RH=20% and RH=80% at wavelengths_profile
+
+### Fixed
+
+### Changed
+
 
 ## [2.1.1] - 2022-09-16
 

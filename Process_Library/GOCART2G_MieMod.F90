@@ -51,24 +51,24 @@ module GOCART2G_MieMod
       integer :: nPol            ! number of elements of scattering phase matrix
 
                                             ! c=channel, r=rh, b=bin, m=moments, p=nPol
-      real, allocatable  :: wavelengths(:)  ! (c) wavelengths [m]
-      real, allocatable  :: rh(:)           ! (r) RH values   [fraction]
-      real, allocatable  :: reff(:,:)       ! (r,b) effective radius [m]
-      real, allocatable  :: bext(:,:,:)     ! (r,c,b) bext values [m2 kg-1]
-      real, allocatable  :: bsca(:,:,:)     ! (r,c,b) bsca values [m2 kg-1]
-      real, allocatable  :: bbck(:,:,:)     ! (r,c,b) bbck values [m2 kg-1]
-      real, allocatable  :: g(:,:,:)        ! (r,c,b) asymmetry parameter
-!ams  real, allocatable  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
-      real, allocatable  :: p11(:,:,:)      ! (r,c,b) Backscatter phase function, index 1 
-      real, allocatable  :: p22(:,:,:)      ! (r,c,b) Backscatter phase function, index 5
-      real, allocatable  :: pmom(:,:,:,:,:) ! (r,c,b,m,p) moments of phase function
-      real, allocatable  :: gf(:,:)         ! (r,b) hygroscopic growth factor
-      real, allocatable  :: rhop(:,:)       ! (r,b) wet particle density [kg m-3]
-      real, allocatable  :: rhod(:,:)       ! (r,b) wet particle density [kg m-3]
-      real, allocatable  :: vol(:,:)        ! (r,b) wet particle volume [m3 kg-1]
-      real, allocatable  :: area(:,:)       ! (r,b) wet particle cross section [m2 kg-1]
-      real, allocatable  :: refr(:,:,:)     ! (r,c,b) real part of refractive index
-      real, allocatable  :: refi(:,:,:)     ! (r,c,b) imaginary part of refractive index
+      real, pointer  :: wavelengths(:) => Null()  ! (c) wavelengths [m]
+      real, pointer  :: rh(:) => Null()           ! (r) RH values   [fraction]
+      real, pointer  :: reff(:,:) => Null()       ! (r,b) effective radius [m]
+      real, pointer  :: bext(:,:,:) => Null()     ! (r,c,b) bext values [m2 kg-1]
+      real, pointer  :: bsca(:,:,:) => Null()     ! (r,c,b) bsca values [m2 kg-1]
+      real, pointer  :: bbck(:,:,:) => Null()     ! (r,c,b) bbck values [m2 kg-1]
+      real, pointer  :: g(:,:,:) => Null()        ! (r,c,b) asymmetry parameter
+!ams  real, pointer  :: pback(:,:,:,:) => Null()  ! (r,c,b,p) Backscatter phase function
+      real, pointer  :: p11(:,:,:) => Null()      ! (r,c,b) Backscatter phase function, index 1 
+      real, pointer  :: p22(:,:,:) => Null()      ! (r,c,b) Backscatter phase function, index 5
+      real, pointer  :: pmom(:,:,:,:,:) => Null() ! (r,c,b,m,p) moments of phase function
+      real, pointer  :: gf(:,:) => Null()         ! (r,b) hygroscopic growth factor
+      real, pointer  :: rhop(:,:) => Null()       ! (r,b) wet particle density [kg m-3]
+      real, pointer  :: rhod(:,:) => Null()       ! (r,b) wet particle density [kg m-3]
+      real, pointer  :: vol(:,:) => Null()        ! (r,b) wet particle volume [m3 kg-1]
+      real, pointer  :: area(:,:) => Null()       ! (r,b) wet particle cross section [m2 kg-1]
+      real, pointer  :: refr(:,:,:) => Null()     ! (r,c,b) real part of refractive index
+      real, pointer  :: refi(:,:,:) => Null()     ! (r,c,b) imaginary part of refractive index
 
       integer            :: rhi(NRH_BINS)   ! pointer to rh LUT
       real               :: rha(NRH_BINS)   ! slope on rh LUT
@@ -151,7 +151,7 @@ CONTAINS
                             vol_table(:,:),       area_table(:,:),                 &
                             refr_table(:,:,:),    refi_table(:,:,:)
 
-     real, allocatable  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
+     real, pointer  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
      
      real :: yerr
      integer :: nmom_, imom, ipol
@@ -339,6 +339,8 @@ CONTAINS
       this%nMom = nmom_
       this%nPol = nPol_table
 
+      allocate (this%rh(this%nrh), __NF_STAT__)
+      allocate (this%reff(this%nrh,this%nbin), __NF_STAT__)
       allocate (this%bext(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%bsca(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%bbck(this%nrh,this%nch,this%nbin), __NF_STAT__)
@@ -347,11 +349,19 @@ CONTAINS
       if ( nmom_ > 0 ) then
          allocate (this%pmom(this%nrh,this%nch,this%nbin,this%nMom,this%nPol),    __NF_STAT__)
       end if
+      allocate (this%gf(this%nrh,this%nbin),    __NF_STAT__)
+      allocate (this%rhop(this%nrh,this%nbin),    __NF_STAT__)
+      allocate (this%rhod(this%nrh,this%nbin),    __NF_STAT__)
+      allocate (this%vol(this%nrh,this%nbin),    __NF_STAT__)
+      allocate (this%area(this%nrh,this%nbin),    __NF_STAT__)
       allocate (this%refr(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%refi(this%nrh,this%nch,this%nbin), __NF_STAT__)
+      allocate (this%wavelengths(this%nch), __NF_STAT__)
+      allocate (this%p11(this%nrh,this%nch,this%nbin),    __NF_STAT__)
+      allocate (this%p22(this%nrh,this%nch,this%nbin),    __NF_STAT__)
 
 !     Preserve the full RH structure of the input table
-      this%rh = rh_table ! assignment does allocation
+      this%rh = rh_table 
 
 !     Insert rEff (moist effective radius)
       this%reff = reff_table
@@ -533,9 +543,9 @@ CONTAINS
     if (present(rc)) rc = 0
 
     if (ch < 0) then
-       !$omp critical
+       !$omp critical (GetCha)
        print*, "wavelength of ",wavelength, " is an invalid value."
-       !$omp end critical
+       !$omp end critical (GetCha)
        if (present(rc)) rc = -1
     endif
 
@@ -551,9 +561,9 @@ CONTAINS
      if (present(rc)) rc = 0
 
      if (ith_channel <=0 .or. ith_channel > this%nch ) then
-       !$omp critical
+       !$omp critical (GetWav)
        print*, "The channel of ",ith_channel, " is an invalid channel number."
-       !$omp end critical
+       !$omp end critical (GetWav)
        if (present(rc)) rc = -1
        wavelength = -1. ! meanlingless nagative
        return
