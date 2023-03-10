@@ -5,10 +5,10 @@ Collections:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/_gldas-fao.soil_texture.x1152_y721_t1.nc4
   DU2G_arlems-roughness.x1151_y720_t1.nc4:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/arlems-roughness.x1151_y720_t1.nc4
-  DU2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4:
-    template: ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
-  DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4:
-    template: ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+  DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
+    template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+  DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4:
+    template: ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
   DU2G_gocart.dust_source.v5a.x1152_y721.nc:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/gocart.dust_source.v5a.x1152_y721.nc
   DU2G_qvi.006.%y4.nc4:
@@ -68,103 +68,103 @@ Exports:
     sample: DU2G_sample_0
     variable: roughness
   climDUDP001:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUDP001
   climDUDP002:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUDP002
   climDUDP003:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUDP003
   climDUDP004:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUDP004
   climDUDP005:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUDP005
   climDUSD001:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSD001
   climDUSD002:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSD002
   climDUSD003:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSD003
   climDUSD004:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSD004
   climDUSD005:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSD005
   climDUSV001:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSV001
   climDUSV002:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSV002
   climDUSV003:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSV003
   climDUSV004:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSV004
   climDUSV005:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUSV005
   climDUWT001:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUWT001
   climDUWT002:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUWT002
   climDUWT003:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUWT003
   climDUWT004:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUWT004
   climDUWT005:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DUWT005
   climdu001:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: du001
   climdu002:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: du002
   climdu003:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: du003
   climdu004:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: du004
   climdu005:
-    collection: DU2G_dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+    collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: du005
 
