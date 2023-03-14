@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 -removed lines for anthropogenic emissions of OC, BC, SO2, SO4, and NH3 in their repsective ExtData yaml files.
-
+-used ExtData2G to persist aircraft emissions and MERRA-2 GMI inputs after 2019 to eliminate the need for duplicate files for future years
 
 ## [2.1.3] - 2023-02-27
 
