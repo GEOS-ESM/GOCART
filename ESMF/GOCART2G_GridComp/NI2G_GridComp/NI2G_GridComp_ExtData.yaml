@@ -66,8 +66,8 @@ Exports:
     sample: NI2G_sample_2
     variable: nh3_emis
   NITRATE_HNO3:
-    - {starting: "1979-01-15T12:00:00", collection: NI2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4, linear_transformation: [0.0, 0.2], regrid: CONSERVE, sample: NI2G_sample_1, variable: hno3} 
-    - {starting: "2019-12-15T12:00:00", collection: NI2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4, linear_transformation: [0.0, 0.2], regrid: CONSERVE, sample: NI2G_sample_4, variable: hno3} 
+    - {starting: "1979-01-15T12:00:00", collection: NI2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4, linear_transformation: [0.0, 0.2], regrid: CONSERVE, sample: NI2G_sample_1, variable: hno3}
+    - {starting: "2019-12-15T12:00:00", collection: NI2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4, linear_transformation: [0.0, 0.2], regrid: CONSERVE, sample: NI2G_sample_4, variable: hno3}
   NI_regionMask:
     collection: NI2G_ARCTAS.region_mask.x540_y361.2008.nc
     regrid: VOTE

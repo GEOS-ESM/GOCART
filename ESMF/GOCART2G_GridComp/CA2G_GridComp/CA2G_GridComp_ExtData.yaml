@@ -44,7 +44,7 @@ Samplings:
 Exports:
   BC_AIRCRAFT:
     - {starting: "1979-01-15T12:00", collection: CA2G_BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: bc_aviation}
-    - {starting: "2019-12-15T12:00", collection: CA2G_BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: bc_aviation} 
+    - {starting: "2019-12-15T12:00", collection: CA2G_BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: bc_aviation}
   BC_AVIATION_CDS:
     collection: /dev/null
     regrid: CONSERVE
@@ -118,7 +118,7 @@ Exports:
     variable: terpene
   OC_AIRCRAFT:
     - {starting: "1979-01-15T12:00", collection: CA2G_OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: oc_aviation}
-    - {starting: "2019-12-15T12:00", collection: CA2G_OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: oc_aviation} 
+    - {starting: "2019-12-15T12:00", collection: CA2G_OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: oc_aviation}
   OC_AVIATION_CDS:
     collection: /dev/null
     regrid: CONSERVE

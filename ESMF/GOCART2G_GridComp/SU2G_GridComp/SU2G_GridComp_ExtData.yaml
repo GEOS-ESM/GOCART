@@ -40,7 +40,7 @@ Samplings:
 Exports:
   SU_AIRCRAFT:
     - {starting: "1979-01-15T12:00", collection: SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: SU2G_sample_1, variable: so2_aviation}
-    - {starting: "2019-12-15T12:00", collection: SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: SU2G_sample_3, variable: so2_aviation} 
+    - {starting: "2019-12-15T12:00", collection: SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: SU2G_sample_3, variable: so2_aviation}
   SU_AVIATION_CDS:
     collection: /dev/null
     regrid: CONSERVE
