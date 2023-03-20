@@ -1081,11 +1081,13 @@ contains
 
     xh2o2 = self%h2o2_init 
 
+    if (.not. skipover) then
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 SU_OH, SU_NO3, SU_H2O2, &
                                 xoh, xno3, xh2o2, self%recycle_h2o2, __RC__)
+    endif
 
 !   SU Settling
 !   -----------

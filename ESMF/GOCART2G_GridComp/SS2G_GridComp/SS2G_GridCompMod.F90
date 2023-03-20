@@ -740,8 +740,6 @@ contains
        dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
        SS(:,:,self%km,n) = SS(:,:,self%km,n) + dqa
 
-       SSEMOUT(:,:,n) = dqa
-
        if (associated(SSEM)) then
           SSEM(:,:,n) = memissions
        end if
@@ -772,15 +770,10 @@ contains
        enddo
        deallocate(IMFieldNameList, IMBinEmisFrac)
        !-------------------------
+       ! End of IM code
        !-------------------------
 
     end do !n = 1
-
-    EM_SS01 = SSEM(:,:,1)
-    EM_SS02 = SSEM(:,:,2)
-    EM_SS03 = SSEM(:,:,3)
-    EM_SS04 = SSEM(:,:,4)
-    EM_SS05 = SSEM(:,:,5)
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
@@ -827,11 +820,9 @@ contains
     real, allocatable                  :: tmp3d(:,:,:), tmp3d_i(:,:,:), dtmp3d(:,:,:), tmp2d(:,:)
     character(len=ESMF_MAXSTR)         :: attributeName
     character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
-    type (ESMF_FieldBundle)            :: imSS ! Internally mixed species bundle
-    integer, allocatable               :: IMBins(:)
-
-    ! Testing <<>> MSL
-    real, allocatable, dimension(:,:,:) :: wet_radius
+    type (ESMF_FieldBundle)            :: imSS ! Internally mixed species bundle <<>> MSL
+    integer, allocatable               :: IMBins(:) ! <<>> MSL
+    real, allocatable, dimension(:,:,:):: wet_radius
 
 #include "SS2G_DeclarePointer___.h"
 
@@ -892,6 +883,7 @@ contains
        ! Compute settling
        dtmp3d = 0e0 ! Zero out the tendency
        tmp2d  = 0e0
+       ! This computed the dC from finite difference.
        do nn = 1, nIMBins
           ! Calc IM fraction in this bin.
           where (SS(:,:,:,IMBins(nn)).gt.0.e0) ! if numerator > 0, denom != 0. So not NaN
@@ -911,20 +903,6 @@ contains
        IMFieldPtr = IMFieldPtr + dtmp3d
        IMFieldPtr => null()
        deallocate(IMBins)
-! <<>> 2 SPC_BrSALA
-       if (n.eq.1) SD_BrSALA = tmp2d
-! <<>> 2 SPC_BrSALC
-       if (n.eq.2) SD_BrSALC = tmp2d
-! <<>> 2 SPC_SALAAL
-       if (n.eq.3) SD_SALAAL = tmp2d
-! <<>> 2 SPC_SALACL
-       if (n.eq.4) SD_SALACL = tmp2d
-! <<>> 2 SPC_SALCAL
-       if (n.eq.5) SD_SALCAL = tmp2d
-! <<>> 2 SPC_SALCCL
-       if (n.eq.6) SD_SALCCL = tmp2d
-! <<>> 2 SPC_SO4s
-       if (n.eq.7) SD_SO4s   = tmp2d
     enddo
     deallocate( tmp3d, tmp3d_i, dtmp3d )
     deallocate( tmp2d )
@@ -932,21 +910,15 @@ contains
 !   -----------------
 !   Compute SS settling
     do n = 1, self%nbins
-       SSSDOUT(:,:,:,n) = SS(:,:,:,n) 
+!       SSSDOUT(:,:,:,n) = SS(:,:,:,n) 
        call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
                            self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
                            rh2, zle, delp, SSSD, __RC__)
 
-       SSSDOUT(:,:,:,n) = SS(:,:,:,n) - SSSDOUT(:,:,:,N)
+!       SSSDOUT(:,:,:,n) = SS(:,:,:,n) - SSSDOUT(:,:,:,N)
 
     end do
     
-    SD_SS01 = SSSD(:,:,1)
-    SD_SS02 = SSSD(:,:,2)
-    SD_SS03 = SSSD(:,:,3)
-    SD_SS04 = SSSD(:,:,4)
-    SD_SS05 = SSSD(:,:,5)
-
 !   Deposition
 !   -----------
     drydepositionfrequency = 0.
@@ -965,14 +937,7 @@ contains
        if (associated(SSDP)) then
           SSDP(:,:,n) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
        end if
-       SSDDOUT(:,:,n) = dqa
     end do
-
-    DD_SS01 = SSDP(:,:,1)
-    DD_SS02 = SSDP(:,:,2)
-    DD_SS03 = SSDP(:,:,3)
-    DD_SS04 = SSDP(:,:,4)
-    DD_SS05 = SSDP(:,:,5)
 
 !   IM Fields
     do nn=1,nIMFields
@@ -981,20 +946,6 @@ contains
        dqa = max(0.0, IMFieldPtr(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
        IMFieldPtr(:,:,self%km) = IMFieldPtr(:,:,self%km) - dqa
        IMFieldPtr => null()
-! <<>> 2 SPC_BrSALA
-       if (nn.eq.1 .and. associated(DD_BrSALA)) DD_BrSALA = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
-! <<>> 2 SPC_BrSALC
-       if (nn.eq.2 .and. associated(DD_BrSALC)) DD_BrSALC = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
-! <<>> 2 SPC_SALAAL
-       if (nn.eq.3 .and. associated(DD_SALAAL)) DD_SALAAL = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
-! <<>> 2 SPC_SALACL
-       if (nn.eq.4 .and. associated(DD_SALACL)) DD_SALACL = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
-! <<>> 2 SPC_SALCAL
-       if (nn.eq.5 .and. associated(DD_SALCAL)) DD_SALCAL = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
-! <<>> 2 SPC_SALCCL
-       if (nn.eq.6 .and. associated(DD_SALCCL)) DD_SALCCL = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
-! <<>> 2 SPC_SO4s
-       if (nn.eq.7 .and. associated(DD_SO4s)  ) DD_SO4s   = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
     enddo
 
 !   Large-scale Wet Removal
@@ -1002,21 +953,11 @@ contains
     KIN = .TRUE.
     do n = 1, self%nbins
        fwet = 1.
-       SSWDOUT(:,:,:,n) = SS(:,:,:,n)
        call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
                                KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, wet_radius, __RC__)
 
-       SSWDOUT(:,:,:,n) = SS(:,:,:,n) - SSWDOUT(:,:,:,N)
-!       SSWDOUT(:,:,n) = SSWT(:,:,n) * self%cdt * MAPL_GRAV / delp(:,:,self%km)
-
     end do
-
-    WD_SS01 = SSWT(:,:,1)
-    WD_SS02 = SSWT(:,:,2)
-    WD_SS03 = SSWT(:,:,3)
-    WD_SS04 = SSWT(:,:,4)
-    WD_SS05 = SSWT(:,:,5)
 
 !   IM Fields: This is independent of bin-specific quantities (right?)
     do nn=1,nIMFields
@@ -1028,20 +969,6 @@ contains
                                KIN, MAPL_GRAV, fwet, IMFieldPtr, ple, t, airdens, &
                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WDTMP, __RC__)
        IMFieldPtr => null()
-! <<>> 2 SPC_BrSALA
-       if (nn.eq.1) WD_BrSALA = WDTMP(:,:,1)
-! <<>> 2 SPC_BrSALC
-       if (nn.eq.2) WD_BrSALC = WDTMP(:,:,1)
-! <<>> 2 SPC_SALAAL
-       if (nn.eq.3) WD_SALAAL = WDTMP(:,:,1)
-! <<>> 2 SPC_SALACL
-       if (nn.eq.4) WD_SALACL = WDTMP(:,:,1)
-! <<>> 2 SPC_SALCAL
-       if (nn.eq.5) WD_SALCAL = WDTMP(:,:,1)
-! <<>> 2 SPC_SALCCL
-       if (nn.eq.6) WD_SALCCL = WDTMP(:,:,1)
-! <<>> 2 SPC_SO4s
-       if (nn.eq.7) WD_SO4s   = WDTMP(:,:,1)
     enddo
 
 !   Compute diagnostics
