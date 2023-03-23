@@ -111,6 +111,7 @@ contains
     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
     integer, allocatable, dimension(:) :: wavelengths_diagmie
     type (MAPL_MetaComp),       pointer    :: MAPL
+    integer :: n
     logical :: use_threads
 
     __Iam__('SetServices')
@@ -236,6 +237,45 @@ contains
                                      SRC_ID=self%SU%instances(1)%id, __RC__)
        end if
     end if
+
+! Export GOCART2G fields up to CHEM level 
+! Assuming there is only one instance:
+! =======================================
+    do n = 1, size(self%CA%instances)
+       if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,        'CA.bc') > 0)) then
+               call MAPL_AddExportSpec (GC, SHORT_NAME='CA.bcphobic', CHILD_ID=self%CA%instances(n)%id, __RC__)
+               call MAPL_AddExportSpec (GC, SHORT_NAME='CA.bcphilic', CHILD_ID=self%CA%instances(n)%id, __RC__)
+       end if
+       if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,        'CA.oc') > 0)) then
+               call MAPL_AddExportSpec (GC, SHORT_NAME='CA.ocphobic', CHILD_ID=self%CA%instances(n)%id, __RC__)
+               call MAPL_AddExportSpec (GC, SHORT_NAME='CA.ocphilic', CHILD_ID=self%CA%instances(n)%id, __RC__)
+       end if
+       if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name,        'CA.br') > 0)) then
+               call MAPL_AddExportSpec (GC, SHORT_NAME='CA.brphobic', CHILD_ID=self%CA%instances(n)%id, __RC__)
+               call MAPL_AddExportSpec (GC, SHORT_NAME='CA.brphilic', CHILD_ID=self%CA%instances(n)%id, __RC__)
+       end if
+    end do
+
+    do n = 1, size(self%DU%instances)
+       if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name,        'DU') > 0)) then
+               call MAPL_AddExportSpec (GC, SHORT_NAME='DU', CHILD_ID=self%DU%instances(n)%id, __RC__)
+       end if
+    end do
+
+    do n = 1, size(self%SS%instances)
+       if ((self%SS%instances(n)%is_active) .and. (index(self%SS%instances(n)%name,        'SS') > 0)) then
+               call MAPL_AddExportSpec (GC, SHORT_NAME='SS', CHILD_ID=self%SS%instances(n)%id, __RC__)
+       end if
+    end do
+
+    do n = 1, size(self%SU%instances)
+       if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name,        'SU') > 0)) then
+               call MAPL_AddExportSpec (GC, SHORT_NAME='DMS', CHILD_ID=self%SU%instances(n)%id, __RC__)
+               call MAPL_AddExportSpec (GC, SHORT_NAME='SO2', CHILD_ID=self%SU%instances(n)%id, __RC__)
+               call MAPL_AddExportSpec (GC, SHORT_NAME='SO4', CHILD_ID=self%SU%instances(n)%id, __RC__)
+               call MAPL_AddExportSpec (GC, SHORT_NAME='MSA', CHILD_ID=self%SU%instances(n)%id, __RC__)
+       end if
+    end do
 
 !   Set generic services
 !   ----------------------------------
