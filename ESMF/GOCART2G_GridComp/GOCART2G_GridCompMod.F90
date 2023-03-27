@@ -415,13 +415,10 @@ contains
     call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)
     call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, __RC__)
 
-    call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICR_OPTION:',  default="BACM_1M", RC=STATUS)
+    call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICRO:',  default="1MOMENT", RC=STATUS)
     call ESMF_AttributeSet(aero, name='cldmicro', value=CLDMICRO, __RC__)
 
-    ! scaling factor for sea salt
-    call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=0.0, label='SS_SCALE:', __RC__)
-    call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
-
+ 
 !   Add variables to AERO state
     call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, __RC__)
@@ -1500,7 +1497,6 @@ contains
     real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol 
     real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
 
-    real                            :: ss_scale          ! sea salt scaling factor
     real                            :: max_clean          ! max mixing ratio before considered polluted
     real                            :: ccn_tuning         ! tunes conversion factors for sulfate
     character(LEN=ESMF_MAXSTR)      :: cld_micro
@@ -1611,9 +1607,6 @@ contains
     call ESMF_AttributeGet(state, name='fraction_of_organic_aerosol', value=fld_name, __RC__)
     call MAPL_GetPointer(state, f_organic, trim(fld_name), __RC__)
 
-!   Sea salt scaling fctor
-!   ----------------------
-    call ESMF_AttributeGet(state, name='seasalt_scaling_factor', value=ss_scale, __RC__)
     call ESMF_AttributeGet(state, name='max_q_clean', value=max_clean, __RC__)
     call ESMF_AttributeGet(state, name='cldmicro', value=cld_micro, __RC__)
     call ESMF_AttributeGet(state, name='ccn_tuning', value=ccn_tuning, __RC__)
@@ -1651,15 +1644,6 @@ contains
                q = q + ptr_4d(:,:,:,j)
                ptr_3d => ptr_4d(:,:,:,j)
              end do
-
-             ! temperature correction over the ocean
-             allocate(f(i2,j2, km), __STAT__)
-             call ocean_correction_(f, f_land, temperature(1:i2,1:j2,km), ss_scale, 1, i2, 1, j2, km)
-
-             ! apply the correction factor
-             q = f * q
-             deallocate(f, __STAT__)
-
              hygroscopicity = k_SS
              density = densSS
           end if
@@ -1690,10 +1674,10 @@ contains
           end if
 
           ! required by the aap_(...)
-          if((adjustl(cld_micro)/="MGB2_2M") .and. (index(aeroList(i), 'SU') > 0)) then ! maintained for compatibility with the single moment
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
-          end if
+          !if((adjustl(cld_micro)/="2MOMENT") .and. (index(aeroList(i), 'SU') > 0)) then ! maintained for compatibility with the single moment
+          !   call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+           !  call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
+          ! end if
        end do
 
           where (q > 2.0e-12 .and. hygroscopicity > tiny(0.0))
@@ -1819,21 +1803,11 @@ contains
      f_soot    = 0.0
      f_organic = 0.0
 
-      if(adjustl(cld_micro)=="MGB2_2M") then
-        qaux=q !this corrects a bug
-      else
-        qaux  =  q_ !keep it to get zero diff with the single moment
-        max_clean = 5.0e-7
-        ccn_tuning = 1.0
-      end if
-
+     qaux=q 
+  
 
      if (index(mode_, 'ss00') > 0) then
-       if(adjustl(cld_micro)=="MGB2_2M") then
          TPI  (1) = 230e6          ! num fraction (reduced 091015)        
-       else
-         TPI  (1) = 100e6          ! num fraction (reduced 091015)                   
-       end if
 
          DPGI (1) = 0.02e-6        ! modal diameter (m)
          SIGI (1) = log(1.6)       ! geometric dispersion (sigma_g)
@@ -1999,44 +1973,7 @@ contains
 
     end subroutine aap_
 
-    subroutine ocean_correction_(f, f_land, t_air_sfc, ss_scale, i1, i2, j1, j2, km)
-
-     implicit none
-
-     integer, intent(in) :: i1, i2                               ! dimension bounds
-     integer, intent(in) :: j1, j2                               ! ... // ..
-     integer, intent(in) :: km                                   ! ... // ..
-
-     real, intent(in ), dimension(i1:i2,j1:j2) :: f_land         ! fraction of land
-     real, intent(in ), dimension(i1:i2,j1:j2) :: t_air_sfc      ! air temperature in the surface model layer
-     real, intent(in )                         :: ss_scale       ! scaling factor for sea salt at low T
-
-     real, intent(out), dimension(i1:i2,j1:j2, km) :: f          ! correction factor
-
-     ! local
-     integer :: i, j
-     real    :: usurf
-
-     f = 1.0
-
-     do j = j1, j2
-         do i = i1, i2
-             if (f_land(i,j) < 0.1) then  !ocean
-
-                 if(adjustl(cld_micro) .ne."MGB2_2M") then
-                    usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 10.0), -10.0) !smooth transition around some T value                                                      
-                 else
-                    usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 30.0), -30.0) !smooth transition around some T value
-                 end if
-                 usurf = min(ss_scale / (1.0 + exp(usurf)), 20.0)
-
-                 f(i,j,:) = (1.0 + usurf)
-             end if
-         end do
-     end do
-
-    end subroutine ocean_correction_
-
+ 
   end subroutine aerosol_activation_properties
 
 
