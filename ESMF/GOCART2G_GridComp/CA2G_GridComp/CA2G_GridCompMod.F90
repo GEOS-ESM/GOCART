@@ -132,8 +132,8 @@ contains
     call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', rc=status)
     if (status /= 0) then
         if (mapl_am_i_root()) print*,'CA2G_instance_'//trim(comp_name)//'.rc does not exist! &
-                                      Loading CA2G_instance_'//trim(comp_name)//'.rc instead'
-        call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', __RC__)
+                                      Loading CA2G_instance_'//trim(comp_name(1:5))//'.rc instead'
+        call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name(1:5))//'.rc', __RC__)
     end if
 
 !   process generic config items
@@ -424,10 +424,11 @@ contains
 !   Load resource file  
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
+    call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', rc=status)
     if (status /= 0) then
-        if (mapl_am_i_root()) print*,'ERROR: CA2G_instance_'//trim(COMP_NAME)//'.rc does not exist!' 
-        return
+        if (mapl_am_i_root()) print*,'CA2G_instance_'//trim(comp_name)//'.rc does not exist! &
+                                      Loading CA2G_instance_'//trim(comp_name(1:5))//'.rc instead'
+        call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name(1:5))//'.rc', __RC__)
     end if
 
 !   Call Generic Initialize 
@@ -618,7 +619,7 @@ contains
 !   -----------------------------------
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
-!   Is SS data driven?
+!   Is CA data driven?
 !   ------------------
     call determine_data_driven (COMP_NAME, data_driven, __RC__)
 
@@ -649,7 +650,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION:  Computes emissions/sources for Sea Salt
+! !DESCRIPTION:  Computes emissions/sources for Carbon
 
 !EOP
 !============================================================================
@@ -1056,7 +1057,7 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run_data -- ExtData Sea Salt Grid Component
+! !IROUTINE: Run_data -- ExtData Carbon Grid Component
 
 ! !INTERFACE:
 

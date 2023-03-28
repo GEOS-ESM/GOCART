@@ -3,8 +3,6 @@ Collections:
     template: ExtData/chemistry/Masks/v0.0.0/sfc/ARCTAS.region_mask.x540_y361.2008.nc
   NI2G_GEIA.emis_NH3.ocean.x576_y361.t12.20080715_12z.nc4:
     template: ExtData/chemistry/GEIA/v0.0.0/sfc/GEIA.emis_NH3.ocean.x576_y361.t12.20080715_12z.nc4
-  NI2G_GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4:
-    template: /discover/nobackup/projects/gmao/gmao_ops/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4
   NI2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4:
     template: ExtData/chemistry/MERRA2GMI/v0.0.0/L72/MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
   NI2G_NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4:
@@ -78,18 +76,10 @@ Exports:
     sample: NI2G_sample_3
     variable: REGION_MASK
   climNO3an1:
-    collection: NI2G_GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4
-    regrid: CONSERVE
-    sample: NI2G_sample_0
-    variable: NO3AN1
+    collection: /dev/null
   climNO3an2:
-    collection: NI2G_GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4
-    regrid: CONSERVE
-    sample: NI2G_sample_0
-    variable: NO3AN2
+    collection: /dev/null
   climNO3an3:
-    collection: NI2G_GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4
-    regrid: CONSERVE
-    sample: NI2G_sample_0
-    variable: NO3AN3
+    collection: /dev/null
+
 

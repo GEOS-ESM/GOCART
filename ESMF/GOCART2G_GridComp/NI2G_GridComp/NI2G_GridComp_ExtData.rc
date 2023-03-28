@@ -5,9 +5,9 @@ PrimaryExports%%
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|-----------
 
 # ======= Nitrate Data Instance ==========
-climNO3an1  'kg kg-1'  N    Y  F0   none      none     NO3AN1    /discover/nobackup/projects/gmao/gmao_ops/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4  2017-02-01T00:00:00P03:00
-climNO3an2  'kg kg-1'  N    Y  F0   none      none     NO3AN2    /discover/nobackup/projects/gmao/gmao_ops/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4  2017-02-01T00:00:00P03:00
-climNO3an3  'kg kg-1'  N    Y  F0   none      none     NO3AN3    /discover/nobackup/projects/gmao/gmao_ops/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4  2017-02-01T00:00:00P03:00
+climNO3an1  'kg kg-1'  N    Y  F0   none      none     NO3AN1    /dev/null
+climNO3an2  'kg kg-1'  N    Y  F0   none      none     NO3AN2    /dev/null
+climNO3an3  'kg kg-1'  N    Y  F0   none      none     NO3AN3    /dev/null
 
 # ======= Nitrate Sources ========
 EMI_NH3_BB   'kg m-2 s-1'  N      Y      %y4-%m2-%d2T12:00:00    none     0.778     biomass     ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4

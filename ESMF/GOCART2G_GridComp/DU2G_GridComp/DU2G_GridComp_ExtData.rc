@@ -15,37 +15,37 @@ DU_Z0         NA  N Y - none none roughness  ExtData/chemistry/DUST/v0.0.0/sfc/a
 DU_GVF        NA  N Y %y4-%m2-%d2t12:00:00 none none gvf  ExtData/chemistry/NDVI/v1.0.r3/sfc/qvi.006.%y4.nc4
 
 # DU data - 3D
-climdu001           'kg kg-1'            Y        N               0              0.0      1.0     du001      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
-climdu002           'kg kg-1'            Y        N               0              0.0      1.0     du002      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
-climdu003           'kg kg-1'            Y        N               0              0.0      1.0     du003      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
-climdu004           'kg kg-1'            Y        N               0              0.0      1.0     du004      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
-climdu005           'kg kg-1'            Y        N               0              0.0      1.0     du005      ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climdu001           'kg kg-1'            Y        N               0              0.0      1.0     DU001      ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+climdu002           'kg kg-1'            Y        N               0              0.0      1.0     DU002      ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+climdu003           'kg kg-1'            Y        N               0              0.0      1.0     DU003      ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+climdu004           'kg kg-1'            Y        N               0              0.0      1.0     DU004      ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
+climdu005           'kg kg-1'            Y        N               0              0.0      1.0     DU005      ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
 
 # DU data - 2D
-climDUDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUDP001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP001    /dev/null
+climDUWT001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT001    /dev/null
+climDUSD001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD001    /dev/null
+climDUSV001         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV001    /dev/null
 
-climDUDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUDP002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP002    /dev/null
+climDUWT002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT002    /dev/null
+climDUSD002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD002    /dev/null
+climDUSV002         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV002    /dev/null
 
-climDUDP003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUWT003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSD003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSV003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUDP003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP003    /dev/null
+climDUWT003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT003    /dev/null
+climDUSD003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD003    /dev/null
+climDUSV003         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV003    /dev/null
 
-climDUDP004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUWT004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSD004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSV004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUDP004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP004    /dev/null
+climDUWT004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT004    /dev/null
+climDUSD004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD004    /dev/null
+climDUSV004         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV004    /dev/null
 
-climDUDP005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUWT005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSD005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climDUSV005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV005    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climDUDP005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUDP005    /dev/null
+climDUWT005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUWT005    /dev/null
+climDUSD005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSD005    /dev/null
+climDUSV005         'kg m-2 s-1'         Y        N               0              0.0      1.0     DUSV005    /dev/null
 
 %%
 
