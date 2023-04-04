@@ -435,7 +435,7 @@ contains
 
 !   Get dimensions
 !   ---------------
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
 

@@ -55,7 +55,6 @@ integer, parameter     :: DP = kind(1.0d0)
    type, extends(GA_Environment) :: NI2G_GridComp
        !logical           :: first
        logical           :: recycle_HNO3 = .false.
-       !real, allocatable :: xhno3(:,:,:)   ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]; moved to ESMF internal state
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
@@ -345,12 +344,9 @@ contains
 
 !   Get dimensions
 !   ---------------
-    !call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
-
-    !allocate(self%xhno3(dims(1),dims(2),dims(3)), __STAT__)
 
 !   Get DTs
 !   -------
@@ -377,9 +373,6 @@ contains
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, __RC__)
-
-! xhno3 is moved to ESMF internal state
-!    call MAPL_GetPointer(internal, NAME='XHNO3', ptr=xhno3, __RC__)
 
 !   Is NI data driven?
 !   ------------------
@@ -807,6 +800,7 @@ contains
                              self%fnumDU, self%fnumSS, self%km, self%klid, &
                              self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, & 
                              NO3an3, HNO3CONC, HNO3SMASS,  HNO3CMASS, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 
 !   NI Settling
@@ -822,6 +816,7 @@ contains
     call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(nNH4a)*1.e-6, self%rhop(nNH4a), NH4a, t, &
                               airdens, rh2, zle, delp, NH4SD, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 !  Nitrate bin 1 - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
@@ -833,6 +828,7 @@ contains
     call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(nNO3an1)*1.e-6, self%rhop(nNO3an1), NO3an1, &
                               t, airdens, rh2, zle, delp, flux_ptr, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 !  Nitrate bin 2 - settles like sea salt (rhflag = 2)
     rhflag = 2
@@ -844,6 +840,7 @@ contains
     call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(nNO3an2)*1.e-6, self%rhop(nNO3an2), NO3an2, &
                               t, airdens, rh2, zle, delp, flux_ptr, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 !  Nitrate bin 1 - settles like dust (rhflag = 0)
     rhflag = 0
@@ -855,6 +852,7 @@ contains
     call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(nNO3an3)*1.e-6, self%rhop(nNO3an3), NO3an3, &
                               t, airdens, rh2, zle, delp, flux_ptr, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 !  NI Deposition
 !  -----------
@@ -862,6 +860,7 @@ contains
     call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
                        MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, __RC__ )
 
+!   Save local copy of HNO3 for first pass through run method regardless
 !  NH3
    dqa = 0.
    do i=1,ubound(lwi,1)
@@ -873,6 +872,7 @@ contains
          end if
       end do
    end do
+!   Save local copy of HNO3 for first pass through run method regardless
 
    NH3(:,:,self%km) = NH3(:,:,self%km) - dqa
    if( associated(NH3DP) ) NH3DP = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
@@ -912,6 +912,7 @@ contains
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
                             KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
    if (associated(NH3WT)) NH3WT = fluxWT_ptr(:,:,1)
 
 !  NH4a
@@ -946,6 +947,7 @@ contains
                            KIN, MAPL_GRAV, fwet, NO3an3, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
+!   Save local copy of HNO3 for first pass through run method regardless
 !  Compute desired output diagnostics
 !  ----------------------------------
 !  Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
@@ -959,6 +961,7 @@ contains
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,&
                             sfcmass=NH4SMASS, colmass=NH4CMASS, mass=NH4MASS, conc=NH4CONC, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
    aerosol(:,:,:,1) = NH3
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
@@ -968,6 +971,7 @@ contains
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,&
                             sfcmass=NH3SMASS, colmass=NH3CMASS, mass=NH3MASS, conc=NH3CONC, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
    aerosol(:,:,:,1) = NO3an1
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
@@ -979,6 +983,7 @@ contains
                             sfcmass=NISMASS25, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, &
                             exttau25=NIEXTT25, scatau25=NISCAT25, exttaufm=NIEXTTFM, scataufm=NISCATFM, &
                             NO3nFlag=.true., __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
    aerosol(:,:,:,1) = NO3an1
    aerosol(:,:,:,2) = NO3an2
@@ -1009,6 +1014,7 @@ contains
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = NIEXTCOEFRH20, scacoef=NISCACOEFRH20, __RC__)        
+!   Save local copy of HNO3 for first pass through run method regardless
                     
    RH80(:,:,:) = 0.80
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
@@ -1018,6 +1024,7 @@ contains
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = NIEXTCOEFRH80, scacoef=NISCACOEFRH80,__RC__)        
+!   Save local copy of HNO3 for first pass through run method regardless
    
    deallocate(RH20,RH80) 
    RETURN_(ESMF_SUCCESS)

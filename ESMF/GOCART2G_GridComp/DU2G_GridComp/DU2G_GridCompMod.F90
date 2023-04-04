@@ -406,7 +406,7 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-    call MAPL_GridGet ( grid, globalCellCountPerDim=dims, __RC__ )
+    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   ---------------------------------------------------------------
