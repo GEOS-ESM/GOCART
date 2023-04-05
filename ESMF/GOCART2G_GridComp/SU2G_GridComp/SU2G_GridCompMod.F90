@@ -386,7 +386,6 @@ contains
     type (ESMF_FieldBundle)              :: Bundle_DP
     type (wrap_)                         :: wrap
     type (SU2G_GridComp), pointer        :: self
-    type (ESMF_Alarm)                    :: alarm_H2O2
 
     integer, allocatable                 :: mieTable_pointer(:)
     integer                              :: i, dims(3), km
@@ -481,26 +480,6 @@ contains
 !   Is SU data driven?
 !   ------------------
     call determine_data_driven (COMP_NAME, data_driven, __RC__)
-
-!   Set H2O2 recycle alarm
-!   ----------------------
-    if (.not. data_driven) then
-        call ESMF_ClockGet(clock, calendar=calendar, currTime=currentTime, __RC__)
-        call ESMF_TimeGet(currentTime, YY=year, MM=month, DD=day, H=hh, M=mm, S=ss, __RC__)
-        call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, __RC__)
-        call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, __RC__)
-
-        do while (ringTime < currentTime)! DO WE NEED THIS?
-            ringTime = currentTime + ringInterval
-        end do
-
-        alarm_H2O2 = ESMF_AlarmCreate(Clock        = clock,        &
-                                      Name         = 'H2O2_RECYCLE_ALARM', &
-                                      RingInterval = ringInterval, &
-                                      RingTime     = currentTime,  &
-                                      Enabled      = .true.   ,    &
-                                      Sticky       = .false.  , __RC__)
-    end if
 
 !   If this is a data component, the data is provided in the import
 !   state via ExtData instead of the actual GOCART children
@@ -975,7 +954,6 @@ contains
     type (wrap_)                      :: wrap
     type (SU2G_GridComp), pointer     :: self
     type (ESMF_Time)                  :: time
-    type (ESMF_Alarm)                 :: ALARM
     type(MAPL_VarSpec), pointer       :: InternalSpec(:)
 
     integer         :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
@@ -1039,12 +1017,10 @@ contains
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    call ESMF_ClockGetAlarm(clock, 'H2O2_RECYCLE_ALARM', alarm, __RC__)
-    alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
+    alarm_is_ringing = daily_alarm(clock,30000,_RC)
 !   recycle H2O2 every 3 hours
     if (alarm_is_ringing) then
-       workspace%recycle_h2o2 = ESMF_AlarmIsRinging(alarm, __RC__)
-       call ESMF_AlarmRingerOff(alarm, __RC__)
+       workspace%recycle_h2o2 = .true.
     end if
 
     allocate(xoh, mold=airdens, __STAT__)
@@ -1053,11 +1029,11 @@ contains
     xoh = 0.0
     xno3 = 0.0
 
-    if (workspace%firstRun) then
-       xh2o2          = MAPL_UNDEF
-       h2o2_init = MAPL_UNDEF
-       workspace%firstRun  = .false.
-    end if
+    !if (workspace%firstRun) then
+       !xh2o2          = MAPL_UNDEF
+       !h2o2_init = MAPL_UNDEF
+       !workspace%firstRun  = .false.
+    !end if
 
     xh2o2 = h2o2_init 
 
@@ -1479,6 +1455,38 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
+  function daily_alarm(clock,freq,rc) result(is_ringing)
+     logical :: is_ringing
+     type(ESMF_Clock), intent(in) :: clock
+     integer, intent(in) :: freq
+     integer, optional, intent(out) :: rc
 
-end module SU2G_GridCompMod
+     type(ESMF_Time) :: current_time
+     integer :: status,year,month,day,hour,minute,second,initial_time,int_seconds
+     integer :: nhh,nmm,nss,freq_sec
 
+     type(ESMF_TimeInterval) :: new_diff,esmf_freq
+     type(ESMF_Time) :: reff_time,new_esmf_time
+
+     call ESMF_ClockGet(clock,currTIme=current_time,_RC)
+     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
+
+     int_seconds = 0
+     call MAPL_UnpackTIme(freq,nhh,nmm,nss)
+     is_ringing = .false.
+     call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
+     new_esmf_time = reff_time
+     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
+     do while (int_seconds < 86400)
+        if ( new_esmf_time == current_time) then
+           is_ringing = .true.
+           exit
+        end if
+        new_esmf_time = new_esmf_time + esmf_freq
+        new_diff = new_esmf_time - reff_time
+        call ESMF_TimeIntervalGet(new_diff,s=int_seconds,_RC)
+     enddo
+     _RETURN(_SUCCESS)
+  end function
+
+end module SU2G_GridCompMod 

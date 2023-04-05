@@ -312,7 +312,6 @@ contains
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
-    type(ESMF_Alarm)        :: alarm_HNO3
     type(ESMF_Time)         :: ringTime
     type(ESMF_TimeInterval) :: ringInterval
     integer                 :: year, month, day, hh, mm, ss
@@ -400,20 +399,6 @@ contains
        allocate(self%fnumSS(itemCount), __STAT__)
        call ESMF_AttributeGet(field, name='radius', valueList=self%rmedSS, __RC__)
        call ESMF_AttributeGet(field, name='fnum', valueList=self%fnumSS, __RC__)
-    end if
-!   Se HNO3 recycle alarm
-    if (.not. data_driven) then
-        call ESMF_ClockGet(clock, calendar=calendar, currTime=currentTime, __RC__)
-        call ESMF_TimeGet(currentTime, YY=year, MM=month, DD=day, H=hh, M=mm, S=ss, __RC__)
-        call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, __RC__)
-        call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, __RC__)
-
-        alarm_HNO3 = ESMF_AlarmCreate(Clock        = clock,        &
-                                      Name         = 'HNO3_RECYCLE_ALARM', &
-                                      RingInterval = ringInterval, &
-                                      RingTime     = ringTime,  &
-                                      Enabled      = .true.   ,    &
-                                      Sticky       = .false.  , __RC__)
     end if
 
 !   If this is a data component, the data is provided in the import
@@ -728,7 +713,6 @@ contains
     real, pointer, dimension(:,:)     :: flux_ptr
     real, pointer, dimension(:,:,:)   :: fluxWT_ptr
 
-    type (ESMF_ALARM)               :: alarm
     logical                         :: alarm_is_ringing
     integer                         :: i1, j1, i2, j2, km
     real, target,allocatable, dimension(:,:,:)   :: RH20,RH80
@@ -744,6 +728,11 @@ contains
 !*****************************************************************************
 !   Begin... 
 
+    block
+       type(ESMF_TIME) :: currtime
+       call ESMF_ClockGet(clock,currtime=currtime,_RC)
+       if (mapl_am_i_root()) call ESMF_TimePrint(currtime,options='string',prestring='bmaa ni run2 time ')
+    end block
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
@@ -768,24 +757,22 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-!   check hno3 alarm
-    call ESMF_ClockGetAlarm(clock, 'HNO3_RECYCLE_ALARM', alarm, __RC__)
-    alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
+    alarm_is_ringing = daily_alarm(clock,30000,_RC)
 
 !   Save local copy of HNO3 for first pass through run method regardless
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    if (workspace%first) then
-       xhno3 = MAPL_UNDEF
-       workspace%first = .false.
-    end if
+    !if (workspace%first) then
+       !xhno3 = MAPL_UNDEF
+       !workspace%first = .false.
+    !end if
 
 !   Recycle HNO3 every 3 hours
     if (alarm_is_ringing) then
        xhno3 = NITRATE_HNO3
-       call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
+    if (mapl_am_i_root()) write(*,*)"bmaa ni alarm ring ",alarm_is_ringing
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
@@ -1356,5 +1343,38 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
+  function daily_alarm(clock,freq,rc) result(is_ringing)
+     logical :: is_ringing
+     type(ESMF_Clock), intent(in) :: clock
+     integer, intent(in) :: freq
+     integer, optional, intent(out) :: rc
+
+     type(ESMF_Time) :: current_time
+     integer :: status,year,month,day,hour,minute,second,initial_time,int_seconds
+     integer :: nhh,nmm,nss,freq_sec
+
+     type(ESMF_TimeInterval) :: new_diff,esmf_freq
+     type(ESMF_Time) :: reff_time,new_esmf_time
+
+     call ESMF_ClockGet(clock,currTIme=current_time,_RC)
+     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
+
+     int_seconds = 0
+     call MAPL_UnpackTIme(freq,nhh,nmm,nss) 
+     is_ringing = .false.
+     call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
+     new_esmf_time = reff_time
+     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
+     do while (int_seconds < 86400)      
+        if ( new_esmf_time == current_time) then
+           is_ringing = .true.
+           exit
+        end if
+        new_esmf_time = new_esmf_time + esmf_freq
+        new_diff = new_esmf_time - reff_time
+        call ESMF_TimeIntervalGet(new_diff,s=int_seconds,_RC)
+     enddo
+     _RETURN(_SUCCESS)
+  end function
 
 end module NI2G_GridCompMod
