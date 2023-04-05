@@ -767,7 +767,6 @@ contains
     if (alarm_is_ringing) then
        xhno3 = NITRATE_HNO3
     end if
-    if (mapl_am_i_root()) write(*,*)"bmaa ni alarm ring ",alarm_is_ringing
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
