@@ -728,11 +728,6 @@ contains
 !*****************************************************************************
 !   Begin... 
 
-    block
-       type(ESMF_TIME) :: currtime
-       call ESMF_ClockGet(clock,currtime=currtime,_RC)
-       if (mapl_am_i_root()) call ESMF_TimePrint(currtime,options='string',prestring='bmaa ni run2 time ')
-    end block
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
