@@ -401,7 +401,6 @@ contains
        call ESMF_AttributeGet(field, name='radius', valueList=self%rmedSS, __RC__)
        call ESMF_AttributeGet(field, name='fnum', valueList=self%fnumSS, __RC__)
     end if
-
 !   Se HNO3 recycle alarm
     if (.not. data_driven) then
         call ESMF_ClockGet(clock, calendar=calendar, currTime=currentTime, __RC__)
@@ -409,14 +408,10 @@ contains
         call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, __RC__)
         call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, __RC__)
 
-        do while (ringTime < currentTime)! DO WE NEED THIS?
-            ringTime = currentTime + ringInterval
-        end do
-
         alarm_HNO3 = ESMF_AlarmCreate(Clock        = clock,        &
                                       Name         = 'HNO3_RECYCLE_ALARM', &
                                       RingInterval = ringInterval, &
-                                      RingTime     = currentTime,  &
+                                      RingTime     = ringTime,  &
                                       Enabled      = .true.   ,    &
                                       Sticky       = .false.  , __RC__)
     end if
@@ -789,7 +784,7 @@ contains
 !   Recycle HNO3 every 3 hours
     if (alarm_is_ringing) then
        xhno3 = NITRATE_HNO3
-       !call ESMF_AlarmRingerOff(alarm, __RC__)
+       call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
