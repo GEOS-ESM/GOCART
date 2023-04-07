@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [sdr_v2.1.2.3] - 2023-04-07
+
+### Changed
+
+- Change global dims to local dims in G2G components (memory saving)
+
+## [sdr_v2.1.2.2] - 2023-03-28
+
+### Changed
+
+- Merged in changes from `feature/pcolarco/GOCART2G_data_instance` to enable GOCART2G Data Driven
+- Single-moment moist changes from Donifan
+
+## [sdr_v2.1.2.1] - 2023-03-01
+
+### Changed
+
+- Change names of microphysics schemes to match refactored physics
+- Set SS_SCALE default to 0.0
+
 ## [2.1.2] - 2022-10-07
 
 ### Added
