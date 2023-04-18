@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [sdr_v2.1.2.4] - 2023-04-18
+
+### Fixed
+
+- Fixed config file loads in GOCART2G to use inquire to avoid ESMF logging error
+
 ## [sdr_v2.1.2.3] - 2023-04-07
 
 ### Changed
