@@ -96,6 +96,7 @@ contains
     integer                                     :: i
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    logical                                     :: file_exists
 
     __Iam__('SetServices')
 
@@ -112,11 +113,13 @@ contains
     allocate (self, __STAT__)
     wrap%ptr => self
 
-!   Load resource file 
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
+    inquire(file='SS2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
        if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
@@ -343,6 +346,7 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -380,14 +384,14 @@ contains
     call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
-!  Load resource file and get number of bins 
+!  Load resource file and get number of bins
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
-      if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading SS2G_instance_SS.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'SS2G_instance_SS.rc', __RC__)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
 !   Call Generic Initialize 

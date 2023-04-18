@@ -101,6 +101,7 @@ contains
 
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    logical                                     :: file_exists
     integer :: num_threads
 
     __Iam__('SetServices')
@@ -121,11 +122,13 @@ contains
     num_threads = MAPL_get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
-!   Load resource file 
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
+    inquire(file='NI2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
        if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading NI2G_instance_NI.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_NI.rc', __RC__)
     end if
@@ -323,6 +326,7 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -358,14 +362,14 @@ contains
     call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
-!  Load resource file and get number of bins 
+!  Load resource file and get number of bins
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
-      if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading NI2G_instance_NI.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'NI2G_instance_NI.rc', __RC__)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading NI2G_instance_NI.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_NI.rc', __RC__)
     end if
 
     !self%first = .true.
