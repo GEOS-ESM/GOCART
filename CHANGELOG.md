@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+
 - Added `*` to CA State specs file to allow for ACG to substitute in the long name
 - Changes were made so GOCART2G and its children can be run with component level 
 OpenMP threading. The key change is to create the data structure ThreadWorkspace 
