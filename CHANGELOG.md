@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [sdr_v2.1.2.5] - 2023-05-04
+
+### Changed
+
+- Comment out ASSERT to allow GOCART_DT to not match the HEARTBEAT_DT
+
 ## [sdr_v2.1.2.4] - 2023-04-18
 
 ### Fixed
