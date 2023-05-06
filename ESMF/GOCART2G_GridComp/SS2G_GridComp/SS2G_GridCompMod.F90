@@ -375,6 +375,7 @@ contains
 !  Load resource file and get number of bins
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
+    inquire(file='SS2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
     if (file_exists) then
        call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
     else
