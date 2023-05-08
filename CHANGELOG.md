@@ -31,10 +31,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [2.1.4] - 2023-05-04
+
+### Fixed
+
+- Fix in GOCART2G parent so that it can run with nitrates turned off. This patch of general utility was contributed by NOAA.
 
 ## [2.1.3] - 2023-02-27
 
 ### Added
+
 
 - Added `*` to CA State specs file to allow for ACG to substitute in the long name
 - Changes were made so GOCART2G and its children can be run with component level 

@@ -648,6 +648,7 @@ contains
     real, allocatable               :: tau_mol_layer(:,:,:), tau_aer_layer(:,:,:)
     real, allocatable               :: tau_mol(:,:), tau_aer(:,:)
     real                            :: c1, c2, c3
+    real                            :: nifactor
     real, parameter                 :: pi = 3.141529265     
     integer                         :: ind550, ind532
     integer                         :: i1, i2, j1, j2, km, k,kk
@@ -924,6 +925,11 @@ contains
     end do
 
 !   Sulfates
+    nifactor = 132.14/96.06
+    if (size(self%NI%instances) > 0) then
+      if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) nifactor = 1.0
+    end if
+
     do n = 1, size(self%SU%instances)
        if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', __RC__)
@@ -965,20 +971,13 @@ contains
           if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', __RC__)
-          if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) then ! Nitrates currently only support one active instance. We check the NI gridded component because SO4MASS can be altered by NI chemistry.
-             if(associated(pm)        .and. associated(so4smass)) pm        = pm        + so4smass
-             if(associated(pm25)      .and. associated(so4smass)) pm25      = pm25      + so4smass
-             if(associated(pm_rh35)   .and. associated(so4smass)) pm_rh35   = pm_rh35   + 1.33*so4smass
-             if(associated(pm25_rh35) .and. associated(so4smass)) pm25_rh35 = pm25_rh35 + 1.33*so4smass
-             if(associated(pm_rh50)   .and. associated(so4smass)) pm_rh50   = pm_rh50   + 1.51*so4smass
-             if(associated(pm25_rh50) .and. associated(so4smass)) pm25_rh50 = pm25_rh50 + 1.51*so4smass
-          else
-             if(associated(pm)        .and. associated(so4smass)) pm        = pm        + (132.14/96.06)*so4smass
-             if(associated(pm25)      .and. associated(so4smass)) pm25      = pm25      + (132.14/96.06)*so4smass
-             if(associated(pm_rh35)   .and. associated(so4smass)) pm_rh35   = pm_rh35   + 1.33*(132.14/96.06)*so4smass
-             if(associated(pm25_rh35) .and. associated(so4smass)) pm25_rh35 = pm25_rh35 + 1.33*(132.14/96.06)*so4smass
-             if(associated(pm_rh50)   .and. associated(so4smass)) pm_rh50   = pm_rh50   + 1.51*(132.14/96.06)*so4smass
-             if(associated(pm25_rh50) .and. associated(so4smass)) pm25_rh50 = pm25_rh50 + 1.51*(132.14/96.06)*so4smass
+          if(associated(so4smass)) then
+             if(associated(pm)       ) pm        = pm        + nifactor*so4smass
+             if(associated(pm25)     ) pm25      = pm25      + nifactor*so4smass
+             if(associated(pm_rh35)  ) pm_rh35   = pm_rh35   + 1.33*nifactor*so4smass
+             if(associated(pm25_rh35)) pm25_rh35 = pm25_rh35 + 1.33*nifactor*so4smass
+             if(associated(pm_rh50)  ) pm_rh50   = pm_rh50   + 1.51*nifactor*so4smass
+             if(associated(pm25_rh50)) pm25_rh50 = pm25_rh50 + 1.51*nifactor*so4smass
           end if
 
           if(associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
