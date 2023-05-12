@@ -21,6 +21,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [sdr_v2.1.2.6] - 2023-05-06
+
+### Fixed
+
+- Fixed missing `inquire()` checks
+
+## [sdr_v2.1.2.5] - 2023-05-04
+
+### Changed
+
+- Comment out ASSERT to allow GOCART_DT to not match the HEARTBEAT_DT
+
+## [sdr_v2.1.2.4] - 2023-04-18
+
+### Fixed
+
+- Fixed config file loads in GOCART2G to use inquire to avoid ESMF logging error
+
+## [sdr_v2.1.2.3] - 2023-04-07
+
+### Changed
+
+- Change global dims to local dims in G2G components (memory saving)
+
+## [sdr_v2.1.2.2] - 2023-03-28
+
+### Changed
+
+- Merged in changes from `feature/pcolarco/GOCART2G_data_instance` to enable GOCART2G Data Driven
+- Single-moment moist changes from Donifan
+
+## [sdr_v2.1.2.1] - 2023-03-01
+
+### Changed
+
+- Change names of microphysics schemes to match refactored physics
+- Set SS_SCALE default to 0.0
+
 ## [2.1.4] - 2023-05-04
 
 ### Fixed
