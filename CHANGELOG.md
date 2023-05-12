@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - To do: remove hooks to old (legacy) GOCART.data instances in CHEM and setup scripts
 - Fixed rc file in legacy O3 component.
 - Fixed issue #223 where Global dimension was being used for allocating a local array	
-- 
+-    
 ### Added
 
 ### Changed
