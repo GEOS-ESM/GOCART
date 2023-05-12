@@ -8,59 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- Made needed code changes in SS2G_GridCompMod.F90 and CA2G_GridCompMod.F90 to permit data instances of of GOCART aerosols to run
+
+- Made needed code changes in `SS2G_GridCompMod.F90` and `CA2G_GridCompMod.F90` to permit data instances of of GOCART aerosols to run
 - Added missing brown carbon (BR) climatology hooks to yaml and rc files for data driven instances
-- Changed pointers to climatological deposition inputs in yaml and rc files to "/dev/null" since the files pointed to didn't provide them anyway, and in any case they are being used presently in the model
-- Changed pointers to climatological nitrate inputs in yaml and rc files to "/dev/null" since pointing to FP files was inconsistent with MERRA-2 files used for other species
+- Changed pointers to climatological deposition inputs in yaml and rc files to `/dev/null` since the files pointed to didn't provide them anyway, and in any case they are being used presently in the model
+- Changed pointers to climatological nitrate inputs in yaml and rc files to `/dev/null` since pointing to FP files was inconsistent with MERRA-2 files used for other species
 - Ensured zero-diff in performance of yaml vs. rc files for ExtData2G vs. ExtData1g for data driven aerosols
 - To do: remove hooks to old (legacy) GOCART.data instances in CHEM and setup scripts
 - Fixed rc file in legacy O3 component.
-- Fixed issue #223 where Global dimension was being used for allocating a local array	
-- This fixes a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
-- 
+- Fixed issue #223 where Global dimension was being used for allocating a local array
+- Fix a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
+
 ### Added
 
 ### Changed
 
-## [sdr_v2.1.2.6] - 2023-05-06
-
-### Fixed
-
-- Fixed missing `inquire()` checks
-
-## [sdr_v2.1.2.5] - 2023-05-04
-
-### Changed
-
-- Comment out ASSERT to allow GOCART_DT to not match the HEARTBEAT_DT
-
-## [sdr_v2.1.2.4] - 2023-04-18
-
-### Fixed
-
-- Fixed config file loads in GOCART2G to use inquire to avoid ESMF logging error
-
-## [sdr_v2.1.2.3] - 2023-04-07
-
-### Changed
-
-- Change global dims to local dims in G2G components (memory saving)
-
-## [sdr_v2.1.2.2] - 2023-03-28
-
-### Changed
-
-- Merged in changes from `feature/pcolarco/GOCART2G_data_instance` to enable GOCART2G Data Driven
+- Comment out ASSERT to allow `GOCART_DT` to not match the `HEARTBEAT_DT`
 - Single-moment moist changes from Donifan
-
-## [sdr_v2.1.2.1] - 2023-03-01
-
-### Changed
-
 - Change names of microphysics schemes to match refactored physics
-- Set SS_SCALE default to 0.0
+- Set `SS_SCALE` default to 0.0
+- Updates in CA2G for OpenMP
+- Updates for CI
 
-## [2.1.4] - 2023-05-04
+## [2.1.4] - 2023-05-12
 
 ### Fixed
 
@@ -70,10 +40,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-
 - Added `*` to CA State specs file to allow for ACG to substitute in the long name
-- Changes were made so GOCART2G and its children can be run with component level 
-OpenMP threading. The key change is to create the data structure ThreadWorkspace 
+- Changes were made so GOCART2G and its children can be run with component level
+OpenMP threading. The key change is to create the data structure ThreadWorkspace
 to hold variables that should be private to each thread to avoid race conditions.
 Additionally spatially distributed arrays that are not in any of the ESMF states
 were added to the ESMF internal state so they could be properly handled when
@@ -82,8 +51,6 @@ for SU2G, and deep_lakes_mask for SS2G. All of these arrays have MAPL_RestartSki
 option so they are not written to restart.
 - Aerosol single scattering backscatter coefficient for each instances and total at wavelengths_profile
 - Total (molecular + aerosols) attenuated backscatter coefficient from TOA and sfc at 532nm
-
-### Fixed
 
 ### Changed
 
@@ -102,11 +69,6 @@ option so they are not written to restart.
 
 - Extinction/Scattering profile exports at model RH at wavelengths_profile
 - Extinction/Scattering profile exports with RH=20% and RH=80% at wavelengths_profile
-
-### Fixed
-
-### Changed
-
 
 ## [2.1.1] - 2022-09-16
 
