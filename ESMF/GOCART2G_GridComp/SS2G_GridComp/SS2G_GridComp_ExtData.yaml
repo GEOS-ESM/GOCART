@@ -1,8 +1,7 @@
 Collections:
   SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
     template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
-  SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4:
-    template: ExtData/chemistry/MERRA2/v0.0.0/sfc/merra2.aer_Nx.2003-2015.2008%m2clm.nc4
+    valid_range: "2008-01-01T12:00:00/2008-12-15T12:00:00"
 
 Samplings:
   SS2G_sample_0:
@@ -10,103 +9,64 @@ Samplings:
 
 Exports:
   climSSDP001:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSDP001
+    collection: /dev/null
   climSSDP002:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSDP002
+    collection: /dev/null
   climSSDP003:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSDP003
+    collection: /dev/null
   climSSDP004:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSDP004
+    collection: /dev/null
   climSSDP005:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSDP005
+    collection: /dev/null
   climSSSD001:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSD001
+    collection: /dev/null
   climSSSD002:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSD002
+    collection: /dev/null
   climSSSD003:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSD003
+    collection: /dev/null
   climSSSD004:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSD004
+    collection: /dev/null
   climSSSD005:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSD005
+    collection: /dev/null
   climSSSV001:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSV001
+    collection: /dev/null
   climSSSV002:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSV002
+    collection: /dev/null
   climSSSV003:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSV003
+    collection: /dev/null
   climSSSV004:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSV004
+    collection: /dev/null
   climSSSV005:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSSV005
+    collection: /dev/null
   climSSWT001:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSWT001
+    collection: /dev/null
   climSSWT002:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSWT002
+    collection: /dev/null
   climSSWT003:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSWT003
+    collection: /dev/null
   climSSWT004:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSWT004
+    collection: /dev/null
   climSSWT005:
-    collection: SS2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
-    sample: SS2G_sample_0
-    variable: SSWT005
+    collection: /dev/null
   climss001:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss001
+    variable: SS001
   climss002:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss002
+    variable: SS002
   climss003:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss003
+    variable: SS003
   climss004:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss004
+    variable: SS004
   climss005:
     collection: SS2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SS2G_sample_0
-    variable: ss005
+    variable: SS005
+
 

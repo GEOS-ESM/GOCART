@@ -3,7 +3,7 @@
 !=============================================================================
 !BOP
 
-! !MODULE: NI2G_GridCompMod - GOCART Nitrate gridded component 
+! !MODULE: NI2G_GridCompMod - GOCART Nitrate gridded component
 
 ! !INTERFACE:
 module NI2G_GridCompMod
@@ -11,7 +11,7 @@ module NI2G_GridCompMod
 ! !USES:
    use ESMF
    use MAPL
-   use GOCART2G_MieMod 
+   use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -70,7 +70,7 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: SetServices 
+! !IROUTINE: SetServices
 
 ! !INTERFACE:
   subroutine SetServices ( GC, RC )
@@ -81,7 +81,7 @@ contains
 
 !    DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !     the Initialize and Finalize services to generic versions. It also
-!     allocates our instance of a generic state and puts it in the 
+!     allocates our instance of a generic state and puts it in the
 !     gridded component (GC). Here we only set the two-stage run method
 !     and declare the data services.
 
@@ -101,6 +101,7 @@ contains
 
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    logical                                     :: file_exists
     integer :: num_threads
 
     __Iam__('SetServices')
@@ -121,11 +122,13 @@ contains
     num_threads = MAPL_get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
-!   Load resource file 
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
+    inquire(file='NI2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
        if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading NI2G_instance_NI.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_NI.rc', __RC__)
     end if
@@ -147,7 +150,7 @@ contains
 
     DEFVAL = 0.0
 
-!   Import and Internal states if data instance 
+!   Import and Internal states if data instance
 !   -------------------------------------------
     if (data_driven) then
 
@@ -227,7 +230,7 @@ contains
     end if ! (data_driven)
 
 
-!   Import, Export, Internal states for computational instance 
+!   Import, Export, Internal states for computational instance
 !   ----------------------------------------------------------
     if (.not. data_driven) then
 #include "NI2G_Export___.h"
@@ -263,27 +266,27 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: Initialize 
+! !IROUTINE: Initialize
 
 ! !INTERFACE:
   subroutine Initialize (GC, IMPORT, EXPORT, CLOCK, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT ! Export state
     type (ESMF_Clock),    intent(inout) :: CLOCK  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes the Nitrate gridded component. It primaryily 
-!               fills GOCART's AERO states with its nitrate fields. 
+! !DESCRIPTION: This initializes the Nitrate gridded component. It primaryily
+!               fills GOCART's AERO states with its nitrate fields.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! 30June2020   E.Sherman  First attempt at refactoring
 
 !EOP
 !============================================================================
-!   !Locals 
+!   !Locals
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Config)                   :: universal_cfg
@@ -323,10 +326,11 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
     __Iam__('Initialize')
 
 !****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -334,10 +338,10 @@ contains
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
 !   Get my internal MAPL_Generic state
-!   ----------------------------------- 
+!   -----------------------------------
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
-    
-!   Get my internal private state  
+
+!   Get my internal private state
 !   -----------------------------
     call ESMF_UserCompGetInternalState(GC, 'NI2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
@@ -358,19 +362,20 @@ contains
     call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
-!  Load resource file and get number of bins 
+!  Load resource file and get number of bins
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
-      if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading NI2G_instance_NI.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'NI2G_instance_NI.rc', __RC__)
+    inquire(file='NI2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading NI2G_instance_NI.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_NI.rc', __RC__)
     end if
 
     !self%first = .true.
 
-!   Call Generic Initialize 
+!   Call Generic Initialize
 !   ----------------------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
 
@@ -491,7 +496,7 @@ contains
     end if
 
     self%instance = instance
-    
+
 !   Create Radiation Mie Table
 !   --------------------------
     call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
@@ -552,13 +557,13 @@ contains
 !============================================================================
 
 !BOP
-! !IROUTINE: Run 
+! !IROUTINE: Run
 
 ! !INTERFACE:
   subroutine Run (GC, import, export, clock, rc)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -579,7 +584,7 @@ contains
     __Iam__('Run')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -612,13 +617,13 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run1 
+! !IROUTINE: Run1
 
 ! !INTERFACE:
   subroutine Run1 (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -641,7 +646,7 @@ contains
    __Iam__('Run1')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -701,14 +706,14 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run2 
+! !IROUTINE: Run2
 
 ! !INTERFACE:
 
   subroutine Run2 (GC, import, export, clock, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -747,7 +752,7 @@ contains
     __Iam__('Run2')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -805,7 +810,7 @@ contains
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
                              self%fnumDU, self%fnumSS, self%km, self%klid, &
-                             self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, & 
+                             self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, &
                              NO3an3, HNO3CONC, HNO3SMASS,  HNO3CMASS, __RC__)
 
 
@@ -1008,8 +1013,8 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=aerosol, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = NIEXTCOEFRH20, scacoef=NISCACOEFRH20, __RC__)        
-                    
+                            extcoef = NIEXTCOEFRH20, scacoef=NISCACOEFRH20, __RC__)
+
    RH80(:,:,:) = 0.80
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=3,  &
@@ -1017,11 +1022,11 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=aerosol, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = NIEXTCOEFRH80, scacoef=NISCACOEFRH80,__RC__)        
-   
-   deallocate(RH20,RH80) 
+                            extcoef = NIEXTCOEFRH80, scacoef=NISCACOEFRH80,__RC__)
+
+   deallocate(RH20,RH80)
    RETURN_(ESMF_SUCCESS)
-  
+
   end subroutine Run2
 
 
@@ -1035,13 +1040,13 @@ contains
 
     ! !ARGUMENTS:
 
-    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT   ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT   ! Export state
     type (ESMF_State),    intent(inout) :: INTERNAL ! Interal state
     integer, optional,    intent(  out) :: RC       ! Error code:
 
-! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData. 
+! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
 !EOP
 !============================================================================
@@ -1055,7 +1060,7 @@ contains
     __Iam__('Run_data')
 
 !*****************************************************************************
-! Begin... 
+! Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -1119,7 +1124,7 @@ contains
 
     __Iam__('NI2G::aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1136,7 +1141,7 @@ contains
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1240,7 +1245,7 @@ contains
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction 
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
 
     end do
 
@@ -1283,7 +1288,7 @@ contains
 
     __Iam__('NI2G:: monochromatic_aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1300,7 +1305,7 @@ contains
     call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
