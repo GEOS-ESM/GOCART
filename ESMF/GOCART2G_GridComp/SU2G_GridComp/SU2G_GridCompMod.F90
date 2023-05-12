@@ -1041,7 +1041,7 @@ contains
        !workspace%firstRun  = .false.
     !end if
 
-    xh2o2 = self%h2o2_init
+    xh2o2 = h2o2_init
 
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
@@ -1495,4 +1495,4 @@ contains
      _RETURN(_SUCCESS)
   end function
 
-end module SU2G_GridCompMod 
+end module SU2G_GridCompMod
