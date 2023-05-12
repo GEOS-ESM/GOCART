@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 Fixed rc file in legacy O3 component.
+Fixes issue #223 where Global dimension was being used for allocating a local array
 
 ### Changed
 
