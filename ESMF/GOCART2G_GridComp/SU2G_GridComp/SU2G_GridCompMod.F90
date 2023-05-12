@@ -136,6 +136,7 @@ contains
     integer                                     :: i
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    logical                                     :: file_exists
     integer :: num_threads
 
     __Iam__('SetServices')
@@ -156,11 +157,13 @@ contains
     num_threads = MAPL_get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
-!   Load resource file 
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
+    inquire(file='SU2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
        if (mapl_am_i_root()) print*,'SU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SU2G_instance_SU.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_SU.rc', __RC__)
     end if
@@ -413,6 +416,7 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -456,14 +460,15 @@ contains
        self%diurnal_bb = .false.
     end if
 
-!  Load resource file and get number of bins 
+!  Load resource file and get number of bins
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
-      if (mapl_am_i_root()) print*,'SU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading SU2G_instance_SU.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'SU2G_instance_SU.rc', __RC__)
+    inquire(file='SU2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'SU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SU2G_instance_SU.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_SU.rc', __RC__)
     end if
 
 !   Call Generic Initialize 

@@ -7,16 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+-       Made needed code changes in SS2G_GridCompMod.F90 and
+	CA2G_GridCompMod.F90 to permit data instances of of GOCART
+	aerosols to run
+-       Added missing brown carbon (BR) climatology hooks to yaml and rc
+	files for data driven instances
+-       Changed pointers to climatological deposition inputs in yaml and
+	rc files to "/dev/null" since the files pointed to didn't provide
+	them anyway, and in any case they are being used presently in the
+	model
+-       Changed pointers to climatological nitrate inputs in yaml and rc
+	files to "/dev/null" since pointing to FP files was inconsistent
+	with MERRA-2 files used for other species
+-       Ensured zero-diff in performance of yaml vs. rc files for
+	ExtData2G vs. ExtData1g for data driven aerosols
+-       To do: remove hooks to old (legacy) GOCART.data instances in CHEM
+	and setup scripts
+	
 ### Added
 
 ### Fixed
 
+Fixed rc file in legacy O3 component.
+
 ### Changed
 
+## [2.1.4] - 2023-05-04
+
+### Fixed
+
+- Fix in GOCART2G parent so that it can run with nitrates turned off. This patch of general utility was contributed by NOAA.
 
 ## [2.1.3] - 2023-02-27
 
 ### Added
+
 
 - Added `*` to CA State specs file to allow for ACG to substitute in the long name
 - Changes were made so GOCART2G and its children can be run with component level 
