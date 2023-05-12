@@ -1367,12 +1367,7 @@ contains
 !   --------------------
     call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
-<<<<<<< HEAD
 !   Pressure at layer edges 
-=======
-
-!   Pressure at layer edges
->>>>>>> sdr_v2.1.2.6
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
