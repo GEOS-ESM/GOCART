@@ -29,6 +29,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Set `SS_SCALE` default to 0.0
 - Updates in CA2G for OpenMP
 - Updates for CI
+  - Update BCs version
+  - Update components to match GEOSgcm v11.0.0
 
 ## [2.1.4] - 2023-05-12
 
