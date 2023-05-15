@@ -640,7 +640,7 @@ contains
     real, allocatable               :: tau_mol(:,:), tau_aer(:,:)
     real                            :: c1, c2, c3
     real                            :: nifactor
-    real, parameter                 :: pi = 3.141529265     
+    real, parameter                 :: pi = 3.141529265
     integer                         :: ind550, ind532
     integer                         :: i1, i2, j1, j2, km, k,kk
 
@@ -722,7 +722,7 @@ contains
 
        if (ind550 == 0) then
           !$omp critical (G2G_1)
-          print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',& 
+          print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',&
                            ' Cannot produce TOTANGSTR variable without 550nm wavelength.'
           !$omp end critical (G2G_1)
           VERIFY_(100)
@@ -1065,7 +1065,7 @@ contains
              if(associated(totextcoefrh80) .and. associated(ocextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+ocextcoefrh80(:,:,:,w)
              if(associated(totscacoef) .and. associated(ocscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ocscacoef(:,:,:,w)
              if(associated(totscacoefrh20) .and. associated(ocscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ocscacoefrh20(:,:,:,w)
-             if(associated(totscacoefrh20) .and. associated(ocscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ocscacoefrh20(:,:,:,w)
+             if(associated(totscacoefrh80) .and. associated(ocscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+ocscacoefrh80(:,:,:,w)
              if(associated(totbckcoef) .and. associated(ocbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ocbckcoef(:,:,:,w)
           end do
 
@@ -1162,11 +1162,11 @@ contains
           VERIFY_(100)
        end if
 
-        ! Pressure at layer edges (ple shape (im,jm, km+1) on the edge 
+        ! Pressure at layer edges (ple shape (im,jm, km+1) on the edge
 
        i1 = lbound(ple, 1); i2 = ubound(ple, 1)
        j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-                            km = ubound(ple, 3) ! km =72 index starts at 0 
+                            km = ubound(ple, 3) ! km =72 index starts at 0
        ! Pressure for each layer
        allocate(P(i1:i2,j1:j2,km), __STAT__)
        do k = 1, km
@@ -1180,7 +1180,7 @@ contains
        ! tau mol for each layer
        allocate(tau_mol_layer(i1:i2,j1:j2,km), delz(i1:i2,j1:j2,km),__STAT__)
        delz  = delp / (MAPL_GRAV * airdens)
-       tau_mol_layer = backscat_mol * 8.* pi /3. * delz  
+       tau_mol_layer = backscat_mol * 8.* pi /3. * delz
 
        ! tau aer for each layer
        allocate(tau_aer_layer(i1:i2,j1:j2,km), __STAT__)
@@ -1188,25 +1188,25 @@ contains
 
        allocate(tau_aer(i1:i2,j1:j2), __STAT__)
        allocate(tau_mol(i1:i2,j1:j2), __STAT__)
-    
-       ! TOTAL ABCK TOA  
-       ! top layer 
+
+       ! TOTAL ABCK TOA
+       ! top layer
        totabcktoa(:,:,1) = (totbckcoef(:,:,1,ind532) + backscat_mol(:,:,1)) * exp(-tau_aer_layer(:,:,1)) * exp(-tau_mol_layer(:,:,1))
        ! layer 2 to the layer at the surface(km)
        do k = 2, km
            tau_aer = 0.
            tau_mol = 0. ! for each layer
-           do kk = 1, k 
-             tau_aer = tau_aer + tau_aer_layer(:,:,kk) 
-             tau_mol = tau_mol + tau_mol_layer(:,:,kk) 
+           do kk = 1, k
+             tau_aer = tau_aer + tau_aer_layer(:,:,kk)
+             tau_mol = tau_mol + tau_mol_layer(:,:,kk)
            enddo
            tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
            tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
            totabcktoa(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
        enddo
-    
-       ! TOTAL ABCK SFC  
-       ! bottom layer 
+
+       ! TOTAL ABCK SFC
+       ! bottom layer
        totabcksfc(:,:,km) = (totbckcoef(:,:,km,ind532) + backscat_mol(:,:,km)) * exp(-tau_aer_layer(:,:,km)) * exp(-tau_mol_layer(:,:,km))
        ! layer 2nd from the surface to the top of the atmoshere (km)
        do k = km-1, 1, -1
