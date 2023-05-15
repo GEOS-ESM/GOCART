@@ -15,9 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ensured zero-diff in performance of yaml vs. rc files for ExtData2G vs. ExtData1g for data driven aerosols
 - To do: remove hooks to old (legacy) GOCART.data instances in CHEM and setup scripts
 - Fixed rc file in legacy O3 component.
-- Fixed issue #223 where Global dimension was being used for allocating a local array	
+- Fixed issue #223 where Global dimension was being used for allocating a local array
 - This fixes a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
-- 
+- Fix issue with scattering coefficient calculation with oc
+
 ### Added
 
 ### Changed
@@ -34,8 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 - Added `*` to CA State specs file to allow for ACG to substitute in the long name
-- Changes were made so GOCART2G and its children can be run with component level 
-OpenMP threading. The key change is to create the data structure ThreadWorkspace 
+- Changes were made so GOCART2G and its children can be run with component level
+OpenMP threading. The key change is to create the data structure ThreadWorkspace
 to hold variables that should be private to each thread to avoid race conditions.
 Additionally spatially distributed arrays that are not in any of the ESMF states
 were added to the ESMF internal state so they could be properly handled when
