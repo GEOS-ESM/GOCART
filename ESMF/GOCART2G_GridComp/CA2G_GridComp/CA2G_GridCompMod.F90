@@ -3,7 +3,7 @@
 !=============================================================================
 !BOP
 
-! !MODULE: CA2G_GridCompMod - GOCART Carbonaceous Aerosol gridded component 
+! !MODULE: CA2G_GridCompMod - GOCART Carbonaceous Aerosol gridded component
 
 ! !INTERFACE:
 module CA2G_GridCompMod
@@ -11,7 +11,7 @@ module CA2G_GridCompMod
 !  !USES:
    use ESMF
    use MAPL
-   use GOCART2G_MieMod 
+   use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -61,7 +61,14 @@ module CA2G_GridCompMod
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
        type(ThreadWorkspace), allocatable :: workspaces(:)
-   end type CA2G_GridComp 
+       integer                         :: nPts = -1
+       integer, allocatable, dimension(:)  :: pstart, pend
+       real, allocatable, dimension(:)     :: pLat, &
+                                              pLon, &
+                                              pBase, &
+                                              pTop, &
+                                              pEmis
+   end type CA2G_GridComp
 
    type wrap_
       type (CA2G_GridComp), pointer     :: PTR !=> null()
@@ -72,7 +79,7 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: SetServices 
+! !IROUTINE: SetServices
 
 ! !INTERFACE:
   subroutine SetServices (GC, RC)
@@ -83,11 +90,11 @@ contains
 
 !   !DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !     the Initialize and Finalize services to generic versions. It also
-!     allocates our instance of a generic state and puts it in the 
+!     allocates our instance of a generic state and puts it in the
 !     gridded component (GC). Here we only set the two-stage run method
 !     and declare the data services.
 
-!   !REVISION HISTORY: 
+!   !REVISION HISTORY:
 !   june2019   E.Sherman, A.Da Silva, A.Darmenov, T.Clune  First attempt at refactoring
 
 !EOP
@@ -218,7 +225,7 @@ contains
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
           dims       = MAPL_DimsHorzVert,                     &
-          vlocation  = MAPL_VLocationCenter, __RC__) 
+          vlocation  = MAPL_VLocationCenter, __RC__)
 
        call MAPL_AddInternalSpec(GC,                          &
           short_name = trim(comp_name)//'philic',             &
@@ -226,7 +233,7 @@ contains
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
           dims       = MAPL_DimsHorzVert,                     &
-          vlocation  = MAPL_VLocationCenter, __RC__) 
+          vlocation  = MAPL_VLocationCenter, __RC__)
 
        call MAPL_AddImportSpec(GC,                            &
           short_name = 'clim'//trim(GCsuffix)//'phobic',      &
@@ -234,7 +241,7 @@ contains
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
           dims       = MAPL_DimsHorzVert,                     &
-          vlocation  = MAPL_VLocationCenter, __RC__) 
+          vlocation  = MAPL_VLocationCenter, __RC__)
 
        call MAPL_AddImportSpec(GC,                            &
           short_name = 'clim'//trim(GCsuffix)//'philic',      &
@@ -255,7 +262,7 @@ contains
              vlocation  = MAPL_VLocationCenter,                              &
              restart    = MAPL_RestartSkip, __RC__)
 
-!        !wet deposition    
+!        !wet deposition
           call MAPL_AddImportSpec(GC,                                       &
              short_name = 'clim'//trim(GCsuffix)//'WT'//trim(field_name),                     &
              long_name  = 'Organic Carbon Mixing Ratio (bin '//trim(field_name)//')', &
@@ -331,22 +338,22 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: Initialize 
+! !IROUTINE: Initialize
 
 ! !INTERFACE:
   subroutine Initialize (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes CA's Grid Component. It primaryily fills 
-!               GOCART's AERO states with its carbonaceous aerosol fields. 
+! !DESCRIPTION: This initializes CA's Grid Component. It primaryily fills
+!               GOCART's AERO states with its carbonaceous aerosol fields.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! june2019   E.Sherman  First attempt at refactoring
 
 !EOP
@@ -383,7 +390,7 @@ contains
     __Iam__('Initialize')
 
 !****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -443,7 +450,7 @@ contains
        call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name(1:5))//'.rc', __RC__)
     end if
 
-!   Call Generic Initialize 
+!   Call Generic Initialize
 !   ------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
 
@@ -457,7 +464,7 @@ contains
 
 !   If this is a data component, the data is provided in the import
 !   state via ExtData instead of the actual GOCART children
-!   ---------------------------------------------------------------- 
+!   ----------------------------------------------------------------
     if ( data_driven ) then
         providerState = import
         prefix = 'clim'
@@ -590,13 +597,13 @@ contains
 !============================================================================
 
 !BOP
-! !IROUTINE: Run 
+! !IROUTINE: Run
 
 ! !INTERFACE:
   subroutine Run (GC, import, export, clock, rc)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -617,7 +624,7 @@ contains
     __Iam__('Run')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -650,13 +657,13 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run1 
+! !IROUTINE: Run1
 
 ! !INTERFACE:
   subroutine Run1 (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -699,7 +706,7 @@ contains
    __Iam__('Run1')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -714,7 +721,7 @@ contains
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, & 
+    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, &
                         LONS = LONS, &
                         LATS = LATS, __RC__ )
 
@@ -725,7 +732,7 @@ contains
     else if (comp_name(1:5) == 'CA.bc') then
        GCsuffix = 'BC'
     else if (comp_name(1:5) == 'CA.br') then
-       GCsuffix = 'BR' 
+       GCsuffix = 'BR'
     end if
 
     call MAPL_GetPointer (internal, intPtr_phobic, trim(comp_name)//'phobic', __RC__)
@@ -786,7 +793,7 @@ contains
        aviation_cds_src = BC_AVIATION_CDS
        aviation_crs_src = BC_AVIATION_CRS
        allocate(biogvoc_src, mold=BC_BIOMASS, __STAT__)
-! Black carbon has no biogvoc_src, so we set it to zero. 
+! Black carbon has no biogvoc_src, so we set it to zero.
 ! biogvoc_src is still needed for the call to CAEmissions, however it
 ! effectivly does nothing since we set all its values to zero.
        biogvoc_src = 0.0
@@ -889,14 +896,14 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run2 
+! !IROUTINE: Run2
 
 ! !INTERFACE:
 
   subroutine Run2 (GC, import, export, clock, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -933,7 +940,7 @@ contains
     __Iam__('Run2')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -980,7 +987,7 @@ contains
     end if
 
     if (trim(comp_name) == 'CA.br') then
-       pSOA_VOC = pSOA_BIOB_VOC 
+       pSOA_VOC = pSOA_BIOB_VOC
        where (1.01 * pSOA_VOC > MAPL_UNDEF) pSOA_VOC = 0.0
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
@@ -1089,13 +1096,13 @@ contains
 
     ! !ARGUMENTS:
 
-    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT   ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT   ! Export state
     type (ESMF_State),    intent(inout) :: INTERNAL ! Interal state
     integer, optional,    intent(  out) :: RC       ! Error code:
 
-! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData. 
+! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
 !EOP
 !============================================================================
@@ -1112,7 +1119,7 @@ contains
     __Iam__('Run_data')
 
 !*****************************************************************************
-! Begin... 
+! Begin...
 
 ! Get my name and set-up traceback handle
 ! ---------------------------------------
@@ -1182,7 +1189,7 @@ contains
 
     __Iam__('CA2G::aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1199,7 +1206,7 @@ contains
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1302,7 +1309,7 @@ contains
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction 
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
 
     end do
 
@@ -1344,7 +1351,7 @@ contains
 
     __Iam__('CA2G::monochromatic_aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
