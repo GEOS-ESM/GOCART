@@ -280,9 +280,10 @@ contains
     integer, parameter                     :: n_gocart_modes = 14
     integer                                :: dims(3)
 
-    character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
+    character(len=ESMF_MAXSTR), dimension(:), allocatable :: aero_aci_modes
     real                                   :: f_aci_seasalt, maxclean, ccntuning
     character(LEN=ESMF_MAXSTR)             :: CLDMICRO
+    logical 							   :: use_mamnet	
 
     __Iam__('Initialize')
 
@@ -397,6 +398,26 @@ contains
 
 !   Begin adding necessary aerosol cloud interaction information
 !   ------------------------------------------------------------
+    
+    
+    call ESMF_ConfigGetAttribute(CF, use_mamnet, default=.FALSE., label='USE_MAMNET:', __RC__)
+    call ESMF_AttributeSet(aero, name='use_mamnet', value=USE_MAMNET, __RC__)
+    
+
+    
+    if (USE_MAMNET) then 
+        allocate(aero_aci_modes(5))
+   	    aero_aci_modes =  (/'SU    ', 'SS    ', 'OC    ', 'BC    ', 'DU    '/)
+        n_modes = size(aero_aci_modes)
+        
+        call ESMF_AttributeSet(aero, name='number_of_aerosol_modes', value=n_modes, __RC__)
+        call ESMF_AttributeSet(aero, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, __RC__)
+        call add_aero (aero, label='gocart_mass_map', label2='GMASS', grid=grid, typekind=MAPL_R4, __RC__)
+               
+    
+  	else
+        allocate(aero_aci_modes(n_gocart_modes)) 
+
     aero_aci_modes =  (/'du001    ', 'du002    ', 'du003    ', &
                         'du004    ', 'du005    ',              &
                         'ss001    ', 'ss002    ', 'ss003    ', &
@@ -433,6 +454,9 @@ contains
 !   Attach the aerosol optics method
     call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
 
+    end if
+    
+    deallocate(aero_aci_modes) 
     RETURN_(ESMF_SUCCESS)
 
   contains
@@ -1496,9 +1520,12 @@ contains
     real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol
     real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
 
+    real, dimension(:,:,:), pointer :: mass_map               ! number concentration of aerosol particles
+
     real                            :: max_clean          ! max mixing ratio before considered polluted
     real                            :: ccn_tuning         ! tunes conversion factors for sulfate
     character(LEN=ESMF_MAXSTR)      :: cld_micro
+    logical 						:: USE_MAMNET
 
     character(len=ESMF_MAXSTR)      :: fld_name
 
@@ -1557,6 +1584,89 @@ contains
        end if
     end do
 
+	call ESMF_AttributeGet(state, name='use_mamnet', value=USE_MAMNET, __RC__)
+    
+    if (USE_MAMNET) then
+        !   Aerosol mode
+    !   ------------
+        call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, __RC__)        
+         
+        call ESMF_AttributeGet(state, name='gocart_mass_map', value=fld_name, __RC__)
+        call MAPL_GetPointer(state,  mass_map, trim(fld_name), __RC__) 
+        
+        
+        mode_ = trim(mode)
+        mode_ = ESMF_UtilStringLowerCase(mode_, __RC__)
+        allocate(q(i2,j2,km),  __STAT__)
+        q = 0.0
+        
+        if (index(mode_, 'SS') > 0) then ! Sea Salt
+           ! compute the total mass mixing ratio 
+           do i = 1, size(aeroList)
+              if (index(aeroList(i), 'SS') > 0) then       
+                 call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+                 call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
+                 do j = 1, ubound(ptr_4d, 4)
+                   q = q + ptr_4d(:,:,:,j)
+                 end do
+              end if
+           end do
+        
+        elseif (index(mode_, 'DU') > 0) then ! DUST
+           ! compute the total mass mixing ratio 
+           do i = 1, size(aeroList)
+              if (index(aeroList(i), 'DU') > 0) then       
+                 call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+                 call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
+                 do j = 1, ubound(ptr_4d, 4)
+                   q = q + ptr_4d(:,:,:,j)
+                 end do
+              end if
+           end do
+           
+            
+         elseif (index(mode_, 'SU') > 0) then ! DUST               
+            do i = 1, size(aeroList)
+            if (index(aeroList(i), 'SU') > 0) then
+                 call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+                 call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
+                 q = q + ptr_3d
+              end if
+            end do 
+            
+            
+       elseif (index(mode_, 'OC') > 0) then ! DUST               
+            do i = 1, size(aeroList)
+            if (index(aeroList(i), 'CA.oc') > 0) then
+                 call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+                 varNameLen = len_trim(aeroList(i))
+    !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
+                 varNameLen = varNameLen - 5
+                 call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
+                 q = q + ptr_3d
+              end if
+            end do 
+         
+        elseif (index(mode_, 'BC') > 0) then ! DUST               
+            do i = 1, size(aeroList)
+            if (index(aeroList(i), 'CA.bc') > 0) then
+                 call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+                 varNameLen = len_trim(aeroList(i))
+    !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
+                 varNameLen = varNameLen - 5
+                 call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
+                 q = q + ptr_3d
+              end if
+            end do         
+        
+		 end if !(index(mode_, 'du00') > 0) then
+        
+        mass_map =  q
+    
+    else !=====if (USE_MAMNET) then
+
+
+
 !   Aerosol mode
 !   ------------
     call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, __RC__)
@@ -1606,8 +1716,6 @@ contains
     call ESMF_AttributeGet(state, name='fraction_of_organic_aerosol', value=fld_name, __RC__)
     call MAPL_GetPointer(state, f_organic, trim(fld_name), __RC__)
 
-!   Sea salt scaling fctor
-!   ----------------------
     call ESMF_AttributeGet(state, name='max_q_clean', value=max_clean, __RC__)
     call ESMF_AttributeGet(state, name='cldmicro', value=cld_micro, __RC__)
     call ESMF_AttributeGet(state, name='ccn_tuning', value=ccn_tuning, __RC__)
@@ -1749,6 +1857,8 @@ contains
 
     deallocate(q, __STAT__)
 
+    end if !===================MAMNET
+
     RETURN_(ESMF_SUCCESS)
 
    contains
@@ -1800,7 +1910,8 @@ contains
      f_soot    = 0.0
      f_organic = 0.0
 
-     qaux=q !this corrects a bug
+     qaux=q 
+  
 
      if (index(mode_, 'ss00') > 0) then
          TPI  (1) = 230e6          ! num fraction (reduced 091015)
