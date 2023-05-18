@@ -3,7 +3,7 @@
 !=============================================================================
 !BOP
 
-! !MODULE: NI2G_GridCompMod - GOCART Nitrate gridded component 
+! !MODULE: NI2G_GridCompMod - GOCART Nitrate gridded component
 
 ! !INTERFACE:
 module NI2G_GridCompMod
@@ -11,7 +11,7 @@ module NI2G_GridCompMod
 ! !USES:
    use ESMF
    use MAPL
-   use GOCART2G_MieMod 
+   use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -55,7 +55,6 @@ integer, parameter     :: DP = kind(1.0d0)
    type, extends(GA_Environment) :: NI2G_GridComp
        !logical           :: first
        logical           :: recycle_HNO3 = .false.
-       !real, allocatable :: xhno3(:,:,:)   ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]; moved to ESMF internal state
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
@@ -70,7 +69,7 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: SetServices 
+! !IROUTINE: SetServices
 
 ! !INTERFACE:
   subroutine SetServices ( GC, RC )
@@ -81,7 +80,7 @@ contains
 
 !    DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !     the Initialize and Finalize services to generic versions. It also
-!     allocates our instance of a generic state and puts it in the 
+!     allocates our instance of a generic state and puts it in the
 !     gridded component (GC). Here we only set the two-stage run method
 !     and declare the data services.
 
@@ -101,6 +100,7 @@ contains
 
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    logical                                     :: file_exists
     integer :: num_threads
 
     __Iam__('SetServices')
@@ -121,11 +121,13 @@ contains
     num_threads = MAPL_get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
-!   Load resource file 
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
+    inquire(file='NI2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
        if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading NI2G_instance_NI.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_NI.rc', __RC__)
     end if
@@ -147,7 +149,7 @@ contains
 
     DEFVAL = 0.0
 
-!   Import and Internal states if data instance 
+!   Import and Internal states if data instance
 !   -------------------------------------------
     if (data_driven) then
 
@@ -227,7 +229,7 @@ contains
     end if ! (data_driven)
 
 
-!   Import, Export, Internal states for computational instance 
+!   Import, Export, Internal states for computational instance
 !   ----------------------------------------------------------
     if (.not. data_driven) then
 #include "NI2G_Export___.h"
@@ -263,27 +265,27 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: Initialize 
+! !IROUTINE: Initialize
 
 ! !INTERFACE:
   subroutine Initialize (GC, IMPORT, EXPORT, CLOCK, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT ! Export state
     type (ESMF_Clock),    intent(inout) :: CLOCK  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes the Nitrate gridded component. It primaryily 
-!               fills GOCART's AERO states with its nitrate fields. 
+! !DESCRIPTION: This initializes the Nitrate gridded component. It primaryily
+!               fills GOCART's AERO states with its nitrate fields.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! 30June2020   E.Sherman  First attempt at refactoring
 
 !EOP
 !============================================================================
-!   !Locals 
+!   !Locals
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Config)                   :: universal_cfg
@@ -312,7 +314,6 @@ contains
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
-    type(ESMF_Alarm)        :: alarm_HNO3
     type(ESMF_Time)         :: ringTime
     type(ESMF_TimeInterval) :: ringInterval
     integer                 :: year, month, day, hh, mm, ss
@@ -323,10 +324,11 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
     __Iam__('Initialize')
 
 !****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -334,10 +336,10 @@ contains
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
 !   Get my internal MAPL_Generic state
-!   ----------------------------------- 
+!   -----------------------------------
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
-    
-!   Get my internal private state  
+
+!   Get my internal private state
 !   -----------------------------
     call ESMF_UserCompGetInternalState(GC, 'NI2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
@@ -345,12 +347,9 @@ contains
 
 !   Get dimensions
 !   ---------------
-    !call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
-
-    !allocate(self%xhno3(dims(1),dims(2),dims(3)), __STAT__)
 
 !   Get DTs
 !   -------
@@ -358,28 +357,26 @@ contains
     call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
-!  Load resource file and get number of bins 
+!  Load resource file and get number of bins
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
-      if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading NI2G_instance_NI.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'NI2G_instance_NI.rc', __RC__)
+    inquire(file='NI2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'NI2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading NI2G_instance_NI.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'NI2G_instance_NI.rc', __RC__)
     end if
 
     !self%first = .true.
 
-!   Call Generic Initialize 
+!   Call Generic Initialize
 !   ----------------------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, __RC__)
-
-! xhno3 is moved to ESMF internal state
-!    call MAPL_GetPointer(internal, NAME='XHNO3', ptr=xhno3, __RC__)
 
 !   Is NI data driven?
 !   ------------------
@@ -400,25 +397,6 @@ contains
        allocate(self%fnumSS(itemCount), __STAT__)
        call ESMF_AttributeGet(field, name='radius', valueList=self%rmedSS, __RC__)
        call ESMF_AttributeGet(field, name='fnum', valueList=self%fnumSS, __RC__)
-    end if
-
-!   Se HNO3 recycle alarm
-    if (.not. data_driven) then
-        call ESMF_ClockGet(clock, calendar=calendar, currTime=currentTime, __RC__)
-        call ESMF_TimeGet(currentTime, YY=year, MM=month, DD=day, H=hh, M=mm, S=ss, __RC__)
-        call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, __RC__)
-        call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, __RC__)
-
-        do while (ringTime < currentTime)! DO WE NEED THIS?
-            ringTime = currentTime + ringInterval
-        end do
-
-        alarm_HNO3 = ESMF_AlarmCreate(Clock        = clock,        &
-                                      Name         = 'HNO3_RECYCLE_ALARM', &
-                                      RingInterval = ringInterval, &
-                                      RingTime     = currentTime,  &
-                                      Enabled      = .true.   ,    &
-                                      Sticky       = .false.  , __RC__)
     end if
 
 !   If this is a data component, the data is provided in the import
@@ -491,7 +469,7 @@ contains
     end if
 
     self%instance = instance
-    
+
 !   Create Radiation Mie Table
 !   --------------------------
     call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
@@ -552,13 +530,13 @@ contains
 !============================================================================
 
 !BOP
-! !IROUTINE: Run 
+! !IROUTINE: Run
 
 ! !INTERFACE:
   subroutine Run (GC, import, export, clock, rc)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -579,7 +557,7 @@ contains
     __Iam__('Run')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -612,13 +590,13 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run1 
+! !IROUTINE: Run1
 
 ! !INTERFACE:
   subroutine Run1 (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -641,7 +619,7 @@ contains
    __Iam__('Run1')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -701,14 +679,14 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run2 
+! !IROUTINE: Run2
 
 ! !INTERFACE:
 
   subroutine Run2 (GC, import, export, clock, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -733,7 +711,6 @@ contains
     real, pointer, dimension(:,:)     :: flux_ptr
     real, pointer, dimension(:,:,:)   :: fluxWT_ptr
 
-    type (ESMF_ALARM)               :: alarm
     logical                         :: alarm_is_ringing
     integer                         :: i1, j1, i2, j2, km
     real, target,allocatable, dimension(:,:,:)   :: RH20,RH80
@@ -747,7 +724,7 @@ contains
     __Iam__('Run2')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -773,23 +750,20 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-!   check hno3 alarm
-    call ESMF_ClockGetAlarm(clock, 'HNO3_RECYCLE_ALARM', alarm, __RC__)
-    alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
+    alarm_is_ringing = daily_alarm(clock,30000,_RC)
 
 !   Save local copy of HNO3 for first pass through run method regardless
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    if (workspace%first) then
-       xhno3 = MAPL_UNDEF
-       workspace%first = .false.
-    end if
+    !if (workspace%first) then
+       !xhno3 = MAPL_UNDEF
+       !workspace%first = .false.
+    !end if
 
 !   Recycle HNO3 every 3 hours
     if (alarm_is_ringing) then
        xhno3 = NITRATE_HNO3
-       !call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
@@ -805,8 +779,9 @@ contains
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
                              self%fnumDU, self%fnumSS, self%km, self%klid, &
-                             self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, & 
+                             self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, &
                              NO3an3, HNO3CONC, HNO3SMASS,  HNO3CMASS, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 
 !   NI Settling
@@ -822,6 +797,7 @@ contains
     call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(nNH4a)*1.e-6, self%rhop(nNH4a), NH4a, t, &
                               airdens, rh2, zle, delp, NH4SD, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 !  Nitrate bin 1 - settles like ammonium sulfate (rhflag = 3)
     rhflag = 3
@@ -833,6 +809,7 @@ contains
     call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(nNO3an1)*1.e-6, self%rhop(nNO3an1), NO3an1, &
                               t, airdens, rh2, zle, delp, flux_ptr, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 !  Nitrate bin 2 - settles like sea salt (rhflag = 2)
     rhflag = 2
@@ -844,6 +821,7 @@ contains
     call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(nNO3an2)*1.e-6, self%rhop(nNO3an2), NO3an2, &
                               t, airdens, rh2, zle, delp, flux_ptr, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 !  Nitrate bin 1 - settles like dust (rhflag = 0)
     rhflag = 0
@@ -855,6 +833,7 @@ contains
     call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(nNO3an3)*1.e-6, self%rhop(nNO3an3), NO3an3, &
                               t, airdens, rh2, zle, delp, flux_ptr, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
 !  NI Deposition
 !  -----------
@@ -862,6 +841,7 @@ contains
     call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
                        MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, __RC__ )
 
+!   Save local copy of HNO3 for first pass through run method regardless
 !  NH3
    dqa = 0.
    do i=1,ubound(lwi,1)
@@ -873,6 +853,7 @@ contains
          end if
       end do
    end do
+!   Save local copy of HNO3 for first pass through run method regardless
 
    NH3(:,:,self%km) = NH3(:,:,self%km) - dqa
    if( associated(NH3DP) ) NH3DP = dqa*delp(:,:,self%km)/MAPL_GRAV/self%cdt
@@ -912,6 +893,7 @@ contains
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
                             KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
    if (associated(NH3WT)) NH3WT = fluxWT_ptr(:,:,1)
 
 !  NH4a
@@ -946,6 +928,7 @@ contains
                            KIN, MAPL_GRAV, fwet, NO3an3, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
+!   Save local copy of HNO3 for first pass through run method regardless
 !  Compute desired output diagnostics
 !  ----------------------------------
 !  Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
@@ -959,6 +942,7 @@ contains
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,&
                             sfcmass=NH4SMASS, colmass=NH4CMASS, mass=NH4MASS, conc=NH4CONC, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
    aerosol(:,:,:,1) = NH3
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
@@ -968,6 +952,7 @@ contains
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,&
                             sfcmass=NH3SMASS, colmass=NH3CMASS, mass=NH3MASS, conc=NH3CONC, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
    aerosol(:,:,:,1) = NO3an1
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
@@ -979,6 +964,7 @@ contains
                             sfcmass=NISMASS25, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, &
                             exttau25=NIEXTT25, scatau25=NISCAT25, exttaufm=NIEXTTFM, scataufm=NISCATFM, &
                             NO3nFlag=.true., __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
 
    aerosol(:,:,:,1) = NO3an1
    aerosol(:,:,:,2) = NO3an2
@@ -1008,8 +994,9 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=aerosol, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = NIEXTCOEFRH20, scacoef=NISCACOEFRH20, __RC__)        
-                    
+                            extcoef = NIEXTCOEFRH20, scacoef=NISCACOEFRH20, __RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
+
    RH80(:,:,:) = 0.80
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
                             nbins=3,  &
@@ -1017,11 +1004,14 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=aerosol, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = NIEXTCOEFRH80, scacoef=NISCACOEFRH80,__RC__)        
-   
-   deallocate(RH20,RH80) 
+
+                            extcoef = NIEXTCOEFRH80, scacoef=NISCACOEFRH80,__RC__)
+!   Save local copy of HNO3 for first pass through run method regardless
+
+   deallocate(RH20,RH80)
+
    RETURN_(ESMF_SUCCESS)
-  
+
   end subroutine Run2
 
 
@@ -1035,13 +1025,13 @@ contains
 
     ! !ARGUMENTS:
 
-    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT   ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT   ! Export state
     type (ESMF_State),    intent(inout) :: INTERNAL ! Interal state
     integer, optional,    intent(  out) :: RC       ! Error code:
 
-! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData. 
+! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
 !EOP
 !============================================================================
@@ -1055,7 +1045,7 @@ contains
     __Iam__('Run_data')
 
 !*****************************************************************************
-! Begin... 
+! Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -1119,7 +1109,7 @@ contains
 
     __Iam__('NI2G::aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1136,7 +1126,7 @@ contains
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1240,7 +1230,7 @@ contains
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction 
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
 
     end do
 
@@ -1283,7 +1273,7 @@ contains
 
     __Iam__('NI2G:: monochromatic_aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1300,7 +1290,7 @@ contains
     call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1361,5 +1351,38 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
+  function daily_alarm(clock,freq,rc) result(is_ringing)
+     logical :: is_ringing
+     type(ESMF_Clock), intent(in) :: clock
+     integer, intent(in) :: freq
+     integer, optional, intent(out) :: rc
+
+     type(ESMF_Time) :: current_time
+     integer :: status,year,month,day,hour,minute,second,initial_time,int_seconds
+     integer :: nhh,nmm,nss,freq_sec
+
+     type(ESMF_TimeInterval) :: new_diff,esmf_freq
+     type(ESMF_Time) :: reff_time,new_esmf_time
+
+     call ESMF_ClockGet(clock,currTIme=current_time,_RC)
+     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
+
+     int_seconds = 0
+     call MAPL_UnpackTIme(freq,nhh,nmm,nss) 
+     is_ringing = .false.
+     call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
+     new_esmf_time = reff_time
+     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
+     do while (int_seconds < 86400)      
+        if ( new_esmf_time == current_time) then
+           is_ringing = .true.
+           exit
+        end if
+        new_esmf_time = new_esmf_time + esmf_freq
+        new_diff = new_esmf_time - reff_time
+        call ESMF_TimeIntervalGet(new_diff,s=int_seconds,_RC)
+     enddo
+     _RETURN(_SUCCESS)
+  end function
 
 end module NI2G_GridCompMod

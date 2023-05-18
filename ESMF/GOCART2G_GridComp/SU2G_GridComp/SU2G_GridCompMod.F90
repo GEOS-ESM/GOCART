@@ -3,7 +3,7 @@
 !=============================================================================
 !BOP
 
-! !MODULE: SU2G_GridCompMod - GOCART refactoring of the SU gridded component 
+! !MODULE: SU2G_GridCompMod - GOCART refactoring of the SU gridded component
 
 ! !INTERFACE:
 module SU2G_GridCompMod
@@ -11,7 +11,7 @@ module SU2G_GridCompMod
 ! !USES:
    use ESMF
    use MAPL
-   use GOCART2G_MieMod 
+   use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -102,7 +102,7 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: SetServices 
+! !IROUTINE: SetServices
 
 ! !INTERFACE:
   subroutine SetServices ( GC, RC )
@@ -113,7 +113,7 @@ contains
 
 !    DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !     the Initialize and Finalize services to generic versions. It also
-!     allocates our instance of a generic state and puts it in the 
+!     allocates our instance of a generic state and puts it in the
 !     gridded component (GC). Here we only set the two-stage run method
 !     and declare the data services.
 
@@ -136,6 +136,7 @@ contains
     integer                                     :: i
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    logical                                     :: file_exists
     integer :: num_threads
 
     __Iam__('SetServices')
@@ -156,11 +157,13 @@ contains
     num_threads = MAPL_get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
-!   Load resource file 
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
+    inquire(file='SU2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
        if (mapl_am_i_root()) print*,'SU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SU2G_instance_SU.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_SU.rc', __RC__)
     end if
@@ -202,7 +205,7 @@ contains
 
     DEFVAL = 0.0
 
-!   Import and Internal states if data instance 
+!   Import and Internal states if data instance
 !   -------------------------------------------
     if (data_driven) then
 
@@ -242,7 +245,7 @@ contains
          units='kg kg-1', &
          dims=MAPL_DimsHorzVert, &
          vlocation=MAPL_VlocationCenter, &
-         restart=MAPL_RestartOptional, __RC__) 
+         restart=MAPL_RestartOptional, __RC__)
 
         do i = 1, self%nbins
             write(field_name, '(A, I0.3)') '', i
@@ -255,7 +258,7 @@ contains
               VLOCATION  = MAPL_VLocationCenter,                                  &
               RESTART    = MAPL_RestartSkip, __RC__)
 
-!           ! wet deposition    
+!           ! wet deposition
             call MAPL_AddImportSpec(GC,                                           &
                SHORT_NAME = 'climSUWT'//trim(field_name),                         &
                LONG_NAME  = 'Sulfate wet deposition (bin '//trim(field_name)//')', &
@@ -292,7 +295,7 @@ contains
           UNITS      = '1',                    &
           DIMS       = MAPL_DimsHorzVert,      &
           VLOCATION  = MAPL_VLocationCenter,   &
-          RESTART    = MAPL_RestartSkip, __RC__) 
+          RESTART    = MAPL_RestartSkip, __RC__)
 
        call MAPL_AddImportSpec(GC,           &
           SHORT_NAME = 'SU_OH', &
@@ -300,7 +303,7 @@ contains
           UNITS      = '1',                  &
           DIMS       = MAPL_DimsHorzVert,    &
           VLOCATION  = MAPL_VLocationCenter, &
-          RESTART    = MAPL_RestartSkip, __RC__) 
+          RESTART    = MAPL_RestartSkip, __RC__)
 
        call MAPL_AddImportSpec(GC,            &
           SHORT_NAME = 'SU_NO3', &
@@ -311,7 +314,7 @@ contains
           RESTART    = MAPL_RestartSkip, __RC__)
     end if
 
-!   Import, Export, Internal states for computational instance 
+!   Import, Export, Internal states for computational instance
 !   ----------------------------------------------------------
     if (.not. data_driven) then
 #include "SU2G_Export___.h"
@@ -356,26 +359,26 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: Initialize 
+! !IROUTINE: Initialize
 
 ! !INTERFACE:
   subroutine Initialize (GC, IMPORT, EXPORT, CLOCK, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT ! Export state
     type (ESMF_Clock),    intent(inout) :: CLOCK  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes SU Grid Component.  
+! !DESCRIPTION: This initializes SU Grid Component.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! 08July2019   E.Sherman  First attempt at refactoring
 
 !EOP
 !============================================================================
-!   !Locals 
+!   !Locals
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Grid)                     :: grid
@@ -386,7 +389,6 @@ contains
     type (ESMF_FieldBundle)              :: Bundle_DP
     type (wrap_)                         :: wrap
     type (SU2G_GridComp), pointer        :: self
-    type (ESMF_Alarm)                    :: alarm_H2O2
 
     integer, allocatable                 :: mieTable_pointer(:)
     integer                              :: i, dims(3), km
@@ -413,10 +415,11 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
     __Iam__('Initialize')
 
 !****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -435,7 +438,7 @@ contains
 
 !   Get dimensions
 !   ---------------
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
 
@@ -456,17 +459,18 @@ contains
        self%diurnal_bb = .false.
     end if
 
-!  Load resource file and get number of bins 
+!  Load resource file and get number of bins
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
-      if (mapl_am_i_root()) print*,'SU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading SU2G_instance_SU.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'SU2G_instance_SU.rc', __RC__)
+    inquire(file='SU2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'SU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SU2G_instance_SU.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'SU2G_instance_SU.rc', __RC__)
     end if
 
-!   Call Generic Initialize 
+!   Call Generic Initialize
 !   ----------------------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
 
@@ -481,26 +485,6 @@ contains
 !   Is SU data driven?
 !   ------------------
     call determine_data_driven (COMP_NAME, data_driven, __RC__)
-
-!   Set H2O2 recycle alarm
-!   ----------------------
-    if (.not. data_driven) then
-        call ESMF_ClockGet(clock, calendar=calendar, currTime=currentTime, __RC__)
-        call ESMF_TimeGet(currentTime, YY=year, MM=month, DD=day, H=hh, M=mm, S=ss, __RC__)
-        call ESMF_TimeSet(ringTime, YY=year, MM=month, DD=day, H=0, M=0, S=0, __RC__)
-        call ESMF_TimeIntervalSet(ringInterval, H=3, calendar=calendar, __RC__)
-
-        do while (ringTime < currentTime)! DO WE NEED THIS?
-            ringTime = currentTime + ringInterval
-        end do
-
-        alarm_H2O2 = ESMF_AlarmCreate(Clock        = clock,        &
-                                      Name         = 'H2O2_RECYCLE_ALARM', &
-                                      RingInterval = ringInterval, &
-                                      RingTime     = currentTime,  &
-                                      Enabled      = .true.   ,    &
-                                      Sticky       = .false.  , __RC__)
-    end if
 
 !   If this is a data component, the data is provided in the import
 !   state via ExtData instead of the actual GOCART children
@@ -640,13 +624,13 @@ contains
 !============================================================================
 
 !BOP
-! !IROUTINE: Run 
+! !IROUTINE: Run
 
 ! !INTERFACE:
   subroutine Run (GC, import, export, clock, rc)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -667,7 +651,7 @@ contains
     __Iam__('Run')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -700,13 +684,13 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run1 
+! !IROUTINE: Run1
 
 ! !INTERFACE:
   subroutine Run1 (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -748,7 +732,7 @@ contains
    __Iam__('Run1')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
     nullify(dummyMSA)
 
@@ -895,9 +879,9 @@ contains
                                       self%aviation_layers,   &
                                       aviation_lto_src, &
                                       aviation_cds_src, &
-                                      aviation_crs_src, __RC__) 
+                                      aviation_crs_src, __RC__)
 
-    if (associated(dms)) then 
+    if (associated(dms)) then
        call DMSemission (self%km, self%cdt, MAPL_GRAV, t, u10m, v10m, lwi, delp, &
                          fMassDMS, SU_DMSO, dms, SUEM, nDMS, __RC__)
     end if
@@ -941,7 +925,7 @@ contains
         call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
                                        workspace%pStart, workspace%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
-   
+
         SO4 = SO4 + self%cdt * MAPL_GRAV / delp * emissions_point
      end if
 
@@ -951,14 +935,14 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run2 
+! !IROUTINE: Run2
 
 ! !INTERFACE:
 
   subroutine Run2 (GC, import, export, clock, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -975,7 +959,6 @@ contains
     type (wrap_)                      :: wrap
     type (SU2G_GridComp), pointer     :: self
     type (ESMF_Time)                  :: time
-    type (ESMF_Alarm)                 :: ALARM
     type(MAPL_VarSpec), pointer       :: InternalSpec(:)
 
     integer         :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
@@ -989,8 +972,9 @@ contains
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
 
     real, dimension(:,:), allocatable   :: drydepositionf
+
     real, pointer, dimension(:,:,:)     :: dummyMSA !=> null() ! this is so the model can run without MSA enabled
-    logical :: alarm_is_ringing  
+    logical :: alarm_is_ringing
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread
     integer                           :: i1, j1, i2, j2, km
@@ -1001,7 +985,7 @@ contains
     __Iam__('Run2')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -1020,9 +1004,9 @@ contains
                          LATS = LATS, __RC__ )
 
 #include "SU2G_GetPointer___.h"
-    
+
     call MAPL_GetPointer(internal, dummyMSA, 'MSA', rc=status)
-    
+
 !   Extract nymd(yyyymmdd) from clock
 !   ---------------------------------
     call ESMF_ClockGet (clock, currTime=time, __RC__)
@@ -1039,12 +1023,10 @@ contains
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    call ESMF_ClockGetAlarm(clock, 'H2O2_RECYCLE_ALARM', alarm, __RC__)
-    alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
+    alarm_is_ringing = daily_alarm(clock,30000,_RC)
 !   recycle H2O2 every 3 hours
     if (alarm_is_ringing) then
-       workspace%recycle_h2o2 = ESMF_AlarmIsRinging(alarm, __RC__)
-       !call ESMF_AlarmRingerOff(alarm, __RC__)
+       workspace%recycle_h2o2 = .true.
     end if
 
     allocate(xoh, mold=airdens, __STAT__)
@@ -1053,13 +1035,13 @@ contains
     xoh = 0.0
     xno3 = 0.0
 
-    if (workspace%firstRun) then
-       xh2o2          = MAPL_UNDEF
-       h2o2_init = MAPL_UNDEF
-       workspace%firstRun  = .false.
-    end if
+    !if (workspace%firstRun) then
+       !xh2o2          = MAPL_UNDEF
+       !h2o2_init = MAPL_UNDEF
+       !workspace%firstRun  = .false.
+    !end if
 
-    xh2o2 = h2o2_init 
+    xh2o2 = h2o2_init
 
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
@@ -1126,7 +1108,7 @@ contains
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
     RH20(:,:,:) = 0.20
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1136,7 +1118,7 @@ contains
                             scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1160,13 +1142,13 @@ contains
 
     ! !ARGUMENTS:
 
-    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT   ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT   ! Export state
     type (ESMF_State),    intent(inout) :: INTERNAL ! Interal state
     integer, optional,    intent(  out) :: RC       ! Error code:
 
-! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData. 
+! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
 !EOP
 !============================================================================
@@ -1180,7 +1162,7 @@ contains
     __Iam__('Run_data')
 
 !*****************************************************************************
-! Begin... 
+! Begin...
 
 ! Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -1238,7 +1220,7 @@ contains
 
     __Iam__('SU2G::aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1255,7 +1237,7 @@ contains
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1359,7 +1341,7 @@ contains
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction 
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
 
     end do
 
@@ -1401,7 +1383,7 @@ contains
 
     __Iam__('SU2G::monochromatic_aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1418,7 +1400,7 @@ contains
     call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1479,6 +1461,38 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
+  function daily_alarm(clock,freq,rc) result(is_ringing)
+     logical :: is_ringing
+     type(ESMF_Clock), intent(in) :: clock
+     integer, intent(in) :: freq
+     integer, optional, intent(out) :: rc
+
+     type(ESMF_Time) :: current_time
+     integer :: status,year,month,day,hour,minute,second,initial_time,int_seconds
+     integer :: nhh,nmm,nss,freq_sec
+
+     type(ESMF_TimeInterval) :: new_diff,esmf_freq
+     type(ESMF_Time) :: reff_time,new_esmf_time
+
+     call ESMF_ClockGet(clock,currTIme=current_time,_RC)
+     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
+
+     int_seconds = 0
+     call MAPL_UnpackTIme(freq,nhh,nmm,nss)
+     is_ringing = .false.
+     call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
+     new_esmf_time = reff_time
+     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
+     do while (int_seconds < 86400)
+        if ( new_esmf_time == current_time) then
+           is_ringing = .true.
+           exit
+        end if
+        new_esmf_time = new_esmf_time + esmf_freq
+        new_diff = new_esmf_time - reff_time
+        call ESMF_TimeIntervalGet(new_diff,s=int_seconds,_RC)
+     enddo
+     _RETURN(_SUCCESS)
+  end function
 
 end module SU2G_GridCompMod
-
