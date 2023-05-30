@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [v2.2.1] - 2023-05-30
+
+### Fixed
+
+- In dust and sea-salt, changed dimensions back to `globalCellCountPerDim` since these are needed to determine emission tuning parameters, not to allocate arrays.
+
+
 ## [v2.2.0] - 2023-05-18
 
 ### Fixed
