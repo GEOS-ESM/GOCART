@@ -355,15 +355,15 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-!   Get dimensions
-!   ---------------
-    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
+!   Global dimensions are needed here for choosing tuning parameters
+!   ----------------------------------------------------------------    
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
 
-!   Scaling factor to multiply calculated
-!   emissions by.  Applies to all size bins.
-!   ----------------------------------------
+!   Scaling factor to multiply calculated emissions by.  Applies to all size bins.
+!   TO DO: find a more robust way to implement resolution dependent tuning
+!   -------------------------------------------------------------------------------
     self%emission_scale = Chem_UtilResVal(dims(1), dims(2), self%emission_scale_res(:), __RC__)
 
 !   Get DTs
