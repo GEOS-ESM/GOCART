@@ -409,10 +409,13 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
+!   Global dimensions are needed here for choosing tuning parameters
+!   ----------------------------------------------------------------    
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ ) 
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
-!   ---------------------------------------------------------------
+!   TO DO: find a more robust way to implement resolution dependent tuning
+!   ----------------------------------------------------------------------
     self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
     self%Ch_DU = self%Ch_DU * 1.0e-9
 
