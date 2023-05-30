@@ -328,7 +328,7 @@ contains
     type (SS2G_GridComp), pointer        :: self
 
     integer, allocatable                 :: mieTable_pointer(:)
-    integer                              :: i, dims(3), km
+    integer                              :: i, dims(3), km, global_dims(3)
     integer                              :: instance
     type (ESMF_Field)                    :: field, fld
     character (len=ESMF_MAXSTR)          :: prefix, bin_index
@@ -369,14 +369,14 @@ contains
 
 !   Get dimensions
 !   ---------------
-    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
+    call MAPL_GridGet (grid, localCellCountPerDim=dims, globalCellCountPerDim=global_dims, __RC__ )
     km = dims(3)
     self%km = km
 
 !   Scaling factor to multiply calculated
 !   emissions by.  Applies to all size bins.
 !   ----------------------------------------
-    self%emission_scale = Chem_UtilResVal(dims(1), dims(2), self%emission_scale_res(:), __RC__)
+    self%emission_scale = Chem_UtilResVal(global_dims(1), global_dims(2), self%emission_scale_res(:), __RC__)
 
 !   Get DTs
 !   -------

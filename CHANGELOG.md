@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix dims passed to `Chem_UtilResVal` as they must be global (see #239)
+
 ### Added
 
 ### Changed

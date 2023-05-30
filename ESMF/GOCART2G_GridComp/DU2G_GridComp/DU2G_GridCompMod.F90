@@ -374,7 +374,7 @@ contains
     type (DU2G_GridComp), pointer        :: self
 
     integer, allocatable                 :: mieTable_pointer(:)
-    integer                              :: i, dims(3), km
+    integer                              :: i, dims(3), km, global_dims(3)
     integer                              :: instance
     type (ESMF_Field)                    :: field, fld
     character (len=ESMF_MAXSTR)          :: bin_index, prefix
@@ -409,11 +409,11 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
+    call MAPL_GridGet (grid, localCellCountPerDim=dims, globalCellCountPerDim=global_dims, __RC__ )
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   ---------------------------------------------------------------
-    self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
+    self%Ch_DU = Chem_UtilResVal(global_dims(1), global_dims(2), self%Ch_DU_res(:), __RC__)
     self%Ch_DU = self%Ch_DU * 1.0e-9
 
 !   Dust emission size distribution for FENGSHA
