@@ -9,11 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Extinction/Scattering profile exports at model RH at wavelengths_profile
-- Extinction/Scattering profile exports with RH=20% and RH=80% at wavelengths_profile
-- Aerosol single scattering backscatter coefficient for each instances and total at wavelengths_profile
-- Total (molecular + aerosols) attenuated backscatter coefficient from TOA and sfc at 532nm
-
 ### Fixed
 
 ### Changed
@@ -21,6 +16,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - For OPS configuration: removal of links, change of QFED paths from vNRT/ to v2.5r1-nrt/ (note after November 2021, files are v2.6r1)
 - For AMIP configuration: update of QFED from v2.5r1 to v2.6r1
 - Update of climatological paths from MERRAero to MERRA-2
+
+## [2.1.2] - 2022-10-07
+
+### Added
+
+- Extinction exports with RH=20% and RH=80%
 
 ## [2.1.1] - 2022-09-16
 
