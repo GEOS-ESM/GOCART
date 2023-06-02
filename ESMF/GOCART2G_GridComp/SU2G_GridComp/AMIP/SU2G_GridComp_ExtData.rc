@@ -5,30 +5,30 @@ PrimaryExports%%
 # -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
 
 #===== Sulfate Data Instance ==========================================
-climSO4         'kg kg-1'     Y   N               0              0.0      1.0     SO4        ExtData/chemistry/MERRAero/v0.0.0/L72/dR_MERRA-AA-r2.aer_Nv.2003_2014.2008clm.nc4
+climSO4         'kg kg-1'     Y   N               0              0.0      1.0     SO4        ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
 #climDMS         'kg kg-1'     Y   N               -              0.0      1.0     none       /dev/null
 #climMSA         'kg kg-1'     Y   N               -              0.0      1.0     none       /dev/null
 #climSO2         'kg kg-1'     Y   N               -              0.0      1.0     none       /dev/null
 
-climSUDP001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climSUWT001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUDP001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP001    /dev/null
+climSUWT001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT001    /dev/null
 climSUSD001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSD001    /dev/null
-climSUSV001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV001    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSV001    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV001    /dev/null
 
-climSUDP002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climSUWT002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUDP002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP002    /dev/null
+climSUWT002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT002    /dev/null
 climSUSD002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSD002    /dev/null
-climSUSV002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV002    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSV002    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV002    /dev/null
 
-climSUDP003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climSUWT003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUDP003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP003    /dev/null
+climSUWT003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT003    /dev/null
 climSUSD003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSD003    /dev/null
-climSUSV003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV003    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSV003    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV003    /dev/null
 
-climSUDP004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
-climSUWT004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUDP004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUDP004    /dev/null
+climSUWT004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUWT004    /dev/null
 climSUSD004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSD004    /dev/null
-climSUSV004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV004    ExtData/chemistry/MERRAero/v0.0.0/sfc/dR_MERRA-AA-r2.aer_Nx.2003_2014.2008clm.nc4
+climSUSV004    'kg m-2 s-1'   Y   N               0              0.0      1.0     SUSV004    /dev/null
 
 
 #====== Sulfate Sources =================================================
