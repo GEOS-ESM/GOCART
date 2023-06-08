@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update `components.yaml` to match that of GEOSgcm v11.1.0
+  - ESMA_env v4.17.0 (Baselibs 7.13.0)
+  - ESMA_cmake v3.29.0 (Fixes for NAS)
+  - GMAO_Shared v1.9.1 (Bug fix for MITgcm)
+  - MAPL 2.39.1 (Various minor fixes and features)
+- Update CI to use Baselibs 7.13.0
+
 ## [v2.2.1] - 2023-05-30
 
 ### Fixed
