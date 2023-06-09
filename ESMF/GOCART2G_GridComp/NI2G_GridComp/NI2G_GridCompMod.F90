@@ -789,7 +789,7 @@ contains
 !   Recycle HNO3 every 3 hours
     if (alarm_is_ringing) then
        xhno3 = NITRATE_HNO3
-       !call ESMF_AlarmRingerOff(alarm, __RC__)
+       call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.

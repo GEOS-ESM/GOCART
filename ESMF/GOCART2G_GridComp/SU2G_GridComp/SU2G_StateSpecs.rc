@@ -111,7 +111,7 @@ category: INTERNAL
  SO2       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
  SO4       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
  MSA       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid  
- H2O2_INIT |kg kg-1| xyz  | C    | MAPL_RestartSkip | F |                           | private H2O2 that is saved and used to initialize 
+ H2O2_INIT |kg kg-1| xyz  | C    | SKIP | F |                           | private H2O2 that is saved and used to initialize 
 
 
 #********************************************************

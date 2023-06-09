@@ -1044,7 +1044,7 @@ contains
 !   recycle H2O2 every 3 hours
     if (alarm_is_ringing) then
        workspace%recycle_h2o2 = ESMF_AlarmIsRinging(alarm, __RC__)
-       !call ESMF_AlarmRingerOff(alarm, __RC__)
+       call ESMF_AlarmRingerOff(alarm, __RC__)
     end if
 
     allocate(xoh, mold=airdens, __STAT__)
