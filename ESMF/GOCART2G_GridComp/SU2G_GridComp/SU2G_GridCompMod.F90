@@ -15,6 +15,10 @@ module SU2G_GridCompMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
+!!!! >>>>>>>>>>>>>>>>  OVP
+   use OVP,                       only:  OVP_init, OVP_end_of_timestep_hms, OVP_mask, OVP_apply_mask
+!!!! <<<<<<<<<<<<<<<<  OVP
+
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
@@ -22,6 +26,15 @@ module SU2G_GridCompMod
 
    implicit none
    private
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+   INTEGER, SAVE, ALLOCATABLE :: MASK_10AM(:,:)
+   INTEGER, SAVE, ALLOCATABLE :: MASK_2PM(:,:)
+   INTEGER, SAVE              :: OVP_FIRST_HMS   ! End of the first timestep in each 24-hr period
+   INTEGER, SAVE              :: OVP_RUN_DT
+   INTEGER, SAVE              :: OVP_GC_DT
+   INTEGER, SAVE              :: OVP_MASK_DT
+!!!! <<<<<<<<<<<<<<<<  OVP
 
    integer, parameter :: instanceComputational = 1
    integer, parameter :: instanceData          = 2
@@ -199,6 +212,9 @@ contains
     if (data_driven .neqv. .true.) then
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
     end if
+!!!! >>>>>>>>>>>>>>>>  OVP
+    call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Finalize, Finalize,   __RC__)
+!!!! <<<<<<<<<<<<<<<<  OVP
 
     DEFVAL = 0.0
 
@@ -319,6 +335,26 @@ contains
 #include "SU2G_Internal___.h"
     end if
 
+!!!! >>>>>>>>>>>>>>>>  OVP
+    call MAPL_AddExportSpec(GC,                                   &
+        SHORT_NAME         = 'OVP10_GOCART_SO2_VMR',              &
+        LONG_NAME          = 'Sulphur_dioxide_10am_local',        &
+        UNITS              = 'mol mol-1',                         &
+        DIMS               = MAPL_DimsHorzVert,                   &
+        VLOCATION          = MAPL_VLocationCenter,                &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)  
+
+    call MAPL_AddExportSpec(GC,                                   &
+        SHORT_NAME         = 'OVP14_GOCART_SO2_VMR',              &
+        LONG_NAME          = 'Sulphur_dioxide_2pm_local',         &
+        UNITS              = 'mol mol-1',                         &
+        DIMS               = MAPL_DimsHorzVert,                   &
+        VLOCATION          = MAPL_VLocationCenter,                &
+                                                       RC=STATUS  )
+    VERIFY_(STATUS)
+!!!! <<<<<<<<<<<<<<<<  OVP
+
 !   This state holds fields needed by radiation
 !   ---------------------------------------------
     call MAPL_AddExportSpec(GC,                                 &
@@ -413,6 +449,11 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+!   real(ESMF_KIND_R4), pointer, dimension(:,:)  :: LONS
+!!!! <<<<<<<<<<<<<<<<  OVP
+
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -632,6 +673,24 @@ contains
     call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+!   Set up Overpass Masks
+!   --------------------
+
+    CALL OVP_init ( GC, "SU_DT:", LONS, OVP_RUN_DT, OVP_GC_DT, __RC__ ) !  Get LONS, timesteps
+
+    ! In this case we update the Exports at every timestep:
+    OVP_MASK_DT = OVP_RUN_DT
+
+    OVP_FIRST_HMS = OVP_end_of_timestep_hms( CLOCK, OVP_MASK_DT )
+    IF(MAPL_AM_I_ROOT()) PRINT*,'SU FIRST_HMS =',OVP_FIRST_HMS
+
+    CALL OVP_mask ( LONS=LONS, DELTA_TIME=OVP_MASK_DT, OVERPASS_HOUR=10, MASK=MASK_10AM )
+    CALL OVP_mask ( LONS=LONS, DELTA_TIME=OVP_MASK_DT, OVERPASS_HOUR=14, MASK=MASK_2PM  )
+
+!!!! <<<<<<<<<<<<<<<<  OVP
 
     RETURN_(ESMF_SUCCESS)
 
@@ -996,6 +1055,22 @@ contains
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
 
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+   REAL, POINTER, DIMENSION(:,:)       :: DATA_FOR_OVP_2D => NULL()
+   REAL, POINTER, DIMENSION(:,:)       :: OVP10_OUTPUT_2D => NULL()
+   REAL, POINTER, DIMENSION(:,:)       :: OVP14_OUTPUT_2D => NULL()
+
+   REAL, POINTER, DIMENSION(:,:,:)     :: DATA_FOR_OVP_3D => NULL()
+   REAL, POINTER, DIMENSION(:,:,:)     :: OVP10_OUTPUT_3D => NULL()
+   REAL, POINTER, DIMENSION(:,:,:)     :: OVP14_OUTPUT_3D => NULL()
+
+   REAL, PARAMETER                     :: MW_AIR = 28.97
+   REAL, PARAMETER                     :: MW_SO2 = 64.06
+   INTEGER                             :: CURRENT_HMS  ! store time of day as hhmmss
+
+!!!! <<<<<<<<<<<<<<<<  OVP
+
 #include "SU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1145,6 +1220,23 @@ contains
                             DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH80,&
                             scacoef = SUSCACOEFRH80, __RC__)
 
+!!!! >>>>>>>>>>>>>>>>  OVP
+
+    CURRENT_HMS = OVP_end_of_timestep_hms( CLOCK, OVP_RUN_DT )
+!   IF(MAPL_AM_I_ROOT()) PRINT*,'SU CURRENT_HMS =',CURRENT_HMS
+
+! TOTEXTTAU overpass
+
+    CALL MAPL_GetPointer(EXPORT,    OVP10_OUTPUT_3D,   'OVP10_GOCART_SO2_VMR', __RC__)
+    CALL MAPL_GetPointer(EXPORT,    OVP14_OUTPUT_3D,   'OVP14_GOCART_SO2_VMR', __RC__)
+
+    CALL OVP_apply_mask( SO2, OVP10_OUTPUT_3D, MASK_10AM, OVP_FIRST_HMS, CURRENT_HMS, K_EDGES=.FALSE., &
+                         SCALE=(MW_AIR / MW_SO2), __RC__ )
+    CALL OVP_apply_mask( SO2, OVP14_OUTPUT_3D, MASK_2PM,  OVP_FIRST_HMS, CURRENT_HMS, K_EDGES=.FALSE., &
+                         SCALE=(MW_AIR / MW_SO2), __RC__ )
+
+!!!! <<<<<<<<<<<<<<<<  OVP
+
     RETURN_(ESMF_SUCCESS)
 
 
@@ -1202,6 +1294,61 @@ contains
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run_data
+
+!!!! >>>>>>>>>>>>>>>>  OVP
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+!BOP
+
+! !IROUTINE: Finalize
+
+! !DESCRIPTION: Cleans-up through MAPL\_GenericFinalize and
+!   deallocates memory from the Private Internal state. 
+!   Fashioned after Finalize in DynCore_GridCompMod.F90
+!
+! !INTERFACE:
+
+subroutine Finalize(gc, import, export, clock, rc)
+
+! !ARGUMENTS:
+
+    type (ESMF_GridComp), intent(inout) :: gc
+    type (ESMF_State),    intent(inout) :: import
+    type (ESMF_State),    intent(inout) :: export
+    type (ESMF_Clock),    intent(inout) :: clock
+    integer, optional,    intent(  out) :: rc
+
+!EOP
+
+! Local variables
+!   type (DYN_wrap) :: wrap
+!   type (DynState), pointer  :: STATE
+
+    character(len=ESMF_MAXSTR)        :: IAm
+    character(len=ESMF_MAXSTR)        :: COMP_NAME
+    integer                           :: status
+
+!   type (MAPL_MetaComp),     pointer :: MAPL 
+    type (ESMF_Config)                :: cf
+
+
+! BEGIN
+
+    Iam = "Finalize"
+    call ESMF_GridCompGet( GC, name=COMP_NAME, config=cf, RC=STATUS )
+    VERIFY_(STATUS)
+    Iam = trim(COMP_NAME) // Iam
+
+    DEALLOCATE( MASK_10AM, MASK_2PM, STAT=STATUS)
+    VERIFY_(STATUS)
+
+    call MAPL_GenericFinalize ( GC, IMPORT, EXPORT, CLOCK,  RC=STATUS)
+    VERIFY_(STATUS)
+
+  RETURN_(ESMF_SUCCESS)
+
+end subroutine FINALIZE
+!!!! <<<<<<<<<<<<<<<<  OVP
 
 
 !-----------------------------------------------------------------------------------
