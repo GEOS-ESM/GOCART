@@ -269,15 +269,16 @@ CONTAINS
 !  First determine how many instances we have
 !  ------------------------------------------   
    n = 0
-   do while ( ier .EQ. 0 )
+   ier = 0
+   do while ( ier == 0 )
       CALL I90_gtoken( name, ier )
-      n = n + 1
+      if (ier == 0) n = n + 1
    end do
-   if ( n .EQ. 0 ) then
+   if ( n == 0 ) then
       rc = 30
       return
    end if
-   
+
 !  We cannot have fewer instances than the number of
 !  CO bins in the registry (it is OK to have less, though)
 !  -------------------------------------------------------
@@ -1096,8 +1097,8 @@ CONTAINS
 #define COSC     CO_surface
 #define COCL     CO_column
 #define CODRY	 CO_dry
-#define COSD     CO_surfdry
-#define COCD     CO_coldry
+#define COSCDRY  CO_surfdry
+#define COCLDRY  CO_coldry
 #define COPD     CO_prod
 #define COLS     CO_loss
 #define COJP	 CO_phot
@@ -1411,7 +1412,7 @@ CONTAINS
 !  Dry-air surface concentration [mol mol-1]
 !  -----------------------------------------
    if (associated(CO_surfdry)) then
-      CO_surfdry(i1:i2,j1:j2) = w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,km)*(1. - qtot(i1:i2,j1:j2,km))
+      CO_surfdry(i1:i2,j1:j2) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,km)*(1. - qtot(i1:i2,j1:j2,km))
    endif
 
 !  Dry-air column average [mol mol-1]
@@ -1424,7 +1425,7 @@ CONTAINS
       psco( i1:i2,j1:j2) = 0.
       do k = 1,km
          psdry(i1:i2,j1:j2) = psdry(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*(1. - qtot(i1:i2,j1:j2,k))
-         psco( i1:i2,j1:j2) = psco( i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)
+         psco( i1:i2,j1:j2) = psco( i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)
       enddo
       CO_coldry(i1:i2,j1:j2) = psco(i1:i2,j1:j2)/psdry(i1:i2,j1:j2)
    endif
@@ -1442,7 +1443,6 @@ CONTAINS
       if (associated(CO_phot))    call pmaxmin('CO: phot',       CO_phot, qmin, qmax, iXj,  1, 1. )
       if (associated(CO_column))  call pmaxmin('CO: column',   CO_column, qmin, qmax, iXj,  1, 1. )
       if (associated(CO_surface)) call pmaxmin('CO: surface', CO_surface, qmin, qmax, iXj,  1, 1. )
-      if (associated(CO_dry))     call pmaxmin('CO: dry',         CO_dry, qmin, qmax, iXj, km, 1. )
    endif
 
 !  Housekeeping

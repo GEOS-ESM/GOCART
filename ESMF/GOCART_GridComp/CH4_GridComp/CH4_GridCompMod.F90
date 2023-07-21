@@ -228,7 +228,7 @@ CONTAINS
     status = 1
     VERIFY_(status)
    END IF
-   
+
 !  We cannot have fewer instances than the number of
 !  CH4 bins in the registry (it is OK to have less, though)
 !  --------------------------------------------------------
@@ -728,16 +728,16 @@ CONTAINS
 #define EXPORT   expChem
 #define iNAME    TRIM(gcCH4%iname)
 
-#define CH4EM	CH4_emis
-#define CH4SC	CH4_surface
-#define CH4CL	CH4_column
-#define CH4DRY	CH4_dry
-#define CH4SD	CH4_surfdry
-#define CH4CD	CH4_coldry
-#define CH4PD	CH4_prod
-#define CH4LS	CH4_loss
-#define CH4JL	CH4_phot
-#define CH4QP	CH4_qprod
+#define CH4EM    CH4_emis
+#define CH4SC    CH4_surface
+#define CH4CL    CH4_column
+#define CH4DRY   CH4_dry
+#define CH4SCDRY CH4_surfdry
+#define CH4CLDRY CH4_coldry
+#define CH4PD    CH4_prod
+#define CH4LS    CH4_loss
+#define CH4JL    CH4_phot
+#define CH4QP    CH4_qprod
 
 #include "CH4_GetPointer___.h"
 

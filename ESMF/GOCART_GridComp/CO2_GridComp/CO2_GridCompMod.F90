@@ -553,8 +553,8 @@ CONTAINS
 #define ptrCO2SC      CO2_surface
 #define ptrCO2CL      CO2_column
 #define ptrCO2DRY     CO2_dry
-#define ptrCO2SD      CO2_surfdry
-#define ptrCO2CD      CO2_coldry
+#define ptrCO2SCDRY   CO2_surfdry
+#define ptrCO2CLDRY   CO2_coldry
 
    integer :: STATUS
 

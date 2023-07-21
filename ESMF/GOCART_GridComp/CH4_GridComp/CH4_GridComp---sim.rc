@@ -1,0 +1,25 @@
+#
+# Resource file for CH4 parameters. 
+#
+
+# Apply methane tendency (loss) from CH4 + hv => 2H2O + CO (0 no, 1 yes)
+# ----------------------------------------------------------------------
+CH4_Feedback: 0
+
+# Apply water tendency (source) from photolysis of CH4 (0 no, 1 yes)
+# ------------------------------------------------------------------
+H2O_Feedback: 0
+
+# Largest solar zenith angle (degrees) allowed as daytime
+# -------------------------------------------------------
+solar_ZA_cutoff: 94.00
+
+# Run-time debug switch (0 off, 1 on)
+# -----------------------------------
+DEBUG: 0
+
+# Run-time switch on OH, Cl, O(O1D) units
+# Permissable string is "mol/mol" or "mol mol-1",
+# otherwise resorts to assuming "molecules cm-3"
+#------------------------------------------------
+units_oh: "mol/mol"

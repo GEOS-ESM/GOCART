@@ -24,97 +24,97 @@
 <CH4::ExportSpec cols="SHORT UNITS DIMS VLOC STAT REFRESH AVG SUBTILES LONG">
 # Dim: xy = 2D, xyz = 3D; V: C = cell center, E = edge
 # IT: ???; R: ???; A: ???; Sub: ???
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-# Export     | Units       | Dim | V | IT | R | A | Sub | Long name
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4EM      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission __ENSEMBLE__
-  CH4EMsim   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (All Sources; No Assimilation)
-  CH4EMind   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Industrial)
-  CH4EMagw   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Ag/Waste)
-  CH4EMbf    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Biofuel)
-  CH4EMbb    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Biomass Burning)
-  CH4EMwetl  | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Wetlands)
-  CH4EMminn  | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4PD      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production __ENSEMBLE__
-  CH4PDsim   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (All Sources; No Assimilation)
-  CH4PDind   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Industrial)
-  CH4PDagw   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Ag/Waste)
-  CH4PDbf    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Biofuel)
-  CH4PDbb    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Biomass Burning)
-  CH4PDwetl  | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Wetlands)
-  CH4PDminn  | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4LS      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss __ENSEMBLE__
-  CH4LSsim   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (All Sources; No Assimilation)
-  CH4LSind   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Industrial)
-  CH4LSagw   | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Ag/Waste)
-  CH4LSbf    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Biofuel)
-  CH4LSbb    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Biomass Burning)
-  CH4LSwetl  | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Wetlands)
-  CH4LSminn  | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4SC      | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration __ENSEMBLE__
-  CH4SCsim   | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (All Sources; No Assimilation)
-  CH4SCind   | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Industrial)
-  CH4SCagw   | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Ag/Waste)
-  CH4SCbf    | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Biofuel)
-  CH4SCbb    | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Biomass Burning)
-  CH4SCwetl  | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Wetlands)
-  CH4SCminn  | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4CL      | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden __ENSEMBLE__
-  CH4CLsim   | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (All Sources; No Assimilation)
-  CH4CLind   | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Industrial)
-  CH4CLagw   | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Ag/Waste)
-  CH4CLbf    | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Biofuel)
-  CH4CLbb    | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Biomass Burning)
-  CH4CLwetl  | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Wetlands)
-  CH4CLminn  | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4JL      | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss __ENSEMBLE__
-  CH4JLsim   | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (All Sources; No Assimilation)
-  CH4JLind   | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Industrial)
-  CH4JLagw   | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Ag/Waste)
-  CH4JLbf    | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Biofuel)
-  CH4JLbb    | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Biomass Burning)
-  CH4JLwetl  | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Wetlands)
-  CH4JLminn  | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4QP      | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis __ENSEMBLE__
-  CH4QPsim   | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (All Sources; No Assimilation)
-  CH4QPind   | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Industrial)
-  CH4QPagw   | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Ag/Waste)
-  CH4QPbf    | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Biofuel)
-  CH4QPbb    | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Biomass Burning)
-  CH4QPwetl  | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Wetlands)
-  CH4QPminn  | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4DRY     | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction __ENSEMBLE__
-  CH4DRYsim  | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (All Sources; No Assimilation)
-  CH4DRYind  | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Industrial)
-  CH4DRYagw  | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Ag/Waste)
-  CH4DRYbf   | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Biofuel)
-  CH4DRYbb   | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Biomass Burning)
-  CH4DRYwetl | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Wetlands)
-  CH4DRYminn | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4SD      | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration __ENSEMBLE__
-  CH4SDsim   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (All Sources; No Assimilation)
-  CH4SDind   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Industrial)
-  CH4SDagw   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Ag/Waste)
-  CH4SDbf    | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Biofuel)
-  CH4SDbb    | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Biomass Burning)
-  CH4SDwetl  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Wetlands)
-  CH4SDminn  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
-  CH4CD      | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden __ENSEMBLE__
-  CH4CDsim   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (All Sources; No Assimilation)
-  CH4CDind   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Industrial)
-  CH4CDagw   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Ag/Waste)
-  CH4CDbf    | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Biofuel)
-  CH4CDbb    | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Biomass Burning)
-  CH4CDwetl  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Wetlands)
-  CH4CDminn  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Minor Natural)
-#------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+# Export       | Units       | Dim | V | IT | R | A | Sub | Long name
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4EM        | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission __ENSEMBLE__
+  CH4EMsim     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (All Sources; No Assimilation)
+  CH4EMind     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Industrial)
+  CH4EMagw     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Ag/Waste)
+  CH4EMbf      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Biofuel)
+  CH4EMbb      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Biomass Burning)
+  CH4EMwetl    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Wetlands)
+  CH4EMminn    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Emission (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4PD        | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production __ENSEMBLE__
+  CH4PDsim     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (All Sources; No Assimilation)
+  CH4PDind     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Industrial)
+  CH4PDagw     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Ag/Waste)
+  CH4PDbf      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Biofuel)
+  CH4PDbb      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Biomass Burning)
+  CH4PDwetl    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Wetlands)
+  CH4PDminn    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Production (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4LS        | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss __ENSEMBLE__
+  CH4LSsim     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (All Sources; No Assimilation)
+  CH4LSind     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Industrial)
+  CH4LSagw     | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Ag/Waste)
+  CH4LSbf      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Biofuel)
+  CH4LSbb      | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Biomass Burning)
+  CH4LSwetl    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Wetlands)
+  CH4LSminn    | kg m-2 s-1  | xy  |   |    |   |   |     | CH4 Chemical Loss (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4SC        | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration __ENSEMBLE__
+  CH4SCsim     | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (All Sources; No Assimilation)
+  CH4SCind     | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Industrial)
+  CH4SCagw     | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Ag/Waste)
+  CH4SCbf      | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Biofuel)
+  CH4SCbb      | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Biomass Burning)
+  CH4SCwetl    | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Wetlands)
+  CH4SCminn    | ppbv        | xy  |   |    |   |   |     | CH4 Surface Concentration (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4CL        | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden __ENSEMBLE__
+  CH4CLsim     | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (All Sources; No Assimilation)
+  CH4CLind     | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Industrial)
+  CH4CLagw     | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Ag/Waste)
+  CH4CLbf      | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Biofuel)
+  CH4CLbb      | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Biomass Burning)
+  CH4CLwetl    | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Wetlands)
+  CH4CLminn    | kg m-2      | xy  |   |    |   |   |     | CH4 Column Burden (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4JL        | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss __ENSEMBLE__
+  CH4JLsim     | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (All Sources; No Assimilation)
+  CH4JLind     | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Industrial)
+  CH4JLagw     | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Ag/Waste)
+  CH4JLbf      | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Biofuel)
+  CH4JLbb      | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Biomass Burning)
+  CH4JLwetl    | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Wetlands)
+  CH4JLminn    | m-3 s-1     | xyz | C |    |   |   |     | CH4 Photolytic Loss (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4QP        | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis __ENSEMBLE__
+  CH4QPsim     | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (All Sources; No Assimilation)
+  CH4QPind     | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Industrial)
+  CH4QPagw     | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Ag/Waste)
+  CH4QPbf      | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Biofuel)
+  CH4QPbb      | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Biomass Burning)
+  CH4QPwetl    | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Wetlands)
+  CH4QPminn    | kg kg-1 s-1 | xyz | C |    |   |   |     | H2O tendency from CH4 photolysis (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4DRY       | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction __ENSEMBLE__
+  CH4DRYsim    | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (All Sources; No Assimilation)
+  CH4DRYind    | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Industrial)
+  CH4DRYagw    | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Ag/Waste)
+  CH4DRYbf     | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Biofuel)
+  CH4DRYbb     | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Biomass Burning)
+  CH4DRYwetl   | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Wetlands)
+  CH4DRYminn   | mol mol-1   | xyz | C |    |   |   |     | CH4 Dry-Air Mole Fraction (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4SCDRY     | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration __ENSEMBLE__
+  CH4SCDRYsim  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (All Sources; No Assimilation)
+  CH4SCDRYind  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Industrial)
+  CH4SCDRYagw  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Ag/Waste)
+  CH4SCDRYbf   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Biofuel)
+  CH4SCDRYbb   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Biomass Burning)
+  CH4SCDRYwetl | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Wetlands)
+  CH4SCDRYminn | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Surface Concentration (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
+  CH4CLDRY     | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden __ENSEMBLE__
+  CH4CLDRYsim  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (All Sources; No Assimilation)
+  CH4CLDRYind  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Industrial)
+  CH4CLDRYagw  | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Ag/Waste)
+  CH4CLDRYbf   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Biofuel)
+  CH4CLDRYbb   | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Biomass Burning)
+  CH4CLDRYwetl | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Wetlands)
+  CH4CLDRYminn | mol mol-1   | xy  |   |    |   |   |     | CH4 Dry-Air Column Burden (Minor Natural)
+#--------------+-------------+-----+---+----+---+---+-----+-------------------------------------------
 </CH4::ExportSpec>
