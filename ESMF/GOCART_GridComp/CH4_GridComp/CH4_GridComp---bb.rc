@@ -1,5 +1,5 @@
 #
-# Resource file for CH4 parameters. 
+# Resource file for CH4 parameters.
 #
 
 # Apply methane tendency (loss) from CH4 + hv => 2H2O + CO (0 no, 1 yes)
