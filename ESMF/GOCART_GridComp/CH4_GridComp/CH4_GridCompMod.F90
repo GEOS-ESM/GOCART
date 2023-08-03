@@ -73,11 +73,12 @@ type CH4_GridComp1
    integer :: BCnymd                   ! Date of last emissions/prodction read
    integer :: n_categ                  ! number of CH4 categories or sources that contri
 
-   real, pointer :: regionMask(:,:) ! regional mask
-   real, pointer :: CH4(:,:,:)      ! CH4 mixing ratio mol/mol
-   real, pointer :: OHnd(:,:,:)     ! OH number density (cm^{-3})
-   real, pointer :: Clnd(:,:,:)     ! Cl number density (cm^{-3})
-   real, pointer :: O1Dnd(:,:,:)    ! O(1D) number density (cm^{-3})
+   real, pointer              :: regionMask(:,:) ! regional mask
+   real, pointer              :: CH4(:,:,:)      ! CH4 mixing ratio mol/mol
+   real, pointer              :: OHnd(:,:,:)     ! OH number density (cm^{-3})
+   real, pointer              :: Clnd(:,:,:)     ! Cl number density (cm^{-3})
+   real, pointer              :: O1Dnd(:,:,:)    ! O(1D) number density (cm^{-3})
+   character(len=ESMF_MAXSTR) :: units_ox        ! Units for oxidants, to allow mol/mol as well as molec/cm^3
 
    integer                                   :: n_sources
    character(len=ESMF_MAXSTR), allocatable   :: source_categs(:) ! which sources
@@ -705,6 +706,12 @@ subroutine CH4_GridCompInitialize1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, 
    call ESMF_ConfigGetAttribute(cfg, value=gcCH4%photolysis, label='do_photolysis.'//trim(gcCH4%iname)//':', default=dummy_bool, __RC__)
    if (MAPL_AM_I_ROOT() .and. gcCH4%photolysis) write(*,'("    Photolytic loss turned on for ", a)') trim(gcCH4%iname)
 
+   ! What is the unit of the oxidant fields? Needed because M2 oxidants are in mol/mol while earlier oxidants are in number density
+   !  ----------------------
+   call ESMF_ConfigGetAttribute(cfg, value=gcCH4%units_ox, label='units_ox:', default='molec/cm^3', __RC__)
+
+   ! I don't know if masked emissions work in the current code
+   !  ----------------------
    call MAPL_GetPointer(impChem,ptr2D,'CH4_regionMask', __RC__)
 
    !  Grab the region string.
@@ -1085,6 +1092,8 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    real, pointer, dimension(:,:,:) ::  T        => null()
    real, pointer, dimension(:,:,:) ::  Q        => null()
    real, pointer, dimension(:,:,:) ::  qtot     => null()
+   real, pointer, dimension(:,:,:) ::  rhowet   => null()
+
 
    integer :: i1, i2, im, j1, j2, jm, km, idiag, iXj
    integer :: i, j, k, kReverse, n, nbeg, nend
@@ -1093,7 +1102,7 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    real    :: qmin, qmax
 
    real, allocatable, dimension(:,:,:) :: rkoh, rkcl, rko1d, rktot, dCH4ox, photJ, dCH4Phot
-   real, allocatable, dimension(:,:,:) :: flux_3d, mf_current, mf_to_be_added, delp_dry
+   real, allocatable, dimension(:,:,:) :: flux_3d, mf_current, mf_to_be_added, delp_dry, ndwet
 
    real, pointer, dimension(:,:)   :: ptr2d => null()
    real, pointer, dimension(:,:,:) :: ptr3d => null()
@@ -1147,6 +1156,7 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    call MAPL_GetPointer(impChem, T,        'T',       __RC__)
    call MAPL_GetPointer(impChem, Q,        'Q',       __RC__)
    call MAPL_GetPointer(impChem, qtot,     'QTOT',    __RC__)
+   call MAPL_GetPointer(impChem, rhowet,   'AIRDENS', __RC__)
 
    if (gcCH4%DebugIsOn) then
       !call pmaxmin('CH4:AREA', cellArea, qmin, qmax, iXj,  1,   1. )
@@ -1177,11 +1187,28 @@ subroutine CH4_GridCompRun1_ ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc
    call MAPL_GetPointer(impChem,ptr3d,'CH4_o1d', __RC__)
    gcCH4%O1Dnd=ptr3d
 
-   !  Convert number densities from molec cm^-3 to molec m^-3
+   !  Convert oxidant number densities to molec m^-3
    !  -------------------------------------------------------
-   gcCH4%OHnd(i1:i2,j1:j2,1:km) = gcCH4%OHnd(i1:i2,j1:j2,1:km)*1.00E+06
-   gcCH4%Clnd(i1:i2,j1:j2,1:km)  =  gcCH4%Clnd(i1:i2,j1:j2,1:km)*1.00E+06
-   gcCH4%O1Dnd(i1:i2,j1:j2,1:km) = gcCH4%O1Dnd(i1:i2,j1:j2,1:km)*1.00E+06
+   select case (trim(gcCH4%units_ox))
+      case ('molec/cm3', 'molec/cm^3') ! from molec cm^-3
+         gcCH4%OHnd(i1:i2,j1:j2,1:km)  = gcCH4%OHnd(i1:i2,j1:j2,1:km)  * 1.0D+06
+         gcCH4%Clnd(i1:i2,j1:j2,1:km)  = gcCH4%Clnd(i1:i2,j1:j2,1:km)  * 1.0D+06
+         gcCH4%O1Dnd(i1:i2,j1:j2,1:km) = gcCH4%O1Dnd(i1:i2,j1:j2,1:km) * 1.0D+06
+      case ('mol/mol') ! from mol/mol
+         allocate(ndwet(i1:i2,j1:j2,km), STAT=status)
+         VERIFY_(status)
+         !  Wet-air number density
+         ndwet(i1:i2,j1:j2,1:km) = rhowet(i1:i2,j1:j2,1:km)*MAPL_AVOGAD/MAPL_AIRMW ! rhowet is in kg/m^3, MAPL_AVOGAD is 1/kmol and MAPL_AIRMW is kg/kmol
+         gcCH4%OHnd(i1:i2,j1:j2,1:km)  = gcCH4%OHnd(i1:i2,j1:j2,1:km)  * ndwet(i1:i2,j1:j2,1:km)
+         gcCH4%Clnd(i1:i2,j1:j2,1:km)  = gcCH4%Clnd(i1:i2,j1:j2,1:km)  * ndwet(i1:i2,j1:j2,1:km)
+         gcCH4%O1Dnd(i1:i2,j1:j2,1:km) = gcCH4%O1Dnd(i1:i2,j1:j2,1:km) * ndwet(i1:i2,j1:j2,1:km)
+         deallocate(ndwet)
+      case default
+         write(*,'("    **** Cannot determine unit of oxidants, specified unit [", a, "] does not match a case")') trim(gcCH4%units_ox)
+         status = 1
+         VERIFY_(status)
+   end select
+
 
    !  Allocate temporary workspace
    !  ----------------------------
