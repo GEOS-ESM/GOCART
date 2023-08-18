@@ -90,27 +90,29 @@ category: EXPORT
  SUSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient
  SUSCACOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient - Fixed RH=20%
  SUSCACOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Scattering Coefficient - Fixed RH=80%
+ SUBCKCOEF     | m-1 sr-1   | xyz  | C    | size(self%wavelengths_profile) | SO4 Backscatter Coefficient
  SUANGSTR      | 1          | xy   | N    |                                | SO4 Angstrom parameter [470-870 nm]
  SUFLUXU       | kg m-1 s-1 | xy   | N    |                                | SO4 column u-wind mass flux
  SUFLUXV       | kg m-1 s-1 | xy   | N    |                                | SO4 column v-wind mass flux
  SO4MASS       | kg kg-1    | xyz  | C    |                                | SO4 Aerosol Mass Mixing Ratio
- SUEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT
- SUSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Extinction AOT Stratosphere
- SUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT
- SUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Scattering AOT Stratosphere
+ SUEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Aerosol Optical Depth
+ SUSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Stratospheric Aerosol Optical Thickness
+ SUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Aerosol Optical Depth Due to Scattering
+ SUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Stratospheric Aerosol Optical Thickness Due to Scattering
  SO4SAREA      | m2 m-3     | xyz  | C    |                                | SO4 Surface Area Density
  SO4SNUM       | m-3        | xyz  | C    |                                | SO4 Number Density
 
 category: INTERNAL
-#------------------------------------------------------------------------------------------------------------
-#  VARIABLE      | DIMENSION   |          Additional Metadata
-#------------------------------------------------------------------------------------------------------------
-  NAME | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
-#------------------------------------------------------------------------------------------------------------
- DMS   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
- SO2   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
- SO4   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
- MSA   | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid
+#----------------------------------------------------------------------------------------
+#  VARIABLE                | DIMENSION        |          Additional Metadata
+#----------------------------------------------------------------------------------------
+  NAME | UNITS | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO | LONG NAME
+#----------------------------------------------------------------------------------------
+ DMS       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
+ SO2       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
+ SO4       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
+ MSA       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid  
+ H2O2_INIT |kg kg-1| xyz  | C    |                      | F |                           | private H2O2 that is saved and used to initialize 
 
 
 #********************************************************
