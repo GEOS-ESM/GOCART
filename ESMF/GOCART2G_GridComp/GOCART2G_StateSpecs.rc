@@ -39,7 +39,7 @@ category: EXPORT
  TOTBCKCOEF     | m-1 sr-1   | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Single Scattering Backscatter Coefficient
  TOTABCKTOA     | m-1 sr-1   | xyz  | C    |                                | Total Attenuated Backscatter Coefficient from TOA [532nm]
  TOTABCKSFC     | m-1 sr-1   | xyz  | C    |                                | Total Attenuated Backscatter Coefficient from surface [532nm]
- PM             | kg m-3     | xy   | N    |            | Total Reconstructed Dry Particulate Matter 
+ PM             | kg m-3     | xy   | N    |            | Total Reconstructed Dry Particulate Matter
  PM_RH35        | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter at 35% RH
  PM_RH50        | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter at 50% RH
  PM25           | kg m-3     | xy   | N    |            | Total Reconstructed Dry Particulate Matter < 2.5 microns (PM2.5)

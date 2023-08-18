@@ -19,16 +19,16 @@ Collections:
     template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     valid_range: "2008-01-01T12:00:00/2008-12-15T12:00:00"
   CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4:
-    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
+    template: ExtData/chemistry/QFED/v2.5r1-nrt/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   CA2G_qfed2.emis_oc.006.%y4%m2%d2.nc4:
-    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
+    template: ExtData/chemistry/QFED/v2.5r1-nrt/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.006.%y4%m2%d2.nc4
     valid_range: "2014-12-01T12:00/2021-11-01T12:00"
   CA2G_qfed2.emis_bc.061.%y4%m2%d2.nc4:
-    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.061.%y4%m2%d2.nc4
+    template: ExtData/chemistry/QFED/v2.5r1-nrt/sfc/0.1/Y%y4/M%m2/qfed2.emis_bc.061.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01"
   CA2G_qfed2.emis_oc.061.%y4%m2%d2.nc4:
-    template: ExtData/chemistry/QFED/vNRT/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.061.%y4%m2%d2.nc4
+    template: ExtData/chemistry/QFED/v2.5r1-nrt/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.061.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01"
 
 Samplings:

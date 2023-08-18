@@ -33,7 +33,7 @@ climSUSV004    'kg m-2 s-1'   Y   N               0              0.0      1.0   
 
 #====== Sulfate Sources =================================================
 # Biomass burning -- QFED-v2.x
-SU_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass ExtData/chemistry/QFED/v2.5r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_so2.006.%y4%m2%d2.nc4
+SU_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_so2.061.%y4%m2%d2.nc4
 
 # Anthropogenic (BF & FF) emissions -- allowed to input as two layers
 SU_ANTHROL1 NA  N Y %y4-%m2-%d2t12:00:00 none none so2_nonenergy  ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4

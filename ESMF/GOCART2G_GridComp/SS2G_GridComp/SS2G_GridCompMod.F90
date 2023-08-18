@@ -49,14 +49,14 @@ real, parameter ::  cpd    = 1004.16
 !                                                 0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
        logical                :: hoppelFlag     ! Apply the Hoppel correction to emissions (Fan and Toon, 2011)
        logical                :: weibullFlag    ! Apply the Weibull distribution to wind speed for emissions (Fan and Toon, 2011)
-       real, allocatable      :: deep_lakes_mask(:,:)
+       !real, allocatable      :: deep_lakes_mask(:,:)
        integer                :: emission_scheme
        real                   :: emission_scale ! global scaling factor
        real                   :: emission_scale_res(NHRES) ! global scaling factor
    end type SS2G_GridComp
 
    type wrap_
-      type (SS2G_GridComp), pointer     :: PTR => null()
+      type (SS2G_GridComp), pointer     :: PTR !=> null()
    end type wrap_
 
 contains
@@ -168,6 +168,16 @@ contains
          ungridded_dims=[self%nbins], &
 !         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
          add2export=.true., __RC__)
+
+
+   call MAPL_AddInternalSpec(gc,&
+        & short_name='DEEP_LAKES_MASK', &
+        & units='1', &
+        & dims=MAPL_DimsHorzOnly, &
+        & vlocation=MAPL_VlocationNone, &
+        & add2export=.false., &
+        & long_name='Deep Lakes Mask', &
+        & _RC)
 
 
 !      Pressure at layer edges
@@ -331,6 +341,8 @@ contains
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
     real, pointer, dimension(:,:,:)      :: ple
+    real, pointer, dimension(:,:)        :: deep_lakes_mask
+
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
@@ -355,15 +367,15 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-!   Get dimensions
-!   ---------------
-    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
+!   Global dimensions are needed here for choosing tuning parameters
+!   ----------------------------------------------------------------    
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
 
-!   Scaling factor to multiply calculated
-!   emissions by.  Applies to all size bins.
-!   ----------------------------------------
+!   Scaling factor to multiply calculated emissions by.  Applies to all size bins.
+!   TO DO: find a more robust way to implement resolution dependent tuning
+!   -------------------------------------------------------------------------------
     self%emission_scale = Chem_UtilResVal(dims(1), dims(2), self%emission_scale_res(:), __RC__)
 
 !   Get DTs
@@ -419,7 +431,7 @@ contains
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, 'SS', field, __RC__)
-    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
+!    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
     fld = MAPL_FieldCreate (field, 'SS', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
@@ -496,30 +508,27 @@ contains
 !   call MAPL_StateAdd (aero, field, __RC__)
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
-
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
-
     call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
     call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
-
     mieTable_pointer = transfer(c_loc(self), [1])
     call ESMF_AttributeSet (aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
-
     call ESMF_AttributeSet (aero, name='internal_variable_name', value='SS', __RC__)
-
     call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
 !   Mask to prevent emissions from the Great Lakes and the Caspian Sea
 !   ------------------------------------------------------------------
-    allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
-    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
+    !allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
+    !call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
+    call MAPL_GetPointer (internal, NAME='DEEP_LAKES_MASK', ptr=deep_lakes_mask, __RC__)
+    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -630,12 +639,14 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -653,7 +664,7 @@ contains
 !   -----------------------------------
 !   Grid box efficiency to emission (fraction of sea water)
     allocate(fgridefficiency, mold=frocean, __STAT__ )
-    fgridefficiency = min(max(0.,(frocean-fraci)*self%deep_lakes_mask),1.)
+    fgridefficiency = min(max(0.,(frocean-fraci)*deep_lakes_mask),1.)
 
 !   Apply SST correction following Jaegle et al. 2011 if needed
 !   ------------------------------------------------------------
@@ -817,7 +828,7 @@ contains
                              self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
                              delp, ple, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
-                             SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
+                             SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
 
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)

@@ -18,6 +18,7 @@ module DU2G_GridCompMod
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
+   !$ use omp_lib
 
    implicit none
    private
@@ -39,6 +40,17 @@ module DU2G_GridCompMod
    integer, parameter         :: NHRES = 6
 
 !  !Dust state
+   type :: ThreadWorkspace
+       integer                :: day_save = -1
+       integer                         :: nPts = -1
+       integer, allocatable, dimension(:)  :: pstart, pend
+       real, allocatable, dimension(:)     :: pLat, &
+            pLon, &
+            pBase, &
+            pTop, &
+            pEmis
+    end type ThreadWorkspace
+
    type, extends(GA_Environment) :: DU2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
@@ -59,17 +71,11 @@ module DU2G_GridCompMod
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
-       integer                         :: nPts = -1
-       integer, allocatable, dimension(:)  :: pstart, pend
-       real, allocatable, dimension(:)     :: pLat, &
-                                              pLon, &
-                                              pBase, &
-                                              pTop, &
-                                              pEmis
+       type(ThreadWorkspace), allocatable :: workspaces(:)
    end type DU2G_GridComp
 
    type wrap_
-      type (DU2G_GridComp), pointer     :: PTR => null()
+      type (DU2G_GridComp), pointer     :: PTR !=> null()
    end type wrap_
 
 contains
@@ -112,6 +118,7 @@ contains
     real                               :: DEFVAL
     logical                            :: data_driven = .true.
     logical                            :: file_exists
+    integer :: num_threads
 
     __Iam__('SetServices')
 
@@ -127,6 +134,9 @@ contains
 !   -------------------------------------
     allocate (self, __STAT__)
     wrap%ptr => self
+
+    num_threads = MAPL_get_num_threads()
+    allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file
 !   -------------------
@@ -399,10 +409,13 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
+!   Global dimensions are needed here for choosing tuning parameters
+!   ----------------------------------------------------------------    
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ ) 
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
-!   ---------------------------------------------------------------
+!   TO DO: find a more robust way to implement resolution dependent tuning
+!   ----------------------------------------------------------------------
     self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
     self%Ch_DU = self%Ch_DU * 1.0e-9
 
@@ -680,6 +693,8 @@ contains
     real, dimension(:,:), allocatable   :: R_
     real, dimension(:,:), allocatable   :: H_w_
     real, dimension(:,:), allocatable   :: f_erod_
+    type(ThreadWorkspace), pointer :: workspace
+    integer :: thread, jstart, jend
 
 #include "DU2G_DeclarePointer___.h"
 
@@ -690,12 +705,14 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -792,46 +809,52 @@ contains
 
 !   Read point emissions file once per day
 !   --------------------------------------
+    thread = MAPL_get_current_thread()
+    workspace => self%workspaces(thread)
     if (self%doing_point_emissions) then
-       if (self%day_save /= idd) then
-          self%day_save = idd
+       if (workspace%day_save /= idd) then
+          workspace%day_save = idd
           call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                             nymd=nymd, nhms=120000 )
           inquire( file=fname, exist=fileExists)
           if (fileExists) then
-             call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                      self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                      self%pEnd, label='source', __RC__)
+             call ReadPointEmissions (nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
+                                      workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
+                                      workspace%pEnd, label='source', __RC__)
           else if (.not. fileExists) then
+             !$omp critical (DU2G_1)
              if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
-             self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
+             !$omp end critical (DU2G_1)
+             workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
           end if
        end if
     end if
 
 !   Get indices for point emissions
 !   -------------------------------
-    if (self%nPts > 0) then
-        allocate(iPoint(self%nPts), jPoint(self%nPts),  __STAT__)
-        call MAPL_GetHorzIJIndex(self%nPts, iPoint, jPoint, &
+    if (workspace%nPts > 0) then
+        allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
+        call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
                                  grid = grid,               &
-                                 lon  = self%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                 lat  = self%pLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                 lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                 lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
                                  rc   = status)
             if ( status /= 0 ) then
+                !$omp critical (DU2G_2)
                 if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
+                !$omp end critical (DU2G_2)
                 VERIFY_(status)
             end if
 
-        call updatePointwiseEmissions (self%km, self%pBase, self%pTop, self%pEmis, self%nPts, &
-                                       self%pStart, self%pEnd, zle, &
+        call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
+                                       workspace%pStart, workspace%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
     end if
 
 !   Update aerosol state
 !   --------------------
     call UpdateAerosolState (emissions, emissions_surface, emissions_point, &
-                             self%sfrac, self%nPts, self%km, self%CDT, MAPL_GRAV, &
+                             self%sfrac, workspace%nPts, self%km, self%CDT, MAPL_GRAV, &
                              self%nbins, delp, DU, __RC__)
 
     if (associated(DUEM)) then
@@ -841,7 +864,7 @@ contains
 !   Clean up
 !   --------
     deallocate(emissions, emissions_surface, emissions_point, __STAT__)
-    if (self%nPts > 0) then
+    if (workspace%nPts > 0) then
         deallocate(iPoint, jPoint, __STAT__)
     end if
 
@@ -965,7 +988,7 @@ contains
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
                             DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
-                            DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
+                            DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
 
 
    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
