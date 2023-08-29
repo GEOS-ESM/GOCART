@@ -748,6 +748,7 @@ contains
        ! Internally mixed species
        write( attributeName, '(A3,I0)') 'imbin', n             ! Number of IM fields in this bin
        call ESMF_AttributeGet( imSS, attributeName, value=nIMFields, defaultvalue=0, __RC__ )
+!       write(*,*) '<<>> imSS: ', nIMFields
        if (nIMFields .eq. 0) cycle ! Nothing to do
        ! Proceed
        allocate( IMbinemisfrac(nIMFields), IMFieldNameList(nIMFields), __STAT__ )
@@ -822,7 +823,6 @@ contains
     character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
     type (ESMF_FieldBundle)            :: imSS ! Internally mixed species bundle <<>> MSL
     integer, allocatable               :: IMBins(:) ! <<>> MSL
-    real, allocatable, dimension(:,:,:):: wet_radius
 
 #include "SS2G_DeclarePointer___.h"
 
@@ -955,7 +955,7 @@ contains
        fwet = 1.
        call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
                                KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
-                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, wet_radius, __RC__)
+                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
 
     end do
 

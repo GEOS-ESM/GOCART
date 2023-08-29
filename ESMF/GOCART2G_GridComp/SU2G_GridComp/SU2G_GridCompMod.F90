@@ -309,6 +309,14 @@ contains
 #include "SU2G_Export___.h"
 #include "SU2G_Import___.h"
 #include "SU2G_Internal___.h"
+       call MAPL_AddInternalSpec(GC,                          &
+            short_name = 'IMfld',                             &
+            long_name  = ' ',                                 &
+            units      = ' ',                                 &
+            restart    = MAPL_RestartOptional,                  &
+            dims       = MAPL_DimsHorzVert,                     &
+            vlocation  = MAPL_VLocationCenter, __RC__) 
+       
     end if
 
 !   This state holds fields needed by radiation
@@ -332,6 +340,15 @@ contains
        DIMS       = MAPL_DimsHorzOnly,                            &
        DATATYPE   = MAPL_BundleItem, __RC__)
 
+
+!   Field bundle for internally & externally mixed species
+!   ---------------------------------------------------------------
+    call MAPL_AddExportSpec(GC,                       &
+       short_name = 'imSU',                           &
+       long_name  = 'in/externally mixed SU fields',  &
+       dims       = MAPL_DimsHorzVert,                &
+       vlocation  = MAPL_VLocationCenter,             &
+       datatype   = MAPL_BundleItem, __RC__)
 
 !   Store internal state in GC
 !   --------------------------
@@ -545,6 +562,13 @@ contains
     else
        skipover = .false.
     endif
+    !<<>> Add a spare field for IM aerosol species. This is specifically created
+    !     to bring in GEOS-Chem's HMS aerosol and make it visible in the aerosol_optics()
+    !     routines
+    call ESMF_StateGet (internal, 'IMfld', field, __RC__)
+    fld = MAPL_FieldCreate (field, 'IMfld', __RC__)
+    call MAPL_StateAdd (aero, fld, __RC__)
+    !<<>>
 
     if (.not. data_driven) then
 !      Set klid
@@ -1019,6 +1043,15 @@ contains
     real, pointer, dimension(:,:,:)     :: dummyMSA => null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing  
 
+    ! For internally/externally mixed species calcs (M.Long)
+    type (ESMF_FieldBundle)            :: imSU ! Imported aerosol species bundle <<>> MSL
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr
+    integer                            :: nIMFields, nn, nIMBins
+    integer, allocatable               :: IMBins(:)
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    logical, allocatable               :: IMAmIFriendly(:)
+
 #include "SU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1052,6 +1085,14 @@ contains
     call ESMF_TimeGet (time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, __RC__)
     call MAPL_PackTime (nymd, iyr, imm , idd)
     call MAPL_PackTime (nhms, ihr, imn, isc)
+
+!   Set up IM
+!   ------------------------------
+    call ESMF_StateGet (export, 'imSU' , imSU, __RC__)
+    call ESMF_FieldBundleGet( imSU, fieldCount=nIMFields,  __RC__ )
+    allocate (IMfieldNameList(nIMFields), __STAT__)
+    allocate (IMAmIFriendly(nIMFields), __STAT__)
+    call ESMF_FieldBundleGet( imSU, fieldNameList=IMfieldNameList, __RC__ )
 
 !   Get my private internal state
 !   ------------------------------
@@ -1141,6 +1182,18 @@ contains
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
+
+    !
+    do nn=1,nIMFields
+       if (index(trim(IMFieldNameList(nn)),'SPC_HMS') .ne. 0) then
+          call MAPL_GetPointer(internal, NAME='IMfld', ptr=int_ptr, __RC__)
+          call ESMFL_BundleGetPointerToData( imSU, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
+          int_ptr = IMFieldPtr
+          IMFieldPtr => null()
+          int_ptr    => null()
+          exit
+       endif
+    end do
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
@@ -1309,6 +1362,24 @@ contains
               end do
            end do
         end do
+
+        ! Add HMS to the SO4 abundance
+        if (index(trim(aerosol_names(n)),'SO4') .ne. 0) then
+           ! IM field. Only one for now. <<>> MSL
+           call ESMF_StateGet (state, 'IMfld', field=fld, RC=status)
+           if (status .eq. ESMF_SUCCESS) then
+              call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
+
+              do k = 1, km
+                 do j = j1, j2
+                    do i = i1, i2
+                       x = ((ple(i,j,k) - ple(i,j,k-1))*0.01)*(100./MAPL_GRAV)
+                       q_4d(i,j,k,n) = q_4d(i,j,k,n) + x * q(i,j,k)
+                    end do
+                 end do
+              end do
+           endif
+        endif
     end do
 
     call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)

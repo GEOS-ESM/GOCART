@@ -2729,7 +2729,7 @@ CONTAINS
 ! !IROUTINE: WetRemovalGOCART2G
    subroutine WetRemovalGOCART2G ( km, klid, n1, n2, bin_ind, cdt, aero_type, kin, grav, fwet, &
                                    aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
-                                   precc, precl, fluxout, radius, rc )
+                                   precc, precl, fluxout, rc )
 
 ! !USES:
   implicit NONE
@@ -2753,9 +2753,7 @@ CONTAINS
    real, pointer, dimension(:,:,:), intent(in)  :: pfilsan ! 3D flux of ice nonconvective precipitation [kg/(m^2 sec)]
    real, pointer, dimension(:,:), intent(in)    :: precc   ! surface convective rain flux [kg/(m^2 sec)]
    real, pointer, dimension(:,:), intent(in)    :: precl   ! Non-convective precipitation [kg/(m^2 sec)]
-   real, pointer, dimension(:,:,:)  :: fluxout ! tracer loss flux [kg m-2 s-1]
-
-   real,          dimension(:,:,:), optional, intent(inout) :: radius
+   real, pointer, dimension(:,:,:), optional  :: fluxout ! tracer loss flux [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
    integer, optional, intent(out)             :: rc          ! Error return code:
@@ -2841,7 +2839,7 @@ CONTAINS
    allocate(fd(km,nbins),stat=ios)
    allocate(dc(nbins),stat=ios)
 
-   if( associated(fluxout) ) fluxout(i1:i2,j1:j2,bin_ind) = 0.0
+   if( present(fluxout) .and. associated(fluxout) ) fluxout(i1:i2,j1:j2,bin_ind) = 0.0
 
 !  Accumulate the 3-dimensional arrays of rhoa and pdog
    pdog = (ple(:,:,1:km)-ple(:,:,0:km-1)) / grav
@@ -3050,10 +3048,13 @@ CONTAINS
             if ((aero_type .eq. 'sea_salt' .and. bin_ind .gt. 2) .or. &
                 (aero_type .eq. 'dust'     .and. bin_ind .gt. 1)) then
                WASHFRAC = WASHFRAC_COARSE_AEROSOL( CDT, F, REAL(PP,4), TMPU(i,j,k))
-            else
+               DC(n) = aerosol(i,j,k) * WASHFRAC ! F * (1.-exp(-BT))
+            elseif (aero_type .eq. 'sea_salt' .or. aero_type .eq. 'dust') then
                WASHFRAC = WASHFRAC_FINE_AEROSOL( CDT, F, REAL(PP,4), TMPU(i,j,k))
+               DC(n) = aerosol(i,j,k) * WASHFRAC ! F * (1.-exp(-BT))
+            else ! Default behavior for KIN = .true.
+               DC(n) = aerosol(i,j,k) * F * (1.-exp(-BT))
             endif
-            DC(n) = aerosol(i,j,k) * WASHFRAC ! F * (1.-exp(-BT))
          else
             DC(n) = aerosol(i,j,k) * F * WASHFRAC
          endif
@@ -3061,7 +3062,7 @@ CONTAINS
          aerosol(i,j,k) = aerosol(i,j,k)-DC(n)
          if (aerosol(i,j,k) .lt. 1.0E-32) &
           aerosol(i,j,k) = 1.0E-32
-         if( associated(fluxout)) then
+         if( present(fluxout) .and. associated(fluxout)) then
           fluxout(i,j,bin_ind) = fluxout(i,j,bin_ind)+DC(n)*pdog(i,j,k)/cdt
 
          endif
@@ -3144,7 +3145,7 @@ CONTAINS
          aerosol(i,j,k) = aerosol(i,j,k)-DC(n)
          if (aerosol(i,j,k) .lt. 1.0E-32) &
           aerosol(i,j,k) = 1.0E-32
-         if( associated(fluxout)) then
+         if( present(fluxout) .and. associated(fluxout)) then
           fluxout(i,j,bin_ind) = fluxout(i,j,bin_ind)+DC(n)*pdog(i,j,k)/cdt
          endif
         end do
@@ -3185,7 +3186,7 @@ CONTAINS
 
 
      do n = 1, nbins
-      if( associated(fluxout)) then
+      if( present(fluxout) .and. associated(fluxout)) then
        fluxout(i,j,bin_ind) = fluxout(i,j,bin_ind)+Fd(km,n)/cdt
       endif
      end do
