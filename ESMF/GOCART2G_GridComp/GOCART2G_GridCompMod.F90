@@ -109,7 +109,7 @@ contains
     type (GOCART_State), pointer                  :: self
     type (wrap_)                                  :: wrap
 
-    integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
+    integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie, nn
     integer, allocatable, dimension(:) :: wavelengths_diagmie
 
     __Iam__('SetServices')
@@ -218,45 +218,15 @@ contains
     _VERIFY(STATUS)
 
     call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'SSEMOUT',  &
-       CHILD_ID           = self%SS%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'SSDDOUT',  &
-       CHILD_ID           = self%SS%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'SSSDOUT',  &
-       CHILD_ID           = self%SS%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'SSWDOUT',  &
-       CHILD_ID           = self%SS%instances(1)%id, &
-       RC=STATUS  )
+         SHORT_NAME         = 'imCA',  &
+         CHILD_ID           = self%CA%instances(1)%id, &
+         RC=STATUS  )
     _VERIFY(STATUS)
 
     call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'DUEMOUT',  &
-       CHILD_ID           = self%DU%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'DUDDOUT',  &
-       CHILD_ID           = self%DU%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'DUSDOUT',  &
-       CHILD_ID           = self%DU%instances(1)%id, &
-       RC=STATUS  )
-    _VERIFY(STATUS)
-    call MAPL_AddExportSpec(GC, &
-       SHORT_NAME         = 'DUWDOUT',  &
-       CHILD_ID           = self%DU%instances(1)%id, &
-       RC=STATUS  )
+         SHORT_NAME         = 'imSU',  &
+         CHILD_ID           = self%SU%instances(1)%id, &
+         RC=STATUS  )
     _VERIFY(STATUS)
 
 #include "GOCART2G_Export___.h"
@@ -566,7 +536,7 @@ contains
 
     integer                             :: i
 
-    type(ESMF_FieldBundle)              :: imSS, imDU ! Internal mixture fields
+    type(ESMF_FieldBundle)              :: imSS, imDU, imCA, imSU ! Internal mixture fields
     type (wrap_)                        :: wrap
     type (GOCART_State),       pointer  :: self
     __Iam__('Run1')
@@ -597,6 +567,8 @@ contains
     self => wrap%ptr
     call ESMF_StateGet (gex(self%SS%instances(1)%id), 'imSS', imSS, __RC__ )
     call ESMF_StateGet (gex(self%DU%instances(1)%id), 'imDU', imDU, __RC__ )
+    call ESMF_StateGet (gex(self%CA%instances(1)%id), 'imCA', imCA, __RC__ )
+    call ESMF_StateGet (gex(self%SU%instances(1)%id), 'imSU', imSU, __RC__ )
 
 !   Run the children
 !   -----------------
@@ -638,7 +610,7 @@ contains
     type (ESMF_State),         pointer  :: gex(:)
     type (ESMF_State)                   :: internal
     type (GOCART_State),       pointer  :: self
-    type (ESMF_FieldBundle)             :: imSS, imDU ! Internal mixture fields
+    type (ESMF_FieldBundle)             :: imSS, imDU, imCA, imSU ! Internal mixture fields
 
     type (wrap_)                        :: wrap
     character(len=ESMF_MAXSTR)          :: child_name
@@ -936,6 +908,7 @@ contains
              tau1 = tau1 + suexttau(:,:,ind550)*exp(c1*suangstr)
              tau2 = tau2 + suexttau(:,:,ind550)*exp(c2*suangstr)
           end if
+          call ESMF_StateGet (gex(self%SU%instances(n)%id), 'imSU', imSU, __RC__ ) ! Get internal mixture fields
        end if
     end do
 
@@ -1009,6 +982,8 @@ contains
              tau2 = tau2 + ocexttau(:,:,ind550)*exp(c2*ocangstr)
           end if
 
+       call ESMF_StateGet (gex(self%CA%instances(n)%id), 'imCA', imCA, __RC__ ) ! Get internal mixture fields
+       
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CAEXTTAUCA.br', __RC__)
