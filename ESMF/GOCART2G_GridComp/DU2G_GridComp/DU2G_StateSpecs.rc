@@ -58,6 +58,11 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
+ DU01       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DU02       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DU03       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DU04       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DU05       | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUMASS     | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUMASS25   | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUCONC     | kg m-3     | xyz  | C    |                                | Dust Mass Concentration
@@ -91,6 +96,10 @@ category: EXPORT
  DU_DPC     | 1          | xy   | N    |                                | aeolian_drag_partition_correction
  DU_SMC     | 1          | xy   | N    |                                | aeolian_soil_moisture_correction
  DU_EROD    | 1          | xy   | N    |                                | aeolian_erodibilitiy
+ DUEMOUT   | kg kg-1    | xyz | C   | self%nbins | 
+ DUDDOUT   | kg kg-1    | xy  | N   | self%nbins | 
+ DUSDOUT   | kg kg-1    | xyz | C   | self%nbins | 
+ DUWDOUT   | kg kg-1    | xyz | C   | self%nbins | 
 
 
 category: INTERNAL
@@ -99,7 +108,7 @@ category: INTERNAL
 #--------------------------------------------------------------------------------------------------------------------
  NAME  | UNITS | DIMS | VLOC | UNGRIDDED  | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
 #--------------------------------------------------------------------------------------------------------------------
- DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Dust Mixing Ratio (Bin %d)
+ DU    |kg kg-1| xyz  | C    | self%nbins | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST:GEOSCHEMCHEM | Dust Mixing Ratio (Bin %d)
 
 
 

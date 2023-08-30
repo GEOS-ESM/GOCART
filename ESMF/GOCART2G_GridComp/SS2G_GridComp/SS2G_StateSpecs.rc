@@ -41,6 +41,11 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME       | UNITS        | DIMS  | VLOC  | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
+ SS01       | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio
+ SS02       | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio
+ SS03       | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio
+ SS04       | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio
+ SS05       | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio
  SSMASS     | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio
  SSMASS25   | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio - PM 2.5
  SSCONC     | kg m-3       | xyz   | C     |                                | Sea Salt Mass Concentration
@@ -76,8 +81,9 @@ category: INTERNAL
 #--------------------------------------------------------------------------------------------------------------------------
   NAME | UNITS   | DIMS | VLOC | UNGRIDDED  | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
 #--------------------------------------------------------------------------------------------------------------------------
- SS    | kg kg-1 | xyz  | C    | self%nbins | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Sea Salt Mixing Ratio (bin %d)
-
+ SS    | kg kg-1 | xyz  | C    | self%nbins | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST:GEOSCHEMCHEM | Sea Salt Mixing Ratio (bin %d)
+ SDTMP | kg m-2 s-1 | xy  |     | self%nbins | MAPL_RestartOptional | T | | sdtmp
+ WDTMP | kg m-2 s-1 | xy  |     | self%nbins | MAPL_RestartOptional | T | | wdtmp
 
 #********************************************************
 #

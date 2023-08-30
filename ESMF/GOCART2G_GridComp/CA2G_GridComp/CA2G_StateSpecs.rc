@@ -109,8 +109,8 @@ category: INTERNAL
 #--------------------------------------------------------------------------------------------------------------
   NAME   | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
 #--------------------------------------------------------------------------------------------------------------
- *phobic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
- *philic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
+ *phobic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST:GEOSCHEMCHEM | Carbonaceous Aerosol Mixing Ratio
+ *philic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST:GEOSCHEMCHEM | Carbonaceous Aerosol Mixing Ratio
 
 #********************************************************
 #

@@ -38,7 +38,9 @@ module SU2G_GridCompMod
                          nSO2 = 2, &
                          nSO4 = 3, &
                          nMSA = 4
-real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
+   real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
+
+   logical         :: skipover, friendlyto, isPresent
 
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
@@ -307,6 +309,14 @@ contains
 #include "SU2G_Export___.h"
 #include "SU2G_Import___.h"
 #include "SU2G_Internal___.h"
+       call MAPL_AddInternalSpec(GC,                          &
+            short_name = 'IMfld',                             &
+            long_name  = ' ',                                 &
+            units      = ' ',                                 &
+            restart    = MAPL_RestartOptional,                &
+            dims       = MAPL_DimsHorzVert,                   &
+            vlocation  = MAPL_VLocationCenter, __RC__) 
+
     end if
 
 !   This state holds fields needed by radiation
@@ -330,6 +340,14 @@ contains
        DIMS       = MAPL_DimsHorzOnly,                            &
        DATATYPE   = MAPL_BundleItem, __RC__)
 
+!   Field bundle for internally & externally mixed species
+!   ---------------------------------------------------------------
+    call MAPL_AddExportSpec(GC,                       &
+       short_name = 'imSU',                           &
+       long_name  = 'in/externally mixed SU fields',  &
+       dims       = MAPL_DimsHorzVert,                &
+       vlocation  = MAPL_VLocationCenter,             &
+       datatype   = MAPL_BundleItem, __RC__)
 
 !   Store internal state in GC
 !   --------------------------
@@ -534,6 +552,26 @@ contains
     fld = MAPL_FieldCreate (field, 'SO4', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
+    ! If SO4 is friendly to GEOSCHEMCHEM then don't do SO4 chem or emis in SU2G
+    call ESMF_StateGet (internal, 'SO4', field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       skipover = .true.
+    else
+       skipover = .false.
+    endif
+    !<<>> Add a spare field for IM aerosol species. This is specifically created
+    !     to bring in GEOS-Chem's HMS aerosol and make it visible in the aerosol_optics()
+    !     routines
+    call ESMF_StateGet (internal, 'IMfld', field, __RC__)
+    fld = MAPL_FieldCreate (field, 'IMfld', __RC__)
+    call MAPL_StateAdd (aero, fld, __RC__)
+    !<<>>
+
     if (.not. data_driven) then
 !      Set klid
        call MAPL_GetPointer(import, ple, 'PLE', __RC__)
@@ -659,6 +697,12 @@ contains
 
 !*****************************************************************************
 !   Begin... 
+
+    ! If 'skipover' = .true, skip Run1(). GCC/HEMCO does SO4 emissions and chem
+    ! is skipped in Run2()
+    if (skipover) then
+       RETURN_(ESMF_SUCCESS)
+    endif
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -970,9 +1014,18 @@ contains
 
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
 
-    real, dimension(:,:), allocatable   :: drydepositionf
+    real, dimension(:,:), allocatable   :: drydepositionf, dqa
     real, pointer, dimension(:,:,:)     :: dummyMSA => null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing  
+
+    ! For internally/externally mixed species calcs (M.Long)
+    type (ESMF_FieldBundle)            :: imSU ! Imported aerosol species bundle <<>> MSL
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr
+    integer                            :: nIMFields, nn, nIMBins
+    integer, allocatable               :: IMBins(:)
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    logical, allocatable               :: IMAmIFriendly(:)
 
 #include "SU2G_DeclarePointer___.h"
 
@@ -1008,6 +1061,14 @@ contains
     call MAPL_PackTime (nymd, iyr, imm , idd)
     call MAPL_PackTime (nhms, ihr, imn, isc)
 
+!   Set up IM
+!   ------------------------------
+    call ESMF_StateGet (export, 'imSU' , imSU, __RC__)
+    call ESMF_FieldBundleGet( imSU, fieldCount=nIMFields,  __RC__ )
+    allocate (IMfieldNameList(nIMFields), __STAT__)
+    allocate (IMAmIFriendly(nIMFields), __STAT__)
+    call ESMF_FieldBundleGet( imSU, fieldNameList=IMfieldNameList, __RC__ )
+
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
@@ -1036,11 +1097,13 @@ contains
 
     xh2o2 = self%h2o2_init 
 
+    if (.not. skipover) then
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 self%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 SU_OH, SU_NO3, SU_H2O2, &
                                 xoh, xno3, xh2o2, self%recycle_h2o2, __RC__)
+    endif
 
 !   SU Settling
 !   -----------
@@ -1059,6 +1122,7 @@ contains
                            rh2, zle, delp, SUSD, __RC__)
     end do
 
+    if (.not. skipover) then
     allocate(drydepositionf, mold=lwi, __STAT__)
     call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
                             MAPL_AIRMW, MAPL_AVOGAD/1000., cpd, MAPL_GRAV, &
@@ -1073,6 +1137,19 @@ contains
                             SUPSO4, SUPSO4g, SUPSO4aq, &
                             pso2, pmsa, pso4, pso4g, pso4aq, drydepositionf, & ! 3d diagnostics
                             __RC__)
+    else ! Make sure dry dep is calculated
+       allocate(dqa, mold=lwi, __STAT__)
+       allocate(drydepositionf, mold=lwi, __STAT__)
+       dqa = 0.e0
+       drydepositionf = 0.e0
+       call DryDeposition ( self%km, t, airdens, zle, lwi, ustar, zpbl, sh, &
+            MAPL_karman, cpd, MAPL_grav, z0h, drydepositionf, __RC__)
+       dqa = max(0.0, SO4(:,:,self%km)*(1.-exp(-drydepositionf*self%cdt)))
+       SO4(:,:,self%km) = SO4(:,:,self%km) - dqa
+       if (associated(SUDP)) then
+          SUDP(:,:,nSO4) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
+       end if
+    endif
 
     KIN = .true.
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
@@ -1080,6 +1157,18 @@ contains
                           self%h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
+
+    !
+    do nn=1,nIMFields
+       if (index(trim(IMFieldNameList(nn)),'SPC_HMS') .ne. 0) then
+          call MAPL_GetPointer(internal, NAME='IMfld', ptr=int_ptr, __RC__)
+          call ESMFL_BundleGetPointerToData( imSU, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
+          int_ptr = IMFieldPtr
+          IMFieldPtr => null()
+          int_ptr    => null()
+          exit
+       endif
+    end do
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
@@ -1092,6 +1181,11 @@ contains
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
+
+    SUDP003 = SUDP(:,:,nSO4)
+    SUSD003 = SUSD(:,:,nSO4)
+    SUWT003 = SUWT(:,:,nSO4)
+    SUSV003 = SUSV(:,:,nSO4)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1239,6 +1333,25 @@ contains
               end do
            end do
         end do
+
+        ! Add HMS to the SO4 abundance
+        if (index(trim(aerosol_names(n)),'SO4') .ne. 0) then
+           ! IM field. Only one for now. <<>> MSL
+           call ESMF_StateGet (state, 'IMfld', field=fld, RC=status)
+           if (status .eq. ESMF_SUCCESS) then
+              call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
+
+              do k = 1, km
+                 do j = j1, j2
+                    do i = i1, i2
+                       x = ((ple(i,j,k) - ple(i,j,k-1))*0.01)*(100./MAPL_GRAV)
+                       q_4d(i,j,k,n) = q_4d(i,j,k,n) + x * q(i,j,k)
+                    end do
+                 end do
+              end do
+           endif
+        endif
+
     end do
 
     call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)

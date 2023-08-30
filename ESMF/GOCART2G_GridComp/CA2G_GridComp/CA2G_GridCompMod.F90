@@ -25,6 +25,9 @@ module CA2G_GridCompMod
    integer, parameter :: instanceComputational = 1
    integer, parameter :: instanceData          = 2
 
+   logical            :: skipover
+   logical            :: friendlyto, isPresent
+
 ! !PUBLIC MEMBER FUNCTIONS:
    public  SetServices
 
@@ -283,6 +286,15 @@ contains
 #include "CA2G_Export___.h"
 #include "CA2G_Import___.h"
 #include "CA2G_Internal___.h"
+
+       call MAPL_AddInternalSpec(GC,                          &
+            short_name = 'IMfld',                             &
+            long_name  = ' ',                                 &
+            units      = ' ',                                 &
+            restart    = MAPL_RestartOptional,                &
+            dims       = MAPL_DimsHorzVert,                   &
+            vlocation  = MAPL_VLocationCenter, __RC__) 
+
     end if
 
 !   This state holds fields needed by radiation
@@ -304,6 +316,15 @@ contains
        long_name  = 'aerosol_deposition_from_'//trim(COMP_NAME),  &
        units      = 'kg m-2 s-1',                                 &
        dims       = MAPL_DimsHorzOnly,                            &
+       datatype   = MAPL_BundleItem, __RC__)
+
+!   Field bundle for internally mixed species
+!   ---------------------------------------------------------------
+    call MAPL_AddExportSpec(GC,                       &
+       short_name = 'imCA',                           &
+       long_name  = 'in/externally mixed CA fields',  &
+       dims       = MAPL_DimsHorzVert,                &
+       vlocation  = MAPL_VLocationCenter,             &
        datatype   = MAPL_BundleItem, __RC__)
 
 !   Store internal state in GC
@@ -472,6 +493,51 @@ contains
     fld = MAPL_FieldCreate (field, trim(comp_name)//'philic', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
+    !<<>> Add a spare field for IM aerosol species. This is specifically created
+    !     to bring in GEOS-Chem's SOA aerosol and make it visible in the aerosol_optics()
+    !     routines
+    call ESMF_StateGet (internal, 'IMfld', field, __RC__)
+    fld = MAPL_FieldCreate (field, 'IMfld', __RC__)
+    call MAPL_StateAdd (aero, fld, __RC__)
+    !<<>>
+
+    ! If OC* is friendly to GEOSCHEMCHEM then don't do chem or emis in CA2G
+    ! -- currently, there is no connectivity for CA.br with GCC
+    ! -- done via an attribute since there are 3 GCs that use this module
+    if (index(trim(comp_name),'CA.br') .eq. 0) then ! Skip this step for CA.br
+    call ESMF_StateGet (internal, 'CAphobic'//trim(comp_name), field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       call ESMF_AttributeSet( GC, 'skipover', value=.true., __RC__ )
+    else
+       call ESMF_AttributeSet( GC, 'skipover', value=.false., __RC__ )
+    endif
+    call ESMF_StateGet (internal, 'CAphilic'//trim(comp_name), field, __RC__)
+    call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
+         isPresent=isPresent, RC=status)
+    if (isPresent) &
+       call ESMF_AttributeGet  (field, NAME="FriendlyToGEOSCHEMCHEM", &
+            VALUE=friendlyto, RC=status)
+    if (friendlyto) then 
+       call ESMF_AttributeSet( GC, 'skipover', value=.true., __RC__ )
+    else
+       call ESMF_AttributeSet( GC, 'skipover', value=.false., __RC__ )
+    endif
+    else
+       call ESMF_AttributeSet( GC, 'skipover', value=.false., __RC__ )
+    endif
+    ! Print skipover status
+    if (mapl_Am_I_Root()) then
+       call ESMF_AttributeGet( GC, 'skipover', value=skipover, __RC__ )
+       if (skipover) write(*,*) trim(comp_name)//' is Connected with GEOS-Chem. Skipping Run1() and Chem.'
+    endif
+
+
+
     if (.not. data_driven) then
 !      Set klid
        call MAPL_GetPointer(import, ple, 'PLE', __RC__)
@@ -610,6 +676,15 @@ contains
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
+
+    ! If 'skipover' = .true, skip Run1(). GCC/HEMCO does SO4 emissions and chem
+    ! is skipped in Run2()
+    call ESMF_AttributeGet( GC, 'skipover', value=skipover, __RC__ )
+
+    if (skipover) then
+!       if(mapl_am_I_root()) write(*,*) 'Skipping Run1() in '//trim(comp_name)
+       RETURN_(ESMF_SUCCESS)
+    endif
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
@@ -902,6 +977,15 @@ contains
 
     real, parameter ::  cpd    = 1004.16
 
+    ! For internally/externally mixed species calcs (M.Long)
+    type (ESMF_FieldBundle)            :: imCA ! Imported aerosol species bundle <<>> MSL
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr
+    integer                            :: nIMFields, nn, nIMBins
+    integer, allocatable               :: IMBins(:) ! <<>> MSL
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    logical, allocatable               :: IMAmIFriendly(:)
+
 #include "CA2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -942,6 +1026,15 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
+!   Set up IM
+!   ------------------------------
+    call ESMF_StateGet (export, 'imCA' , imCA, __RC__)
+    call ESMF_FieldBundleGet( imCA, fieldCount=nIMFields,  __RC__ )
+    allocate (IMfieldNameList(nIMFields), __STAT__)
+    allocate (IMAmIFriendly(nIMFields), __STAT__)
+    call ESMF_FieldBundleGet( imCA, fieldNameList=IMfieldNameList, __RC__ )
+
+    if (.not. skipover) then
 !   Add on SOA from Anthropogenic VOC oxidation
 !   -------------------------------------------
     if (trim(comp_name) == 'CA.oc') then
@@ -967,8 +1060,38 @@ contains
 !   k = 4.63e-6 s-1 (.4 day-1; e-folding time = 2.5 days)
     call phobicTophilic (intPtr_phobic, intPtr_philic, HYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
 
+    endif !skipover
+ 
 !   CA Settling
 !   -----------
+!   IM species: compute before CA is changed
+    do n = 1, nIMFields
+       ! Get field from bundle
+       call ESMF_FieldBundleGet( imCA, trim(IMFieldNameList(n)), field=IMField, __RC__ )
+       ! Get data pointer
+       call ESMFL_BundleGetPointerToData( imCA, trim(IMFieldNameList(n)), IMFieldPtr, __RC__ )
+       ! Friendly to this GridComp/Instance?
+       FriendlyTo = .false. ! Assume no
+       call ESMF_AttributeGet( IMField, 'FriendlyTo'//trim(comp_name), VALUE=IMAmIFriendly(n), RC=status)
+       if (.not. IMAmIFriendly(n)) cycle ! Get outta here!
+       ! Set up attribute qtys
+       call ESMF_AttributeGet( IMField, 'externally_mixed_nbins',     value=nIMBins, defaultValue=0, __RC__ )
+       if (nIMBins .eq. 0) cycle
+       allocate(IMBins(nIMBins))
+       call ESMF_AttributeGet( IMField, 'externally_mixed_with_bins',  valuelist=IMBins, __RC__ )
+       ! Compute settling
+       ! We don't use ratios like in SS2G because the aerosol aren't spread out over several bins
+       ! We can compute the settling directly. MSL
+       do nn = 1, nIMBins
+          call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
+                              self%radius(IMBins(nn))*1.e-6, self%rhop(IMBins(nn)), IMFieldPtr, t, airdens, &
+                              rh2, zle, delp, CASD, __RC__)
+       enddo
+       CASD = 0.e0 ! Reset to zero. Non-optional argument to Chem_Settling but we don't need its info at the moment.
+
+       if (allocated(IMBins)) deallocate(IMBins)
+    enddo
+
     do n = 1, self%nbins
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
@@ -998,6 +1121,16 @@ contains
        end if
     end do
 
+!   Dry dep of IM Fields
+    do nn=1,nIMFields
+       if (.not. IMAmIFriendly(nn)) cycle
+       call ESMFL_BundleGetPointerToData( imCA, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
+       dqa = 0.
+       dqa = max(0.0, IMFieldPtr(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
+       IMFieldPtr(:,:,self%km) = IMFieldPtr(:,:,self%km) - dqa
+       IMFieldPtr => null()
+    enddo
+
 !   Large-scale Wet Removal
 !   -------------------------------
 !   Hydrophobic mode (first tracer) is not removed
@@ -1008,6 +1141,27 @@ contains
     call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
                              KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
                              pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
+
+!   IM Fields: This is independent of bin-specific quantities (right?)
+    do nn=1,nIMFields
+       if (.not. IMAmIFriendly(nn)) cycle
+       call ESMFL_BundleGetPointerToData( imCA, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
+       KIN = .true.
+       fwet = 1.
+       ! Bin 2 is philic.
+       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
+                               KIN, MAPL_GRAV, fwet, IMFieldPtr, ple, t, airdens, &
+                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, __RC__)
+       IMFieldPtr => null()
+    enddo
+
+    if (index(trim(comp_name),'CA.oc') .ne. 0) then
+       call MAPL_GetPointer(internal, NAME='IMfld', ptr=int_ptr, __RC__)
+       call ESMFL_BundleGetPointerToData( imCA, trim(ImFieldNameList(1)), IMFieldPtr, __RC__ )
+       int_ptr = IMFieldPtr * 1.8e0 !CA.oc's OM/OC = 1.8 
+       IMFieldPtr => null()
+       int_ptr    => null()
+    endif
 
 !   Compute diagnostics
 !   -------------------
@@ -1186,6 +1340,24 @@ contains
               end do
            end do
         end do
+
+        ! Add SOA to the CA.oc abundance
+        if (index(trim(aerosol_names(n)),'CAphilicCA.oc') .ne. 0) then
+           ! IM field. Only one for now. <<>> MSL
+           call ESMF_StateGet (state, 'IMfld', field=fld, RC=status)
+           if (status .eq. ESMF_SUCCESS) then
+              call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
+
+              do k = 1, km
+                 do j = j1, j2
+                    do i = i1, i2
+                       x = ((ple(i,j,k) - ple(i,j,k-1))*0.01)*(100./MAPL_GRAV)
+                       q_4d(i,j,k,n) = q_4d(i,j,k,n) + x * q(i,j,k)
+                    end do
+                 end do
+              end do
+           endif
+        endif
     end do
 
     call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)

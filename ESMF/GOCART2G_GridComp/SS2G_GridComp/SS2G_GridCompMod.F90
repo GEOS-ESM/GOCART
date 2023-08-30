@@ -265,6 +265,14 @@ contains
        DIMS       = MAPL_DimsHorzOnly,                            &
        DATATYPE   = MAPL_BundleItem, __RC__)
 
+!   Field bundle for internally mixed species
+!   ---------------------------------------------------------------
+    call MAPL_AddExportSpec(GC,                       &
+       short_name = 'imSS',                           &
+       long_name  = 'internally mixed SS fields',     &
+       dims       = MAPL_DimsHorzVert,                &
+       vlocation  = MAPL_VLocationCenter,             &
+       datatype   = MAPL_BundleItem, __RC__)
 
 !   Store internal state in GC
 !   --------------------------
@@ -428,6 +436,7 @@ contains
     end if
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
+    call ESMF_AttributeSet(field, NAME='radius', valueList=self%rmed, itemCount=self%nbins, __RC__)
 
     if (data_driven) then
        instance = instanceData
@@ -606,6 +615,7 @@ contains
     type (ESMF_Grid)                  :: grid
     type (wrap_)                      :: wrap
     type (SS2G_GridComp), pointer     :: self
+    type (ESMF_FieldBundle)           :: imSS ! Internally mixed species bundle
 
     real, allocatable, dimension(:,:) :: fgridefficiency
     real, allocatable, dimension(:,:) :: fsstemis
@@ -615,6 +625,18 @@ contains
     real(kind=DP), allocatable, dimension(:,:) :: gweibull
 
     integer :: n 
+
+    ! For internally mixed species calcs (M.Long)
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr
+    integer                            :: nIMFields, nn, nIMBins
+    real, allocatable                  :: IMbinemisfrac(:)
+    character(len=ESMF_MAXSTR)         :: attributeName
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    integer, allocatable               :: IMBins(:)
+    
+    ! TESTING. MSL
+    integer :: ii,jj,kk
 
 #include "SS2G_DeclarePointer___.h"
 
@@ -660,6 +682,8 @@ contains
     allocate(gweibull(ubound(u10m,1), ubound(u10m,2)), __STAT__ )
     call weibullDistribution (gweibull, self%weibullFlag, u10m, v10m, __RC__)
 
+    call ESMF_StateGet  (export, 'imSS', imSS, __RC__)
+
 !   Loop over bins and do emission calculation
 !   Possibly apply the Hoppel correction based on fall speed (Fan and Toon, 2011)
 !   -----------------------------------------------
@@ -693,6 +717,37 @@ contains
        if (associated(SSEM)) then
           SSEM(:,:,n) = memissions
        end if
+
+       !-------------------------
+       ! Internally mixed species
+       write( attributeName, '(A3,I0)') 'imbin', n             ! Number of IM fields in this bin
+       call ESMF_AttributeGet( imSS, attributeName, value=nIMFields, defaultvalue=0, __RC__ )
+!       write(*,*) '<<>> imSS: ', nIMFields
+       if (nIMFields .eq. 0) cycle ! Nothing to do
+       ! Proceed
+       allocate( IMbinemisfrac(nIMFields), IMFieldNameList(nIMFields), __STAT__ )
+       ! Get IM Field names
+       write( attributeName, '(A3,I0,A11)') 'imbin', n,'_fieldnames'
+       call ESMF_AttributeGet( imSS, attributeName, valueList=IMFieldNameList, __RC__ )
+       ! Get bin emis factors
+       write( attributeName, '(A3,I0,A9)') 'imbin', n,'_emisfrac'
+       call ESMF_AttributeGet( imSS, attributeName, valueList=IMBinEmisFrac, __RC__ )
+
+       !-------------------------
+       do nn=1,nIMFields
+          if (IMbinemisfrac(nn) .eq. 0.) cycle
+          ! Get field from bundle
+          call ESMFL_BundleGetPointerToData( imSS, trim(IMFieldNameList(nn)), IMFieldPtr, __RC__ )
+          call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
+          ! Apply tendency
+          IMFieldPtr(:,:,self%km) = IMFieldPtr(:,:,self%km) + IMbinemisfrac(nn)*dqa
+          IMFieldPtr => null()
+       enddo
+       deallocate(IMFieldNameList, IMBinEmisFrac)
+       !-------------------------
+       ! End of IM code
+       !-------------------------
+
     end do !n = 1
 
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
@@ -733,6 +788,15 @@ contains
     real                              :: fwet
     logical                           :: KIN
 
+    ! For internally mixed species calcs (M.Long)
+    type (ESMF_Field)                  :: IMfield
+    real, dimension(:,:,:), pointer    :: IMfieldPtr, dummy
+    integer                            :: nIMFields, nn, nIMBins
+    real, allocatable                  :: tmp3d(:,:,:), tmp3d_i(:,:,:), dtmp3d(:,:,:), tmp2d(:,:)
+    character(len=ESMF_MAXSTR)         :: attributeName
+    character(len=ESMF_MAXSTR), allocatable    :: IMFieldNameList(:)
+    type (ESMF_FieldBundle)            :: imSS ! Internally mixed species bundle <<>> MSL
+    integer, allocatable               :: IMBins(:) ! <<>> MSL
 
 #include "SS2G_DeclarePointer___.h"
 
@@ -765,8 +829,60 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
+!   Set up IM
+!   ------------------------------
+    call ESMF_StateGet (export, 'imSS' , imSS, __RC__)
+    allocate(tmp3d  , mold=SS(:,:,:,1), __STAT__ )
+    allocate(dtmp3d , mold=SS(:,:,:,1), __STAT__ )
+    allocate(tmp3d_i, mold=SS(:,:,:,1), __STAT__ )
+    allocate(tmp2d,   mold=SS(:,:,1,1), __STAT__ )
+
+    call ESMF_FieldBundleGet( imSS, fieldCount=nIMFields,  __RC__ )
+    allocate (IMfieldNameList(nIMFields), __STAT__)
+    call ESMF_FieldBundleGet( imSS, fieldNameList=IMfieldNameList, __RC__ )
+
 !   Sea Salt Settling
 !   -----------------
+!   IM species: compute before SS is changed
+    do n = 1, nIMFields
+       ! Get field from bundle
+       call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(n)), field=IMField, __RC__ )
+       ! Get data pointer
+       call ESMFL_BundleGetPointerToData( imSS, trim(IMFieldNameList(n)), IMFieldPtr, __RC__ )
+       ! Set up attribute qtys
+       call ESMF_AttributeGet( IMField, 'internally_mixed_nbins',     value=nIMBins, defaultValue=0, __RC__ )
+       if (nIMBins .eq. 0) cycle
+       allocate(IMBins(nIMBins))
+       call ESMF_AttributeGet( IMField, 'internally_mixed_with_bins',  valuelist=IMBins, __RC__ )
+       ! Compute settling
+       dtmp3d = 0e0 ! Zero out the tendency
+       tmp2d  = 0e0
+       ! This computed the dC from finite difference.
+       do nn = 1, nIMBins
+          ! Calc IM fraction in this bin.
+          where (SS(:,:,:,IMBins(nn)).gt.0.e0) ! if numerator > 0, denom != 0. So not NaN
+             tmp3d   = IMFieldPtr*SS(:,:,:,IMBins(nn))/sum(SS(:,:,:,IMBins),4)
+          elsewhere
+             tmp3d = 0.d0
+          endwhere
+          tmp3d_i = tmp3d ! Save initial condition
+          call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
+                              self%radius(IMBins(nn))*1.e-6, self%rhop(IMBins(nn)), tmp3d, t, airdens, &
+                              rh2, zle, delp, SDTMP, __RC__)
+          dtmp3d = dtmp3d + (tmp3d-tmp3d_i) ! Accumulate result over nIMBins
+          tmp2d = tmp2d+SDTMP(:,:,n)
+       enddo
+
+       ! Apply tendency
+       IMFieldPtr = IMFieldPtr + dtmp3d
+       IMFieldPtr => null()
+       deallocate(IMBins)
+    enddo
+    deallocate( tmp3d, tmp3d_i, dtmp3d )
+    deallocate( tmp2d )
+
+!   -----------------
+!   Compute SS settling
     do n = 1, self%nbins
        call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
                            self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
@@ -793,6 +909,15 @@ contains
        end if
     end do
 
+!   IM Fields
+    do nn=1,nIMFields
+       call ESMFL_BundleGetPointerToData( imSS, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
+       dqa = 0.
+       dqa = max(0.0, IMFieldPtr(:,:,self%km)*(1.-exp(-drydepositionfrequency*self%cdt)))
+       IMFieldPtr(:,:,self%km) = IMFieldPtr(:,:,self%km) - dqa
+       IMFieldPtr => null()
+    enddo
+
 !   Large-scale Wet Removal
 !   ------------------------
     KIN = .TRUE.
@@ -802,6 +927,18 @@ contains
                                KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
     end do
+
+!   IM Fields: This is independent of bin-specific quantities (right?)
+    do nn=1,nIMFields
+       call ESMF_FieldBundleGet( imSS, trim(IMFieldNameList(nn)), field=IMField, __RC__ )
+       call ESMFL_BundleGetPointerToData( imSS, trim(ImFieldNameList(nn)), IMFieldPtr, __RC__ )
+       fwet = 1.
+       ! 'n' is only used for 'fluxout()' computation
+       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'sea_salt', &
+                               KIN, MAPL_GRAV, fwet, IMFieldPtr, ple, t, airdens, &
+                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WDTMP, __RC__)
+       IMFieldPtr => null()
+    enddo
 
 !   Compute diagnostics
 !   -------------------
@@ -813,6 +950,12 @@ contains
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
+
+    SS01 = SS(:,:,:,1)
+    SS02 = SS(:,:,:,2)
+    SS03 = SS(:,:,:,3)
+    SS04 = SS(:,:,:,4)
+    SS05 = SS(:,:,:,5)
  
     RETURN_(ESMF_SUCCESS)
 
@@ -1138,6 +1281,62 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
+!BOP
+!
+! !IROUTINE: wetRadiusArray - Compute the wet radius of sea salt particle of arrays
+!
+! !INTERFACE:
+   subroutine wetRadiusArray (radius, rh, radius_wet, rc)
+
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   real, intent(in)  :: radius           ! dry radius [m]
+   real, intent(in)  :: rh(:,:,:)        ! relative humidity [0-1]
+!   integer           :: flag             ! 1 (Fitzgerald, 1975)
+!                                         ! 2 (Gerber, 1985)
+
+! !OUTPUT PARAMETERS:
+   real, intent(out) :: radius_wet(:,:,:) ! humidified radius [m]
+   integer, intent(out) :: rc
+
+! !Local Variables
+   real, allocatable :: sat(:,:,:)
+   real, parameter   :: rhow = 1000.  ! Density of water [kg m-3]
+
+!  The following parameters relate to the swelling of seasalt like particles
+!  following Fitzgerald, Journal of Applied Meteorology, 1975.
+   real, parameter :: epsilon = 1.   ! soluble fraction of deliqeuscing particle
+   real, parameter :: alphaNaCl = 1.35
+
+!  parameter from Gerber 1985 (units require radius in cm, see rcm)
+   real, parameter :: c1=0.7674, c2=3.079, c3=2.573e-11, c4=-1.424
+
+!EOP
+!------------------------------------------------------------------------------------
+!  Begin...
+
+    __Iam__('SS2G::wetRadiusArray')
+
+   allocate(sat, mold=rh, STAT=RC)
+   VERIFY_(RC)
+
+!  Default is to return radius as radius_wet, rhop as rhop_wet
+   radius_wet = radius
+
+!  Make sure saturation ratio (RH) is sensible
+   sat = max(rh,tiny(1.0)) ! to avoid zero FPE
+   sat = min(0.995,sat)
+   radius_wet = 0.01 * (c1*(radius*100.)**c2 / (c3*(radius*100.)**c4-alog10(sat)) &
+        + (radius*100.)**3.)**(1./3.)
+
+   deallocate(sat, stat=RC)
+   VERIFY_(RC)
+
+   RC = ESMF_SUCCESS
+
+ end subroutine wetRadiusArray
 
 end module SS2G_GridCompMod
 
