@@ -1085,9 +1085,9 @@ contains
        do nn = 1, nIMBins
           call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
                               self%radius(IMBins(nn))*1.e-6, self%rhop(IMBins(nn)), IMFieldPtr, t, airdens, &
-                              rh2, zle, delp, CASD, __RC__)
+                              rh2, zle, delp, SD, __RC__)
        enddo
-       CASD = 0.e0 ! Reset to zero. Non-optional argument to Chem_Settling but we don't need its info at the moment.
+       SD = 0.e0 ! Reset to zero. Non-optional argument to Chem_Settling but we don't need its info at the moment.
 
        if (allocated(IMBins)) deallocate(IMBins)
     enddo
