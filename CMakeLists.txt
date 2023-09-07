@@ -63,6 +63,7 @@ if (UFS_GOCART)
   find_package (GFTL_SHARED REQUIRED)
   # Dom Heinzeller 2023/08/30 - workaround until https://github.com/GEOS-ESM/MAPL/pull/2320
   # is merged and finds its way into the ufs-weather-model dependency tree
+  find_package (YAFYAML QUIET)
   find_package (FARGPARSE QUIET)
   find_package (PFLOGGER QUIET)
   #
