@@ -302,7 +302,7 @@ CONTAINS
 ! !INTERFACE:
    subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, silt,  &
                                   ssm, rdrag, airdens, ustar, uthrs, alpha, gamma, &
-                                  kvhmax, grav, rhop, distribution, drylimit_factor, emissions, h, rc)
+                                  kvhmax, grav, rhop, distribution, drylimit_factor, moist_correct, emissions, rc)
 
 ! !USES:
    implicit NONE
@@ -327,9 +327,9 @@ CONTAINS
    real, dimension(:),   intent(in) :: rhop            ! soil class density [kg/m^3]
    real, dimension(:),   intent(in) :: distribution    ! normalized dust binned distribution [1]
    real,                 intent(in) :: drylimit_factor ! drylimit tuning factor from zender2003 
+   real,                 intent(in) :: moist_correct   ! moisture correction factor
 ! !OUTPUT PARAMETERS:
    real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
-   real,    intent(out) :: h(:,:)
    integer, intent(out) :: rc                   ! Error return code: __SUCCESS__ or __FAIL__
 
 ! !DESCRIPTION: Compute dust emissions using NOAA/ARL FENGSHA model
@@ -346,11 +346,13 @@ CONTAINS
    integer, dimension(2) :: ilb, iub
    real                  :: alpha_grav
    real                  :: fracland
+   real                  :: h
    real                  :: kvh
    real                  :: q
    real                  :: rustar
    real                  :: total_emissions
    real                  :: u_sum, u_thresh
+   real                  :: smois
 
 ! !CONSTANTS:
    real, parameter       :: ssm_thresh = 1.e-02    ! emit above this erodibility threshold [1]
@@ -407,11 +409,12 @@ CONTAINS
          
          ! Fecan moisture correction
          ! -------------------------
-         h(i,j) = moistureCorrectionFecan(slc(i,j), sand(i,j), clay(i,j), drylimit_factor)
+         smois = slc(i,j) * moist_correct
+         h = moistureCorrectionFecan(smois, sand(i,j), clay(i,j), drylimit_factor)
 
          ! Adjust threshold
          ! ----------------
-         u_thresh = uthrs(i,j) * h(i,j)
+         u_thresh = uthrs(i,j) * h
          
          u_sum = rustar + u_thresh
          
