@@ -505,7 +505,7 @@ contains
     ! -- currently, there is no connectivity for CA.br with GCC
     ! -- done via an attribute since there are 3 GCs that use this module
     if (index(trim(comp_name),'CA.br') .eq. 0) then ! Skip this step for CA.br
-    call ESMF_StateGet (internal, 'CAphobic'//trim(comp_name), field, __RC__)
+    call ESMF_StateGet (internal, trim(comp_name)//'phobic', field, __RC__)
     call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
          isPresent=isPresent, RC=status)
     if (isPresent) &
@@ -516,7 +516,7 @@ contains
     else
        call ESMF_AttributeSet( GC, 'skipover', value=.false., __RC__ )
     endif
-    call ESMF_StateGet (internal, 'CAphilic'//trim(comp_name), field, __RC__)
+    call ESMF_StateGet (internal, trim(comp_name)//'philic', field, __RC__)
     call ESMF_AttributeGet  (field,    NAME="FriendlyToGEOSCHEMCHEM", &
          isPresent=isPresent, RC=status)
     if (isPresent) &
@@ -1155,12 +1155,14 @@ contains
        IMFieldPtr => null()
     enddo
 
+    if ( nIMFields > 0 ) then
     if (index(trim(comp_name),'CA.oc') .ne. 0) then
        call MAPL_GetPointer(internal, NAME='IMfld', ptr=int_ptr, __RC__)
        call ESMFL_BundleGetPointerToData( imCA, trim(ImFieldNameList(1)), IMFieldPtr, __RC__ )
        int_ptr = IMFieldPtr * 1.8e0 !CA.oc's OM/OC = 1.8 
        IMFieldPtr => null()
        int_ptr    => null()
+    endif
     endif
 
 !   Compute diagnostics
