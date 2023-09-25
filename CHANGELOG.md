@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Add explicit `find_package()` calls for missing dependencies for MAPL for builds with spack-stack. Will eventually be fixed in MAPL in later versions
+
 ### Added
 
 ### Changed
