@@ -3,7 +3,7 @@
 #
 # Parameterized chemistry
 # -----------------------
-PCHEMs_file_name: /discover/nobackup/ltakacs/bcs/Ganymed-2_0_M/Shared/pchem.species.Clim_Prod_Loss.z_721x72.nc4
+PCHEMs_file_name: /discover/nobackup/projects/gmao/bcs_shared/legacy_bcs/Ganymed-2_0_M/Shared/pchem.species.Clim_Prod_Loss.z_721x72.nc4
 pchem_clim_years: 1
 
 # GMI chemistry

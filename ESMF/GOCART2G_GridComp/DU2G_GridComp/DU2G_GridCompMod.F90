@@ -3,7 +3,7 @@
 !=============================================================================
 !BOP
 
-! !MODULE: DU2G_GridCompMod - GOCART refactoring of the DU gridded component 
+! !MODULE: DU2G_GridCompMod - GOCART refactoring of the DU gridded component
 
 ! !INTERFACE:
 module DU2G_GridCompMod
@@ -11,14 +11,15 @@ module DU2G_GridCompMod
 !  !USES:
    use ESMF
    use MAPL
-   use GOCART2G_MieMod 
+   use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
-   
+   !$ use omp_lib
+
    implicit none
    private
 
@@ -39,6 +40,17 @@ module DU2G_GridCompMod
    integer, parameter         :: NHRES = 6
 
 !  !Dust state
+   type :: ThreadWorkspace
+       integer                :: day_save = -1
+       integer                         :: nPts = -1
+       integer, allocatable, dimension(:)  :: pstart, pend
+       real, allocatable, dimension(:)     :: pLat, &
+            pLon, &
+            pBase, &
+            pTop, &
+            pEmis
+    end type ThreadWorkspace
+
    type, extends(GA_Environment) :: DU2G_GridComp
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
@@ -50,7 +62,7 @@ module DU2G_GridCompMod
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
-       integer                :: day_save = -1      
+       integer                :: day_save = -1
        character(len=:), allocatable :: emission_scheme     ! emission scheme selector
        integer       :: clayFlag       ! clay and silt term in K14
        real          :: f_swc          ! soil mosture scaling factor
@@ -59,17 +71,11 @@ module DU2G_GridCompMod
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
-       integer                         :: nPts = -1
-       integer, allocatable, dimension(:)  :: pstart, pend
-       real, allocatable, dimension(:)     :: pLat, &
-                                              pLon, &
-                                              pBase, &
-                                              pTop, &
-                                              pEmis
+       type(ThreadWorkspace), allocatable :: workspaces(:)
    end type DU2G_GridComp
 
    type wrap_
-      type (DU2G_GridComp), pointer     :: PTR => null()
+      type (DU2G_GridComp), pointer     :: PTR !=> null()
    end type wrap_
 
 contains
@@ -77,7 +83,7 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: SetServices 
+! !IROUTINE: SetServices
 
 ! !INTERFACE:
   subroutine SetServices (GC, RC)
@@ -88,11 +94,11 @@ contains
 
 !   !DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !     the Initialize and Finalize services to generic versions. It also
-!     allocates our instance of a generic state and puts it in the 
+!     allocates our instance of a generic state and puts it in the
 !     gridded component (GC). Here we only set the two-stage run method
 !     and declare the data services.
 
-!   !REVISION HISTORY: 
+!   !REVISION HISTORY:
 !   16oct2019   E.Sherman, A.Da Silva, A.Darmenov, T.Clune  First attempt at refactoring
 
 !EOP
@@ -111,6 +117,8 @@ contains
     integer                            :: i
     real                               :: DEFVAL
     logical                            :: data_driven = .true.
+    logical                            :: file_exists
+    integer :: num_threads
 
     __Iam__('SetServices')
 
@@ -127,14 +135,18 @@ contains
     allocate (self, __STAT__)
     wrap%ptr => self
 
-!   Load resource file  
+    num_threads = MAPL_get_num_threads()
+    allocate(self%workspaces(0:num_threads-1), __STAT__)
+
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-
-    if (status /= 0) then
-        if (mapl_am_i_root()) print*,'DU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading DU2G_GridComp_DU.rc instead'
-        call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_DU.rc', __RC__)
+    inquire(file='DU2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'DU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading DU2G_GridComp_DU.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_DU.rc', __RC__)
     end if
 
     ! process generic config items
@@ -233,7 +245,7 @@ contains
           VLOCATION  = MAPL_VLocationCenter,                  &
           RESTART    = MAPL_RestartSkip,     __RC__)
 
-       do i = 1, self%nbins 
+       do i = 1, self%nbins
           write (field_name, '(A, I0.3)') '', i
           call MAPL_AddImportSpec(GC,                                     &
              short_name = 'climdu'//trim(field_name),                        &
@@ -252,7 +264,7 @@ contains
              vlocation  = MAPL_VLocationCenter,                              &
              restart    = MAPL_RestartSkip, __RC__)
 
-!        !wet deposition    
+!        !wet deposition
           call MAPL_AddImportSpec(GC,                                       &
              short_name = 'climDUWT'//trim(field_name),                     &
              long_name  = 'Dust Mixing Ratio (bin '//trim(field_name)//')', &
@@ -328,22 +340,22 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: Initialize 
+! !IROUTINE: Initialize
 
 ! !INTERFACE:
   subroutine Initialize (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes DU's Grid Component. It primaryily fills 
-!               GOCART's AERO states with its dust fields. 
+! !DESCRIPTION: This initializes DU's Grid Component. It primaryily fills
+!               GOCART's AERO states with its dust fields.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! 16oct2019  E.Sherman, A.da Silva, T.Clune, A.Darmenov - First attempt at refactoring
 
 !EOP
@@ -376,10 +388,11 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
     __Iam__('Initialize')
 
 !****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -396,10 +409,13 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-    call MAPL_GridGet ( grid, globalCellCountPerDim=dims, __RC__ )
+!   Global dimensions are needed here for choosing tuning parameters
+!   ----------------------------------------------------------------    
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ ) 
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
-!   ---------------------------------------------------------------
+!   TO DO: find a more robust way to implement resolution dependent tuning
+!   ----------------------------------------------------------------------
     self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
     self%Ch_DU = self%Ch_DU * 1.0e-9
 
@@ -417,21 +433,22 @@ contains
 
 !   Get DTs
 !   -------
-    call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)                        
+    call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)
     call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
-!   Load resource file  
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_'//trim(COMP_NAME)//'.rc', RC=STATUS)
-    if (status /= 0) then
-        if (mapl_am_i_root()) print*,'DU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
-                                      loading DU2G_instance_DU.rc instead'
-        call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_DU.rc', __RC__)
+    inquire(file='DU2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'DU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading DU2G_GridComp_DU.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_DU.rc', __RC__)
     end if
 
-!   Call Generic Initialize 
+!   Call Generic Initialize
 !   ------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
 
@@ -445,7 +462,7 @@ contains
 
 !   If this is a data component, the data is provided in the import
 !   state via ExtData instead of the actual GOCART children
-!   ---------------------------------------------------------------- 
+!   ----------------------------------------------------------------
     if ( data_driven ) then
         providerState = import
         prefix = 'clim'
@@ -573,13 +590,13 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run 
+! !IROUTINE: Run
 
 ! !INTERFACE:
   subroutine Run (GC, import, export, clock, rc)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -600,7 +617,7 @@ contains
     __Iam__('Run')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -633,13 +650,13 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run1 
+! !IROUTINE: Run1
 
 ! !INTERFACE:
   subroutine Run1 (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -676,22 +693,26 @@ contains
     real, dimension(:,:), allocatable   :: R_
     real, dimension(:,:), allocatable   :: H_w_
     real, dimension(:,:), allocatable   :: f_erod_
+    type(ThreadWorkspace), pointer :: workspace
+    integer :: thread, jstart, jend
 
 #include "DU2G_DeclarePointer___.h"
 
    __Iam__('Run1')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -788,46 +809,52 @@ contains
 
 !   Read point emissions file once per day
 !   --------------------------------------
+    thread = MAPL_get_current_thread()
+    workspace => self%workspaces(thread)
     if (self%doing_point_emissions) then
-       if (self%day_save /= idd) then
-          self%day_save = idd
+       if (workspace%day_save /= idd) then
+          workspace%day_save = idd
           call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
                             nymd=nymd, nhms=120000 )
           inquire( file=fname, exist=fileExists)
           if (fileExists) then
-             call ReadPointEmissions (nymd, fname, self%nPts, self%pLat, self%pLon, &
-                                      self%pBase, self%pTop, self%pEmis, self%pStart, &
-                                      self%pEnd, label='source', __RC__)
+             call ReadPointEmissions (nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
+                                      workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
+                                      workspace%pEnd, label='source', __RC__)
           else if (.not. fileExists) then
+             !$omp critical (DU2G_1)
              if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
-             self%nPts = -1 ! set this back to -1 so the "if (self%nPts > 0)" conditional is not exercised.
+             !$omp end critical (DU2G_1)
+             workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
           end if
        end if
     end if
 
 !   Get indices for point emissions
 !   -------------------------------
-    if (self%nPts > 0) then
-        allocate(iPoint(self%nPts), jPoint(self%nPts),  __STAT__)
-        call MAPL_GetHorzIJIndex(self%nPts, iPoint, jPoint, &
+    if (workspace%nPts > 0) then
+        allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
+        call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
                                  grid = grid,               &
-                                 lon  = self%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                 lat  = self%pLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                 lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                 lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
                                  rc   = status)
             if ( status /= 0 ) then
+                !$omp critical (DU2G_2)
                 if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
+                !$omp end critical (DU2G_2)
                 VERIFY_(status)
             end if
 
-        call updatePointwiseEmissions (self%km, self%pBase, self%pTop, self%pEmis, self%nPts, &
-                                       self%pStart, self%pEnd, zle, &
+        call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
+                                       workspace%pStart, workspace%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
     end if
 
 !   Update aerosol state
 !   --------------------
     call UpdateAerosolState (emissions, emissions_surface, emissions_point, &
-                             self%sfrac, self%nPts, self%km, self%CDT, MAPL_GRAV, &
+                             self%sfrac, workspace%nPts, self%km, self%CDT, MAPL_GRAV, &
                              self%nbins, delp, DU, __RC__)
 
     if (associated(DUEM)) then
@@ -837,7 +864,7 @@ contains
 !   Clean up
 !   --------
     deallocate(emissions, emissions_surface, emissions_point, __STAT__)
-    if (self%nPts > 0) then
+    if (workspace%nPts > 0) then
         deallocate(iPoint, jPoint, __STAT__)
     end if
 
@@ -847,14 +874,14 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run2 
+! !IROUTINE: Run2
 
 ! !INTERFACE:
 
   subroutine Run2 (GC, import, export, clock, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -884,7 +911,7 @@ contains
     __Iam__('Run2')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -961,7 +988,7 @@ contains
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
                             DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
-                            DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
+                            DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
 
 
    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
@@ -978,8 +1005,8 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh20, u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = DUEXTCOEFRH20, scacoef = DUSCACOEFRH20, NO3nFlag=.False., __RC__)        
-   
+                            extcoef = DUEXTCOEFRH20, scacoef = DUSCACOEFRH20, NO3nFlag=.False., __RC__)
+
    RH80(:,:,:) = 0.80
 
    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
@@ -988,8 +1015,8 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh80, u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-                            extcoef = DUEXTCOEFRH80, scacoef = DUSCACOEFRH80, NO3nFlag=.False., __RC__)        
-  
+                            extcoef = DUEXTCOEFRH80, scacoef = DUSCACOEFRH80, NO3nFlag=.False., __RC__)
+
    deallocate(RH20,RH80)
    RETURN_(ESMF_SUCCESS)
 
@@ -1003,13 +1030,13 @@ contains
   subroutine Run_data (GC, import, export, internal, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component
     type (ESMF_State),    intent(inout) :: import   ! Import state
     type (ESMF_State),    intent(inout) :: export   ! Export state
     type (ESMF_State),    intent(inout) :: internal ! Interal state
     integer, optional,    intent(  out) :: RC       ! Error code:
 
-! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData. 
+! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
 ! Locals
     character (len=ESMF_MAXSTR)        :: COMP_NAME
@@ -1026,7 +1053,7 @@ contains
 
 !EOP
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -1086,7 +1113,7 @@ contains
 
     __Iam__('DU2G::aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1097,7 +1124,7 @@ contains
     band = 0
     call ESMF_AttributeGet (state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer (state, ple, trim(fld_name), __RC__)
@@ -1171,7 +1198,7 @@ contains
     subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
 
     implicit none
- 
+
     type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
     integer,                       intent(in   ) :: nbins            ! number of bins
     integer,                       intent(in )   :: band             ! channel
@@ -1236,7 +1263,7 @@ contains
 
     __Iam__('DU2G::monochromatic_aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1247,7 +1274,7 @@ contains
     wavelength = 0.
     call ESMF_AttributeGet (state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer (state, ple, trim(fld_name), __RC__)

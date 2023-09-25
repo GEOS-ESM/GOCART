@@ -7,15 +7,88 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
 ### Added
 
-- Extinction exports with RH=20% and RH=80%
+### Changed
+
+## [v2.2.1] - 2023-05-30
 
 ### Fixed
 
-### Changed
+- In dust and sea-salt, changed dimensions back to `globalCellCountPerDim` since these are needed to determine emission tuning parameters, not to allocate arrays.
+
+
+## [v2.2.0] - 2023-05-18
+
+### Fixed
+
+- Made needed code changes in `SS2G_GridCompMod.F90` and `CA2G_GridCompMod.F90` to permit data instances of of GOCART aerosols to run
+- Added missing brown carbon (BR) climatology hooks to yaml and rc files for data driven instances
+- Changed pointers to climatological deposition inputs in yaml and rc files to `/dev/null` since the files pointed to didn't provide them anyway, and in any case they are being used presently in the model
+- Changed pointers to climatological nitrate inputs in yaml and rc files to `/dev/null` since pointing to FP files was inconsistent with MERRA-2 files used for other species
+- Ensured zero-diff in performance of yaml vs. rc files for ExtData2G vs. ExtData1g for data driven aerosols
+- To do: remove hooks to old (legacy) GOCART.data instances in CHEM and setup scripts
+- Fixed rc file in legacy O3 component.
+- Fixed issue #223 where Global dimension was being used for allocating a local array
+- This fixes a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
+- Fix issue with scattering coefficient calculation with oc
+- Fix a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
+
+### Added
 
 ### Changed
+
+- Comment out ASSERT to allow `GOCART_DT` to not match the `HEARTBEAT_DT`
+- Single-moment moist changes from Donifan
+- Change names of microphysics schemes to match refactored physics
+- Set `SS_SCALE` default to 0.0
+- Updates in CA2G for OpenMP
+- Updates for CI
+  - Update BCs version
+  - Update components to match GEOSgcm v11.0.0
+
+## [2.1.4] - 2023-05-12
+
+### Fixed
+
+- Fix in GOCART2G parent so that it can run with nitrates turned off. This patch of general utility was contributed by NOAA.
+
+## [2.1.3] - 2023-02-27
+
+### Added
+
+- Added `*` to CA State specs file to allow for ACG to substitute in the long name
+- Changes were made so GOCART2G and its children can be run with component level
+OpenMP threading. The key change is to create the data structure ThreadWorkspace
+to hold variables that should be private to each thread to avoid race conditions.
+Additionally spatially distributed arrays that are not in any of the ESMF states
+were added to the ESMF internal state so they could be properly handled when
+the 'mini' ESMF sates are created. Those arrays are xhno3 for NI2G, h202_init
+for SU2G, and deep_lakes_mask for SS2G. All of these arrays have MAPL_RestartSkip
+option so they are not written to restart.
+- Aerosol single scattering backscatter coefficient for each instances and total at wavelengths_profile
+- Total (molecular + aerosols) attenuated backscatter coefficient from TOA and sfc at 532nm
+
+### Changed
+
+- Moved to use GitHub Action for label enforcement
+- For OPS configuration: removal of links, change of QFED paths from vNRT/ to v2.5r1-nrt/ (note after November 2021, files are v2.6r1)
+- For AMIP configuration: update of QFED from v2.5r1 to v2.6r1
+- Update of climatological paths from MERRAero to MERRA-2
+- Updated CircleCI image to use Baselibs 7.7.0
+- Update `components.yaml` to reflect GEOSgcm
+- CA restarts will have a change in longname for `philic` and `phobic` variables due to addition of `*` in the CA State specs file
+  for the Internal state variables
+
+## [2.1.2] - 2022-10-07
+
+## Added
+
+- Extinction/Scattering profile exports at model RH at wavelengths_profile
+- Extinction/Scattering profile exports with RH=20% and RH=80% at wavelengths_profile
+
 ## [2.1.1] - 2022-09-16
 
 ### Fixed
