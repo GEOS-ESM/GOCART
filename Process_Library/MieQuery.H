@@ -130,6 +130,10 @@
        gf =  __RHINTERP2__(this%gf, irh, arh, bin, gf)
      endif
 
+     if(present(rhop)) then
+       rhop =  __RHINTERP2__(this%rhop, irh, arh, bin, rhop)
+     endif
+
      if(present(rhod)) then
        rhod =  __RHINTERP2__(this%rhod, irh, arh, bin, rhod)
      endif
