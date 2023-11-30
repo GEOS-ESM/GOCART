@@ -131,7 +131,7 @@
      endif
 
      if(present(rhop)) then
-       rhop =  __RHINTERP2__(this%rhop, irh, arh, bin, rhod)
+       rhop =  __RHINTERP2__(this%rhop, irh, arh, bin, rhop)
      endif
 
      if(present(rhod)) then
