@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Add explicit `find_package()` calls for missing dependencies for MAPL for builds with spack-stack. Will eventually be fixed in MAPL in later versions
+- Corrected the units of the gravimetric soil moisture to percent instead of fractional in the FENGSHA dust scheme.
+
 ### Added
+
+- Additional tuning parameters for the soil moisture and drylimit calculations for application specific tuning.
 
 ### Changed
 
@@ -19,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GMAO_Shared v1.9.2 (Bug fix for MITgcm, CI fixes)
   - MAPL 2.40.3 (Various fixes and features)
 - Update CI to use Baselibs by default from CircleCI Orb
+- Correct soil moisture parameterization in FENGSHA
+- Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
+- Add `soil_drylimit_factor` to the DU2G_instance_DU.rc and DU2G_GridCompMod.F90 files for FENGSHA
 
 ## [v2.2.1] - 2023-05-30
 
