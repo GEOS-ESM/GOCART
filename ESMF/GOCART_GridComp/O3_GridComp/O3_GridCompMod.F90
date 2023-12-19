@@ -636,6 +636,7 @@ CONTAINS
    REAL, ALLOCATABLE :: dryDepFreq(:,:)
    REAL, ALLOCATABLE :: dO3(:,:)
    INTEGER, ALLOCATABLE :: oro(:,:)
+   REAL, ALLOCATABLE :: tropPa(:,:)
 
    REAL, ALLOCATABLE :: lai2D(:,:)
    CHARACTER(LEN= 3) :: laiID
@@ -889,7 +890,9 @@ CONTAINS
 
 ! Repair bad tropopause pressures, if any exist
 ! ---------------------------------------------
-   CALL Chem_UtilTroppFixer(i2, j2, tropp, VERBOSE=.TRUE., RC=status)
+   ALLOCATE(tropPa(i1:i2,j1:j2), _STAT)
+
+   CALL Chem_UtilTroppFixer(i2, j2, tropp, VERBOSE=.TRUE., NEWTROPP=tropPa, RC=status)
    VERIFY_(status)
 
 ! Perform parameterized production and loss chemistry
@@ -1288,13 +1291,14 @@ CONTAINS
    mask = 0
 
    DO k=1,km
-    WHERE(plPa(:,:,k) <= tropp(:,:)) mask(:,:,k) = 1
-    WHERE(tropp(:,:) == MAPL_UNDEF)  mask(:,:,k) = 0
+    WHERE(plPa(:,:,k) <= tropPa(:,:)) mask(:,:,k) = 1
+    WHERE(tropPa(:,:) == MAPL_UNDEF)  mask(:,:,k) = 0
    END DO
   
    n = w_c%reg%i_O3
    WHERE(mask == 1) w_c%qa(n)%data3d = (w_c%qa(n)%data3d + cdt*Pi)/(1.00 + cdt*Li)
    
+   DEALLOCATE(tropPa, _STAT)
    DEALLOCATE(mask, STAT=status)
    VERIFY_(status)
    DEALLOCATE(Pclim, STAT=status)
