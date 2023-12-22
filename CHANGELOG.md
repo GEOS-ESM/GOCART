@@ -13,6 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [Unreleased - Peter.R.Colarco@nasa.gov] - 2023-12-22
+
+### Added
+
+- Added export line to GOCART2G_GridCompMod to couple allow use of GOCART
+  SU sulfate production tendency elsewhere in Chemistry, specifically for 
+  CARMA
+
 ## [2.1.2] - 2022-10-07
 
 ### Added
