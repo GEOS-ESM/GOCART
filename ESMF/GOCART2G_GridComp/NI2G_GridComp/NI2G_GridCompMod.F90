@@ -949,11 +949,12 @@ contains
 
 !  NI Large-scale Wet Removal
 !  --------------------------
-   if (.not. skipover) then ! Save the FLOP cycles (hopefully savings < cost of branching)
    if (associated(NH3WT) .or. associated(NH4WT)) then
       allocate(fluxoutWT(ubound(t,1), ubound(t,2), 1), __STAT__)
    end if
+
 !  NH3
+   if (.not. skipover) then ! Save the FLOP cycles (hopefully savings < cost of branching)
    KIN = .false.
    fwet = 1.
    nullify(fluxWT_ptr)
