@@ -26,10 +26,12 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+   public DustEmissionSGINOUX
+   public DustEmissionDEAD03
    public DustAerosolDistributionKok
    public DustEmissionFENGSHA
-   public DustEmissionGOCART2G
-   public DustEmissionK14
+   public DustEmissionGINOUX01
+   public DustEmissionKOK14
    public DustFluxV2HRatioMB95
    public moistureCorrectionFecan
    public soilMoistureConvertVol2Grav
@@ -103,10 +105,320 @@
 !
 !  01Apr2021  R.Montuoro/NOAA - Added FENGSHA dust scheme and related methods.
 !
+!  05Jan2024  J.Joshi          - Added/implemented SGINOUX dust scheme
+!                              - Added/implemented DEAD03  dust scheme
+!                              - Changed scheme names (GOCART2G -> GINOUX01; K14 -> KOK14)
+!                              - Added modifications into GINOUX01 scheme
+!                                 (added vegetation, snow, & soil-freezing conditions)
+!                              - Added modifications into FENGSHA scheme
+!                                 (implemented data, corrected variable-references/distribution, added soil-freezing)
+!                              - The number of working schemes is raised to five, from two.
 !
 !EOP
 !-------------------------------------------------------------------------
 CONTAINS
+
+!=======================================================================================================
+!BOP
+!  !IROUTINE: DustEmissionSGINOUX
+
+   subroutine DustEmissionSGINOUX(radius, fraclake, fracsnow, vwettop, oro, gvf, veg_mask, u10m, v10m, &
+                                 tsoil, du_src, ut0, Ch_DU, grav, tsoilf, emissions, rc )
+
+   !---------------------------------------------------------------------------------------------------x
+   ! !DESCRIPTION: Simplified Ginoux scheme, threshold is specified                                    !
+   !                                                                                                   !
+   ! !REVISION HISTORY:                                                                                !
+   !                                                                                                   !
+   !                                                                                                   !
+   !  18Dec2023  J.Joshi   Revised and implemented                                                     !
+   !                        > added source func (du_src). added fracsnow to suppress emiss over snow   !
+   !                        > added vegetation mask                                                    !
+   !                        > added source frac to emiss.                                              !
+   !                        > ut0 can be supplied at run time                                          !
+   !                                                                                                   !
+   !  19Nov2012, Colarco - Introduced                                                                  !
+   !                                                                                                   !
+   !                                                                                                   !
+   !EOP                                                                                                !
+   !---------------------------------------------------------------------------------------------------x
+
+   ! !USES:
+   implicit NONE
+
+         ! ! INPUT
+   real,    intent(in)  :: radius(:)           ! particle radius [m]
+   real,    intent(in)  :: fraclake(:,:)       ! fraction of lake [1]
+   real,    intent(in)  :: fracsnow(:,:)       !             snow [1]
+   real,    intent(in)  :: vwettop(:,:)        ! surface soil wetness [1]
+   real,    intent(in)  :: oro(:,:)            ! land-ocean-ice mask [1]
+   real,    intent(in)  :: gvf(:,:)            ! vegetation fraction [1]
+   integer, intent(in)  :: veg_mask            ! veg mask. 1 = Yes, 0 = No
+   real,    intent(in)  :: u10m(:,:)           ! 10-meter eastward wind [m/sec]
+   real,    intent(in)  :: v10m(:,:)           ! 10-meter northward wind [m/sec]
+   real,    intent(in)  :: tsoil(:,:)          ! soil temperature [K]
+   real,    intent(in)  :: du_src(:,:)         ! source function
+   real,    intent(in)  :: ut0                 ! dry threshold [m s-1]
+                                               ! later make it func(long,lat) --JJ
+   real,    intent(in)  :: Ch_DU               ! tuning coefficient [kg s^2 m^-5]
+   real,    intent(in)  :: grav                ! gravity [m/s^2]
+   real,    intent(in)  :: tsoilf              ! soil freezing temperature [K]
+       ! ! OUTPUT
+   real, intent(inout)  :: emissions(:,:,:)    ! Local emission [kg/m^2/s]
+
+   integer, intent(out) :: rc                  ! Error return code:
+
+       ! ! LOCAL
+   real                 ::  ut
+   real                 ::  landfrac
+   real                 ::  w10m
+   integer              ::  i1, i2, j1, j2
+   integer              ::  nbins, i, j, n
+   integer              ::  dims(2)
+   real, allocatable    ::  emissions_tot(:,:) ! total emission [kg/m^2/s]
+
+   !EOP
+   !-------------------------------------------------------------------------
+   !  Begin
+   nbins = size(radius)
+   dims  = shape(u10m)
+   i1    = 1; j1 = 1
+   i2    = dims(1); j2 = dims(2)
+   allocate (emissions_tot(i2,j2))
+   emissions_tot(:,:) = 0.
+   do j = j1, j2
+     do i = i1, i2
+     if ( oro(i,j) /= LAND ) cycle ! only over LAND gridpoints
+         ! Modify the threshold as in Ginoux et al. [2001]. Note: differs from GINOUX01 by denom!
+     if ((vwettop(i,j) .lt. 0.5) .and. (tsoil(i,j) .gt. tsoilf)) then
+       ut = max( 0.0, ut0 * ( 1.2 + 0.2*alog10(max(1.0e-3, vwettop(i,j))) )/0.6 )
+         ! 0.6 to normalize the wetness correction
+       w10m = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
+
+       if(w10m .gt. ut) then
+         landfrac  = max(0.0, 1.0 - fraclake(i,j) - fracsnow(i,j) )
+         emissions_tot(i,j) =  landfrac * w10m**2. * (w10m-ut)
+       end if
+     end if
+     end do
+   end do
+       ! Scale by source function
+   emissions_tot = Ch_DU * du_src * emissions_tot
+
+       ! optionally apply vegetation mask
+   if (veg_mask == 1) then
+       emissions_tot = max(0., 1.-gvf) * emissions_tot
+   end if
+       ! Make 3D (i,j,bin)
+   do n = 1, nbins
+     emissions(:,:,n) = emissions_tot(:,:)
+   end do
+
+   rc = __SUCCESS__
+
+end subroutine DustEmissionSGINOUX
+
+!=======================================================================================================
+
+!=======================================================================================================
+!BOP
+!  !IROUTINE: DustEmissionDEAD03
+
+   subroutine DustEmissionDEAD03(oro, fraclake, fracsnow, du_src, gvf, veg_mask, sandfrac, clayfrac, &
+                               vwettop, u10m, v10m, ustar, adens, tsoil, mclay, cs, z0ms, z0m, tsoilf, &
+                               grav, soil_diam, radius, emissions, rc)
+
+   !---------------------------------------------------------------------------------------------------x
+   ! !DESCRIPTION: Computes the dust emissions for one time step                                       !
+   !               DEAD-based dust emission scheme (Zender et al., JGR, 2003)                          !
+   !                                                                                                   !
+   ! !REVISION HISTORY:                                                                                !
+   !                                                                                                   !
+   !                                                                                                   !
+   !  28Dec2023 J.Joshi    Revised and implemented                                                     !
+   !                        > applied source func (du_src) and vegetation mask                         !
+   !                        > changed soil wetness correction (fw): added conversion from volumetric   !
+   !                            to gravim; modified fw-expressn to match Fecan, and to use actual clay !
+   !                        > applied model-predicted than const air density; reduced ustar by fd      !
+   !                        > added bin dim to emiss. and using Kokdistr [(:,:) -> (:,:,bin)]          !
+   !                        > added emission suppressn over frozen soil and over snow                  !
+   !                        > model params can be supplied at run time than hard-coded                 !
+   !                                                                                                   !
+   !                                                                                                   !
+   !  29Dec2009 Colarco    First crack!                                                                !
+   !                                                                                                   !
+   !  29Dec2009, Colarco - Modifications to change calling                                             !
+   !  10Oct2007, Nowottnick/Colarco - Implement simplified Zender source                               !
+   !  06Nov2003, Colarco                                                                               !
+   !  Based on Ginoux                                                                                  !
+   !                                                                                                   !
+   !---------------------------------------------------------------------------------------------------x
+
+   ! !USES:
+
+   implicit NONE
+
+         ! ! INPUT
+   real,    intent(in) :: oro(:,:)                   ! land-ocean-ice mask [1]
+   real,    intent(in) :: fraclake(:,:)              ! fraction of lake [1]
+   real,    intent(in) :: fracsnow(:,:)              ! fraction of snow [1]
+   real,    intent(in) :: du_src(:,:)                ! source function [1]
+   real,    intent(in) :: gvf(:,:)                   ! vegetation fraction [1]
+   integer, intent(in) :: veg_mask                   ! veg mask. 1 = Yes, 0 = No
+   real,    intent(in) :: sandfrac(:,:)              ! sandfrac [1]
+   real,    intent(in) :: clayfrac(:,:)              ! clayfrac [1]
+   real,    intent(in) :: vwettop(:,:)               ! surface soil wetness volumetric [1]
+   real,    intent(in) :: u10m(:,:)                  ! 10 m eastward wind [m/sec]
+
+   real,    intent(in) :: v10m(:,:)                  !      northward wind [m/sec]
+   real,    intent(in) :: ustar(:,:)                 ! u*
+   real,    intent(in) :: adens(:,:)                 ! sfc-air density
+   real,    intent(in) :: tsoil(:,:)                 ! soil temperature [K]
+   real,    intent(in) :: mclay                      ! constant clay mass fraction
+   real,    intent(in) :: cs                         ! cs constant
+   real,    intent(in) :: z0ms                       ! smooth roughness length [m]
+   real,    intent(in) :: z0m                        ! roughness length [m]
+   real,    intent(in) :: tsoilf                     ! soil freezing temperature [K]
+   real,    intent(in) :: grav                       ! gravity [m/sec^2]
+   real,    intent(in) :: soil_diam                  ! soil_diameter, for monomodal saltatators [m]
+   real,    intent(in) :: radius(:)                  ! particle radius for nbins
+
+        ! ! OUTPUT
+   real, intent(inout)   :: emissions(:,:,:)         ! Local emission [kg/(m^2 sec)]
+   integer, intent(out)  :: rc                       ! Error return code: 0 well, 1 -
+
+        ! ! LOCAL
+   integer             ::  i, j, n                   !
+   real                ::  u_thresh0                 ! dry bed, non-saltating saltation threshold  [m s-1]
+   real                ::  w10m                      !
+   real                ::  landfrac                  !
+   real, allocatable   ::  emissions_tot(:,:)        ! total emission [kg/(m^2 sec)]
+   real                ::  fd                        ! drag partitioning eff. factor
+   real                ::  fd_ustar                  ! reduced-ustar due to roughness
+   real, parameter     ::  soil_dens  = 2650.        ! mean soil-grain density [kg m-3]
+                                                     ! although 2500 kg m-3 in Zender 2003]
+   real, parameter     ::  water_dens = 1000.        ! liquid water dens [kg m-3]
+   real                ::  fw                        ! water effect factor
+   real                ::  wgt                       ! threshold wetness
+   real                ::  u_thresh_d_w              !
+   real                ::  ustars                    ! fric. vel after Owen Effect
+   real                ::  k_z                       ! log profile for nonsaltating case
+   real                ::  wt10m                     ! threshold 10m wind speed
+   real                ::  rat                       ! ratio of threshold to friction vel
+   real                ::  horiz_flux                ! horizontal mass flux
+   real                ::  vert_flux                 ! vertical mass flux
+   real                ::  alpha                     ! horiz to vert. flux factor [m-1]
+   real                ::  w_s                       ! sat. wetness [1]
+   real                ::  gwettop                   ! gravimetric soil wetness [1]
+   integer             ::  i1, i2, j1, j2, nbins     !
+   integer             ::  dims(2)                   !
+
+   !EOP
+   !-------------------------------------------------------------------------                                                                                                !
+
+       !  Initialize local variables
+       !  --------------------------
+   nbins     = size(radius)
+   if (nbins /= size(emissions, dim=3)) then
+    write (*,*) "Dims must equal in DustEmissionDEAD03"
+    stop
+   end if
+   dims      = shape(u10m)
+   i1        = 1; j1 = 1
+   i2        = dims(1); j2 = dims(2)
+   allocate (emissions_tot(i2,j2))
+
+
+       ! Drag
+   fd            = 1.0 - ( log(z0m/z0ms) / log( 0.35 * ((0.1/z0ms)**0.8) ) )
+
+       ! Alpha
+       ! alpha   = 100. * exp( (13.4*mclay - 6.)*log(10.) ) ! simplify as below --JJ
+   alpha         = 100. * 10.0**(13.4*mclay - 6.)
+
+   emissions_tot(:,:) = 0.
+
+       ! Nonsaltatin log profile, Gillette et al. [1998] eq. 3
+   k_z                = 0.4 / log(10./z0m)
+
+       ! Spatially dependent part
+   do j = j1, j2
+    do i = i1, i2
+
+     if ( oro(i,j) /= LAND ) cycle              ! only over LAND gridpoints
+
+       ! Threshold fric vel (Marticorena and Bergametti 1995, MB95)
+     u_thresh0 = 0.129 * sqrt(soil_dens*grav*soil_diam/adens(i,j)) &
+                 * sqrt(1.+6.e-7/(soil_dens*grav*soil_diam**2.5)) &
+                 / sqrt(1.928*(1331.*(100.*soil_diam)**1.56+0.38)**0.092 - 1.)
+     w10m      = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
+
+         ! wetness correction Fecan et al., 1999 [Zender 2003 eq. 6]
+         ! convert to gravimetric [Zender 2003]
+     w_s       = 0.489 - 0.126*sandfrac(i,j)
+     gwettop   = vwettop(i,j) * water_dens /(soil_dens *(1.0 - w_s) )
+         ! wt  = 0.17 * mclay + 0.14 * mclay**2, [originally] with mclay  = 0.2 (assuming a =1 in Zender but ...)
+     wgt       = clayfrac(i,j) * (14.0 * clayfrac(i,j) + 17.0)
+
+     if (gwettop <= wgt) then
+       fw    = 1.0
+     else
+       fw    = sqrt(1.0 + 1.21 * (gwettop-wgt)**0.68 )
+     endif
+
+     u_thresh_d_w = u_thresh0*fw/fd
+     ! increased the threshold, now also reduce the ustar.
+     fd_ustar     = fd*ustar(i,j)
+
+         ! Modify friction velocity for Owen Effect
+         ! Assumption of stable atmospheric profile to go from saltation
+         ! wind speed to equivalent threshold at z = 10m
+         ! Gillette et al. [1998] eq. 3
+     wt10m       = u_thresh_d_w/k_z
+     if (w10m   >= wt10m) then
+       ustars    = fd_ustar + 0.003*((w10m-wt10m)**2)
+     else
+       ustars    = fd_ustar
+     endif
+         ! Calculate the horizontal mass flux of dust [kg m-1 s-1]
+         ! Marticorena et al. 1997 eq. 5
+         ! Note: differs from Zender et al. 2003 eq. 10
+     rat = u_thresh_d_w / ustars
+     if ( (rat < 1.0) .and. (tsoil(i,j) .gt. tsoilf) ) then
+      horiz_flux = cs * adens(i,j) * ustars**3 /grav * &
+                     (1 - rat**2) * (1+rat)
+     else
+      horiz_flux = 0.0
+     endif
+
+         ! Vertical mass flux of dust  [kg m-2 s-1]
+     vert_flux = alpha * horiz_flux
+     landfrac  = max(0.0, 1.0 - fraclake(i,j) - fracsnow(i,j) )
+     emissions_tot(i,j) = vert_flux * landfrac
+
+    end do
+   end do
+
+       ! Scale by source function
+   emissions_tot = du_src * emissions_tot
+
+       ! optionally apply vegetation mask
+   if (veg_mask == 1) then
+       emissions_tot = max(0., 1.-gvf) * emissions_tot
+   end if
+       ! Make 3D (i,j,bin)
+   do n = 1, nbins
+     emissions(:,:,n) = emissions_tot(:,:)
+   end do
+
+
+   rc = __SUCCESS__
+
+   end subroutine DustEmissionDEAD03
+
+
+
+!=======================================================================================================
 
 !=====================================================================================
 !BOP
@@ -301,10 +613,10 @@ CONTAINS
 ! !IROUTINE: DustEmissionFENGSHA - Compute dust emissions using NOAA/ARL FENGSHA model
 !
 ! !INTERFACE:
-   subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, silt,  &
-                                  ssm, rdrag, airdens, ustar, uthrs, alpha, gamma, &
-                                  kvhmax, grav, rhop, distribution, emissions, rc)
-
+   subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, &
+                                  ssm, rdrag, airdens, ustar, tsoil, uthrs, alpha, gamma, &
+                                  kvhmax, grav, rhop, tsoilf, emissions, rc)
+! removed unnecessary variable silt & removed distribution from being applied here - JJ
 ! !USES:
    implicit NONE
 
@@ -315,18 +627,20 @@ CONTAINS
    real, dimension(:,:), intent(in) :: oro      ! land-ocean-ice mask [1]
    real, dimension(:,:), intent(in) :: clay     ! fractional clay content [1]
    real, dimension(:,:), intent(in) :: sand     ! fractional sand content [1]
-   real, dimension(:,:), intent(in) :: silt     ! fractional silt content [1]
+   !real, dimension(:,:), intent(in) :: silt     ! fractional silt content [1]
    real, dimension(:,:), intent(in) :: ssm      ! erosion map [1]
    real, dimension(:,:), intent(in) :: rdrag    ! drag partition [1/m]
    real, dimension(:,:), intent(in) :: airdens  ! air density at lowest level [kg/m^3]
    real, dimension(:,:), intent(in) :: ustar    ! friction velocity [m/sec]
+   real,    intent(in)              :: tsoil(:,:)          ! soil temperature [K]
    real, dimension(:,:), intent(in) :: uthrs    ! threshold velocity [m/2]
    real,                 intent(in) :: alpha    ! scaling factor [1]
    real,                 intent(in) :: gamma    ! scaling factor [1]
    real,                 intent(in) :: kvhmax   ! max. vertical to horizontal mass flux ratio [1]
    real,                 intent(in) :: grav     ! gravity [m/sec^2]
    real, dimension(:),   intent(in) :: rhop            ! soil class density [kg/m^3]
-   real, dimension(:),   intent(in) :: distribution    ! normalized dust binned distribution [1]
+   !real, dimension(:),   intent(in) :: distribution   ! normalized dust binned distribution [1]
+   real,    intent(in)              :: tsoilf          ! soil freezing temperature [K]
 
 ! !OUTPUT PARAMETERS:
    real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
@@ -338,7 +652,9 @@ CONTAINS
 !
 ! 22Feb2020 B.Baker/NOAA    - Original implementation
 ! 29Mar2021 R.Montuoro/NOAA - Refactored for process library
-!
+! 05Jan2023 J.Joshi         - Revised the implementation: corrected reference to and removed unnecessary, variables;
+!                             removed double counting for distribution (now precalculated also); applied soil-freezing;
+!                             changed layer airdens to surface one; updated alpha & gamma params; implemented ExtData
 
 ! !Local Variables
    logical               :: skip
@@ -387,7 +703,7 @@ CONTAINS
        ! --------------------------------------------
        if (.not.skip) skip = (ssm(i,j) < ssm_thresh) &
          .or. (clay(i,j) < 0.) .or. (sand(i,j) < 0.) &
-         .or. (rdrag(i,j) < 0.)
+         .or. (rdrag(i,j) < 0.) .or. (tsoil(i,j) .le. tsoilf)
 
        if (.not.skip) then
          fracland = max(0., min(1., 1.-fraclake(i,j))) &
@@ -423,9 +739,9 @@ CONTAINS
            ! ---------------------------------------------------------------------------
            q = max(0., rustar - u_thresh) * u_sum * u_sum
 
-           ! Distribute emissions to bins and convert to mass flux (kg s-1)
+           ! Distribute emissions to bins and convert to mass flux (kg s-1) -- NOT HERE --jj
            ! --------------------------------------------------------------
-           emissions(i,j,n) = distribution(n) * total_emissions * q
+           ! emissions(i,j,n) = distribution(n) * total_emissions * q
          end do
 
        end if
@@ -435,43 +751,43 @@ CONTAINS
 
    end subroutine DustEmissionFENGSHA
 
+
 !==================================================================================
 !BOP
-! !IROUTINE: DustEmissionGOCART2G
+! !IROUTINE: DustEmissionGINOUX01
 
-   subroutine DustEmissionGOCART2G(radius, fraclake, gwettop, oro, u10m, &
-                                   v10m, Ch_DU, du_src, grav, &
-                                   emissions, rc )
+   subroutine DustEmissionGINOUX01(radius, fraclake, fracsnow, gwettop, oro, gvf, veg_mask, u10m, &
+                                   v10m, tsoil, Ch_DU, du_src, grav, tsoilf, emissions, rc )
 
-! !USES:
-   implicit NONE
 
-! !INPUT PARAMETERS:
-   real, intent(in) :: radius(:)       ! particle radius [m]
-   real, dimension(:,:), intent(in) :: fraclake ! fraction of lake [1]
-   real, dimension(:,:), intent(in) :: gwettop  ! surface soil wetness [1]
-   real, dimension(:,:), intent(in) :: oro      ! land-ocean-ice mask [1]
-   real, dimension(:,:), intent(in) :: u10m     ! 10-meter eastward wind [m/sec]
-   real, dimension(:,:), intent(in) :: v10m     ! 10-meter northward wind [m/sec]
-   real, dimension(:,:), intent(in) :: du_src   ! dust emissions [(sec^2 m^5)/kg]
-   real, intent(in) :: Ch_DU   ! dust emission tuning coefficient [kg/(sec^2 m^5)]
-   real, intent(in) :: grav    ! gravity [m/sec^2]
+         ! ! INPUT
+   real,    intent(in)  :: radius(:)           ! particle radius [m]
+   real,    intent(in)  :: fraclake(:,:)       ! fraction of lake [1]
+   real,    intent(in)  :: fracsnow(:,:)       !             snow [1]
+   real,    intent(in)  :: gwettop(:,:)        ! surface soil wetness [1]
+   real,    intent(in)  :: oro(:,:)            ! land-ocean-ice mask [1]
+   real,    intent(in)  :: gvf(:,:)            ! vegetation fraction [1]
+   integer, intent(in)  :: veg_mask            ! veg mask. 1 = Yes, 0 = No
+   real,    intent(in)  :: u10m(:,:)           ! 10-meter eastward wind [m/sec]
+   real,    intent(in)  :: v10m(:,:)           ! 10-meter northward wind [m/sec]
+   real,    intent(in)  :: tsoil(:,:)          ! soil temperature [K]
+   real,    intent(in)  :: du_src(:,:)         ! source function
+   real,    intent(in)  :: Ch_DU               ! tuning coefficient [kg s^2 m^-5]
+   real,    intent(in)  :: grav                ! gravity [m/s^2]
+   real,    intent(in)  :: tsoilf              ! soil freezing temperature [K]
+       ! ! OUTPUT
+   real, intent(inout)  :: emissions(:,:,:)    ! Local emission [kg/m^2/s]
 
-! !OUTPUT PARAMETERS:
-!   real, pointer, intent(inout)  :: emissions(:,:)    ! Local emission [kg/(m^2 sec)]
-   real, intent(inout)  :: emissions(:,:,:)    ! Local emission [kg/(m^2 sec)]
-
-   integer, intent(out) :: rc  ! Error return code:
-
+   integer, intent(out) :: rc                  ! Error return code:
 
 ! !DESCRIPTION: Computes the dust emissions for one time step
 !
 ! !REVISION HISTORY:
 !
 ! 11Feb2020 E.Sherman - First attempt at refactor
-!
+! 29Dec2023 J.Joshi   - Added vegetation mask, snowfraction, & soil-freezing conditions.
 
-! !Local Variables
+       ! ! LOCAL
    integer         ::  i, j, n
    real, parameter ::  air_dens = 1.25  ! Air density = 1.25 kg m-3
    real, parameter ::  soil_density  = 2650.  ! km m-3
@@ -481,7 +797,6 @@ CONTAINS
    real            ::  w10m
    integer         ::  i1, i2, j1, j2, nbins
    integer         ::  dims(2)
-!   real, allocatable ::  emissions_(:,:)
 
 !EOP
 !-------------------------------------------------------------------------
@@ -522,29 +837,34 @@ CONTAINS
 
             w10m = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
 !           Modify the threshold depending on soil moisture as in Ginoux et al. [2001]
-            if(gwettop(i,j) .lt. 0.5) then
+            if ((gwettop(i,j) .lt. 0.5) .and. (tsoil(i,j) .gt. tsoilf)) then
                u_thresh = amax1(0.,u_thresh0* &
                (1.2+0.2*alog10(max(1.e-3,gwettop(i,j)))))
 
                if(w10m .gt. u_thresh) then
 !                 Emission of dust [kg m-2 s-1]
-                  emissions(i,j,n) = (1.-fraclake(i,j)) * w10m**2. * (w10m-u_thresh)
+                  emissions(i,j,n) = max(0.0, 1.0 - fraclake(i,j) - fracsnow(i,j) ) * w10m**2. * (w10m-u_thresh)
                endif
             endif !(gwettop(i,j) .lt. 0.5)
          end do ! i
       end do ! j
       emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
+
+       ! optionally apply vegetation mask
+      if (veg_mask == 1) then
+          emissions(:,:,n) = max(0., 1.-gvf) * emissions(:,:,n)
+      end if
     end do ! n
 
    rc = __SUCCESS__
 
-   end subroutine DustEmissionGOCART2G
+   end subroutine DustEmissionGINOUX01
 
 !==================================================================================
 !BOP
-! !IROUTINE: DustEmissionK14
+! !IROUTINE: DustEmissionKOK14
 
-   subroutine DustEmissionK14( km, t_soil, w_top, rho_air,    &
+   subroutine DustEmissionKOK14( km, t_soil, w_top, rho_air,    &
                                z0, z, u_z, v_z, ustar,    &
                                f_land, f_snow,            &
                                f_src,                     &
@@ -606,7 +926,7 @@ CONTAINS
                                  !  0 - all is well
                                  !  1 -
 
-   character(len=*), parameter :: myname = 'DustEmissionK14'
+   character(len=*), parameter :: myname = 'DustEmissionKOK14'
 
 !  !Local Variables
 
@@ -840,7 +1160,7 @@ CONTAINS
    ! ...kludge to deal with high emissions in Australia
    where (f_src >= 0.0) f_erod = f_src * f_erod
 
-   call VerticalDustFluxK14( i1, i2, j1, j2, km, &
+   call VerticalDustFluxKOK14( i1, i2, j1, j2, km, &
                              u, u_t, rho_air,    &
                              f_erod, k_gamma,    &
                              emissions(:,:,1) )
@@ -852,13 +1172,13 @@ CONTAINS
       emissions(:,:,n) = emissions(:,:,1)
    end do
 
-   end subroutine DustEmissionK14
+   end subroutine DustEmissionKOK14
 
 !==================================================================================
 !BOP
-! !IROUTINE: VerticalDustFluxK14
+! !IROUTINE: VerticalDustFluxKOK14
 
-   subroutine VerticalDustFluxK14( i1, i2, j1, j2, km, &
+   subroutine VerticalDustFluxKOK14( i1, i2, j1, j2, km, &
                                    u, u_t, rho_air, &
                                    f_erod, k_gamma,     &
                                    emissions )
@@ -877,7 +1197,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
    real, intent(out)    :: emissions(:,:)          ! total vertical dust mass flux, 'kg m-2 s-1'
 
-   character(len=*), parameter :: myname = 'VerticalDustFluxK14'
+   character(len=*), parameter :: myname = 'VerticalDustFluxKOK14'
 
 ! !Local Variables
    integer :: i, j
@@ -925,7 +1245,7 @@ CONTAINS
   end do
 
   ! all done
-  end subroutine VerticalDustFluxK14
+  end subroutine VerticalDustFluxKOK14
 
 !==================================================================================
 !BOP
@@ -10158,7 +10478,6 @@ loop2: DO l = 1,nspecies_HL
            val = res_value(i_res)
            rc  = __SUCCESS__
        end if
-
    end function Chem_UtilResVal
 
 !==================================================================================

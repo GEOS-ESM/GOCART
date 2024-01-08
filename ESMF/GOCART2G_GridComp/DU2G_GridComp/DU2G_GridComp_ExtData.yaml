@@ -14,6 +14,8 @@ Collections:
     template: ExtData/chemistry/NDVI/v1.0.r3/sfc/qvi.006.%y4.nc4
   DU2G_veg20.x1152_y721_t1.nc4:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/veg20.x1152_y721_t1.nc4
+  DU2G_FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc:
+    template: ExtData/chemistry/FENGSHA/v3.2/FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
 
 Samplings:
   DU2G_sample_0:
@@ -66,6 +68,31 @@ Exports:
     regrid: CONSERVE
     sample: DU2G_sample_0
     variable: roughness
+  DU_SANDF:
+    collection: DU2G_FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+    regrid: CONSERVE
+    sample: DU2G_sample_0
+    variable: sandfrac
+  DU_CLAYF:
+    collection: DU2G_FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+    regrid: CONSERVE
+    sample: DU2G_sample_0
+    variable: clayfrac
+  DU_SSM:
+    collection: DU2G_FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+    regrid: CONSERVE
+    sample: DU2G_sample_0
+    variable: sep
+  DU_RDRAG:
+    collection: DU2G_FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+    regrid: CONSERVE
+    sample: DU2G_sample_0
+    variable: albedo_drag
+  DU_UTHRES:
+    collection: DU2G_FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+    regrid: CONSERVE
+    sample: DU2G_sample_0
+    variable: uthres_bnu
   climDUDP001:
     collection: /dev/null
   climDUDP002:

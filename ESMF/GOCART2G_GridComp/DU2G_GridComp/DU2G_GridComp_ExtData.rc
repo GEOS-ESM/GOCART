@@ -14,6 +14,12 @@ DU_Z0         NA  N Y - none none roughness  ExtData/chemistry/DUST/v0.0.0/sfc/a
 
 DU_GVF        NA  N Y %y4-%m2-%d2t12:00:00 none none gvf  ExtData/chemistry/NDVI/v1.0.r3/sfc/qvi.006.%y4.nc4
 
+DU_SSM        NA       N Y - none none sep         ExtData/chemistry/FENGSHA/v3.2/FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+DU_UTHRES     NA       N Y - none none uthres_bnu  ExtData/chemistry/FENGSHA/v3.2/FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+DU_RDRAG      NA       N Y - none none albedo_drag ExtData/chemistry/FENGSHA/v3.2/FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+DU_CLAYF      NA       N Y - none none clayfrac    ExtData/chemistry/FENGSHA/v3.2/FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+DU_SANDF      NA       N Y - none none sandfrac    ExtData/chemistry/FENGSHA/v3.2/FENGSHA_2022_NESDIS_inputs_3km_v3.2.nc
+
 # DU data - 3D
 climdu001           'kg kg-1'            Y        N               0              0.0      1.0     DU001      ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
 climdu002           'kg kg-1'            Y        N               0              0.0      1.0     DU002      ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
