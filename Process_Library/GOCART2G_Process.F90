@@ -742,6 +742,7 @@ end subroutine DustEmissionSGINOUX
            ! Distribute emissions to bins and convert to mass flux (kg s-1) -- NOT HERE --jj
            ! --------------------------------------------------------------
            ! emissions(i,j,n) = distribution(n) * total_emissions * q
+           emissions(i,j,n) =  total_emissions * q
          end do
 
        end if
