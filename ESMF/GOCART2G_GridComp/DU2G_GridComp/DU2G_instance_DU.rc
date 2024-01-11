@@ -67,7 +67,7 @@ monomodal_soil_diameter: 75.e-06
 znot_ms: 33.e-06
 znot_m: 100.e-06
 uniform_clay_fraction: 0.2
-source_fraction_dead03: 0.1 0.1 0.2 0.5 0.1
+source_fraction_dead03: 0.044 0.106 0.219 0.486 0.145
 
 
 ## kok14 scheme
@@ -96,4 +96,4 @@ soil_clay_factor: 1.0
 alpha: 0.1
 gamma: 1.0
 vertical_to_horizontal_flux_ratio_limit: 2.e-04
-source_fraction_fengsha: 0.1 0.1 0.2 0.5 0.1
+source_fraction_fengsha: 0.044 0.106 0.219 0.486 0.145
