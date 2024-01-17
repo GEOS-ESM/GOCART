@@ -615,7 +615,7 @@ end subroutine DustEmissionSGINOUX
 ! !INTERFACE:
    subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, &
                                   ssm, rdrag, airdens, ustar, tsoil, uthrs, alpha, gamma, &
-                                  kvhmax, grav, rhop, tsoilf, emissions, rc)
+                                  kvhmax, grav, rhop, tsoilf, distribution, is_noaa_sys, emissions, rc)
 ! removed unnecessary variable silt & removed distribution from being applied here - JJ
 ! !USES:
    implicit NONE
@@ -639,8 +639,10 @@ end subroutine DustEmissionSGINOUX
    real,                 intent(in) :: kvhmax   ! max. vertical to horizontal mass flux ratio [1]
    real,                 intent(in) :: grav     ! gravity [m/sec^2]
    real, dimension(:),   intent(in) :: rhop            ! soil class density [kg/m^3]
-   !real, dimension(:),   intent(in) :: distribution   ! normalized dust binned distribution [1]
    real,    intent(in)              :: tsoilf          ! soil freezing temperature [K]
+   real, dimension(:),   intent(in) :: distribution   ! normalized dust binned distribution [1]
+                                                      ! irrelevant for geos sys
+   integer, intent(in)              :: is_noaa_sys    ! Using in noaa system? 1 = Yes, 0 = No
 
 ! !OUTPUT PARAMETERS:
    real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
@@ -653,7 +655,8 @@ end subroutine DustEmissionSGINOUX
 ! 22Feb2020 B.Baker/NOAA    - Original implementation
 ! 29Mar2021 R.Montuoro/NOAA - Refactored for process library
 ! 05Jan2023 J.Joshi         - Revised the implementation: corrected reference to and removed unnecessary, variables;
-!                             removed double counting for distribution (now precalculated also); applied soil-freezing;
+!                             removed double-scaling-by-distribution for geos (now precalculated also; added is_noaa_sys flag);
+!                             added a condition to allow no emission from frozen-soil;
 !                             changed layer airdens to surface one; updated alpha & gamma params; implemented ExtData
 
 ! !Local Variables
@@ -739,10 +742,15 @@ end subroutine DustEmissionSGINOUX
            ! ---------------------------------------------------------------------------
            q = max(0., rustar - u_thresh) * u_sum * u_sum
 
-           ! Distribute emissions to bins and convert to mass flux (kg s-1) -- NOT HERE --jj
-           ! --------------------------------------------------------------
-           ! emissions(i,j,n) = distribution(n) * total_emissions * q
-           emissions(i,j,n) =  total_emissions * q
+           if ( is_noaa_sys == 1 ) then
+             ! Distribute emissions to bins and convert to mass flux (kg s-1)
+             ! --------------------------------------------------------------
+             emissions(i,j,n) = distribution(n) * total_emissions * q
+           else
+             ! For GEOS
+             emissions(i,j,n) =  total_emissions * q
+           end if
+
          end do
 
        end if

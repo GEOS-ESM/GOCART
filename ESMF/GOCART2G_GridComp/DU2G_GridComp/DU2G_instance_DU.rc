@@ -97,3 +97,5 @@ alpha: 0.1
 gamma: 1.0
 vertical_to_horizontal_flux_ratio_limit: 2.e-04
 source_fraction_fengsha: 0.044 0.106 0.219 0.486 0.145
+# running in noaa/ufs (1) or geos (0) model system
+is_noaa_sys: 0

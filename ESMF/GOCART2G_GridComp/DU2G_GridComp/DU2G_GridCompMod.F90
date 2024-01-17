@@ -55,6 +55,8 @@ module DU2G_GridCompMod
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
        real, allocatable      :: sfrac(:)       ! fraction of total source
+       real, allocatable      :: sdist(:)       ! FENGSHA aerosol fractional size distribution [1]
+                                                ! not for GEOS
        real                   :: alpha          ! FENGSHA scaling factor
        real                   :: gamma          ! FENGSHA tuning exponent
        real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
@@ -73,6 +75,7 @@ module DU2G_GridCompMod
        real          :: f_scl          ! clay content scaling factor
        real          :: uts_gamma      ! threshold friction velocity parameter 'gamma'
        integer       :: vegMaskYN      ! apply veg mask [DEAD, sginoux, or ginoux01] 1 = Y, 0 = N
+       integer       :: isNoaaSys      ! model system noaa (1) or geos (0)
        real          :: tsoilf         ! for sginoux, dead03, ginoux, fengsha schemes
        real          :: ut0            ! for sginoux scheme
 !      !Workspae for point emissions
@@ -201,6 +204,7 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%kvhmax,     label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_fengsha:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%isNoaaSys,  label='is_noaa_sys:', __RC__)
     case ('kok14')
        call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
@@ -452,11 +456,11 @@ contains
     end if
 
 !   Dust emission size distribution for FENGSHA
-!   Avoid double counting by removing from here --jj
-!   if (self%emission_scheme == 'fengsha') then
-!     allocate(self%sdist(self%nbins), __STAT__)
-!     call DustAerosolDistributionKok(self%radius, self%rup, self%rlow, self%sdist)
-!   end if
+!   note: GEOS uses different method (vals via rc) --jj
+    if (self%emission_scheme == 'fengsha') then
+      allocate(self%sdist(self%nbins), __STAT__)
+      call DustAerosolDistributionKok(self%radius, self%rup, self%rlow, self%sdist)
+    end if
 
 
 !   Get dimensions
@@ -830,9 +834,11 @@ contains
        call DustEmissionFENGSHA (frlake, asnow, lwi, wet1, du_clayf, du_sandf,   &
                                  du_ssm, du_rdrag, rhos, ustar, tsoil1, du_uthres,  &
                                  self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
-                                 self%rhop, self%tsoilf, emissions_surface, __RC__)
+                                 self%rhop, self%tsoilf, self%sdist, self%isNoaaSys,&
+                                 emissions_surface, __RC__)
+
       ! Notes: for fengsha
-      !  Removed unnecessary du_silt and elsewhere used sdist (as sfrac)
+      !  Removed unnecessary du_silt and elsewhere used sdist (as sfrac) & added is_noaa_sys flag;
       !  Corrected variable references: frsnow -> asnow, slc -> wet1
       !  Use du_sand, du_clay as du_sandf, du_clayf to use separate data
       !  Replaced airdens(:,:,self%km) -> rhos. Applied soilfreezing condition
