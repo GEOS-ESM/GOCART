@@ -45,6 +45,10 @@ emission_scheme: ginoux01
 
 # apply veg mask or not. 0 = N, 1 = Y [for 'ginoux01','dead03','sginoux']
 apply_veg_mask: 1
+zero_beyond_this_gvf: 0.9
+unaffect_below_this_gvf: 0.005
+x0_sigmoid_gvf: 0.461
+k_sigmoid_gvf: 10.792
 
 # soil freezing condition ['ginoux01', 'sginoux', 'dead03', 'fengsha']
 soil_freezing_temp: 273.0

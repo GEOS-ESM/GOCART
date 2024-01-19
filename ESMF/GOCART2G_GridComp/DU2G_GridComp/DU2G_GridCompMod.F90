@@ -77,6 +77,10 @@ module DU2G_GridCompMod
        integer       :: vegMaskYN      ! apply veg mask [DEAD, sginoux, or ginoux01] 1 = Y, 0 = N
        integer       :: isNoaaSys      ! model system noaa (1) or geos (0)
        real          :: tsoilf         ! for sginoux, dead03, ginoux, fengsha schemes
+       real          :: x0gvf          ! for veg mask in sginoux, dead03, ginoux schemes
+       real          :: kgvf           ! for   "                 "             "
+       real          :: gvfMax         ! for   "                 "             "
+       real          :: gvfMin         ! for   "                 "             "
        real          :: ut0            ! for sginoux scheme
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
@@ -195,7 +199,6 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%z0m,        label='znot_m:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%soil_diam,  label='monomodal_soil_diameter:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%mclay,      label='uniform_clay_fraction:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%vegMaskYN,  label='apply_veg_mask:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_dead03:', __RC__)
     case ('fengsha')
@@ -213,13 +216,11 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_kok14:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_kok14:', __RC__)
     case ('ginoux01')
-       call ESMF_ConfigGetAttribute (cfg, self%vegMaskYN,  label='apply_veg_mask:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_ginoux01:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_ginoux01:', __RC__)
     case ('sginoux')
        call ESMF_ConfigGetAttribute (cfg, self%ut0,        label='dry_threshold_ut:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%vegMaskYN,  label='apply_veg_mask:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_sginoux:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_sginoux:', __RC__)
@@ -227,6 +228,15 @@ contains
        _ASSERT_RC(.false., "Unallowed emission scheme: "//trim(self%emission_scheme)//&
                   ". Allowed: ginoux01, sginoux, kok14, fengsha, dead03", ESMF_RC_NOT_IMPL)
     end select
+
+    if (self%emission_scheme == 'ginoux01' .OR. self%emission_scheme == 'dead03' .OR. &
+        self%emission_scheme == 'sginoux') then
+       call ESMF_ConfigGetAttribute (cfg, self%vegMaskYN,  label='apply_veg_mask:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gvfMax,     label='zero_beyond_this_gvf:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gvfMin,     label='unaffect_below_this_gvf:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%x0gvf,      label='x0_sigmoid_gvf:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%kgvf,       label='k_sigmoid_gvf:', __RC__)
+    end if
 
 !   Is DU data driven?
 !   ------------------
@@ -843,21 +853,26 @@ contains
       !  Use du_sand, du_clay as du_sandf, du_clayf to use separate data
       !  Replaced airdens(:,:,self%km) -> rhos. Applied soilfreezing condition
     case ('dead03')
-       call DustEmissionDEAD03 (lwi, frlake, asnow, du_src, du_gvf, self%vegMaskYN, &
-                                 du_sand, du_clay,  wet1, u10m, v10m, ustar, rhos, &
-                                 tsoil1, self%mclay, self%cs, self%z0ms, self%z0m, &
-                                 self%tsoilf, MAPL_GRAV, self%soil_diam, &
-                                 self%radius*1.e-6, emissions_surface, __RC__)
+       call DustEmissionDEAD03(lwi, frlake, asnow, du_src, self%vegMaskYN, du_gvf, &
+                               self%x0gvf, self%kgvf, self%gvfMax, self%gvfMin,    &
+                               du_sand, du_clay,  wet1, u10m, v10m, ustar, rhos,   &
+                               tsoil1, self%mclay, self%cs, self%z0ms, self%z0m,   &
+                               self%tsoilf, MAPL_GRAV, self%soil_diam,             &
+                               self%radius*1.e-6, emissions_surface, __RC__)
 
     case ('ginoux01')
+       call DustEmissionGINOUX01(self%radius*1.e-6, frlake, asnow, wet1, lwi,     &
+                                 self%vegMaskYN, du_gvf, self%x0gvf, self%kgvf,   &
+                                 self%gvfMax, self%gvfMin, u10m, v10m, tsoil1,    &
+                                 self%Ch_DU,  du_src, MAPL_GRAV, self%tsoilf,     &
+                                 emissions_surface, __RC__)
 
-       call DustEmissionGINOUX01(self%radius*1.e-6, frlake, asnow, wet1, lwi, du_gvf, &
-                                 self%vegMaskYN, u10m, v10m, tsoil1, self%Ch_DU, &
-                                 du_src, MAPL_GRAV, self%tsoilf, emissions_surface, __RC__)
     case ('sginoux')
-       call DustEmissionSGINOUX (self%radius*1.e-6, frlake, asnow, wet1, lwi, du_gvf, self%vegMaskYN, u10m, v10m, &
-                                tsoil1, du_src, self%ut0, self%Ch_DU, MAPL_GRAV, self%tsoilf, &
-                                emissions_surface, __RC__)
+       call DustEmissionSGINOUX(self%radius*1.e-6, frlake, asnow, wet1, lwi,    &
+                                self%vegMaskYN, du_gvf, self%x0gvf, self%kgvf,  &
+                                self%gvfMax, self%gvfMin, u10m, v10m, tsoil1,   &
+                                du_src, self%ut0, self%Ch_DU, MAPL_GRAV,        &
+                                self%tsoilf, emissions_surface, __RC__)
 
     case default
        _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux01, sginoux, kok14, fengsha, dead03',ESMF_RC_NOT_IMPL)

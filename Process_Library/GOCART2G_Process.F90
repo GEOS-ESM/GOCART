@@ -26,6 +26,7 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+   public DustEmissionVegMaskGVF
    public DustEmissionSGINOUX
    public DustEmissionDEAD03
    public DustAerosolDistributionKok
@@ -120,10 +121,46 @@ CONTAINS
 
 !=======================================================================================================
 !BOP
+!  !IROUTINE:  DustEmissionVegMaskGVF
+
+   real function DustEmissionVegMaskGVF (x, x0, k, xmax, xmin)
+
+   !---------------------------------------------------------------------------------------------------x
+   ! !DESCRIPTION: DustEmissionVegMaskGVF:  GVF-based, sigmoid dust-vegetation-mask                    !
+   !                                                                                                   !
+   ! !REVISION HISTORY:                                                                                !
+   !                                                                                                   !
+   !  18Jan2024  J.Joshi   Original implementation                                                     !
+   !---------------------------------------------------------------------------------------------------x
+
+   implicit NONE
+         ! ! INPUT
+   real, intent(in)    :: x     ! gvf [1]
+   real, intent(in)    :: x0, k ! sigmoid parameters [1]
+   real, intent(in)    :: xmax  ! zero beyond this val [1]
+   real, intent(in)    :: xmin  ! no-effect below this val [1]
+         ! ! LOCAL
+   real                :: dustmask
+   if (x .le. xmin) then
+     dustmask = 1.
+   else if (x .ge. xmax) then
+     dustmask = 0.
+   else
+     dustmask = 1./( 1. + exp(k*(x-x0)) )
+   end if
+   DustEmissionVegMaskGVF = dustmask
+
+   end function DustEmissionVegMaskGVF
+
+
+!=======================================================================================================
+!BOP
 !  !IROUTINE: DustEmissionSGINOUX
 
-   subroutine DustEmissionSGINOUX(radius, fraclake, fracsnow, vwettop, oro, gvf, veg_mask, u10m, v10m, &
-                                 tsoil, du_src, ut0, Ch_DU, grav, tsoilf, emissions, rc )
+   subroutine DustEmissionSGINOUX(radius, fraclake, fracsnow, vwettop, oro,       &
+                                  veg_mask, gvf, x0_gvf, k_gvf, gvf_max, gvf_min, &
+                                  u10m, v10m, tsoil, du_src, ut0, Ch_DU, grav,    &
+                                  tsoilf, emissions, rc )
 
    !---------------------------------------------------------------------------------------------------x
    ! !DESCRIPTION: Simplified Ginoux scheme, threshold is specified                                    !
@@ -152,8 +189,12 @@ CONTAINS
    real,    intent(in)  :: fracsnow(:,:)       !             snow [1]
    real,    intent(in)  :: vwettop(:,:)        ! surface soil wetness [1]
    real,    intent(in)  :: oro(:,:)            ! land-ocean-ice mask [1]
-   real,    intent(in)  :: gvf(:,:)            ! vegetation fraction [1]
    integer, intent(in)  :: veg_mask            ! veg mask. 1 = Yes, 0 = No
+   real,    intent(in)  :: gvf(:,:)            ! vegetation fraction [1]
+   real,    intent(in)  :: x0_gvf              ! x0 sigmoid param [1]
+   real,    intent(in)  :: k_gvf               ! k sigmoid param [1]
+   real,    intent(in)  :: gvf_max             ! gvf max [1]
+   real,    intent(in)  :: gvf_min             ! gvf min [1]
    real,    intent(in)  :: u10m(:,:)           ! 10-meter eastward wind [m/sec]
    real,    intent(in)  :: v10m(:,:)           ! 10-meter northward wind [m/sec]
    real,    intent(in)  :: tsoil(:,:)          ! soil temperature [K]
@@ -198,6 +239,11 @@ CONTAINS
        if(w10m .gt. ut) then
          landfrac  = max(0.0, 1.0 - fraclake(i,j) - fracsnow(i,j) )
          emissions_tot(i,j) =  landfrac * w10m**2. * (w10m-ut)
+         ! optionally apply vegetation mask
+        if (veg_mask == 1) then
+         emissions_tot(i,j) = emissions_tot(i,j) * DustEmissionVegMaskGVF(gvf(i,j), x0_gvf, k_gvf, gvf_max, gvf_min)
+        end if
+
        end if
      end if
      end do
@@ -205,10 +251,6 @@ CONTAINS
        ! Scale by source function
    emissions_tot = Ch_DU * du_src * emissions_tot
 
-       ! optionally apply vegetation mask
-   if (veg_mask == 1) then
-       emissions_tot = max(0., 1.-gvf) * emissions_tot
-   end if
        ! Make 3D (i,j,bin)
    do n = 1, nbins
      emissions(:,:,n) = emissions_tot(:,:)
@@ -224,9 +266,10 @@ end subroutine DustEmissionSGINOUX
 !BOP
 !  !IROUTINE: DustEmissionDEAD03
 
-   subroutine DustEmissionDEAD03(oro, fraclake, fracsnow, du_src, gvf, veg_mask, sandfrac, clayfrac, &
-                               vwettop, u10m, v10m, ustar, adens, tsoil, mclay, cs, z0ms, z0m, tsoilf, &
-                               grav, soil_diam, radius, emissions, rc)
+   subroutine DustEmissionDEAD03(oro, fraclake, fracsnow, du_src, veg_mask, gvf, x0_gvf,  &
+                                 k_gvf, gvf_max, gvf_min, sandfrac, clayfrac, vwettop,    &
+                                 u10m, v10m, ustar, adens, tsoil, mclay, cs, z0ms, z0m,   &
+                                 tsoilf, grav, soil_diam, radius, emissions, rc)
 
    !---------------------------------------------------------------------------------------------------x
    ! !DESCRIPTION: Computes the dust emissions for one time step                                       !
@@ -263,8 +306,12 @@ end subroutine DustEmissionSGINOUX
    real,    intent(in) :: fraclake(:,:)              ! fraction of lake [1]
    real,    intent(in) :: fracsnow(:,:)              ! fraction of snow [1]
    real,    intent(in) :: du_src(:,:)                ! source function [1]
-   real,    intent(in) :: gvf(:,:)                   ! vegetation fraction [1]
    integer, intent(in) :: veg_mask                   ! veg mask. 1 = Yes, 0 = No
+   real,    intent(in) :: gvf(:,:)                   ! vegetation fraction [1]
+   real,    intent(in) :: x0_gvf                     ! x0 sigmoid param [1]
+   real,    intent(in) :: k_gvf                      ! k sigmoid param [1]
+   real,    intent(in) :: gvf_max                    ! gvf max [1]
+   real,    intent(in) :: gvf_min                    ! gvf min [1]
    real,    intent(in) :: sandfrac(:,:)              ! sandfrac [1]
    real,    intent(in) :: clayfrac(:,:)              ! clayfrac [1]
    real,    intent(in) :: vwettop(:,:)               ! surface soil wetness volumetric [1]
@@ -387,6 +434,12 @@ end subroutine DustEmissionSGINOUX
      if ( (rat < 1.0) .and. (tsoil(i,j) .gt. tsoilf) ) then
       horiz_flux = cs * adens(i,j) * ustars**3 /grav * &
                      (1 - rat**2) * (1+rat)
+
+         ! optionally apply vegetation mask
+      if (veg_mask == 1) then
+       horiz_flux = horiz_flux * DustEmissionVegMaskGVF(gvf(i,j), x0_gvf, k_gvf, gvf_max, gvf_min)
+      end if
+
      else
       horiz_flux = 0.0
      endif
@@ -402,10 +455,6 @@ end subroutine DustEmissionSGINOUX
        ! Scale by source function
    emissions_tot = du_src * emissions_tot
 
-       ! optionally apply vegetation mask
-   if (veg_mask == 1) then
-       emissions_tot = max(0., 1.-gvf) * emissions_tot
-   end if
        ! Make 3D (i,j,bin)
    do n = 1, nbins
      emissions(:,:,n) = emissions_tot(:,:)
@@ -765,8 +814,10 @@ end subroutine DustEmissionSGINOUX
 !BOP
 ! !IROUTINE: DustEmissionGINOUX01
 
-   subroutine DustEmissionGINOUX01(radius, fraclake, fracsnow, gwettop, oro, gvf, veg_mask, u10m, &
-                                   v10m, tsoil, Ch_DU, du_src, grav, tsoilf, emissions, rc )
+   subroutine DustEmissionGINOUX01(radius, fraclake, fracsnow, gwettop, oro,      &
+                                  veg_mask, gvf, x0_gvf, k_gvf, gvf_max, gvf_min, &
+                                  u10m, v10m, tsoil, Ch_DU, du_src, grav, tsoilf, &
+                                  emissions, rc )
 
 
          ! ! INPUT
@@ -775,8 +826,12 @@ end subroutine DustEmissionSGINOUX
    real,    intent(in)  :: fracsnow(:,:)       !             snow [1]
    real,    intent(in)  :: gwettop(:,:)        ! surface soil wetness [1]
    real,    intent(in)  :: oro(:,:)            ! land-ocean-ice mask [1]
-   real,    intent(in)  :: gvf(:,:)            ! vegetation fraction [1]
    integer, intent(in)  :: veg_mask            ! veg mask. 1 = Yes, 0 = No
+   real,    intent(in)  :: gvf(:,:)            ! vegetation fraction [1]
+   real,    intent(in)  :: x0_gvf              ! x0 sigmoid param [1]
+   real,    intent(in)  :: k_gvf               ! k sigmoid param [1]
+   real,    intent(in)  :: gvf_max             ! gvf max [1]
+   real,    intent(in)  :: gvf_min             ! gvf min [1]
    real,    intent(in)  :: u10m(:,:)           ! 10-meter eastward wind [m/sec]
    real,    intent(in)  :: v10m(:,:)           ! 10-meter northward wind [m/sec]
    real,    intent(in)  :: tsoil(:,:)          ! soil temperature [K]
@@ -853,16 +908,16 @@ end subroutine DustEmissionSGINOUX
                if(w10m .gt. u_thresh) then
 !                 Emission of dust [kg m-2 s-1]
                   emissions(i,j,n) = max(0.0, 1.0 - fraclake(i,j) - fracsnow(i,j) ) * w10m**2. * (w10m-u_thresh)
+!                 optionally apply vegetation mask
+                  if (veg_mask == 1) then
+                    emissions(i,j,n) = emissions(i,j,n) * DustEmissionVegMaskGVF(gvf(i,j), x0_gvf, k_gvf, gvf_max, gvf_min)
+                  end if
                endif
             endif !(gwettop(i,j) .lt. 0.5)
          end do ! i
       end do ! j
       emissions(:,:,n) = Ch_DU * du_src * emissions(:,:,n)
 
-       ! optionally apply vegetation mask
-      if (veg_mask == 1) then
-          emissions(:,:,n) = max(0., 1.-gvf) * emissions(:,:,n)
-      end if
     end do ! n
 
    rc = __SUCCESS__
