@@ -5,7 +5,7 @@ GOCART:
 env:
   local: ./env@
   remote: ../ESMA_env.git
-  tag: v4.20.6
+  tag: v4.24.0
   develop: main
 
 cmake:
@@ -35,5 +35,5 @@ GMAO_Shared:
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  tag: v2.42.0
+  tag: v2.43.0
   develop: develop
