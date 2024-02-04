@@ -24,8 +24,8 @@ module GA_EnvironmentMod
        integer                :: km             ! vertical grid dimension
        real                   :: CDT            ! chemistry timestep (secs)
        integer                :: instance       ! data or computational instance
-       real                   :: plid           ! pressure lid [hPa]
-       integer                :: klid           ! vertical index of pressure lid
+       real                   :: plid = 0.0     ! pressure lid [hPa]
+       integer                :: klid = 0       ! vertical index of pressure lid
        real, allocatable      :: wavelengths_profile(:) ! wavelengths for profile aop [nm]
        real, allocatable      :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
     contains
