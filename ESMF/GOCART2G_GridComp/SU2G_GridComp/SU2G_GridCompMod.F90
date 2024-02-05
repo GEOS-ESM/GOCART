@@ -95,9 +95,14 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
       real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
       !logical :: firstRun = .true.
+      real, allocatable  :: rmed(:)  ! Median radius of lognormal number distribution
       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
 
+!     PRC: logic for GMI coupling
+      logical :: using_GMI
+      logical :: disable_emissions
+ 
 !     Special handling for volcanic emissions
       character(len=255) :: volcano_srcfilen
 !     !Workspae for point emissions
@@ -181,12 +186,16 @@ contains
 !   process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
+    allocate(self%rmed(self%nbins), __STAT__)
     allocate(self%sigma(self%nbins), __STAT__)
 
 !   process SU-specific items
+    call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%disable_emissions, label='disable_emissions:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen, label='volcano_srcfilen:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%rmed, label='particle_radius_number:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%sigma, label='sigma:', __RC__)
     call ESMF_ConfigFindLabel (cfg, 'aviation_vertical_layers:', __RC__)
     do i=1,size(self%aviation_layers)
@@ -300,8 +309,8 @@ contains
         end do
     end if ! (data_driven)
 
+    if (.not. data_driven ) then
 
-    if (.not. data_driven) then
        call MAPL_AddImportSpec(GC,             &
           SHORT_NAME = 'SU_H2O2', &
           LONG_NAME  = 'source species'  ,     &
@@ -325,7 +334,35 @@ contains
           DIMS       = MAPL_DimsHorzVert,     &
           VLOCATION  = MAPL_VLocationCenter,  &
           RESTART    = MAPL_RestartSkip, __RC__)
+
     end if
+
+    if(self%using_GMI) then
+
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'GMI_OH',                             &
+        LONG_NAME  = 'Hydroxyl_radical',                   &
+        UNITS      = 'mol/mol',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+        RESTART    = MAPL_RestartSkip,     __RC__)
+
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'GMI_H2O2',                           &
+        LONG_NAME  = 'Hydrogen_peroxide',                  &
+        UNITS      = 'mol/mol',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+        RESTART    = MAPL_RestartSkip,     __RC__)
+
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'GMI_NO3',                            &
+        LONG_NAME  = 'Nitrogen_trioxide',                  &
+        UNITS      = 'mol/mol',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+        RESTART    = MAPL_RestartSkip,     __RC__)
+    endif
 
 !   Import, Export, Internal states for computational instance 
 !   ----------------------------------------------------------
@@ -879,6 +916,20 @@ contains
     aviation_cds_src = SU_AVIATION_CDS
     aviation_crs_src = SU_AVIATION_CRS
 
+!   PRC: turn off emissions
+    if(self%disable_emissions) then
+     so2anthro_l1_src = 0.
+     so2anthro_l2_src = 0.
+     so2ship_src = 0.
+     so4ship_src = 0.
+     aircraft_fuel_src = 0.
+     so2biomass_src = 0.
+     dmso_conc = 0.
+     aviation_lto_src = 0.
+     aviation_cds_src = 0.
+     aviation_crs_src = 0.
+    endif
+
 !   As a safety check, where value is undefined set to 0
     where(1.01*so2biomass_src > MAPL_UNDEF)    so2biomass_src = 0.
     where(1.01*dmso_conc > MAPL_UNDEF)         dmso_conc = 0.
@@ -899,10 +950,17 @@ contains
        if(index(self%volcano_srcfilen,'volcanic_') /= 0) then
           call StrTemplate(fname, self%volcano_srcfilen, xid='unknown', &
                             nymd=nymd, nhms=120000 )
-          call ReadPointEmissions (nymd, fname, workspace%nVolc, workspace%vLat, workspace%vLon, &
-                                   workspace%vElev, workspace%vCloud, workspace%vSO2, workspace%vStart, &
-                                   workspace%vEnd, label='volcano', __RC__)
-          workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
+          inquire( file=fname, exist=fileExists)
+          if (fileExists) then
+           call ReadPointEmissions (nymd, fname, workspace%nVolc, workspace%vLat, workspace%vLon, &
+                                    workspace%vElev, workspace%vCloud, workspace%vSO2, workspace%vStart, &
+                                    workspace%vEnd, label='volcano', __RC__)
+           workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
+          else if (.not. fileExists) then
+           if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
+           workspace%nVolc = 0
+          end if
+
 !         Special possible case
           if(self%volcano_srcfilen(1:9) == '/dev/null') workspace%nVolc = 0
        end if
@@ -958,7 +1016,7 @@ contains
 
     if (associated(dms)) then 
        call DMSemission (self%km, self%cdt, MAPL_GRAV, t, u10m, v10m, lwi, delp, &
-                         fMassDMS, SU_DMSO, dms, SUEM, nDMS, __RC__)
+                         fMassDMS, dmso_conc, dms, SUEM, nDMS, __RC__)
     end if
 
 !   Add source of OCS-produced SO2
@@ -1046,6 +1104,7 @@ contains
     real, pointer, dimension(:,:,:)   :: int_ptr
 
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
+    REAL, POINTER, DIMENSION(:,:,:) ::  GMI_H2O2mr, GMI_OHmr, GMI_NO3mr
 
     real, dimension(:,:), allocatable   :: drydepositionf
     real, pointer, dimension(:,:,:)     :: dummyMSA !=> null() ! this is so the model can run without MSA enabled
@@ -1054,6 +1113,8 @@ contains
     integer :: thread
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real                              :: qmax, qmin
+    integer :: ijl, ijkl
 
 !!!! >>>>>>>>>>>>>>>>  OVP
 
@@ -1125,22 +1186,56 @@ contains
     allocate(xoh, mold=airdens, __STAT__)
     allocate(xno3, mold=airdens, __STAT__)
     allocate(xh2o2, mold=airdens, __STAT__)
-    xoh = 0.0
-    xno3 = 0.0
 
-    if (workspace%firstRun) then
-       xh2o2          = MAPL_UNDEF
-       h2o2_init = MAPL_UNDEF
-       workspace%firstRun  = .false.
-    end if
+    ijl   = ( i2 - i1 + 1 ) * ( j2 - j1 + 1 )
+    ijkl  = ijl * km
 
-    xh2o2 = h2o2_init 
+    if(self%using_GMI) then
+     xoh = GMI_OH
+     xh2o2 = GMI_H2O2
+     xno3 = GMI_NO3
+!     GMI_OHmr   = GMI_OH
+!     GMI_NO3mr  = GMI_NO3
+!     GMI_H2O2mr = GMI_H2O2
+!     xno3(i1:i2,j1:j2,1:km)  = GMI_NO3mr(i1:i2,j1:j2,1:km)
+!     WHERE(xno3(i1:i2,j1:j2,1:km) < 0.00) xno3(i1:i2,j1:j2,1:km) = 0.00
+!     xh2o2(i1:i2,j1:j2,1:km) = GMI_H2O2mr(i1:i2,j1:j2,1:km)
+!     WHERE(xh2o2(i1:i2,j1:j2,1:km) < 0.00) xh2o2(i1:i2,j1:j2,1:km) = 0.00
+!     xoh(i1:i2,j1:j2,1:km) =  GMI_OHmr(i1:i2,j1:j2,1:km)* &
+!                              MAPL_AVOGAD / MAPL_AIRMW * 1000.* &
+!                              airdens(i1:i2,j1:j2,1:km)*1.00E-06
+!if(MAPL_AM_I_ROOT()) print *, 'here1', xoh(i1,j1,km)
+     xoh =  xoh * (MAPL_AVOGAD/1000.) / MAPL_AIRMW * 1000. * airdens*1.00E-06
+!     WHERE(xoh(i1:i2,j1:j2,1:km) < 0.00) xoh(i1:i2,j1:j2,1:km) = 0.00
+!if(MAPL_AM_I_ROOT()) print *, (MAPL_AVOGAD/1000.) / MAPL_AIRMW * 1000.*1e-6
+!if(MAPL_AM_I_ROOT()) print *, 'here2', xoh(i1,j1,km)
+     call MAPL_MaxMin ( 'GMI:OH   ', xoh)
+     call MAPL_MaxMin ( 'GMI:H2O2 ', xh2o2)
+     call MAPL_MaxMin ( 'GMI:NO3  ', xno3)
+     call MAPL_MaxMin ( 'GMI:rhoa ', airdens)
+    else
 
-    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
-                                workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
-                                MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
-                                SU_OH, SU_NO3, SU_H2O2, &
-                                xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
+     xoh = 0.0
+     xno3 = 0.0
+
+     if (workspace%firstRun) then
+        xh2o2          = MAPL_UNDEF
+        h2o2_init = MAPL_UNDEF
+        workspace%firstRun  = .false.
+     end if
+
+     xh2o2 = h2o2_init 
+
+     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+                                 workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
+                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
+                                 SU_OH, SU_NO3, SU_H2O2, &
+                                 xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
+     call MAPL_MaxMin ( 'GOCART:OH   ', xoh)
+     call MAPL_MaxMin ( 'GOCART:H2O2 ', xh2o2)
+     call MAPL_MaxMin ( 'GOCART:NO3  ', xno3)
+
+    endif
 
 !   SU Settling
 !   -----------
@@ -1182,7 +1277,7 @@ contains
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
-    call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
+    call SU_Compute_Diags ( self%km, self%klid, self%rmed(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_Mie, &
                             self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
                             t, airdens, delp, ple,tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
@@ -1201,7 +1296,7 @@ contains
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
     RH20(:,:,:) = 0.20
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1211,7 +1306,7 @@ contains
                             scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1236,6 +1331,8 @@ contains
                          SCALE=(MW_AIR / MW_SO2), __RC__ )
 
 !!!! <<<<<<<<<<<<<<<<  OVP
+
+    deallocate(xoh, xh2o2, xno3, stat=STATUS)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1339,8 +1436,10 @@ subroutine Finalize(gc, import, export, clock, rc)
     VERIFY_(STATUS)
     Iam = trim(COMP_NAME) // Iam
 
+    if(allocated(MASK_10AM)) then
     DEALLOCATE( MASK_10AM, MASK_2PM, STAT=STATUS)
     VERIFY_(STATUS)
+    endif
 
     call MAPL_GenericFinalize ( GC, IMPORT, EXPORT, CLOCK,  RC=STATUS)
     VERIFY_(STATUS)
