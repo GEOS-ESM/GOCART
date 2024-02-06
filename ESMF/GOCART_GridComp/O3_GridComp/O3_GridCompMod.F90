@@ -891,7 +891,6 @@ CONTAINS
 ! Repair bad tropopause pressures, if any exist
 ! ---------------------------------------------
    ALLOCATE(tropPa(i1:i2,j1:j2), _STAT)
-
    CALL Chem_UtilTroppFixer(i2, j2, tropp, VERBOSE=.TRUE., NEWTROPP=tropPa, RC=status)
    VERIFY_(status)
 
