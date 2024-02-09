@@ -692,6 +692,10 @@ contains
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 
+    ! Add variables to SU instance's aero state. Used in GMI
+    call add_aero (aero, label='sulfate_surface_area_density', label2='SO4SAREA', grid=grid, typekind=MAPL_R4,__RC__)
+    call ESMF_AttributeSet(aero, NAME='effective_radius_in_microns', VALUE=self%radius(3), __RC__)
+ 
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
@@ -1089,6 +1093,7 @@ contains
     character (len=ESMF_MAXSTR)       :: COMP_NAME
     type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
+    type (ESMF_State)                 :: aero
     type (wrap_)                      :: wrap
     type (SU2G_GridComp), pointer     :: self
     type (ESMF_Time)                  :: time
@@ -1100,7 +1105,7 @@ contains
     logical                           :: KIN
     real, pointer, dimension(:,:)     :: lats
     real, pointer, dimension(:,:)     :: lons
-    character(len=ESMF_MAXSTR)        :: short_name
+    character(len=ESMF_MAXSTR)        :: short_name, fld_name
     real, pointer, dimension(:,:,:)   :: int_ptr
 
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
@@ -1154,6 +1159,9 @@ contains
                          INTERNALSPEC = InternalSpec, &
                          LONS = LONS, &
                          LATS = LATS, __RC__ )
+
+!   Get the aero state
+    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
 
 #include "SU2G_GetPointer___.h"
     
@@ -1287,6 +1295,16 @@ contains
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
+    call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=short_name, __RC__)
+    call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+    CALL MAPL_MaxMin('GOCART: SO4:      ', int_ptr)
+    call ESMF_AttributeGet(aero, name='sulfate_surface_area_density', value=fld_name, __RC__)
+    if (fld_name /= '') then
+        call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+        int_ptr = SO4SAREA(:,:,:)
+    end if
+    CALL MAPL_MaxMin('GOCART: SO4VSAREA:', so4sarea)
+
 
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
     j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
