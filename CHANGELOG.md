@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
+-Changed Chem_SettlingSimple in the process library to call Mie Query for radius and rhop inputs to the settling velocity calculation. The calls to Chem_SettlingSimple were then changed accordingly in each of the species' grid comps. Since the RH flag is no longer needed, it was removed from GA_EnvironmentMod.F90 and each of the instance RC files.
 ## [v2.2.1] - 2023-05-30
 
 ### Fixed

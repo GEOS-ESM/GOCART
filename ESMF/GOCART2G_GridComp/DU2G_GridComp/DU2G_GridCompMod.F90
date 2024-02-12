@@ -32,6 +32,7 @@ module DU2G_GridCompMod
 ! !DESCRIPTION: This module implements GOCART's Dust (DU) Gridded Component.
 
 ! !REVISION HISTORY:
+! 4January2024   Collow - Updated call for ChemSettling
 ! 16Oct2019  Sherman, da Silva, Darmenov, Clune -  First attempt at refactoring
 
 !EOP
@@ -906,6 +907,7 @@ contains
     integer                           :: i1, j1, i2, j2, km
     real, parameter ::  cpd    = 1004.16
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, pointer, dimension(:,:)     :: flux_ptr
 #include "DU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -942,11 +944,11 @@ contains
 !   Dust Settling
 !   -------------
     do n = 1, self%nbins
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), DU(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, DUSD, correctionMaring=self%maringFlag, __RC__)
-
-
+       nullify(flux_ptr)
+       if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           DU(:,:,:,n), t, airdens, &
+                           rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, __RC__)
     end do
 
 !   Dust Deposition

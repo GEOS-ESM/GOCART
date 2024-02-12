@@ -1092,9 +1092,9 @@ CONTAINS
 !BOP
 ! !IROUTINE: Chem_SettlingSimple
 
-   subroutine Chem_SettlingSimple ( km, klid, flag, cdt, grav, &
-                                    radiusInp, rhopInp, int_qa, tmpu, &
-                                    rhoa, rh, hghte, delp, fluxout,  &
+   subroutine Chem_SettlingSimple ( km, klid, mie, bin, cdt, grav, &
+                                    int_qa, tmpu, rhoa, rh, hghte, &
+                                    delp, fluxout,  &
                                     vsettleOut, correctionMaring, rc)
 
 ! !USES:
@@ -1104,11 +1104,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
    integer, intent(in)    :: km     ! total model levels
    integer, intent(in)    :: klid   ! index for pressure lid
-   integer, intent(in) :: flag     ! flag to control particle swelling (see note)
+   type(GOCART2G_Mie),  intent(in) :: mie        ! mie table
+   integer, intent(in)    :: bin    ! aerosol bin index
    real, intent(in)    :: cdt
    real, intent(in)    :: grav   ! gravity [m/sec^2]
-   real, intent(in)  :: radiusInp  ! particle radius [microns]
-   real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in)  :: rhoa   ! air density [kg/m^3]
@@ -1133,13 +1132,11 @@ CONTAINS
 
 ! !DESCRIPTION: Gravitational settling of aerosol between vertical
 !               layers.  Assumes input radius in [m] and density (rhop)
-!               in [kg m-3]. If flag is set, use the Fitzgerald 1975 (flag = 1)
-!               or Gerber 1985 (flag = 2) parameterization to update the
-!               particle radius for the calculation (local variables radius
-!               and rhop).
+!               in [kg m-3]arrays from the optics files. 
 !
 ! !REVISION HISTORY:
-!
+!  02Jan2024  Collow    Removed calls to particle swelling and added 
+!                       interpolation based on RH
 !  17Sep2004  Colarco   Strengthen sedimentation flux out at surface
 !                       by setting removal to be valid from middle of
 !                       surface layer
@@ -1200,10 +1197,10 @@ CONTAINS
    enddo
 
 !  If radius le 0 then get out
-   if(radiusInp .le. 0.) then
-      status = 100
-      __RETURN__(STATUS)
-   end if
+!   if(radiusInp .le. 0.) then
+!      status = 100
+!      __RETURN__(STATUS)
+!   end if
 
 !   Find the column dry mass before sedimentation
     do k = klid, km
@@ -1214,22 +1211,23 @@ CONTAINS
        enddo
     enddo
 
-!   Particle swelling
-    call ParticleSwelling(i1, i2, j1, j2, km, rh, radiusInp, rhopInp, radius, rhop, flag)
-
+! Find radius and density of the wet particle
+    call mie%Query(550e-9,bin,   &
+                         qa*delp/grav, &
+                         rh, reff=radius, rhop=rhop, __RC__)  
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
           do i = i1, i2
-             call Chem_CalcVsettle(radius(i,j,k), rhop(i,j,k), rhoa(i,j,k), &
+            call Chem_CalcVsettle(radius(i,j,k)*1.e-6, rhop(i,j,k), rhoa(i,j,k), &
                                    tmpu(i,j,k), vsettle(i,j,k), grav)
           end do
        end do
     end do
-
+ 
     if(present(correctionMaring)) then
        if (correctionMaring) then
-          vsettle = max(1.0e-9, vsettle - v_upwardMaring)
+            vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
 
@@ -1252,7 +1250,6 @@ CONTAINS
     if( associated(fluxout) ) then
        fluxout(:,:) = (cmass_before - cmass_after)/cdt
     endif
-
     int_qa = qa
 
    __RETURN__(__SUCCESS__)
@@ -1279,7 +1276,7 @@ CONTAINS
    integer, intent(in) :: flag     ! flag to control particle swelling (see note)
    real, intent(in)    :: cdt
    real, intent(in)    :: grav   ! gravity [m/sec^2]
-   real, intent(in)  :: radiusInp  ! particle radius [microns]
+   real, intent(in)  :: radiusInp  ! particle radius [meters] (converted from microns in call to function)
    real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
