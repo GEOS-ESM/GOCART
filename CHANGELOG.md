@@ -13,6 +13,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [feature/pcolarco/CarbonChemLossUpd] - 2024-03-04
+
+### Changes
+- It changes the formulation of the hydrophobic to hydrophilic conversion for carbon species,
+now defined by a time scale specified in the instance RC file. This is now specified by providing 
+an e-folding time in days. This moves the time constant from outside the fortran to the run-time 
+configurable RC file. This is not quite zero-diff with original code because of the precision of 
+the specification, but testing shows nearly zero-diff result.
+
+- Also now present in the carbon instance RC files is a run-time configurable optional 
+parameterized loss rate (e-folding time in days) per species and per mode. Default value for all is 
+set to "-1" which means no use of this function. It has been tested separately for hydrophilic 
+brown carbon (-1 6.0) which favorably improves OA:BC ratio for southern African biomass burning. 
+This requires additional rescaling of BB emissions (increase scaling from 0.778->0.9 for BC and 
+0.778->1.25 for BR) to compensate for increased loss (in second case) and to improve simulation of 
+BC (in first case). This requires further testing before recommending configuration changes, but as 
+defined in default it is zero-diff.
+
+
+
 ## [#263] - 2024-02-02
 
 ### Changed
