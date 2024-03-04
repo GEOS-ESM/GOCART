@@ -13,6 +13,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [feature/pcolarco/CarbonChemLossUpd] - 2024-03-04
+
+### Changes
+- It changes the formulation of the hydrophobic to hydrophilic conversion for carbon species,
+now defined by a time scale specified in the instance RC file. This is now specified by providing 
+an e-folding time in days. This moves the time constant from outside the fortran to the run-time 
+configurable RC file. This is not quite zero-diff with original code because of the precision of 
+the specification, but testing shows nearly zero-diff result.
+
+- Also now present in the carbon instance RC files is a run-time configurable optional 
+parameterized loss rate (e-folding time in days) per species and per mode. Default value for all is 
+set to "-1" which means no use of this function. It has been tested separately for hydrophilic 
+brown carbon (-1 6.0) which favorably improves OA:BC ratio for southern African biomass burning. 
+This requires additional rescaling of BB emissions (increase scaling from 0.778->0.9 for BC and 
+0.778->1.25 for BR) to compensate for increased loss (in second case) and to improve simulation of 
+BC (in first case). This requires further testing before recommending configuration changes, but as 
+defined in default it is zero-diff.
+
+
+
+## [#263] - 2024-02-02
+
+### Changed
+-Sulfate surface area density calculation in SU_Compute_Diags was incorrectly being passed the effective radius used for settling along with the sigma width of the number distribution. Properly it should be passed the number median radius, also present in the RC file. Added a hook to read that field from the RC file ("particle_radius_number"), store in SU grid comp, and pass to SU_Compute_Diags. This change is zero-diff to the SU internal state. It changes value of export SO4AREA.
+
+-Add some protective logic around reading daily volcanic emission files. If filename does not exist model will write message to standard output and reset volcanic emissions to zero. This is zero difference result unless in a place where the files were not present.
+
+-Changed DMS concentration data holder from ExtData provided (SU_DMSO) to local copy (dmso_conc). This is relevant since if we run source tagged instances where we don't want DMS emissions we would zero out dmso_conc and that is what should be passed to DMSemission subroutine. This is zero diff except in that case.
+
 ## [v2.2.1] - 2023-05-30
 
 ### Fixed
