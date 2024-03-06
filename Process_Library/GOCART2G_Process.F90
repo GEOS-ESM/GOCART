@@ -5673,7 +5673,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: SUvolcanicEmissions
 
    subroutine SUvolcanicEmissions (nVolc, vStart, vEnd, vSO2, vElev, vCloud, iPoint, &
-                                   jPoint, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SU_emis, km, cdt, grav,&
+                                   jPoint, nhms, SO2EMVol, SO2, nSO2, SU_emis, km, cdt, grav,&
                                    hghte, delp, area, vLat, vLon, rc)
 ! !USES:
    implicit NONE
@@ -5697,8 +5697,7 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:), intent(in)     :: vLat  ! latitude specified in file [degree]
    real, dimension(:), intent(in)     :: vLon  ! longitude specified in file [degree]
 ! !INOUT PARAMETERS:
-  real, pointer, dimension(:,:), intent(inout) :: SO2EMVN ! non-explosive volcanic emissions [kg m-2 s-1]
-  real, pointer, dimension(:,:), intent(inout) :: SO2EMVE ! explosive volcanic emissions [kg m-2 s-1]
+  real, pointer, dimension(:,:), intent(inout) :: SO2EMVol ! volcanic emissions [kg m-2 s-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SO2 ! SO2 [kg kg-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SU_emis      ! SU emissions, kg/m2/s
   real, dimension(:), intent(inout) ::  vElev ! bottom elevation of emissions [m]
@@ -5722,7 +5721,6 @@ K_LOOP: do k = km, 1, -1
    real :: deltaSO2v
    real, dimension(:,:), allocatable :: z0
    real, allocatable, dimension(:,:) :: srcSO2volc
-   real, allocatable, dimension(:,:) :: srcSO2volce
 
 !EOP
 !-------------------------------------------------------------------------
@@ -5731,13 +5729,9 @@ K_LOOP: do k = km, 1, -1
    if (nVolc > 0) then
 
    allocate(srcSO2volc, mold=area)
-   allocate(srcSO2volce, mold=area)
    srcSO2volc = 0.
-   srcSO2volce = 0.
 
-   if (associated(SU_emis)) SU_emis = 0.0
-   if (associated(SO2EMVN)) SO2EMVN = 0.
-   if (associated(SO2EMVE)) SO2EMVE = 0.
+   if (associated(SO2EMVol)) SO2EMVol = 0.
 
    allocate(z0, mold=area)
    z0 = hghte(:,:,km)
@@ -5776,11 +5770,7 @@ K_LOOP: do k = km, 1, -1
 
 !        Diagnostic - sum of volcanos
 !        ----------------------------
-         if (hup .eq. hlow) then
-            srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
-         else
-            srcSO2volce(i,j) = srcSO2volce(i,j) + so2volcano
-         endif
+         srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
 
          dzvolc = hup-hlow
          do k = km, 1, -1
@@ -5827,9 +5817,8 @@ K_LOOP: do k = km, 1, -1
    enddo     ! it
   end if ! nVolc > 0
 
-  if (associated(SO2EMVN)) SO2EMVN = SO2EMVN + srcSO2volc
-  if (associated(SO2EMVE)) SO2EMVE = SO2EMVE + srcSO2volce
-  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc + srcSO2volce
+  if (associated(SO2EMVol)) SO2EMVol = SO2EMVol + srcSO2volc
+  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc
 
   __RETURN__(__SUCCESS__)
   end subroutine SUvolcanicEmissions

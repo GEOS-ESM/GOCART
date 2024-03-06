@@ -54,6 +54,9 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
 !===========================================================================
 !  !Sulfer state
    type :: ThreadWorkspace
+      integer :: nymd_last = -1 ! Previous nymd. Updated daily
+
+!     Degassing volcanoes
       integer :: nVolc = 0
       real, allocatable, dimension(:)  :: vLat, &
                                           vLon, &
@@ -62,7 +65,17 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
                                           vCloud
       integer, allocatable, dimension(:) :: vStart, &
                                             vEnd
-      integer :: nymd_last = -1 ! Previous nymd. Updated daily
+!     Explosive volcanoes
+      integer :: nVolcE = 0
+      real, allocatable, dimension(:)  :: vLatE, &
+                                          vLonE, &
+                                          vSO2E, &
+                                          vElevE, &
+                                          vCloudE
+      integer, allocatable, dimension(:) :: vStartE, &
+                                            vEndE
+
+!     Other point emissions of Sulfate (SO4)
       integer                         :: nPts = -1
       integer, allocatable, dimension(:)  :: pstart, pend
       real, allocatable, dimension(:)     :: pLat, &
@@ -86,8 +99,10 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       !real, pointer :: h2o2_init(:,:,:)
 
 !     Special handling for volcanic emissions
-      character(len=255) :: volcano_srcfilen
-!     !Workspae for point emissions
+      character(len=255) :: volcano_srcfilen_degassing
+      character(len=255) :: volcano_srcfilen_explosive
+
+!     Workspace for point emissions
       logical                :: doing_point_emissions = .false.
       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
@@ -174,7 +189,8 @@ contains
     allocate(self%sigma(self%nbins), __STAT__)
 
 !   process SU-specific items
-    call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen, label='volcano_srcfilen:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_degassing, label='volcano_srcfilen_degassing:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_explosive, label='volcano_srcfilen_explosive:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%sigma, label='sigma:', __RC__)
@@ -718,7 +734,7 @@ contains
     real, dimension(:,:), allocatable :: so2biomass_src, so2biomass_src_, so2anthro_l1_src, &
                                          so2anthro_l2_src, so2ship_src, so4ship_src, dmso_conc, &
                                          aviation_lto_src, aviation_cds_src, aviation_crs_src
-    integer, dimension(:), allocatable  :: iPointVolc, jPointVolc, iPoint, jPoint
+    integer, dimension(:), allocatable  :: iPoint, jPoint
     real, dimension(:,:,:), allocatable :: emissions_point
     character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
     logical :: fileExists
@@ -812,34 +828,48 @@ contains
     where(1.01*aviation_cds_src > MAPL_UNDEF ) aviation_cds_src = 0.
     where(1.01*aviation_crs_src > MAPL_UNDEF ) aviation_crs_src = 0.
 
+!   Start with a clean emission diagnostic
+    if(associated(SUEM)) SUEM = 0.0    
+
+
 !   Update emissions/production if necessary (daily)
 !   -----------------------------------------------
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
+!   Update Volcanic SO2 Emissions Daily
     if(workspace%nymd_last /= nymd) then
        workspace%nymd_last = nymd
 
-!      Get pointwise SO2 and altitude of volcanoes from a daily file data base
-       if(index(self%volcano_srcfilen,'volcanic_') /= 0) then
-          call StrTemplate(fname, self%volcano_srcfilen, xid='unknown', &
+!      DEGASSING: Get pointwise SO2 and altitude of volcanoes from a daily file data base
+       workspace%nVolc = 0  ! case of /dev/null (no volcanoes) or ill-formed filename
+       if(index(self%volcano_srcfilen_degassing,'volcanic_') /= 0) then
+          call StrTemplate(fname, self%volcano_srcfilen_degassing, xid='unknown', &
                             nymd=nymd, nhms=120000 )
           call ReadPointEmissions (nymd, fname, workspace%nVolc, workspace%vLat, workspace%vLon, &
                                    workspace%vElev, workspace%vCloud, workspace%vSO2, workspace%vStart, &
                                    workspace%vEnd, label='volcano', __RC__)
           workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
-!         Special possible case
-          if(self%volcano_srcfilen(1:9) == '/dev/null') workspace%nVolc = 0
+       end if
+
+!      EXPLOSIVE: Get pointwise SO2 and altitude of volcanoes from a daily file data base
+       workspace%nVolcE = 0  ! case of /dev/null (no volcanoes) or ill-formed filename
+       if(index(self%volcano_srcfilen_explosive,'volcanic_') /= 0) then
+          call StrTemplate(fname, self%volcano_srcfilen_explosive, xid='unknown', &
+                            nymd=nymd, nhms=120000 )
+          call ReadPointEmissions (nymd, fname, workspace%nVolcE, workspace%vLatE, workspace%vLonE, &
+                                   workspace%vElevE, workspace%vCloudE, workspace%vSO2E, workspace%vStartE, &
+                                   workspace%vEndE, label='volcano', __RC__)
+          workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
        end if
     end if
 
-!   Apply volcanic emissions
-!   ------------------------
+!   DEGASSING: Apply volcanic emissions
+!   -----------------------------------
     if (workspace%nVolc > 0) then
-       if (associated(SO2EMVE)) SO2EMVE=0.0
        if (associated(SO2EMVN)) SO2EMVN=0.0
-       allocate(iPointVolc(workspace%nVolc), jPointVolc(workspace%nVolc),  __STAT__)
-       call MAPL_GetHorzIJIndex(workspace%nVolc, iPointVolc, jPointVolc, &
+       allocate(iPoint(workspace%nVolc), jPoint(workspace%nVolc),  __STAT__)
+       call MAPL_GetHorzIJIndex(workspace%nVolc, iPoint, jPoint, &
                                 grid = grid,               &
                                 lon  = workspace%vLon/real(MAPL_RADIANS_TO_DEGREES), &
                                 lat  = workspace%vLat/real(MAPL_RADIANS_TO_DEGREES), &
@@ -850,8 +880,30 @@ contains
            end if
 
        call SUvolcanicEmissions (workspace%nVolc, workspace%vStart, workspace%vEnd, workspace%vSO2, workspace%vElev, &
-                                 workspace%vCloud, iPointVolc, jPointVolc, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SUEM, &
+                                 workspace%vCloud, iPoint, jPoint, nhms, SO2EMVN, SO2, nSO2, SUEM, &
                                  self%km, self%cdt, MAPL_GRAV, zle, delp, area, workspace%vLat, workspace%vLon, __RC__)
+       deallocate(iPoint, jPoint, __STAT__)
+    end if
+
+!   EXPLOSIVE: Apply volcanic emissions
+!   -----------------------------------
+    if (workspace%nVolcE > 0) then
+       if (associated(SO2EMVE)) SO2EMVE=0.0
+       allocate(iPoint(workspace%nVolcE), jPoint(workspace%nVolcE),  __STAT__)
+       call MAPL_GetHorzIJIndex(workspace%nVolcE, iPoint, jPoint, &
+                                grid = grid,               &
+                                lon  = workspace%vLon/real(MAPL_RADIANS_TO_DEGREES), &
+                                lat  = workspace%vLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                rc   = status)
+           if ( status /= 0 ) then
+              if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
+              VERIFY_(status)
+           end if
+
+       call SUvolcanicEmissions (workspace%nVolcE, workspace%vStartE, workspace%vEndE, workspace%vSO2E, workspace%vElevE, &
+                                 workspace%vCloudE, iPoint, jPoint, nhms, SO2EMVE, SO2, nSO2, SUEM, &
+                                 self%km, self%cdt, MAPL_GRAV, zle, delp, area, workspace%vLatE, workspace%vLonE, __RC__)
+       deallocate(iPoint, jPoint, __STAT__)
     end if
 
 !   Apply diurnal cycle if so desired
@@ -926,6 +978,7 @@ contains
                                        workspace%pStart, workspace%pEnd, zle, &
                                        area, iPoint, jPoint, nhms, emissions_point, __RC__)
 
+        deallocate(iPoint, jPoint, __STAT__)
         SO4 = SO4 + self%cdt * MAPL_GRAV / delp * emissions_point
      end if
 

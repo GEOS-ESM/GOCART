@@ -13,6 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [Unreleased - Peter.R.Colarco@nasa.gov] - 2024-01-08
+
+### Changed
+
+- Changed SU2G_instance_SU.rc to now have separate filename inputs for explosive and degassing volcanoes
+- Moved present volcanic emission inventories to one or the other line for these new entries; set other
+  line /dev/null; this is stop gap until next time we update volcanic emission inventories, at which 
+  point will provide (for AMIP and AMIP.20C) separate explosive and degassing emissions
+- Made accommodating changes for above in SU2G_GridCompMod.F90 and in the Process Library
+- Verified zero diff in current configuration (this is true of tracers and restarts, but not diagnostics:
+  until an actual split is made in the input emissions then the volcanic emissions are being assigned to
+  one or the other emission diagnostics (explosive or degassing).
+
 ## [v2.2.1] - 2023-05-30
 
 ### Fixed
