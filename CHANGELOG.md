@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update `components.yaml` to match that of GEOSgcm v11.3.3
+  - ESMA_env v4.20.6 (Baselibs 7.14.0, Updates for SLES15 at NCCS)
+  - ESMA_cmake v3.36.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS)
+  - GMAO_Shared v1.9.6 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
+  - MAPL 2.42.0 (Various fixes and features)
+- Update CI to use Baselibs by default from CircleCI Orb
 - Correct soil moisture parameterization in FENGSHA
 - Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
 - Add `soil_drylimit_factor` to the DU2G_instance_DU.rc and DU2G_GridCompMod.F90 files for FENGSHA
