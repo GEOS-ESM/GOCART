@@ -4,7 +4,7 @@ cmake_policy (SET CMP0054 NEW)
 
 project (
         GOCART
-        VERSION 2.1.1
+        VERSION 2.2.1
         LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
 if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -61,6 +61,12 @@ endif ()
 
 if (UFS_GOCART)
   find_package (GFTL_SHARED REQUIRED)
+  # Dom Heinzeller 2023/08/30 - workaround until https://github.com/GEOS-ESM/MAPL/pull/2320
+  # is merged and finds its way into the ufs-weather-model dependency tree
+  find_package (YAFYAML QUIET)
+  find_package (FARGPARSE QUIET)
+  find_package (PFLOGGER QUIET)
+  #
   find_package (MAPL REQUIRED)
   include(mapl_acg)
 elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
