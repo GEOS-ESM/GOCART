@@ -1,3 +1,4 @@
+#include "Process.H"
 !BOP
 !
 ! !MODULE:  GOCART2G_MieMod --- Reader for aerosol mie tables
@@ -540,13 +541,15 @@ CONTAINS
        endif
     enddo
 
-    if (present(rc)) rc = 0
-
-    if (ch < 0) then
-       !$omp critical (GetCha)
-       print*, "wavelength of ",wavelength, " is an invalid value."
-       !$omp end critical (GetCha)
-       if (present(rc)) rc = -1
+    if (present(rc)) then
+       if (ch > 0) then
+          rc = __SUCCESS__
+       else
+          rc = __FAIL__
+          !$omp critical (GetCha)
+          print*, "wavelength of ",wavelength, " is an invalid value."
+          !$omp end critical (GetCha)
+       endif
     endif
 
   end function getChannel
@@ -558,18 +561,22 @@ CONTAINS
      real, parameter :: w_tol = 1.e-9
      integer :: i
 
-     if (present(rc)) rc = 0
-
      if (ith_channel <=0 .or. ith_channel > this%nch ) then
-       !$omp critical (GetWav)
-       print*, "The channel of ",ith_channel, " is an invalid channel number."
-       !$omp end critical (GetWav)
-       if (present(rc)) rc = -1
-       wavelength = -1. ! meanlingless nagative
-       return
+        wavelength = -1. ! meaningless negative
+     else
+        wavelength = this%wavelengths(ith_channel)
      endif
-     
-     wavelength = this%wavelengths(ith_channel)
+
+    if (present(rc)) then
+       if (wavelength > 0) then
+          rc = __SUCCESS__
+       else
+          rc = __FAIL__
+          !$omp critical (GetWav)
+          print*, "The channel of ",ith_channel, " is an invalid channel number."
+          !$omp end critical (GetWav)
+       endif
+    endif
 
   end function getWavelength
 

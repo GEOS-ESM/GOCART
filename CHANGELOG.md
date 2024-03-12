@@ -5,10 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - 2023-07-24
 
 ### Fixed
 
+- Silenced unwarranted error messages from wavelength/channel retrieval functions occurring when 470nm and/or 870nm channels are not included in GOCART resource file.
 - Add explicit `find_package()` calls for missing dependencies for MAPL for builds with spack-stack. Will eventually be fixed in MAPL in later versions
 - Corrected the units of the gravimetric soil moisture to percent instead of fractional in the FENGSHA dust scheme.
 
@@ -17,10 +18,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Additional tuning parameters for the soil moisture and drylimit calculations for application specific tuning.
 
 ### Changed
+-Modified ExtData.yaml files to persist as climatological anthropogenic emissions after the end of the CEDS dataset in 2019. Analogous rc files removed as this capability is only available with ExtData2G
 
+- Update `components.yaml` to match that of GEOSgcm v11.3.3
+  - ESMA_env v4.20.6 (Baselibs 7.14.0, Updates for SLES15 at NCCS)
+  - ESMA_cmake v3.36.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS)
+  - GMAO_Shared v1.9.6 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
+  - MAPL 2.42.0 (Various fixes and features)
+- Update CI to use Baselibs by default from CircleCI Orb
 - Correct soil moisture parameterization in FENGSHA
 - Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
 - Add `soil_drylimit_factor` to the DU2G_instance_DU.rc and DU2G_GridCompMod.F90 files for FENGSHA
+
+- Moved process library macros to header file.
 
 ## [v2.2.1] - 2023-05-30
 
