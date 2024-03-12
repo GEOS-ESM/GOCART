@@ -142,7 +142,7 @@ contains
     integer               :: dimCount, i
     real, pointer         :: orig_ptr(:,:,:)
     real, pointer         :: ptr2d(:,:)
-    character(len=ESMF_MAXSTR)  :: bin_index, varNameNew
+    character(len=ESMF_MAXSTR)  :: bin_index, varNameNew, units, longname
 
 !   Description: Adds deposition variables to deposition bundle
 
@@ -160,6 +160,9 @@ contains
     else if (dimCount == 3) then ! this handles computational instances
        call ESMF_FieldGet (field, grid=grid, __RC__)
        call MAPL_GetPointer (providerState, orig_ptr, trim(prefix)//trim(varName), __RC__)
+       call ESMF_AttributeGet(field, name='UNITS',     value=units, __RC__)
+       call ESMF_AttributeGet(field, name='LONG_NAME', value=longname, __RC__)
+       longname=longname(1:index(trim(longname), '(Bin')-1)
 
        if ((index(trim(varname), 'DU') > 0) .or. (index(trim(varname), 'SS') > 0)) then
           do i = 1, size(orig_ptr, 3)
@@ -167,6 +170,10 @@ contains
              ptr2d => orig_ptr(:,:,i)
              field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
                                         name=trim(varName)//trim(bin_index) , __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS',     value=trim(units), _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value=trim(longname)//' Bin '//trim(bin_index), _RC)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
@@ -176,6 +183,10 @@ contains
           ptr2d => orig_ptr(:,:,3)
           field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
                                      name=trim(varName)//'003' , __RC__)
+          call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
+          call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+          call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
+          call ESMF_AttributeSet(field2d, name='LONG_NAME', value=trim(longname)//' Bin 003', _RC)
           call MAPL_AllocateCoupling (field2D, __RC__)
           call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
        end if
@@ -187,6 +198,10 @@ contains
              varNameNew = 'OC'//varName(6:7)
              field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
                                         name=trim(varNameNew)//trim(bin_index) , __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value=trim(longname)//' Bin '//trim(bin_index), _RC)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
@@ -199,6 +214,10 @@ contains
              varNameNew = 'BC'//varName(6:7)
              field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
                                         name=trim(varNameNew)//trim(bin_index) , __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value=trim(longname)//' Bin '//trim(bin_index), _RC)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
