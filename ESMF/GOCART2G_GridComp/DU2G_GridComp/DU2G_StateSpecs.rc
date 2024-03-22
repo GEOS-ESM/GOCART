@@ -8,6 +8,45 @@ category: IMPORT
      NAME   | UNITS    | DIMS | VLOC | RESTART | COND                                     | LONG NAME
 #-------------------------------------------------------------------------------------------------------
  DU_SRC     | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag01_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag02_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag03_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag04_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag05_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag06_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag07_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag08_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag09_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag10_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag11_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag12_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ DUtag13_SRC | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
+ calcClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ chloClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ feldClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ goetClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ #gypsClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ hemaClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ illiClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ kaolClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ #micaClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ quarClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ smecClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ vermClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ otheClay    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ calcSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy 
+ chloSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ feldSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ goetSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ gypsSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ #hemaSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ #illiSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ #kaolSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ micaSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ quarSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ #smecSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ #vermSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
+ otheSilt    | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | mineralogy
  DU_Z0      | 1        | xy   | N    | SKIP    | scheme == 'k14'                          | aerodynamic_surface_roughness_for_aeolian_processes
  DU_GVF     | 1        | xy   | N    | OPT     | scheme == 'k14'                          | GVF
  DU_SAND    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_sand_in_soil

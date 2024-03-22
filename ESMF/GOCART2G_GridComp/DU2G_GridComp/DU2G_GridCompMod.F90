@@ -62,7 +62,9 @@ module DU2G_GridCompMod
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
-       integer                :: day_save = -1
+       real, allocatable      :: fclay(:)       ! mineralogy clay fraction in bin
+       real, allocatable      :: fsilt(:)       ! mineralogy silt fraction in bin
+       integer                :: day_save = -1      
        character(len=:), allocatable :: emission_scheme     ! emission scheme selector
        integer       :: clayFlag       ! clay and silt term in K14
        real          :: f_swc          ! soil mosture scaling factor
@@ -151,6 +153,11 @@ contains
 
     ! process generic config items
     call self%GA_Environment%load_from_config(cfg, universal_cfg, __RC__)
+
+    ! get fclay, fsilt
+    allocate(self%fclay(self%nbins), self%fsilt(self%nbins), __STAT__)
+    call ESMF_ConfigGetAttribute (cfg, self%fclay,      label='fclay:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%fsilt,      label='fsilt:', __RC__)
 
     allocate(self%sfrac(self%nbins), self%rlow(self%nbins), self%rup(self%nbins), __STAT__)
     ! process DU-specific items
@@ -352,7 +359,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes DU's Grid Component. It primaryily fills
+! !DESCRIPTION: This initializes DU's Grid Component. It primarily fills
 !               GOCART's AERO states with its dust fields.
 
 ! !REVISION HISTORY:
@@ -695,6 +702,9 @@ contains
     real, dimension(:,:), allocatable   :: f_erod_
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread, jstart, jend
+    real, dimension(:,:), allocatable   :: mineralClay
+    real, dimension(:,:), allocatable   :: mineralSilt
+    real, dimension(:,:,:), allocatable :: mfrac
 
 #include "DU2G_DeclarePointer___.h"
 
@@ -733,6 +743,11 @@ contains
 
     associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
+    if (scheme == 'ginoux' .OR. scheme == 'k14') then
+       call MAPL_GetPointer(import, DU_SRC, trim(COMP_NAME)//'_SRC', _RC)
+    else
+       nullify(DU_SRC)
+    endif
     end associate
 
 !   Set du_src to 0 where undefined
@@ -753,6 +768,13 @@ contains
     emissions_point = 0.0
     allocate(emissions_surface(i2,j2,self%nbins), __STAT__)
     emissions_surface = 0.0
+
+    allocate(mineralClay(i2,j2), __STAT__)
+    mineralClay = 0.0
+    allocate(mineralSilt(i2,j2), __STAT__)
+    mineralSilt = 0.0
+    allocate(mfrac(i2,j2,self%nbins), __STAT__)
+    mfrac = 0.0
 
 !   Get surface gridded emissions
 !   -----------------------------
@@ -803,6 +825,81 @@ contains
        call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
                                  self%Ch_DU, du_src, MAPL_GRAV, &
                                  emissions_surface, __RC__)
+
+       ! Mapping of mineralogy to "tagNN" number
+       !1    2    3    4    5    6    7    8    9    10   11   12   13
+       !calc chlo feld goet gyps hema illi kaol mica quar semc verm othe
+       if (trim(COMP_NAME) .eq. 'DUtag01' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = calcClay
+          mineralSilt = calcSilt
+       else if (trim(COMP_NAME) .eq. 'DUtag02' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = chloClay
+          mineralSilt = chloSilt
+       else if (trim(COMP_NAME) .eq. 'DUtag03' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = feldClay
+          mineralSilt = feldSilt
+       else if (trim(COMP_NAME) .eq. 'DUtag04' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = goetClay
+          mineralSilt = goetSilt
+       else if (trim(COMP_NAME) .eq. 'DUtag05' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          !mineralClay = gypsClay
+          mineralClay(:,:)=0.
+          mineralSilt = gypsSilt
+       else if (trim(COMP_NAME) .eq. 'DUtag06' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = hemaClay
+          !mineralSilt = hemaSilt
+          mineralSilt(:,:)=0.
+       else if (trim(COMP_NAME) .eq. 'DUtag07' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = illiClay
+          !mineralSilt = illiSilt
+          mineralSilt(:,:)=0.
+       else if (trim(COMP_NAME) .eq. 'DUtag08' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = kaolClay
+          !mineralSilt = kaolSilt
+          mineralSilt(:,:)=0.
+       else if (trim(COMP_NAME) .eq. 'DUtag09' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          !mineralClay = micaClay
+          mineralClay(:,:)=0.
+          mineralSilt = micaSilt
+       else if (trim(COMP_NAME) .eq. 'DUtag10' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = quarClay
+          mineralSilt = quarSilt
+       else if (trim(COMP_NAME) .eq. 'DUtag11' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = smecClay
+          !mineralSilt = smecSilt
+          mineralSilt = 0.
+       else if (trim(COMP_NAME) .eq. 'DUtag12' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = vermClay
+          !mineralSilt = vermSilt
+          mineralSilt = 0.
+       else if (trim(COMP_NAME) .eq. 'DUtag13' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME1 ',trim(COMP_NAME) 
+          mineralClay = otheClay
+          mineralSilt = otheSilt
+       endif
+       !dkim6, re-assign minerals to each bin
+       if (trim(COMP_NAME) .eq. 'DU' ) then
+           !Do nothing
+       else if (trim(COMP_NAME) .ne. 'DU' ) then
+          if(mapl_am_i_root()) print*,'COMP_NAME2 ',trim(COMP_NAME) 
+          do n = 1, self%nbins
+             mfrac(:,:,n) = self%fclay(n)*mineralClay(:,:)+self%fsilt(n)*mineralSilt(:,:)
+             emissions_surface(:,:,n) = emissions_surface(:,:,n) * mfrac(:,:,n)
+          enddo
+       endif
+
     case default
        _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)
     end select
@@ -864,6 +961,7 @@ contains
 !   Clean up
 !   --------
     deallocate(emissions, emissions_surface, emissions_point, __STAT__)
+    deallocate(mineralClay, mineralSilt, mfrac, __STAT__)
     if (workspace%nPts > 0) then
         deallocate(iPoint, jPoint, __STAT__)
     end if

@@ -23,6 +23,11 @@ Ch_DU:  0.3 0.3 0.11 0.11 0.11 0.088
 # source_fraction: 0.0435465   0.106903   0.220117   0.484606   0.144828
 source_fraction: 0.1 0.25 0.25 0.25 0.25
 
+# dkim6, Mineralogy fclay and fsilt
+fclay: 1.0 0.732 0.505 0.387 0.342
+fsilt: 0.0 0.268 0.495 0.613 0.658
+
+
 # K14 emission scheme
 # -------------------
 #emission_scheme: k14

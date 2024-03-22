@@ -1,4 +1,8 @@
 Collections:
+  DU2G_DUSA.dusrc_tagmap.x720_y361.nc:
+    template: /discover/nobackup/dkim6/utils/geos/aerocom/tagdu/dusrc_tagmap.x720_y361.nc
+  DU2G_ARCTAS.region_mask.x540_y361.2008.nc:
+    template: ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
   DU2G__gldas-fao.soil_category.x1152_y721_t1.nc4:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/_gldas-fao.soil_category.x1152_y721_t1.nc4
   DU2G__gldas-fao.soil_texture.x1152_y721_t1.nc4:
@@ -14,6 +18,58 @@ Collections:
     template: ExtData/chemistry/NDVI/v1.0.r3/sfc/qvi.006.%y4.nc4
   DU2G_veg20.x1152_y721_t1.nc4:
     template: ExtData/chemistry/DUST/v0.0.0/sfc/veg20.x1152_y721_t1.nc4
+  J2014NN_clay_CALCITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_CALCITE.x4322_y2160.nc
+  J2014NN_clay_CHLORITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_CHLORITE.x4322_y2160.nc
+  J2014NN_clay_FELDSPARS.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_FELDSPARS.x4322_y2160.nc
+  J2014NN_clay_GOETHITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_GOETHITE.x4322_y2160.nc
+  #J2014NN_clay_GYPSUM.x4322_y2160.nc:
+  #  template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_GYPSUM.x4322_y2160.nc
+  J2014NN_clay_HEMATITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_HEMATITE.x4322_y2160.nc
+  J2014NN_clay_ILLITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_ILLITE.x4322_y2160.nc
+  J2014NN_clay_KAOLINITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_KAOLINITE.x4322_y2160.nc
+  #J2014NN_clay_MICA.x4322_y2160.nc:
+  #  template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_MICA.x4322_y2160.nc
+  J2014NN_clay_QUARTZ.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_QUARTZ.x4322_y2160.nc
+  J2014NN_clay_SMECTITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_SMECTITE.x4322_y2160.nc
+  J2014NN_clay_VERMICULITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_VERMICULITE.x4322_y2160.nc
+  J2014NN_clay_OTHER.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_clay_OTHER.x4322_y2160.nc
+  J2014NN_silt_CALCITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_CALCITE.x4322_y2160.nc
+  J2014NN_silt_CHLORITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_CHLORITE.x4322_y2160.nc
+  J2014NN_silt_FELDSPARS.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_FELDSPARS.x4322_y2160.nc
+  J2014NN_silt_GOETHITE.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_GOETHITE.x4322_y2160.nc
+  J2014NN_silt_GYPSUM.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_GYPSUM.x4322_y2160.nc
+  #J2014NN_silt_HEMATITE.x4322_y2160.nc:
+  #  template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_HEMATITE.x4322_y2160.nc
+  #J2014NN_silt_ILLITE.x4322_y2160.nc:
+  #  template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_ILLITE.x4322_y2160.nc
+  #J2014NN_silt_KAOLINITE.x4322_y2160.nc:
+  #  template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_KAOLINITE.x4322_y2160.nc
+  J2014NN_silt_MICA.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_MICA.x4322_y2160.nc
+  J2014NN_silt_QUARTZ.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_QUARTZ.x4322_y2160.nc
+  #J2014NN_silt_SMECTITE.x4322_y2160.nc:
+  #  template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_SMECTITE.x4322_y2160.nc
+  #J2014NN_silt_VERMICULITE.x4322_y2160.nc:
+  #  template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_VERMICULITE.x4322_y2160.nc
+  J2014NN_silt_OTHER.x4322_y2160.nc:
+    template: /discover/nobackup/dkim6/utils/geos/mineralogy/J2014NN/data4322x2160_NN_all/J2014NN_silt_OTHER.x4322_y2160.nc
 
 Samplings:
   DU2G_sample_0:
@@ -24,6 +80,8 @@ Samplings:
     update_reference_time: '0'
   DU2G_sample_2:
     extrapolation: clim
+  DU2G_sample_3:
+    extrapolation: persist_closest
 
 Exports:
   DU_CLAY:
@@ -126,5 +184,151 @@ Exports:
     collection: DU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: DU2G_sample_2
     variable: DU005
+  DU_regionMask:
+    collection: DU2G_ARCTAS.region_mask.x540_y361.2008.nc
+    #collection: DU2G_DUSA.dusrc_tagmap.x720_y361.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: REGION_MASK
+
+  calcClay:
+    collection: J2014NN_clay_CALCITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: CALCITE
+  chloClay:
+    collection: J2014NN_clay_CHLORITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: CHLORITE
+  feldClay:
+    collection: J2014NN_clay_FELDSPARS.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: FELDSPARS
+  goetClay:
+    collection: J2014NN_clay_GOETHITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: GOETHITE
+  hemaClay:
+    collection: J2014NN_clay_HEMATITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: HEMATITE
+  illiClay:
+    collection: J2014NN_clay_ILLITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: ILLITE
+  kaolClay:
+    collection: J2014NN_clay_KAOLINITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: KAOLINITE
+  quarClay:
+    collection: J2014NN_clay_QUARTZ.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: QUARTZ
+  smecClay:
+    collection: J2014NN_clay_SMECTITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: SMECTITE
+  vermClay:
+    collection: J2014NN_clay_VERMICULITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: VERMICULITE
+  otheClay:
+    collection: J2014NN_clay_OTHER.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: OTHER
 
 
+
+  calcSilt:
+    collection: J2014NN_silt_CALCITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: CALCITE
+
+  chloSilt:
+    collection: J2014NN_silt_CHLORITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: CHLORITE
+  feldSilt:
+    collection: J2014NN_silt_FELDSPARS.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: FELDSPARS
+  goetSilt:
+    collection: J2014NN_silt_GOETHITE.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: GOETHITE
+  gypsSilt:
+    collection: J2014NN_silt_GYPSUM.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: GYPSUM
+  micaSilt:
+    collection: J2014NN_silt_MICA.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: MICA
+  quarSilt:
+    collection: J2014NN_silt_QUARTZ.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: QUARTZ
+  otheSilt:
+    collection: J2014NN_silt_OTHER.x4322_y2160.nc
+    regrid: VOTE
+    sample: DU2G_sample_3
+    variable: OTHER
+
+
+Derived:
+  DUtag01_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag02_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag03_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag04_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag05_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag06_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag07_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag08_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag09_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag10_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag11_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag12_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
+  DUtag13_SRC:
+    function: regionmask(DU_SRC,DU_regionMask;1,2,3,4,5,6,7,8,9,10)
+    sample: DU2G_sample_0
