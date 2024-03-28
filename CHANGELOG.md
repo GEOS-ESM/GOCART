@@ -13,6 +13,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## v2.1.2+R21C_v1.0.1
+
+### Changed
+
+- Upticked to more recent volcanic emissions file
+
+## v2.1.2+R21C_v1.0.0
+
+### Changed
+
 - For OPS configuration: removal of links, change of QFED paths from vNRT/ to v2.5r1-nrt/ (note after November 2021, files are v2.6r1)
 - For AMIP configuration: update of QFED from v2.5r1 to v2.6r1
 - Update of climatological paths from MERRAero to MERRA-2
