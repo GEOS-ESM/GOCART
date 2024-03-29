@@ -20,7 +20,7 @@
 # Include the constituent in the simulation?
 # ----------------------------------------------------
 ACTIVE_INSTANCES_DU:  DU #DU.test   
-PASSIVE_INSTANCES_DU:  
+PASSIVE_INSTANCES_DU:  DUtag01 DUtag02 DUtag03 DUtag04 DUtag05 DUtag06 DUtag07 DUtag08 DUtag09 DUtag10 DUtag11 DUtag12 DUtag13
 
 ACTIVE_INSTANCES_SS:   SS #  SS.data
 PASSIVE_INSTANCES_SS:
