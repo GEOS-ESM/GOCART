@@ -830,7 +830,7 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)        :: lats
     real, pointer, dimension(:,:)        :: lons
-    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src
+    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src, so2_ocs_src
     real, dimension(:,:), allocatable :: so2biomass_src, so2biomass_src_, so2anthro_l1_src, &
                                          so2anthro_l2_src, so2ship_src, so4ship_src, dmso_conc, &
                                          aviation_lto_src, aviation_cds_src, aviation_crs_src
@@ -914,24 +914,26 @@ contains
     where(1.01*so4ship_src > MAPL_UNDEF)       so4ship_src = 0.
 
     aircraft_fuel_src = SU_AIRCRAFT
-    so2biomass_src = SU_BIOMASS
-    dmso_conc = SU_DMSO
-    aviation_lto_src = SU_AVIATION_LTO
-    aviation_cds_src = SU_AVIATION_CDS
-    aviation_crs_src = SU_AVIATION_CRS
+    so2biomass_src    = SU_BIOMASS
+    dmso_conc         = SU_DMSO
+    aviation_lto_src  = SU_AVIATION_LTO
+    aviation_cds_src  = SU_AVIATION_CDS
+    aviation_crs_src  = SU_AVIATION_CRS
+    so2_ocs_src       = pSO2_OCS
 
 !   PRC: turn off emissions
     if(self%disable_emissions) then
-     so2anthro_l1_src = 0.
-     so2anthro_l2_src = 0.
-     so2ship_src = 0.
-     so4ship_src = 0.
+     so2anthro_l1_src  = 0.
+     so2anthro_l2_src  = 0.
+     so2ship_src       = 0.
+     so4ship_src       = 0.
      aircraft_fuel_src = 0.
-     so2biomass_src = 0.
-     dmso_conc = 0.
-     aviation_lto_src = 0.
-     aviation_cds_src = 0.
-     aviation_crs_src = 0.
+     so2biomass_src    = 0.
+     dmso_conc         = 0.
+     aviation_lto_src  = 0.
+     aviation_cds_src  = 0.
+     aviation_crs_src  = 0.
+     so2_ocs_src       = 0.
     endif
 
 !   As a safety check, where value is undefined set to 0
@@ -1025,7 +1027,7 @@ contains
 
 !   Add source of OCS-produced SO2
 !   ------------------------------
-    SO2 = SO2 + pSO2_OCS*self%cdt
+    SO2 = SO2 + so2_ocs_src*self%cdt
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
