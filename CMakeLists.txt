@@ -21,6 +21,22 @@ if (NOT CMAKE_BUILD_TYPE)
             "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
 endif ()
 
+# mepo can now clone subrepos in three styles
+set (ESMA_CMAKE_DIRS
+  cmake
+  @cmake
+  cmake@
+  )
+
+foreach (dir IN LISTS ESMA_CMAKE_DIRS)
+  if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/${dir})
+    list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/${dir}")
+    set (ESMA_CMAKE_PATH "${CMAKE_CURRENT_LIST_DIR}/${dir}" CACHE PATH "Path to ESMA_cmake code")
+    include (esma)
+    set(GOCART_STANDALONE TRUE)
+  endif ()
+endforeach ()
+
 # Set build options
 option (UFS_GOCART "Build GOCART component for UFS" OFF)
 
@@ -81,7 +97,9 @@ include_directories(${MPI_Fortran_INCLUDE_PATH})
 add_subdirectory (ESMF)
 add_subdirectory (Process_Library)
 
-ecbuild_install_project (NAME GOCART)
+if(GOCART_STANDALONE)
+  ecbuild_install_project (NAME GOCART)
+endif()
 
 # https://www.scivision.dev/cmake-auto-gitignore-build-dir/
 # --- auto-ignore build directory
