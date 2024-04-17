@@ -2,25 +2,6 @@ cmake_minimum_required (VERSION 3.17)
 cmake_policy (SET CMP0053 NEW)
 cmake_policy (SET CMP0054 NEW)
 
-project (
-        GOCART
-        VERSION 2.1.1
-        LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
-
-if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
-    message(SEND_ERROR "In-source builds are disabled. Please
-           issue cmake command in separate build directory.")
-endif ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
-
-# Set the default build type to release
-if (NOT CMAKE_BUILD_TYPE)
-    message (STATUS "Setting build type to 'Release' as none was specified.")
-    set (CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-    # Set the possible values of build type for cmake-gui
-    set_property (CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-            "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif ()
-
 # mepo can now clone subrepos in three styles
 set (ESMA_CMAKE_DIRS
   cmake
@@ -36,6 +17,27 @@ foreach (dir IN LISTS ESMA_CMAKE_DIRS)
     set(GOCART_STANDALONE TRUE)
   endif ()
 endforeach ()
+
+if (GOCART_STANDALONE)
+  project (
+          GOCART
+          VERSION 2.1.1
+          LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
+
+  if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
+      message(SEND_ERROR "In-source builds are disabled. Please
+            issue cmake command in separate build directory.")
+  endif ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
+
+  # Set the default build type to release
+  if (NOT CMAKE_BUILD_TYPE)
+      message (STATUS "Setting build type to 'Release' as none was specified.")
+      set (CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+      # Set the possible values of build type for cmake-gui
+      set_property (CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+              "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+  endif ()
+endif()
 
 # Set build options
 option (UFS_GOCART "Build GOCART component for UFS" OFF)
@@ -61,7 +63,9 @@ if (NOT COMMAND esma)
     include (esma)
 endif()
 
-ecbuild_declare_project()
+if(GOCART_STANDALONE)
+  ecbuild_declare_project()
+endif()
 
 if (NOT Baselibs_FOUND)
   # Find dependencies
