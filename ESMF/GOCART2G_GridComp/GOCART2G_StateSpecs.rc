@@ -5,10 +5,13 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE       | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
-     NAME | UNITS | DIMS | VLOC | COND | LONG NAME
+     NAME   | UNITS    | DIMS | VLOC | RESTART | LONG NAME
 #----------------------------------------------------------------------------------------
-# DELP    | Pa    | xyz  | C    |      | pressure_thickness
-# RH2     | 1     | xyz  | C    |      | Rel_Hum_after_moist
+ DELP       | Pa       | xyz  | C    |         | pressure_thickness
+# RH2       | 1        | xyz  | C    |         | Rel_Hum_after_moist
+ AIRDENS    | kg/m^3   | xyz  | C    | OPT     | moist_air_density
+ T          | K        | xyz  | C    | OPT     | air_temperature
+ PLE        | Pa       | xyz  | E    | OPT     | air_pressure
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
@@ -18,14 +21,14 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  PSO4TOT        | kg m-2 s-1 | xyz  | C    |                                | Total Sulfate Produced in GOCART
 #........................................................................................
- TOTEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm]
- TOTSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] Stratosphere
- TOTSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Scattering AOT [550 nm]
- TOTSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Scattering AOT [550 nm] Stratosphere
- TOTEXTT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM2.5
- TOTSCAT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM2.5
- TOTEXTTFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM1.0
- TOTSCATFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Extinction AOT [550 nm] - PM1.0
+ TOTEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm
+ TOTSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Stratospheric Aerosol Optical Thickness at 550 nm
+ TOTSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm Due to Scattering
+ TOTSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Stratospheric Aerosol Optical Thickness at 550 nm Due to Scattering
+ TOTEXTT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm from Particluate Matter < 2.5 microns  (PM2.5)
+ TOTSCAT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)
+ TOTEXTTFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm from Particluate Matter < 1 micron  (PM1.0)
+ TOTSCATFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm Due to Scattering from Particulate Matter < 1 micron (PM1.0)
  TOTANGSTR      | 1          | xy   | N    |            | Total Aerosol Angstrom parameter [470-870 nm]
  TOTEXTCOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Extinction coefficient
  TOTEXTCOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Extinction coefficient - Fixed RH=20%
@@ -33,12 +36,100 @@ category: EXPORT
  TOTSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient
  TOTSCACOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient - Fixed RH=20%
  TOTSCACOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient - Fixed RH=80%
- PM             | kg m-3     | xy   | N    |            | Total reconstructed PM
- PM_RH35        | kg m-3     | xy   | N    |            | Total reconstructed PM(RH=35%)
- PM_RH50        | kg m-3     | xy   | N    |            | Total reconstructed PM(RH=50%)
- PM25           | kg m-3     | xy   | N    |            | Total reconstructed PM2.5
- PM25_RH35      | kg m-3     | xy   | N    |            | Total reconstructed PM2.5(RH=35%)
- PM25_RH50      | kg m-3     | xy   | N    |            | Total reconstructed PM2.5(RH=50%)
+ TOTBCKCOEF     | m-1 sr-1   | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Single Scattering Backscatter coefficient
+ TOTABCKTOA     | m-1 sr-1   | xyz  | C    |                                | Total Attenuated Backscatter Coefficient from TOA [532nm]
+ TOTABCKSFC     | m-1 sr-1   | xyz  | C    |                                | Total Attenuated Backscatter Coefficient from surface [532nm]
+ PM             | kg m-3     | xy   | N    |            | Total Reconstructed Dry Particulate Matter
+ PM_RH35        | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter at 35% Relative Humidity
+ PM_RH50        | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter at 50% Relative Humidity
+ PM25           | kg m-3     | xy   | N    |            | Total Reconstructed Dry Particulate Matter < 2.5 microns (PM2.5)
+ PM25_RH35      | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter < 2.5 microns (PM2.5) at 35% Relative Humidity
+ PM25_RH50      | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter < 2.5 microns (PM2.5) at 50% Relative Humidity
+
+category: INTERNAL
+#----------------------------------------------------------------------------------------
+#  VARIABLE                | DIMENSION        |          Additional Metadata
+#----------------------------------------------------------------------------------------
+  NAME | UNITS | DIMS | VLOC | UNGRIDDED | RESTART | ADD2EXPORT | FRIENDLYTO | LONG NAME
+#----------------------------------------------------------------------------------------
+
+
+
+#********************************************************
+#
+# Legend
+#
+#------------------------------------------------------------------
+# Column label | MAPL keyword/interpretation |  Default
+#--------------|---------------------------------------------------
+# NAME         | short_name                  |
+# UNITS        | units                       |
+# DIMS         | dims                        |
+# VLOC         | VLocation                   | MAPL_VLocationNone
+# LONG NAME    | long_name                   |
+# COND         | if (<logical-expr>) then    |  .FALSE.
+# NUM_SUBTILES | num_subtiles
+# ...
+#------------------------------------------------------------------
+#
+#--------------------------------------------
+# Entry alias  | Column | MAPL keyword/interpretation
+#--------------|-----------------------------
+# xyz          | DIMS   | MAPL_HorzVert
+# xy           | DIMS   | MAPL_HorzOnly
+# z            | DIMS   | MAPL_VertOnly  (plus ungridded)
+# C            | VLOC   | MAPL_VlocationCenter
+# E            | VLOC   | MAPL_VlocationEdge
+# N            | VLOC   | MAPL_VlocationNone
+#--------------------------------------------
+
+schema_version: 2.0.0
+component: GOCART2G
+
+category: IMPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE       | DIMENSIONS  |          Additional Metadata
+#----------------------------------------------------------------------------------------
+     NAME   | UNITS    | DIMS | VLOC | RESTART | LONG NAME
+#----------------------------------------------------------------------------------------
+ DELP       | Pa       | xyz  | C    |         | pressure_thickness
+# RH2       | 1        | xyz  | C    |         | Rel_Hum_after_moist
+ AIRDENS    | kg/m^3   | xyz  | C    | OPT     | moist_air_density
+ T          | K        | xyz  | C    | OPT     | air_temperature
+ PLE        | Pa       | xyz  | E    | OPT     | air_pressure
+
+category: EXPORT
+#----------------------------------------------------------------------------------------
+#  VARIABLE               | DIMENSIONS  |          Additional Metadata
+#----------------------------------------------------------------------------------------
+ NAME           | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
+#----------------------------------------------------------------------------------------
+ PSO4TOT        | kg m-2 s-1 | xyz  | C    |                                | Total Sulfate Produced in GOCART
+#........................................................................................
+ TOTEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm
+ TOTSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Stratospheric Aerosol Optical Thickness at 550 nm
+ TOTSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm Due to Scattering
+ TOTSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Stratospheric Aerosol Optical Thickness at 550 nm Due to Scattering
+ TOTEXTT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm from Particluate Matter < 2.5 microns  (PM2.5)
+ TOTSCAT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)
+ TOTEXTTFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm from Particluate Matter < 1 micron  (PM1.0)
+ TOTSCATFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Total Aerosol Optical Depth at 550 nm Due to Scattering from Particulate Matter < 1 micron (PM1.0)
+ TOTANGSTR      | 1          | xy   | N    |            | Total Aerosol Angstrom parameter [470-870 nm]
+ TOTEXTCOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Extinction coefficient
+ TOTEXTCOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Extinction coefficient - Fixed RH=20%
+ TOTEXTCOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Extinction coefficient - Fixed RH=80%
+ TOTSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient
+ TOTSCACOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient - Fixed RH=20%
+ TOTSCACOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Scattering coefficient - Fixed RH=80%
+ TOTBCKCOEF     | m-1 sr-1   | xyz  | C    | size(self%wavelengths_profile) | Total Aerosol Single Scattering Backscatter coefficient
+ TOTABCKTOA     | m-1 sr-1   | xyz  | C    |                                | Total Attenuated Backscatter Coefficient from TOA [532nm]
+ TOTABCKSFC     | m-1 sr-1   | xyz  | C    |                                | Total Attenuated Backscatter Coefficient from surface [532nm]
+ PM             | kg m-3     | xy   | N    |            | Total Reconstructed Dry Particulate Matter
+ PM_RH35        | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter at 35% Relative Humidity
+ PM_RH50        | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter at 50% Relative Humidity
+ PM25           | kg m-3     | xy   | N    |            | Total Reconstructed Dry Particulate Matter < 2.5 microns (PM2.5)
+ PM25_RH35      | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter < 2.5 microns (PM2.5) at 35% Relative Humidity
+ PM25_RH50      | kg m-3     | xy   | N    |            | Total Reconstructed Particulate Matter < 2.5 microns (PM2.5) at 50% Relative Humidity
 
 category: INTERNAL
 #----------------------------------------------------------------------------------------
