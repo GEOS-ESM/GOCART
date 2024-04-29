@@ -82,7 +82,6 @@ category: EXPORT
  *SCACOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Scattering Coefficient
  *SCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Scattering Coefficient - Fixed RH=20%
  *SCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Scattering Coefficient - Fixed RH=80%
- *BCKCOEF     | m-1 sr-1     | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Backscatter Coefficient
 #............ | ............ | ..... | ..... | .......                        | ............................................
  *EM          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Emission (Bin %d)
  *SD          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Sedimentation (Bin %d)
