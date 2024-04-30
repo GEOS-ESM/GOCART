@@ -35,18 +35,18 @@
 
    public SetServices
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !
-!   {\tt GOCART} is a gridded component from the GOCART model and includes 
+!   {\tt GOCART} is a gridded component from the GOCART model and includes
 !  dust, sea salt, sulfates, organic and black carbon. In addition, we
 !  also include closely related components for CO and CO2 with relatively
 !  simple parameterization of the chemical processes, but sharing
 !  consistent emissions with the aerosols.
 !
 !  This code derives from the pre-ESMF Chem component from GEOS-4. This
-!  GEOS-4 Chem "component" used ESMF like constructs (Chem component class, 
-!  import/export states, etc) but no ESMF specific data types because of 
-!  an odd incompatibility with the fvGCM code (the so-called 
+!  GEOS-4 Chem "component" used ESMF like constructs (Chem component class,
+!  import/export states, etc) but no ESMF specific data types because of
+!  an odd incompatibility with the fvGCM code (the so-called
 !  {\tt oldworld} library. Unlike GEOS-4, the Stratospheric Chemistry
 !  component is treated separately here.
 !
@@ -89,7 +89,7 @@ CONTAINS
     type(ESMF_GridComp), intent(INOUT) :: GC  ! gridded component
     integer, optional                  :: RC  ! return code
 
-! !DESCRIPTION: Sets Initialize, Run and Finalize services. 
+! !DESCRIPTION: Sets Initialize, Run and Finalize services.
 !
 ! !REVISION HISTORY:
 !
@@ -126,7 +126,7 @@ CONTAINS
 
 !                              ------------
 
-    
+
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet( GC, NAME=COMP_NAME, CONFIG=CF, __RC__ )
@@ -155,10 +155,10 @@ CONTAINS
        VERIFY_(status)
        state%chemReg = Chem_RegistryCreate(STATUS, rcfile=chem_registry_file)
         VERIFY_(STATUS)
-    end if    
+    end if
 
     r => state%chemReg   ! short hand
-    
+
 
 !                       ------------------------
 !                       ESMF Functional Services
@@ -178,7 +178,7 @@ CONTAINS
         call MAPL_GridCompSetEntryPoint ( GC, ESMF_METHOD_RUN,         Run2_,       __RC__ )
 
         call MAPL_GridCompSetEntryPoint ( GC, ESMF_METHOD_FINALIZE,    Finalize_,   __RC__ )
-        
+
 !       Store internal state in GC
 !       --------------------------
         call ESMF_UserCompSetInternalState ( GC, 'GOCART_state', wrap, STATUS )
@@ -188,7 +188,7 @@ CONTAINS
 
         if (MAPL_AM_I_ROOT()) then
          print *, trim(Iam)//': NOT ACTIVE, defaulting to Generic No-op stubs'
-        end if 
+        end if
 
         call MAPL_GenericSetServices ( GC, __RC__ )
         RETURN_(ESMF_SUCCESS)
@@ -214,7 +214,7 @@ CONTAINS
        UNITS      = 'Pa',                                  &
        DIMS       = MAPL_DimsHorzVert,                     &
        VLOCATION  = MAPL_VLocationEdge,                    &
-       RESTART    = MAPL_RestartSkip,     __RC__) 
+       RESTART    = MAPL_RestartSkip,     __RC__)
 
 !   Pressure thickness
 !   ------------------
@@ -266,7 +266,6 @@ CONTAINS
         VLOCATION  = MAPL_VLocationCenter,                 &
         RESTART    = MAPL_RestartSkip,     __RC__)
 
-
 !   T
 !   -
     call MAPL_AddImportSpec(GC,                            &
@@ -305,7 +304,7 @@ CONTAINS
        UNITS      = 'kg kg-1',                             &
        DIMS       = MAPL_DimsHorzVert,                     &
        VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)  
+       RESTART    = MAPL_RestartSkip,     __RC__)
 
 !   QITOT + QITOT
 !   -------------
@@ -359,7 +358,7 @@ CONTAINS
   end if
 
 !    2-D Quantities
-!    --------------    
+!    --------------
 
 !    TROPP - Connectivity from SDYN to PHYS is TROPP_BLENDED to TROPP
 !    ----------------------------------------------------------------
@@ -382,7 +381,7 @@ CONTAINS
       ! RESTART    = MAPL_RestartSkip,                     &
                                           __RC__)
 
-!    PBL 
+!    PBL
 !    ---
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'ZPBL',                               &
@@ -600,16 +599,16 @@ CONTAINS
         VLOCATION  = MAPL_VLocationNone,                   &
         RESTART    = MAPL_RestartSkip,   __RC__)
 
-     call MAPL_AddImportSpec(GC,                           & 
-         SHORT_NAME = 'CNV_MFD',                           & 
+     call MAPL_AddImportSpec(GC,                           &
+         SHORT_NAME = 'CNV_MFD',                           &
          LONG_NAME  = 'detraining_mass_flux',              &
-         UNITS      = 'kg m-2 s-1',                        &    
-         DIMS       = MAPL_DimsHorzVert,                   &  
+         UNITS      = 'kg m-2 s-1',                        &
+         DIMS       = MAPL_DimsHorzVert,                   &
          VLOCATION  = MAPL_VLocationCenter,                &
          RESTART    = MAPL_RestartSkip,  __RC__)
 
-     call MAPL_AddImportSpec(GC,                           &                  
-         SHORT_NAME = 'CNV_MFC',                           & 
+     call MAPL_AddImportSpec(GC,                           &
+         SHORT_NAME = 'CNV_MFC',                           &
          LONG_NAME  = 'cumulative_mass_flux',              &
          UNITS      = 'kg m-2 s-1',                        &
          DIMS       = MAPL_DimsHorzVert,                   &
@@ -639,7 +638,7 @@ CONTAINS
         DIMS        = MAPL_DimsHorzOnly,                   &
         VLOCATION   = MAPL_VLocationNone,                  &
         RESTART     = MAPL_RestartSkip,  __RC__)
-     
+
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'CLDTT',                              &
         LONG_NAME  = 'total_cloud_area_fraction',          &
@@ -648,6 +647,15 @@ CONTAINS
         VLOCATION  = MAPL_VLocationNone,                   &
         RESTART    = MAPL_RestartSkip,   __RC__)
 
+! Sourish Basu
+!    Imports for calculating dry air mole fraction in GOCART
+!    ---------------------
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'QTOT',                               &
+        LONG_NAME  = 'mass_fraction_of_all_water',         &
+        UNITS      = 'kg kg-1',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter, __RC__)
 
      call ESMF_ConfigGetAttribute(CF, DO_CO2CNNEE, label='USE_CNNEE:', default=0, __RC__)
 
@@ -660,13 +668,13 @@ CONTAINS
              VLOCATION  = MAPL_VLocationNone, __RC__)
      endif
 
-     
+
 if ( r%doing_GOCART ) then
 
 ! !INTERNAL STATE:
 
 !
-!  NOTES: 
+!  NOTES:
 !    1)  vtitle as it stands is as the CF definition of long name.
 !        I may need to create a "standard name" in chemReg and pass
 !        this to GEOS Generic
@@ -674,7 +682,7 @@ if ( r%doing_GOCART ) then
 !
 
     nq = r%nq     ! total number of chemical tracers
-    
+
 ! Get BOOTSTRAP Default Values for GOCART INTERNAL
 ! ------------------------------------------------
     CALL ESMF_ConfigGetAttribute(CF, DEFVAL_CO2, Default=380.0e-6, Label='DEFVAL_CO2:', __RC__)
@@ -695,12 +703,12 @@ if ( r%doing_GOCART ) then
      STATUS = 1
      VERIFY_(STATUS)
     END IF
-     
+
 !   Loop over all constituents on registry
 !   --------------------------------------
-    do n = r%i_GOCART, r%j_GOCART 
+    do n = r%i_GOCART, r%j_GOCART
 
-       if (state%data_driven) then 
+       if (state%data_driven) then
           FRIENDLIES = trim(COMP_NAME)
 
           call ESMF_ConfigGetAttribute(CF, AEROFRIENDLY, Label='AERO_FRIENDLIES:', default=FRIENDLIES, __RC__)
@@ -727,7 +735,7 @@ if ( r%doing_GOCART ) then
        call MAPL_AddInternalSpec(GC,               &
           SHORT_NAME = trim(COMP_NAME)//'::'//trim(r%vname(n)), &
           LONG_NAME  = r%vtitle(n),                &
-          UNITS      = r%vunits(n),                &     
+          UNITS      = r%vunits(n),                &
           FRIENDLYTO = FRIENDLIES,                 &
           RESTART    = MAPL_RestartOptional,       &
           DEFAULT    = DEFVAL,                     &
@@ -778,7 +786,7 @@ end if ! doing GOCART
 !   --------
 
     RETURN_(ESMF_SUCCESS)
-  
+
   end subroutine SetServices
 
 
@@ -809,7 +817,7 @@ end if ! doing GOCART
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -828,14 +836,14 @@ end if ! doing GOCART
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    integer                         :: hdt         ! model     timestep (secs)
    integer                         :: rft
 
-   type(ESMF_Grid)                 :: grid       
- 
+   type(ESMF_Grid)                 :: grid
+
    integer                         :: i1=1, i2, ig=0, im  ! dist grid indices
    integer                         :: j1=1, j2, jg=0, jm  ! dist grid indices
    integer                         :: km, nq              ! dist grid indices
@@ -862,7 +870,7 @@ end if ! doing GOCART
    character(len=ESMF_MAXSTR)      :: short_name
    real                            :: f_aci_seasalt, maxclean, ccntuning
    character(LEN=ESMF_MAXSTR)      :: CLDMICRO
-     
+
    type(MAPL_VarSpec), pointer     :: InternalSpec(:)
    integer                         :: instance
 
@@ -880,7 +888,7 @@ end if ! doing GOCART
 
    type(ESMF_State)           :: providerState
    character(len=ESMF_MAXSTR) :: prefix
-  
+
   real(ESMF_KIND_R4),  dimension(4) :: Vect_Hcts
 
 !  Get my name and set-up traceback handle
@@ -943,7 +951,7 @@ end if ! doing GOCART
                            staggerloc = ESMF_STAGGERLOC_CENTER, &
                            computationalCount = DIMS, __RC__)
 
-!  Associate the Internal State fields with our legacy state 
+!  Associate the Internal State fields with our legacy state
 !  ---------------------------------------------------------
    call MAPL_Get ( ggSTATE, INTERNALSPEC = InternalSpec, &
                             INTERNAL_ESMF_STATE = internal, &
@@ -956,7 +964,7 @@ end if ! doing GOCART
       CELL_AREA => null()
   else
       call MAPL_GetPointer(impChem, NAME='AREA', ptr=CELL_AREA, __RC__)
-  end if 
+  end if
 
 ! Local sizes of three dimensions
 !--------------------------------
@@ -1004,11 +1012,11 @@ end if ! doing GOCART
 #ifdef PRINT_STATES
 
    if (MAPL_AM_I_ROOT()) then
-       print *, trim(Iam)//': INTERNAL State during Initialize():' 
+       print *, trim(Iam)//': INTERNAL State during Initialize():'
        call ESMF_StatePrint ( internal )
        print *, trim(Iam)//': IMPORT   State during Initialize():'
        call ESMF_StatePrint ( impChem  )
-       print *, trim(Iam)//': EXPORT   State during Initialize():' 
+       print *, trim(Iam)//': EXPORT   State during Initialize():'
        call ESMF_StatePrint ( expChem  )
     end if
 
@@ -1027,14 +1035,13 @@ end if ! doing GOCART
 !         the subcomponents as bonafide ESMF components
 !-srf added Henrys law constants
 !   --------------------------------------------------------------
-    do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+    do n = ChemReg%i_GOCART, ChemReg%j_GOCART
        call ESMF_StateGet(internal, trim(COMP_NAME)//'::'//trim(ChemReg%vname(n)), field, __RC__)
        call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=ChemReg%fscav(n), __RC__)
-       Vect_Hcts(1:4)= ChemReg%hcts(1:4,n) 
-  
+       Vect_Hcts(1:4)= ChemReg%hcts(1:4,n)
+
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, __RC__)
     end do
-
 
     call MAPL_TimerOff(ggState, 'TOTAL')
     call MAPL_TimerOff(ggState, 'INITIALIZE')
@@ -1086,7 +1093,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -1105,7 +1112,7 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    real                            :: hdt         ! heartbeat time step (secs)
@@ -1149,10 +1156,10 @@ CONTAINS
 !  ----------------------------------
    call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
 
-!  Get heartbeat time step 
+!  Get heartbeat time step
 !  -----------------------
    call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
- 
+
 !  Get pre-ESMF parameters from gc and clock
 !  -----------------------------------------
    call extract_ ( gc, clock, chemReg, gcChem, w_c, nymd, nhms, cdt, STATUS, state=myState )
@@ -1162,7 +1169,7 @@ CONTAINS
 !  ----------------------------------------------------------------------------------------
 !  Assume that DT is always an integral number of seconds
 !  Add a fraction to both (and then truncate to int), to avoid cases like 900 /= 899.999999
-!! _ASSERT(abs(cdt-hdt) < 0.1, 'Implementation of GOCART_DT is problematic; set GOCART_DT = HEARTBEAT_DT')
+   _ASSERT(abs(cdt-hdt) < 0.1, 'Implementation of GOCART_DT is problematic; set GOCART_DT = HEARTBEAT_DT')
 
    allocate(r4ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
    allocate(  ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
@@ -1192,7 +1199,7 @@ CONTAINS
 !  Make sure tracers remain positive
 !  ---------------------------------
    in = size(w_c%delp,1);   jn = size(w_c%delp,2)
-   do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+   do n = ChemReg%i_GOCART, ChemReg%j_GOCART
       call Chem_UtilNegFiller ( w_c%qa(n)%data3d, w_c%delp, in, jn, &
                                 qmin=tiny(1.0) )
    end do
@@ -1244,7 +1251,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -1263,7 +1270,7 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: hdt         ! heartbeat timestep (secs)
    real                            :: cdt         ! chemistry timestep (secs)
@@ -1290,7 +1297,7 @@ CONTAINS
    type(GOCART_state), pointer     :: myState
    real, pointer, dimension(:,:,:) :: ptr3d_int
    real, pointer, dimension(:,:,:) :: ptr3d_imp
-   
+
    logical                         :: run_alarm
    logical                         :: alarm_is_ringing
 
@@ -1299,7 +1306,7 @@ CONTAINS
    real, pointer, dimension(:,:)   :: totexttau, totscatau, &
                                       totextt25, totscat25, &
                                       totexttfm, totscatfm, &
-                                      totangstr 
+                                      totangstr
    real, pointer, dimension(:,:)   :: pm,        pm25,      &
                                       pm_rh35,   pm25_rh35, &
                                       pm_rh50,   pm25_rh50
@@ -1348,7 +1355,7 @@ CONTAINS
    call MAPL_TimerOn(ggState, 'TOTAL')
    call MAPL_TimerOn(ggState, 'RUN')
 
-!  Get heartbeat time step 
+!  Get heartbeat time step
 !  -----------------------
    call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
 
@@ -1367,13 +1374,13 @@ CONTAINS
    VERIFY_(STATUS)
 
    if (myState%data_driven) then
-       
+
        call MAPL_Get ( ggState, INTERNAL_ESMF_STATE=internal, __RC__ )
 
        do n = chemReg%i_GOCART, chemReg%j_GOCART
            call MAPL_GetPointer ( internal, NAME=trim(COMP_NAME)//'::'//trim(chemReg%vname(n)), ptr=ptr3d_int, __RC__ )
            call MAPL_GetPointer ( impChem,  NAME='clim'//trim(chemReg%vname(n)), ptr=ptr3d_imp, __RC__ )
-             
+
            ptr3d_int = ptr3d_imp
        end do
 
@@ -1381,7 +1388,7 @@ CONTAINS
        call MAPL_TimerOff(ggState, 'TOTAL')
 
        RETURN_(ESMF_SUCCESS)
-   end if 
+   end if
 
 
    allocate(r4ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
@@ -1412,7 +1419,7 @@ CONTAINS
 !  Make sure tracers remain positive
 !  ---------------------------------
    in = size(w_c%delp,1);   jn = size(w_c%delp,2)
-   do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+   do n = ChemReg%i_GOCART, ChemReg%j_GOCART
       call Chem_UtilNegFiller ( w_c%qa(n)%data3d, w_c%delp, in, jn, &
                                 qmin=tiny(1.0) )
    end do
@@ -1429,7 +1436,7 @@ CONTAINS
 
    if (run_alarm) then
       call ESMF_AlarmRingerOff(ALARM, __RC__)
-   end if
+   endif
 
    deallocate(SLR,   __STAT__)
    deallocate(ZTH,   __STAT__)
@@ -1470,7 +1477,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -1490,7 +1497,7 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    type(MAPL_MetaComp), pointer    :: ggState     ! GEOS Generic State
@@ -1528,7 +1535,7 @@ CONTAINS
 
 !  Destroy Chem_Registry
 !  ---------------------
-   call Chem_RegistryDestroy ( chemReg, STATUS ) 
+   call Chem_RegistryDestroy ( chemReg, STATUS )
    VERIFY_(STATUS)
 
 !  Destroy Legacy state
@@ -1661,8 +1668,8 @@ logical function isDataDrivenGC_(gc, rc)
 
    type(ESMF_GridComp), intent(INout) :: gc
    integer, intent(out)               :: rc
- 
-!  local 
+
+!  local
    character(len=ESMF_MAXSTR)         :: IAm
    integer                            :: STATUS
 
@@ -1670,10 +1677,10 @@ logical function isDataDrivenGC_(gc, rc)
    character(len=ESMF_MAXSTR)         :: comp_name
    character(len=*), parameter        :: modifier = '.data'
 
-   call ESMF_GridCompGet(gc, name=comp_name, __RC__)   
+   call ESMF_GridCompGet(gc, name=comp_name, __RC__)
    i = index(trim(comp_name), trim(modifier), back=.true.)
- 
-   if (i > 0) then 
+
+   if (i > 0) then
        ! lets be strict
        if (comp_name(i:) == modifier) then
            isDataDrivenGC_ = .true.
