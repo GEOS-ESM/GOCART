@@ -7,8 +7,8 @@
 !BOP
 !
 
-! !MODULE: Chem_AeroGeneric - Utilitarian subroutines used by GOCART2G children. 
-!                             
+! !MODULE: Chem_AeroGeneric - Utilitarian subroutines used by GOCART2G children.
+!
 !
 ! !INTERFACE:
 !
@@ -48,7 +48,7 @@ contains
 !====================================================================================
   subroutine add_aero (state, label, label2, grid, typekind, ptr, rc)
 
-!   Description: Adds fields to aero state for aerosol optics calcualtions. 
+!   Description: Adds fields to aero state for aerosol optics calcualtions.
 
     implicit none
 
@@ -109,7 +109,7 @@ contains
 
      __Iam__('determine_data_driven')
 
-!   Begin... 
+!   Begin...
 
 !   Is DU data driven?
 !   ------------------
@@ -155,7 +155,7 @@ contains
     call ESMF_FieldGet (field, dimCount=dimCount, __RC__)
 
     if (dimCount == 2) then ! this handles data instances
-       call MAPL_FieldBundleAdd (bundle, field, __RC__) 
+       call MAPL_FieldBundleAdd (bundle, field, __RC__)
 
     else if (dimCount == 3) then ! this handles computational instances
        call ESMF_FieldGet (field, grid=grid, __RC__)
@@ -168,8 +168,8 @@ contains
           do i = 1, size(orig_ptr, 3)
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varName)//trim(bin_index) , __RC__)
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        name=trim(varName)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
              call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
              call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
              call ESMF_AttributeSet(field2d, name='UNITS',     value=trim(units), _RC)
@@ -181,8 +181,8 @@ contains
 
        if (index(trim(varname), 'SU') > 0) then ! only use SO4, which is the 3rd index
           ptr2d => orig_ptr(:,:,3)
-          field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                     name=trim(varName)//'003' , __RC__)
+          field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                     name=trim(varName)//'003' , indexflag=ESMF_INDEX_DELOCAL, __RC__)
           call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
           call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
           call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
@@ -196,8 +196,8 @@ contains
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
              varNameNew = 'OC'//varName(6:7)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varNameNew)//trim(bin_index) , __RC__)
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        name=trim(varNameNew)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
              call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
              call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
              call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
@@ -212,8 +212,8 @@ contains
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
              varNameNew = 'BC'//varName(6:7)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varNameNew)//trim(bin_index) , __RC__)
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        name=trim(varNameNew)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
              call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
              call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
              call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
@@ -225,7 +225,7 @@ contains
 
     else if (dimCount > 3) then
        if(mapl_am_i_root()) print*,'Chem_AeroGenric::append_to_bundle does not currently support fields greater than 3 dimensions'
-       VERIFY_(824)       
+       VERIFY_(824)
     end if
 
     RETURN_(ESMF_SUCCESS)
@@ -251,7 +251,7 @@ contains
 !
 ! !REVISION HISTORY:
 !
-! 25Aug2020 E.Sherman - Written 
+! 25Aug2020 E.Sherman - Written
 !
 ! !Local Variables
    integer :: k
@@ -288,7 +288,7 @@ contains
 !
 ! !REVISION HISTORY:
 !
-! 25Aug2020 E.Sherman - Written 
+! 25Aug2020 E.Sherman - Written
 !
 ! !Local Variables
    integer :: k, n
@@ -331,7 +331,7 @@ contains
 !
 ! !REVISION HISTORY:
 !
-! 25Aug2020 E.Sherman - Written 
+! 25Aug2020 E.Sherman - Written
 !
 ! !Local Variables
    integer :: k, j, i
