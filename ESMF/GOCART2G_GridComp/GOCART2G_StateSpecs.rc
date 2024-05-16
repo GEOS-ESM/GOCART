@@ -5,7 +5,7 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE       | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
-     NAME   | UNITS    | DIMS | VLOC | RESTART | LONG NAME
+     NAME   | UNITS    | DIMS | VLOC | COND | LONG NAME
 #----------------------------------------------------------------------------------------
 # DELP       | Pa       | xyz  | C    |         | pressure_thickness
 # RH2       | 1        | xyz  | C    |         | Rel_Hum_after_moist
