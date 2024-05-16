@@ -7,11 +7,9 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
      NAME   | UNITS    | DIMS | VLOC | RESTART | LONG NAME
 #----------------------------------------------------------------------------------------
- DELP       | Pa       | xyz  | C    |         | pressure_thickness
+# DELP       | Pa       | xyz  | C    |         | pressure_thickness
 # RH2       | 1        | xyz  | C    |         | Rel_Hum_after_moist
- AIRDENS    | kg/m^3   | xyz  | C    | OPT     | moist_air_density
- T          | K        | xyz  | C    | OPT     | air_temperature
- PLE        | Pa       | xyz  | E    | OPT     | air_pressure
+
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
