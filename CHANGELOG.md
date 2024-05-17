@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Changed
+Long names in State Spec files
 
 ## v2.1.2+R21C_v1.0.1
 
