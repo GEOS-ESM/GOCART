@@ -14,7 +14,7 @@ Collections:
 
 Samplings:
   CH4_sample_0:
-    time_interpolation: 'False'
+    time_interpolation: False
   CH4_sample_1:
     extrapolation: clim
   CH4_sample_2:
