@@ -5,19 +5,19 @@ GOCART:
 env:
   local: ./env@
   remote: ../ESMA_env.git
-  tag: v4.2.0
+  tag: v4.9.1
   develop: main
 
 cmake:
   local: ./cmake@
   remote: ../ESMA_cmake.git
-  tag: v3.17.0
+  tag: v3.26.0
   develop: develop
 
 ecbuild:
   local: ./cmake@/ecbuild@
   remote: ../ecbuild.git
-  tag: geos/v1.2.0
+  tag: geos/v1.3.0
 
 HEMCO:
   local: ./ESMF/HEMCO_GridComp@
@@ -27,12 +27,12 @@ HEMCO:
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
-  tag: v1.5.6
+  tag: v1.7.2+R21C_v1.0.0
   sparse: ./config/GMAO_Shared.sparse
   develop: main
 
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  tag: v2.23.1
-  develop: develop
+  tag: v2.35.3+R21C_v1.2.0
+  develop: R21C
