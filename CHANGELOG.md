@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Changed
-Long names for carbon diagnostics to use BC, OC, and BR instead of CA.*
+- Long names for carbon diagnostics to use BC, OC, and BR instead of CA.* 
+  - Note this requires MAPL v2.35.3+R21C_v1.2.0 or later
 
 ## v2.1.2+R21C_v1.0.1
 
