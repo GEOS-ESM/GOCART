@@ -123,6 +123,14 @@ CONTAINS
         RC         = STATUS)
    VERIFY_(STATUS)
 
+   call MAPL_AddImportSpec(GC,                            &
+       SHORT_NAME = 'QTOT',                                &
+       LONG_NAME  = 'mass_fraction_of_all_water',          &
+       UNITS      = 'kg kg-1',                             &
+       DIMS       = MAPL_DimsHorzVert,                     &
+       VLOCATION  = MAPL_VLocationCenter,                  &
+       RESTART    = MAPL_RestartSkip,     __RC__)
+
    if (doingCMS == 0) then 
       call MAPL_AddImportSpec(GC,           &
            SHORT_NAME = 'CO2_BIOMASS',      &
@@ -686,13 +694,13 @@ CONTAINS
 
 !  Get imports
 !  -----------
-   call MAPL_GetPointer ( impChem, pblh, 'ZPBL',    rc=ier(1) ) 
-   call MAPL_GetPointer ( impChem, zle,  'ZLE',     rc=ier(4) ) 
-   call MAPL_GetPointer ( impChem, T,    'T',       rc=ier(2) ) 
-   call MAPL_GetPointer ( impChem, u10m, 'U10M',    rc=ier(5) )
-   call MAPL_GetPointer ( impChem, v10m, 'V10M',    rc=ier(6) )
-   call MAPL_GetPointer ( impChem, ps,   'PS',      rc=ier(7) )
-   call MAPL_GetPointer ( impChem, qtot, 'QTOT',    rc=ier(8) ) 
+   call MAPL_GetPointer ( impChem, pblh, 'ZPBL',    rc=ier(1) ) ; VERIFY_(ier(1))
+   call MAPL_GetPointer ( impChem, zle,  'ZLE',     rc=ier(4) ) ; VERIFY_(ier(4))
+   call MAPL_GetPointer ( impChem, T,    'T',       rc=ier(2) ) ; VERIFY_(ier(2))
+   call MAPL_GetPointer ( impChem, u10m, 'U10M',    rc=ier(5) ) ; VERIFY_(ier(5))
+   call MAPL_GetPointer ( impChem, v10m, 'V10M',    rc=ier(6) ) ; VERIFY_(ier(6))
+   call MAPL_GetPointer ( impChem, ps,   'PS',      rc=ier(7) ) ; VERIFY_(ier(7))
+   call MAPL_GetPointer ( impChem, qtot, 'QTOT',    rc=ier(8) ) ; VERIFY_(ier(8))
 
    if (gcCO2%DBG) then
       call pmaxmin('CO2: e_ff',  gcCO2%eCO2_FF,  qmin, qmax, ijl, 1, 1. )
