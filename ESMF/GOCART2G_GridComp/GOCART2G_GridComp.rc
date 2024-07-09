@@ -41,3 +41,5 @@ aerosol_monochromatic_optics_wavelength_in_nm_from_LUT: 470 550 670 870
 wavelengths_for_profile_aop_in_nm: 550               # must be included in LUT
 wavelengths_for_vertically_integrated_aop_in_nm: 550 # must be included in LUT
 
+# Set oxidant update frequency
+ox_update_frequency: 3hr  # can be 3hr or month
