@@ -3725,7 +3725,7 @@ CONTAINS
 ! !IROUTINE:  jeagleSSTcorrection - Apply SST correction following Jaegle et al. 2011
 !
 ! !INTERFACE:
-   subroutine jeagleSSTcorrection(sstEmisFlag, fsstemis, ts, rc)
+   subroutine jeagleSSTcorrection(sstEmisFlag, fsstemis, ts, f_t0, f_t1, f_t2, f_t3, rc)
 
 ! !USES:
   implicit NONE
@@ -3737,17 +3737,47 @@ CONTAINS
    integer, intent(in)                       :: sstEmisFlag  ! 1 or 2
    real, dimension(:,:), intent(in)          :: ts  ! surface temperature (K)
 
+   real, optional, intent(in)                :: f_t0, f_t1, f_t2, f_t3
+
 ! !OUTPUT PARAMETERS:
    integer, optional, intent(out) :: rc
 !EOP
 
 ! !Local Variables
    real, allocatable, dimension(:,:) :: tskin_c
+
+   real :: f_t0_, f_t1_, f_t2_, f_t3_
+
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...
 
    fsstemis = 1.0
+
+   if(present(f_t0)) then
+       f_t0_ = f_t0
+   else
+       f_t0_ = 1.0
+   endif
+
+   if(present(f_t1)) then
+       f_t1_ = f_t1
+   else
+       f_t1_ = 0.0
+   endif
+
+   if(present(f_t2)) then
+       f_t2_ = f_t2
+   else
+       f_t2_ = 0.0
+   endif
+
+   if(present(f_t3)) then
+       f_t3_ = f_t3
+   else
+       f_t3_ = 0.0
+   endif
+
 
    if (sstemisFlag == 1) then          ! SST correction folowing Jaegle et al. 2011
       fsstemis = 0.0
@@ -3771,6 +3801,21 @@ CONTAINS
       fsstemis = (-1.107211 -0.010681*tskin_c -0.002276*tskin_c**2 + 60.288927*1.0/(40.0 - tskin_c))
       where(fsstemis < 0.0) fsstemis = 0.0
       where(fsstemis > 7.0) fsstemis = 7.0
+
+      deallocate( tskin_c )
+   else if (sstemisFlag == 2024) then     ! SPSA SST correction
+      fsstemis = 0.0
+
+      allocate( tskin_c, mold=fsstemis )
+      tskin_c  = ts - 273.15
+
+      where(tskin_c < -1.0) tskin_c = -1.0    ! temperature range (-1, 40) C
+      where(tskin_c > 40.0) tskin_c = 40.0    !
+
+      fsstemis = (f_t0_ + (0.1*tskin_c)*f_t1_ - (0.0076*tskin_c**2)*f_t2_ + (0.00021*tskin_c**3)*f_t3_)
+
+      where(fsstemis <  0.0) fsstemis =  0.0
+      where(fsstemis > 10.0) fsstemis = 10.0
 
       deallocate( tskin_c )
    end if
@@ -3904,7 +3949,7 @@ CONTAINS
 ! !INTERFACE:
 !
    subroutine SeasaltEmission ( rLow, rUp, method, u10m, v10m, ustar, pi, &
-                                memissions, nemissions, rc )
+                                memissions, nemissions, rc, f_wpow, w_th )
 
 ! !DESCRIPTION: Calculates the seasalt mass emission flux every timestep.
 !  The particular method (algorithm) used for the calculation is based
@@ -3928,6 +3973,10 @@ CONTAINS
    integer, intent(in)          :: method      ! Algorithm to use
    real, intent(in)             :: pi          ! pi constant
 
+   real, optional, intent(in)   :: f_wpow
+   real, optional, intent(in)   :: w_th 
+
+
 ! !INOUTPUT PARAMETERS:
    real, dimension(:,:), intent(inout) :: memissions      ! Mass Emissions Flux [kg m-2 s-1]
    real, dimension(:,:), intent(inout) :: nemissions      ! Number Emissions Flux [# m-2 s-1]
@@ -3943,6 +3992,9 @@ CONTAINS
    real          :: rwet, drwet                     ! sub-bin radius spacing (rh=80%, um)
    real          :: aFac, bFac, scalefac, rpow, exppow, wpow
    real, allocatable, dimension(:,:), target  :: w10m  ! 10-m wind speed [m s-1]
+
+   real          :: f_wpow_
+   real          :: w_th_
 
 ! !CONSTANTS
    real, parameter    :: r80fac = 1.65     ! ratio of radius(RH=0.8)/radius(RH=0.) [Gerber]
@@ -3964,6 +4016,20 @@ CONTAINS
 !  Define the sub-bins (still in dry radius)
    dr = (rUp - rLow)/nr
    r  = rLow + 0.5*dr
+
+   if(present(f_wpow)) then
+       f_wpow_ = f_wpow
+   else
+       f_wpow_ = 1.0
+   endif
+
+   if(present(w_th)) then
+       w_th_ = w_th
+   else
+       w_th_ = 0.0
+   endif
+
+
 
 !  Loop over size bins
    nemissions = 0.
@@ -4003,6 +4069,15 @@ CONTAINS
       wpow     = 3.41 - 1.
       w        => ustar
 
+     case(2024) ! GEOS 2024
+      aFac     = 4.7*(1.+30.*rwet)**(-0.017*rwet**(-1.44))
+      bFac     = (0.433-log10(rwet))/0.433
+      scalefac = 33.0e3
+      rpow     = 3.45
+      exppow   = 1.607
+      wpow     = (3.41 - 1.)*f_wpow_
+      w        => ustar
+
      case default
       !$omp critical (G2G_proc_4)
       print *, 'GOCART2G_Process.F90 - SeasaltEmission - missing algorithm method'
@@ -4013,11 +4088,11 @@ CONTAINS
     end select
 
 !   Number emissions flux (# m-2 s-1)
-    nemissions = nemissions + SeasaltEmissionGong( rwet, drwet, w, scalefac, aFac, bFac, rpow, exppow, wpow )
+    nemissions = nemissions + SeasaltEmissionGong( rwet, drwet, w, scalefac, aFac, bFac, rpow, exppow, wpow, w_th_ )
 
 !   Mass emissions flux (kg m-2 s-1)
     scalefac = scalefac * 4./3.*pi*rhop*r**3.*1.e-18
-    memissions = memissions + SeasaltEmissionGong( rwet, drwet, w, scalefac, aFac, bFac, rpow, exppow, wpow )
+    memissions = memissions + SeasaltEmissionGong( rwet, drwet, w, scalefac, aFac, bFac, rpow, exppow, wpow, w_th_ )
 
     r = r + dr
 
@@ -4032,21 +4107,31 @@ CONTAINS
 !  dN/dr = scalefac * 1.373 * (w^wpow) * (r^-aFac) * (1+0.057*r^rpow) * 10^(exppow*exp(-bFac^2))
 ! where r is the particle radius at 80% RH, dr is the size bin width at 80% RH, and w is the wind speed
 
-  function SeasaltEmissionGong ( r, dr, w, scalefac, aFac, bFac, rpow, exppow, wpow )
+  function SeasaltEmissionGong ( r, dr, w, scalefac, aFac, bFac, rpow, exppow, wpow, w_th )
 
    real, intent(in)    :: r, dr     ! Wet particle radius, bin width [um]
    real, pointer, intent(in)    :: w(:,:)    ! Grid box mean wind speed [m s-1] (10-m or ustar wind)
    real, intent(in)    :: scalefac, aFac, bFac, rpow, exppow, wpow
    real                :: SeasaltEmissionGong(size(w,1),size(w,2))
 
+   real, optional, intent(in) :: w_th
+   real :: w_th_
+
 !  Initialize
    SeasaltEmissionGong = 0.
+
+   if(present(w_th)) then
+       w_th_ = w_th
+   else
+       w_th_ = 0.0
+   endif
+
 
 !  Particle size distribution function
    SeasaltEmissionGong = scalefac * 1.373*r**(-aFac)*(1.+0.057*r**rpow) &
                          *10**(exppow*exp(-bFac**2.))*dr
 !  Apply wind speed function
-   SeasaltEmissionGong = w**wpow * SeasaltEmissionGong
+   SeasaltEmissionGong = (w-w_th)**wpow * SeasaltEmissionGong
 
   end function SeasaltEmissionGong
 
