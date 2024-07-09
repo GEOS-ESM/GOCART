@@ -731,7 +731,7 @@ contains
        end if
 
        memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
-       memissions = self%spsa_gsfc * memissions
+       memissions = self%spsa_gsf  * memissions
        dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
        SS(:,:,self%km,n) = SS(:,:,self%km,n) + dqa
 

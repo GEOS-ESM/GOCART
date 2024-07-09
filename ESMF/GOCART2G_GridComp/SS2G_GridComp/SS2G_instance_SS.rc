@@ -40,4 +40,14 @@ nbins: 5
 
 pressure_lid_in_hPa: 0.01
 
+# SPSA
+spsa_gsf:  1.0
+spsa_sst0: 1.0
+spsa_sst1: 0.0
+spsa_sst2: 0.0
+spsa_sst3: 0.0
+spsa_w_power: 1.0
+spsa_w_th: 0.2
+spsa_fscav: 1.0
+spsa_fwet: 1.0
 
