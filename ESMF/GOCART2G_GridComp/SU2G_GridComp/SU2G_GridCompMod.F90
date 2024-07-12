@@ -85,6 +85,9 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
 
+!     logic for 3 hourly oxident files
+      logical :: using_3HR_OX
+
 !     Special handling for volcanic emissions
       character(len=255) :: volcano_srcfilen
 !     !Workspae for point emissions
@@ -174,6 +177,7 @@ contains
     allocate(self%sigma(self%nbins), __STAT__)
 
 !   process SU-specific items
+    call ESMF_ConfigGetAttribute(cfg, self%using_3HR_OX, label='using_3HR_OX:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen, label='volcano_srcfilen:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', __RC__)
@@ -1041,13 +1045,25 @@ contains
        !workspace%firstRun  = .false.
     !end if
 
-    xh2o2 = h2o2_init
+    if (self%using_3HR_OX) then
+        ! external oxident files are already 3-hourly, use them directly
+        xh2o2 = SU_H2O2
+        xoh   = SU_OH
+        xno3  = SU_NO3
 
-    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+        call MAPL_MaxMin ( 'GOCART:OH   ', xoh)
+        call MAPL_MaxMin ( 'GOCART:H2O2 ', xh2o2)
+        call MAPL_MaxMin ( 'GOCART:NO3  ', xno3)
+    else
+        ! external oxident files are monthly, scale these to 3-hourly
+        xh2o2 = h2o2_init
+
+        call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 SU_OH, SU_NO3, SU_H2O2, &
                                 xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
+    endif
 
 !   SU Settling
 !   -----------
