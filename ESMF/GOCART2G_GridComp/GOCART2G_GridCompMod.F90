@@ -50,7 +50,6 @@ module GOCART2G_GridCompMod
      type(Constituent) :: NI
      real, allocatable :: wavelengths_profile(:) ! wavelengths for profile aop [nm]
      real, allocatable :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
-     character(len=ESMF_MAXSTR) :: ox_update
   end type GOCART_State
 
   type wrap_
@@ -160,13 +159,6 @@ contains
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
-
-!   Retrieve oxidant freqeuency from GOCART2G_GridComp.rc
-    call ESMF_ConfigGetAttribute (myCF, self%ox_update, label='ox_update_frequency:', __RC__)
-
-!   Set oxident frequency in universal config
-    call MAPL_ConfigSetAttribute (cf, self%ox_update, label='ox_update_frequency:', __RC__)
-
     call ESMF_ConfigGetAttribute (myCF, use_threads, label='use_threads:', default=.FALSE., __RC__)
 
 !   Get my internal MAPL_Generic state
