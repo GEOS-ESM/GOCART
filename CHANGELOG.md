@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Update `components.yaml` to match that of GEOSgcm v11.5.2
   - ESMA_env v4.29.0 (Baselibs 7.24.0, Updates for SLES15 at NCCS, various fixes)
-  - ESMA_cmake v3.46.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS, MPI detection, ESMF CMake fixes for Spack)
+  - ESMA_cmake v3.48.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS, MPI detection, ESMF and MPI CMake fixes for Spack)
   - GMAO_Shared v1.9.7 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
   - MAPL 2.47.0 (Various fixes and features, support for Spack)
 - Update CI to use Baselibs by default from CircleCI Orb
