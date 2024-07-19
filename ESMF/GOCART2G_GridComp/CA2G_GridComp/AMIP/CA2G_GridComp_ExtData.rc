@@ -42,14 +42,14 @@ OC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass /dev/null
 OC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
 
 # Anthropogenic (BF & FF) emissions -- allowed to input as two layers
-OC_ANTEOC1 NA  N Y %y4-%m2-%d2t12:00:00 none none oc_nonenergy ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
-OC_ANTEOC2 NA  N Y %y4-%m2-%d2t12:00:00 none none oc_energy    ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+OC_ANTEOC1 NA  N Y %y4-%m2-%d2t12:00:00 none none oc_nonenergy ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+OC_ANTEOC2 NA  N Y %y4-%m2-%d2t12:00:00 none none oc_energy    ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
 
 # EDGAR based ship emissions
-OC_SHIP    NA  N Y %y4-%m2-%d2t12:00:00 none none oc_shipping  ExtData/chemistry/CEDS/v2021-04-21/sfc/OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+OC_SHIP    NA  N Y %y4-%m2-%d2t12:00:00 none none oc_shipping  ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
 
 # Aircraft fuel consumption
-OC_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none oc_aviation ExtData/chemistry/CEDS/v2021-04-21/L72/OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+OC_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none oc_aviation ExtData/chemistry/CEDS/v2021-04-21-revised/L72/OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
 
 # Aviation emissions during the three phases of flight
 OC_AVIATION_LTO NA  Y Y %y4-%m2-%d2t12:00:00 none none oc_aviation /dev/null
@@ -69,14 +69,14 @@ BC_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass ExtData/chemistry/QFE
 BC_BIOFUEL NA  Y Y %y4-%m2-%d2t12:00:00 none none biofuel /dev/null
 
 # Anthropogenic (BF & FF) emissions -- allowed to input as two layers
-BC_ANTEBC1 NA  N Y %y4-%m2-%d2t12:00:00 none none bc_nonenergy ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
-BC_ANTEBC2 NA  N Y %y4-%m2-%d2t12:00:00 none none bc_energy    ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+BC_ANTEBC1 NA  N Y %y4-%m2-%d2t12:00:00 none none bc_nonenergy ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+BC_ANTEBC2 NA  N Y %y4-%m2-%d2t12:00:00 none none bc_energy    ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
 
 # EDGAR based ship emissions
-BC_SHIP    NA  N Y %y4-%m2-%d2t12:00:00 none none bc_shipping  ExtData/chemistry/CEDS/v2021-04-21/sfc/BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+BC_SHIP    NA  N Y %y4-%m2-%d2t12:00:00 none none bc_shipping  ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
 
 # Aircraft fuel consumption
-BC_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none bc_aviation ExtData/chemistry/CEDS/v2021-04-21/L72/BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+BC_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none bc_aviation ExtData/chemistry/CEDS/v2021-04-21-revised/L72/BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
 
 # Aviation emissions during the LTO, SDC and CRS phases of flight
 BC_AVIATION_LTO NA  Y Y %y4-%m2-%d2t12:00:00 none none bc_aviation /dev/null
