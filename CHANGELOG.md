@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Long names for carbon diagnostics to use BC, OC, and BR instead of CA.*
   - Note this requires MAPL v2.35.3+R21C_v1.2.0 or later
 - Update `components.yaml` to match the `R21C` branch of GEOSgcm
+-Filepath for CEDS has been updated in the ExtData yaml and rc files. Note the old version had an incorrect seasonal cycle.
 
 ## v2.1.2+R21C_v1.0.1
 
