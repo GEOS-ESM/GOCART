@@ -2,7 +2,8 @@ cmake_minimum_required (VERSION 3.17)
 cmake_policy (SET CMP0053 NEW)
 cmake_policy (SET CMP0054 NEW)
 
-# mepo can now clone subrepos in three styles
+# Let's look for the ESMA cmake directory in a few places
+# to see if we are building standalone
 set (ESMA_CMAKE_DIRS
   cmake
   @cmake
@@ -13,7 +14,6 @@ foreach (dir IN LISTS ESMA_CMAKE_DIRS)
   if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/${dir})
     list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/${dir}")
     set (ESMA_CMAKE_PATH "${CMAKE_CURRENT_LIST_DIR}/${dir}" CACHE PATH "Path to ESMA_cmake code")
-    include (esma)
     set(GOCART_STANDALONE TRUE)
   endif ()
 endforeach ()
@@ -21,7 +21,7 @@ endforeach ()
 if (GOCART_STANDALONE)
   project (
           GOCART
-          VERSION 2.1.1
+          VERSION 2.2.1
           LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
   if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -59,7 +59,6 @@ if (UFS_GOCART)
 endif()
 
 if (NOT COMMAND esma)
-    list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake@")
     include (esma)
 endif()
 
@@ -81,6 +80,12 @@ endif ()
 
 if (UFS_GOCART)
   find_package (GFTL_SHARED REQUIRED)
+  # Dom Heinzeller 2023/08/30 - workaround until https://github.com/GEOS-ESM/MAPL/pull/2320
+  # is merged and finds its way into the ufs-weather-model dependency tree
+  find_package (YAFYAML QUIET)
+  find_package (FARGPARSE QUIET)
+  find_package (PFLOGGER QUIET)
+  #
   find_package (MAPL REQUIRED)
   include(mapl_acg)
 elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
