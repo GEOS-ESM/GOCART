@@ -692,11 +692,12 @@ contains
 !   Apply SST correction following Jaegle et al. 2011 if needed
 !   ------------------------------------------------------------
     allocate(fsstemis, mold=frocean, __STAT__ )
-    call jeagleSSTcorrection(self%sstEmisFlag, fsstemis, ts, __RC__, &
+    call jeagleSSTcorrection(self%sstEmisFlag, fsstemis, ts, &
                              self%spsa_sst0, &
                              self%spsa_sst1, &
                              self%spsa_sst2, &
-                             self%spsa_sst3)
+                             self%spsa_sst3, &
+                             __RC__)
 
 !   Apply a Weibull distribution to emissions wind speeds
 !   -----------------------------------------------------
@@ -719,8 +720,9 @@ contains
        dqa = 0.
 
        call SeasaltEmission (self%rlow(n), self%rup(n), self%emission_scheme, u10m, &
-                             v10m, ustar, MAPL_PI, memissions, nemissions, __RC__, &
-                             self%spsa_w_power, self%spsa_w_th)
+                             v10m, ustar, MAPL_PI, memissions, nemissions, &
+                             self%spsa_w_power, self%spsa_w_th, &
+                             __RC__)
 
 !      For the Hoppel correction need to compute the wet radius and settling velocity
 !      in the surface

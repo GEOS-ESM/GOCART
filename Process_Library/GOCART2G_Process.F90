@@ -3949,7 +3949,7 @@ CONTAINS
 ! !INTERFACE:
 !
    subroutine SeasaltEmission ( rLow, rUp, method, u10m, v10m, ustar, pi, &
-                                memissions, nemissions, rc, f_wpow, w_th )
+                                memissions, nemissions, f_wpow, w_th, rc )
 
 ! !DESCRIPTION: Calculates the seasalt mass emission flux every timestep.
 !  The particular method (algorithm) used for the calculation is based
@@ -4131,7 +4131,7 @@ CONTAINS
    SeasaltEmissionGong = scalefac * 1.373*r**(-aFac)*(1.+0.057*r**rpow) &
                          *10**(exppow*exp(-bFac**2.))*dr
 !  Apply wind speed function
-   SeasaltEmissionGong = (w-w_th)**wpow * SeasaltEmissionGong
+   SeasaltEmissionGong = (max(0.0, w-w_th))**wpow * SeasaltEmissionGong
 
   end function SeasaltEmissionGong
 
