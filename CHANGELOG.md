@@ -5,13 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Removed
+
+- Removed all ExtData.rc files
 
 ## [Unreleased] - 2024-05-14
 
 ### Added
 
 - Required attributes for the 2D GOCART export fields in AERO_DP bundle have been set in subroutine append_to_bundle in Chem_AeroGeneric.F90. These export fields are imported by OBIO via Surface GC, and the missing of the attributes was causing the writing of surface import checkpoint to fail. The issue has been explained in detail on https://github.com/GEOS-ESM/GOCART/issues/258  
-
 
 ## [Unreleased] - 2023-07-24
 
