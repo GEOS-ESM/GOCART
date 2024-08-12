@@ -5,13 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Removed
+
+- Removed all ExtData.rc files
+
+## [Unreleased] - 2024-05-14
+
+### Added
+
+- Required attributes for the 2D GOCART export fields in AERO_DP bundle have been set in subroutine append_to_bundle in Chem_AeroGeneric.F90. These export fields are imported by OBIO via Surface GC, and the missing of the attributes was causing the writing of surface import checkpoint to fail. The issue has been explained in detail on https://github.com/GEOS-ESM/GOCART/issues/258  
 
 ## [Unreleased] - 2023-07-24
 
 
 ### Fixed
 
+
+- corrected reading variable 'rhod' from files ( it was mispelled as 'rhop')
+
 - Silenced unwarranted error messages from wavelength/channel retrieval functions occurring when 470nm and/or 870nm channels are not included in GOCART resource file.
+
 - Add explicit `find_package()` calls for missing dependencies for MAPL for builds with spack-stack. Will eventually be fixed in MAPL in later versions
 - Corrected the units of the gravimetric soil moisture to percent instead of fractional in the FENGSHA dust scheme.
 - Fix issue of GOCART/GEOSgcm circular CMake dependencies when used as external project
