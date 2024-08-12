@@ -25,11 +25,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Modified ExtData.yaml files to persist as climatological anthropogenic emissions after the end of the CEDS dataset in 2019. Analogous rc files removed as this capability is only available with ExtData2G
 
-- Update `components.yaml` to match that of GEOSgcm v11.3.3
-  - ESMA_env v4.20.6 (Baselibs 7.14.0, Updates for SLES15 at NCCS)
-  - ESMA_cmake v3.36.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS)
-  - GMAO_Shared v1.9.6 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
-  - MAPL 2.42.0 (Various fixes and features)
+- Update `components.yaml` to match that of GEOSgcm v11.6.1
+  - ESMA_env v4.29.0 (Baselibs 7.24.0, Updates for SLES15 at NCCS, various fixes)
+  - ESMA_cmake v3.48.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS, MPI detection, ESMF and MPI CMake fixes for Spack)
+  - GMAO_Shared v1.9.8 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
+  - MAPL 2.47.1 (Various fixes and features, support for Spack)
 - Update CI to use Baselibs by default from CircleCI Orb
 - Correct soil moisture parameterization in FENGSHA
 - Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
