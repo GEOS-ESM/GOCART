@@ -5,11 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+
+## [Unreleased] - 2024-05-14
+
+### Added
+
+- Required attributes for the 2D GOCART export fields in AERO_DP bundle have been set in subroutine append_to_bundle in Chem_AeroGeneric.F90. These export fields are imported by OBIO via Surface GC, and the missing of the attributes was causing the writing of surface import checkpoint to fail. The issue has been explained in detail on https://github.com/GEOS-ESM/GOCART/issues/258  
+
+
+## [Unreleased] - 2023-07-24
+
 
 ### Fixed
 
+
 - Add replay import patch for ozone.
+
+- corrected reading variable 'rhod' from files ( it was mispelled as 'rhop')
+
+- Silenced unwarranted error messages from wavelength/channel retrieval functions occurring when 470nm and/or 870nm channels are not included in GOCART resource file.
+
 - Add explicit `find_package()` calls for missing dependencies for MAPL for builds with spack-stack. Will eventually be fixed in MAPL in later versions
 - Corrected the units of the gravimetric soil moisture to percent instead of fractional in the FENGSHA dust scheme.
 
@@ -19,9 +34,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- State Spec RC files for GOCART2G, CA, DU, NI, SU, and SS were updated such that the long names for AOD are more intuitive
+
+- Modified ExtData.yaml files to persist as climatological anthropogenic emissions after the end of the CEDS dataset in 2019. Analogous rc files removed as this capability is only available with ExtData2G
+
+- Update `components.yaml` to match that of GEOSgcm v11.3.3
+  - ESMA_env v4.20.6 (Baselibs 7.14.0, Updates for SLES15 at NCCS)
+  - ESMA_cmake v3.36.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS)
+  - GMAO_Shared v1.9.6 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
+  - MAPL 2.42.0 (Various fixes and features)
+- Update CI to use Baselibs by default from CircleCI Orb
 - Correct soil moisture parameterization in FENGSHA
 - Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
 - Add `soil_drylimit_factor` to the DU2G_instance_DU.rc and DU2G_GridCompMod.F90 files for FENGSHA
+
+- Moved process library macros to header file.
+
 
 ## [v2.2.1] - 2023-05-30
 
