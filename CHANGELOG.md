@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Update ESMF CMake target to `ESMF::ESMF`
 - Modified the file paths in carbon, sulfate, and nitrate ExtData.yaml files to used the revised version of the CEDS anthropogenic emissions. Note the previous version has an incorrect seasonal cycle.
 - State Spec RC files for GOCART2G, CA, DU, NI, SU, and SS were updated such that the long names for AOD are more intuitive
 - Modified ExtData.yaml files to persist as climatological anthropogenic emissions after the end of the CEDS dataset in 2019. Analogous rc files removed as this capability is only available with ExtData2G
