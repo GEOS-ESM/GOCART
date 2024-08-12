@@ -12,10 +12,12 @@ if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/@GSW )
     set (gsw_ECBUILD_SYSTEM_INCLUDED TRUE)
 endif()
 
-if ( IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/MAPL@ )
-  esma_add_subdirectories (
-    MAPL
-    )
+if (NOT TARGET MAPL)
+  if ( IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/MAPL@ )
+    esma_add_subdirectories (
+      MAPL
+      )
+  endif ()
 endif ()
 
 if ( IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/GMAO_Shared@ )
