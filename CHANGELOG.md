@@ -11,7 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+
+- corrected reading variable 'rhod' from files ( it was mispelled as 'rhop')
+
 - Silenced unwarranted error messages from wavelength/channel retrieval functions occurring when 470nm and/or 870nm channels are not included in GOCART resource file.
+
 - Add explicit `find_package()` calls for missing dependencies for MAPL for builds with spack-stack. Will eventually be fixed in MAPL in later versions
 - Corrected the units of the gravimetric soil moisture to percent instead of fractional in the FENGSHA dust scheme.
 
