@@ -6,7 +6,7 @@ set (srcs
 
 esma_add_library(${this}
   SRCS ${srcs}
-  DEPENDENCIES MAPL esmf)
+  DEPENDENCIES MAPL ESMF::ESMF)
 
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/@GSW )
     set (gsw_ECBUILD_SYSTEM_INCLUDED TRUE)
