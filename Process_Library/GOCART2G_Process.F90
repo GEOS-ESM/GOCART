@@ -1,13 +1,4 @@
-#define __SUCCESS__ 0
-#define __FAIL__ 1
-#define __VERIFY__(x) if(x/=0) then; if(present(rc)) rc=x; return; endif
-#define __VERIFY_NO_OPT__(x) if(x/=0) then; rc=x; return; endif
-#define __RC__ rc=status); __VERIFY__(status
-#define __RC_NO_OPT__ rc=status); __VERIFY_NO_OPT__(status
-#define __STAT__ stat=status); __VERIFY__(status
-#define __IOSTAT__ iostat=status); __VERIFY__(status
-#define __RETURN__(x) if (present(rc)) rc=x; return
-#define __ASSERT__(expr) if(.not. (expr)) then; if (present(rc)) rc=-1; return; endif
+#include "Process.H"
 !-------------------------------------------------------------------------
 !
 ! !MODULE: GOCART2G_Process -- GOCART2G process library
@@ -178,7 +169,7 @@ CONTAINS
 ! !IROUTINE: soilMoistureConvertVol2Grav - volumetric to gravimetric soil moisture
 !
 ! !INTERFACE:
-   real function soilMoistureConvertVol2Grav(vsoil, sandfrac, rhop)
+   real function soilMoistureConvertVol2Grav(vsoil, sandfrac)
 
 ! !USES:
    implicit NONE
@@ -186,7 +177,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
    real, intent(in) :: vsoil       ! volumetric soil moisture fraction [1]
    real, intent(in) :: sandfrac    ! fractional sand content [1]
-   real, intent(in) :: rhop        ! dry dust density [kg m-3]
 
 ! !DESCRIPTION: Convert soil moisture fraction from volumetric to gravimetric.
 !
@@ -200,16 +190,16 @@ CONTAINS
 
 !  !CONSTANTS:
    real, parameter :: rhow = 1000.    ! density of water [kg m-3]
-
+   real, parameter :: rhop = 1700. 
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...
 
 !  Saturated volumetric water content (sand-dependent) ! [m3 m-3]
-   vsat = 0.489 - 0.00126 * ( 100. * sandfrac )
+   vsat = 0.489 - 0.126 * sandfrac 
 
 !  Gravimetric soil content
-   soilMoistureConvertVol2Grav = vsoil * rhow / (rhop * (1. - vsat))
+   soilMoistureConvertVol2Grav = 100. * vsoil * rhow / (rhop * (1. - vsat))
 
    end function soilMoistureConvertVol2Grav
 
@@ -219,7 +209,7 @@ CONTAINS
 ! !IROUTINE: moistureCorrectionFecan - Correction factor for Fecan soil moisture
 !
 ! !INTERFACE:
-   real function moistureCorrectionFecan(slc, sand, clay, rhop)
+   real function moistureCorrectionFecan(slc, sand, clay, b)
 
 ! !USES:
    implicit NONE
@@ -228,7 +218,7 @@ CONTAINS
    real, intent(in) :: slc     ! liquid water content of top soil layer, volumetric fraction [1]
    real, intent(in) :: sand    ! fractional sand content [1]
    real, intent(in) :: clay    ! fractional clay content [1]
-   real, intent(in) :: rhop    ! dry dust density [kg m-3]
+   real, intent(in) :: b       ! drylimit factor from zender 2003 
 
 ! !DESCRIPTION: Compute correction factor to account for Fecal soil moisture
 !
@@ -246,10 +236,10 @@ CONTAINS
 !  Begin...
 
 !  Convert soil moisture from volumetric to gravimetric
-   grvsoilm = soilMoistureConvertVol2Grav(slc, sand, rhop)
+   grvsoilm = soilMoistureConvertVol2Grav(slc, sand)
 
 !  Compute fecan dry limit
-   drylimit = clay * (14.0 * clay + 17.0)
+   drylimit = b * clay * (14.0 * clay + 17.0)
 
 !  Compute soil moisture correction
    moistureCorrectionFecan = sqrt(1.0 + 1.21 * max(0., grvsoilm - drylimit)**0.68)
@@ -303,7 +293,7 @@ CONTAINS
 ! !INTERFACE:
    subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, silt,  &
                                   ssm, rdrag, airdens, ustar, uthrs, alpha, gamma, &
-                                  kvhmax, grav, rhop, distribution, emissions, rc)
+                                  kvhmax, grav, rhop, distribution, drylimit_factor, moist_correct, emissions, rc)
 
 ! !USES:
    implicit NONE
@@ -327,7 +317,8 @@ CONTAINS
    real,                 intent(in) :: grav     ! gravity [m/sec^2]
    real, dimension(:),   intent(in) :: rhop            ! soil class density [kg/m^3]
    real, dimension(:),   intent(in) :: distribution    ! normalized dust binned distribution [1]
-
+   real,                 intent(in) :: drylimit_factor ! drylimit tuning factor from zender2003 
+   real,                 intent(in) :: moist_correct   ! moisture correction factor
 ! !OUTPUT PARAMETERS:
    real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
    integer, intent(out) :: rc                   ! Error return code: __SUCCESS__ or __FAIL__
@@ -352,6 +343,7 @@ CONTAINS
    real                  :: rustar
    real                  :: total_emissions
    real                  :: u_sum, u_thresh
+   real                  :: smois
 
 ! !CONSTANTS:
    real, parameter       :: ssm_thresh = 1.e-02    ! emit above this erodibility threshold [1]
@@ -405,24 +397,25 @@ CONTAINS
          !  Compute threshold wind friction velocity using drag partition
          !  -------------------------------------------------------------
          rustar = rdrag(i,j) * ustar(i,j)
+         
+         ! Fecan moisture correction
+         ! -------------------------
+         smois = slc(i,j) * moist_correct
+         h = moistureCorrectionFecan(smois, sand(i,j), clay(i,j), drylimit_factor)
 
+         ! Adjust threshold
+         ! ----------------
+         u_thresh = uthrs(i,j) * h
+         
+         u_sum = rustar + u_thresh
+         
+         ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
+         ! ---------------------------------------------------------------------------
+         q = max(0., rustar - u_thresh) * u_sum * u_sum
+         
          !  Now compute size-dependent total emission flux
          !  ----------------------------------------------
          do n = 1, nbins
-           ! Fecan moisture correction
-           ! -------------------------
-           h = moistureCorrectionFecan(slc(i,j), sand(i,j), clay(i,j), rhop(n))
-
-           ! Adjust threshold
-           ! ----------------
-           u_thresh = uthrs(i,j) * h
-
-           u_sum = rustar + u_thresh
-
-           ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
-           ! ---------------------------------------------------------------------------
-           q = max(0., rustar - u_thresh) * u_sum * u_sum
-
            ! Distribute emissions to bins and convert to mass flux (kg s-1)
            ! --------------------------------------------------------------
            emissions(i,j,n) = distribution(n) * total_emissions * q
