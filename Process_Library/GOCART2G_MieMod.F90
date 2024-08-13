@@ -291,7 +291,7 @@ CONTAINS
       endif
 
 !     Dry particle density (will be pulled from wet particle radius)
-      rc = nf90_inq_varid(ncid,'rhop',ivarid)
+      rc = nf90_inq_varid(ncid,'rhod',ivarid)
       if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
         rhod_table = -999.
       else
