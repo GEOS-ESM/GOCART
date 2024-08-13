@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+### Removed
+
+- Removed all ExtData.rc files
+
+### Changed
+- Modified the file paths in carbon, sulfate, and nitrate ExtData.yaml files to used the revised version of the CEDS anthropogenic emissions. Note the previous version has an incorrect seasonal cycle.
+
 
 ## [Unreleased] - 2024-05-14
 
@@ -27,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Add explicit `find_package()` calls for missing dependencies for MAPL for builds with spack-stack. Will eventually be fixed in MAPL in later versions
 - Corrected the units of the gravimetric soil moisture to percent instead of fractional in the FENGSHA dust scheme.
+- Fix issue of GOCART/GEOSgcm circular CMake dependencies when used as external project
 
 ### Added
 
@@ -38,11 +46,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Modified ExtData.yaml files to persist as climatological anthropogenic emissions after the end of the CEDS dataset in 2019. Analogous rc files removed as this capability is only available with ExtData2G
 
-- Update `components.yaml` to match that of GEOSgcm v11.3.3
-  - ESMA_env v4.20.6 (Baselibs 7.14.0, Updates for SLES15 at NCCS)
-  - ESMA_cmake v3.36.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS)
-  - GMAO_Shared v1.9.6 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
-  - MAPL 2.42.0 (Various fixes and features)
+- Update `components.yaml` to match that of GEOSgcm v11.6.1
+  - ESMA_env v4.29.0 (Baselibs 7.24.0, Updates for SLES15 at NCCS, various fixes)
+  - ESMA_cmake v3.48.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS, MPI detection, ESMF and MPI CMake fixes for Spack)
+  - GMAO_Shared v1.9.8 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
+  - MAPL 2.47.1 (Various fixes and features, support for Spack)
 - Update CI to use Baselibs by default from CircleCI Orb
 - Correct soil moisture parameterization in FENGSHA
 - Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
