@@ -33,6 +33,7 @@ module CA2G_GridCompMod
 ! !DESCRIPTION: This module implements GOCART2G's Carbonaceous Aerosol (CA) Gridded Component.
 
 ! !REVISION HISTORY:
+! 4January2024   Collow - Updated call for ChemSettling
 ! 15June2020  Sherman, da Silva, Darmenov, Clune -  First attempt at refactoring.
 
 !EOP
@@ -931,6 +932,7 @@ contains
     character(len=2)  :: GCsuffix
     character(len=ESMF_MAXSTR)      :: short_name
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
+    real, pointer, dimension(:,:)     :: flux_ptr
 
     real, parameter ::  cpd    = 1004.16
     integer                      :: i1, j1, i2, j2, km
@@ -1005,10 +1007,11 @@ contains
     do n = 1, self%nbins
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
-                           rh2, zle, delp, SD, __RC__)
+       nullify(flux_ptr)
+       flux_ptr => SD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           int_ptr, t, airdens, &
+                           rh2, zle, delp, flux_ptr, __RC__)
     end do
 
 !   CA Deposition

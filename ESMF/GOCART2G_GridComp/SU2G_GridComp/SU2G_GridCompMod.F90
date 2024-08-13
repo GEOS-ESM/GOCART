@@ -48,6 +48,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
 ! !DESCRIPTION: This module implements GOCART's Sulfer (SU) Gridded Component.
 
 ! !REVISION HISTORY:
+! 04January2024  Collow - Update to ChemSettling Call
 ! 08July2020  Sherman, da Silva, Darmenov, Clune -  First attempt at refactoring.
 
 !EOP
@@ -948,7 +949,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION: Run2 method for the Dust Grid Component.
+! !DESCRIPTION: Run2 method for the Sulfate Grid Component.
 
 !EOP
 !============================================================================
@@ -979,7 +980,7 @@ contains
     integer :: thread
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
-
+    real, pointer, dimension(:,:)     :: flux_ptr
 #include "SU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1060,10 +1061,11 @@ contains
 
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
-                           rh2, zle, delp, SUSD, __RC__)
+       nullify(flux_ptr)
+       if (associated(SUSD)) flux_ptr => SUSD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
+                           int_ptr, t, airdens, &
+                           rh2, zle, delp, flux_ptr, __RC__)
     end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
