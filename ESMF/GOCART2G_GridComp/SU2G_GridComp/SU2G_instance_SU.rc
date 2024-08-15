@@ -3,7 +3,7 @@
 #
 
 aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_SU.v1_3.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_SU.v1_3.nc
+aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_SU.v1_6.nc
 
 nbins: 4
 
@@ -25,9 +25,6 @@ fscav: 0.0  0.0  0.4  0.4
 
 # Dry particle radius [um], used for settling
 particle_radius_microns: 0.0 0.0 0.35 0.0
-
-# Type of settling to use (see Chem_SettlingMod)
-rhFlag: 4
 
 # Dry particle density [kg m-3]
 particle_density: -1  -1  1700  -1

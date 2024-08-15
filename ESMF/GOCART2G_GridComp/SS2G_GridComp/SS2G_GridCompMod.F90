@@ -696,11 +696,12 @@ contains
 
 !      For the Hoppel correction need to compute the wet radius and settling velocity
 !      in the surface
-       if (self%hoppelFlag) then
-          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
-                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
-                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
-       end if
+!     Collow: commented out 9 Jan 2024 as this is not consistent with the updated settling based on the optics files. The flag to call this is set to false in the instance RC file. This should be revistited in the future.
+!       if (self%hoppelFlag) then
+!          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
+!                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
+!                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
+!       end if
 
        memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
        dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
@@ -733,7 +734,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION: Run2 method for the Dust Grid Component.
+! !DESCRIPTION: Run2 method for the Sea Salt Grid Component.
 
 !EOP
 !============================================================================
@@ -751,6 +752,7 @@ contains
 
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, pointer, dimension(:,:)     :: flux_ptr
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -785,9 +787,11 @@ contains
 !   Sea Salt Settling
 !   -----------------
     do n = 1, self%nbins
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, SSSD, __RC__)
+       nullify(flux_ptr)
+       if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           SS(:,:,:,n), t, airdens, &
+                           rh2, zle, delp, flux_ptr, __RC__)
     end do
 
 !   Deposition
@@ -840,8 +844,8 @@ contains
 
     RH20(:,:,:) = 0.20
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            nbins=self%nbins, rlow=self%rlow, rup=self%rup, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
@@ -849,8 +853,8 @@ contains
 
     RH80(:,:,:) = 0.80
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            nbins=self%nbins, rlow=self%rlow, rup=self%rup, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
