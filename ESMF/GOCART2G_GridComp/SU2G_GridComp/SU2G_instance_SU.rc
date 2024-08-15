@@ -8,7 +8,8 @@ aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x
 nbins: 4
 
 # Volcanic pointwise sources
-volcano_srcfilen: ExtData/chemistry/CARN/v202106/sfc/so2_volcanic_emissions_CARN_v202106.degassing_only.rc
+volcano_srcfilen_explosive: /dev/null
+volcano_srcfilen_degassing: ExtData/chemistry/CARN/v202401/so2_volcanic_emissions_CARN_v202401.degassing_only.rc
 
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3

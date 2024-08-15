@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed all ExtData.rc files
 
+### Changed
+
+- Modified the file paths in carbon, sulfate, and nitrate ExtData.yaml files to used the revised version of the CEDS anthropogenic emissions. Note the previous version has an incorrect seasonal cycle.
+
+
 ### Fixed
 
 - Use 'CA' component name to identify carbonaceous contributions to PM in UFS diagnostic calculations. These contributions were missing due to changes in field names.
@@ -23,13 +28,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Required attributes for the 2D GOCART export fields in AERO_DP bundle have been set in subroutine append_to_bundle in Chem_AeroGeneric.F90. These export fields are imported by OBIO via Surface GC, and the missing of the attributes was causing the writing of surface import checkpoint to fail. The issue has been explained in detail on https://github.com/GEOS-ESM/GOCART/issues/258  
+
 - Additional tuning parameters for the soil moisture and drylimit calculations for application specific tuning.
 - Required attributes for the 2D GOCART export fields in AERO_DP bundle have been set in subroutine append_to_bundle in Chem_AeroGeneric.F90. These export fields are imported by OBIO via Surface GC, and the missing of the attributes was causing the writing of surface import checkpoint to fail. The issue has been explained in detail on https://github.com/GEOS-ESM/GOCART/issues/258
 
-### Changed
+- Added export line to GOCART2G_GridCompMod to couple allow use of GOCART
+  SU sulfate production tendency elsewhere in Chemistry, specifically for 
+  CARMA
 
 - Update ESMF CMake target to `ESMF::ESMF`
 - Modified the file paths in carbon, sulfate, and nitrate ExtData.yaml files to used the revised version of the CEDS anthropogenic emissions. Note the previous version has an incorrect seasonal cycle.
+
+- Changed SU2G_instance_SU.rc to now have separate filename inputs for explosive and degassing volcanoes
+- Moved present volcanic emission inventories to one or the other line for these new entries; set other
+  line /dev/null; this is stop gap until next time we update volcanic emission inventories, at which 
+  point will provide (for AMIP and AMIP.20C) separate explosive and degassing emissions
+- Made accommodating changes for above in SU2G_GridCompMod.F90 and in the Process Library
+- Verified zero diff in current configuration (this is true of tracers and restarts, but not diagnostics:
+  until an actual split is made in the input emissions then the volcanic emissions are being assigned to
+  one or the other emission diagnostics (explosive or degassing).
+  
 - Changed Chem_SettlingSimple in the process library to call Mie Query for radius and rhop inputs to the settling velocity calculation. The calls to Chem_SettlingSimple were then changed accordingly in each of the species' grid comps. Since the RH flag is no longer needed, it was removed from GA_EnvironmentMod.F90 and each of the instance RC files.
 - State Spec RC files for GOCART2G, CA, DU, NI, SU, and SS were updated such that the long names for AOD are more intuitive
 - Modified ExtData.yaml files to persist as climatological anthropogenic emissions after the end of the CEDS dataset in 2019. Analogous rc files removed as this capability is only available with ExtData2G
@@ -66,8 +85,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - This fixes a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
 - Fix issue with scattering coefficient calculation with oc
 - Fix a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
-
-### Added
 
 ### Changed
 
