@@ -36,7 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   CARMA
 
 - Update ESMF CMake target to `ESMF::ESMF`
-- Modified the file paths in carbon, sulfate, and nitrate ExtData.yaml files to used the revised version of the CEDS anthropogenic emissions. Note the previous version has an incorrect seasonal cycle.
 
 - Changed SU2G_instance_SU.rc to now have separate filename inputs for explosive and degassing volcanoes
 - Moved present volcanic emission inventories to one or the other line for these new entries; set other
