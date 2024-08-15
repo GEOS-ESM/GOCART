@@ -3,14 +3,13 @@ Collections:
     template: ExtData/chemistry/Masks/v0.0.0/sfc/ARCTAS.region_mask.x540_y361.2008.nc
   NI2G_GEIA.emis_NH3.ocean.x576_y361.t12.20080715_12z.nc4:
     template: ExtData/chemistry/GEIA/v0.0.0/sfc/GEIA.emis_NH3.ocean.x576_y361.t12.20080715_12z.nc4
-  NI2G_GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4:
-    template: /discover/nobackup/projects/gmao/gmao_ops/pub/fp/das/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4
   NI2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4:
     template: ExtData/chemistry/MERRA2GMI/v0.0.0/L72/MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
   NI2G_NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4:
-    template: ExtData/chemistry/CEDS/v2021-04-21/sfc/NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4
-  NI2G_qfed2.emis_nh3.006.%y4%m2%d2.nc4:
-    template: ExtData/chemistry/QFED/v2.5r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4
+    template: ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4
+    valid_range: "1979-01-15T12:00/2019-12-15T12:00"
+  NI2G_qfed2.emis_nh3.061.%y4%m2%d2.nc4:
+    template: ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_nh3.061.%y4%m2%d2.nc4
     valid_range: "2000-02-29T12:00/2025-01-01"
   NI2G_hfed.emis_nh3.x576_y361.%y4%m2.nc4:
     template: ExtData/chemistry/HFED/v1.0/Y%y4/M%m2/hfed.emis_nh3.x576_y361.%y4%m2.nc4
@@ -30,6 +29,11 @@ Samplings:
     update_reference_time: '0'
   NI2G_sample_3:
     extrapolation: persist_closest
+  NI2G_sample_4:
+    update_frequency: PT24H
+    update_offset: PT12H
+    update_reference_time: '0'
+    source_time: "2019-01-15T12:00/2019-12-15T00:00:00"
 
 Exports:
   EMI_NH3_AG:
@@ -39,12 +43,10 @@ Exports:
     variable: nh3_emis
   EMI_NH3_BB:
     - {starting: "1960-01-16T12:00", collection: NI2G_hfed.emis_nh3.x576_y361.%y4%m2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: NI2G_sample_1, variable: biomass}
-    - {starting: "2000-03-01T00:00", collection: NI2G_qfed2.emis_nh3.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: NI2G_sample_1, variable: biomass}
+    - {starting: "2000-03-01T00:00", collection: NI2G_qfed2.emis_nh3.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: NI2G_sample_1, variable: biomass}
   EMI_NH3_EN:
-    collection: NI2G_NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: NI2G_sample_1
-    variable: nh3
+    - {starting: "1979-01-15T12:00", collection: NI2G_NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4, sample: NI2G_sample_1, regrid: CONSERVE, variable: nh3}
+    - {starting: "2019-12-15T12:00", collection: NI2G_NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4, regrid: CONSERVE, sample: NI2G_sample_4, variable: nh3}
   EMI_NH3_IN:
     collection: /dev/null
     regrid: CONSERVE
@@ -78,18 +80,10 @@ Exports:
     sample: NI2G_sample_3
     variable: REGION_MASK
   climNO3an1:
-    collection: NI2G_GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4
-    regrid: CONSERVE
-    sample: NI2G_sample_0
-    variable: NO3AN1
+    collection: /dev/null
   climNO3an2:
-    collection: NI2G_GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4
-    regrid: CONSERVE
-    sample: NI2G_sample_0
-    variable: NO3AN2
+    collection: /dev/null
   climNO3an3:
-    collection: NI2G_GEOS.fp.asm.inst3_3d_aer_Nv.%y4%m2%d2_%h2%n2.V01.nc4
-    regrid: CONSERVE
-    sample: NI2G_sample_0
-    variable: NO3AN3
+    collection: /dev/null
+
 

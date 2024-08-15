@@ -1162,7 +1162,7 @@ CONTAINS
 !  ----------------------------------------------------------------------------------------
 !  Assume that DT is always an integral number of seconds
 !  Add a fraction to both (and then truncate to int), to avoid cases like 900 /= 899.999999
-   _ASSERT(abs(cdt-hdt) < 0.1, 'Implementation of GOCART_DT is problematic; set GOCART_DT = HEARTBEAT_DT')
+!! _ASSERT(abs(cdt-hdt) < 0.1, 'Implementation of GOCART_DT is problematic; set GOCART_DT = HEARTBEAT_DT')
 
    allocate(r4ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
    allocate(  ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)

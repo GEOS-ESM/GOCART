@@ -1,13 +1,4 @@
-#define __SUCCESS__ 0
-#define __FAIL__ 1
-#define __VERIFY__(x) if(x/=0) then; if(present(rc)) rc=x; return; endif
-#define __VERIFY_NO_OPT__(x) if(x/=0) then; rc=x; return; endif
-#define __RC__ rc=status); __VERIFY__(status
-#define __RC_NO_OPT__ rc=status); __VERIFY_NO_OPT__(status
-#define __STAT__ stat=status); __VERIFY__(status
-#define __IOSTAT__ iostat=status); __VERIFY__(status
-#define __RETURN__(x) if (present(rc)) rc=x; return
-#define __ASSERT__(expr) if(.not. (expr)) then; if (present(rc)) rc=-1; return; endif
+#include "Process.H"
 !-------------------------------------------------------------------------
 !
 ! !MODULE: GOCART2G_Process -- GOCART2G process library
@@ -178,7 +169,7 @@ CONTAINS
 ! !IROUTINE: soilMoistureConvertVol2Grav - volumetric to gravimetric soil moisture
 !
 ! !INTERFACE:
-   real function soilMoistureConvertVol2Grav(vsoil, sandfrac, rhop)
+   real function soilMoistureConvertVol2Grav(vsoil, sandfrac)
 
 ! !USES:
    implicit NONE
@@ -186,7 +177,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
    real, intent(in) :: vsoil       ! volumetric soil moisture fraction [1]
    real, intent(in) :: sandfrac    ! fractional sand content [1]
-   real, intent(in) :: rhop        ! dry dust density [kg m-3]
 
 ! !DESCRIPTION: Convert soil moisture fraction from volumetric to gravimetric.
 !
@@ -200,16 +190,16 @@ CONTAINS
 
 !  !CONSTANTS:
    real, parameter :: rhow = 1000.    ! density of water [kg m-3]
-
+   real, parameter :: rhop = 1700. 
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...
 
 !  Saturated volumetric water content (sand-dependent) ! [m3 m-3]
-   vsat = 0.489 - 0.00126 * ( 100. * sandfrac )
+   vsat = 0.489 - 0.126 * sandfrac 
 
 !  Gravimetric soil content
-   soilMoistureConvertVol2Grav = vsoil * rhow / (rhop * (1. - vsat))
+   soilMoistureConvertVol2Grav = 100. * vsoil * rhow / (rhop * (1. - vsat))
 
    end function soilMoistureConvertVol2Grav
 
@@ -219,7 +209,7 @@ CONTAINS
 ! !IROUTINE: moistureCorrectionFecan - Correction factor for Fecan soil moisture
 !
 ! !INTERFACE:
-   real function moistureCorrectionFecan(slc, sand, clay, rhop)
+   real function moistureCorrectionFecan(slc, sand, clay, b)
 
 ! !USES:
    implicit NONE
@@ -228,7 +218,7 @@ CONTAINS
    real, intent(in) :: slc     ! liquid water content of top soil layer, volumetric fraction [1]
    real, intent(in) :: sand    ! fractional sand content [1]
    real, intent(in) :: clay    ! fractional clay content [1]
-   real, intent(in) :: rhop    ! dry dust density [kg m-3]
+   real, intent(in) :: b       ! drylimit factor from zender 2003 
 
 ! !DESCRIPTION: Compute correction factor to account for Fecal soil moisture
 !
@@ -246,10 +236,10 @@ CONTAINS
 !  Begin...
 
 !  Convert soil moisture from volumetric to gravimetric
-   grvsoilm = soilMoistureConvertVol2Grav(slc, sand, rhop)
+   grvsoilm = soilMoistureConvertVol2Grav(slc, sand)
 
 !  Compute fecan dry limit
-   drylimit = clay * (14.0 * clay + 17.0)
+   drylimit = b * clay * (14.0 * clay + 17.0)
 
 !  Compute soil moisture correction
    moistureCorrectionFecan = sqrt(1.0 + 1.21 * max(0., grvsoilm - drylimit)**0.68)
@@ -303,7 +293,7 @@ CONTAINS
 ! !INTERFACE:
    subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, silt,  &
                                   ssm, rdrag, airdens, ustar, uthrs, alpha, gamma, &
-                                  kvhmax, grav, rhop, distribution, emissions, rc)
+                                  kvhmax, grav, rhop, distribution, drylimit_factor, moist_correct, emissions, rc)
 
 ! !USES:
    implicit NONE
@@ -327,7 +317,8 @@ CONTAINS
    real,                 intent(in) :: grav     ! gravity [m/sec^2]
    real, dimension(:),   intent(in) :: rhop            ! soil class density [kg/m^3]
    real, dimension(:),   intent(in) :: distribution    ! normalized dust binned distribution [1]
-
+   real,                 intent(in) :: drylimit_factor ! drylimit tuning factor from zender2003 
+   real,                 intent(in) :: moist_correct   ! moisture correction factor
 ! !OUTPUT PARAMETERS:
    real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
    integer, intent(out) :: rc                   ! Error return code: __SUCCESS__ or __FAIL__
@@ -352,6 +343,7 @@ CONTAINS
    real                  :: rustar
    real                  :: total_emissions
    real                  :: u_sum, u_thresh
+   real                  :: smois
 
 ! !CONSTANTS:
    real, parameter       :: ssm_thresh = 1.e-02    ! emit above this erodibility threshold [1]
@@ -405,24 +397,25 @@ CONTAINS
          !  Compute threshold wind friction velocity using drag partition
          !  -------------------------------------------------------------
          rustar = rdrag(i,j) * ustar(i,j)
+         
+         ! Fecan moisture correction
+         ! -------------------------
+         smois = slc(i,j) * moist_correct
+         h = moistureCorrectionFecan(smois, sand(i,j), clay(i,j), drylimit_factor)
 
+         ! Adjust threshold
+         ! ----------------
+         u_thresh = uthrs(i,j) * h
+         
+         u_sum = rustar + u_thresh
+         
+         ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
+         ! ---------------------------------------------------------------------------
+         q = max(0., rustar - u_thresh) * u_sum * u_sum
+         
          !  Now compute size-dependent total emission flux
          !  ----------------------------------------------
          do n = 1, nbins
-           ! Fecan moisture correction
-           ! -------------------------
-           h = moistureCorrectionFecan(slc(i,j), sand(i,j), clay(i,j), rhop(n))
-
-           ! Adjust threshold
-           ! ----------------
-           u_thresh = uthrs(i,j) * h
-
-           u_sum = rustar + u_thresh
-
-           ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
-           ! ---------------------------------------------------------------------------
-           q = max(0., rustar - u_thresh) * u_sum * u_sum
-
            ! Distribute emissions to bins and convert to mass flux (kg s-1)
            ! --------------------------------------------------------------
            emissions(i,j,n) = distribution(n) * total_emissions * q
@@ -1092,9 +1085,9 @@ CONTAINS
 !BOP
 ! !IROUTINE: Chem_SettlingSimple
 
-   subroutine Chem_SettlingSimple ( km, klid, flag, cdt, grav, &
-                                    radiusInp, rhopInp, int_qa, tmpu, &
-                                    rhoa, rh, hghte, delp, fluxout,  &
+   subroutine Chem_SettlingSimple ( km, klid, mie, bin, cdt, grav, &
+                                    int_qa, tmpu, rhoa, rh, hghte, &
+                                    delp, fluxout,  &
                                     vsettleOut, correctionMaring, rc)
 
 ! !USES:
@@ -1104,11 +1097,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
    integer, intent(in)    :: km     ! total model levels
    integer, intent(in)    :: klid   ! index for pressure lid
-   integer, intent(in) :: flag     ! flag to control particle swelling (see note)
+   type(GOCART2G_Mie),  intent(in) :: mie        ! mie table
+   integer, intent(in)    :: bin    ! aerosol bin index
    real, intent(in)    :: cdt
    real, intent(in)    :: grav   ! gravity [m/sec^2]
-   real, intent(in)  :: radiusInp  ! particle radius [microns]
-   real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in)  :: rhoa   ! air density [kg/m^3]
@@ -1133,13 +1125,11 @@ CONTAINS
 
 ! !DESCRIPTION: Gravitational settling of aerosol between vertical
 !               layers.  Assumes input radius in [m] and density (rhop)
-!               in [kg m-3]. If flag is set, use the Fitzgerald 1975 (flag = 1)
-!               or Gerber 1985 (flag = 2) parameterization to update the
-!               particle radius for the calculation (local variables radius
-!               and rhop).
+!               in [kg m-3]arrays from the optics files. 
 !
 ! !REVISION HISTORY:
-!
+!  02Jan2024  Collow    Removed calls to particle swelling and added 
+!                       interpolation based on RH
 !  17Sep2004  Colarco   Strengthen sedimentation flux out at surface
 !                       by setting removal to be valid from middle of
 !                       surface layer
@@ -1200,10 +1190,10 @@ CONTAINS
    enddo
 
 !  If radius le 0 then get out
-   if(radiusInp .le. 0.) then
-      status = 100
-      __RETURN__(STATUS)
-   end if
+!   if(radiusInp .le. 0.) then
+!      status = 100
+!      __RETURN__(STATUS)
+!   end if
 
 !   Find the column dry mass before sedimentation
     do k = klid, km
@@ -1214,22 +1204,23 @@ CONTAINS
        enddo
     enddo
 
-!   Particle swelling
-    call ParticleSwelling(i1, i2, j1, j2, km, rh, radiusInp, rhopInp, radius, rhop, flag)
-
+! Find radius and density of the wet particle
+    call mie%Query(550e-9,bin,   &
+                         qa*delp/grav, &
+                         rh, reff=radius, rhop=rhop, __RC__)  
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
           do i = i1, i2
-             call Chem_CalcVsettle(radius(i,j,k), rhop(i,j,k), rhoa(i,j,k), &
+            call Chem_CalcVsettle(radius(i,j,k)*1.e-6, rhop(i,j,k), rhoa(i,j,k), &
                                    tmpu(i,j,k), vsettle(i,j,k), grav)
           end do
        end do
     end do
-
+ 
     if(present(correctionMaring)) then
        if (correctionMaring) then
-          vsettle = max(1.0e-9, vsettle - v_upwardMaring)
+            vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
 
@@ -1252,7 +1243,6 @@ CONTAINS
     if( associated(fluxout) ) then
        fluxout(:,:) = (cmass_before - cmass_after)/cdt
     endif
-
     int_qa = qa
 
    __RETURN__(__SUCCESS__)
@@ -1279,7 +1269,7 @@ CONTAINS
    integer, intent(in) :: flag     ! flag to control particle swelling (see note)
    real, intent(in)    :: cdt
    real, intent(in)    :: grav   ! gravity [m/sec^2]
-   real, intent(in)  :: radiusInp  ! particle radius [microns]
+   real, intent(in)  :: radiusInp  ! particle radius [meters] (converted from microns in call to function)
    real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
@@ -2847,7 +2837,9 @@ CONTAINS
         Kstar298 = 1.05d6
         H298_R = -4.2d3
       else
+        !$omp critical (G2G_proc_1)
         print *, 'stop in WetRemoval, need Kstar298 and H298_R'
+        !$omp end critical (G2G_proc_1)
         rc = __FAIL__
         return
       endif
@@ -3249,7 +3241,7 @@ CONTAINS
                                   grav, tmpu, rhoa, rh, u, v, delp, ple,tropp, &
                                   sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
                                   sfcmass25, colmass25, mass25, exttau25, scatau25, &
-                                  fluxu, fluxv, conc, extcoef, scacoef, &
+                                  fluxu, fluxv, conc, extcoef, scacoef, bckcoef,&
                                   exttaufm, scataufm, angstrom, aerindx, NO3nFlag, rc )
 
 ! !USES:
@@ -3297,6 +3289,7 @@ CONTAINS
    real, optional, dimension(:,:), intent(inout)   :: fluxv     ! Column mass flux in y direction
    real, optional, dimension(:,:,:,:), intent(inout) :: extcoef   ! 3d ext. coefficient, 1/m
    real, optional, dimension(:,:,:,:), intent(inout) :: scacoef   ! 3d scat.coefficient, 1/m
+   real, optional, dimension(:,:,:,:), intent(inout) :: bckcoef   ! 3d backscatter coefficient, m-1 sr-1
    real, optional, dimension(:,:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
    real, optional, dimension(:,:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
    real, optional, dimension(:,:), intent(inout)   :: angstrom  ! 470-870 nm Angstrom parameter
@@ -3317,7 +3310,7 @@ CONTAINS
    integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
    integer :: ilam470, ilam870
-   real, allocatable, dimension(:,:,:) :: tau, ssa
+   real, allocatable, dimension(:,:,:) :: tau, ssa, bck
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
@@ -3361,8 +3354,10 @@ CONTAINS
       ilam870 .ne. 0 .and. &
       ilam470 .ne. ilam870) do_angstrom = .true.
 
-   if( present(angstrom) .and. do_angstrom ) then
-      allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2), source=0.0)
+   if( present(angstrom) )  then
+      if (do_angstrom ) then
+         allocate(tau470(i1:i2,j1:j2), tau870(i1:i2,j1:j2), source=0.0)
+      end if
    end if
 
 !  Compute the fine mode (sub-micron) and PM2.5 bin-wise fractions
@@ -3470,18 +3465,21 @@ CONTAINS
 
    allocate(tau(i1:i2,j1:j2,km),source = 0.)
    allocate(ssa(i1:i2,j1:j2,km),source = 0.)
+   allocate(bck(i1:i2,j1:j2,km),source = 0.)
 !  Calculate the extinction and/or scattering AOD
    if( present(extcoef)  .or. &
-       present(scacoef) ) then
+       present(scacoef)  .or. &
+       present(bckcoef))   then
 
       if( present(extcoef) ) extcoef = 0.
       if( present(scacoef) ) scacoef = 0.
+      if( present(bckcoef) ) bckcoef = 0.
 
       do n = nbegin, nbins
         do w = 1, size(wavelengths_profile)
           call mie%Query(wavelengths_profile(w),n,   &
                          aerosol(:,:,:,n)*delp/grav, &
-                         rh, tau=tau, ssa=ssa, __RC__)
+                         rh, tau=tau, ssa=ssa, bbck=bck,__RC__)
 !         Calculate the total ext. and scat. coefficients
           if ( present(extcoef) ) then
              extcoef(:,:,:,w) = extcoef(:,:,:,w) + &
@@ -3490,6 +3488,11 @@ CONTAINS
           if ( present(scacoef) ) then
              scacoef(:,:,:,w) = scacoef(:,:,:,w) + &
                                ssa * tau * (grav * rhoa / delp)
+          endif
+          !calculate the backscatter coefficient
+          if ( present(bckcoef) ) then
+             bckcoef(:,:,:,w) = bckcoef(:,:,:,w) + &
+                               bck * aerosol(:,:,:,n)*rhoa
           endif
        enddo !wavelengths_profile
       enddo !nbins
@@ -3991,7 +3994,9 @@ CONTAINS
       w        => ustar
 
      case default
+      !$omp critical (G2G_proc_4)
       print *, 'GOCART2G_Process.F90 - SeasaltEmission - missing algorithm method'
+      !$omp end critical (G2G_proc_4)
       rc = __FAIL__
       return
 
@@ -4356,6 +4361,9 @@ CONTAINS
    allocate(p100, mold=pblh)
    allocate(p500, mold=pblh)
    allocate(pPBL, mold=pblh)
+!AOO initialization
+   p0=0.;z0=0.;p100=0.;p500=0.;pPBL=0.
+!AOO end initialization
    ps = 0.0
    p0 = 0.0
    z0 = 0.0
@@ -5386,6 +5394,9 @@ K_LOOP: do k = km, 1, -1
    srcSO2 = 0.0
    srcSO4 = 0.0
    srcDMS = 0.0
+!AOO initialization
+   srcSO4anthro=0.;srcSO2anthro=0.;srcSO2bioburn=0.
+!AOO end initialization
 
    if ((nVolc <= 0) .and. associated(SU_emis)) SU_emis = 0.0 !SU_emis is usually set to zero in SUvolcanicEmissions.
 !                                               !If there are no volcanic emissions, we need to set it to zero here.
@@ -5428,6 +5439,9 @@ K_LOOP: do k = km, 1, -1
    allocate(p100, mold=pblh)
    allocate(p500, mold=pblh)
    allocate(pPblh, mold=pblh)
+!AOO initialization
+   p0=0.;z0=0.;p100=0.;p500=0.;pPblh=0.
+!AOO end initialization
 
    ps = 0.0
    p0 = 0.0
@@ -5649,7 +5663,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: SUvolcanicEmissions
 
    subroutine SUvolcanicEmissions (nVolc, vStart, vEnd, vSO2, vElev, vCloud, iPoint, &
-                                   jPoint, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SU_emis, km, cdt, grav,&
+                                   jPoint, nhms, SO2EMVol, SO2, nSO2, SU_emis, km, cdt, grav,&
                                    hghte, delp, area, vLat, vLon, rc)
 ! !USES:
    implicit NONE
@@ -5673,8 +5687,7 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:), intent(in)     :: vLat  ! latitude specified in file [degree]
    real, dimension(:), intent(in)     :: vLon  ! longitude specified in file [degree]
 ! !INOUT PARAMETERS:
-  real, pointer, dimension(:,:), intent(inout) :: SO2EMVN ! non-explosive volcanic emissions [kg m-2 s-1]
-  real, pointer, dimension(:,:), intent(inout) :: SO2EMVE ! explosive volcanic emissions [kg m-2 s-1]
+  real, pointer, dimension(:,:), intent(inout) :: SO2EMVol ! volcanic emissions [kg m-2 s-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SO2 ! SO2 [kg kg-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SU_emis      ! SU emissions, kg/m2/s
   real, dimension(:), intent(inout) ::  vElev ! bottom elevation of emissions [m]
@@ -5698,7 +5711,6 @@ K_LOOP: do k = km, 1, -1
    real :: deltaSO2v
    real, dimension(:,:), allocatable :: z0
    real, allocatable, dimension(:,:) :: srcSO2volc
-   real, allocatable, dimension(:,:) :: srcSO2volce
 
 !EOP
 !-------------------------------------------------------------------------
@@ -5707,16 +5719,15 @@ K_LOOP: do k = km, 1, -1
    if (nVolc > 0) then
 
    allocate(srcSO2volc, mold=area)
-   allocate(srcSO2volce, mold=area)
    srcSO2volc = 0.
-   srcSO2volce = 0.
 
-   if (associated(SU_emis)) SU_emis = 0.0
-   if (associated(SO2EMVN)) SO2EMVN = 0.
-   if (associated(SO2EMVE)) SO2EMVE = 0.
+   if (associated(SO2EMVol)) SO2EMVol = 0.
 
    allocate(z0, mold=area)
    z0 = hghte(:,:,km)
+!AOO initialization
+   z0=0.
+!AOO end initialization
 
     do it = 1, nVolc
        so2volcano = 0.
@@ -5749,11 +5760,7 @@ K_LOOP: do k = km, 1, -1
 
 !        Diagnostic - sum of volcanos
 !        ----------------------------
-         if (hup .eq. hlow) then
-            srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
-         else
-            srcSO2volce(i,j) = srcSO2volce(i,j) + so2volcano
-         endif
+         srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
 
          dzvolc = hup-hlow
          do k = km, 1, -1
@@ -5800,9 +5807,8 @@ K_LOOP: do k = km, 1, -1
    enddo     ! it
   end if ! nVolc > 0
 
-  if (associated(SO2EMVN)) SO2EMVN = SO2EMVN + srcSO2volc
-  if (associated(SO2EMVE)) SO2EMVE = SO2EMVE + srcSO2volce
-  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc + srcSO2volce
+  if (associated(SO2EMVol)) SO2EMVol = SO2EMVol + srcSO2volc
+  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc
 
   __RETURN__(__SUCCESS__)
   end subroutine SUvolcanicEmissions
@@ -6262,6 +6268,9 @@ K_LOOP: do k = km, 1, -1
    allocate(fd(km,nbins),__STAT__)
    allocate(dc(nbins),__STAT__)
    allocate(dpfli(i1:i2, j1:j2, km),__STAT__)
+!AOO initialization
+    fd=0.d0;dc=0.d0;dpfli=0.d0
+!AOO end initialization
 
 !  Duration of rain: ls = model timestep, cv = 1800 s (<= cdt)
    Td_ls = cdt
@@ -6689,7 +6698,7 @@ K_LOOP: do k = km, 1, -1
                                  so2sfcmass, so2colmass, &
                                  so4sfcmass, so4colmass, &
                                  exttau, stexttau,scatau, stscatau,so4mass, so4conc, extcoef, &
-                                 scacoef, angstrom, fluxu, fluxv, sarea, snum, rc )
+                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, rc )
 
 ! !USES:
    implicit NONE
@@ -6736,6 +6745,7 @@ K_LOOP: do k = km, 1, -1
    real, optional, dimension(:,:,:), intent(inout)  :: so4conc    ! 3D mass concentration, [kg/m3]
    real, optional, dimension(:,:,:,:), intent(inout)  :: extcoef    ! 3D ext. coefficient, [1/m]
    real, optional, dimension(:,:,:,:), intent(inout)  :: scacoef    ! 3D scat.coefficient, [1/m]
+   real, optional, dimension(:,:,:,:), intent(inout)  :: bckcoef    ! 3D backscatter coefficient, [m-1 sr-1]
    real, optional, dimension(:,:),   intent(inout)  :: angstrom   ! 470-870 nm Angstrom parameter
    real, optional, dimension(:,:),   intent(inout)  :: fluxu      ! Column mass flux in x direction
    real, optional, dimension(:,:),   intent(inout)  :: fluxv      ! Column mass flux in y direction
@@ -6755,7 +6765,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !Local Variables
    integer :: i, j, k, w, i1=1, j1=1, i2, j2, status
-   real, dimension(:,:,:), allocatable :: tau, ssa
+   real, dimension(:,:,:), allocatable :: tau, ssa, bck
    real, dimension(:,:), allocatable :: tau470, tau870
    integer    :: ilam470, ilam870
    logical :: do_angstrom
@@ -6888,15 +6898,18 @@ K_LOOP: do k = km, 1, -1
 !  Calculate the extinction and/or scattering AOD
    allocate(tau(i1:i2,j1:j2,km), source = 0.)
    allocate(ssa(i1:i2,j1:j2,km), source = 0.)
-   if( present(extcoef) .or. present(scacoef) ) then
+   allocate(bck(i1:i2,j1:j2,km), source = 0.)
+   if( present(extcoef) .or. present(scacoef) .or. &
+       present(bckcoef)) then
 
       if (present(extcoef)) extcoef = 0.
       if (present(scacoef)) scacoef = 0.
+      if (present(bckcoef)) bckcoef = 0.
 
       do w = 1, size(wavelengths_profile)
          call mie%Query(wavelengths_profile(w), 1, & ! Only SO4 exists in the MieTable, so its index is 1
                         SO4*delp/grav, rh,         &
-                        tau=tau, ssa=ssa, __RC__)
+                        tau=tau, ssa=ssa, bbck=bck,__RC__)
 
 !         Calculate the total ext. and scat. coefficients
          if( present(extcoef) ) then
@@ -6906,6 +6919,10 @@ K_LOOP: do k = km, 1, -1
          if( present(scacoef) ) then
               scacoef(:,:,:,w) = scacoef(:,:,:,w) + &
                               ssa * tau * (grav * rhoa / delp)
+         endif
+         if( present(bckcoef) ) then
+              bckcoef(:,:,:,w) = bckcoef(:,:,:,w) + &
+                              bck * SO4 * rhoa 
          endif
       enddo
    endif
@@ -7127,6 +7144,9 @@ K_LOOP: do k = km, 1, -1
    allocate(drydepositionfrequency, mold=oro)
    allocate(cossza, mold=oro)
    allocate(sza, mold=oro)
+!AOO initialization
+   drydepositionfrequency=0.;cossza=0.;sza=0.
+!AOO end initialization
 
    drydepositionfrequency = 0.0
    cossza = 0.0
@@ -7669,6 +7689,7 @@ K_LOOP: do k = km, 1, -1
    i2 = ubound(qa, 1)
 
    allocate(fout(i2,j2))
+   fout=0.   !AOO initialization
 
 !  Initialize flux variable
    fout = 0.
@@ -8738,9 +8759,11 @@ loop2: DO l = 1,nspecies_HL
 
       ! validity check for negative concentration
       IF ( TSO4 < 0.0d0 .OR. TNO3 < 0.0d0 .OR. TNH4 < 0.0d0 ) THEN
+          !$omp critical (G2G_proc_7)
           PRINT*, 'TSO4 : ', TSO4
           PRINT*, 'TNO3 : ', TNO3
           PRINT*, 'TNH4 : ', TNH4
+          !$omp end critical (G2G_proc_7)
 
 
 !.sds          CALL GEOS_CHEM_STOP
@@ -9603,7 +9626,9 @@ loop2: DO l = 1,nspecies_HL
             NR        = 0
 !.sds no such module - what is ours?
 !.sds            CALL ERROR_STOP( 'PHI < 1d-20', 'CUBIC (rpmares_mod.f)' )
+            !$omp critical (G2G_proc_8)
             print *,'PHI < 1d-20 in  CUBIC (rpmares_mod.f)'
+            !$omp end critical (G2G_proc_8)
             err_msg = 'PHI < 1d-20 in  CUBIC (rpmares_mod.f):'
             call PrintError  &
      &         (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0, __RC_NO_OPT__)
@@ -9983,6 +10008,7 @@ loop2: DO l = 1,nspecies_HL
 !-------------------------------------------------------------------------
       rc = __SUCCESS__
 !BOC
+      !$omp critical (G2G_proc_9)
       Write (6,*)
       Write (6,*) &
         '--------------------------------------------------------------'
@@ -10004,6 +10030,7 @@ loop2: DO l = 1,nspecies_HL
       Write (6,*) &
         '--------------------------------------------------------------'
       Write (6,*)
+      !$omp end critical (G2G_proc_9)
 
       if (err_do_stop) then
         rc = __FAIL__
@@ -10276,8 +10303,8 @@ loop2: DO l = 1,nspecies_HL
 !      Fixed normalization factors; a more accurate normalization would take
 !      in consideration longitude and time step
 !      ---------------------------------------------------------------------
-       real*8, save :: fBoreal = -1., fNonBoreal = -1
-       real,   save :: fDT=-1
+       real*8 :: fBoreal, fNonBoreal
+       real :: fDT
 
        integer :: hh, mm, ss, ndt, i, j, k
        integer :: NN
@@ -10287,22 +10314,19 @@ loop2: DO l = 1,nspecies_HL
 
 !      Normalization factor depends on timestep
 !      ----------------------------------------
-       if ( fDT /= cdt ) then
-            fBoreal = 0.0
-            fNonBoreal = 0.0
-            NN = 0
-            ndt = max(1,nint(cdt/DT))
+       fBoreal = 0.0
+       fNonBoreal = 0.0
+       NN = 0
+       ndt = max(1,nint(cdt/DT))
 
-            do k = 1, N, ndt
-               NN = NN + 1
-               fBoreal    = fBoreal    + Boreal(k)
-               fNonBoreal = fNonBoreal + NonBoreal(k)
-            end do
+       do k = 1, N, ndt
+          NN = NN + 1
+          fBoreal    = fBoreal    + Boreal(k)
+          fNonBoreal = fNonBoreal + NonBoreal(k)
+       end do
 
-            fBoreal    = fBoreal / NN
-            fnonBoreal = fnonBoreal / NN
-            fDT = cdt ! so it recalculates only if necessary
-       end if
+       fBoreal    = fBoreal / NN
+       fnonBoreal = fnonBoreal / NN
 
 
 !      Find number of secs since begining of the day (GMT)
@@ -10360,7 +10384,7 @@ loop2: DO l = 1,nspecies_HL
       character(:), allocatable :: label_
       real, allocatable :: table(:,:)
       integer :: nCols
-      integer :: status
+      integer :: status, status1, status2, status3
 
       if (present(label)) then
          label_ = trim(label)
@@ -10369,9 +10393,14 @@ loop2: DO l = 1,nspecies_HL
       end if
 
       reader = EmissionReader()
-      call reader%open(filename, __RC__)
-      table = reader%read_table(label=label_, __RC__)
-      call reader%close(__RC__)
+      !$omp critical (process1)
+      call reader%open(filename, rc=status1)
+      table = reader%read_table(label=label_, rc=status2)
+      call reader%close(rc=status3)
+      !$omp end critical (process1)
+      __VERIFY__(status1)
+      __VERIFY__(status2)
+      __VERIFY__(status3)
 
       nCols = size(table,1)
       nPts = size(table,2)
@@ -10388,7 +10417,7 @@ loop2: DO l = 1,nspecies_HL
 
       where(vStart < 0) vStart = 000000
       where(vEnd < 0)   vEnd   = 240000
-      call reader%close()
+      !call reader%close()
 
       __RETURN__(__SUCCESS__)
    end subroutine ReadPointEmissions

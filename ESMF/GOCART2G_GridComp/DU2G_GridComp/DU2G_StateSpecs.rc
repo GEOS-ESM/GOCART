@@ -67,22 +67,23 @@ category: EXPORT
  DUSCACOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient
  DUSCACOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient - Fixed RH=20%
  DUSCACOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Scattering Coefficient - Fixed RH=80%
+ DUBCKCOEF     | m-1 sr-1   | xyz  | C    | size(self%wavelengths_profile) | Dust Backscatter Coefficient
 #........................................................................................
  DUSMASS       | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration
  DUCMASS       | kg m-2     | xy   | N    |                                | Dust Column Mass Density
- DUEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT
- DUSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT Stratosphere
- DUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT
- DUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT Stratosphere
- DUSMASS25     | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration - PM 2.5
- DUCMASS25     | kg m-2     | xy   | N    |                                | Dust Column Mass Density - PM 2.5
- DUEXTT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 2.5
- DUSCAT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 2.5
+ DUEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth
+ DUSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Stratospheric Aerosol Optical Thickness
+ DUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth Due to Scattering
+ DUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Stratospheric Aerosol Optical Thickness Due to Scattering
+ DUSMASS25     | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration of Particulate Matter < 2.5 microns (PM 2.5)
+ DUCMASS25     | kg m-2     | xy   | N    |                                | Dust Column Mass Density of Particulate Matter < 2.5 microns (PM 2.5)
+ DUEXTT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth from Particulate Matter < 2.5 microns (PM2.5)
+ DUSCAT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)
  DUAERIDX      | 1          | xy   | N    |                                | Dust TOMS UV Aerosol Index
  DUFLUXU       | kg m-1 s-1 | xy   | N    |                                | Dust column u-wind mass flux
  DUFLUXV       | kg m-1 s-1 | xy   | N    |                                | Dust column v-wind mass flux
- DUEXTTFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Extinction AOT - PM 1.0 um
- DUSCATFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Scattering AOT - PM 1.0 um
+ DUEXTTFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth from Particulate Matter < 1 micron (PM1.0)
+ DUSCATFM      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth Due to Scattering from Particulate Matter < 1 micron (PM1.0)
  DUANGSTR      | 1          | xy   | N    |                                | Dust Angstrom parameter [470-870 nm]
  DUEM          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Emission (Bin %d)
  DUSD          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Sedimentation (Bin %d)

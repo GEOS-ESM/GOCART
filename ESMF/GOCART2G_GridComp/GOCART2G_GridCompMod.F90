@@ -58,8 +58,8 @@ module GOCART2G_GridCompMod
 
 ! !DESCRIPTION:
 !
-!   {\tt GOCART} is a gridded component from the GOCART model and includes 
-!  dust, sea salt, sulfates, nitrate, organic and black carbon. 
+!   {\tt GOCART} is a gridded component from the GOCART model and includes
+!  dust, sea salt, sulfates, nitrate, organic and black carbon.
 
 !
 !
@@ -67,7 +67,7 @@ module GOCART2G_GridCompMod
 !
 !  25feb2005  da Silva   First crack.
 !  19jul2006  da Silva   First separate GOCART component.
-!  14Oct2019  E.Sherman, A.Darmenov, A. da Silva, T. Clune  First attempt at refactoring. 
+!  14Oct2019  E.Sherman, A.Darmenov, A. da Silva, T. Clune  First attempt at refactoring.
 !
 !EOP
 !============================================================================
@@ -89,11 +89,11 @@ contains
 
 ! !DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !   the Initialize and Finalize services to generic versions. It also
-!   allocates our instance of a generic state and puts it in the 
+!   allocates our instance of a generic state and puts it in the
 !   gridded component (GC). Here we only set the two-stage run method and
 !   declare the data services.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 
 !  14oct2019  Sherman, da Silva, Darmenov, Clune - First attempt at refactoring for ESMF compatibility
 
@@ -102,7 +102,7 @@ contains
 !============================================================================
 !
 !   Locals
-    character (len=ESMF_MAXSTR)                   :: COMP_NAME 
+    character (len=ESMF_MAXSTR)                   :: COMP_NAME
     type (ESMF_Config)                            :: myCF      ! GOCART2G_GridComp.rc
     type (ESMF_Config)                            :: cf        ! universal config
     type (GOCART_State), pointer                  :: self
@@ -110,6 +110,8 @@ contains
 
     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
     integer, allocatable, dimension(:) :: wavelengths_diagmie
+    type (MAPL_MetaComp),       pointer    :: MAPL
+    logical :: use_threads
 
     __Iam__('SetServices')
 
@@ -157,6 +159,13 @@ contains
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, use_threads, label='use_threads:', default=.FALSE., __RC__)
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+!   set use_threads
+    call MAPL%set_use_threads(use_threads)
 
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------
@@ -180,7 +189,7 @@ contains
 
 !   Define EXPORT states
 
-!   This state is needed by radiation and moist. It contains 
+!   This state is needed by radiation and moist. It contains
 !   aerosols and callback methods
 !   --------------------------------------------------------
     call MAPL_AddExportSpec(GC,                       &
@@ -203,12 +212,13 @@ contains
 
 
 #include "GOCART2G_Export___.h"
+#include "GOCART2G_Import___.h"
 
 !   Allow children of Chemistry to connect to these fields
     if ((self%SU%instances(1)%is_active)) call MAPL_AddExportSpec (GC, SHORT_NAME='PSO4', CHILD_ID=self%SU%instances(1)%id, __RC__)
 
 !   Add connectivities for Nitrate component
-!   Nitrate currently only supports one Nitrate component. Nitrate only 
+!   Nitrate currently only supports one Nitrate component. Nitrate only
 !   uses the first active dust and sea salt instance.
     if (size(self%NI%instances) > 0) then
        if ((self%DU%instances(1)%is_active)) then
@@ -248,7 +258,7 @@ contains
   subroutine Initialize (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -257,13 +267,13 @@ contains
 ! !DESCRIPTION:  This initializes the GOCART Grid Component. It primarily creates
 !                its exports and births its children.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! 14oct2019   E.Sherman  First attempt at refactoring
 
 !EOP
 !============================================================================
 
-!   Locals 
+!   Locals
     character (len=ESMF_MAXSTR)            :: COMP_NAME
 
     type (MAPL_MetaComp),       pointer    :: MAPL
@@ -279,7 +289,7 @@ contains
     type (wrap_)                           :: wrap
 
     integer                                :: n_modes
-    integer, parameter                     :: n_gocart_modes = 14 
+    integer, parameter                     :: n_gocart_modes = 14
     integer                                :: dims(3)
 
     character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
@@ -289,7 +299,7 @@ contains
     __Iam__('Initialize')
 
 !****************************************************************************
-! Begin... 
+! Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -392,8 +402,8 @@ contains
 !   Attach the aerosol optics method. Used in Radiation.
     call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, __RC__)
 
-    ! This attribute indicates if the aerosol optics method is implemented or not. 
-    ! Radiation will not call the aerosol optics method unless this attribute is 
+    ! This attribute indicates if the aerosol optics method is implemented or not.
+    ! Radiation will not call the aerosol optics method unless this attribute is
     ! explicitly set to true.
     call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., __RC__)
 
@@ -401,7 +411,7 @@ contains
 !   ------------------------------------------------------------
     aero_aci_modes =  (/'du001    ', 'du002    ', 'du003    ', &
                         'du004    ', 'du005    ',              &
-                        'ss001    ', 'ss002    ', 'ss003    ', &  
+                        'ss001    ', 'ss002    ', 'ss003    ', &
                         'sulforg01', 'sulforg02', 'sulforg03', &
                         'bcphilic ', 'ocphilic ', 'brcphilic'/)
 
@@ -417,17 +427,8 @@ contains
     call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)
     call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, __RC__)
 
-    call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICRO:',  default="1MOMENT", RC=STATUS)
+    call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICR_OPTION:',  default="BACM_1M", RC=STATUS)
     call ESMF_AttributeSet(aero, name='cldmicro', value=CLDMICRO, __RC__)
-
-    ! scaling factor for sea salt
-    if(adjustl(CLDMICRO)=="2MOMENT") then
-       call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=4.0, label='SS_SCALE:', __RC__)
-       call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
-    else
-       call ESMF_ConfigGetAttribute(CF, f_aci_seasalt, default=14.0, label='SS_SCALE:', __RC__)
-       call ESMF_AttributeSet(aero, name='seasalt_scaling_factor', value=f_aci_seasalt, __RC__)
-    endif
 
 !   Add variables to AERO state
     call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
@@ -449,24 +450,24 @@ contains
   contains
 
      subroutine add_aero_states_(instances)
-        type(Instance), intent(in) :: instances(:)      
+        type(Instance), intent(in) :: instances(:)
         type (ESMF_State)       :: child_state
         type (ESMF_FieldBundle) :: child_bundle
         type (ESMF_Field), allocatable :: fieldList(:)
-        
+
         integer :: i
         integer :: id
         integer :: fieldCount
         __Iam__('Initialize::add_aero_states_')
-        
+
         do i = 1, size(instances)
            if (.not. instances(i)%is_active) cycle
            id = instances(i)%id
-           
+
            call ESMF_GridCompGet (gcs(id), __RC__ )
            call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO', child_state, __RC__)
            call ESMF_StateAdd (aero, [child_state], __RC__)
-           
+
            if (instances(i)%name(1:2) /= 'NI') then
               call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_DP', child_bundle, __RC__)
               call ESMF_FieldBundleGet (child_bundle, fieldCount=fieldCount, __RC__)
@@ -480,10 +481,10 @@ contains
      end subroutine add_aero_states_
 
  end subroutine Initialize
- 
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !BOP
-! !IROUTINE: RUN -- Run method for GOCART2G 
+! !IROUTINE: RUN -- Run method for GOCART2G
 
 
 ! !INTERFACE:
@@ -491,13 +492,13 @@ contains
   subroutine Run1 (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION: Run method 
+! !DESCRIPTION: Run method
 
 !EOP
 !============================================================================
@@ -515,7 +516,7 @@ contains
     __Iam__('Run1')
 
 !****************************************************************************
-! Begin... 
+! Begin...
 
 
 !   Get my name and set-up traceback handle
@@ -525,8 +526,7 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
-    VERIFY_(STATUS)
+    call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -549,10 +549,10 @@ contains
 
 ! !INTERFACE:
 
-  subroutine Run2 (GC, import, export, clock, RC)
+ subroutine Run2 (GC, import, export, clock, RC)
 
 ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -586,6 +586,7 @@ contains
     real, pointer, dimension(:,:,:,:) :: duextcoef, duscacoef
     real, pointer, dimension(:,:,:,:) :: duextcoefrh20, duextcoefrh80
     real, pointer, dimension(:,:,:,:) :: duscacoefrh20, duscacoefrh80
+    real, pointer, dimension(:,:,:,:) :: dubckcoef
     real, pointer, dimension(:,:)   :: duangstr, dusmass,  &
                                        dusmass25
     real, pointer, dimension(:,:,:) :: ssexttau, ssstexttau, &
@@ -595,6 +596,7 @@ contains
     real, pointer, dimension(:,:,:,:) :: ssextcoef, ssscacoef
     real, pointer, dimension(:,:,:,:) :: ssextcoefrh20, ssextcoefrh80
     real, pointer, dimension(:,:,:,:) :: ssscacoefrh20, ssscacoefrh80
+    real, pointer, dimension(:,:,:,:) :: ssbckcoef
     real, pointer, dimension(:,:)   :: ssangstr, sssmass,  &
                                        sssmass25
     real, pointer, dimension(:,:,:) :: niexttau, nistexttau, &
@@ -604,6 +606,7 @@ contains
     real, pointer, dimension(:,:,:,:) :: niextcoef, niscacoef
     real, pointer, dimension(:,:,:,:) :: niextcoefrh20, niextcoefrh80
     real, pointer, dimension(:,:,:,:) :: niscacoefrh20, niscacoefrh80
+    real, pointer, dimension(:,:,:,:) :: nibckcoef
     real, pointer, dimension(:,:)   :: niangstr, nismass,  &
                                        nismass25
     real, pointer, dimension(:,:)   :: nh4smass
@@ -612,33 +615,44 @@ contains
     real, pointer, dimension(:,:,:,:) :: suextcoef, suscacoef
     real, pointer, dimension(:,:,:,:) :: suextcoefrh20, suextcoefrh80
     real, pointer, dimension(:,:,:,:) :: suscacoefrh20, suscacoefrh80
+    real, pointer, dimension(:,:,:,:) :: subckcoef
     real, pointer, dimension(:,:)   :: suangstr, so4smass
-    real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau 
+    real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau
     real, pointer, dimension(:,:,:,:) :: bcextcoef, bcscacoef
     real, pointer, dimension(:,:,:,:) :: bcextcoefrh20, bcextcoefrh80
     real, pointer, dimension(:,:,:,:) :: bcscacoefrh20, bcscacoefrh80
+    real, pointer, dimension(:,:,:,:) :: bcbckcoef
     real, pointer, dimension(:,:)   :: bcangstr, bcsmass
     real, pointer, dimension(:,:,:) :: ocexttau, ocstexttau, ocscatau, ocstscatau
     real, pointer, dimension(:,:,:,:) :: ocextcoef, ocscacoef
     real, pointer, dimension(:,:,:,:) :: ocextcoefrh20, ocextcoefrh80
     real, pointer, dimension(:,:,:,:) :: ocscacoefrh20, ocscacoefrh80
+    real, pointer, dimension(:,:,:,:) :: ocbckcoef
     real, pointer, dimension(:,:)   :: ocangstr, ocsmass
     real, pointer, dimension(:,:,:) :: brexttau, brstexttau, brscatau, brstscatau
     real, pointer, dimension(:,:,:,:) :: brextcoef, brscacoef
     real, pointer, dimension(:,:,:,:) :: brextcoefrh20, brextcoefrh80
     real, pointer, dimension(:,:,:,:) :: brscacoefrh20, brscacoefrh80
+    real, pointer, dimension(:,:,:,:) :: brbckcoef
     real, pointer, dimension(:,:)   :: brangstr, brsmass
     real, pointer, dimension(:,:,:) :: pso4
     real, allocatable               :: tau1(:,:), tau2(:,:)
+    real, allocatable               :: backscat_mol(:,:,:)
+    real, allocatable               :: P(:,:,:), delz(:,:,:)
+    real, allocatable               :: tau_mol_layer(:,:,:), tau_aer_layer(:,:,:)
+    real, allocatable               :: tau_mol(:,:), tau_aer(:,:)
     real                            :: c1, c2, c3
-    integer                         :: ind550
+    real                            :: nifactor
+    real, parameter                 :: pi = 3.141529265
+    integer                         :: ind550, ind532
+    integer                         :: i1, i2, j1, j2, km, k,kk
 
 #include "GOCART2G_DeclarePointer___.h"
 
     __Iam__('Run2')
 
 !****************************************************************************
-! Begin... 
+! Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -671,19 +685,21 @@ contains
     if(associated(totscat25)) totscat25 = 0.
     if(associated(totexttfm)) totexttfm = 0.
     if(associated(totscatfm)) totscatfm = 0.
-    if(associated(totextcoef)) totextcoef = 0.
+    if(associated(totextcoef))     totextcoef = 0.
     if(associated(totextcoefrh20)) totextcoefrh20 = 0.
     if(associated(totextcoefrh80)) totextcoefrh80 = 0.
-    if(associated(totscacoef)) totscacoef = 0.
+    if(associated(totscacoef))     totscacoef = 0.
     if(associated(totscacoefrh20)) totscacoefrh20 = 0.
     if(associated(totscacoefrh80)) totscacoefrh80 = 0.
+    if(associated(totbckcoef))     totbckcoef = 0.
+    if(associated(totabcktoa))     totabcktoa = 0.
+    if(associated(totabcksfc))     totabcksfc = 0.
     if(associated(pm))        pm(:,:)        = 0.
     if(associated(pm25))      pm25(:,:)      = 0.
     if(associated(pm_rh35))   pm_rh35(:,:)   = 0.
     if(associated(pm25_rh35)) pm25_rh35(:,:) = 0.
     if(associated(pm_rh50))   pm_rh50(:,:)   = 0.
     if(associated(pm25_rh50)) pm25_rh50(:,:) = 0.
-
     if(associated(pso4tot))   pso4tot(:,:,:) = 0.
 
 !   Run the children
@@ -708,8 +724,10 @@ contains
        end do
 
        if (ind550 == 0) then
-          print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',& 
+          !$omp critical (G2G_1)
+          print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',&
                            ' Cannot produce TOTANGSTR variable without 550nm wavelength.'
+          !$omp end critical (G2G_1)
           VERIFY_(100)
        end if
 
@@ -724,6 +742,7 @@ contains
        c3 = -log(470./870.)
     end if
 
+
 !   Dust
     do n = 1, size(self%DU%instances)
        if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name, 'data') == 0 )) then
@@ -737,6 +756,7 @@ contains
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoef, 'DUSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh20, 'DUSCACOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh80, 'DUSCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), dubckcoef, 'DUBCKCOEF', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', __RC__)
@@ -754,7 +774,7 @@ contains
              if(associated(totexttfm) .and. associated(duexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+duexttfm(:,:,w)
              if(associated(totscatfm) .and. associated(duscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+duscatfm(:,:,w)
           end do
-          
+
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(duextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+duextcoef(:,:,:,w)
              if(associated(totextcoefrh20) .and. associated(duextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+duextcoefrh20(:,:,:,w)
@@ -762,8 +782,9 @@ contains
              if(associated(totscacoef) .and. associated(duscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+duscacoef(:,:,:,w)
              if(associated(totscacoefrh20) .and. associated(duscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+duscacoefrh20(:,:,:,w)
              if(associated(totscacoefrh80) .and. associated(duscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+duscacoefrh80(:,:,:,w)
+             if(associated(totbckcoef) .and. associated(dubckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+dubckcoef(:,:,:,w)
           end do
-          
+
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25, 'DUSMASS25', __RC__)
           if(associated(pm)        .and. associated(dusmass))   pm        = pm        + dusmass
@@ -777,7 +798,7 @@ contains
              tau1 = tau1 + duexttau(:,:,ind550)*exp(c1*duangstr)
              tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
           end if
-       end if   
+       end if
     end do
 
 !   Sea Salt
@@ -793,6 +814,7 @@ contains
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoef, 'SSSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh20, 'SSSCACOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh80, 'SSSCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssbckcoef, 'SSBCKCOEF', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextt25, 'SSEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscat25, 'SSSCAT25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttfm, 'SSEXTTFM', __RC__)
@@ -818,8 +840,9 @@ contains
              if(associated(totscacoef) .and. associated(ssscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ssscacoef(:,:,:,w)
              if(associated(totscacoefrh20) .and. associated(ssscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ssscacoefrh20(:,:,:,w)
              if(associated(totscacoefrh80) .and. associated(ssscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+ssscacoefrh80(:,:,:,w)
+             if(associated(totbckcoef) .and. associated(ssbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ssbckcoef(:,:,:,w)
           enddo
-    
+
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass,   'SSSMASS',   __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass25, 'SSSMASS25', __RC__)
           if(associated(pm)        .and. associated(sssmass))   pm        = pm        + sssmass
@@ -849,6 +872,7 @@ contains
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), nibckcoef, 'NIBCKCOEF', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', __RC__)
@@ -874,8 +898,9 @@ contains
              if(associated(totscacoef) .and. associated(niscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+niscacoef(:,:,:,w)
              if(associated(totscacoefrh20) .and. associated(niscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+niscacoefrh20(:,:,:,w)
              if(associated(totscacoefrh80) .and. associated(niscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+niscacoefrh80(:,:,:,w)
+             if(associated(totbckcoef) .and. associated(nibckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+nibckcoef(:,:,:,w)
           end do
-          
+
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   __RC__)
@@ -894,6 +919,11 @@ contains
     end do
 
 !   Sulfates
+    nifactor = 132.14/96.06
+    if (size(self%NI%instances) > 0) then
+      if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) nifactor = 1.0
+    end if
+
     do n = 1, size(self%SU%instances)
        if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', __RC__)
@@ -903,6 +933,7 @@ contains
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), subckcoef, 'SUBCKCOEF', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', __RC__)
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', __RC__)
@@ -927,26 +958,20 @@ contains
              if(associated(totscacoef) .and. associated(suscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+suscacoef(:,:,:,w)
              if(associated(totscacoefrh20) .and. associated(suscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+suscacoefrh20(:,:,:,w)
              if(associated(totscacoefrh80) .and. associated(suscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+suscacoefrh80(:,:,:,w)
+             if(associated(totbckcoef) .and. associated(subckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+subckcoef(:,:,:,w)
           end do
-          
+
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', __RC__)
           if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', __RC__)
-          if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) then ! Nitrates currently only support one active instance. We check the NI gridded component because SO4MASS can be altered by NI chemistry.
-             if(associated(pm)        .and. associated(so4smass)) pm        = pm        + so4smass
-             if(associated(pm25)      .and. associated(so4smass)) pm25      = pm25      + so4smass
-             if(associated(pm_rh35)   .and. associated(so4smass)) pm_rh35   = pm_rh35   + 1.33*so4smass
-             if(associated(pm25_rh35) .and. associated(so4smass)) pm25_rh35 = pm25_rh35 + 1.33*so4smass
-             if(associated(pm_rh50)   .and. associated(so4smass)) pm_rh50   = pm_rh50   + 1.51*so4smass
-             if(associated(pm25_rh50) .and. associated(so4smass)) pm25_rh50 = pm25_rh50 + 1.51*so4smass
-          else
-             if(associated(pm)        .and. associated(so4smass)) pm        = pm        + (132.14/96.06)*so4smass
-             if(associated(pm25)      .and. associated(so4smass)) pm25      = pm25      + (132.14/96.06)*so4smass
-             if(associated(pm_rh35)   .and. associated(so4smass)) pm_rh35   = pm_rh35   + 1.33*(132.14/96.06)*so4smass
-             if(associated(pm25_rh35) .and. associated(so4smass)) pm25_rh35 = pm25_rh35 + 1.33*(132.14/96.06)*so4smass
-             if(associated(pm_rh50)   .and. associated(so4smass)) pm_rh50   = pm_rh50   + 1.51*(132.14/96.06)*so4smass
-             if(associated(pm25_rh50) .and. associated(so4smass)) pm25_rh50 = pm25_rh50 + 1.51*(132.14/96.06)*so4smass
+          if(associated(so4smass)) then
+             if(associated(pm)       ) pm        = pm        + nifactor*so4smass
+             if(associated(pm25)     ) pm25      = pm25      + nifactor*so4smass
+             if(associated(pm_rh35)  ) pm_rh35   = pm_rh35   + 1.33*nifactor*so4smass
+             if(associated(pm25_rh35)) pm25_rh35 = pm25_rh35 + 1.33*nifactor*so4smass
+             if(associated(pm_rh50)  ) pm_rh50   = pm_rh50   + 1.51*nifactor*so4smass
+             if(associated(pm25_rh50)) pm25_rh50 = pm25_rh50 + 1.51*nifactor*so4smass
           end if
 
           if(associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
@@ -973,6 +998,7 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -993,6 +1019,7 @@ contains
              if(associated(totscacoef) .and. associated(bcscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+bcscacoef(:,:,:,w)
              if(associated(totscacoefrh20) .and. associated(bcscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+bcscacoefrh20(:,:,:,w)
              if(associated(totscacoefrh80) .and. associated(bcscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+bcscacoefrh80(:,:,:,w)
+             if(associated(totbckcoef) .and. associated(bcbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+bcbckcoef(:,:,:,w)
           end do
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', __RC__)
@@ -1021,6 +1048,7 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -1033,7 +1061,7 @@ contains
              if(associated(totexttfm) .and. associated(ocexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+ocexttau(:,:,w)
              if(associated(totscatfm) .and. associated(ocscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+ocscatau(:,:,w)
           end do
-          
+
           do w = 1, size(self%wavelengths_profile)
              if(associated(totextcoef) .and. associated(ocextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+ocextcoef(:,:,:,w)
              if(associated(totextcoefrh20) .and. associated(ocextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+ocextcoefrh20(:,:,:,w)
@@ -1041,13 +1069,14 @@ contains
              if(associated(totscacoef) .and. associated(ocscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ocscacoef(:,:,:,w)
              if(associated(totscacoefrh20) .and. associated(ocscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ocscacoefrh20(:,:,:,w)
              if(associated(totscacoefrh80) .and. associated(ocscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+ocscacoefrh80(:,:,:,w)
+             if(associated(totbckcoef) .and. associated(ocbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ocbckcoef(:,:,:,w)
           end do
-         
+
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', __RC__)
           if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
           if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
           if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-          if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  ! 
+          if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  !
           if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*ocsmass  ! needs to be revisited: OCpho + 1.24 OCphi
           if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
 
@@ -1069,6 +1098,7 @@ contains
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', __RC__)
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -1089,13 +1119,14 @@ contains
              if(associated(totscacoef) .and. associated(brscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+brscacoef(:,:,:,w)
              if(associated(totscacoefrh20) .and. associated(brscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+brscacoefrh20(:,:,:,w)
              if(associated(totscacoefrh80) .and. associated(brscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+brscacoefrh80(:,:,:,w)
+             if(associated(totbckcoef) .and. associated(brbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+brbckcoef(:,:,:,w)
           end do
-          
+
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', __RC__)
           if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
           if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
           if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-          if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  ! 
+          if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  !
           if(associated(pm_rh50)   .and. associated(brsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
           if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
 
@@ -1107,9 +1138,93 @@ contains
     end do
 
 !   Finish calculating totangstr
-    if(associated(totangstr)) then  
+    if(associated(totangstr)) then
        totangstr = log(tau1/tau2)/c3
     end if
+
+!  Calculate the total (molecular + aer) single scattering attenuated backscater coef from the TOA
+    if(associated(totabcktoa).or.associated(totabcksfc)) then
+        if (.not.associated(totextcoef) .or. .not.associated(totbckcoef)) then
+             print*,trim(Iam),' : TOTEXTCOEF and TOTBCKCOEF and their children needs to be requested in HISTORY.rc.',&
+                           ' Cannot produce TOTABCKTOA or TOTABCKSFC variables without these exports.'
+             VERIFY_(100)
+        endif
+
+       ind532 = 0
+       do w = 1, size(self%wavelengths_profile) ! find index for 532nm to compute TBA
+          if ((self%wavelengths_profile(w)*1.e-9 .ge. 5.31e-7) .and. &
+              (self%wavelengths_profile(w)*1.e-9 .le. 5.33e-7)) then
+             ind532 = w
+             exit
+          end if
+       end do
+
+       if (ind532 == 0) then
+          print*,trim(Iam),' : 532nm wavelengths is not present in GOCART2G_GridComp.rc.',&
+                           ' Cannot produce TOTBCKCOEF variable without 532nm wavelength.'
+          VERIFY_(100)
+       end if
+
+        ! Pressure at layer edges (ple shape (im,jm, km+1) on the edge
+
+       i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+       j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+                            km = ubound(ple, 3) ! km =72 index starts at 0
+       ! Pressure for each layer
+       allocate(P(i1:i2,j1:j2,km), __STAT__)
+       do k = 1, km
+           P(:,:,k) = 0.5 * (ple(:,:,k-1) + ple(:,:,k))   ! in Pa
+       enddo
+
+      !molecular backscattering cross section for each layer at 532nm: Cair  * P(Pa) / T(K)
+      !Cair = 4.51944e-9 at 532nm # unit K Pa-1 m-1 sr-1 http://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19960051003.pdf
+       allocate(backscat_mol(i1:i2,j1:j2,km), __STAT__)
+       backscat_mol = (5.45e-32/1.380648e-23) * (532./550.)**(-4.0)  * P / T
+       ! tau mol for each layer
+       allocate(tau_mol_layer(i1:i2,j1:j2,km), delz(i1:i2,j1:j2,km),__STAT__)
+       delz  = delp / (MAPL_GRAV * airdens)
+       tau_mol_layer = backscat_mol * 8.* pi /3. * delz
+
+       ! tau aer for each layer
+       allocate(tau_aer_layer(i1:i2,j1:j2,km), __STAT__)
+       tau_aer_layer = totextcoef(:,:,:,ind532) * delz
+
+       allocate(tau_aer(i1:i2,j1:j2), __STAT__)
+       allocate(tau_mol(i1:i2,j1:j2), __STAT__)
+
+       ! TOTAL ABCK TOA
+       ! top layer
+       totabcktoa(:,:,1) = (totbckcoef(:,:,1,ind532) + backscat_mol(:,:,1)) * exp(-tau_aer_layer(:,:,1)) * exp(-tau_mol_layer(:,:,1))
+       ! layer 2 to the layer at the surface(km)
+       do k = 2, km
+           tau_aer = 0.
+           tau_mol = 0. ! for each layer
+           do kk = 1, k
+             tau_aer = tau_aer + tau_aer_layer(:,:,kk)
+             tau_mol = tau_mol + tau_mol_layer(:,:,kk)
+           enddo
+           tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
+           tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
+           totabcktoa(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
+       enddo
+
+       ! TOTAL ABCK SFC
+       ! bottom layer
+       totabcksfc(:,:,km) = (totbckcoef(:,:,km,ind532) + backscat_mol(:,:,km)) * exp(-tau_aer_layer(:,:,km)) * exp(-tau_mol_layer(:,:,km))
+       ! layer 2nd from the surface to the top of the atmoshere (km)
+       do k = km-1, 1, -1
+           tau_aer = 0.
+           tau_mol = 0. ! for each layer
+           do kk = km, k+1, -1
+             tau_aer = tau_aer + tau_aer_layer(:,:,kk)
+             tau_mol = tau_mol + tau_mol_layer(:,:,kk)
+           enddo
+           tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
+           tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
+           totabcksfc(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
+       enddo
+
+   endif ! end of total attenuated backscatter coef calculation
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1204,9 +1319,9 @@ contains
     RETURN_(ESMF_SUCCESS)
 
     contains
-    
+
         subroutine addChildren__ (gc, species, setServices, rc)
-        
+
           type (ESMF_GridComp),            intent(inout)     :: gc
           type(Constituent),               intent(inout)     :: species
           external                                           :: setServices
@@ -1256,7 +1371,7 @@ contains
 
     __Iam__('GOCART2G::serialize_bundle')
 
-!   !Description: Callback for AERO_RAD state used in GAAS module to provide a 
+!   !Description: Callback for AERO_RAD state used in GAAS module to provide a
 !                 serialized ESMF_Bundle of aerosol fields.
 !-----------------------------------------------------------------------------------
 !   Begin...
@@ -1339,7 +1454,7 @@ contains
 
 !   Description: Used in Radiation gridded components to provide aerosol properties
 !-----------------------------------------------------------------------------------
-!   Begin... 
+!   Begin...
 
 !   Radiation band
 !   --------------
@@ -1350,7 +1465,7 @@ contains
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
@@ -1484,7 +1599,7 @@ contains
 !   Local
 !   ---------
     character(len=ESMF_MAXSTR)      :: mode              ! mode name
-    character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name 
+    character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name
 
     type(ESMF_State)                :: child_state
 
@@ -1498,16 +1613,15 @@ contains
     real, dimension(:,:,:,:), pointer   :: ptr_4d        ! aerosol mass mixing ratio (temporary)
     real, dimension(:,:,:), pointer     :: ptr_3d        ! aerosol mass mixing ratio (temporary)
 
-    real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles 
+    real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles
     real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
     real, dimension(:,:,:), pointer :: sigma             ! width of aerosol mode
     real, dimension(:,:,:), pointer :: density           ! density of aerosol
-    real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol 
+    real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol
     real, dimension(:,:,:), pointer :: f_dust            ! fraction of dust aerosol
-    real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol 
+    real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol
     real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
 
-    real                            :: ss_scale          ! sea salt scaling factor
     real                            :: max_clean          ! max mixing ratio before considered polluted
     real                            :: ccn_tuning         ! tunes conversion factors for sulfate
     character(LEN=ESMF_MAXSTR)      :: cld_micro
@@ -1543,7 +1657,7 @@ contains
 
     __Iam__('GOCART2G::aerosol_activation_properties')
 
-!   Begin... 
+!   Begin...
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
@@ -1573,12 +1687,12 @@ contains
 !   ------------
     call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, __RC__)
 
-!   Land fraction 
+!   Land fraction
 !   -------------
     call ESMF_AttributeGet(state, name='fraction_of_land_type', value=fld_name, __RC__)
     call MAPL_GetPointer(state, f_land, trim(fld_name), __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1620,7 +1734,6 @@ contains
 
 !   Sea salt scaling fctor
 !   ----------------------
-    call ESMF_AttributeGet(state, name='seasalt_scaling_factor', value=ss_scale, __RC__)
     call ESMF_AttributeGet(state, name='max_q_clean', value=max_clean, __RC__)
     call ESMF_AttributeGet(state, name='cldmicro', value=cld_micro, __RC__)
     call ESMF_AttributeGet(state, name='ccn_tuning', value=ccn_tuning, __RC__)
@@ -1651,21 +1764,13 @@ contains
     else if (index(mode_, 'ss00') > 0) then ! Sea Salt
        ! compute the total mass mixing ratio and impose a tri-modal size distribution
        do i = 1, size(aeroList)
-          if (index(aeroList(i), 'SS') > 0) then       
+          if (index(aeroList(i), 'SS') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
              do j = 1, ubound(ptr_4d, 4)
                q = q + ptr_4d(:,:,:,j)
                ptr_3d => ptr_4d(:,:,:,j)
              end do
-
-             ! temperature correction over the ocean
-             allocate(f(i2,j2, km), __STAT__)
-             call ocean_correction_(f, f_land, temperature(1:i2,1:j2,km), ss_scale, 1, i2, 1, j2, km)
-
-             ! apply the correction factor
-             q = f * q
-             deallocate(f, __STAT__)
 
              hygroscopicity = k_SS
              density = densSS
@@ -1696,11 +1801,6 @@ contains
              density = densORG * ptr_3d + density
           end if
 
-          ! required by the aap_(...)
-          if((adjustl(cld_micro)/="2MOMENT") .and. (index(aeroList(i), 'SU') > 0)) then ! maintained for compatibility with the single moment
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
-          end if
        end do
 
           where (q > 2.0e-12 .and. hygroscopicity > tiny(0.0))
@@ -1793,11 +1893,11 @@ contains
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: q_             ! auxiliary mass
      real, intent(in),  dimension(i1:i2,j1:j2,km) :: dens_          ! density
 
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles 
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles
      real, intent(out), dimension(i1:i2,j1:j2,km) :: diameter       ! dry size of aerosol
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma          ! width of aerosol mode  
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma          ! width of aerosol mode
      real, intent(out), dimension(i1:i2,j1:j2,km) :: f_dust         ! fraction of dust aerosol
-     real, intent(out), dimension(i1:i2,j1:j2,km) :: f_soot         ! fraction of soot aerosol 
+     real, intent(out), dimension(i1:i2,j1:j2,km) :: f_soot         ! fraction of soot aerosol
      real, intent(out), dimension(i1:i2,j1:j2,km) :: f_organic      ! fraction of organic aerosol
 
      integer, intent(out) :: rc                                     ! return code
@@ -1826,22 +1926,10 @@ contains
      f_soot    = 0.0
      f_organic = 0.0
 
-      if(adjustl(cld_micro)=="2MOMENT") then
-        qaux=q !this corrects a bug
-      else
-        qaux  =  q_ !keep it to get zero diff with the single moment
-        max_clean = 5.0e-7
-        ccn_tuning = 1.0
-      end if
-
+     qaux=q !this corrects a bug
 
      if (index(mode_, 'ss00') > 0) then
-       if(adjustl(cld_micro)=="2MOMENT") then
-         TPI  (1) = 230e6          ! num fraction (reduced 091015)        
-       else
-         TPI  (1) = 100e6          ! num fraction (reduced 091015)                   
-       end if
-
+         TPI  (1) = 230e6          ! num fraction (reduced 091015)
          DPGI (1) = 0.02e-6        ! modal diameter (m)
          SIGI (1) = log(1.6)       ! geometric dispersion (sigma_g)
          ! accumulation
@@ -1882,11 +1970,11 @@ contains
          ! fine
          TPIclean  (1) = 1.0e9      ! total concentration (# m-3)
          DPGIclean (1) = 0.016e-6   ! modal diameter (m)
-         SIGIclean (1) = log(1.6)   ! geometric dispersion (sigma_g)      
+         SIGIclean (1) = log(1.6)   ! geometric dispersion (sigma_g)
          ! accumulation
          TPIclean  (2) = 8.0e8      ! total concentration (# m-3)
          DPGIclean (2) = 0.067e-6   ! modal diameter (m)
-         SIGIclean (2) = log(2.1)   ! geometric dispersion (sigma_g) 
+         SIGIclean (2) = log(2.1)   ! geometric dispersion (sigma_g)
          !Coarse
          TPIclean  (3) = 2.0e6      ! total concentration (# m-3)
          DPGIclean (3) = 0.93e-6    ! modal diameter (m)
@@ -1953,7 +2041,7 @@ contains
          elsewhere
              sigma    = SIGIclean(1)
              diameter = DPGIclean(1)
-             num      = TPIclean(1) * qaux*ccn_tuning / (dens_*fmassclean)      ! only sulfate 
+             num      = TPIclean(1) * qaux*ccn_tuning / (dens_*fmassclean)      ! only sulfate
          end where
 
      case ('sulforg02')
@@ -2006,44 +2094,6 @@ contains
 
     end subroutine aap_
 
-    subroutine ocean_correction_(f, f_land, t_air_sfc, ss_scale, i1, i2, j1, j2, km)
-
-     implicit none
-
-     integer, intent(in) :: i1, i2                               ! dimension bounds
-     integer, intent(in) :: j1, j2                               ! ... // ..
-     integer, intent(in) :: km                                   ! ... // ..
-
-     real, intent(in ), dimension(i1:i2,j1:j2) :: f_land         ! fraction of land
-     real, intent(in ), dimension(i1:i2,j1:j2) :: t_air_sfc      ! air temperature in the surface model layer
-     real, intent(in )                         :: ss_scale       ! scaling factor for sea salt at low T
-
-     real, intent(out), dimension(i1:i2,j1:j2, km) :: f          ! correction factor
-
-     ! local
-     integer :: i, j
-     real    :: usurf
-
-     f = 1.0
-
-     do j = j1, j2
-         do i = i1, i2
-             if (f_land(i,j) < 0.1) then  !ocean
-
-                 if(adjustl(cld_micro) .ne."2MOMENT") then
-                    usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 10.0), -10.0) !smooth transition around some T value                                                      
-                 else
-                    usurf = max(min((t_air_sfc(i,j) - 285.0) / 2.0, 30.0), -30.0) !smooth transition around some T value
-                 end if
-                 usurf = min(ss_scale / (1.0 + exp(usurf)), 20.0)
-
-                 f(i,j,:) = (1.0 + usurf)
-             end if
-         end do
-     end do
-
-    end subroutine ocean_correction_
-
   end subroutine aerosol_activation_properties
 
 
@@ -2080,7 +2130,7 @@ contains
 
 !   Description: Used in GAAS gridded component to provide aerosol properties
 !-----------------------------------------------------------------------------------
-!   Begin... 
+!   Begin...
 
 !   Radiation band
 !   --------------
@@ -2091,7 +2141,7 @@ contains
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
@@ -2201,7 +2251,7 @@ contains
 
 !   Description: Used in GAAS gridded component to provide sum of aerosol mixing ratio
 !--------------------------------------------------------------------------------------
-!   Begin... 
+!   Begin...
 
     call ESMF_AttributeGet(state, name='aerosolName', value=aeroName, __RC__)
     call ESMF_AttributeGet(state, name='im', value=im, __RC__)
@@ -2302,7 +2352,9 @@ contains
           end if
 
        case default
+          !$omp critical (G2G_2)
           print *,"Invalid aerosolName of '",trim(aeroName), "' in GOCART2G::get_mixRatioSum"
+          !$omp end critical (G2G_2)
     end select
 
 contains
@@ -2327,7 +2379,7 @@ contains
 !   Begin...
 
     endInd = len_trim(aeroToken)
-    
+
     aeroOut = 0.0
     do i = 1, size(aeroList)
        if (trim(aeroList(i)(1:endInd)) == trim(aeroToken)) then

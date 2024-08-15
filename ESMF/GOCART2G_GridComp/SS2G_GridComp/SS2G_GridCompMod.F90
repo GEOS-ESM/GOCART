@@ -3,7 +3,7 @@
 !=============================================================================
 !BOP
 
-! !MODULE: SS2G_GridCompMod - GOCART refactoring of the SS gridded component 
+! !MODULE: SS2G_GridCompMod - GOCART refactoring of the SS gridded component
 
 ! !INTERFACE:
 module SS2G_GridCompMod
@@ -11,7 +11,7 @@ module SS2G_GridCompMod
 ! !USES:
    use ESMF
    use MAPL
-   use GOCART2G_MieMod 
+   use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -45,18 +45,18 @@ real, parameter ::  cpd    = 1004.16
        real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
        real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
        real, allocatable      :: rmed(:)        ! number median radius [um]
-       integer                :: sstEmisFlag    ! Choice of SST correction to emissions: 
+       integer                :: sstEmisFlag    ! Choice of SST correction to emissions:
 !                                                 0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
        logical                :: hoppelFlag     ! Apply the Hoppel correction to emissions (Fan and Toon, 2011)
        logical                :: weibullFlag    ! Apply the Weibull distribution to wind speed for emissions (Fan and Toon, 2011)
-       real, allocatable      :: deep_lakes_mask(:,:)
+       !real, allocatable      :: deep_lakes_mask(:,:)
        integer                :: emission_scheme
        real                   :: emission_scale ! global scaling factor
        real                   :: emission_scale_res(NHRES) ! global scaling factor
    end type SS2G_GridComp
 
    type wrap_
-      type (SS2G_GridComp), pointer     :: PTR => null()
+      type (SS2G_GridComp), pointer     :: PTR !=> null()
    end type wrap_
 
 contains
@@ -64,7 +64,7 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: SetServices 
+! !IROUTINE: SetServices
 
 ! !INTERFACE:
   subroutine SetServices ( GC, RC )
@@ -75,7 +75,7 @@ contains
 
 !    DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !     the Initialize and Finalize services to generic versions. It also
-!     allocates our instance of a generic state and puts it in the 
+!     allocates our instance of a generic state and puts it in the
 !     gridded component (GC). Here we only set the two-stage run method
 !     and declare the data services.
 
@@ -96,6 +96,7 @@ contains
     integer                                     :: i
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
+    logical                                     :: file_exists
 
     __Iam__('SetServices')
 
@@ -112,11 +113,13 @@ contains
     allocate (self, __STAT__)
     wrap%ptr => self
 
-!   Load resource file 
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
+    inquire(file='SS2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
        if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
@@ -151,7 +154,7 @@ contains
 
     DEFVAL = 0.0
 
-!   Import and Internal states if data instance 
+!   Import and Internal states if data instance
 !   -------------------------------------------
     if (data_driven) then
 
@@ -165,6 +168,16 @@ contains
          ungridded_dims=[self%nbins], &
 !         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
          add2export=.true., __RC__)
+
+
+   call MAPL_AddInternalSpec(gc,&
+        & short_name='DEEP_LAKES_MASK', &
+        & units='1', &
+        & dims=MAPL_DimsHorzOnly, &
+        & vlocation=MAPL_VlocationNone, &
+        & add2export=.false., &
+        & long_name='Deep Lakes Mask', &
+        & _RC)
 
 
 !      Pressure at layer edges
@@ -206,7 +219,7 @@ contains
               VLOCATION  = MAPL_VLocationCenter,                                  &
               RESTART    = MAPL_RestartSkip, __RC__)
 
-!           ! wet deposition    
+!           ! wet deposition
             call MAPL_AddImportSpec(GC,                                           &
                SHORT_NAME = 'climSSWT'//trim(field_name),                         &
                LONG_NAME  = 'Sea Salt wet removal (bin '//trim(field_name)//')', &
@@ -236,7 +249,7 @@ contains
     end if ! (data_driven)
 
 
-!   Import, Export, Internal states for computational instance 
+!   Import, Export, Internal states for computational instance
 !   ----------------------------------------------------------
     if (.not. data_driven) then
 #include "SS2G_Export___.h"
@@ -282,27 +295,27 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: Initialize 
+! !IROUTINE: Initialize
 
 ! !INTERFACE:
   subroutine Initialize (GC, IMPORT, EXPORT, CLOCK, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT ! Export state
     type (ESMF_Clock),    intent(inout) :: CLOCK  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes SS' Grid Component. It primaryily fills 
-!               GOCART's AERO states with its sea salt fields. 
+! !DESCRIPTION: This initializes SS' Grid Component. It primaryily fills
+!               GOCART's AERO states with its sea salt fields.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! 24oct2019   E.Sherman  First attempt at refactoring
 
 !EOP
 !============================================================================
-!   !Locals 
+!   !Locals
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Grid)                     :: grid
@@ -319,7 +332,7 @@ contains
     integer                              :: instance
     type (ESMF_Field)                    :: field, fld
     character (len=ESMF_MAXSTR)          :: prefix, bin_index
-    real, pointer, dimension(:,:)        :: lats 
+    real, pointer, dimension(:,:)        :: lats
     real, pointer, dimension(:,:)        :: lons
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
@@ -328,13 +341,16 @@ contains
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
     real, pointer, dimension(:,:,:)      :: ple
+    real, pointer, dimension(:,:)        :: deep_lakes_mask
+
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
     __Iam__('Initialize')
 
 !****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -351,15 +367,15 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-!   Get dimensions
-!   ---------------
+!   Global dimensions are needed here for choosing tuning parameters
+!   ----------------------------------------------------------------    
     call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
 
-!   Scaling factor to multiply calculated
-!   emissions by.  Applies to all size bins.
-!   ----------------------------------------
+!   Scaling factor to multiply calculated emissions by.  Applies to all size bins.
+!   TO DO: find a more robust way to implement resolution dependent tuning
+!   -------------------------------------------------------------------------------
     self%emission_scale = Chem_UtilResVal(dims(1), dims(2), self%emission_scale_res(:), __RC__)
 
 !   Get DTs
@@ -368,17 +384,18 @@ contains
     call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
-!  Load resource file and get number of bins 
+!  Load resource file and get number of bins
 !  -------------------------------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
-      if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! &
-                                    loading SS2G_instance_SS.rc instead'
-      call ESMF_ConfigLoadFile( cfg, 'SS2G_instance_SS.rc', __RC__)
+    inquire(file='SS2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
-!   Call Generic Initialize 
+!   Call Generic Initialize
 !   ----------------------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
 
@@ -414,7 +431,7 @@ contains
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, 'SS', field, __RC__)
-    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
+!    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
     fld = MAPL_FieldCreate (field, 'SS', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
@@ -491,30 +508,27 @@ contains
 !   call MAPL_StateAdd (aero, field, __RC__)
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
-
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
-
     call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
     call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
-
     mieTable_pointer = transfer(c_loc(self), [1])
     call ESMF_AttributeSet (aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), __RC__)
-
     call ESMF_AttributeSet (aero, name='internal_variable_name', value='SS', __RC__)
-
     call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
 !   Mask to prevent emissions from the Great Lakes and the Caspian Sea
 !   ------------------------------------------------------------------
-    allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
-    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
+    !allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
+    !call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
+    call MAPL_GetPointer (internal, NAME='DEEP_LAKES_MASK', ptr=deep_lakes_mask, __RC__)
+    call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -523,13 +537,13 @@ contains
 !============================================================================
 
 !BOP
-! !IROUTINE: Run 
+! !IROUTINE: Run
 
 ! !INTERFACE:
   subroutine Run (GC, import, export, clock, rc)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -550,7 +564,7 @@ contains
     __Iam__('Run')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -583,13 +597,13 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run1 
+! !IROUTINE: Run1
 
 ! !INTERFACE:
   subroutine Run1 (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -614,23 +628,25 @@ contains
 
     real(kind=DP), allocatable, dimension(:,:) :: gweibull
 
-    integer :: n 
+    integer :: n
 
 #include "SS2G_DeclarePointer___.h"
 
    __Iam__('Run1')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, NAME=COMP_NAME, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
     call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+
+    call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -648,7 +664,7 @@ contains
 !   -----------------------------------
 !   Grid box efficiency to emission (fraction of sea water)
     allocate(fgridefficiency, mold=frocean, __STAT__ )
-    fgridefficiency = min(max(0.,(frocean-fraci)*self%deep_lakes_mask),1.)
+    fgridefficiency = min(max(0.,(frocean-fraci)*deep_lakes_mask),1.)
 
 !   Apply SST correction following Jaegle et al. 2011 if needed
 !   ------------------------------------------------------------
@@ -656,7 +672,7 @@ contains
     call jeagleSSTcorrection(self%sstEmisFlag, fsstemis, ts, __RC__)
 
 !   Apply a Weibull distribution to emissions wind speeds
-!   -----------------------------------------------------    
+!   -----------------------------------------------------
     allocate(gweibull(ubound(u10m,1), ubound(u10m,2)), __STAT__ )
     call weibullDistribution (gweibull, self%weibullFlag, u10m, v10m, __RC__)
 
@@ -680,12 +696,13 @@ contains
 
 !      For the Hoppel correction need to compute the wet radius and settling velocity
 !      in the surface
-       if (self%hoppelFlag) then
-          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
-                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
-                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
-       end if
- 
+!     Collow: commented out 9 Jan 2024 as this is not consistent with the updated settling based on the optics files. The flag to call this is set to false in the instance RC file. This should be revistited in the future.
+!       if (self%hoppelFlag) then
+!          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
+!                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
+!                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
+!       end if
+
        memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
        dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
        SS(:,:,self%km,n) = SS(:,:,self%km,n) + dqa
@@ -700,24 +717,24 @@ contains
 
     RETURN_(ESMF_SUCCESS)
 
-  end subroutine Run1 
+  end subroutine Run1
 
 !============================================================================
 !BOP
-! !IROUTINE: Run2 
+! !IROUTINE: Run2
 
 ! !INTERFACE:
 
   subroutine Run2 (GC, import, export, clock, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION: Run2 method for the Dust Grid Component.
+! !DESCRIPTION: Run2 method for the Sea Salt Grid Component.
 
 !EOP
 !============================================================================
@@ -735,12 +752,13 @@ contains
 
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, pointer, dimension(:,:)     :: flux_ptr
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -769,9 +787,11 @@ contains
 !   Sea Salt Settling
 !   -----------------
     do n = 1, self%nbins
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, SSSD, __RC__)
+       nullify(flux_ptr)
+       if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           SS(:,:,:,n), t, airdens, &
+                           rh2, zle, delp, flux_ptr, __RC__)
     end do
 
 !   Deposition
@@ -812,7 +832,7 @@ contains
                              self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
                              delp, ple, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
-                             SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF,    &
+                             SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
 
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
@@ -822,25 +842,25 @@ contains
     allocate(RH20(i1:i2,j1:j2,km), __STAT__)
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
-    RH20(:,:,:) = 0.20    
+    RH20(:,:,:) = 0.20
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            nbins=self%nbins, rlow=self%rlow, rup=self%rup, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = SSEXTCOEFRH20, scacoef = SSSCACOEFRH20, NO3nFlag=.False., __RC__)
- 
+
     RH80(:,:,:) = 0.80
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            nbins=self%nbins, rlow=self%rlow, rup=self%rup, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
                             extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., __RC__)
 
-    deallocate(RH20,RH80) 
+    deallocate(RH20,RH80)
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2
@@ -855,13 +875,13 @@ contains
 
     ! !ARGUMENTS:
 
-    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT   ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT   ! Export state
     type (ESMF_State),    intent(inout) :: INTERNAL ! Interal state
     integer, optional,    intent(  out) :: RC       ! Error code:
 
-! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData. 
+! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
 !EOP
 !============================================================================
@@ -879,7 +899,7 @@ contains
     __Iam__('Run_data')
 
 !*****************************************************************************
-! Begin... 
+! Begin...
 
 ! Get my name and set-up traceback handle
 ! ---------------------------------------
@@ -939,7 +959,7 @@ contains
 
     __Iam__('SS2G::aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -950,7 +970,7 @@ contains
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1054,7 +1074,7 @@ contains
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction 
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
     end do
 
     RETURN_(ESMF_SUCCESS)
@@ -1091,7 +1111,7 @@ contains
 
     __Iam__('SS2G::monochromatic_aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1102,7 +1122,7 @@ contains
     wavelength = 0.
     call ESMF_AttributeGet (state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer (state, ple, trim(fld_name), __RC__)
