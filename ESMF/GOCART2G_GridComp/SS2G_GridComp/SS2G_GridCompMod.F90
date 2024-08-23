@@ -55,15 +55,15 @@ real, parameter ::  cpd    = 1004.16
        real                   :: emission_scale_res(NHRES) ! global scaling factor
 
 !      to enable SPSA, set emission_scheme=2024
-       real                   :: spsa_gsf     ! emission_scale <- emission_Scale * X (1.0)
-       real                   :: spsa_sst0    ! SST term ~ X*SST**0     (1.0)
-       real                   :: spsa_sst1    ! SST term ~ X*SST**1     (0.0)
-       real                   :: spsa_sst2    ! SST term ~ X*SST**2     (0.0)
-       real                   :: spsa_sst3    ! SST term ~ X*SST**3      (0.0)
-       real                   :: spsa_w_th    ! u_star <- (u_star - X)  (0.2)
-       real                   :: spsa_w_power ! u_star**(2.41*X)        (1.0)
-       real                   :: spsa_fscav   ! fscav <- fscav*X        (1.0)
-       real                   :: spsa_fwet    ! fwet  <- fwet*X         (1.0)
+       real                   :: spsa_ss_gsf     ! emission_scale <- emission_Scale * X (1.0)
+       real                   :: spsa_ss_sst0    ! SST term ~ X*SST**0     (1.0)
+       real                   :: spsa_ss_sst1    ! SST term ~ X*SST**1     (0.0)
+       real                   :: spsa_ss_sst2    ! SST term ~ X*SST**2     (0.0)
+       real                   :: spsa_ss_sst3    ! SST term ~ X*SST**3      (0.0)
+       real                   :: spsa_ss_w_th    ! u_star <- (u_star - X)  (0.2)
+       real                   :: spsa_ss_w_power ! u_star**(2.41*X)        (1.0)
+       real                   :: spsa_ss_fscav   ! fscav <- fscav*X        (1.0)
+       real                   :: spsa_ss_fwet    ! fwet  <- fwet*X         (1.0)
    end type SS2G_GridComp
 
    type wrap_
@@ -152,15 +152,15 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%rmed, label='particle_radius_number:', __RC__)
 
     
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_gsf,  label='spsa_gsf:',  default=1.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_sst0, label='spsa_sst0:', default=1.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_sst1, label='spsa_sst1:', default=0.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_sst2, label='spsa_sst2:', default=0.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_sst3, label='spsa_sst3:', default=0.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_w_th, label='spsa_w_th:', default=0.2, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_w_power, label='spsa_power:', default=1.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_fscav, label='spsa_fscav:', default=1.0, __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%spsa_fwet,  label='spsa_fwet:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_gsf,  label='spsa_ss_gsf:',  default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_sst0, label='spsa_ss_sst0:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_sst1, label='spsa_ss_sst1:', default=0.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_sst2, label='spsa_ss_sst2:', default=0.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_sst3, label='spsa_ss_sst3:', default=0.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_w_th, label='spsa_ss_w_th:', default=0.2, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_w_power, label='spsa_ss_w_power:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_fscav, label='spsa_ss_fscav:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ss_fwet,  label='spsa_ss_fwet:', default=1.0, __RC__)
 
 
 !   Is SS data driven?
@@ -467,7 +467,7 @@ contains
        call setZeroKlid4d (self%km, self%klid, int_ptr)
     end if
 
-    call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1) * self%spsa_fscav, __RC__)
+    call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1) * self%spsa_ss_fscav, __RC__)
 
     if (data_driven) then
        instance = instanceData
@@ -693,10 +693,10 @@ contains
 !   ------------------------------------------------------------
     allocate(fsstemis, mold=frocean, __STAT__ )
     call jeagleSSTcorrection(self%sstEmisFlag, fsstemis, ts, &
-                             self%spsa_sst0, &
-                             self%spsa_sst1, &
-                             self%spsa_sst2, &
-                             self%spsa_sst3, &
+                             self%spsa_ss_sst0, &
+                             self%spsa_ss_sst1, &
+                             self%spsa_ss_sst2, &
+                             self%spsa_ss_sst3, &
                              __RC__)
 
 !   Apply a Weibull distribution to emissions wind speeds
@@ -721,7 +721,7 @@ contains
 
        call SeasaltEmission (self%rlow(n), self%rup(n), self%emission_scheme, u10m, &
                              v10m, ustar, MAPL_PI, memissions, nemissions, &
-                             self%spsa_w_power, self%spsa_w_th, &
+                             self%spsa_ss_w_power, self%spsa_ss_w_th, &
                              __RC__)
 
 !      For the Hoppel correction need to compute the wet radius and settling velocity
@@ -733,7 +733,7 @@ contains
        end if
 
        memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
-       memissions = self%spsa_gsf  * memissions
+       memissions = self%spsa_ss_gsf  * memissions
        dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
        SS(:,:,self%km,n) = SS(:,:,self%km,n) + dqa
 
@@ -846,7 +846,7 @@ contains
     KIN = .TRUE.
     do n = 1, self%nbins
        fwet = 1.
-       fwet = fwet * self%spsa_fwet
+       fwet = fwet * self%spsa_ss_fwet
        call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
                                KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)

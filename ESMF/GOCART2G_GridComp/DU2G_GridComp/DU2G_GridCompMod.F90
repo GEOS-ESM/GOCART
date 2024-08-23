@@ -72,6 +72,10 @@ module DU2G_GridCompMod
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
        type(ThreadWorkspace), allocatable :: workspaces(:)
+!      SPSA
+       real                   :: spsa_du_gsf     ! emission_scale <- emission_Scale * X (1.0)
+       real                   :: spsa_du_fscav   ! fscav <- fscav*X        (1.0)
+       real                   :: spsa_du_fwet    ! fwet  <- fwet*X         (1.0)
    end type DU2G_GridComp
 
    type wrap_
@@ -194,6 +198,12 @@ contains
     case default
        _ASSERT_RC(.false., "Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha", ESMF_RC_NOT_IMPL)
     end select
+
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_du_gsf,   label='spsa_du_gsf:',  default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_du_fscav, label='spsa_du_fscav:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_du_fwet,  label='spsa_du_fwet:', default=1.0, __RC__)
+
+
 
 !   Is DU data driven?
 !   ------------------
@@ -418,6 +428,8 @@ contains
 !   ----------------------------------------------------------------------
     self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
     self%Ch_DU = self%Ch_DU * 1.0e-9
+    self%Ch_DU = self%Ch_DU * self%spsa_du_gsf
+
 
 !   Dust emission size distribution for FENGSHA
 !   ---------------------------------------------------------------
@@ -496,7 +508,7 @@ contains
        call setZeroKlid4d (self%km, self%klid, int_ptr)
     end if
 
-    call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
+    call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1) * self%spsa_du_fscav,  __RC__)
 
     if (data_driven) then
        instance = instanceData
@@ -973,6 +985,7 @@ contains
    KIN = .TRUE.
    do n = 1, self%nbins
       fwet = 0.8
+      fwet = fwet * self%spsa_du_fwet
       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
                               KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)

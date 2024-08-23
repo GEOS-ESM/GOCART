@@ -91,6 +91,9 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       logical                :: doing_point_emissions = .false.
       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
+      real                   :: spsa_dms_fscav   ! fscav <- fscav*X        (1.0)
+      real                   :: spsa_so2_fscav   ! fscav <- fscav*X        (1.0)
+      
    end type SU2G_GridComp
 
    type wrap_
@@ -497,16 +500,21 @@ contains
        prefix = ''
     end if
 
+
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_dms_fscav, label='spsa_su_dms_fscav:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_so2_fscav, label='spsa_su_so2_fscav:', default=1.0, __RC__)
+
+
 !   Add attribute information
     if (.not. data_driven) then
        call ESMF_StateGet (internal, 'DMS', field, __RC__)
-       call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), __RC__)
+       call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1)*self%spsa_dms_fscav, __RC__)
 !       Vect_Hcts=(/0.56, 3500.0, 0.0, 0.0/)
        call get_HenrysLawCts('DMS',Vect_Hcts(1),Vect_Hcts(2),Vect_Hcts(3),Vect_Hcts(4),__RC__)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, __RC__)
 
        call ESMF_StateGet (internal, 'SO2', field, __RC__)
-       call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
+       call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2)*self%spsa_so2_fscav, __RC__)
 !       Vect_Hcts=(/1.4, 2900.0, 1.3E-02, 2000.0/)
        call get_HenrysLawCts('SO2',Vect_Hcts(1),Vect_Hcts(2),Vect_Hcts(3),Vect_Hcts(4),__RC__)
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, __RC__)

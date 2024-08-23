@@ -68,6 +68,10 @@ module CA2G_GridCompMod
                                               pBase, &
                                               pTop, &
                                               pEmis
+!      SPSA
+       real                   :: spsa_ca_phob_fscav   ! fscav <- fscav*X        (1.0)
+       real                   :: spsa_ca_phil_fscav   ! fscav <- fscav*X        (1.0)
+       real                   :: spsa_ca_phil_fwet    ! fwet  <- fwet*X         (1.0)
    end type CA2G_GridComp
 
    type wrap_
@@ -180,6 +184,11 @@ contains
     else
        self%doing_point_emissions = .true.  ! we are good to go
     end if
+
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ca_phob_fscav, label='spsa_ca_phob_fscav:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ca_phil_fscav, label='spsa_ca_phil_fscav:', default=1.0, __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%spsa_ca_phil_fwet,  label='spsa_ca_phil_fwet:', default=1.0, __RC__)
+
 
 !   Is CA data driven?
 !   ------------------
@@ -479,7 +488,7 @@ contains
     call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, __RC__)
 
     call ESMF_StateGet (internal, trim(comp_name)//'phobic', field, __RC__)
-    call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), __RC__)
+    call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1)*self%spsa_ca_phob_fscav, __RC__)
     fld = MAPL_FieldCreate (field, trim(comp_name)//'phobic', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
@@ -488,7 +497,7 @@ contains
     call setZeroKlid(self%km, self%klid, int_ptr)
 
     call ESMF_StateGet (internal, trim(comp_name)//'philic', field, __RC__)
-    call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
+    call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2)*self%spsa_ca_phil_fscav, __RC__)
     fld = MAPL_FieldCreate (field, trim(comp_name)//'philic', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
@@ -1038,6 +1047,7 @@ contains
     KIN = .true.
 !   Hydrophilic mode (second tracer) is removed
     fwet = 1.
+    fwet = fwet * self%spsa_ca_phil_fwet
     call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
                              KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
                              pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
