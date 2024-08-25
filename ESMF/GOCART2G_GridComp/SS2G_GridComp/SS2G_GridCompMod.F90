@@ -255,6 +255,9 @@ contains
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
 #include "SS2G_Internal___.h"
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+       end if
     end if
 
 !   This state holds fields needed by radiation
@@ -750,6 +753,7 @@ contains
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
 #include "SS2G_DeclarePointer___.h"
 
@@ -813,12 +817,26 @@ contains
 !   Large-scale Wet Removal
 !   ------------------------
     KIN = .TRUE.
-    do n = 1, self%nbins
-       fwet = 1.
-       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
-                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
-    end do
+    select case (self%wet_removal_scheme)
+    case ('gocart')
+       do n = 1, self%nbins
+          fwet = 1.
+          call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
+                                  KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
+                                  pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
+       end do
+    case ('ufs')
+       rainout_eff = 0.0
+       do n = 1, self%nbins
+          rainout_eff(1) = self%fwet(n) ! remove with ice
+          rainout_eff(3) = self%fwet(n) ! remove with rain
+          call WetRemovalUFS     (self%km, self%klid, n, self%cdt, KIN, MAPL_GRAV, &
+                                  self%radius(n), rainout_eff, SS(:,:,:,n), ple, t, airdens, &
+                                  pfl_lsan, pfi_lsan, SSWT, __RC__)
+       end do
+    case default
+       _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
 !   Compute diagnostics
 !   -------------------
