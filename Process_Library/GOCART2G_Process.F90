@@ -41,6 +41,7 @@
    public Chem_SettlingSimpleOrig
    public DryDeposition
    public WetRemovalGOCART2G
+   public WetRemovalUFS
    public UpdateAerosolState
    public Aero_Compute_Diags
    public jeagleSSTcorrection
@@ -3183,6 +3184,533 @@ CONTAINS
 
    end subroutine WetRemovalGOCART2G
 
+!=============================================================================
+!BOP
+
+   subroutine WetRemovalUFS( km, klid, bin_ind, cdt, kin, grav, radius, &
+                             rainout_eff, aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
+                             fluxout, rc )
+
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   integer, intent(in) :: km  ! total model levels
+   integer, intent(in) :: klid ! index for pressure lid
+   integer, intent(in) :: bin_ind ! bin index (usually the loop iteration)
+   real, intent(in)    :: cdt     ! chemistry model time-step [sec]
+   logical, intent(in) :: KIN ! true for aerosol
+   real, intent(in)    :: grav    ! gravity [m/sec^2]
+   real, intent(in)    :: radius  ! Particle radius [um]
+   real, dimension(3),              intent(in)  :: rainout_eff  ! temperature-dependent rainout efficiencies
+   real, dimension(:,:,:),          intent(inout) :: aerosol  ! internal state aerosol [kg/kg]
+   real, pointer, dimension(:,:,:), intent(in)  :: ple     ! pressure level thickness [Pa]
+   real, pointer, dimension(:,:,:), intent(in)  :: tmpu    ! temperature [K]
+   real, pointer, dimension(:,:,:), intent(in)  :: rhoa    ! moist air density [kg/m^3]
+   real, pointer, dimension(:,:,:), intent(in)  :: pfllsan ! 3D flux of liquid nonconvective precipitation [kg/(m^2 sec)]
+   real, pointer, dimension(:,:,:), intent(in)  :: pfilsan ! 3D flux of ice nonconvective precipitation [kg/(m^2 sec)]
+   real, pointer, dimension(:,:,:)              :: fluxout ! tracer loss flux [kg m-2 s-1]
+
+! !OUTPUT PARAMETERS:
+   integer, intent(out)             :: rc          ! Error return code:
+
+     ! -- local variables
+     integer :: il, iu, jl, ju
+     integer :: i, j, k, km1, ktop, kbot
+     real    :: delp, dqls, f, ftop, f_prime, f_rainout, f_washout, k_rain, dt
+     real    :: totloss, lossfrac, wetloss, qdwn
+     real    :: alpha, gain, washed
+     real, dimension(:), allocatable :: qq, pdwn, dpog, conc, dconc, delz
+
+     ! -- local parameters
+     real, parameter :: one  = 1.0
+     real, parameter :: zero = 0.0
+     real, parameter :: density_ice = 917.0
+     real, parameter :: density_liq = 1.e+03
+     real, parameter :: kg_to_cm3_liq = 100. / density_liq
+     real, parameter :: kg_to_cm3_ice = 100. / density_ice
+     real, parameter :: qq_thr   = 0.0
+     real, parameter :: pdwn_thr = 0.0
+     real, parameter :: k_min = 1.e-04 ! s-1
+     real, parameter :: cwc   = 1.e-06 ! s-1 (recommended by Qiaoqiao Wang et al., 2014. Originally 1.5e-6, see Jacob et al., 2000)
+
+     ! -- begin
+
+     rc = __SUCCESS__
+
+     il = lbound(rhoa,1)
+     iu = ubound(rhoa,1)
+     jl = lbound(rhoa,2)
+     ju = ubound(rhoa,2)
+
+     if( associated(fluxout) ) fluxout(il:iu,jl:ju,bin_ind) = zero
+
+     ktop = 1
+     kbot = km
+
+     dt = cdt
+
+     allocate(qq(ktop:kbot), pdwn(ktop:kbot), conc(ktop:kbot), dconc(ktop:kbot), dpog(ktop:kbot))
+     allocate(delz(ktop:kbot))
+
+     do j = jl, ju
+       do i = il, iu
+         ! -- compute precipitation rates in grid cell
+         do k = ktop, kbot
+           km1 = k - 1
+           ! -- liquid precipitation formation [cm3 H2O/cm3 air/s] -- add ice?
+           delp  = ple(i,j,k) - ple(i,j,km1)
+           dqls  = pfllsan(i,j,k) - pfllsan(i,j,km1)
+
+           dpog(k) = delp / grav
+           delz(k) = dpog(k) / rhoa(i,j,k)
+
+           qq(k) = dqls * rhoa(i,j,k) * grav / delp / density_liq
+
+           ! -- precipitation flux from upper level (convert from kg/m2/s to cm3/cm2/s)
+           pdwn(k) = kg_to_cm3_liq * pfllsan(i,j,km1) &
+                   + kg_to_cm3_ice * pfilsan(i,j,km1)
+
+           ! -- initialize concentrations array, converting from kg/kg to kg/m2
+           conc(k) = aerosol(i,j,k) * dpog(k)
+
+           ! -- initialize loss array
+           dconc(k) = zero
+         end do
+
+         ! -- set initial species concentration and loss
+         totloss = zero
+
+         ! -- starts at the top
+         k = ktop
+         f = zero
+         f = zero
+         if (qq(k) > qq_thr) then
+           ! -- compute rainout rate
+           k_rain = k_min + qq(k) / cwc
+           f = qq(k) / (k_rain * cwc)
+
+           call rainout( kin, rainout_eff, f, k_rain, dt, tmpu(i,j,k), lossfrac )
+
+           ! -- compute and apply effective loss fraction
+           wetloss = lossfrac * conc(k)
+           conc(k) = conc(k) - wetloss
+           dconc(k) = wetloss
+
+           ! -- add to total column deposition flux
+           dconc(k) = wetloss
+         end if
+
+         ! -- middle layers
+         ftop = f
+         do k = ktop + 1, kbot - 1
+           km1 = k - 1
+
+           f_prime = zero
+           ! -- if precipitation is forming in the grid cell
+           if (qq(k) > qq_thr) then
+             k_rain = k_min + qq(k) / cwc
+             f_prime = qq(k) / ( k_rain * cwc )
+           end if
+
+           ! -- account for precipitation flux
+           f_rainout = zero
+           f_washout = zero
+
+           if (pdwn(k) > pdwn_thr) then
+             f_rainout = f_prime
+             f_washout = max( zero, ftop - f_rainout )
+           end if
+
+           f = f_rainout + f_washout
+
+           ! -- adjust F for convective precip (skip)
+
+           if ( f > zero ) then
+             if ( f_rainout > zero ) then
+               call rainout( kin, rainout_eff, f_rainout, k_rain, dt, tmpu(i,j,k), lossfrac )
+
+               ! -- compute and apply effective loss fraction
+               wetloss = lossfrac * conc(k)
+               conc(k) = conc(k) - wetloss
+               dconc(k) = dconc(km1) + wetloss
+             end if
+             if ( f_washout > zero ) then
+               if ( f_rainout > zero ) then
+                 ! -- washout from precipitation entering from the top
+                 qdwn = pdwn(km1)
+               else
+                 ! -- washout from precipitation leaving through the bottom
+                 qdwn = pdwn(k)
+               end if
+               call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz(k), dt, lossfrac )
+
+               if ( kin ) then
+                 ! -- adjust loss fraction for aerosols
+                 lossfrac = lossfrac * f_washout / f
+
+                 alpha = abs( qq(k) ) * delz(k) * 100. / pdwn(km1)
+                 alpha = min( one, alpha )
+                 gain  = 0.5 * alpha * dconc(km1)
+                 wetloss  = conc(k) * lossfrac - gain
+                 ! -- skip sulfate
+               else
+                 washed  = f_washout * conc(k) + dconc(km1)
+                 wetloss = lossfrac * ( washed - dconc(km1) )
+               end if
+               conc(k) = conc(k) - wetloss
+               if ( f_rainout > zero ) then
+                 dconc(k) = dconc(k  ) + wetloss
+               else
+                 dconc(k) = dconc(km1) + wetloss
+               end if
+             end if
+           else
+             ! -- complete resuspension of rainout + washout from level above
+             conc(k) = conc(k) + dconc(km1)
+           end if
+
+           ftop = f
+
+         end do
+
+         ! -- surface level
+         k = kbot
+         if (pdwn(km1) > pdwn_thr) then
+           f = ftop
+           if ( f > zero ) then
+             qdwn = pdwn(km1)
+             call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz(k), dt, lossfrac )
+
+             ! -- f is included in lossfrac for aerosols and HNO3 (verify?)
+             if ( kin ) then
+               wetloss = lossfrac * conc(k)
+             else
+               wetloss = f * lossfrac * conc(k)
+             end if
+             conc (k) = conc (k  ) - wetloss
+             dconc(k) = dconc(km1) + wetloss
+           end if
+         end if
+
+         do k = ktop, kbot
+           ! -- convert back to kg/kg
+           aerosol(i,j,k) = conc(k) / dpog(k)
+         end do
+
+         if (associated(fluxout)) fluxout(i,j,bin_ind) = sum(dconc) / dt
+
+       end do
+     end do
+
+     deallocate(qq, pdwn, conc, dconc, dpog, delz)
+
+   contains
+
+     subroutine rainout( kin, efficiency, f, k, dt, tk, lossfrac )
+
+       logical, intent(in) :: kin
+       real, intent(in)    :: efficiency(3)
+       real, intent(in)    :: f
+       real, intent(in)    :: k
+       real, intent(in)    :: dt
+       real, intent(in)    :: tk
+       real, intent(out)   :: lossfrac
+
+
+       ! -- begin
+
+       lossfrac = zero
+
+       if (kin) then
+         lossfrac = rainfrac( f, k, dt )
+
+         ! -- apply rainout efficiency
+         if (tk < 237.) then
+           ! ice
+           lossfrac = efficiency(1) * lossfrac
+         else if (tk < 258.) then
+           ! snow
+           lossfrac = efficiency(2) * lossfrac
+         else
+           ! liquid rain
+           lossfrac = efficiency(3) * lossfrac
+         end if
+
+       else
+         ! -- add NH3 later
+
+#if 0
+       ! Compute Ki, the loss rate of a gas-phase species from
+       ! the convective updraft (Eq. 1, Jacob et al, 2000)
+       CALL COMPUTE_Ki( SpcInfo,  p_C_H2O, p_CLDICE, &
+                        p_CLDLIQ, K_RAIN,  p_T,      Ki )
+
+
+       ! Compute RAINFRAC, the fraction of rained-out H2O2
+       ! (Eq. 10, Jacob et al, 2000)
+       RAINFRAC = GET_RAINFRAC( Ki, F, DT )
+#endif
+
+       end if
+
+
+#if 0
+       if (is_SO2) then
+       else if (is_gas .and. .not.is_HNO3 .and. .not.is_H2SO4) then
+
+       else
+!        rainfrac = f * ( one - exp( -k_rain * dt ) )
+         frain = rainfrac( f, k_rain, dt )
+
+         ! -- apply rainout efficiency (fwet?)
+         raineff  = one
+         if (tk < 237.) then
+           ! ice
+           raineff = raineff(1)
+         else if (tk < 258.) then
+           ! snow
+           raineff = raineff(2)
+         else
+           ! liquid rain
+           raineff = raineff(3)
+         end if
+
+         rainfrac = raineff * rainfrac
+
+       end if
+
+#endif
+
+     end subroutine rainout
+
+     subroutine washout( kin, radius, f, tk, qdwn, dz, dt, lossfrac )
+
+       implicit none
+
+       logical, intent(in)  :: kin
+       real,    intent(in)  :: radius
+       real,    intent(in)  :: f
+       real,    intent(in)  :: tk
+       real,    intent(in)  :: qdwn
+       real,    intent(in)  :: dz
+       real,    intent(in)  :: dt
+       real,    intent(out) :: lossfrac
+
+       ! -- begin
+
+       lossfrac = zero
+
+       if ( kin ) then
+         ! -- kinetic process
+         lossfrac = washfrac_aerosol( radius, f, tk, qdwn, dt )
+       else
+         ! -- equilibrium process
+         lossfrac = washfrac_liq_gas( f, tk, qdwn, dz, dt )
+       end if
+
+     end subroutine washout
+
+     subroutine loss( lossfrac, conc, deploss )
+
+       implicit none
+
+       real, intent(in)    :: lossfrac
+       real, intent(inout) :: conc
+       real, intent(out)   :: deploss
+
+       ! -- begin
+
+       ! -- apply loss
+       deploss = lossfrac * conc
+       conc = conc - deploss
+
+     end subroutine loss
+
+     real function rainfrac( f, k, dt )
+
+       implicit none
+
+       real, intent(in) :: f
+       real, intent(in) :: k
+       real, intent(in) :: dt
+
+       rainfrac = f * ( one - exp( -k * dt ) )
+
+     end function rainfrac
+
+     real function washfrac_aerosol( radius, f, tk, pdwn, dt )
+
+       implicit none
+
+       real, intent(in) :: radius
+       real, intent(in) :: f
+       real, intent(in) :: tk
+       real, intent(in) :: pdwn
+       real, intent(in) :: dt
+
+       ! -- local variables
+       integer         :: i, j
+       real            :: dth, pph
+
+       ! -- local parameters
+       real, parameter :: radius_fine = 1.0 ! um?
+       real, parameter :: k_wash = 1.06e-03
+       real, parameter :: h2s = 3600.0
+
+       real, dimension(2,2), parameter :: alpha = reshape([ &
+       ! alpha            | size   | precip. type
+       !------------------|--------|-------------
+         26.0 * k_wash, & ! fine   | solid
+                k_wash, & ! fine   | liquid
+         1.57         , & ! coarse | solid
+         0.92           & ! coarse | liquid
+         ], [2,2])
+
+       real, dimension(2,2), parameter :: beta = reshape([ &
+       ! beta     | size   | precip. type
+       !----------|----------------------
+         0.96 , & ! fine   | solid
+         0.61 , & ! fine   | liquid
+         0.96 , & ! coarse | solid
+         0.79   & ! coarse | liquid
+         ], [2,2])
+
+       ! -- begin
+
+       washfrac_aerosol = zero
+
+       if ( f > zero ) then
+         ! -- select aerosol category (coarse, fine)
+         j = 1
+         if ( radius > radius_fine ) j = 2
+
+         ! -- select precipitation type (liquid, solid)
+         i = 2
+         if ( tk < 268. ) i = 1
+
+         ! -- convert instant rates (s-1) to hourly rates
+         pph = pdwn * h2s
+         dth = dt   / h2s
+
+         washfrac_aerosol = f * ( one - exp( -alpha(i,j) * (pph / f) ** beta(i,j) * dth ) )
+
+       end if
+
+     end function washfrac_aerosol
+
+     real function washfrac_liq_gas( f, tk, pdwn, dz, dt )
+
+       implicit none
+
+       real, intent(in) :: f
+       real, intent(in) :: tk
+       real, intent(in) :: pdwn
+       real, intent(in) :: dz
+       real, intent(in) :: dt
+
+       ! -- local variables
+       real     :: qliq, l2g, washfrac_kin
+       real(dp) :: k0, cr, pKa
+
+       ! -- local parameters
+       real, parameter :: k_wash = 1.0    ! First order washout rate (cm-1)
+
+       ! -- begin
+       if ( tk < 268. ) then
+         ! -- no washout
+         washfrac_liq_gas = zero
+
+       else
+
+         ! -- compute L2G
+         qliq = pdwn * dt / ( f * dz )
+
+         ! -- for NH3 only!
+         k0  = 3.3e+6_dp
+         cr  = 4100.0_dp
+         pKa = 32.5_dp
+
+         l2g = liq_to_gas_ratio( k0, cr, pKa, tk, qliq )
+
+         ! -- washout fraction from Henry's Law
+         washfrac_liq_gas = l2g / ( one + l2g )
+
+         ! -- washout fraction from kinetic processes (HNO3)
+         washfrac_kin = washfrac_hno3( one, tk, pdwn, dt )
+
+         ! -- equilibrium washout must not exceed`kinetic washout
+         if ( washfrac_liq_gas > washfrac_kin ) washfrac_liq_gas = washfrac_kin
+
+       end if
+
+     end function washfrac_liq_gas
+
+     real function washfrac_hno3( f, tk, pdwn, dt )
+
+       implicit none
+
+       real, intent(in) :: f
+       real, intent(in) :: tk
+       real, intent(in) :: pdwn
+       real, intent(in) :: dt
+
+       ! -- local parameters
+       real, parameter :: k_wash = 1.0    ! First order washout rate (cm-1)
+
+       ! -- begin
+       if ( tk < 268. ) then
+          ! -- no washout
+          washfrac_hno3 = zero
+       else if ( f > zero ) then
+          washfrac_hno3 = f * ( one - exp( -k_wash * pdwn * dt / f ) )
+       end if
+
+     end function washfrac_hno3
+
+     real function liq_to_gas_ratio( k0, cr, pKa, tk, qliq )
+
+       real(dp), intent(in) :: k0
+       real(dp), intent(in) :: cr
+       real(dp), intent(in) :: pKa
+       real,     intent(in) :: tk
+       real,     intent(in) :: qliq
+
+       ! -- local variables
+       real(dp) :: h, t
+
+       ! -- local parameters
+       real(dp), parameter :: cloud_pH = 4.5_dp
+
+       ! -- compute Henry's law constant
+       t = real(tk, kind=dp)
+       h = Henry( k0, cr, t )
+
+       ! -- adjust for chemical equilibriums in liquid phase
+       if ( pKa > -100._dp ) h = h * ( one + 10._dp ** ( cloud_pH - pKa ) )
+
+       liq_to_gas_ratio = h * qliq
+
+     end function liq_to_gas_ratio
+
+     real(dp) function Henry( k0, cr, tk )
+
+       real(dp), intent(in) :: k0
+       real(dp), intent(in) :: cr
+       real(dp), intent(in) :: tk
+
+       ! -- local parameters
+       real(dp), parameter  :: Tref = 298.15_dp     ! [K          ]
+       real(dp), parameter  :: R    = 8.3144598_dp  ! [J K-1 mol-1]
+       real(dp), parameter  :: Pref = 101.325_dp    ! [mPa (!)    ]
+
+       ! -- begin
+
+       Henry = k0 * exp( cr * (1._dp/tk - 1._dp/Tref) ) * R * tk / Pref
+
+     end function Henry
+
+   end subroutine WetRemovalUFS
 !=============================================================================
 !BOP
 
