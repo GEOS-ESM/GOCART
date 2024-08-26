@@ -18,6 +18,14 @@ foreach (dir IN LISTS ESMA_CMAKE_DIRS)
   endif ()
 endforeach ()
 
+# Set build options
+option (UFS_GOCART "Build GOCART component for UFS" OFF)
+
+# Any UFS build of GOCART is by definition a standalone build
+if(UFS_GOCART)
+  set(GOCART_STANDALONE TRUE)
+endif()
+
 if (GOCART_STANDALONE)
   project (
           GOCART
@@ -38,9 +46,6 @@ if (GOCART_STANDALONE)
               "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
   endif ()
 endif()
-
-# Set build options
-option (UFS_GOCART "Build GOCART component for UFS" OFF)
 
 set (DOING_GEOS5 YES)
 
