@@ -1059,7 +1059,7 @@ contains
 
           call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
           call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-          call WetRemovalUFS  (self%km, self%klid, n, self%cdt, &
+          call WetRemovalUFS  (self%km, self%klid, n, self%cdt, GCsuffix, &
                                KIN, MAPL_GRAV, self%radius(n), rainout_eff, int_ptr, ple, t, airdens, &
                                pfl_lsan, pfi_lsan, WT, __RC__)
        end do
