@@ -3218,7 +3218,7 @@ CONTAINS
      ! -- local variables
      integer  :: il, iu, jl, ju
      integer  :: i, j, k, km1, ktop, kbot
-     real     :: delp, dqls, f, ftop, f_prime, f_rainout, f_washout, k_rain, dt
+     real     :: delp, dqls, dqis, f, ftop, f_prime, f_rainout, f_washout, k_rain, dt
      real     :: totloss, lossfrac, wetloss, qdwn, pres
      real     :: alpha, gain, washed
      real, dimension(:), allocatable :: qq, pdwn, dpog, conc, dconc, delz, c_h2o, cldice, cldliq
@@ -3286,13 +3286,15 @@ CONTAINS
          do k = ktop, kbot
            km1 = k - 1
            ! -- liquid precipitation formation [cm3 H2O/cm3 air/s] -- add ice?
-           delp  = ple(i,j,k) - ple(i,j,km1)
-           dqls  = pfllsan(i,j,k) - pfllsan(i,j,km1)
+           delp = ple(i,j,k) - ple(i,j,km1)
+           dqls = pfllsan(i,j,k) - pfllsan(i,j,km1)
+           dqis = pfilsan(i,j,k) - pfilsan(i,j,km1)
 
            dpog(k) = delp / grav
            delz(k) = dpog(k) / rhoa(i,j,k)
 
-           qq(k) = dqls * rhoa(i,j,k) * grav / delp / density_liq
+           qq(k) = dqls * rhoa(i,j,k) * grav / delp / density_liq + &
+                   dqis * rhoa(i,j,k) * grav / delp / density_ice
 
            ! -- precipitation flux from upper level (convert from kg/m2/s to cm3/cm2/s)
            pdwn(k) = kg_to_cm3_liq * pfllsan(i,j,km1) &
