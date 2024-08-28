@@ -3184,9 +3184,10 @@ CONTAINS
 
    end subroutine WetRemovalGOCART2G
 
-!=============================================================================
+!==================================================================================
 !BOP
 
+! !IROUTINE: WetRemovalUFS
    subroutine WetRemovalUFS( km, klid, bin_ind, cdt, aero_type, kin, grav, radius, &
                              rainout_eff, aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
                              fluxout, rc )
@@ -3215,6 +3216,14 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
      integer,                         intent(out)   :: rc           ! Error return code:
 
+! !DESCRIPTION: Computes and applies concentration losses due to large scale rainout and washout processes.
+!               This subroutine is tailored for applications based on NOAA's GEFSv13 prototypes.
+!
+! !REVISION HISTORY:
+!
+!  08Aug2024 - R. Montuoro (NOAA/NWS/NCEP/EMC), B. Baker (NOAA/OAR/ARL), Initial implementation, based on GEOS-Chem
+!
+! !Local Variables
      ! -- local variables
      integer  :: il, iu, jl, ju
      integer  :: i, j, k, km1, ktop, kbot
@@ -3285,7 +3294,7 @@ CONTAINS
          ! -- compute precipitation rates in grid cell
          do k = ktop, kbot
            km1 = k - 1
-           ! -- liquid precipitation formation [cm3 H2O/cm3 air/s] -- add ice?
+           ! -- liquid precipitation formation (cm3 H2O/cm3 air/s)
            delp = ple(i,j,k) - ple(i,j,km1)
            dqls = pfllsan(i,j,k) - pfllsan(i,j,km1)
            dqis = pfilsan(i,j,k) - pfilsan(i,j,km1)
@@ -3331,7 +3340,7 @@ CONTAINS
          if (qq(k) > qq_thr) then
            ! -- compute rainout rate
            k_rain = k_min + qq(k) / cwc
-           f = qq(k) / (k_rain * cwc)
+           f = qq(k) / ( k_rain * cwc )
 
            call rainout( kin, rainout_eff, f, k_rain, dt, tmpu(i,j,k), delz(k), &
                          pdwn(k), c_h2o(k), cldice(k), cldliq(k), spc, lossfrac )
@@ -3367,8 +3376,6 @@ CONTAINS
            end if
 
            f = f_rainout + f_washout
-
-           ! -- adjust F for convective precip (skip)
 
            if ( f > zero ) then
              if ( f_rainout > zero ) then
@@ -3473,7 +3480,7 @@ CONTAINS
        real :: f_i, f_l, ki
 
        ! -- local parameters
-       real, parameter :: kc = 5.e-3    ! the conversion rate from cloud condensate to precip [s^-1]
+       real, parameter :: kc = 5.e-3    ! conversion rate from cloud condensate to precip (s-1)
 
        ! -- begin
 
@@ -3595,7 +3602,7 @@ CONTAINS
        real            :: dth, pph
 
        ! -- local parameters
-       real, parameter :: radius_fine = 1.0 ! um?
+       real, parameter :: radius_fine = 1.0 ! um
        real, parameter :: k_wash = 1.06e-03
        real, parameter :: h2s = 3600.0
 
@@ -3655,9 +3662,6 @@ CONTAINS
        real     :: qliq, l2g, washfrac_kin
        real(dp) :: k0, cr, pKa
 
-       ! -- local parameters
-       real, parameter :: k_wash = 1.0    ! First order washout rate (cm-1)
-
        ! -- begin
        if ( tk < 268. ) then
          ! -- no washout
@@ -3676,7 +3680,7 @@ CONTAINS
          ! -- washout fraction from kinetic processes (HNO3)
          washfrac_kin = washfrac_hno3( one, tk, pdwn, dt )
 
-         ! -- equilibrium washout must not exceed`kinetic washout
+         ! -- equilibrium washout must not exceed kinetic washout
          if ( washfrac_liq_gas > washfrac_kin ) washfrac_liq_gas = washfrac_kin
 
        end if
@@ -3737,9 +3741,9 @@ CONTAINS
        real(dp), intent(in) :: tk
 
        ! -- local parameters
-       real(dp), parameter  :: Tref = 298.15_dp     ! [K          ]
-       real(dp), parameter  :: R    = 8.3144598_dp  ! [J K-1 mol-1]
-       real(dp), parameter  :: Pref = 101.325_dp    ! [mPa (!)    ]
+       real(dp), parameter  :: Tref = 298.15_dp     ! K
+       real(dp), parameter  :: R    = 8.3144598_dp  ! J K-1 mol-1
+       real(dp), parameter  :: Pref = 101.325_dp    ! mPa
 
        ! -- begin
 
@@ -3748,6 +3752,7 @@ CONTAINS
      end function Henry
 
    end subroutine WetRemovalUFS
+
 !=============================================================================
 !BOP
 
