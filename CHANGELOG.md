@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Additional tuning parameters for the soil moisture and drylimit calculations for application specific tuning.
+- Optional wet removal scheme for UFS-based application (enabled for CA, DU, and SS).
 
 ### Changed
 
