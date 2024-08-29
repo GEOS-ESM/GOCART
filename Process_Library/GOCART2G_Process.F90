@@ -3247,8 +3247,9 @@ CONTAINS
      real, parameter :: zero = 0.0
      real, parameter :: density_ice = 917.0
      real, parameter :: density_liq = 1.e+03
-     real, parameter :: kg_to_cm3_liq = 100. / density_liq
-     real, parameter :: kg_to_cm3_ice = 100. / density_ice
+     real, parameter :: m_to_cm  = 100.
+     real, parameter :: kg_to_cm3_liq = m_to_cm / density_liq
+     real, parameter :: kg_to_cm3_ice = m_to_cm / density_ice
      real, parameter :: qq_thr   = 0.0
      real, parameter :: pdwn_thr = 0.0
      real, parameter :: k_min = 1.e-04 ! s-1
@@ -3291,19 +3292,21 @@ CONTAINS
 
      do j = jl, ju
        do i = il, iu
-         ! -- compute precipitation rates in grid cell
+         ! -- compute column quantities
          do k = ktop, kbot
            km1 = k - 1
-           ! -- liquid precipitation formation (cm3 H2O/cm3 air/s)
+
+           ! -- initialize auxiliary arrays
            delp = ple(i,j,k) - ple(i,j,km1)
+           dpog(k) = delp / grav
+           delz(k) = m_to_cm * dpog(k) / rhoa(i,j,k)
+
+           ! -- liquid/ice precipitation formation in grid cell (kg/m2/s)
            dqls = pfllsan(i,j,k) - pfllsan(i,j,km1)
            dqis = pfilsan(i,j,k) - pfilsan(i,j,km1)
 
-           dpog(k) = delp / grav
-           delz(k) = dpog(k) / rhoa(i,j,k)
-
-           qq(k) = dqls * rhoa(i,j,k) * grav / delp / density_liq + &
-                   dqis * rhoa(i,j,k) * grav / delp / density_ice
+           ! -- total precipitation formation (convert from kg/m2/s to cm3/cm3/s)
+           qq(k) = ( kg_to_cm3_liq * dqls + kg_to_cm3_ice * dqis ) / delz(k)
 
            ! -- precipitation flux from upper level (convert from kg/m2/s to cm3/cm2/s)
            pdwn(k) = kg_to_cm3_liq * pfllsan(i,j,km1) &
@@ -3316,8 +3319,8 @@ CONTAINS
            dconc(k) = zero
 
            ! -- compute mixing ratio of saturated water vapour over ice
-           pres      = 0.5 * ( ple(i,j,km1) + ple(i,j,k) )
-           c_h2o(k)  = 10._dp ** (-2663.5_dp / tmpu(i,j,k) + 12.537_dp ) / pres
+           pres     = 0.5 * ( ple(i,j,km1) + ple(i,j,k) )
+           c_h2o(k) = 10._dp ** (-2663.5_dp / tmpu(i,j,k) + 12.537_dp ) / pres
 
            ! -- estimate cloud ice and liquid water content
            if ( tmpu(i,j,k) >= 268. ) then
@@ -3329,9 +3332,6 @@ CONTAINS
            end if
            cldice(k) = cwc - cldliq(k)
          end do
-
-         ! -- set initial species concentration and loss
-         totloss = zero
 
          ! -- starts at the top
          k = ktop
@@ -3401,7 +3401,7 @@ CONTAINS
                  ! -- adjust loss fraction for aerosols
                  lossfrac = lossfrac * f_washout / f
 
-                 alpha = abs( qq(k) ) * delz(k) * 100. / pdwn(km1)
+                 alpha = abs( qq(k) ) * delz(k) / pdwn(km1)
                  alpha = min( one, alpha )
                  gain  = 0.5 * alpha * dconc(km1)
                  wetloss  = conc(k) * lossfrac - gain
