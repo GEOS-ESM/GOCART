@@ -3638,8 +3638,8 @@ CONTAINS
          if ( tk < 268. ) i = 1
 
          ! -- convert instant rates (s-1) to hourly rates
-         pph = pdwn * h2s
-         dth = dt   / h2s
+         pph = 10. * pdwn * h2s
+         dth = dt / h2s
 
          washfrac_aerosol = f * ( one - exp( -alpha(i,j) * (pph / f) ** beta(i,j) * dth ) )
 
