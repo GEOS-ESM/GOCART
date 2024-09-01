@@ -414,25 +414,26 @@ end subroutine DustEmissionSGINOUX
      endif
 
      u_thresh_d_w = u_thresh0*fw/fd
-     ! increased the threshold, now also reduce the ustar.
-     fd_ustar     = fd*ustar(i,j)
-
+ 
          ! Modify friction velocity for Owen Effect
          ! Assumption of stable atmospheric profile to go from saltation
          ! wind speed to equivalent threshold at z = 10m
          ! Gillette et al. [1998] eq. 3
      wt10m       = u_thresh_d_w/k_z
      if (w10m   >= wt10m) then
-       ustars    = fd_ustar + 0.003*((w10m-wt10m)**2)
+       ustars    = ustar(i,j) + 0.003*((w10m-wt10m)**2)
      else
-       ustars    = fd_ustar
+       ustars    = ustar(i,j)
      endif
+     ! increased the threshold, also reduce the ustar.
+     fd_ustar    = fd*ustars
          ! Calculate the horizontal mass flux of dust [kg m-1 s-1]
          ! Marticorena et al. 1997 eq. 5
          ! Note: differs from Zender et al. 2003 eq. 10
+         ! use model-predicted adens; ref DOI: 10.1016/j.apr.2024.102230
      rat = u_thresh_d_w / ustars
      if ( (rat < 1.0) .and. (tsoil(i,j) .gt. tsoilf) ) then
-      horiz_flux = cs * adens(i,j) * ustars**3 /grav * &
+      horiz_flux = cs * adens(i,j) * fd_ustar**3 /grav * &
                      (1 - rat**2) * (1+rat)
 
          ! optionally apply vegetation mask
