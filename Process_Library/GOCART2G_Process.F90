@@ -3229,7 +3229,7 @@ CONTAINS
      integer  :: i, j, k, km1, ktop, kbot
      real     :: delp, dqls, dqis, f, ftop, f_prime, f_rainout, f_washout, k_rain, dt
      real     :: totloss, lossfrac, wetloss, qdwn, pres
-     real     :: alpha, gain, washed
+     real     :: alpha, gain, washed, delz_cm
      real, dimension(:), allocatable :: qq, pdwn, dpog, conc, dconc, delz, c_h2o, cldice, cldliq
 
      type spc_t
@@ -3288,7 +3288,7 @@ CONTAINS
      dt = cdt
 
      allocate(qq(ktop:kbot), pdwn(ktop:kbot), conc(ktop:kbot), dconc(ktop:kbot), dpog(ktop:kbot), &
-              delz(ktop:kbot), c_h2o(ktop:kbot), cldice(ktop:kbot), cldliq(ktop:kbot))
+              delz(ktop:kbot), c_h2o(ktop:kbot), cldice(ktop:kbot), cldliq(ktop:kbot), delz_cm(ktop:kbot), __STAT__)
 
      do j = jl, ju
        do i = il, iu
@@ -3299,14 +3299,19 @@ CONTAINS
            ! -- initialize auxiliary arrays
            delp = ple(i,j,k) - ple(i,j,km1)
            dpog(k) = delp / grav
-           delz(k) = m_to_cm * dpog(k) / rhoa(i,j,k)
+           delz(k) = dpog(k) / rhoa(i,j,k)
+           delz_cm(k) = delz(k) * m_to_cm
 
            ! -- liquid/ice precipitation formation in grid cell (kg/m2/s)
            dqls = pfllsan(i,j,k) - pfllsan(i,j,km1)
            dqis = pfilsan(i,j,k) - pfilsan(i,j,km1)
+           dqls_kgm3s = dqls / delz(k) ! convert from kg/m2/s to kg (H2O) / m3(air) / s 
+           dqis_kgm3s = dqis / delz(k) ! convert from kg/m2/s to kg (H2O) / m3(air) / s
 
-           ! -- total precipitation formation (convert from kg/m2/s to cm3/cm3/s)
-           qq(k) = ( kg_to_cm3_liq * dqls + kg_to_cm3_ice * dqis ) / delz(k)
+           ! -- total precipitation formation (convert from kg (H2O) / m3(air) / s to cm3 (H2O) / cm3 (air) /s)
+           ! Note that we divide by the density of H2O (water or ice) and it becomes m3 (h2o) / m3 (air) / s
+           ! and the final conversion factor to cm3(h2o) / cm3(air) / s is 1 
+           qq(k) =  dqls_kgm3s / density_liq +  dqis_kgm3s / density_ice
 
            ! -- precipitation flux from upper level (convert from kg/m2/s to cm3/cm2/s)
            pdwn(k) = kg_to_cm3_liq * pfllsan(i,j,km1) &
@@ -3341,7 +3346,7 @@ CONTAINS
            k_rain = k_min + qq(k) / cwc
            f = qq(k) / ( k_rain * cwc )
 
-           call rainout( kin, rainout_eff, f, k_rain, dt, tmpu(i,j,k), delz(k), &
+           call rainout( kin, rainout_eff, f, k_rain, dt, tmpu(i,j,k), delz_cm(k), &
                          pdwn(k), c_h2o(k), cldice(k), cldliq(k), spc, lossfrac )
 
            ! -- compute and apply effective loss fraction
@@ -3378,7 +3383,7 @@ CONTAINS
 
            if ( f > zero ) then
              if ( f_rainout > zero ) then
-               call rainout( kin, rainout_eff, f_rainout, k_rain, dt, tmpu(i,j,k), delz(k), &
+               call rainout( kin, rainout_eff, f_rainout, k_rain, dt, tmpu(i,j,k), delz_cm(k), &
                              pdwn(k), c_h2o(k), cldice(k), cldliq(k), spc, lossfrac )
 
                ! -- compute and apply effective loss fraction
@@ -3394,13 +3399,13 @@ CONTAINS
                  ! -- washout from precipitation leaving through the bottom
                  qdwn = pdwn(k)
                end if
-               call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz(k), dt, spc, lossfrac )
+               call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), dt, spc, lossfrac )
 
                if ( kin ) then
                  ! -- adjust loss fraction for aerosols
                  lossfrac = lossfrac * f_washout / f
 
-                 alpha = abs( qq(k) ) * delz(k) / pdwn(km1)
+                 alpha = abs( qq(k) ) * delz_cm(k) / pdwn(km1)
                  alpha = min( one, alpha )
                  gain  = 0.5 * alpha * dconc(km1)
                  wetloss  = conc(k) * lossfrac - gain
@@ -3431,7 +3436,7 @@ CONTAINS
            f = ftop
            if ( f > zero ) then
              qdwn = pdwn(km1)
-             call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz(k), dt, spc, lossfrac )
+             call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), dt, spc, lossfrac )
 
              ! -- f is included in lossfrac for aerosols and HNO3
              if ( kin ) then
@@ -3454,7 +3459,7 @@ CONTAINS
        end do
      end do
 
-     deallocate(qq, pdwn, conc, dconc, dpog, delz, c_h2o, cldice, cldliq)
+     deallocate(qq, pdwn, conc, dconc, dpog, delz,, delz_cm, c_h2o, cldice, cldliq)
 
    contains
 
