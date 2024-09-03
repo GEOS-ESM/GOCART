@@ -3288,7 +3288,7 @@ CONTAINS
      dt = cdt
 
      allocate(qq(ktop:kbot), pdwn(ktop:kbot), conc(ktop:kbot), dconc(ktop:kbot), dpog(ktop:kbot), &
-              delz(ktop:kbot), c_h2o(ktop:kbot), cldice(ktop:kbot), cldliq(ktop:kbot), delz_cm(ktop:kbot), __STAT__)
+              delz(ktop:kbot), c_h2o(ktop:kbot), cldice(ktop:kbot), cldliq(ktop:kbot), delz_cm(ktop:kbot))
 
      do j = jl, ju
        do i = il, iu
