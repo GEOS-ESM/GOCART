@@ -3229,8 +3229,8 @@ CONTAINS
      integer  :: i, j, k, km1, ktop, kbot
      real     :: delp, dqls, dqis, f, ftop, f_prime, f_rainout, f_washout, k_rain, dt
      real     :: totloss, lossfrac, wetloss, qdwn, pres
-     real     :: alpha, gain, washed, delz_cm
-     real, dimension(:), allocatable :: qq, pdwn, dpog, conc, dconc, delz, c_h2o, cldice, cldliq
+     real     :: alpha, gain, washed
+     real, dimension(:), allocatable :: qq, pdwn, dpog, conc, dconc, delz, c_h2o, cldice, cldliq, delz_cm
 
      type spc_t
         real     :: retfac
