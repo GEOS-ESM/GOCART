@@ -1054,8 +1054,9 @@ contains
 !      Both hydrophobic and hydrophilic modes can be removed
        do n = 1, self%nbins
           rainout_eff = 0.0
-          rainout_eff(1)   = self%fwet(n) ! remove with ice
-          rainout_eff(n+1) = self%fwet(n) ! remove with snow (phobic) or rain (philic)
+          rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+          rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+          rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
 
           call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
           call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)

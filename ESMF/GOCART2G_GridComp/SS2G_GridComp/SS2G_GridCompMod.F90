@@ -828,8 +828,9 @@ contains
     case ('ufs')
        rainout_eff = 0.0
        do n = 1, self%nbins
-          rainout_eff(1) = self%fwet(n) ! remove with ice
-          rainout_eff(3) = self%fwet(n) ! remove with rain
+          rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+          rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+          rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
           call WetRemovalUFS     (self%km, self%klid, n, self%cdt, 'sea_salt', KIN, MAPL_GRAV, &
                                   self%radius(n), rainout_eff, SS(:,:,:,n), ple, t, airdens, &
                                   pfl_lsan, pfi_lsan, SSWT, __RC__)

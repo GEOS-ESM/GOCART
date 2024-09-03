@@ -19,7 +19,9 @@ module GA_EnvironmentMod
 !      logical                :: scav_byColdCloud ! new flag example
        real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES, 
        real, allocatable      :: fnum(:)        ! number of particles per kg mass
-       real, allocatable      :: fwet(:)        ! large scale wet removal scaling factor
+       real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice
+       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow 
+       real, allocatable      :: fwet_rain(:)   ! large scale wet removal scaling factor for rain
        integer                :: rhFlag
        integer                :: nbins
        integer                :: km             ! vertical grid dimension
@@ -62,7 +64,8 @@ module GA_EnvironmentMod
        !   Parse config file into private internal state
        !   ----------------------------------------------
        allocate(self%radius(nbins), self%rhop(nbins), self%fscav(nbins), self%molwght(nbins), &
-                self%fnum(nbins), self%fwet(nbins), self%wavelengths_profile(n_wavelengths_profile), &
+                self%fnum(nbins), self%fwet_ice(nbins), self%fwet_snow(nbins), self%fwet_rain(nbins), &
+                self%wavelengths_profile(n_wavelengths_profile), &
                 self%wavelengths_vertint(n_wavelengths_vertint), &
                 __STAT__)
        
@@ -73,7 +76,9 @@ module GA_EnvironmentMod
        call ESMF_ConfigGetAttribute (cfg, self%fnum,       label='fnum:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%rhFlag,     label='rhFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%plid,       label='pressure_lid_in_hPa:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%fwet,       label='fwet:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%fwet_ice,   label='fwet_ice:', default=1.0, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%fwet_snow,  label='fwet_snow:', default=1.0, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%fwet_rain,  label='fwet_rain:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, wet_removal_scheme, label='wet_removal_scheme:', default='gocart', __RC__)
        self%wet_removal_scheme = ESMF_UtilStringLowerCase(trim(wet_removal_scheme), __RC__)
 
@@ -96,10 +101,15 @@ module GA_EnvironmentMod
        !   ---------------
        !
        !   * Rainout efficiency
-       write(msg,'(5(2x,g20.8))') self%fwet
-       call ESMF_LogWrite("GA: config: fwet: "//msg)
-
-       _ASSERT_RC(any(abs(self%fwet - 1.) <= 1.), "Error. Rainout efficiency (fwet) must be between 0. and 1.", ESMF_RC_VAL_OUTOFRANGE)
+       write(msg,'(5(2x,g20.8))') self%fwet_ice
+       call ESMF_LogWrite("GA: config: fwet_ice: "//msg)
+       _ASSERT_RC(any(abs(self%fwet_ice - 1.) <= 1.), "Error. Rainout efficiency (fwet) must be between 0. and 1.", ESMF_RC_VAL_OUTOFRANGE)
+       write(msg,'(5(2x,g20.8))') self%fwet_snow
+       call ESMF_LogWrite("GA: config: fwet_snow: "//msg)
+       _ASSERT_RC(any(abs(self%fwet_snow - 1.) <= 1.), "Error. Rainout efficiency (fwet) must be between 0. and 1.", ESMF_RC_VAL_OUTOFRANGE)
+       write(msg,'(5(2x,g20.8))') self%fwet_rain
+       call ESMF_LogWrite("GA: config: fwet_rain: "//msg)
+       _ASSERT_RC(any(abs(self%fwet_rain - 1.) <= 1.), "Error. Rainout efficiency (fwet) must be between 0. and 1.", ESMF_RC_VAL_OUTOFRANGE)
 
        !   * Wet removal scheme
        _ASSERT_RC(any(self%wet_removal_scheme == [character(len=7) :: 'gocart','ufs']), "Error. Unallowed wet removal scheme: "//trim(self%wet_removal_scheme)//". Allowed: gocart, ufs", ESMF_RC_NOT_IMPL)
