@@ -3230,7 +3230,7 @@ CONTAINS
      real     :: delp, dqls, dqis, f, ftop, f_prime, f_rainout, f_washout, k_rain, dt
      real     :: totloss, lossfrac, wetloss, qdwn, pres
      real     :: alpha, gain, washed
-     real, dimension(:), allocatable :: qq, pdwn, dpog, conc, dconc, delz, c_h2o, cldice, cldliq, qq_kgm3s
+     real, dimension(:), allocatable :: qq, pdwn, dpog, conc, dconc, delz, c_h2o, cldice, cldliq
 
      type spc_t
         real     :: retfac
@@ -3287,7 +3287,7 @@ CONTAINS
 
      dt = cdt
 
-     allocate(qq(ktop:kbot), qq_kgm3s(ktop:kbot), pdwn(ktop:kbot), conc(ktop:kbot), dconc(ktop:kbot), dpog(ktop:kbot), &
+     allocate(qq(ktop:kbot), pdwn(ktop:kbot), conc(ktop:kbot), dconc(ktop:kbot), dpog(ktop:kbot), &
               delz(ktop:kbot), c_h2o(ktop:kbot), cldice(ktop:kbot), cldliq(ktop:kbot))
 
      do j = jl, ju
@@ -3307,7 +3307,6 @@ CONTAINS
 
            ! -- total precipitation formation (convert from kg/m2/s to cm3/cm3/s)
            qq(k) = ( kg_to_cm3_liq * dqls + kg_to_cm3_ice * dqis ) / delz(k)
-           qq_kgm3s(k) = ( dqls + dqis ) / delz(k)
 
            ! -- precipitation flux from upper level (convert from kg/m2/s to cm3/cm2/s)
            pdwn(k) = kg_to_cm3_liq * pfllsan(i,j,km1) &
