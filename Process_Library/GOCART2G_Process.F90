@@ -3459,7 +3459,7 @@ CONTAINS
        end do
      end do
 
-     deallocate(qq, pdwn, conc, dconc, dpog, delz,, delz_cm, c_h2o, cldice, cldliq)
+     deallocate(qq, pdwn, conc, dconc, dpog, delz, delz_cm, c_h2o, cldice, cldliq)
 
    contains
 
