@@ -3609,7 +3609,7 @@ CONTAINS
        real            :: dth, pph
 
        ! -- local parameters
-       real, parameter :: radius_fine = 0.5 ! um
+       real, parameter :: radius_fine = 0.01 ! um
        real, parameter :: k_wash = 1.06e-03
        real, parameter :: h2s = 3600.0
 
