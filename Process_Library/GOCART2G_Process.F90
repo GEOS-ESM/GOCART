@@ -3342,9 +3342,6 @@ CONTAINS
            k_rain = k_min + qq(k) / cwc
            f = qq(k) / ( k_rain * cwc )
 
-           k_rain = 1.0e-4 + qq_kgm3s(k) / 1.5e-3
-           f = qq_kgm3s(k) * cdt / (1.5e-3 * (1.0e-4  + qq_kgm3s(k) / 1.5e-3) * cdt)
-
            call rainout( kin, rainout_eff, f, k_rain, dt, tmpu(i,j,k), delz(k), &
                          pdwn(k), c_h2o(k), cldice(k), cldliq(k), spc, lossfrac )
 
@@ -3365,11 +3362,8 @@ CONTAINS
            f_prime = zero
            ! -- if precipitation is forming in the grid cell
            if (qq(k) > qq_thr) then
-            !  k_rain = k_min + qq(k) / cwc
-            !  f_prime = qq(k) / ( k_rain * cwc )
-
-             k_rain = 1.0e-4 + qq_kgm3s(k) / 1.5e-3
-             f_prime = qq_kgm3s(k) * cdt / (1.5e-3 * (1.0e-4  + qq_kgm3s(k) / 1.5e-3) * cdt)
+             k_rain = k_min + qq(k) / cwc
+             f_prime = qq(k) / ( k_rain * cwc )
            end if
 
            ! -- account for precipitation flux
