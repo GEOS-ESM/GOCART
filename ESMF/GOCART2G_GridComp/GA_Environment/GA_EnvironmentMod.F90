@@ -22,6 +22,7 @@ module GA_EnvironmentMod
        real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice
        real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow 
        real, allocatable      :: fwet_rain(:)   ! large scale wet removal scaling factor for rain
+       real                   :: washout_tuning ! tuning factor for washout process (1 by default)
        integer                :: rhFlag
        integer                :: nbins
        integer                :: km             ! vertical grid dimension
@@ -79,6 +80,7 @@ module GA_EnvironmentMod
        call ESMF_ConfigGetAttribute (cfg, self%fwet_ice,   label='fwet_ice:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fwet_snow,  label='fwet_snow:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fwet_rain,  label='fwet_rain:', default=1.0, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%washout_tuning,  label='washout_tuning:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, wet_removal_scheme, label='wet_removal_scheme:', default='gocart', __RC__)
        self%wet_removal_scheme = ESMF_UtilStringLowerCase(trim(wet_removal_scheme), __RC__)
 

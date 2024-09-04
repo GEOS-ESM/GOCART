@@ -3189,7 +3189,7 @@ CONTAINS
 
 ! !IROUTINE: WetRemovalUFS
    subroutine WetRemovalUFS( km, klid, bin_ind, cdt, aero_type, kin, grav, radius, &
-                             rainout_eff, aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
+                             rainout_eff, WashoutTune, aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
                              fluxout, rc )
 
 ! !USES:
@@ -3204,6 +3204,7 @@ CONTAINS
      logical,                         intent(in)    :: kin          ! true for aerosol
      real,                            intent(in)    :: grav         ! gravity [m/sec^2]
      real,                            intent(in)    :: radius       ! Particle radius [um]
+     real,                            intent(in)    :: WashoutTune  ! Washout Tuning factor [-]
      real, dimension(3),              intent(in)    :: rainout_eff  ! temperature-dependent rainout efficiencies
      real, dimension(:,:,:),          intent(inout) :: aerosol      ! internal state aerosol [kg/kg]
      real, pointer, dimension(:,:,:), intent(in)    :: ple          ! pressure level thickness [Pa]
@@ -3224,13 +3225,39 @@ CONTAINS
 !  08Aug2024 - R. Montuoro (NOAA/NWS/NCEP/EMC), B. Baker (NOAA/OAR/ARL), Initial implementation, based on GEOS-Chem
 !
 ! !Local Variables
-     ! -- local variables
+     ! Grid size  
      integer  :: il, iu, jl, ju
+     ! looping indexes 
      integer  :: i, j, k, km1, ktop, kbot
-     real     :: delp, dqls, dqis, f, ftop, f_prime, f_rainout, f_washout, k_rain, dt
-     real     :: totloss, lossfrac, wetloss, qdwn, pres
-     real     :: alpha, gain, washed, dqis_kgm3s, dqls_kgm3s
-     real, dimension(:), allocatable :: qq, pdwn, dpog, conc, dconc, delz, c_h2o, cldice, cldliq, delz_cm
+     real     :: delp       ! pressure thickness [Pa]
+     real     :: dqls       ! liquid water flux gradient [kg/(m^2 s)]
+     real     :: dqis       ! ice water flux gradient [kg/(m^2 s)]
+     real     :: dqls_kgm3s ! liquid water flux gradient [kg/(m^3 s)]
+     real     :: dqis_kgm3s ! ice water flux gradient [kg/(m^3 s)]
+     real     :: f          ! total precipitation fraction (f_rainout + f_washout) [1]
+     real     :: ftop       ! top of grid box rainout fraction [1]
+     real     :: f_prime    ! rainout fraction in middle layers [1]
+     real     :: f_rainout  ! rainout fraction [1]
+     real     :: f_washout  ! washout fraction [1]
+     real     :: k_rain     ! rainout rate [m^3/s]
+     real     :: dt         ! chemistry model time-step [sec]
+     real     :: totloss    ! total loss fraction
+     real     :: lossfrac   ! loss fraction
+     real     :: wetloss    ! wet loss fraction before evaporation 
+     real     :: qdwn       ! cm3 (h2o) / cm2 (air) / s 
+     real     :: pres       ! pressure [Pa]
+     real     :: alpha      ! ratio of evap. to sublimation
+     real     :: gain       ! gain fraction
+     real     :: washed     ! concentration of washed out tracer
+     real, dimension(:), allocatable :: qq      ! precipatitng water rate [cm3 (h2o) / cm2 (air) / s]
+     real, dimension(:), allocatable :: pdwn    ! preciptation rate at top of grid cells [cm3 (h2o) / cm2 (air) / s]
+     real, dimension(:), allocatable :: dpog    ! pressure thickness of grid cells divided by gravity [Pa / (m/s^2)]
+     real, dimension(:), allocatable :: conc    ! concentration [kg/m2]
+     real, dimension(:), allocatable :: dconc   ! concentration loss kg/m2
+     real, dimension(:), allocatable :: c_h2o   ! concentration of h2o 
+     real, dimension(:), allocatable :: cldice  ! ice concentration
+     real, dimension(:), allocatable :: cldliq  ! liquid water concentration
+     real, dimension(:), allocatable :: delz_cm ! thickness of layer [cm] 
 
      type spc_t
         real     :: retfac
@@ -3288,7 +3315,7 @@ CONTAINS
      dt = cdt
 
      allocate(qq(ktop:kbot), pdwn(ktop:kbot), conc(ktop:kbot), dconc(ktop:kbot), dpog(ktop:kbot), &
-              delz(ktop:kbot), c_h2o(ktop:kbot), cldice(ktop:kbot), cldliq(ktop:kbot), delz_cm(ktop:kbot))
+              c_h2o(ktop:kbot), cldice(ktop:kbot), cldliq(ktop:kbot), delz_cm(ktop:kbot))
 
      do j = jl, ju
        do i = il, iu
@@ -3299,14 +3326,14 @@ CONTAINS
            ! -- initialize auxiliary arrays
            delp = ple(i,j,k) - ple(i,j,km1)
            dpog(k) = delp / grav
-           delz(k) = dpog(k) / rhoa(i,j,k)
-           delz_cm(k) = delz(k) * m_to_cm
+           delz = dpog(k) / rhoa(i,j,k)
+           delz_cm(k) = delz * m_to_cm
 
            ! -- liquid/ice precipitation formation in grid cell (kg/m2/s)
            dqls = pfllsan(i,j,k) - pfllsan(i,j,km1)
            dqis = pfilsan(i,j,k) - pfilsan(i,j,km1)
-           dqls_kgm3s = dqls / delz(k) ! convert from kg/m2/s to kg (H2O) / m3(air) / s 
-           dqis_kgm3s = dqis / delz(k) ! convert from kg/m2/s to kg (H2O) / m3(air) / s
+           dqls_kgm3s = dqls / delz ! convert from kg/m2/s to kg (H2O) / m3(air) / s 
+           dqis_kgm3s = dqis / delz ! convert from kg/m2/s to kg (H2O) / m3(air) / s
 
            ! -- total precipitation formation (convert from kg (H2O) / m3(air) / s to cm3 (H2O) / cm3 (air) /s)
            ! Note that we divide by the density of H2O (water or ice) and it becomes m3 (h2o) / m3 (air) / s
@@ -3436,7 +3463,8 @@ CONTAINS
            f = ftop
            if ( f > zero ) then
              qdwn = pdwn(km1)
-             call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), dt, spc, lossfrac )
+             call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), & 
+                           dt, spc, WashoutTune, lossfrac )
 
              ! -- f is included in lossfrac for aerosols and HNO3
              if ( kin ) then
@@ -3459,7 +3487,7 @@ CONTAINS
        end do
      end do
 
-     deallocate(qq, pdwn, conc, dconc, dpog, delz, delz_cm, c_h2o, cldice, cldliq)
+     deallocate(qq, pdwn, conc, dconc, dpog, delz_cm, c_h2o, cldice, cldliq)
 
    contains
 
@@ -3535,7 +3563,7 @@ CONTAINS
 
      end subroutine rainout
 
-     subroutine washout( kin, radius, f, tk, qdwn, dz, dt, spc, lossfrac )
+     subroutine washout( kin, radius, f, tk, qdwn, dz, dt, spc, wtune,lossfrac )
 
        implicit none
 
@@ -3555,7 +3583,7 @@ CONTAINS
 
        if ( kin ) then
          ! -- kinetic process
-         lossfrac = washfrac_aerosol( radius, f, tk, qdwn, dt )
+         lossfrac = washfrac_aerosol( radius, f, tk, qdwn, dt, wtune )
        else
          ! -- equilibrium process
          lossfrac = washfrac_liq_gas( f, tk, qdwn, dz, dt, spc )
@@ -3591,15 +3619,16 @@ CONTAINS
 
      end function rainfrac
 
-     real function washfrac_aerosol( radius, f, tk, pdwn, dt )
+     real function washfrac_aerosol( radius, f, tk, pdwn, tuning, dt )
 
        implicit none
 
-       real, intent(in) :: radius
-       real, intent(in) :: f
-       real, intent(in) :: tk
-       real, intent(in) :: pdwn
-       real, intent(in) :: dt
+       real, intent(in) :: radius ! particle radius (um)
+       real, intent(in) :: f      ! washout fraction 
+       real, intent(in) :: tk     ! Temperature in grid box (K)
+       real, intent(in) :: pdwn   ! Instant precip rate in grid box (cm3 (H2O) / cm2 (air) / s)
+       real, intent(in) :: dt     ! Timestep (s)
+       real, intent(in) :: tuning  ! Washout tuning factor
 
        ! -- local variables
        integer         :: i, j
@@ -3608,7 +3637,8 @@ CONTAINS
        ! -- local parameters
        real, parameter :: radius_fine = 0.01 ! um
        real, parameter :: k_wash = 1.06e-03
-       real, parameter :: h2s = 3600.0
+       real, parameter :: h2s = 3600.0 ! s-1
+       real, parameter :: 
 
        ! -- begin
 
@@ -3621,15 +3651,15 @@ CONTAINS
 
          if ( radius < radius_fine ) then 
             if ( tk >= 268. ) then
-               washfrac_aerosol = F * ( one  - EXP(-k_wash * (pph / f ) ** 0.61 * dth))
+               washfrac_aerosol = F * ( one  - EXP(-k_wash * tuning * (pph / f ) ** 0.61 * dth))
             else
-               washfrac_aerosol = F * ( one  - EXP(-26. * k_wash * (pph / f ) ** 0.96 * dth))
+               washfrac_aerosol = F * ( one  - EXP(-26. * tuning * k_wash * (pph / f ) ** 0.96 * dth))
             endif 
          else
             if ( tk >= 268. ) then
-               washfrac_aerosol = F * ( one  - EXP(-0.92 * (pph / f ) ** 0.79 * dth))
+               washfrac_aerosol = F * ( one  - EXP(-0.92 * tuning * (pph / f ) ** 0.79 * dth))
             else
-               washfrac_aerosol = F * ( one  - EXP(-1.57 / 0.5 * (pph / f ) ** 0.96 * dth))
+               washfrac_aerosol = F * ( one  - EXP(-1.57 / 0.5 * tuning * (pph / f ) ** 0.96 * dth))
             endif
          endif
       endif

@@ -995,7 +995,7 @@ contains
         rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
         rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
         call WetRemovalUFS     (self%km, self%klid, n, self%cdt, 'dust', KIN, MAPL_GRAV, &
-                                 self%radius(n), rainout_eff, DU(:,:,:,n), ple, t, airdens, &
+                                 self%radius(n), rainout_eff, self%washout_tuning, DU(:,:,:,n), ple, t, airdens, &
                                  pfl_lsan, pfi_lsan, DUWT, __RC__)
       end do
    case default
