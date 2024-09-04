@@ -3642,7 +3642,6 @@ CONTAINS
        real, parameter :: radius_fine = 0.01 ! um
        real, parameter :: k_wash = 1.06e-03
        real, parameter :: h2s = 3600.0 ! s-1
-       real, parameter :: 
 
        ! -- begin
 
