@@ -58,6 +58,7 @@ module DU2G_GridCompMod
        real, allocatable      :: sdist(:)       ! FENGSHA aerosol fractional size distribution [1]
        real                   :: alpha          ! FENGSHA scaling factor
        real                   :: gamma          ! FENGSHA tuning exponent
+       integer                :: drag_opt       ! FENGSHA drag option 1 - input only, 2 - Darmenova, 3 - Leung
        real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
        real                   :: f_sdl          ! FENGSHA drylimit tuning factor
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
@@ -182,11 +183,12 @@ contains
 !   --------------------------------
     select case (self%emission_scheme)
     case ('fengsha')
-       call ESMF_ConfigGetAttribute (cfg, self%alpha,      label='alpha:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%gamma,      label='gamma:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%f_sdl,      label='soil_drylimit_factor:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,     label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%alpha,      label='alpha:', default=0.1, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gamma,      label='gamma:', default=1.0,  __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', default=1.0, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_sdl,      label='soil_drylimit_factor:',default=1.0, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,     label='vertical_to_horizontal_flux_ratio_limit:', default=2.0e-04, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%drag_opt,   label='drag_partition_option:', default=1.0, __RC__)
     case ('k14')
        call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
@@ -800,11 +802,21 @@ contains
        if (associated(DU_EROD)) DU_EROD = f_erod_
 
     case ('fengsha')
-
+       allocate(ustar_, mold=U10M,    __STAT__)
+       allocate(ustar_t_, mold=U10M,  __STAT__)
+       allocate(ustar_ts_, mold=U10M, __STAT__)
+       allocate(R_, mold=U10M,        __STAT__)
+       allocate(H_w_, mold=U10M,      __STAT__)
        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
-                                 du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_uthres,  &
+                                 du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres,  &
                                  self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
-                                 self%rhop, self%sdist, self%f_sdl, self%f_swc, emissions_surface,  __RC__)
+                                 self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface, &
+                                 ustar_, ustar_t_, ustar_ts_, R_, H_w_, __RC__)
+       if (associated(DU_UST)) DU_UST = ustar_
+       if (associated(DU_UST_T)) DU_UST_T = ustar_t_
+       if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
+       if (associated(DU_DPC)) DU_DPC = R_
+       if (associated(DU_SMC)) DU_SMC = H_w_
 
     case ('ginoux')
 

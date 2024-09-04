@@ -295,6 +295,176 @@ CONTAINS
 
    end function DustFluxV2HRatioMB95
 
+!===============================================================================
+!BOP
+!
+! !IROUTINE: DarmenovaDragPartition - Calculates the double drag parition from Darmenova 2009
+!
+! !INTERFACE:
+   real function DarmenovaDragPartition(Lc, vegfrac, thresh)
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   real, intent(in) :: Lc
+   real, intent(in) :: vegfrac
+   real, intent(in) :: thresh
+
+! !CONSTANTS:
+   real, parameter :: sigb = 1.0
+   real, parameter :: mb = 0.5
+   real, parameter :: Betab = 90.0
+   real, parameter :: sigv = 1.45
+   real, parameter :: mv = 0.16
+   real, parameter :: Betav = 202.0
+
+   real            :: Lc_veg
+   real            :: Lc_bare
+   real            :: Rveg1
+   real            :: Rveg2
+   real            :: Rbare1
+   real            :: Rbare2
+   real            :: feff_bare
+   real            :: feff_veg
+   real            :: feff
+   real            :: gvf
+   real            :: tmpVal
+   logical         :: skip 
+! !DESCRIPTION: Computes the drag parition according to Darmenova et al. 2009
+!               Darmenova, K., Sokolik, I. N., Shao, Y., Marticorena, B., and
+!               Bergametti, G.: Development of a physically based dust
+!               emission module within the Weather Research and Forecasting (WRF) model:
+!               Assessment of dust emission parameterizations and input parameters for source regions in Central and East Asia,
+!               J. Geophys. Res.-Atmos., 114, D14201, https://doi.org/10.1029/2008JD011236, 2009
+! !REVISION HISTORY:
+!
+! 27Jun2024 B.Baker/NOAA    - Original implementation
+!
+!EOP   
+   skip = .false.
+
+   gvf = vegfrac 
+
+   ! vegetation effect
+   if (.not.skip) skip = (gvf < 0.0)
+   if (.not.skip) skip = (gvf >= thresh)
+   if (.not.skip) then
+      Lc_veg = -0.35 * LOG(1. - gvf)
+      Rveg1 = 1.0 / sqrt(1 - sigv * mv * Lc_veg)
+      Rveg2 = 1.0 / sqrt(1 + mv * Betav * Lc_veg)
+      feff_veg = Rveg1 * Rveg2
+   else 
+      feff_veg = 1e-5
+   endif
+
+   ! bare surface effect 
+   Lc_bare = Lc / (1 - gvf) ! avoid any numberical issues at high Lc 
+   tmpVal = 1 - sigb * mb * Lc_bare
+   skip=.false.
+   if (.not.skip) skip = (gvf < 0.0)
+   if (.not.skip) skip = (gvf >= thresh)
+   if (.not.skip) skip = (Lc > 0.2)
+   if (.not.skip) skip = (tmpVal <= 0.0)
+   if (.not.skip) then 
+      Rbare1 = 1.0 / sqrt(1 - sigb * mb * Lc_bare) 
+      Rbare2 = 1.0 / sqrt(1 +  mb*Betab * Lc_bare ) 
+      feff_bare = Rbare1 * Rbare2
+   else
+      feff_bare = 1.0e-5
+   endif
+
+   feff = feff_veg * feff_bare
+
+   if (feff > 1.) then
+      DarmenovaDragPartition = 1.e-5
+   else if (feff <1e-5) then
+      DarmenovaDragPartition = 1.e-5
+   else
+      DarmenovaDragPartition = feff
+   endif
+   
+   end function DarmenovaDragPartition
+
+!===============================================================================
+!BOP
+!
+! !IROUTINE: Leung drag double moment drag - Applies the Leung drag partition for 
+!            vegetative and barse surfaces 
+
+! !REVISION HISTORY:
+!
+! 15Aug2024 B.Baker/NOAA    - Original implementation
+   real function LeungDragPartition(Lc, lai, gvf, thresh)
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   real, intent(in) :: Lc
+   real, intent(in) :: lai
+   real, intent(in) :: gvf
+   real, intent(in) :: thresh
+! LOCAL VARIABLES:
+   real            :: frac_bare       ! Fraction of bare surface
+   real            :: frac_veg        ! fraction of vegetative surface
+   real            :: K               ! normalized gap length 
+   real            :: feff_bare       ! effective drag partition due to bare surfaces
+   real            :: feff_veg
+   real            :: Rbare1
+   real            :: Rbare2
+   real            :: Lc_bare
+   real            :: feff
+   real            :: tmpVal
+   real            :: vegfrac 
+
+! !CONSTANTS:
+   real, parameter :: LAI_THR = 0.33
+   real, parameter :: c = 4.8
+   real, parameter :: f0 = 0.32
+   real, parameter :: sigb = 1.0
+   real, parameter :: mB = 0.5
+   real, parameter :: Betab = 90.0
+
+   feff_bare = 0.
+   feff_veg = 0.
+   
+   frac_bare  = MAX(1. - LAI / LAI_THR, 0.)
+
+   ! vegetation effect 
+   if ((LAI <= 0) .or. (LAI >= LAI_THR)) then
+      feff_veg = 0.
+   else if (LAI < LAI_THR) then
+      K = 2. * ( 1 / (1 - gvf) - 1)
+      feff_veg = ( K + f0 * c) / (K + c)
+   endif
+   
+   ! bare surface effect
+   if (Lc <= 0.2) then 
+      Lc_bare = Lc / frac_bare
+      tmpVal = 1 - sigB * mB * Lc_bare
+      if (tmpVal > 0.0) then 
+         Rbare1 = 1.0 / sqrt(1 - sigB * mB* Lc_bare) 
+         Rbare2 = 1.0 / sqrt(1 + BetaB * mB * Lc_bare ) 
+         feff_bare = Rbare1 * Rbare2
+      else 
+         feff_bare = 0.
+      endif
+   else
+      feff_bare = 0.
+   endif
+   
+   ! effective drag partition 
+   feff = (gvf * feff_veg**3 + frac_bare * feff_bare**3) ** (1./3.)
+
+   if (feff > 1.) then
+      LeungDragPartition = 1.e-5
+   else if (feff <1e-5) then
+      LeungDragPartition = 1.e-5
+   else
+      LeungDragPartition = feff
+   endif
+   
+   end function LeungDragPartition
+
 !==================================================================================
 !BOP
 !
@@ -302,8 +472,9 @@ CONTAINS
 !
 ! !INTERFACE:
    subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, silt,  &
-                                  ssm, rdrag, airdens, ustar, uthrs, alpha, gamma, &
-                                  kvhmax, grav, rhop, distribution, drylimit_factor, moist_correct, emissions, rc)
+                                  ssm, rdrag, airdens, ustar, vegfrac, lai, uthrs, alpha, gamma, &
+                                  kvhmax, grav, rhop, distribution, drylimit_factor, moist_correct, &
+                                  drag_opt, emissions, u, u_t, u_ts, H_w, Reff, rc)
 
 ! !USES:
    implicit NONE
@@ -320,6 +491,8 @@ CONTAINS
    real, dimension(:,:), intent(in) :: rdrag    ! drag partition [1/m]
    real, dimension(:,:), intent(in) :: airdens  ! air density at lowest level [kg/m^3]
    real, dimension(:,:), intent(in) :: ustar    ! friction velocity [m/sec]
+   real, dimension(:,:), intent(in) :: vegfrac  ! vegetative fraction 
+   real, dimension(:,:), intent(in) :: lai      ! leaf area index 
    real, dimension(:,:), intent(in) :: uthrs    ! threshold velocity [m/2]
    real,                 intent(in) :: alpha    ! scaling factor [1]
    real,                 intent(in) :: gamma    ! scaling factor [1]
@@ -329,8 +502,14 @@ CONTAINS
    real, dimension(:),   intent(in) :: distribution    ! normalized dust binned distribution [1]
    real,                 intent(in) :: drylimit_factor ! drylimit tuning factor from zender2003 
    real,                 intent(in) :: moist_correct   ! moisture correction factor
+   integer,              intent(in) :: drag_opt        ! drag partition option 
 ! !OUTPUT PARAMETERS:
-   real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
+   real,                 intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
+   real, dimension(:,:), intent(out) :: u         ! aeolian friction velocity
+   real, dimension(:,:), intent(out) :: u_t       ! threshold friction velocity
+   real, dimension(:,:), intent(out) :: u_ts      ! threshold friction velocity over smooth surface
+   real, dimension(:,:), intent(out) :: H_w       ! soil mosture correction
+   real, dimension(:,:), intent(out) :: Reff   ! drag partition correction
    integer, intent(out) :: rc                   ! Error return code: __SUCCESS__ or __FAIL__
 
 ! !DESCRIPTION: Compute dust emissions using NOAA/ARL FENGSHA model
@@ -339,6 +518,7 @@ CONTAINS
 !
 ! 22Feb2020 B.Baker/NOAA    - Original implementation
 ! 29Mar2021 R.Montuoro/NOAA - Refactored for process library
+! 04Sept2024 B.Baker/NOAA   - Added diagnostic output and drag partition options (see code)
 !
 
 ! !Local Variables
@@ -354,6 +534,7 @@ CONTAINS
    real                  :: total_emissions
    real                  :: u_sum, u_thresh
    real                  :: smois
+   real                  :: R
 
 ! !CONSTANTS:
    real, parameter       :: ssm_thresh = 1.e-02    ! emit above this erodibility threshold [1]
@@ -370,9 +551,14 @@ CONTAINS
    ilb = lbound(ustar)
    iub = ubound(ustar)
 
-!  Initialize emissions
+!  Initialize variables 
 !  --------------------
    emissions = 0.
+   Reff = 0.
+   H_w = 1.0
+   u = 0.
+   u_t = 0.
+   u_ts = 0.
 
 !  Prepare scaling factor
 !  ----------------------
@@ -385,11 +571,18 @@ CONTAINS
        ! skip if we are not on land
        ! --------------------------
        skip = (oro(i,j) /= LAND)
+       
        ! threshold and sanity check for surface input
        ! --------------------------------------------
+       if (drag_opt == 2 ) then ! Darmenova et al, 2009
+         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (vegfrac(i,j) >= 0.33)
+       else if (drag_opt == 3 ) then ! Leung et al, 2023
+         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (lai(i,j) >= 0.33)
+       end if
+
        if (.not.skip) skip = (ssm(i,j) < ssm_thresh) &
          .or. (clay(i,j) < 0.) .or. (sand(i,j) < 0.) &
-         .or. (rdrag(i,j) < 0.)
+         .or. (rdrag(i,j) < 0.) 
 
        if (.not.skip) then
          fracland = max(0., min(1., 1.-fraclake(i,j))) &
@@ -406,18 +599,28 @@ CONTAINS
 
          !  Compute threshold wind friction velocity using drag partition
          !  -------------------------------------------------------------
-         rustar = rdrag(i,j) * ustar(i,j)
+         if (drag_opt == 1) then
+            Reff(i,j) = rdrag(i,j)
+         else if (drag_opt == 2) then
+            Reff(i,j) = DarmenovaDragPartition(rdrag(i,j), vegfrac(i,j), 0.33)
+         else if (drag_opt == 3) then
+            Reff(i,j) = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), 0.33)
+         end if
+         
+         rustar = Reff(i,j) * ustar(i,j)
+         u(i,j) = ustar(i,j) / Reff(i,j)
          
          ! Fecan moisture correction
          ! -------------------------
          smois = slc(i,j) * moist_correct
-         h = moistureCorrectionFecan(smois, sand(i,j), clay(i,j), drylimit_factor)
+         H_w(i,j) = moistureCorrectionFecan(smois, sand(i,j), clay(i,j), drylimit_factor)
 
          ! Adjust threshold
          ! ----------------
-         u_thresh = uthrs(i,j) * h
+         u_t(i,j) = uthrs(i,j) * H_w(i,j)
+         u_ts(i,j) = uthrs(i,j) * H_w(i,j) / Reff(i,j)
          
-         u_sum = rustar + u_thresh
+         u_sum = rustar + u_t(i,j)
          
          ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
          ! ---------------------------------------------------------------------------
