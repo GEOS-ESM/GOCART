@@ -3189,7 +3189,7 @@ CONTAINS
 
 ! !IROUTINE: WetRemovalUFS
    subroutine WetRemovalUFS( km, klid, bin_ind, cdt, aero_type, kin, grav, radius, &
-                             rainout_eff, wtune, aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
+                             rainout_eff, wtune, radius_thr, aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
                              fluxout, rc )
 
 ! !USES:
@@ -3204,7 +3204,8 @@ CONTAINS
      logical,                         intent(in)    :: kin          ! true for aerosol
      real,                            intent(in)    :: grav         ! gravity [m/sec^2]
      real,                            intent(in)    :: radius       ! Particle radius [um]
-     real,                            intent(in)    :: wtune  ! Washout Tuning factor [-]
+     real,                            intent(in)    :: wtune        ! Washout Tuning factor [-]
+     real,                            intent(in)    :: radius_thr   ! Threshold particle radius for washout[um]
      real, dimension(3),              intent(in)    :: rainout_eff  ! temperature-dependent rainout efficiencies
      real, dimension(:,:,:),          intent(inout) :: aerosol      ! internal state aerosol [kg/kg]
      real, pointer, dimension(:,:,:), intent(in)    :: ple          ! pressure level thickness [Pa]
@@ -3430,7 +3431,8 @@ CONTAINS
                  ! -- washout from precipitation leaving through the bottom
                  qdwn = pdwn(k)
                end if
-               call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), dt, spc, wtune, lossfrac )
+               call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), dt, &
+                             spc, wtune, radius_thr, lossfrac )
 
                if ( kin ) then
                  ! -- adjust loss fraction for aerosols
@@ -3468,7 +3470,7 @@ CONTAINS
            if ( f > zero ) then
              qdwn = pdwn(km1)
              call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), & 
-                           dt, spc, wtune, lossfrac )
+                           dt, spc, wtune, radius_thr, lossfrac )
 
              ! -- f is included in lossfrac for aerosols and HNO3
              if ( kin ) then
@@ -3567,7 +3569,7 @@ CONTAINS
 
      end subroutine rainout
 
-     subroutine washout( kin, radius, f, tk, qdwn, dz, dt, spc, wtune, lossfrac )
+     subroutine washout( kin, radius, f, tk, qdwn, dz, dt, spc, wtune, radius_thr, lossfrac )
 
        implicit none
 
@@ -3580,6 +3582,7 @@ CONTAINS
        real,        intent(in)  :: dt
        type(spc_t), intent(in)  :: spc
        real,        intent(in)  :: wtune
+       real,        intent(in)  :: radius_thr
        real,        intent(out) :: lossfrac
 
        ! -- begin
@@ -3588,7 +3591,7 @@ CONTAINS
 
        if ( kin ) then
          ! -- kinetic process
-         lossfrac = washfrac_aerosol( radius, f, tk, qdwn, dt, wtune )
+         lossfrac = washfrac_aerosol( radius, f, tk, qdwn, dt, wtune, radius_thr)
        else
          ! -- equilibrium process
          lossfrac = washfrac_liq_gas( f, tk, qdwn, dz, dt, spc )
@@ -3624,7 +3627,7 @@ CONTAINS
 
      end function rainfrac
 
-     real function washfrac_aerosol( radius, f, tk, pdwn, tuning, dt )
+     real function washfrac_aerosol( radius, f, tk, pdwn, dt, tuning, radius_fine )
 
        implicit none
 
@@ -3634,13 +3637,13 @@ CONTAINS
        real, intent(in) :: pdwn   ! Instant precip rate in grid box (cm3 (H2O) / cm2 (air) / s)
        real, intent(in) :: dt     ! Timestep (s)
        real, intent(in) :: tuning  ! Washout tuning factor
+       real, intent(in) :: radius_fine ! fine particle radius threshold (um)
 
        ! -- local variables
        integer         :: i, j
        real            :: dth, pph
 
        ! -- local parameters
-       real, parameter :: radius_fine = 0.01 ! um
        real, parameter :: k_wash = 1.06e-03
        real, parameter :: h2s = 3600.0 ! s-1
 

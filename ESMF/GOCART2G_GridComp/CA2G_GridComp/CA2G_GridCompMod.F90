@@ -1062,7 +1062,7 @@ contains
           call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
           call WetRemovalUFS  (self%km, self%klid, n, self%cdt, GCsuffix, &
                                KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, & 
-                               int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, WT, __RC__)
+                               self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, WT, __RC__)
        end do
     case default
        _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
