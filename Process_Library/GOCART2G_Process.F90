@@ -3250,6 +3250,7 @@ CONTAINS
      real     :: alpha      ! ratio of evap. to sublimation
      real     :: gain       ! gain fraction
      real     :: washed     ! concentration of washed out tracer
+     real     :: delz       ! thickness of layer [m]
      real, dimension(:), allocatable :: qq      ! precipatitng water rate [cm3 (h2o) / cm2 (air) / s]
      real, dimension(:), allocatable :: pdwn    ! preciptation rate at top of grid cells [cm3 (h2o) / cm2 (air) / s]
      real, dimension(:), allocatable :: dpog    ! pressure thickness of grid cells divided by gravity [Pa / (m/s^2)]
