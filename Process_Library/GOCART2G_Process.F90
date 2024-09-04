@@ -3467,7 +3467,7 @@ CONTAINS
            if ( f > zero ) then
              qdwn = pdwn(km1)
              call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), & 
-                           dt, spc, WashoutTune, lossfrac )
+                           dt, spc, wtune, lossfrac )
 
              ! -- f is included in lossfrac for aerosols and HNO3
              if ( kin ) then
