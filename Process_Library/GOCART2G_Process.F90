@@ -554,7 +554,7 @@ CONTAINS
 !  Initialize variables 
 !  --------------------
    emissions = 0.
-   Reff = 0.
+   Reff = 1.0e-04
    H_w = 1.0
    u = 0.
    u_t = 0.

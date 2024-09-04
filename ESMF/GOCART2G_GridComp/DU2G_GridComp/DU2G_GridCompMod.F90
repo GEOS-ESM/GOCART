@@ -188,7 +188,7 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_sdl,      label='soil_drylimit_factor:',default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%kvhmax,     label='vertical_to_horizontal_flux_ratio_limit:', default=2.0e-04, __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%drag_opt,   label='drag_partition_option:', default=1.0, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%drag_opt,   label='drag_partition_option:', __RC__)
     case ('k14')
        call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
