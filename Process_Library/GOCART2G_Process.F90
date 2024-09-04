@@ -3189,7 +3189,7 @@ CONTAINS
 
 ! !IROUTINE: WetRemovalUFS
    subroutine WetRemovalUFS( km, klid, bin_ind, cdt, aero_type, kin, grav, radius, &
-                             rainout_eff, WashoutTune, aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
+                             rainout_eff, wtune, aerosol, ple, tmpu, rhoa, pfllsan, pfilsan, &
                              fluxout, rc )
 
 ! !USES:
@@ -3204,7 +3204,7 @@ CONTAINS
      logical,                         intent(in)    :: kin          ! true for aerosol
      real,                            intent(in)    :: grav         ! gravity [m/sec^2]
      real,                            intent(in)    :: radius       ! Particle radius [um]
-     real,                            intent(in)    :: WashoutTune  ! Washout Tuning factor [-]
+     real,                            intent(in)    :: wtune  ! Washout Tuning factor [-]
      real, dimension(3),              intent(in)    :: rainout_eff  ! temperature-dependent rainout efficiencies
      real, dimension(:,:,:),          intent(inout) :: aerosol      ! internal state aerosol [kg/kg]
      real, pointer, dimension(:,:,:), intent(in)    :: ple          ! pressure level thickness [Pa]
@@ -3229,6 +3229,7 @@ CONTAINS
      integer  :: il, iu, jl, ju
      ! looping indexes 
      integer  :: i, j, k, km1, ktop, kbot
+     ! local physical variables 
      real     :: delp       ! pressure thickness [Pa]
      real     :: dqls       ! liquid water flux gradient [kg/(m^2 s)]
      real     :: dqis       ! ice water flux gradient [kg/(m^2 s)]
@@ -3270,15 +3271,15 @@ CONTAINS
      type(spc_t) :: spc
 
      ! -- local parameters
-     real, parameter :: one  = 1.0
-     real, parameter :: zero = 0.0
-     real, parameter :: density_ice = 917.0
-     real, parameter :: density_liq = 1.e+03
-     real, parameter :: m_to_cm  = 100.
-     real, parameter :: kg_to_cm3_liq = m_to_cm / density_liq
-     real, parameter :: kg_to_cm3_ice = m_to_cm / density_ice
-     real, parameter :: qq_thr   = 0.0
-     real, parameter :: pdwn_thr = 0.0
+     real, parameter :: one  = 1.0                             ! for code readability
+     real, parameter :: zero = 0.0                             ! for code readability
+     real, parameter :: density_ice = 917.0                    ! density of ice in kg m-3
+     real, parameter :: density_liq = 1.e+03                   ! density of liquid water in kg m-3
+     real, parameter :: m_to_cm  = 100.                        ! conversion factor from m to cm
+     real, parameter :: kg_to_cm3_liq = m_to_cm / density_liq  ! conversion factor from kg to cm3 for liquid water
+     real, parameter :: kg_to_cm3_ice = m_to_cm / density_ice  ! conversion factor from kg to cm3 for ice
+     real, parameter :: qq_thr   = 0.0                         ! cm3 (h2o) / cm3 (air) / s
+     real, parameter :: pdwn_thr = 0.0                         ! cm3 (h2o) / cm2 (air) / s
      real, parameter :: k_min = 1.e-04 ! s-1
      real, parameter :: cwc   = 1.e-06 ! s-1 (recommended by Qiaoqiao Wang et al., 2014. Originally 1.5e-6, see Jacob et al., 2000)
 
@@ -3326,18 +3327,20 @@ CONTAINS
            ! -- initialize auxiliary arrays
            delp = ple(i,j,k) - ple(i,j,km1)
            dpog(k) = delp / grav
-           delz = dpog(k) / rhoa(i,j,k)
-           delz_cm(k) = delz * m_to_cm
+           delz = dpog(k) / rhoa(i,j,k) ! thickness of layer [m]
+           delz_cm(k) = delz * m_to_cm  ! thickness of layer [cm]
 
            ! -- liquid/ice precipitation formation in grid cell (kg/m2/s)
            dqls = pfllsan(i,j,k) - pfllsan(i,j,km1)
            dqis = pfilsan(i,j,k) - pfilsan(i,j,km1)
-           dqls_kgm3s = dqls / delz ! convert from kg/m2/s to kg (H2O) / m3(air) / s 
-           dqis_kgm3s = dqis / delz ! convert from kg/m2/s to kg (H2O) / m3(air) / s
+
+           ! -- convert from kg/m2/s to kg (H2O) / m3(air) / s
+           dqls_kgm3s = dqls / delz 
+           dqis_kgm3s = dqis / delz 
 
            ! -- total precipitation formation (convert from kg (H2O) / m3(air) / s to cm3 (H2O) / cm3 (air) /s)
-           ! Note that we divide by the density of H2O (water or ice) and it becomes m3 (h2o) / m3 (air) / s
-           ! and the final conversion factor to cm3(h2o) / cm3(air) / s is 1 
+           ! -- To convert from kg (H2O) / m3(air) / s to cm3 (H2O) / cm3 (air) / s, divide by the density of 
+           ! -- the precipitation (ice or liquid)
            qq(k) =  dqls_kgm3s / density_liq +  dqis_kgm3s / density_ice
 
            ! -- precipitation flux from upper level (convert from kg/m2/s to cm3/cm2/s)
@@ -3426,7 +3429,7 @@ CONTAINS
                  ! -- washout from precipitation leaving through the bottom
                  qdwn = pdwn(k)
                end if
-               call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), dt, spc, lossfrac )
+               call washout( kin, radius, f, tmpu(i,j,k), qdwn, delz_cm(k), dt, spc, wtune, lossfrac )
 
                if ( kin ) then
                  ! -- adjust loss fraction for aerosols
@@ -3443,7 +3446,7 @@ CONTAINS
                end if
                conc(k) = conc(k) - wetloss
                if ( f_rainout > zero ) then
-                 dconc(k) = dconc(k  ) + wetloss
+                 dconc(k) = dconc(k) + wetloss
                else
                  dconc(k) = dconc(km1) + wetloss
                end if
@@ -3472,7 +3475,7 @@ CONTAINS
              else
                wetloss = f * lossfrac * conc(k)
              end if
-             conc (k) = conc (k  ) - wetloss
+             conc (k) = conc (k) - wetloss
              dconc(k) = dconc(km1) + wetloss
            end if
          end if
@@ -3563,7 +3566,7 @@ CONTAINS
 
      end subroutine rainout
 
-     subroutine washout( kin, radius, f, tk, qdwn, dz, dt, spc, wtune,lossfrac )
+     subroutine washout( kin, radius, f, tk, qdwn, dz, dt, spc, wtune, lossfrac )
 
        implicit none
 
@@ -3575,6 +3578,7 @@ CONTAINS
        real,        intent(in)  :: dz
        real,        intent(in)  :: dt
        type(spc_t), intent(in)  :: spc
+       real,        intent(in)  :: wtune
        real,        intent(out) :: lossfrac
 
        ! -- begin
