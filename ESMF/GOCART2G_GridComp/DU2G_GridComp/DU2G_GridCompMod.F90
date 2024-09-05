@@ -192,12 +192,18 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%drag_opt,   label='drag_partition_option:', __RC__)
        
        if (MAPL_AM_I_ROOT()) then
-         write (*,*) trim(Iam)//": FENGSHA: config: alpha: "//self%alpha)
-         write (*,*) trim(Iam)//": FENGSHA: config: gamma: "//self%gamma)
-         write (*,*) trim(Iam)//": FENGSHA: config: soil_moisture_factor: "//self%f_swc)
-         write (*,*) trim(Iam)//": FENGSHA: config: soil_drylimit_factor: "//self%f_sdl)
-         write (*,*) trim(Iam)//": FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: "//self%kvhmax)
-         write (*,*) trim(Iam)//": FENGSHA: config: drag_partition_option: "//self%drag_opt)
+        write(msg,'(5(2x,g20.8))') self%alpha
+         write (*,*) trim(Iam)//": FENGSHA: config: alpha: "//msg 
+         write(msg,'(5(2x,g20.8))') self%gamma
+         write (*,*) trim(Iam)//": FENGSHA: config: gamma: "//msg
+         write(msg,'(5(2x,g20.8))') self%f_swc
+         write (*,*) trim(Iam)//": FENGSHA: config: soil_moisture_factor: "//msg
+         write(msg,'(5(2x,g20.8))') self%f_sdl
+         write (*,*) trim(Iam)//": FENGSHA: config: soil_drylimit_factor: "//msg
+         write(msg,'(5(2x,g20.8))') self%kvhmax
+         write (*,*) trim(Iam)//": FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: "//msg
+         write(msg,'(5(2x,g20.8))') self%drag_opt
+         write (*,*) trim(Iam)//": FENGSHA: config: drag_partition_option: "//msg
        end if
        
     case ('k14')
