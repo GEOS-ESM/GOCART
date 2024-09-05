@@ -419,42 +419,40 @@ CONTAINS
    real            :: vegfrac 
 
 ! !CONSTANTS:
-   real, parameter :: LAI_THR = 0.33
    real, parameter :: c = 4.8
    real, parameter :: f0 = 0.32
    real, parameter :: sigb = 1.0
    real, parameter :: mB = 0.5
    real, parameter :: Betab = 90.0
+   real, parameter :: zero = 0.0
 
-   feff_bare = 0.
-   feff_veg = 0.
+   feff_bare = zero
+   feff_veg = zero
    
-   frac_bare  = MAX(1. - LAI / LAI_THR, 0.)
+   frac_bare  = MAX(1. - LAI / thresh, zero)
 
-   ! vegetation effect 
-   if ((LAI <= 0) .or. (LAI >= LAI_THR) .or. (gvf >= 1.)) then
-      feff_veg = 0.
-   else if (LAI < LAI_THR) then
-      K = 2. * ( 1 / (1 - gvf) - 1)
+   if ((LAI <= zero) .or. (LAI >= thresh)) then
+      feff_veg = zero
+   else if (LAI < thresh) then
+      K = 2. * ( 1 / (1 - LAI) - 1) ! keep scaling of LAI with LAI_THRESH = 1 as in Leung et al. 
       feff_veg = ( K + f0 * c) / (K + c)
    endif
    
-   ! bare surface effect
-   if ((Lc <= 0.2) .and. (Lc >0)) then 
+   if (Lc <= 0.2) then 
       Lc_bare = Lc / frac_bare
-      tmpVal = sigB * mB * Lc_bare
-      if (tmpVal < 1.) then 
-         Rbare1 = 1.0 / sqrt(1. - tmpVal) 
-         Rbare2 = 1.0 / sqrt(1. + BetaB * mB * Lc_bare ) 
+      tmpVal = 1 - sigB * mB * Lc_bare
+      if (tmpVal > zero) then 
+         Rbare1 = 1.0 / sqrt(1 - sigB * mB* Lc_bare) 
+         Rbare2 = 1.0 / sqrt(1 + BetaB * mB * Lc_bare ) 
          feff_bare = Rbare1 * Rbare2
       else 
-         feff_bare = 0.
+         feff_bare = zero 
       endif
+   
    else
-      feff_bare = 0.
+      feff_bare = zero
    endif
    
-   ! effective drag partition 
    feff = (gvf * feff_veg**3 + frac_bare * feff_bare**3) ** (1./3.)
 
    if (feff > 1.) then
@@ -617,6 +615,9 @@ CONTAINS
             print*, 'ERROR2:',R, lai(i,j), vegfrac(i,j), rdrag(i,j)
             stop
          endif
+
+         if (( R <= 0.) .or. (R > 1)) then
+            
          rustar = R * ustar(i,j)
          
          ! Fecan moisture correction
