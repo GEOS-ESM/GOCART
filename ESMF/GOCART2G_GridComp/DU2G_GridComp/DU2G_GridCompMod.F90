@@ -813,21 +813,10 @@ contains
        if (associated(DU_EROD)) DU_EROD = f_erod_
 
     case ('fengsha')
-    !    allocate(ustar_, mold=U10M,    __STAT__)
-    !    allocate(ustar_t_, mold=U10M,  __STAT__)
-    !    allocate(ustar_ts_, mold=U10M, __STAT__)
-    !    allocate(R_, mold=U10M,        __STAT__)
-    !    allocate(H_w_, mold=U10M,      __STAT__)
-       call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
-                                 du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres,  &
-                                 self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
-                                 self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface, __RC__) ! &
-                                 ! ustar_, ustar_t_, ustar_ts_, R_, H_w_, __RC__)
-    !    if (associated(DU_UST)) DU_UST = ustar_
-    !    if (associated(DU_UST_T)) DU_UST_T = ustar_t_
-    !    if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
-    !    if (associated(DU_DPC)) DU_DPC = R_
-    !    if (associated(DU_SMC)) DU_SMC = H_w_
+        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
+                du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres,  &
+                self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
+                self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
 
     case ('ginoux')
 
