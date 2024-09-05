@@ -617,6 +617,9 @@ CONTAINS
          endif
 
          if (( R <= 0.) .or. (R > 1)) then
+            print*, 'Error3:', R, lai(i,j), vegfrac(i,j), rdrag(i,j)
+            stop
+         endif
 
          rustar = R * ustar(i,j)
          
