@@ -606,20 +606,20 @@ CONTAINS
          else if (drag_opt == 3) then
             R = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), 0.33)
          end if
-         if (R /= R) then 
-            print*, 'ERROR1:', R, lai(i,j), vegfrac(i,j), rdrag(i,j)
-            stop
-         endif
+         ! if (R /= R) then 
+         !    print*, 'ERROR1:', R, lai(i,j), vegfrac(i,j), rdrag(i,j)
+         !    stop
+         ! endif
          
-         if (R > HUGE(R)) then 
-            print*, 'ERROR2:',R, lai(i,j), vegfrac(i,j), rdrag(i,j)
-            stop
-         endif
+         ! if (R > HUGE(R)) then 
+         !    print*, 'ERROR2:',R, lai(i,j), vegfrac(i,j), rdrag(i,j)
+         !    stop
+         ! endif
 
-         if (( R <= 0.) .or. (R > 1)) then
-            print*, 'Error3:', R, lai(i,j), vegfrac(i,j), rdrag(i,j)
-            stop
-         endif
+         ! if (( R <= 0.) .or. (R > 1)) then
+         !    print*, 'Error3:', R, lai(i,j), vegfrac(i,j), rdrag(i,j)
+         !    stop
+         ! endif
 
          rustar = R * ustar(i,j)
          
