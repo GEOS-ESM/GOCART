@@ -341,20 +341,19 @@ CONTAINS
 ! 27Jun2024 B.Baker/NOAA    - Original implementation
 !
 !EOP   
-   skip = .false.
 
    gvf = vegfrac 
 
    ! vegetation effect
-   if (.not.skip) skip = (gvf < 0.0)
-   if (.not.skip) skip = (gvf >= thresh)
+   skip = .false.
+   if (.not.skip) skip = (gvf < 0.0) .or. (gvf >= thresh)
    if (.not.skip) then
       Lc_veg = -0.35 * LOG(1. - gvf)
       Rveg1 = 1.0 / sqrt(1 - sigv * mv * Lc_veg)
       Rveg2 = 1.0 / sqrt(1 + mv * Betav * Lc_veg)
       feff_veg = Rveg1 * Rveg2
    else 
-      feff_veg = 1e-5
+      feff_veg = 1e-3
    endif
 
 
@@ -363,24 +362,22 @@ CONTAINS
    Lc_bare = Lc / (1 - gvf) ! avoid any numberical issues at high Lc 
    tmpVal = 1 - sigb * mb * Lc_bare
    skip=.false.
-   if (.not.skip) skip = (gvf < 0.0)
-   if (.not.skip) skip = (gvf >= thresh)
-   if (.not.skip) skip = (Lc > 0.2)
-   if (.not.skip) skip = (tmpVal <= 0.0)
+   if (.not.skip) skip = (gvf < 0.0) .or. (gvf >= thresh)
+   if (.not.skip) skip = (Lc > 0.2) .or. (tmpVal <= 0.0)
    if (.not.skip) then 
       Rbare1 = 1.0 / sqrt(1 - sigb * mb * Lc_bare) 
       Rbare2 = 1.0 / sqrt(1 +  mb*Betab * Lc_bare ) 
       feff_bare = Rbare1 * Rbare2
    else
-      feff_bare = 1.0e-5
+      feff_bare = 1.0e-3
    endif
 
    feff = feff_veg * feff_bare
 
    if (feff > 1.) then
-      DarmenovaDragPartition = 1.e-5
+      DarmenovaDragPartition = 1.e-3
    else if (feff <1e-5) then
-      DarmenovaDragPartition = 1.e-5
+      DarmenovaDragPartition = 1.e-3
    else
       DarmenovaDragPartition = feff
    endif
@@ -429,16 +426,16 @@ CONTAINS
    feff_bare = 0.
    feff_veg = 0.
    
-   frac_bare  = MAX(1. - LAI / LAI_THR, 0.)
+   frac_bare  = MAX(1. - LAI / thresh, 0.)
 
-   if ((LAI <= 0) .or. (LAI >= LAI_THR)) then
+   if ((LAI <= 0) .or. (LAI >= thres)) then
       feff_veg = 0.
-   else if (LAI < LAI_THR) then
-      K = 2. * ( 1 / (1 - gvf) - 1)
+   else if (LAI < thresh) then
+      K = 2. * ( 1 / (1 - LAI) - 1)
       feff_veg = ( K + f0 * c) / (K + c)
    endif
    
-   if (Lc <= 0.2) then 
+   if ((Lc <= 0.2) .and. (Lc > 0) .and. (LAI < thresh)) then 
       Lc_bare = Lc / frac_bare
       tmpVal = 1 - sigB * mB * Lc_bare
       if (tmpVal > 0.0) then 
@@ -456,9 +453,9 @@ CONTAINS
    feff = (gvf * feff_veg**3 + frac_bare * feff_bare**3) ** (1./3.)
 
    if (feff > 1.) then
-      LeungDragPartition = 1.e-5
+      LeungDragPartition = 1.e-3
    else if (feff <1e-5) then
-      LeungDragPartition = 1.e-5
+      LeungDragPartition = 1.e-3
    else
       LeungDragPartition = feff
    endif
@@ -572,15 +569,17 @@ CONTAINS
        ! threshold and sanity check for surface input
        ! --------------------------------------------
        if (drag_opt == 2 ) then ! Darmenova et al, 2009
-         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (vegfrac(i,j) >= 0.33)
+         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (vegfrac(i,j) >= 0.44)
        else if (drag_opt == 3 ) then ! Leung et al, 2023
-         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (lai(i,j) >= 0.33)
+         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (lai(i,j) >= 0.44)
        end if
 
        if (.not.skip) skip = (ssm(i,j) < ssm_thresh) &
          .or. (clay(i,j) < 0.) .or. (sand(i,j) < 0.) &
          .or. (rdrag(i,j) < 0.) 
 
+       ! Begin dust emission calculations for this grid point
+       ! ----------------------------------------------------
        if (.not.skip) then
          fracland = max(0., min(1., 1.-fraclake(i,j))) &
                   * max(0., min(1., 1.-fracsnow(i,j)))
