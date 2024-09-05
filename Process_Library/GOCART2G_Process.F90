@@ -346,26 +346,26 @@ CONTAINS
    gvf = vegfrac 
 
    ! vegetation effect
-   if (.not.skip) skip = (gvf < 0.0) .or. (gvf >= thresh)
+   if (.not.skip) skip = (gvf < 0.0)
+   if (.not.skip) skip = (gvf >= thresh)
    if (.not.skip) then
       Lc_veg = -0.35 * LOG(1. - gvf)
-      if (sigv * mv * Lc_veg >= 1.0) then 
-         feff_veg = 1.0e-5
-      else
-         Rveg1 = 1.0 / sqrt(1 - sigv * mv * Lc_veg)
-         Rveg2 = 1.0 / sqrt(1 + mv * Betav * Lc_veg)
-         feff_veg = Rveg1 * Rveg2
-      endif
+      Rveg1 = 1.0 / sqrt(1 - sigv * mv * Lc_veg)
+      Rveg2 = 1.0 / sqrt(1 + mv * Betav * Lc_veg)
+      feff_veg = Rveg1 * Rveg2
    else 
       feff_veg = 1e-5
    endif
 
+
    ! bare surface effect 
+
    Lc_bare = Lc / (1 - gvf) ! avoid any numberical issues at high Lc 
    tmpVal = 1 - sigb * mb * Lc_bare
    skip=.false.
-   if (.not.skip) skip = (gvf < 0.0) .or. (gvf >= thresh)
-   if (.not.skip) skip = (Lc > 0.2) .or. (Lc <= 0.0)
+   if (.not.skip) skip = (gvf < 0.0)
+   if (.not.skip) skip = (gvf >= thresh)
+   if (.not.skip) skip = (Lc > 0.2)
    if (.not.skip) skip = (tmpVal <= 0.0)
    if (.not.skip) then 
       Rbare1 = 1.0 / sqrt(1 - sigb * mb * Lc_bare) 
@@ -419,38 +419,38 @@ CONTAINS
    real            :: vegfrac 
 
 ! !CONSTANTS:
+   real, parameter :: LAI_THR = 0.33
    real, parameter :: c = 4.8
    real, parameter :: f0 = 0.32
    real, parameter :: sigb = 1.0
    real, parameter :: mB = 0.5
    real, parameter :: Betab = 90.0
-   real, parameter :: zero = 0.0
 
-   feff_bare = zero
-   feff_veg = zero
+   feff_bare = 0.
+   feff_veg = 0.
    
-   frac_bare  = MAX(1. - LAI / thresh, zero)
+   frac_bare  = MAX(1. - LAI / LAI_THR, 0.)
 
-   if ((LAI <= zero) .or. (LAI >= thresh)) then
-      feff_veg = zero
-   else if (LAI < thresh) then
-      K = 2. * ( 1 / (1 - LAI) - 1) ! keep scaling of LAI with LAI_THRESH = 1 as in Leung et al. 
+   if ((LAI <= 0) .or. (LAI >= LAI_THR)) then
+      feff_veg = 0.
+   else if (LAI < LAI_THR) then
+      K = 2. * ( 1 / (1 - gvf) - 1)
       feff_veg = ( K + f0 * c) / (K + c)
    endif
    
-   if ((Lc <= 0.2) .and. (Lc > zero)) then 
+   if (Lc <= 0.2) then 
       Lc_bare = Lc / frac_bare
       tmpVal = 1 - sigB * mB * Lc_bare
-      if (tmpVal > zero) then 
+      if (tmpVal > 0.0) then 
          Rbare1 = 1.0 / sqrt(1 - sigB * mB* Lc_bare) 
          Rbare2 = 1.0 / sqrt(1 + BetaB * mB * Lc_bare ) 
          feff_bare = Rbare1 * Rbare2
       else 
-         feff_bare = zero 
+         feff_bare = 0.
       endif
    
    else
-      feff_bare = zero
+      feff_bare = 0.
    endif
    
    feff = (gvf * feff_veg**3 + frac_bare * feff_bare**3) ** (1./3.)
@@ -465,6 +465,14 @@ CONTAINS
    
    end function LeungDragPartition
 
+
+
+! !CONSTANTS:
+
+! !DESCRIPTION: Computes the drag parition according to Leung et al. 2023
+
+
+
 !==================================================================================
 !BOP
 !
@@ -474,7 +482,7 @@ CONTAINS
    subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, silt,  &
                                   ssm, rdrag, airdens, ustar, vegfrac, lai, uthrs, alpha, gamma, &
                                   kvhmax, grav, rhop, distribution, drylimit_factor, moist_correct, &
-                                  drag_opt, emissions, rc) ! u, u_t, u_ts, H_w, Reff, rc)
+                                  drag_opt, emissions, rc)
 
 ! !USES:
    implicit NONE
@@ -504,12 +512,7 @@ CONTAINS
    real,                 intent(in) :: moist_correct   ! moisture correction factor
    integer,              intent(in) :: drag_opt        ! drag partition option 
 ! !OUTPUT PARAMETERS:
-   real,                 intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
-   ! real, dimension(:,:), intent(out) :: u         ! aeolian friction velocity
-   ! real, dimension(:,:), intent(out) :: u_t       ! threshold friction velocity
-   ! real, dimension(:,:), intent(out) :: u_ts      ! threshold friction velocity over smooth surface
-   ! real, dimension(:,:), intent(out) :: H_w       ! soil mosture correction
-   ! real, dimension(:,:), intent(out) :: Reff   ! drag partition correction
+   real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
    integer, intent(out) :: rc                   ! Error return code: __SUCCESS__ or __FAIL__
 
 ! !DESCRIPTION: Compute dust emissions using NOAA/ARL FENGSHA model
@@ -518,7 +521,6 @@ CONTAINS
 !
 ! 22Feb2020 B.Baker/NOAA    - Original implementation
 ! 29Mar2021 R.Montuoro/NOAA - Refactored for process library
-! 04Sept2024 B.Baker/NOAA   - Added diagnostic output and drag partition options (see code)
 !
 
 ! !Local Variables
@@ -551,14 +553,9 @@ CONTAINS
    ilb = lbound(ustar)
    iub = ubound(ustar)
 
-!  Initialize variables 
+!  Initialize emissions
 !  --------------------
    emissions = 0.
-   ! Reff = 1.0e-04
-   ! H_w = 1.0
-   ! u = 0.
-   ! u_t = 0.
-   ! u_ts = 0.
 
 !  Prepare scaling factor
 !  ----------------------
@@ -577,7 +574,7 @@ CONTAINS
        if (drag_opt == 2 ) then ! Darmenova et al, 2009
          if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (vegfrac(i,j) >= 0.33)
        else if (drag_opt == 3 ) then ! Leung et al, 2023
-         if (.not.skip) skip = (lai(i,j) < 0.) .or. (lai(i,j) >= 0.33)
+         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (lai(i,j) >= 0.33)
        end if
 
        if (.not.skip) skip = (ssm(i,j) < ssm_thresh) &
@@ -606,21 +603,7 @@ CONTAINS
          else if (drag_opt == 3) then
             R = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), 0.33)
          end if
-         ! if (R /= R) then 
-         !    print*, 'ERROR1:', R, lai(i,j), vegfrac(i,j), rdrag(i,j)
-         !    stop
-         ! endif
          
-         ! if (R > HUGE(R)) then 
-         !    print*, 'ERROR2:',R, lai(i,j), vegfrac(i,j), rdrag(i,j)
-         !    stop
-         ! endif
-
-         ! if (( R <= 0.) .or. (R > 1)) then
-         !    print*, 'Error3:', R, lai(i,j), vegfrac(i,j), rdrag(i,j)
-         !    stop
-         ! endif
-
          rustar = R * ustar(i,j)
          
          ! Fecan moisture correction
