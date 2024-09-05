@@ -201,7 +201,7 @@ contains
        call ESMF_LogWrite("FENGSHA: config: soil_drylimit_factor: "//msg)
        write(msg,'(5(2x,g20.8))') self%vertical_to_horizontal_flux_ratio_limit
        call ESMF_LogWrite("FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: "//msg)
-       write(msg,'(5(2x,g20.8))') self%drag_partition_option
+       write(msg,'(5(2x,g20.8))') self%drag_opt
        call ESMF_LogWrite("FENGSHA: config: drag_partition_option: "//msg)
        
     case ('k14')
