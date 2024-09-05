@@ -192,12 +192,12 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%drag_opt,   label='drag_partition_option:', __RC__)
        
        if (MAPL_AM_I_ROOT()) then
-         write (*,*) "FENGSHA: config: alpha: ", self%alpha
-         write (*,*) "FENGSHA: config: gamma: "self%gamma
-         write (*,*) "FENGSHA: config: soil_moisture_factor: ", self%f_swc
-         write (*,*) "FENGSHA: config: soil_drylimit_factor: ", self%f_sdl
-         write (*,*) "FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: ", self%kvhmax
-         write (*,*) "FENGSHA: config: drag_partition_option: ", self%drag_opt
+         write (*,*) "FENGSHA: config: alpha: " // self%alpha
+         write (*,*) "FENGSHA: config: gamma: " // self%gamma
+         write (*,*) "FENGSHA: config: soil_moisture_factor: " // self%f_swc
+         write (*,*) "FENGSHA: config: soil_drylimit_factor: " // self%f_sdl
+         write (*,*) "FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: " //  self%kvhmax
+         write (*,*) "FENGSHA: config: drag_partition_option: " // self%drag_opt
        end if
        
     case ('k14')
