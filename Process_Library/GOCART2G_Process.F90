@@ -430,7 +430,7 @@ CONTAINS
    frac_bare  = MAX(1. - LAI / LAI_THR, 0.)
 
    ! vegetation effect 
-   if ((LAI <= 0) .or. (LAI >= LAI_THR)) then
+   if ((LAI <= 0) .or. (LAI >= LAI_THR) .or. (gvf >= 1.)) then
       feff_veg = 0.
    else if (LAI < LAI_THR) then
       K = 2. * ( 1 / (1 - gvf) - 1)
@@ -442,7 +442,7 @@ CONTAINS
       Lc_bare = Lc / frac_bare
       tmpVal = 1 - sigB * mB * Lc_bare
       if (tmpVal > 0.0) then 
-         Rbare1 = 1.0 / sqrt(1 - sigB * mB* Lc_bare) 
+         Rbare1 = 1.0 / sqrt(tmpVal) 
          Rbare2 = 1.0 / sqrt(1 + BetaB * mB * Lc_bare ) 
          feff_bare = Rbare1 * Rbare2
       else 
@@ -474,7 +474,7 @@ CONTAINS
    subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, silt,  &
                                   ssm, rdrag, airdens, ustar, vegfrac, lai, uthrs, alpha, gamma, &
                                   kvhmax, grav, rhop, distribution, drylimit_factor, moist_correct, &
-                                  drag_opt, emissions, u, u_t, u_ts, H_w, Reff, rc)
+                                  drag_opt, emissions, rc) ! u, u_t, u_ts, H_w, Reff, rc)
 
 ! !USES:
    implicit NONE
@@ -505,11 +505,11 @@ CONTAINS
    integer,              intent(in) :: drag_opt        ! drag partition option 
 ! !OUTPUT PARAMETERS:
    real,                 intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
-   real, dimension(:,:), intent(out) :: u         ! aeolian friction velocity
-   real, dimension(:,:), intent(out) :: u_t       ! threshold friction velocity
-   real, dimension(:,:), intent(out) :: u_ts      ! threshold friction velocity over smooth surface
-   real, dimension(:,:), intent(out) :: H_w       ! soil mosture correction
-   real, dimension(:,:), intent(out) :: Reff   ! drag partition correction
+   ! real, dimension(:,:), intent(out) :: u         ! aeolian friction velocity
+   ! real, dimension(:,:), intent(out) :: u_t       ! threshold friction velocity
+   ! real, dimension(:,:), intent(out) :: u_ts      ! threshold friction velocity over smooth surface
+   ! real, dimension(:,:), intent(out) :: H_w       ! soil mosture correction
+   ! real, dimension(:,:), intent(out) :: Reff   ! drag partition correction
    integer, intent(out) :: rc                   ! Error return code: __SUCCESS__ or __FAIL__
 
 ! !DESCRIPTION: Compute dust emissions using NOAA/ARL FENGSHA model
@@ -554,11 +554,11 @@ CONTAINS
 !  Initialize variables 
 !  --------------------
    emissions = 0.
-   Reff = 1.0e-04
-   H_w = 1.0
-   u = 0.
-   u_t = 0.
-   u_ts = 0.
+   ! Reff = 1.0e-04
+   ! H_w = 1.0
+   ! u = 0.
+   ! u_t = 0.
+   ! u_ts = 0.
 
 !  Prepare scaling factor
 !  ----------------------
@@ -606,7 +606,15 @@ CONTAINS
          else if (drag_opt == 3) then
             R = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), 0.33)
          end if
+         if (R /= R) then 
+            print*, R, lai(i,j), vegfrac(i,j), rdrag(i,j)
+            stop
+         endif
          
+         if (R > HUGE(R)) then 
+            print*, R, lai(i,j), vegfrac(i,j), rdrag(i,j)
+            stop
+         endif
          rustar = R * ustar(i,j)
          
          ! Fecan moisture correction
