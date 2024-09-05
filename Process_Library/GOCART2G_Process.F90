@@ -346,13 +346,16 @@ CONTAINS
    gvf = vegfrac 
 
    ! vegetation effect
-   if (.not.skip) skip = (gvf < 0.0)
-   if (.not.skip) skip = (gvf >= thresh)
+   if (.not.skip) skip = (gvf < 0.0) .or. (gvf >= thresh)
    if (.not.skip) then
       Lc_veg = -0.35 * LOG(1. - gvf)
-      Rveg1 = 1.0 / sqrt(1 - sigv * mv * Lc_veg)
-      Rveg2 = 1.0 / sqrt(1 + mv * Betav * Lc_veg)
-      feff_veg = Rveg1 * Rveg2
+      if (sigv * mv * Lc_veg >= 1.0) then 
+         feff_veg = 1.0e-5
+      else
+         Rveg1 = 1.0 / sqrt(1 - sigv * mv * Lc_veg)
+         Rveg2 = 1.0 / sqrt(1 + mv * Betav * Lc_veg)
+         feff_veg = Rveg1 * Rveg2
+      endif
    else 
       feff_veg = 1e-5
    endif
@@ -361,9 +364,8 @@ CONTAINS
    Lc_bare = Lc / (1 - gvf) ! avoid any numberical issues at high Lc 
    tmpVal = 1 - sigb * mb * Lc_bare
    skip=.false.
-   if (.not.skip) skip = (gvf < 0.0)
-   if (.not.skip) skip = (gvf >= thresh)
-   if (.not.skip) skip = (Lc > 0.2)
+   if (.not.skip) skip = (gvf < 0.0) .or. (gvf >= thresh)
+   if (.not.skip) skip = (Lc > 0.2) .or. (Lc <= 0.0)
    if (.not.skip) skip = (tmpVal <= 0.0)
    if (.not.skip) then 
       Rbare1 = 1.0 / sqrt(1 - sigb * mb * Lc_bare) 
@@ -438,12 +440,12 @@ CONTAINS
    endif
    
    ! bare surface effect
-   if (Lc <= 0.2) then 
+   if ((Lc <= 0.2) .and. (Lc >0)) then 
       Lc_bare = Lc / frac_bare
-      tmpVal = 1 - sigB * mB * Lc_bare
-      if (tmpVal > 0.0) then 
-         Rbare1 = 1.0 / sqrt(tmpVal) 
-         Rbare2 = 1.0 / sqrt(1 + BetaB * mB * Lc_bare ) 
+      tmpVal = sigB * mB * Lc_bare
+      if (tmpVal < 1.) then 
+         Rbare1 = 1.0 / sqrt(1. - tmpVal) 
+         Rbare2 = 1.0 / sqrt(1. + BetaB * mB * Lc_bare ) 
          feff_bare = Rbare1 * Rbare2
       else 
          feff_bare = 0.
@@ -607,12 +609,12 @@ CONTAINS
             R = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), 0.33)
          end if
          if (R /= R) then 
-            print*, R, lai(i,j), vegfrac(i,j), rdrag(i,j)
+            print*, 'ERROR1:', R, lai(i,j), vegfrac(i,j), rdrag(i,j)
             stop
          endif
          
          if (R > HUGE(R)) then 
-            print*, R, lai(i,j), vegfrac(i,j), rdrag(i,j)
+            print*, 'ERROR2:',R, lai(i,j), vegfrac(i,j), rdrag(i,j)
             stop
          endif
          rustar = R * ustar(i,j)
