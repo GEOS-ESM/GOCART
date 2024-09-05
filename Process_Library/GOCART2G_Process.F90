@@ -438,7 +438,7 @@ CONTAINS
       feff_veg = ( K + f0 * c) / (K + c)
    endif
    
-   if (Lc <= 0.2) then 
+   if ((Lc <= 0.2) .and. (Lc > zero)) then 
       Lc_bare = Lc / frac_bare
       tmpVal = 1 - sigB * mB * Lc_bare
       if (tmpVal > zero) then 
@@ -577,7 +577,7 @@ CONTAINS
        if (drag_opt == 2 ) then ! Darmenova et al, 2009
          if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (vegfrac(i,j) >= 0.33)
        else if (drag_opt == 3 ) then ! Leung et al, 2023
-         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (lai(i,j) >= 0.33)
+         if (.not.skip) skip = (lai(i,j) < 0.) .or. (lai(i,j) >= 0.33)
        end if
 
        if (.not.skip) skip = (ssm(i,j) < ssm_thresh) &
@@ -617,7 +617,7 @@ CONTAINS
          endif
 
          if (( R <= 0.) .or. (R > 1)) then
-            
+
          rustar = R * ustar(i,j)
          
          ! Fecan moisture correction
