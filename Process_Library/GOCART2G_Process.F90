@@ -428,7 +428,7 @@ CONTAINS
    
    frac_bare  = MAX(1. - LAI / thresh, 0.)
 
-   if ((LAI <= 0) .or. (LAI >= thres)) then
+   if ((LAI <= 0) .or. (LAI >= thresh)) then
       feff_veg = 0.
    else if (LAI < thresh) then
       K = 2. * ( 1 / (1 - LAI) - 1)
