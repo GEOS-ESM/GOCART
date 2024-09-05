@@ -195,11 +195,11 @@ contains
        call ESMF_LogWrite("FENGSHA: config: alpha: "//msg)
        write(msg,'(5(2x,g20.8))') self%gamma
        call ESMF_LogWrite("FENGSHA: config: gamma: "//msg)
-       write(msg,'(5(2x,g20.8))') self%soil_moisture_factor
+       write(msg,'(5(2x,g20.8))') self%f_swc
        call ESMF_LogWrite("FENGSHA: config: soil_moisture_factor: "//msg)
-       write(msg,'(5(2x,g20.8))') self%soil_drylimit_factor
+       write(msg,'(5(2x,g20.8))') self%f_sdl
        call ESMF_LogWrite("FENGSHA: config: soil_drylimit_factor: "//msg)
-       write(msg,'(5(2x,g20.8))') self%vertical_to_horizontal_flux_ratio_limit
+       write(msg,'(5(2x,g20.8))') self%kvhmax
        call ESMF_LogWrite("FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: "//msg)
        write(msg,'(5(2x,g20.8))') self%drag_opt
        call ESMF_LogWrite("FENGSHA: config: drag_partition_option: "//msg)
