@@ -32,6 +32,8 @@
    public DustEmissionK14
    public DustFluxV2HRatioMB95
    public moistureCorrectionFecan
+   public DarmenovaDragPartition
+   public LeungDragPartition
    public soilMoistureConvertVol2Grav
    public DistributePointEmission
    public updatePointwiseEmissions
@@ -462,14 +464,6 @@ CONTAINS
    
    end function LeungDragPartition
 
-
-
-! !CONSTANTS:
-
-! !DESCRIPTION: Computes the drag parition according to Leung et al. 2023
-
-
-
 !==================================================================================
 !BOP
 !
@@ -507,7 +501,8 @@ CONTAINS
    real, dimension(:),   intent(in) :: distribution    ! normalized dust binned distribution [1]
    real,                 intent(in) :: drylimit_factor ! drylimit tuning factor from zender2003 
    real,                 intent(in) :: moist_correct   ! moisture correction factor
-   integer,              intent(in) :: drag_opt        ! drag partition option 
+   integer,              intent(in) :: drag_opt        ! drag partition option
+   
 ! !OUTPUT PARAMETERS:
    real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
    integer, intent(out) :: rc                   ! Error return code: __SUCCESS__ or __FAIL__
@@ -537,7 +532,7 @@ CONTAINS
 
 ! !CONSTANTS:
    real, parameter       :: ssm_thresh = 1.e-02    ! emit above this erodibility threshold [1]
-
+   real, parameter       :: veg_thresh = 0.4
 !EOP
 !-------------------------------------------------------------------------
 !  Begin
@@ -569,15 +564,17 @@ CONTAINS
        ! threshold and sanity check for surface input
        ! --------------------------------------------
        if (drag_opt == 2 ) then ! Darmenova et al, 2009
-         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (vegfrac(i,j) >= 0.44)
+          if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (vegfrac(i,j) >= veg_thresh)
+          if (.not.skip) skip = (rdrag(i,j) > 0.3)
        else if (drag_opt == 3 ) then ! Leung et al, 2023
-         if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (lai(i,j) >= 0.44)
-       end if
+          if (.not.skip) skip = (vegfrac(i,j) < 0.) .or. (lai(i,j) >= veg_thresh)
+       else
+          if (.not.skip) skip = (rdrag(i,j) < 0.)
+       endif
 
-       if (.not.skip) skip = (ssm(i,j) < ssm_thresh) &
-         .or. (clay(i,j) < 0.) .or. (sand(i,j) < 0.) &
-         .or. (rdrag(i,j) < 0.) 
-
+       if (.not.skip) skip = (ssm(i,j) < ssm_thresh)
+       if (.not.skip) skip = (clay(i,j) < 0.) .or. (sand(i,j) < 0.)
+       
        ! Begin dust emission calculations for this grid point
        ! ----------------------------------------------------
        if (.not.skip) then
@@ -598,9 +595,9 @@ CONTAINS
          if (drag_opt == 1) then
             R = rdrag(i,j)
          else if (drag_opt == 2) then
-            R = DarmenovaDragPartition(rdrag(i,j), vegfrac(i,j), 0.33)
+            R = DarmenovaDragPartition(rdrag(i,j), vegfrac(i,j), veg_thresh)
          else if (drag_opt == 3) then
-            R = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), 0.33)
+            R = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), veg_thresh)
          end if
          
          rustar = R * ustar(i,j)
@@ -634,7 +631,7 @@ CONTAINS
    end do
 
    end subroutine DustEmissionFENGSHA
-
+   
 !==================================================================================
 !BOP
 ! !IROUTINE: DustEmissionGOCART2G
