@@ -600,27 +600,25 @@ CONTAINS
          !  Compute threshold wind friction velocity using drag partition
          !  -------------------------------------------------------------
          if (drag_opt == 1) then
-            Reff(i,j) = rdrag(i,j)
+            R = rdrag(i,j)
          else if (drag_opt == 2) then
-            Reff(i,j) = DarmenovaDragPartition(rdrag(i,j), vegfrac(i,j), 0.33)
+            R = DarmenovaDragPartition(rdrag(i,j), vegfrac(i,j), 0.33)
          else if (drag_opt == 3) then
-            Reff(i,j) = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), 0.33)
+            R = LeungDragPartition(rdrag(i,j), lai(i,j), vegfrac(i,j), 0.33)
          end if
          
-         rustar = Reff(i,j) * ustar(i,j)
-         u(i,j) = ustar(i,j) / Reff(i,j)
+         rustar = R * ustar(i,j)
          
          ! Fecan moisture correction
          ! -------------------------
          smois = slc(i,j) * moist_correct
-         H_w(i,j) = moistureCorrectionFecan(smois, sand(i,j), clay(i,j), drylimit_factor)
+         h = moistureCorrectionFecan(smois, sand(i,j), clay(i,j), drylimit_factor)
 
          ! Adjust threshold
          ! ----------------
-         u_t(i,j) = uthrs(i,j) * H_w(i,j)
-         u_ts(i,j) = uthrs(i,j) * H_w(i,j) / Reff(i,j)
+         u_thresh = uthrs(i,j) * h
          
-         u_sum = rustar + u_t(i,j)
+         u_sum = rustar + u_thresh
          
          ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
          ! ---------------------------------------------------------------------------
