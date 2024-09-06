@@ -81,7 +81,7 @@ module GA_EnvironmentMod
        call ESMF_ConfigGetAttribute (cfg, self%fwet_ice,   label='fwet_ice:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fwet_snow,  label='fwet_snow:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fwet_rain,  label='fwet_rain:', default=1.0, __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%wet_radius_thr,  label='wet_radius_thr:', default=0.3, __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%wet_radius_thr,  label='wet_radius_thr:', default=0.05, __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%washout_tuning,  label='washout_tuning:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, wet_removal_scheme, label='wet_removal_scheme:', default='gocart', __RC__)
        self%wet_removal_scheme = ESMF_UtilStringLowerCase(trim(wet_removal_scheme), __RC__)
