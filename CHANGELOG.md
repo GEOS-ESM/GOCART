@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Changed SU2G_instance_SU.rc to now have separate filename inputs for explosive and degassing volcanoes
 - Use 'CA' component name to identify carbonaceous contributions to PM in UFS diagnostic calculations. These contributions were missing due to changes in field names.
 - Add replay import patch for ozone.
 - corrected reading variable 'rhod' from files ( it was mispelled as 'rhop')
@@ -37,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Update ESMF CMake target to `ESMF::ESMF`
 
-- Changed SU2G_instance_SU.rc to now have separate filename inputs for explosive and degassing volcanoes
+
 - Moved present volcanic emission inventories to one or the other line for these new entries; set other
   line /dev/null; this is stop gap until next time we update volcanic emission inventories, at which
   point will provide (for AMIP and AMIP.20C) separate explosive and degassing emissions
