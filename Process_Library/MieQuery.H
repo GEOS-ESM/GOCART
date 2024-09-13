@@ -118,6 +118,10 @@
        rEff = 1.E6* __RHINTERP2__(this%rEff, irh, arh, bin, rEff)
      endif
 
+     if(present(rhop)) then
+       rhop = __RHINTERP2__(this%rhop, irh, arh, bin, rhop)
+     endif
+
      if(present(p11)) then
        p11 =  __RHINTERP3__(this%p11, irh, arh, channel, bin, p11)
      endif
@@ -128,6 +132,10 @@
 
      if(present(gf)) then
        gf =  __RHINTERP2__(this%gf, irh, arh, bin, gf)
+     endif
+
+     if(present(rhop)) then
+       rhop =  __RHINTERP2__(this%rhop, irh, arh, bin, rhop)
      endif
 
      if(present(rhod)) then
