@@ -32,4 +32,4 @@
 #            Global | nbgl  | Global
 # ------------------+-------+------------
 
-CO_instances: full bbae bbna bbla bbaf bbgl nbas nbna nbeu nbgl
+CO_instances: full

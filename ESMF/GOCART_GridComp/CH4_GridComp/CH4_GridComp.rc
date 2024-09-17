@@ -11,4 +11,4 @@
 #  All instances    | full  | -1
 # ------------------|-------|------------
 
-CH4_instances: full ind agw bf bb wetl minn
+CH4_instances: full

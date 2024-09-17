@@ -1,39 +1,106 @@
 PrimaryExports%%
-# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
-#  Import      |       |       | Regrid |        Refresh       | OffSet | Scale  | Variable On |   File   |
-#  Name        | Units | Clim  | Method |     Time Template    | Factor | Factor |     File    | Template |
-# -------------|-------|-------|--------|----------------------|--------|--------|-------------|----------|
-CH4_sfcFluxanimls NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_ANIMLS /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxcoal   NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_COAL   /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxleak   NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_LEAK   /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxgasvnt NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_GASVNT /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxhydz   NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_HYDZ   /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxmsw    NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_MSW    /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxsoilab NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_SOILAB /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxtrmite NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_TRMITE /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxbogs   NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_BOGS   /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxburn   NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_BURN   /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxricec  NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_RICEC  /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxswamps NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_SWAMPS /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxtundra NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_TUNDRA /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxbf     NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_BF     /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_sfcFluxtot    NA  Y Y %y4-%m2-%d2t12:00:00 none none CH4_TOT    /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/emist_plusCH4WangAposteriori.x288_y181_z72_t12.2006.nc 
-CH4_ohanimls      NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohcoal        NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohleak        NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohgasvnt      NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohhydz        NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohmsw         NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohsoilab      NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohtrmite      NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohbogs        NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohburn        NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohricec       NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohswamps      NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohtundra      NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohbf          NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc 
-CH4_ohtot         NA  Y Y %y4-%m2-%d2t12:00:00 none none oh         /discover/nobackup/projects/gmao/share/dasilva/fvInput/g5chem/L72/gmi_oh_ch4_h2o2_no3.x144_y91_z72_t12.2006.nc
-#
-CH4_regionMask    NA  N v - none none REGION_MASK ExtData/g5chem/sfc/ARCTAS.region_mask.x540_y361.2008.nc 
+# A = Climatology? Y/N; B = Conservative regridding? Y/N
+#-------------------+-------------------+-+-+---------------------+--------+--------+------------------------------------
+# Export name       | Units             |A|B| Time template       | Offset | Scale  | Variable    | File template
+#-------------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------
+  CH4_industr        'kg CH4 m-2 s-1'    N Y F%y4-%m2-%d2t12:00:00  none     none     emch4ind      /discover/nobackup/bweir/fluxes/carbon/v2020/CH4/mEDGAR/medgar-v50.emis_ch4.x3600_y1800.%y4%m2.nc
+  CH4_agwaste        'kg CH4 m-2 s-1'    N Y F%y4-%m2-%d2t12:00:00  none     none     emch4agw      /discover/nobackup/bweir/fluxes/carbon/v2020/CH4/mEDGAR/medgar-v50.emis_ch4.x3600_y1800.%y4%m2.nc
+  CH4_biofuel        'kg CH4 m-2 s-1'    N Y F%y4-%m2-%d2t12:00:00  none     none     emch4bf       /discover/nobackup/bweir/fluxes/carbon/v2020/CH4/mEDGAR/medgar-v50.emis_ch4.x3600_y1800.%y4%m2.nc
+
+  CH4_bioburn        'kg CH4 m-2 s-1'    N Y F%y4-%m2-%d2t12:00:00  none     none     biomass       ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_ch4.061.%y4%m2%d2.nc4
+
+  CH4_wetland        'kg CH4 m-2 s-1'    N Y  %y4-%m2-%d2t12:00:00  none     none     ch4_wetlands  /discover/nobackup/bweir/fluxes/carbon/v2020/CH4/LPJ/lpj-v2020.emis_ch4.x720_y360.daily.%y4.nc
+  CH4_minnatl        'kg CH4 m-2 s-1'    Y Y  %y4-%m2-%d2t12:00:00  none     none     ch4_natl      /discover/nobackup/bweir/fluxes/carbon/v2020/CH4/minor_natural-v2.emis_ch4.x576_y361.t14.2000.nc
+
+  CH4_oh             'molec cm-3'        Y Y  %y4-%m2-%d2t12:00:00  none     none     oh            /discover/nobackup/bweir/fluxes/carbon/v2020/gmi_oxidants-v2.x144_y91_z72.t12.2006.nc
+  CH4_cl             'molec cm-3'        Y Y  %y4-%m2-%d2t12:00:00  none     none     cl            /discover/nobackup/bweir/fluxes/carbon/v2020/gmi_oxidants-v2.x144_y91_z72.t12.2006.nc
+  CH4_o1d            'molec cm-3'        Y Y  %y4-%m2-%d2t12:00:00  none     none     o1d           /discover/nobackup/bweir/fluxes/carbon/v2020/gmi_oxidants-v2.x144_y91_z72.t12.2006.nc
+
+  CH4_regionMask      NA                 N V   -                    none     none     REGION_MASK   ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
+
+# Turn OFF unused exports for single-source variables
+#-------------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------
+  CH4_agwasteind      NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_biofuelind      NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_bioburnind      NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_wetlandind      NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_minnatlind      NA                 Y Y  -                     none     none     none          /dev/null
+
+  CH4_industragw      NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_biofuelagw      NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_bioburnagw      NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_wetlandagw      NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_minnatlagw      NA                 Y Y  -                     none     none     none          /dev/null
+
+  CH4_industrbf       NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_agwastebf       NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_bioburnbf       NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_wetlandbf       NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_minnatlbf       NA                 Y Y  -                     none     none     none          /dev/null
+
+  CH4_industrbb       NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_agwastebb       NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_biofuelbb       NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_wetlandbb       NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_minnatlbb       NA                 Y Y  -                     none     none     none          /dev/null
+
+  CH4_industrwetl     NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_agwastewetl     NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_biofuelwetl     NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_bioburnwetl     NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_minnatlwetl     NA                 Y Y  -                     none     none     none          /dev/null
+
+  CH4_industrminn     NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_agwasteminn     NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_biofuelminn     NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_bioburnminn     NA                 Y Y  -                     none     none     none          /dev/null
+  CH4_wetlandminn     NA                 Y Y  -                     none     none     none          /dev/null
+# Use negative emissions to keep tracer positive
+  CH4_minnatlminn    'kg CH4 m-2 s-1'    Y Y  %y4-%m2-%d2t12:00:00  none    -1.0      ch4_natl      /discover/nobackup/bweir/fluxes/CH4/ch4_minor_natural_v2.x576_y361.t14.2000.nc 
+#-------------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------
 %%
 
+
+DerivedExports%%
+# Turn ON used exports for single-source variables
+#-------------------+-------------------+---------------------
+# Export name       | Primary name      | Time Template
+#-------------------+-------------------+---------------------
+  CH4_industrind      CH4_industr         %y4-%m2-%d2t12:00:00 
+  CH4_agwasteagw      CH4_agwaste         %y4-%m2-%d2t12:00:00 
+  CH4_biofuelbf       CH4_biofuel         %y4-%m2-%d2t12:00:00
+  CH4_bioburnbb       CH4_bioburn         %y4-%m2-%d2t12:00:00 
+  CH4_wetlandwetl     CH4_wetland         %y4-%m2-%d2t12:00:00 
+
+  CH4_ohind           CH4_oh              %y4-%m2-%d2t12:00:00 
+  CH4_ohagw           CH4_oh              %y4-%m2-%d2t12:00:00 
+  CH4_ohbf            CH4_oh              %y4-%m2-%d2t12:00:00
+  CH4_ohbb            CH4_oh              %y4-%m2-%d2t12:00:00 
+  CH4_ohwetl          CH4_oh              %y4-%m2-%d2t12:00:00 
+  CH4_ohminn          CH4_oh              %y4-%m2-%d2t12:00:00 
+
+  CH4_clind           CH4_cl              %y4-%m2-%d2t12:00:00 
+  CH4_clagw           CH4_cl              %y4-%m2-%d2t12:00:00 
+  CH4_clbf            CH4_cl              %y4-%m2-%d2t12:00:00
+  CH4_clbb            CH4_cl              %y4-%m2-%d2t12:00:00 
+  CH4_clwetl          CH4_cl              %y4-%m2-%d2t12:00:00 
+  CH4_clminn          CH4_cl              %y4-%m2-%d2t12:00:00 
+
+  CH4_o1dind          CH4_o1d             %y4-%m2-%d2t12:00:00 
+  CH4_o1dagw          CH4_o1d             %y4-%m2-%d2t12:00:00 
+  CH4_o1dbf           CH4_o1d             %y4-%m2-%d2t12:00:00
+  CH4_o1dbb           CH4_o1d             %y4-%m2-%d2t12:00:00 
+  CH4_o1dwetl         CH4_o1d             %y4-%m2-%d2t12:00:00 
+  CH4_o1dminn         CH4_o1d             %y4-%m2-%d2t12:00:00 
+
+  CH4_industrsim      CH4_industr         %y4-%m2-%d2t12:00:00 
+  CH4_agwastesim      CH4_agwaste         %y4-%m2-%d2t12:00:00 
+  CH4_biofuelsim      CH4_biofuel         %y4-%m2-%d2t12:00:00
+  CH4_bioburnsim      CH4_bioburn         %y4-%m2-%d2t12:00:00 
+  CH4_wetlandsim      CH4_wetland         %y4-%m2-%d2t12:00:00 
+  CH4_minnatlsim      CH4_minnatl         %y4-%m2-%d2t12:00:00 
+  CH4_ohsim           CH4_oh              %y4-%m2-%d2t12:00:00 
+  CH4_clsim           CH4_cl              %y4-%m2-%d2t12:00:00 
+  CH4_o1dsim          CH4_o1d             %y4-%m2-%d2t12:00:00 
+#-------------------+-------------------+---------------------
+%%

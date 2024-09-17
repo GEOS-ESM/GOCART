@@ -6,8 +6,12 @@
 # -----------------------------------
 DEBUG: 0
 
-# Run-time switch on OH provider units
-# Permissable string is "mol/mol" or "mol mol-1"
-# else resorts to assuming "molecules cm-3"
-#------------------------------------------
-units_oh: 0
+# Run-time switch on OH, Cl, O(O1D) units
+# Permissable string is "mol/mol" or "mol mol-1",
+# otherwise resorts to assuming "molec cm-3"
+#------------------------------------------------
+units_oh: "molec cm-3"
+
+# Photolysis file
+# ---------------
+photolysisFile: /discover/nobackup/qliang/fvInput/Standard/SC.J_20_12_79_72_200_45.jpl15.nc4 

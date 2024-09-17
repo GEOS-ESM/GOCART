@@ -3,18 +3,18 @@ PrimaryExports%%
 #-------------------+-------------------+-+-+---------------------+--------+--------+------------------------------------
 # Export name       | Units             |A|B| Time template       | Offset | Scale  | Variable    | File template
 #-------------------+-------------------+-+-+---------------------+--------+--------+-------------+----------------------
-  CO_BIOMASS         'kg CO m-2 s-1'     N Y  %y4-%m2-%d2t12:00:00  none     1.11     biomass       ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_co.061.%y4%m2%d2.nc4
-  CO_BF              'kg CO m-2 s-1'     N Y  %y4-%m2-%d2t12:00:00  none     1.19     emcobf        /discover/nobackup/bweir/fluxes/carbon/v2020/CO/mEDGAR/medgar-v50.emis_co.x3600_y1800.%y4%m2.nc
+  CO_BIOMASS         'kg CO m-2 s-1'     N Y  %y4-%m2-%d2t12:00:00  none     1.1      biomass       ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_co.061.%y4%m2%d2.nc4
+  CO_BF              'kg CO m-2 s-1'     N Y  %y4-%m2-%d2t12:00:00  none     1.2      emcobf        /discover/nobackup/bweir/fluxes/carbon/v2020/CO/mEDGAR/medgar-v50.emis_co.x3600_y1800.%y4%m2.nc
   CO_FS              'kg CO m-2 s-1'     N Y  %y4-%m2-%d2t12:00:00  none     1.2      emcofs        /discover/nobackup/bweir/fluxes/carbon/v2020/CO/mEDGAR/medgar-v50.emis_co.x3600_y1800.%y4%m2.nc
 
-  CO_ISOP            'kg CO m-2 s-1'     Y Y  %y4-%m2-%d2t12:00:00  none     0.2      emcoisop      /discover/nobackup/bweir/fluxes/carbon/v2020/CO/merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc
-  CO_NVOC            'kg CO m-2 s-1'     Y Y  %y4-%m2-%d2t12:00:00  none     none     emcomnol      /discover/nobackup/bweir/fluxes/carbon/v2020/CO/merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc
-  CO_TERP            'kg CO m-2 s-1'     Y Y  %y4-%m2-%d2t12:00:00  none     none     emcoterp      /discover/nobackup/bweir/fluxes/carbon/v2020/CO/merra2_gmi_biogenic.emis_co.x576_y361.t12.2010-2019.nc
+  CO_ISOP            'kg CO m-2 s-1'     Y Y  %y4-%m2-%d2t12:00:00  none     0.2      emcoisop      /discover/nobackup/bweir/fluxes/carbon/v2020/CO/gmi_biogenic-v1.emis_co.x288_y181.t12.2006.nc
+  CO_NVOC            'kg CO m-2 s-1'     Y Y  %y4-%m2-%d2t12:00:00  none     none     emconvoc      /discover/nobackup/bweir/fluxes/carbon/v2020/CO/gmi_biogenic-v1.emis_co.x288_y181.t12.2006.nc
+  CO_TERP            'kg CO m-2 s-1'     Y Y  %y4-%m2-%d2t12:00:00  none     none     emcoterp      /discover/nobackup/bweir/fluxes/carbon/v2020/CO/gmi_biogenic-v1.emis_co.x288_y181.t12.2006.nc
 
-  CO_CH4             'mol mol-1'         Y Y  %y4-%m2-%d2t12:00:00  none     none     CH4           /discover/nobackup/bweir/fluxes/carbon/v2020/merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
-  CO_OH              'mol mol-1'         Y Y  %y4-%m2-%d2t12:00:00  none     none     OH            /discover/nobackup/bweir/fluxes/carbon/v2020/merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
-  CO_Cl              'mol mol-1'         Y Y  %y4-%m2-%d2t12:00:00  none     none     Cl            /discover/nobackup/bweir/fluxes/carbon/v2020/merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
-  CO_O1D             'mol mol-1'         Y Y  %y4-%m2-%d2t12:00:00  none     none     O1D           /discover/nobackup/bweir/fluxes/carbon/v2020/merra2_gmi_oxidants.x576_y361_z72.monthly.2010-2019%m2.nc
+  CO_CH4             'mol mol-1'         Y Y  %y4-%m2-%d2t12:00:00  none     none     ch4           /discover/nobackup/bweir/fluxes/carbon/v2020/gmi_oxidants-v2.x144_y91_z72.t12.2006.nc
+  CO_OH              'molec cm-3'        Y Y  %y4-%m2-%d2t12:00:00  none     none     oh            /discover/nobackup/bweir/fluxes/carbon/v2020/gmi_oxidants-v2.x144_y91_z72.t12.2006.nc
+  CO_Cl              'molec cm-3'        Y Y  %y4-%m2-%d2t12:00:00  none     none     cl            /discover/nobackup/bweir/fluxes/carbon/v2020/gmi_oxidants-v2.x144_y91_z72.t12.2006.nc
+  CO_O1D             'molec cm-3'        Y Y  %y4-%m2-%d2t12:00:00  none     none     o1d           /discover/nobackup/bweir/fluxes/carbon/v2020/gmi_oxidants-v2.x144_y91_z72.t12.2006.nc
 
   CO_regionMask       NA                 N V   -                    none     none     REGION_MASK   ExtData/PIESA/sfc/ARCTAS.region_mask.x540_y361.2008.nc
 
