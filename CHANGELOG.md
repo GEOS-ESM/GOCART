@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Corrected the units of the gravimetric soil moisture to percent instead of fractional in the FENGSHA dust scheme.
 - Fix issue of GOCART/GEOSgcm circular CMake dependencies when used as external project
 - Fix UFS/Standalone CMake issue
+- Fix type of `k` in `SUvolcanicEmissions`
 
 ### Added
 
