@@ -96,6 +96,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
       real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
       !logical :: firstRun = .true.
+      real, allocatable  :: rmed(:)  ! Median radius of lognormal number distribution
       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
 
@@ -187,6 +188,7 @@ contains
 !   process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
+    allocate(self%rmed(self%nbins), __STAT__)
     allocate(self%sigma(self%nbins), __STAT__)
 
 !   process SU-specific items
@@ -194,6 +196,7 @@ contains
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_explosive, label='volcano_srcfilen_explosive:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%rmed, label='particle_radius_number:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%sigma, label='sigma:', __RC__)
     call ESMF_ConfigFindLabel (cfg, 'aviation_vertical_layers:', __RC__)
     do i=1,size(self%aviation_layers)
@@ -936,7 +939,7 @@ contains
 
     if (associated(dms)) then
        call DMSemission (self%km, self%cdt, MAPL_GRAV, t, u10m, v10m, lwi, delp, &
-                         fMassDMS, SU_DMSO, dms, SUEM, nDMS, __RC__)
+                         fMassDMS, dmso_conc, dms, SUEM, nDMS, __RC__)
     end if
 
 !   Add source of OCS-produced SO2
@@ -1144,7 +1147,7 @@ contains
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
-    call SU_Compute_Diags ( self%km, self%klid, self%radius(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
+    call SU_Compute_Diags ( self%km, self%klid, self%rmed(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_Mie, &
                             self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
                             t, airdens, delp, ple,tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
@@ -1163,7 +1166,7 @@ contains
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
     RH20(:,:,:) = 0.20
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),&
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1173,7 +1176,7 @@ contains
                             scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%radius(nSO4), sigma=self%sigma(nSO4),&
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
