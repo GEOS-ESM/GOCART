@@ -24,12 +24,7 @@ the specification, but testing shows nearly zero-diff result.
 
 - Also now present in the carbon instance RC files is a run-time configurable optional
 parameterized loss rate (e-folding time in days) per species and per mode. Default value for all is
-set to "-1" which means no use of this function. It has been tested separately for hydrophilic
-brown carbon (-1 6.0) which favorably improves OA:BC ratio for southern African biomass burning.
-This requires additional rescaling of BB emissions (increase scaling from 0.778->0.9 for BC and
-0.778->1.25 for BR) to compensate for increased loss (in second case) and to improve simulation of
-BC (in first case). This requires further testing before recommending configuration changes, but as
-defined in default it is zero-diff.
+set to "-1" which means no use of this function.
 
 ### Fixed
 
