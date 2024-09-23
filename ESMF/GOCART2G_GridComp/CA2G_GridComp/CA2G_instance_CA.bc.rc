@@ -3,7 +3,7 @@
 #
 
 aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BC.v1_3.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_BC.v1_3.nc
+aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_BC.v1_6.nc
 
 # Aircraft emission factor: convert input unit to kg C
 aircraft_fuel_emission_factor: 1.0000
@@ -34,8 +34,6 @@ fnum: 1.50e19  1.50e19
 
 # Number median radius [um]
 particle_radius_microns: 0.35 0.35
-
-rhFlag: 0
 
 # Sigma of lognormal number distribution
 sigma: 2.0  2.0

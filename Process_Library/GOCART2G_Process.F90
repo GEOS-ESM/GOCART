@@ -1,13 +1,4 @@
-#define __SUCCESS__ 0
-#define __FAIL__ 1
-#define __VERIFY__(x) if(x/=0) then; if(present(rc)) rc=x; return; endif
-#define __VERIFY_NO_OPT__(x) if(x/=0) then; rc=x; return; endif
-#define __RC__ rc=status); __VERIFY__(status
-#define __RC_NO_OPT__ rc=status); __VERIFY_NO_OPT__(status
-#define __STAT__ stat=status); __VERIFY__(status
-#define __IOSTAT__ iostat=status); __VERIFY__(status
-#define __RETURN__(x) if (present(rc)) rc=x; return
-#define __ASSERT__(expr) if(.not. (expr)) then; if (present(rc)) rc=-1; return; endif
+#include "Process.H"
 !-------------------------------------------------------------------------
 !
 ! !MODULE: GOCART2G_Process -- GOCART2G process library
@@ -179,7 +170,7 @@ CONTAINS
 ! !IROUTINE: soilMoistureConvertVol2Grav - volumetric to gravimetric soil moisture
 !
 ! !INTERFACE:
-   real function soilMoistureConvertVol2Grav(vsoil, sandfrac, rhop)
+   real function soilMoistureConvertVol2Grav(vsoil, sandfrac)
 
 ! !USES:
    implicit NONE
@@ -187,7 +178,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
    real, intent(in) :: vsoil       ! volumetric soil moisture fraction [1]
    real, intent(in) :: sandfrac    ! fractional sand content [1]
-   real, intent(in) :: rhop        ! dry dust density [kg m-3]
 
 ! !DESCRIPTION: Convert soil moisture fraction from volumetric to gravimetric.
 !
@@ -201,16 +191,16 @@ CONTAINS
 
 !  !CONSTANTS:
    real, parameter :: rhow = 1000.    ! density of water [kg m-3]
-
+   real, parameter :: rhop = 1700. 
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...
 
 !  Saturated volumetric water content (sand-dependent) ! [m3 m-3]
-   vsat = 0.489 - 0.00126 * ( 100. * sandfrac )
+   vsat = 0.489 - 0.126 * sandfrac 
 
 !  Gravimetric soil content
-   soilMoistureConvertVol2Grav = vsoil * rhow / (rhop * (1. - vsat))
+   soilMoistureConvertVol2Grav = 100. * vsoil * rhow / (rhop * (1. - vsat))
 
    end function soilMoistureConvertVol2Grav
 
@@ -220,7 +210,7 @@ CONTAINS
 ! !IROUTINE: moistureCorrectionFecan - Correction factor for Fecan soil moisture
 !
 ! !INTERFACE:
-   real function moistureCorrectionFecan(slc, sand, clay, rhop)
+   real function moistureCorrectionFecan(slc, sand, clay, b)
 
 ! !USES:
    implicit NONE
@@ -229,7 +219,7 @@ CONTAINS
    real, intent(in) :: slc     ! liquid water content of top soil layer, volumetric fraction [1]
    real, intent(in) :: sand    ! fractional sand content [1]
    real, intent(in) :: clay    ! fractional clay content [1]
-   real, intent(in) :: rhop    ! dry dust density [kg m-3]
+   real, intent(in) :: b       ! drylimit factor from zender 2003 
 
 ! !DESCRIPTION: Compute correction factor to account for Fecal soil moisture
 !
@@ -247,10 +237,10 @@ CONTAINS
 !  Begin...
 
 !  Convert soil moisture from volumetric to gravimetric
-   grvsoilm = soilMoistureConvertVol2Grav(slc, sand, rhop)
+   grvsoilm = soilMoistureConvertVol2Grav(slc, sand)
 
 !  Compute fecan dry limit
-   drylimit = clay * (14.0 * clay + 17.0)
+   drylimit = b * clay * (14.0 * clay + 17.0)
 
 !  Compute soil moisture correction
    moistureCorrectionFecan = sqrt(1.0 + 1.21 * max(0., grvsoilm - drylimit)**0.68)
@@ -304,7 +294,7 @@ CONTAINS
 ! !INTERFACE:
    subroutine DustEmissionFENGSHA(fraclake, fracsnow, oro, slc, clay, sand, silt,  &
                                   ssm, rdrag, airdens, ustar, uthrs, alpha, gamma, &
-                                  kvhmax, grav, rhop, distribution, emissions, rc)
+                                  kvhmax, grav, rhop, distribution, drylimit_factor, moist_correct, emissions, rc)
 
 ! !USES:
    implicit NONE
@@ -328,7 +318,8 @@ CONTAINS
    real,                 intent(in) :: grav     ! gravity [m/sec^2]
    real, dimension(:),   intent(in) :: rhop            ! soil class density [kg/m^3]
    real, dimension(:),   intent(in) :: distribution    ! normalized dust binned distribution [1]
-
+   real,                 intent(in) :: drylimit_factor ! drylimit tuning factor from zender2003 
+   real,                 intent(in) :: moist_correct   ! moisture correction factor
 ! !OUTPUT PARAMETERS:
    real,    intent(out) :: emissions(:,:,:)     ! binned surface emissions [kg/(m^2 sec)]
    integer, intent(out) :: rc                   ! Error return code: __SUCCESS__ or __FAIL__
@@ -353,6 +344,7 @@ CONTAINS
    real                  :: rustar
    real                  :: total_emissions
    real                  :: u_sum, u_thresh
+   real                  :: smois
 
 ! !CONSTANTS:
    real, parameter       :: ssm_thresh = 1.e-02    ! emit above this erodibility threshold [1]
@@ -406,24 +398,25 @@ CONTAINS
          !  Compute threshold wind friction velocity using drag partition
          !  -------------------------------------------------------------
          rustar = rdrag(i,j) * ustar(i,j)
+         
+         ! Fecan moisture correction
+         ! -------------------------
+         smois = slc(i,j) * moist_correct
+         h = moistureCorrectionFecan(smois, sand(i,j), clay(i,j), drylimit_factor)
 
+         ! Adjust threshold
+         ! ----------------
+         u_thresh = uthrs(i,j) * h
+         
+         u_sum = rustar + u_thresh
+         
+         ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
+         ! ---------------------------------------------------------------------------
+         q = max(0., rustar - u_thresh) * u_sum * u_sum
+         
          !  Now compute size-dependent total emission flux
          !  ----------------------------------------------
          do n = 1, nbins
-           ! Fecan moisture correction
-           ! -------------------------
-           h = moistureCorrectionFecan(slc(i,j), sand(i,j), clay(i,j), rhop(n))
-
-           ! Adjust threshold
-           ! ----------------
-           u_thresh = uthrs(i,j) * h
-
-           u_sum = rustar + u_thresh
-
-           ! Compute Horizontal Saltation Flux according to Eq (9) in Webb et al. (2020)
-           ! ---------------------------------------------------------------------------
-           q = max(0., rustar - u_thresh) * u_sum * u_sum
-
            ! Distribute emissions to bins and convert to mass flux (kg s-1)
            ! --------------------------------------------------------------
            emissions(i,j,n) = distribution(n) * total_emissions * q
@@ -1093,9 +1086,9 @@ CONTAINS
 !BOP
 ! !IROUTINE: Chem_SettlingSimple
 
-   subroutine Chem_SettlingSimple ( km, klid, flag, cdt, grav, &
-                                    radiusInp, rhopInp, int_qa, tmpu, &
-                                    rhoa, rh, hghte, delp, fluxout,  &
+   subroutine Chem_SettlingSimple ( km, klid, mie, bin, cdt, grav, &
+                                    int_qa, tmpu, rhoa, rh, hghte, &
+                                    delp, fluxout,  &
                                     vsettleOut, correctionMaring, rc)
 
 ! !USES:
@@ -1105,11 +1098,10 @@ CONTAINS
 ! !INPUT PARAMETERS:
    integer, intent(in)    :: km     ! total model levels
    integer, intent(in)    :: klid   ! index for pressure lid
-   integer, intent(in) :: flag     ! flag to control particle swelling (see note)
+   type(GOCART2G_Mie),  intent(in) :: mie        ! mie table
+   integer, intent(in)    :: bin    ! aerosol bin index
    real, intent(in)    :: cdt
    real, intent(in)    :: grav   ! gravity [m/sec^2]
-   real, intent(in)  :: radiusInp  ! particle radius [microns]
-   real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in)  :: rhoa   ! air density [kg/m^3]
@@ -1134,13 +1126,11 @@ CONTAINS
 
 ! !DESCRIPTION: Gravitational settling of aerosol between vertical
 !               layers.  Assumes input radius in [m] and density (rhop)
-!               in [kg m-3]. If flag is set, use the Fitzgerald 1975 (flag = 1)
-!               or Gerber 1985 (flag = 2) parameterization to update the
-!               particle radius for the calculation (local variables radius
-!               and rhop).
+!               in [kg m-3]arrays from the optics files. 
 !
 ! !REVISION HISTORY:
-!
+!  02Jan2024  Collow    Removed calls to particle swelling and added 
+!                       interpolation based on RH
 !  17Sep2004  Colarco   Strengthen sedimentation flux out at surface
 !                       by setting removal to be valid from middle of
 !                       surface layer
@@ -1201,10 +1191,10 @@ CONTAINS
    enddo
 
 !  If radius le 0 then get out
-   if(radiusInp .le. 0.) then
-      status = 100
-      __RETURN__(STATUS)
-   end if
+!   if(radiusInp .le. 0.) then
+!      status = 100
+!      __RETURN__(STATUS)
+!   end if
 
 !   Find the column dry mass before sedimentation
     do k = klid, km
@@ -1215,22 +1205,23 @@ CONTAINS
        enddo
     enddo
 
-!   Particle swelling
-    call ParticleSwelling(i1, i2, j1, j2, km, rh, radiusInp, rhopInp, radius, rhop, flag)
-
+! Find radius and density of the wet particle
+    call mie%Query(550e-9,bin,   &
+                         qa*delp/grav, &
+                         rh, reff=radius, rhop=rhop, __RC__)  
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
           do i = i1, i2
-             call Chem_CalcVsettle(radius(i,j,k), rhop(i,j,k), rhoa(i,j,k), &
+            call Chem_CalcVsettle(radius(i,j,k)*1.e-6, rhop(i,j,k), rhoa(i,j,k), &
                                    tmpu(i,j,k), vsettle(i,j,k), grav)
           end do
        end do
     end do
-
+ 
     if(present(correctionMaring)) then
        if (correctionMaring) then
-          vsettle = max(1.0e-9, vsettle - v_upwardMaring)
+            vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
 
@@ -1253,7 +1244,6 @@ CONTAINS
     if( associated(fluxout) ) then
        fluxout(:,:) = (cmass_before - cmass_after)/cdt
     endif
-
     int_qa = qa
 
    __RETURN__(__SUCCESS__)
@@ -1280,7 +1270,7 @@ CONTAINS
    integer, intent(in) :: flag     ! flag to control particle swelling (see note)
    real, intent(in)    :: cdt
    real, intent(in)    :: grav   ! gravity [m/sec^2]
-   real, intent(in)  :: radiusInp  ! particle radius [microns]
+   real, intent(in)  :: radiusInp  ! particle radius [meters] (converted from microns in call to function)
    real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
@@ -5746,7 +5736,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: SUvolcanicEmissions
 
    subroutine SUvolcanicEmissions (nVolc, vStart, vEnd, vSO2, vElev, vCloud, iPoint, &
-                                   jPoint, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SU_emis, km, cdt, grav,&
+                                   jPoint, nhms, SO2EMVol, SO2, nSO2, SU_emis, km, cdt, grav,&
                                    hghte, delp, area, vLat, vLon, rc)
 ! !USES:
    implicit NONE
@@ -5770,8 +5760,7 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:), intent(in)     :: vLat  ! latitude specified in file [degree]
    real, dimension(:), intent(in)     :: vLon  ! longitude specified in file [degree]
 ! !INOUT PARAMETERS:
-  real, pointer, dimension(:,:), intent(inout) :: SO2EMVN ! non-explosive volcanic emissions [kg m-2 s-1]
-  real, pointer, dimension(:,:), intent(inout) :: SO2EMVE ! explosive volcanic emissions [kg m-2 s-1]
+  real, pointer, dimension(:,:), intent(inout) :: SO2EMVol ! volcanic emissions [kg m-2 s-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SO2 ! SO2 [kg kg-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SU_emis      ! SU emissions, kg/m2/s
   real, dimension(:), intent(inout) ::  vElev ! bottom elevation of emissions [m]
@@ -5795,7 +5784,6 @@ K_LOOP: do k = km, 1, -1
    real :: deltaSO2v
    real, dimension(:,:), allocatable :: z0
    real, allocatable, dimension(:,:) :: srcSO2volc
-   real, allocatable, dimension(:,:) :: srcSO2volce
 
 !EOP
 !-------------------------------------------------------------------------
@@ -5804,13 +5792,9 @@ K_LOOP: do k = km, 1, -1
    if (nVolc > 0) then
 
    allocate(srcSO2volc, mold=area)
-   allocate(srcSO2volce, mold=area)
    srcSO2volc = 0.
-   srcSO2volce = 0.
 
-   if (associated(SU_emis)) SU_emis = 0.0
-   if (associated(SO2EMVN)) SO2EMVN = 0.
-   if (associated(SO2EMVE)) SO2EMVE = 0.
+   if (associated(SO2EMVol)) SO2EMVol = 0.
 
    allocate(z0, mold=area)
    z0 = hghte(:,:,km)
@@ -5849,11 +5833,7 @@ K_LOOP: do k = km, 1, -1
 
 !        Diagnostic - sum of volcanos
 !        ----------------------------
-         if (hup .eq. hlow) then
-            srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
-         else
-            srcSO2volce(i,j) = srcSO2volce(i,j) + so2volcano
-         endif
+         srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
 
          dzvolc = hup-hlow
          do k = km, 1, -1
@@ -5900,9 +5880,8 @@ K_LOOP: do k = km, 1, -1
    enddo     ! it
   end if ! nVolc > 0
 
-  if (associated(SO2EMVN)) SO2EMVN = SO2EMVN + srcSO2volc
-  if (associated(SO2EMVE)) SO2EMVE = SO2EMVE + srcSO2volce
-  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc + srcSO2volce
+  if (associated(SO2EMVol)) SO2EMVol = SO2EMVol + srcSO2volc
+  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc
 
   __RETURN__(__SUCCESS__)
   end subroutine SUvolcanicEmissions

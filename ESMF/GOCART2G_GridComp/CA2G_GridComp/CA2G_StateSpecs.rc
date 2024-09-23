@@ -98,10 +98,10 @@ category: EXPORT
  *PSOA        | kg m-2 s-1   | xy    | N     |                                | * Aerosol SOA Production
  *SMASS       | kg m-3       | xy    | N     |                                | * Aerosol Surface Mass Concentration
  *CMASS       | kg m-2       | xy    | N     |                                | * Aerosol Column Mass Density
- *EXTTAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Extinction AOT
- *STEXTTAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Extinction AOT Stratosphere
- *SCATAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Scattering AOT
- *STSCATAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Scattering AOT Stratosphere
+ *EXTTAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Optical Depth
+ *STEXTTAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | * Stratospheric Aerosol Optical Thickness
+ *SCATAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Optical Depth Due to Scattering
+ *STSCATAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | * Stratospheric Aerosol Optical Thickness Due to Scattering
  *ANGSTR      | 1            | xy    | N     |                                | * Aerosol Angstrom parameter [470-870 nm]
  *FLUXU       | kg m-1 s-1   | xy    | N     |                                | * Aerosol column u-wind mass flux
  *FLUXV       | kg m-1 s-1   | xy    | N     |                                | * Aerosol column v-wind mass flux
