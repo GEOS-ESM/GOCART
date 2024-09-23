@@ -45,14 +45,11 @@ particle_radius_number: -1  -1  0.0695  -1
 # Sigma of lognormal number distribution
 sigma: -1  -1  2.03  -1
 
-# OH H2O2 NO3 from GMI Combined Stratosphere Troposphere (Lower case yes to enable)
+# OH H2O2 NO3 from GMI Combined Stratosphere Troposphere (default .false.)
 # -------------------------------------------------------------------------------------
-#using_GMI_OH: no
-#using_GMI_NO3: no
-#using_GMI_H2O2: no
-export_H2O2: no
-using_GMI_OH: .false.
-using_GMI_NO3: .false.
-using_GMI_H2O2: .false.
 using_GMI: .false.
+
+# Disable ExtData emissions (default .false.)
+# ------------------------------------------------------------------------------------
 disable_emissions: .false.
+

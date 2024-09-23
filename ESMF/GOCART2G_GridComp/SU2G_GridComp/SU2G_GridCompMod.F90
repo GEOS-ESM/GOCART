@@ -1204,21 +1204,7 @@ contains
      xoh = GMI_OH
      xh2o2 = GMI_H2O2
      xno3 = GMI_NO3
-!     GMI_OHmr   = GMI_OH
-!     GMI_NO3mr  = GMI_NO3
-!     GMI_H2O2mr = GMI_H2O2
-!     xno3(i1:i2,j1:j2,1:km)  = GMI_NO3mr(i1:i2,j1:j2,1:km)
-!     WHERE(xno3(i1:i2,j1:j2,1:km) < 0.00) xno3(i1:i2,j1:j2,1:km) = 0.00
-!     xh2o2(i1:i2,j1:j2,1:km) = GMI_H2O2mr(i1:i2,j1:j2,1:km)
-!     WHERE(xh2o2(i1:i2,j1:j2,1:km) < 0.00) xh2o2(i1:i2,j1:j2,1:km) = 0.00
-!     xoh(i1:i2,j1:j2,1:km) =  GMI_OHmr(i1:i2,j1:j2,1:km)* &
-!                              MAPL_AVOGAD / MAPL_AIRMW * 1000.* &
-!                              airdens(i1:i2,j1:j2,1:km)*1.00E-06
-!if(MAPL_AM_I_ROOT()) print *, 'here1', xoh(i1,j1,km)
      xoh =  xoh * (MAPL_AVOGAD/1000.) / MAPL_AIRMW * 1000. * airdens*1.00E-06
-!     WHERE(xoh(i1:i2,j1:j2,1:km) < 0.00) xoh(i1:i2,j1:j2,1:km) = 0.00
-!if(MAPL_AM_I_ROOT()) print *, (MAPL_AVOGAD/1000.) / MAPL_AIRMW * 1000.*1e-6
-!if(MAPL_AM_I_ROOT()) print *, 'here2', xoh(i1,j1,km)
      call MAPL_MaxMin ( 'GMI:OH   ', xoh)
      call MAPL_MaxMin ( 'GMI:H2O2 ', xh2o2)
      call MAPL_MaxMin ( 'GMI:NO3  ', xno3)
@@ -1244,7 +1230,8 @@ contains
      call MAPL_MaxMin ( 'GOCART:OH   ', xoh)
      call MAPL_MaxMin ( 'GOCART:H2O2 ', xh2o2)
      call MAPL_MaxMin ( 'GOCART:NO3  ', xno3)
-
+  xno3 = 0.0
+1230
     endif
 
 !   SU Settling
