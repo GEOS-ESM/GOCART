@@ -5776,11 +5776,11 @@ K_LOOP: do k = km, 1, -1
 ! 22July2020 E.Sherman
 !
 ! !Local Variables
-   integer  ::  i, j, it
+   integer  ::  i, j, k, it
    real, dimension(:,:,:), allocatable  :: emissions_point
    real :: so2volcano
 
-   real :: hup, hlow, dzvolc, dz, z1, k
+   real :: hup, hlow, dzvolc, dz, z1
    real :: deltaSO2v
    real, dimension(:,:), allocatable :: z0
    real, allocatable, dimension(:,:) :: srcSO2volc
