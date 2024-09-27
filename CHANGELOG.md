@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modified the file paths in carbon, sulfate, and nitrate ExtData.yaml files to used the revised version of the CEDS anthropogenic emissions. Note the previous version has an incorrect seasonal cycle.
 - Sulfate surface area density calculation in SU_Compute_Diags was incorrectly being passed the effective radius used for settling along with the sigma width of the number distribution. Properly it should be passed the number median radius, also present in the RC file. Added a hook to read that field from the RC file ("particle_radius_number"), store in SU grid comp, and pass to SU_Compute_Diags. This change is zero-diff to the SU internal state. It changes value of export SO4AREA.
 - Changed DMS concentration data holder from ExtData provided (SU_DMSO) to local copy (dmso_conc). This is relevant since if we run source tagged instances where we don't want DMS emissions we would zero out dmso_conc and that is what should be passed to DMSemission subroutine. This is zero diff except in that case.
+- It changes the formulation of the hydrophobic to hydrophilic conversion for carbon species,
+now defined by a time scale specified in the instance RC file. This is now specified by providing
+an e-folding time in days. This moves the time constant from outside the fortran to the run-time
+configurable RC file. This is not quite zero-diff with original code because of the precision of
+the specification, but testing shows nearly zero-diff result.
+
+- Also now present in the carbon instance RC files is a run-time configurable optional
+parameterized loss rate (e-folding time in days) per species and per mode. Default value for all is
+set to "-1" which means no use of this function.
 
 ### Fixed
 
@@ -33,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Additional tuning parameters for the soil moisture and drylimit calculations for application specific tuning.
 - Required attributes for the 2D GOCART export fields in AERO_DP bundle have been set in subroutine append_to_bundle in Chem_AeroGeneric.F90. These export fields are imported by OBIO via Surface GC, and the missing of the attributes was causing the writing of surface import checkpoint to fail. The issue has been explained in detail on https://github.com/GEOS-ESM/GOCART/issues/258
-
 - Added export line to GOCART2G_GridCompMod to couple allow use of GOCART
   SU sulfate production tendency elsewhere in Chemistry, specifically for
   CARMA
