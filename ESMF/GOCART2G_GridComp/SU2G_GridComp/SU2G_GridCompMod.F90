@@ -1230,8 +1230,7 @@ contains
      call MAPL_MaxMin ( 'GOCART:OH   ', xoh)
      call MAPL_MaxMin ( 'GOCART:H2O2 ', xh2o2)
      call MAPL_MaxMin ( 'GOCART:NO3  ', xno3)
-  xno3 = 0.0
-1230
+
     endif
 
 !   SU Settling
