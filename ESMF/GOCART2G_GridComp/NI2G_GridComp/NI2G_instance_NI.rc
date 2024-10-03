@@ -31,3 +31,9 @@ sigma: 2.0  2.0  2.0  2.0  2.0
 pressure_lid_in_hPa: 0.01
 
 rhFlag: 0
+
+
+# HNO3 from GMI (default: .false.)
+# -------------------------------
+using_GMI: .true.
+

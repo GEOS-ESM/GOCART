@@ -58,6 +58,10 @@ integer, parameter     :: DP = kind(1.0d0)
        !real, allocatable :: xhno3(:,:,:)   ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]; moved to ESMF internal state
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
+
+       !CM: logic for GMI coupling
+       logical :: using_GMI
+        
        type(ThreadWorkspace), allocatable :: workspaces(:)
    end type NI2G_GridComp
 
@@ -132,6 +136,9 @@ contains
 
     ! process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
+    
+    ! process NI specific items
+    call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', __RC__)    
 
 !   Is NI data driven?
 !   ------------------
@@ -226,6 +233,19 @@ contains
           restart=MAPL_RestartOptional, __RC__)
     end if ! (data_driven)
 
+! CM comment: not sure why I have to explicitly AddImportSpec GMI_HNO3 
+! here again if included already in the  StateSpec. Compiler complained if
+! GMI_HNO3 was def here but not in the StateSpec, but not viceversa.
+    if(self%using_GMI) then
+
+       call MAPL_AddImportSpec(GC,                           &
+          SHORT_NAME = 'GMI_HNO3',                             &
+          LONG_NAME  = 'nitric_acid',                   &
+          UNITS      = 'mol/mol',                            &
+          DIMS       = MAPL_DimsHorzVert,                    &
+          VLOCATION  = MAPL_VLocationCenter,                 &
+          RESTART    = MAPL_RestartSkip,     __RC__)
+    endif 
 
 !   Import, Export, Internal states for computational instance 
 !   ----------------------------------------------------------
@@ -276,7 +296,7 @@ contains
     integer, optional,    intent(  out) :: RC     ! Error code
 
 ! !DESCRIPTION: This initializes the Nitrate gridded component. It primaryily 
-!               fills GOCART's AERO states with its nitrate fields. 
+!         /      fills GOCART's AERO states with its nitrate fields. 
 
 ! !REVISION HISTORY: 
 ! 30June2020   E.Sherman  First attempt at refactoring
@@ -772,25 +792,32 @@ contains
 
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
+    
+    if(self%using_GMI) then
+      
+      xhno3 = GMI_HNO3
+      call MAPL_MaxMin ( 'GMI:HNO3  ', xhno3)
+    
+    else
+      !check hno3 alarm
+      call ESMF_ClockGetAlarm(clock, 'HNO3_RECYCLE_ALARM', alarm, __RC__)
+      alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
 
-!   check hno3 alarm
-    call ESMF_ClockGetAlarm(clock, 'HNO3_RECYCLE_ALARM', alarm, __RC__)
-    alarm_is_ringing = ESMF_AlarmIsRinging(alarm, __RC__)
+      !Save local copy of HNO3 for first pass through run method regardless
+      thread = MAPL_get_current_thread()
+      workspace => self%workspaces(thread)
 
-!   Save local copy of HNO3 for first pass through run method regardless
-    thread = MAPL_get_current_thread()
-    workspace => self%workspaces(thread)
+      if (workspace%first) then
+         xhno3 = MAPL_UNDEF
+         workspace%first = .false.
+      end if
 
-    if (workspace%first) then
-       xhno3 = MAPL_UNDEF
-       workspace%first = .false.
-    end if
-
-!   Recycle HNO3 every 3 hours
-    if (alarm_is_ringing) then
-       xhno3 = NITRATE_HNO3
-       !call ESMF_AlarmRingerOff(alarm, __RC__)
-    end if
+      !Recycle HNO3 every 3 hours
+      if (alarm_is_ringing) then
+         xhno3 = NITRATE_HNO3
+      !call ESMF_AlarmRingerOff(alarm, __RC__)
+      end if
+    endif
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.

@@ -36,6 +36,7 @@ category: IMPORT
  EMI_NH3_RE   | kg m-2 s-1 | xy   | N    |           | SKIP    | resedential emissions
  EMI_NH3_TR   | kg m-2 s-1 | xy   | N    |           | SKIP    | transport emissions
  NITRATE_HNO3 | kg m-2 s-1 | xyz  | C    |           | SKIP    | nitrate hno3 emissions
+ GMI_HNO3     | 1          | xyz  | C    |           | SKIP    | GMI HNO3 source
  DU           | kg kg-1    | xyz  | C    | 5         | OPT     | Dust Mixing Ratio all bins
  SS           | kg kg-1    | xyz  | C    | 5         | OPT     | Sea Salt Mixing Ratio all bins
  SO4          | kg kg-1    | xyz  | C    |           | OPT     | Sulfate Mixing Ratio
