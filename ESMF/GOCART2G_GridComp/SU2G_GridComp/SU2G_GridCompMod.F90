@@ -1054,6 +1054,10 @@ contains
         call MAPL_MaxMin ( 'GOCART:OH   ', xoh)
         call MAPL_MaxMin ( 'GOCART:H2O2 ', xh2o2)
         call MAPL_MaxMin ( 'GOCART:NO3  ', xno3)
+
+        ! Go from volume mixing ratio to # cm-3 (expected in chemistry)
+        ! aidens = [kg m-3], MAPL_AIRMW = [kg/Kmole], MAPL_AVOGAD = [molecules/mole]
+        xoh = xoh * 1000.*airdens / MAPL_AIRMW * (MAPL_AVOGAD/1000.) * 1.e-6        
     else
         ! external oxident files are monthly, scale these to 3-hourly
         xh2o2 = h2o2_init
