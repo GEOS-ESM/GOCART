@@ -376,8 +376,8 @@ end subroutine DustEmissionSGINOUX
    allocate (emissions_tot(i2,j2))
 
 
-       ! Drag
-   fd            = 1.0 - ( log(z0m/z0ms) / log( 0.35 * ((0.1/z0ms)**0.8) ) )
+       ! Drag (King et al 05)
+   fd            = 1.0 - ( log(z0m/z0ms) / log( 0.7 * ((0.1/z0ms)**0.8) ) )
 
        ! Alpha
        ! alpha   = 100. * exp( (13.4*mclay - 6.)*log(10.) ) ! simplify as below --JJ
