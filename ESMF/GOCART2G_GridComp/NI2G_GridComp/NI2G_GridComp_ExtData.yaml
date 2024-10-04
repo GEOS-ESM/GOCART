@@ -9,10 +9,10 @@ Collections:
     template: ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4
   NI2G_qfed2.emis_nh3.006.%y4%m2%d2.nc4:
     template: ExtData/chemistry/QFED/v2.5r1-nrt/sfc/0.1/Y%y4/M%m2/qfed2.emis_nh3.006.%y4%m2%d2.nc4
-    valid_range: "2014-12-01T12:00/2021-11-01T12:00"
+    valid_range: "2014-12-01T12:00/2017-11-01T12:00"
   NI2G_qfed2.emis_nh3.061.%y4%m2%d2.nc4:
-    template: ExtData/chemistry/QFED/v2.5r1-nrt/sfc/0.1/Y%y4/M%m2/qfed2.emis_nh3.061.%y4%m2%d2.nc4
-    valid_range: "2021-11-01T12:00/2025-01-01"
+    template: ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_nh3.061.%y4%m2%d2.nc4
+    valid_range: "2017-11-01T12:00/2025-01-01"
 
 Samplings:
   NI2G_sample_0:
@@ -37,7 +37,7 @@ Exports:
     variable: nh3_emis
   EMI_NH3_BB:
     - {starting: "2014-12-01T12:00", collection: NI2G_qfed2.emis_nh3.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: NI2G_sample_1, variable: biomass}
-    - {starting: "2021-11-01T12:00", collection: NI2G_qfed2.emis_nh3.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: NI2G_sample_1, variable: biomass}
+    - {starting: "2017-11-01T12:00", collection: NI2G_qfed2.emis_nh3.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: NI2G_sample_1, variable: biomass}
   EMI_NH3_EN:
     collection: NI2G_NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4
     regrid: CONSERVE
