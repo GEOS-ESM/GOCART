@@ -36,15 +36,15 @@ climSUSV004    'kg m-2 s-1'   Y   N               0              0.0      1.0   
 SU_BIOMASS NA  N Y %y4-%m2-%d2t12:00:00 none 0.778 biomass ExtData/chemistry/QFED/v2.6r1/sfc/0.1/Y%y4/M%m2/qfed2.emis_so2.061.%y4%m2%d2.nc4
 
 # Anthropogenic (BF & FF) emissions -- allowed to input as two layers
-SU_ANTHROL1 NA  N Y %y4-%m2-%d2t12:00:00 none none so2_nonenergy  ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
-SU_ANTHROL2 NA  N Y %y4-%m2-%d2t12:00:00 none none so2_energy     ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
+SU_ANTHROL1 NA  N Y %y4-%m2-%d2t12:00:00 none none so2_nonenergy  ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/SO2-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
+SU_ANTHROL2 NA  N Y %y4-%m2-%d2t12:00:00 none none so2_energy     ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/SO2-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
 
 # Ship emissions
-SU_SHIPSO2    NA  N Y %y4-%m2-%d2t12:00:00 none none so2_shipping ExtData/chemistry/CEDS/v2021-04-21/sfc/SO2-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
-SU_SHIPSO4    NA  N Y %y4-%m2-%d2t12:00:00 none none so4_shipping ExtData/chemistry/CEDS/v2021-04-21/sfc/SO4-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+SU_SHIPSO2    NA  N Y %y4-%m2-%d2t12:00:00 none none so2_shipping ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/SO2-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
+SU_SHIPSO4    NA  N Y %y4-%m2-%d2t12:00:00 none none so4_shipping ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/SO4-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
 
 # Aircraft fuel consumption
-SU_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none so2_aviation   ExtData/chemistry/CEDS/v2021-04-21/L72/SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+SU_AIRCRAFT NA  N Y %y4-%m2-%d2t12:00:00 none none so2_aviation   ExtData/chemistry/CEDS/v2021-04-21-revised/L72/SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
 
 # DMS concentration
 SU_DMSO NA  Y Y %y4-%m2-%d2t12:00:00 none none conc ExtData/chemistry/Lana/v2011/DMSclim_sfcconcentration.x360_y181_t12.Lana2011.nc4
