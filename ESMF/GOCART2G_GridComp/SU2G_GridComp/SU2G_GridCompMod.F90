@@ -840,7 +840,6 @@ contains
 !   -----------------------------------------------
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
-
 !   Update Volcanic SO2 Emissions Daily
     if(workspace%nymd_last /= nymd) then
        workspace%nymd_last = nymd
@@ -850,10 +849,16 @@ contains
        if(index(self%volcano_srcfilen_degassing,'volcanic_') /= 0) then
           call StrTemplate(fname, self%volcano_srcfilen_degassing, xid='unknown', &
                             nymd=nymd, nhms=120000 )
-          call ReadPointEmissions (nymd, fname, workspace%nVolc, workspace%vLat, workspace%vLon, &
+          inquire(file=fname, exist=fileExists)
+          if (fileExists) then
+             call ReadPointEmissions (nymd, fname, workspace%nVolc, workspace%vLat, workspace%vLon, &
                                    workspace%vElev, workspace%vCloud, workspace%vSO2, workspace%vStart, &
                                    workspace%vEnd, label='volcano', __RC__)
-          workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
+             workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
+          else
+             print *, 'Error: file not found ',fname
+             stop
+          end if
        end if
 
 !      EXPLOSIVE: Get pointwise SO2 and altitude of volcanoes from a daily file data base
@@ -861,11 +866,18 @@ contains
        if(index(self%volcano_srcfilen_explosive,'volcanic_') /= 0) then
           call StrTemplate(fname, self%volcano_srcfilen_explosive, xid='unknown', &
                             nymd=nymd, nhms=120000 )
-          call ReadPointEmissions (nymd, fname, workspace%nVolcE, workspace%vLatE, workspace%vLonE, &
+          inquire(file=fname, exist=fileExists)
+          if (fileExists) then
+             call ReadPointEmissions (nymd, fname, workspace%nVolcE, workspace%vLatE, workspace%vLonE, &
                                    workspace%vElevE, workspace%vCloudE, workspace%vSO2E, workspace%vStartE, &
                                    workspace%vEndE, label='volcano', __RC__)
-          workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
+             workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
+          else
+              print *, 'Error: file not found ', fname
+              stop
+          end if
        end if
+
     end if
 
 !   DEGASSING: Apply volcanic emissions
