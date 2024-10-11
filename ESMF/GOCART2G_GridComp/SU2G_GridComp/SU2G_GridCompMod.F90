@@ -855,9 +855,6 @@ contains
                                    workspace%vElev, workspace%vCloud, workspace%vSO2, workspace%vStart, &
                                    workspace%vEnd, label='volcano', __RC__)
              workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
-          else
-             print *, 'Error: file not found ',fname
-             stop
           end if
        end if
 
@@ -872,9 +869,6 @@ contains
                                    workspace%vElevE, workspace%vCloudE, workspace%vSO2E, workspace%vStartE, &
                                    workspace%vEndE, label='volcano', __RC__)
              workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
-          else
-              print *, 'Error: file not found ', fname
-              stop
           end if
        end if
 
