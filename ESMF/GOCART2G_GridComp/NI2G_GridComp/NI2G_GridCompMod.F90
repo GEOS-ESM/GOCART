@@ -59,8 +59,9 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
 
-       !CM: logic for GMI coupling
+       !CM: logic for hno3 GMI coupling
        logical :: using_GMI
+       real :: hno3sf 
         
        type(ThreadWorkspace), allocatable :: workspaces(:)
    end type NI2G_GridComp
@@ -139,6 +140,7 @@ contains
     
     ! process NI specific items
     call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', __RC__)    
+    call ESMF_ConfigGetAttribute(cfg, self%hno3sf, label='hno3sf:', __RC__)   
 
 !   Is NI data driven?
 !   ------------------
@@ -795,7 +797,7 @@ contains
     
     if(self%using_GMI) then
       
-      xhno3 = GMI_HNO3
+      xhno3 = GMI_HNO3*(self%hno3sf)
       call MAPL_MaxMin ( 'GMI:HNO3  ', xhno3)
     
     else

@@ -37,3 +37,6 @@ rhFlag: 0
 # -------------------------------
 using_GMI: .true.
 
+# scaling factor for HNO3 from GMI. 
+# Enabled only if using_GMI:.true. (default:1)
+hno3sf: 0.2
