@@ -4786,7 +4786,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !INOUTPUT PARAMETERS:
    real, pointer, dimension(:,:,:), intent(inout)  :: NI_phet   ! Nitrate Production from Het Chem [kg/(m^2 sec)]
-   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
+   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:,:), intent(inout)  :: HNO3_conc ! Nitric Acid Mass Concentration [kg/m^3]
    real, pointer, dimension(:,:), intent(inout)    :: HNO3_sfcmass ! Nitric Acid Surface Mass Concentration [kg/m^3]
    real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^3]
@@ -8345,7 +8345,7 @@ loop2: DO l = 1,nspecies_HL
    real, dimension(:,:,:), intent(inout)  :: NH3    ! Ammonia (NH3, gas phase) [kg kg-1]
    real, dimension(:,:,:), intent(inout)  :: NO3an1 ! Nitrate size bin 001 [kg kg-1]
    real, dimension(:,:,:), intent(inout)  :: NH4a   ! Ammonium ion (NH4+, aerosol phase) [kg kg-1]
-   real, dimension(:,:,:), intent(inout)  :: xhno3  ! buffer for NITRATE_HNO3 [kg m-2 sec-1]
+   real, dimension(:,:,:), intent(inout)  :: xhno3  ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pno3aq ! Nitrate Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh4aq ! Ammonium Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh3aq ! Ammonia Change from Aqueous Chemistry [kg m-2 s-1]
