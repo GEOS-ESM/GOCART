@@ -11,6 +11,18 @@ aircraft_fuel_emission_factor: 1.0000
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
 
+# Input emission pointer names
+aircraft_fuel_src: BC_AIRCRAFT
+biomass_src:       BC_BIOMASS
+biofuel_src:       BC_BIOFUEL
+eocant1_src:       BC_ANTEBC1
+eocant2_src:       BC_ANTEBC2
+ship_src:          BC_SHIP
+aviation_lto_src:  BC_AVIATION_LTO
+aviation_cds_src:  BC_AVIATION_CDS
+aviation_crs_src:  BC_AVIATION_CRS
+
+
 # Initially hydrophobic portion
 hydrophobic_fraction: 0.8
 

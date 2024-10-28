@@ -49,28 +49,39 @@ module CA2G_GridCompMod
            pTop, &
            pEmis
    end type ThreadWorkspace
-      type, extends(GA_Environment) :: CA2G_GridComp
-       integer            :: myDOW = -1   ! my Day of the week: Sun=1, Mon=2,...,Sat=7
-       real               :: ratPOM = 1.0  ! Ratio of POM to OC mass
-       real               :: fMonoterpenes = 0.0 ! Fraction of monoterpene emissions -> aerosol
-       real               :: fIsoprene = 0.0 ! Franction of isoprene emissions -> aerosol
-       real               :: fHydrophobic ! Initially hydrophobic portion
-       real               :: tConvPhobicToPhilic ! e-folding time [days] hydrophobic to hydrophilic
-       real               :: tChemLoss(2)        ! e-folding time [days] for parameterized chemistry loss
-       logical            :: diurnal_bb   ! diurnal biomass burning
-       real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
-       real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
-!      !Workspae for point emissions
-       logical                :: doing_point_emissions = .false.
-       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
-       type(ThreadWorkspace), allocatable :: workspaces(:)
-       integer                         :: nPts = -1
-       integer, allocatable, dimension(:)  :: pstart, pend
-       real, allocatable, dimension(:)     :: pLat, &
-                                              pLon, &
-                                              pBase, &
-                                              pTop, &
-                                              pEmis
+
+   type, extends(GA_Environment) :: CA2G_GridComp
+      integer            :: myDOW = -1   ! my Day of the week: Sun=1, Mon=2,...,Sat=7
+      real               :: ratPOM = 1.0  ! Ratio of POM to OC mass
+      real               :: fMonoterpenes = 0.0 ! Fraction of monoterpene emissions -> aerosol
+      real               :: fIsoprene = 0.0 ! Franction of isoprene emissions -> aerosol
+      real               :: fHydrophobic ! Initially hydrophobic portion
+      real               :: tConvPhobicToPhilic ! e-folding time [days] hydrophobic to hydrophilic
+      real               :: tChemLoss(2)        ! e-folding time [days] for parameterized chemistry loss
+      logical            :: diurnal_bb   ! diurnal biomass burning
+      real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
+      real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
+!     !Workspae for point emissions
+      logical                :: doing_point_emissions = .false.
+      character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
+      type(ThreadWorkspace), allocatable :: workspaces(:)
+      integer                         :: nPts = -1
+      integer, allocatable, dimension(:)  :: pstart, pend
+      real, allocatable, dimension(:)     :: pLat, &
+                                             pLon, &
+                                             pBase, &
+                                             pTop, &
+                                             pEmis
+!     !Emission inputs (should be filled with IMPORT pointer name or /dev/null)
+      character(len=ESMF_MAXSTR) :: str_aircraft_fuel_src, &
+                                    str_biomass_src, &
+                                    str_biofuel_src, &
+                                    str_eocant1_src, &
+                                    str_eocant2_src, &
+                                    str_ship_src, &
+                                    str_aviation_lto_src, &
+                                    str_aviation_cds_src, &
+                                    str_aviation_crs_src
    end type CA2G_GridComp
 
    type wrap_
@@ -189,6 +200,26 @@ contains
     else
        self%doing_point_emissions = .true.  ! we are good to go
     end if
+
+!   Get the emissions pointer labels
+    call ESMF_ConfigGetAttribute (cfg, self%str_aircraft_fuel_src, &
+                                  label='aircraft_fuel_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_biomass_src, &
+                                  label='biomass_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_biofuel_src, &
+                                  label='biofuel_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_eocant1_src, &
+                                  label='eocant1_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_eocant2_src, &
+                                  label='eocant2_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_ship_src, &
+                                  label='ship_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_aviation_lto_src, &
+                                  label='aviation_lto_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_aviation_cds_src, &
+                                  label='aviation_cds_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_aviation_crs_src, &
+                                  label='aviation_crs_src:', default='/dev/null', __RC__)
 
 !   Is CA data driven?
 !   ------------------
@@ -696,9 +727,11 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)     :: lats
     real, pointer, dimension(:,:)     :: lons
+    real, pointer, dimension(:,:,:)   :: emis3d
+    real, pointer, dimension(:,:)     :: emis2d
     real, dimension(:,:,:), allocatable  :: aircraft_fuel_src
     real, dimension(:,:), allocatable :: biomass_src, biofuel_src, biogvoc_src, &
-          eocant1_src, eocant2_src, oc_ship_src, aviation_lto_src, aviation_cds_src, &
+          eocant1_src, eocant2_src, ship_src, aviation_lto_src, aviation_cds_src, &
           aviation_crs_src, biomass_src_
     real, dimension(:,:,:), allocatable :: emissions_point
     integer, pointer, dimension(:)    :: iPoint, jPoint
@@ -778,45 +811,31 @@ contains
     end if
 
 !   Implicit allocation with Fortran 2003
+    call fill_emis3d(comp_name,'AIRCRAFT',import, self%str_aircraft_fuel_src, aircraft_fuel_src, delp)
+    call fill_emis2d(comp_name,'BIOMASS ',import, self%str_biomass_src, biomass_src, lwi)
+    call fill_emis2d(comp_name,'BIOFUEL ',import, self%str_biofuel_src, biofuel_src, lwi)
+    call fill_emis2d(comp_name,'EOCANT1 ',import, self%str_eocant1_src, eocant1_src, lwi)
+    call fill_emis2d(comp_name,'EOCANT2 ',import, self%str_eocant2_src, eocant2_src, lwi)
+    call fill_emis2d(comp_name,'SHIP    ',import, self%str_ship_src, ship_src, lwi)
+    call fill_emis2d(comp_name,'AVN_LTO ',import, self%str_aviation_lto_src, aviation_lto_src, lwi)
+    call fill_emis2d(comp_name,'AVN_CDS ',import, self%str_aviation_cds_src, aviation_cds_src, lwi)
+    call fill_emis2d(comp_name,'AVN_CRS ',import, self%str_aviation_crs_src, aviation_crs_src, lwi)
+
+!   Special handling for biogenic_voc does not presently work with regional tags
     if (trim(comp_name) == 'CA.oc') then
-       aircraft_fuel_src = OC_AIRCRAFT
-       biomass_src = OC_BIOMASS
-       biofuel_src = OC_BIOFUEL
-       eocant1_src = OC_ANTEOC1
-       eocant2_src = OC_ANTEOC2
-       oc_ship_src = OC_SHIP
-       aviation_lto_src = OC_AVIATION_LTO
-       aviation_cds_src = OC_AVIATION_CDS
-       aviation_crs_src = OC_AVIATION_CRS
        allocate(biogvoc_src, mold=OC_MTPA, __STAT__)
        biogvoc_src = 0.0
        biogvoc_src = ((OC_MTPA + OC_MTPO + OC_LIMO) * self%fMonoterpenes) + (OC_ISOPRENE * self%fIsoprene)
     else if (trim(comp_name) == 'CA.bc') then
-       aircraft_fuel_src = BC_AIRCRAFT
-       biomass_src = BC_BIOMASS
-       biofuel_src = BC_BIOFUEL
-       eocant1_src = BC_ANTEBC1
-       eocant2_src = BC_ANTEBC2
-       oc_ship_src = BC_SHIP
-       aviation_lto_src = BC_AVIATION_LTO
-       aviation_cds_src = BC_AVIATION_CDS
-       aviation_crs_src = BC_AVIATION_CRS
-       allocate(biogvoc_src, mold=BC_BIOMASS, __STAT__)
 ! Black carbon has no biogvoc_src, so we set it to zero.
 ! biogvoc_src is still needed for the call to CAEmissions, however it
 ! effectivly does nothing since we set all its values to zero.
-       biogvoc_src = 0.0
+       call fill_emis2d(comp_name,'BIOGVOC  ',import, '/dev/null', biogvoc_src, lwi)
     else if (trim(comp_name) == 'CA.br') then
-       aircraft_fuel_src = BRC_AIRCRAFT
-       biomass_src = BRC_BIOMASS
-       biogvoc_src = BRC_TERPENE
-       biofuel_src = BRC_BIOFUEL
-       eocant1_src = BRC_ANTEBRC1
-       eocant2_src = BRC_ANTEBRC2
-       oc_ship_src = BRC_SHIP
-       aviation_lto_src = BRC_AVIATION_LTO
-       aviation_cds_src = BRC_AVIATION_CDS
-       aviation_crs_src = BRC_AVIATION_CRS
+! Brown carbon has no biogvoc_src, so we set it to zero.
+! biogvoc_src is still needed for the call to CAEmissions, however it
+! effectivly does nothing since we set all its values to zero.
+       call fill_emis2d(comp_name,'BIOGVOC  ',import, '/dev/null', biogvoc_src, lwi)
     end if
 
 !   As a safety check, where value is undefined set to 0
@@ -825,7 +844,7 @@ contains
     where(1.01*biofuel_src > MAPL_UNDEF) biofuel_src = 0.
     where(1.01*eocant1_src > MAPL_UNDEF) eocant1_src = 0.
     where(1.01*eocant2_src > MAPL_UNDEF) eocant2_src = 0.
-    where(1.01*oc_ship_src > MAPL_UNDEF) oc_ship_src = 0.
+    where(1.01*ship_src > MAPL_UNDEF) ship_src = 0.
     where(1.01*aircraft_fuel_src > MAPL_UNDEF) aircraft_fuel_src = 0.
     where(1.01*aviation_lto_src > MAPL_UNDEF) aviation_lto_src = 0.
     where(1.01*aviation_cds_src > MAPL_UNDEF) aviation_cds_src = 0.
@@ -852,7 +871,7 @@ contains
                      aviation_lto_src, aviation_cds_src, &
                      aviation_crs_src, self%fHydrophobic, zpbl, t, airdens, rh2, &
                      intPtr_philic, intPtr_phobic, delp, self%aviation_layers, biomass_src, &
-                     biogvoc_src, eocant1_src, eocant2_src, oc_ship_src, biofuel_src, &
+                     biogvoc_src, eocant1_src, eocant2_src, ship_src, biofuel_src, &
                      EM, EMAN, EMBB, EMBF, EMBG, __RC__ )
 
 !   Read any pointwise emissions, if requested
@@ -900,6 +919,48 @@ contains
     end if
 
     RETURN_(ESMF_SUCCESS)
+
+   contains
+
+    subroutine fill_emis3d(comp_name,srcname,import, strn, var3d, mold3d)
+    type (ESMF_State),    intent(inout)                :: import ! Import state
+    character(len=*), intent(in)                       :: srcname, strn, comp_name
+    real, pointer, dimension(:,:,:), intent(in)        :: mold3d
+    real, allocatable, dimension(:,:,:), intent(inout) :: var3d
+    real, pointer, dimension(:,:,:)                    :: ptr3d
+
+    if(trim(strn) == '/dev/null') then
+     allocate(var3d, mold=mold3d)
+     var3d = 0.
+     if(MAPL_AM_I_ROOT()) print *, trim(comp_name)//': using /dev/null for '//trim(srcname)
+    else
+     call MAPL_GetPointer(import, name=trim(strn), ptr=ptr3d, __RC__)
+     var3d = ptr3d
+     if(MAPL_AM_I_ROOT()) print *, trim(comp_name)//': using '//trim(strn)//' for '//trim(srcname)
+    endif
+
+    end subroutine fill_emis3d
+
+    subroutine fill_emis2d(comp_name,srcname,import, strn, var2d, mold2d)
+    type (ESMF_State),    intent(inout)                :: import ! Import state
+    character(len=*), intent(in)                       :: srcname, strn, comp_name
+    real, pointer, dimension(:,:), intent(in)          :: mold2d
+    real, allocatable, dimension(:,:), intent(inout)   :: var2d
+    real, pointer, dimension(:,:)                      :: ptr2d
+
+    if(trim(strn) == '/dev/null') then
+     allocate(var2d, mold=mold2d)
+     var2d = 0.
+     if(MAPL_AM_I_ROOT()) print *, trim(comp_name)//': using /dev/null for '//trim(srcname)
+    else
+     call MAPL_GetPointer(import, name=trim(strn), ptr=ptr2d, __RC__)
+     var2d = ptr2d
+     if(MAPL_AM_I_ROOT()) print *, trim(comp_name)//': using '//trim(strn)//' for '//trim(srcname)
+    endif
+
+    end subroutine fill_emis2d
+
+
 
   end subroutine Run1
 

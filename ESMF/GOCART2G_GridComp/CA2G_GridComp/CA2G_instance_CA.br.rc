@@ -11,6 +11,18 @@ aircraft_fuel_emission_factor: 1.0000
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
 
+# Input emission pointer names
+aircraft_fuel_src: BR_AIRCRAFT
+biomass_src:       BR_BIOMASS
+biofuel_src:       BR_BIOFUEL
+eocant1_src:       BR_ANTEBR1
+eocant2_src:       BR_ANTEBR2
+ship_src:          BR_SHIP
+aviation_lto_src:  BR_AVIATION_LTO
+aviation_cds_src:  BR_AVIATION_CDS
+aviation_crs_src:  BR_AVIATION_CRS
+
+
 # Ratio of POM/BRC -> convert source masses from carbon to POM
 pom_ca_ratio: 1.8
 

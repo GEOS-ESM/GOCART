@@ -34,7 +34,7 @@ category: IMPORT
  V                | m s-1      | xyz  | C    | OPT     |      | northward_wind
  OC_AIRCRAFT      | 1          | xyz  | C    | SKIP    |      | aircraft emissions
  BC_AIRCRAFT      | 1          | xyz  | C    | SKIP    |      | aircraft emissions
- BRC_AIRCRAFT     | 1          | xyz  | C    | SKIP    |      | aircraft emissions
+ BR_AIRCRAFT      | 1          | xyz  | C    | SKIP    |      | aircraft emissions
  pSOA_ANTHRO_VOC  | kg m-3 s-1 | xyz  | C    | SKIP    |      | SOA from Anthropogenic and biomass burning VOC
  pSOA_BIOB_VOC    | kg m-3 s-1 | xyz  | C    | SKIP    |      | SOA from Anthropogenic and biomass burning VOC
 #........................................................................................
@@ -58,15 +58,15 @@ category: IMPORT
  BC_AVIATION_LTO  | 1          | xy   | N    | SKIP    |      | Landing/Take-off aircraft emissions
  BC_AVIATION_CDS  | 1          | xy   | N    | SKIP    |      | Climb/Descent aircraft emissions
  BC_AVIATION_CRS  | 1          | xy   | N    | SKIP    |      | Cruise aircraft source species
- BRC_BIOMASS      | 1          | xy   | N    | SKIP    |      | biomass burning emissions
- BRC_TERPENE      | 1          | xy   | N    | SKIP    |      | terpene emissions
- BRC_BIOFUEL      | 1          | xy   | N    | SKIP    |      | biofuel emissions
- BRC_ANTEBRC1     | 1          | xy   | N    | SKIP    |      | anthropogenic BF emissions
- BRC_ANTEBRC2     | 1          | xy   | N    | SKIP    |      | anthropogenic FF emissions
- BRC_SHIP         | 1          | xy   | N    | SKIP    |      | ship emisisons
- BRC_AVIATION_LTO | 1          | xy   | N    | SKIP    |      | Landing/Take-off aircraft emissions
- BRC_AVIATION_CDS | 1          | xy   | N    | SKIP    |      | Climb/Descent aircraft emissions
- BRC_AVIATION_CRS | 1          | xy   | N    | SKIP    |      | Cruise aircraft source species
+ BR_BIOMASS       | 1          | xy   | N    | SKIP    |      | biomass burning emissions
+ BR_TERPENE       | 1          | xy   | N    | SKIP    |      | terpene emissions
+ BR_BIOFUEL       | 1          | xy   | N    | SKIP    |      | biofuel emissions
+ BR_ANTEBR1       | 1          | xy   | N    | SKIP    |      | anthropogenic BF emissions
+ BR_ANTEBR2       | 1          | xy   | N    | SKIP    |      | anthropogenic FF emissions
+ BR_SHIP          | 1          | xy   | N    | SKIP    |      | ship emisisons
+ BR_AVIATION_LTO  | 1          | xy   | N    | SKIP    |      | Landing/Take-off aircraft emissions
+ BR_AVIATION_CDS  | 1          | xy   | N    | SKIP    |      | Climb/Descent aircraft emissions
+ BR_AVIATION_CRS  | 1          | xy   | N    | SKIP    |      | Cruise aircraft source species
 
 category: EXPORT
 #----------------------------------------------------------------------------------------
