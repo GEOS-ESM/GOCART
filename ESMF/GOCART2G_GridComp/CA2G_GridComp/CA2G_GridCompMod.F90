@@ -562,16 +562,16 @@ contains
        instance = instanceComputational
 
 !      Dry deposition
-       call append_to_bundle(trim(comp_name)//'DP', providerState, prefix, Bundle_DP, __RC__)
+!       call append_to_bundle(trim(comp_name)//'DP', providerState, prefix, Bundle_DP, __RC__)
 
 !      Wet deposition (Convective scavenging)
-       call append_to_bundle(trim(comp_name)//'SV', providerState, prefix, Bundle_DP, __RC__)
+!       call append_to_bundle(trim(comp_name)//'SV', providerState, prefix, Bundle_DP, __RC__)
 
 !      Wet deposition
-       call append_to_bundle(trim(comp_name)//'WT', providerState, prefix, Bundle_DP, __RC__)
+!       call append_to_bundle(trim(comp_name)//'WT', providerState, prefix, Bundle_DP, __RC__)
 
 !      Gravitational Settling
-       call append_to_bundle(trim(comp_name)//'SD', providerState, prefix, Bundle_DP, __RC__)
+!       call append_to_bundle(trim(comp_name)//'SD', providerState, prefix, Bundle_DP, __RC__)
     end if
 
     self%instance = instance
@@ -822,16 +822,16 @@ contains
     call fill_emis2d(comp_name,'AVN_CRS ',import, self%str_aviation_crs_src, aviation_crs_src, lwi)
 
 !   Special handling for biogenic_voc does not presently work with regional tags
-    if (trim(comp_name) == 'CA.oc') then
+    if (trim(comp_name(1:5)) == 'CA.oc') then
        allocate(biogvoc_src, mold=OC_MTPA, __STAT__)
        biogvoc_src = 0.0
        biogvoc_src = ((OC_MTPA + OC_MTPO + OC_LIMO) * self%fMonoterpenes) + (OC_ISOPRENE * self%fIsoprene)
-    else if (trim(comp_name) == 'CA.bc') then
+    else if (trim(comp_name(1:5)) == 'CA.bc') then
 ! Black carbon has no biogvoc_src, so we set it to zero.
 ! biogvoc_src is still needed for the call to CAEmissions, however it
 ! effectivly does nothing since we set all its values to zero.
        call fill_emis2d(comp_name,'BIOGVOC  ',import, '/dev/null', biogvoc_src, lwi)
-    else if (trim(comp_name) == 'CA.br') then
+    else if (trim(comp_name(1:5)) == 'CA.br') then
 ! Brown carbon has no biogvoc_src, so we set it to zero.
 ! biogvoc_src is still needed for the call to CAEmissions, however it
 ! effectivly does nothing since we set all its values to zero.

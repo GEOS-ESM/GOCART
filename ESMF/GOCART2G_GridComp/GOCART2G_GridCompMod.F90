@@ -986,19 +986,19 @@ contains
     do n = 1, size(self%CA%instances)
        if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
            .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
-
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', __RC__)
+          child_name = trim(self%CA%instances(n)%name)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, trim(child_name)//'EXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, trim(child_name)//'STEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, trim(child_name)//'SCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, trim(child_name)//'STSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, trim(child_name)//'ANGSTR', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoef, trim(child_name)//'EXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, trim(child_name)//'EXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, trim(child_name)//'EXTCOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, trim(child_name)//'SCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, trim(child_name)//'SCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, trim(child_name)//'SCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcbckcoef, trim(child_name)//'BCKCOEF', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -1022,7 +1022,7 @@ contains
              if(associated(totbckcoef) .and. associated(bcbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+bcbckcoef(:,:,:,w)
           end do
 
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, trim(child_name)//'SMASS', __RC__)
           if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
           if(associated(pm25)      .and. associated(bcsmass)) pm25      = pm25      + bcsmass
           if(associated(pm_rh35)   .and. associated(bcsmass)) pm_rh35   = pm_rh35   + bcsmass
@@ -1037,18 +1037,19 @@ contains
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', __RC__)
+          child_name = trim(self%CA%instances(n)%name)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, trim(child_name)//'EXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, trim(child_name)//'STEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, trim(child_name)//'SCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, trim(child_name)//'STSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, trim(child_name)//'ANGSTR', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoef, trim(child_name)//'EXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, trim(child_name)//'EXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, trim(child_name)//'EXTCOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, trim(child_name)//'SCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, trim(child_name)//'SCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, trim(child_name)//'SCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocbckcoef, trim(child_name)//'BCKCOEF', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -1072,7 +1073,7 @@ contains
              if(associated(totbckcoef) .and. associated(ocbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ocbckcoef(:,:,:,w)
           end do
 
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, trim(child_name)//'SMASS', __RC__)
           if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
           if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
           if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
@@ -1087,18 +1088,19 @@ contains
 
        else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
                 .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', __RC__)
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', __RC__)
+          child_name = trim(self%CA%instances(n)%name)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, trim(child_name)//'EXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, trim(child_name)//'STEXTTAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, trim(child_name)//'SCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, trim(child_name)//'STSCATAU', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, trim(child_name)//'ANGSTR', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoef, trim(child_name)//'EXTCOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, trim(child_name)//'EXTCOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, trim(child_name)//'EXTCOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, trim(child_name)//'SCACOEF', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, trim(child_name)//'SCACOEFRH20', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, trim(child_name)//'SCACOEFRH80', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brbckcoef, trim(child_name)//'BCKCOEF', __RC__)
 
           !   Iterate over the wavelengths
           do w = 1, size(self%wavelengths_vertint)
@@ -1122,7 +1124,7 @@ contains
              if(associated(totbckcoef) .and. associated(brbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+brbckcoef(:,:,:,w)
           end do
 
-          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, trim(child_name)//'SMASS', __RC__)
           if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
           if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
           if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
