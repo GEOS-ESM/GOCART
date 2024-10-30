@@ -74,6 +74,10 @@ module DU2G_GridCompMod
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
        type(ThreadWorkspace), allocatable :: workspaces(:)
+
+!      Emission inputs (should be filled with IMPORT pointer name or /dev/null)
+       character(len=ESMF_MAXSTR) :: str_du_src
+
    end type DU2G_GridComp
 
    type wrap_
@@ -178,6 +182,10 @@ contains
     else
        self%doing_point_emissions = .true.  ! we are good to go
     end if
+
+!   Get the emissions pointer labels
+    call ESMF_ConfigGetAttribute (cfg, self%str_du_src, &
+                                  label='du_src:', default='/dev/null', __RC__)
 
 !   read scheme-specific parameters
 !   --------------------------------
@@ -697,6 +705,10 @@ contains
     real, dimension(:,:), allocatable   :: R_
     real, dimension(:,:), allocatable   :: H_w_
     real, dimension(:,:), allocatable   :: f_erod_
+
+!   Arrays for local copy of source functions
+    real, dimension(:,:), allocatable   :: du_src_
+
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread, jstart, jend
 
@@ -737,13 +749,16 @@ contains
 
     associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
+
+!   Get du_src and set to 0 where undefined
+!   ---------------------------------------
+    if (scheme == 'ginoux' .OR. scheme == 'k14') then
+     call fill_emis2d(comp_name,'DU_SRC ',import, self%str_du_src, du_src_, lwi)
+     where (1.01*du_src_ > MAPL_UNDEF) du_src_ = 0.
+    endif
+
     end associate
 
-!   Set du_src to 0 where undefined
-!   --------------------------------
-    if (associated(du_src)) then
-       where (1.01*du_src > MAPL_UNDEF) du_src = 0.
-    endif
 !   Get dimensions
 !   ---------------
     import_shape = shape(wet1)
@@ -776,7 +791,7 @@ contains
        call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
                              du_z0, z_, u10n, v10n, ustar,    &
                              frland, asnow,               &
-                             du_src,                       &
+                             du_src_,                       &
                              du_sand, du_silt, du_clay,             &
                              du_texture, du_veg, du_gvf,     &
                              self%f_swc, self%f_scl, self%uts_gamma, &
@@ -807,7 +822,7 @@ contains
     case ('ginoux')
 
        call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
-                                 self%Ch_DU, du_src, MAPL_GRAV, &
+                                 self%Ch_DU, du_src_, MAPL_GRAV, &
                                  emissions_surface, __RC__)
     case default
        _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)

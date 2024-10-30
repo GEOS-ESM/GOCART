@@ -14,6 +14,9 @@ radius_upper: 1.0 1.8 3.0 6.0 10.0
 # units [kg/m-3]
 particle_density: 2500. 2650. 2650. 2650. 2650.
 
+# Input emission pointer names
+du_src: DU_SRC
+
 # Ginoux emission scheme
 # -----------------------
 emission_scheme: ginoux
