@@ -108,7 +108,20 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       logical                :: doing_point_emissions = .false.
       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
-   end type SU2G_GridComp
+
+!     Emission inputs (should be filled with IMPORT pointer name or /dev/null)
+      character(len=ESMF_MAXSTR) :: str_aircraft_fuel_src, &
+                                    str_so2biomass_src, &
+                                    str_dmso_conc, &
+                                    str_so2anthro_l1_src, &
+                                    str_so2anthro_l2_src, &
+                                    str_so2ship_src, &
+                                    str_so4ship_src, &
+                                    str_aviation_lto_src, &
+                                    str_aviation_cds_src, &
+                                    str_aviation_crs_src
+
+    end type SU2G_GridComp
 
    type wrap_
       type (SU2G_GridComp), pointer     :: PTR !=> null()
@@ -210,6 +223,28 @@ contains
     else
        self%doing_point_emissions = .true.  ! we are good to go
     end if
+
+!   Get the emissions pointer labels
+    call ESMF_ConfigGetAttribute (cfg, self%str_aircraft_fuel_src, &
+                                  label='aircraft_fuel_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_so2biomass_src, &
+                                  label='so2biomass_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_dmso_conc, &
+                                  label='dmso_conc:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_so2anthro_l1_src, &
+                                  label='so2anthro_l1_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_so2anthro_l2_src, &
+                                  label='so2anthro_l2_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_so2ship_src, &
+                                  label='so2ship_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_so4ship_src, &
+                                  label='so4ship_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_aviation_lto_src, &
+                                  label='aviation_lto_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_aviation_cds_src, &
+                                  label='aviation_cds_src:', default='/dev/null', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%str_aviation_crs_src, &
+                                  label='aviation_crs_src:', default='/dev/null', __RC__)
 
 !   Is SU data driven?
 !   ------------------
@@ -806,25 +841,22 @@ contains
     end if
 
 !   Implicit allocation with Fortran 2003
-    so2anthro_l1_src = SU_ANTHROL1
-    so2anthro_l2_src = SU_ANTHROL2
-    so2ship_src = SU_SHIPSO2
-    so4ship_src = SU_SHIPSO4
+    call fill_emis3d(comp_name,'SU_AIRCRAFT',import, self%str_aircraft_fuel_src, aircraft_fuel_src, delp)
+    call fill_emis2d(comp_name,'SU_BIOMASS ',import, self%str_so2biomass_src, so2biomass_src, lwi)
+    call fill_emis2d(comp_name,'SU_DMSO    ',import, self%str_dmso_conc, dmso_conc, lwi)
+    call fill_emis2d(comp_name,'SU_ANTHROL1',import, self%str_so2anthro_l1_src, so2anthro_l1_src, lwi)
+    call fill_emis2d(comp_name,'SU_ANTHROL2',import, self%str_so2anthro_l2_src, so2anthro_l2_src, lwi)
+    call fill_emis2d(comp_name,'SU_SHIPSO2 ',import, self%str_so2ship_src, so2ship_src, lwi)
+    call fill_emis2d(comp_name,'SU_SHIPSO4 ',import, self%str_so4ship_src, so4ship_src, lwi)
+    call fill_emis2d(comp_name,'AVN_LTO ',import, self%str_aviation_lto_src, aviation_lto_src, lwi)
+    call fill_emis2d(comp_name,'AVN_CDS ',import, self%str_aviation_cds_src, aviation_cds_src, lwi)
+    call fill_emis2d(comp_name,'AVN_CRS ',import, self%str_aviation_crs_src, aviation_crs_src, lwi)
 
 !   As a safety check, where value is undefined set to 0
     where(1.01*so2anthro_l1_src > MAPL_UNDEF)  so2anthro_l1_src = 0.
     where(1.01*so2anthro_l2_src > MAPL_UNDEF)  so2anthro_l2_src = 0.
     where(1.01*so2ship_src > MAPL_UNDEF)       so2ship_src = 0.
     where(1.01*so4ship_src > MAPL_UNDEF)       so4ship_src = 0.
-
-    aircraft_fuel_src = SU_AIRCRAFT
-    so2biomass_src = SU_BIOMASS
-    dmso_conc = SU_DMSO
-    aviation_lto_src = SU_AVIATION_LTO
-    aviation_cds_src = SU_AVIATION_CDS
-    aviation_crs_src = SU_AVIATION_CRS
-
-!   As a safety check, where value is undefined set to 0
     where(1.01*so2biomass_src > MAPL_UNDEF)    so2biomass_src = 0.
     where(1.01*dmso_conc > MAPL_UNDEF)         dmso_conc = 0.
     where(1.01*aircraft_fuel_src > MAPL_UNDEF) aircraft_fuel_src = 0.

@@ -14,6 +14,18 @@ volcano_srcfilen_degassing: ExtData/chemistry/CARN/v202401/sfc/so2_volcanic_emis
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
 
+# Input emission pointer names
+aircraft_fuel_src: SU_AIRCRAFT
+so2biomass_src:    SU_BIOMASS
+dmso_conc:         SU_DMSO
+so2anthro_l1_src:  SU_ANTHROL1
+so2anthro_l2_src:  SU_ANTHROL2
+so2ship_src:       SU_SHIPSO2
+so4ship_src:       SU_SHIPSO4
+aviation_lto_src:  SU_AVIATION_LTO
+aviation_cds_src:  SU_AVIATION_CDS
+aviation_crs_src:  SU_AVIATION_CRS
+
 # Fraction of anthropogenic emissions that are SO4
 so4_anthropogenic_fraction: 0.03
 

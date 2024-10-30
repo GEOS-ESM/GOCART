@@ -31,6 +31,8 @@ module  Chem_AeroGeneric
    public setZeroKlid4d
    public findKlid
    public get_mixR
+   public fill_emis3d
+   public fill_emis2d
 !
 ! !DESCRIPTION:
 !
@@ -421,6 +423,64 @@ contains
     end do
 
  end subroutine get_mixR
+
+!===================================================================================
+!BOP
+! !IROUTINE: fill_emis3d
+  subroutine fill_emis3d(comp_name,srcname,import, strn, var3d, mold3d)
+! !USES:
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State),    intent(inout)                :: import ! Import state
+    character(len=*), intent(in)                       :: srcname, strn, comp_name
+    real, pointer, dimension(:,:,:), intent(in)        :: mold3d
+    real, allocatable, dimension(:,:,:), intent(inout) :: var3d
+    real, pointer, dimension(:,:,:)                    :: ptr3d
+
+!   !LOCALS
+    integer                                            :: status, rc
+
+    if(trim(strn) == '/dev/null') then
+     allocate(var3d, mold=mold3d)
+     var3d = 0.
+     if(MAPL_AM_I_ROOT()) print *, 'GOCART2G::'//trim(comp_name)//': using /dev/null for '//trim(srcname)
+    else
+     call MAPL_GetPointer(import, name=trim(strn), ptr=ptr3d, __RC__)
+     var3d = ptr3d
+     if(MAPL_AM_I_ROOT()) print *, 'GOCART2G::'//trim(comp_name)//': using '//trim(strn)//' for '//trim(srcname)
+    endif
+
+end subroutine fill_emis3d
+
+!===================================================================================
+!BOP
+! !IROUTINE: fill_emis2d
+  subroutine fill_emis2d(comp_name,srcname,import, strn, var2d, mold2d)
+! !USES:
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State),    intent(inout)                :: import ! Import state
+    character(len=*), intent(in)                       :: srcname, strn, comp_name
+    real, pointer, dimension(:,:), intent(in)          :: mold2d
+    real, allocatable, dimension(:,:), intent(inout)   :: var2d
+    real, pointer, dimension(:,:)                      :: ptr2d
+
+!   !LOCALS
+    integer                                            :: status, rc
+
+    if(trim(strn) == '/dev/null') then
+     allocate(var2d, mold=mold2d)
+     var2d = 0.
+     if(MAPL_AM_I_ROOT()) print *, 'GOCART2G::'//trim(comp_name)//': using /dev/null for '//trim(srcname)
+    else
+     call MAPL_GetPointer(import, name=trim(strn), ptr=ptr2d, __RC__)
+     var2d = ptr2d
+     if(MAPL_AM_I_ROOT()) print *, 'GOCART2G::'//trim(comp_name)//': using '//trim(strn)//' for '//trim(srcname)
+    endif
+
+end subroutine fill_emis2d
 
 
 end module  Chem_AeroGeneric
