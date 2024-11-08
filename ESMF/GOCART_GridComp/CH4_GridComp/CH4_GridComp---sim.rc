@@ -1,5 +1,5 @@
 #
-# Resource file for CH4 parameters.
+# Resource file for CH4 parameters. 
 #
 
 # Apply methane tendency (loss) from CH4 + hv => 2H2O + CO (0 no, 1 yes)
@@ -20,6 +20,6 @@ DEBUG: 0
 
 # Run-time switch on OH, Cl, O(O1D) units
 # Permissable string is "mol/mol" or "mol mol-1",
-# otherwise resorts to assuming "molecules cm-3"
+# otherwise resorts to assuming "molec cm-3"
 #------------------------------------------------
-units_oh: "mol/mol"
+units_oh: "molec cm-3"
