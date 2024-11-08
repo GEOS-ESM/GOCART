@@ -1050,7 +1050,7 @@ CONTAINS
       psch4(i1:i2,j1:j2) = 0.
       do k = 1,km
          psdry(i1:i2,j1:j2) = psdry(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*(1. - qtot(i1:i2,j1:j2,k))
-         psch4(i1:i2,j1:j2) = psch4(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*w_c%qa(nbeg+n-1)%data3d(i1:i2,j1:j2,k)
+         psch4(i1:i2,j1:j2) = psch4(i1:i2,j1:j2) + w_c%delp(i1:i2,j1:j2,k)*w_c%qa(nbeg)%data3d(i1:i2,j1:j2,k)
       enddo
       CH4_coldry(i1:i2,j1:j2) = psch4(i1:i2,j1:j2)/psdry(i1:i2,j1:j2)
    endif
