@@ -34,7 +34,8 @@ Samplings:
     update_frequency: PT24H
     update_offset: PT12H
     update_reference_time: '0'
-    source_time: "2019-01-15T12:00:00/2019-12-17T00:00:00"
+    source_time: "2019-01-15T12:00:00/2019-12-15T00:00:00"
+
 
 Exports:
   EMI_NH3_AG:

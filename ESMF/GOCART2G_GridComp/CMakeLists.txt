@@ -15,13 +15,13 @@ set (srcs
 
 set (resource_files
    GOCART2G_GridComp.rc
-   ) 
+   )
 
-install( FILES ${resource_files} 
+install( FILES ${resource_files}
    DESTINATION etc
    )
 
-set (dependencies MAPL Chem_Shared2G Process_Library esmf)
+set (dependencies MAPL Chem_Shared2G Process_Library ESMF::ESMF)
 esma_add_library (${this}
   SRCS ${srcs}
   SUBCOMPONENTS ${alldirs}

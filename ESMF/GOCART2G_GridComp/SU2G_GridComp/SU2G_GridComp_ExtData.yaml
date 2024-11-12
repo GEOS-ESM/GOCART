@@ -5,7 +5,7 @@ Collections:
     template: ExtData/chemistry/MERRA2GMI/v0.0.0/L72/MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
     valid_range: "1979-01-15T12:00/2019-12-15T12:00"
   SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4:
-    template: ExtData/chemistry/CEDS/v2021-04-21/L72/SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
+    template: ExtData/chemistry/CEDS/v2021-04-21-revised/L72/SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
     valid_range: "1979-01-15T12:00/2019-12-15T12:00"
   SU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
     template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
@@ -39,7 +39,7 @@ Samplings:
 
 Exports:
   SU_AIRCRAFT:
-    - {starting: "1979-01-15T12:00", collection: SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: SU2G_sample_1, variable: so2_aviation}
+    - {starting: "1979-01-15T12:00", collection: SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, sample: SU2G_sample_1, regrid: CONSERVE, variable: so2_aviation}
     - {starting: "2019-12-15T12:00", collection: SU2G_SO2-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: SU2G_sample_3, variable: so2_aviation}
   SU_AVIATION_CDS:
     collection: /dev/null
@@ -71,8 +71,10 @@ Exports:
     - {starting: "1979-01-15T12:00", collection: SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4, sample: SU2G_sample_1, regrid: CONSERVE, variable: no3}
     - {starting: "2019-12-15T12:00", collection: SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4, sample: SU2G_sample_3, regrid: CONSERVE, variable: no3}
   SU_OH:
-    - {starting: "1979-01-15T12:00", collection: SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4, sample: SU2G_sample_1, regrid: CONSERVE, variable: oh}
-    - {starting: "2019-12-15T12:00", collection: SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4, sample: SU2G_sample_3, regrid: CONSERVE, variable: oh}
+    collection: SU2G_MERRA2_GMI.tavg24_3d_dac_Nv.x576_y361_t12.%y4.nc4
+    regrid: CONSERVE
+    sample: SU2G_sample_1
+    variable: oh
   climSO4:
     collection: SU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SU2G_sample_0

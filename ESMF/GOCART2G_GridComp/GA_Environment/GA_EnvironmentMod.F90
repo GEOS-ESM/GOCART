@@ -19,7 +19,6 @@ module GA_EnvironmentMod
 !      logical                :: scav_byColdCloud ! new flag example
        real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES, 
        real, allocatable      :: fnum(:)        ! number of particles per kg mass
-       integer                :: rhFlag
        integer                :: nbins
        integer                :: km             ! vertical grid dimension
        real                   :: CDT            ! chemistry timestep (secs)
@@ -66,7 +65,6 @@ module GA_EnvironmentMod
        call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%molwght,    label='molecular_weight:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fnum,       label='fnum:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%rhFlag,     label='rhFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%plid,       label='pressure_lid_in_hPa:', __RC__)
        call ESMF_ConfigGetAttribute (universal_cfg, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
        call ESMF_ConfigGetAttribute (universal_cfg, self%wavelengths_vertint, &

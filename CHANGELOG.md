@@ -7,21 +7,124 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Removed
+
+- Removed all ExtData.rc files
+-removed lines for anthropogenic emissions of OC, BC, SO2, SO4, and NH3 in their repsective ExtData yaml files as these will enter through HEMCO.
+
+
+### Changed
+
+- Modified the file paths in carbon, sulfate, and nitrate ExtData.yaml files to used the revised version of the CEDS anthropogenic emissions. Note the previous version has an incorrect seasonal cycle.
+- Sulfate surface area density calculation in SU_Compute_Diags was incorrectly being passed the effective radius used for settling along with the sigma width of the number distribution. 
+  Properly it should be passed the number median radius, also present in the RC file. Added a hook to read that field from the RC file ("particle_radius_number"), store in SU grid comp, and pass to SU_Compute_Diags. 
+  This change is zero-diff to the SU internal state. It changes value of export SO4AREA.
+- Changed DMS concentration data holder from ExtData provided (SU_DMSO) to local copy (dmso_conc). 
+  This is relevant since if we run source tagged instances where we don't want DMS emissions we would zero out dmso_conc and that is what should be passed to DMSemission subroutine. This is zero diff except in that case.
+- Changed SU2G_instance_SU.rc to now have separate filename inputs for explosive and degassing volcanoes
+- It changes the formulation of the hydrophobic to hydrophilic conversion for carbon species, now defined by a time scale specified in the instance RC file.
+  This is now specified by providing an e-folding time in days. This moves the time constant from outside the fortran to the run-time configurable RC file. 
+  This is not quite zero-diff with original code because of the precision of the specification, but testing shows nearly zero-diff result.
+- Also now present in the carbon instance RC files is a run-time configurable optional parameterized loss rate (e-folding time in days) per species and per mode. 
+  Default value for all is set to "-1" which means no use of this function.
 
 ### Fixed
 
+- Use 'CA' component name to identify carbonaceous contributions to PM in UFS diagnostic calculations. These contributions were missing due to changes in field names.
+- Add replay import patch for ozone.
+- corrected reading variable 'rhod' from files ( it was mispelled as 'rhop')
+- Silenced unwarranted error messages from wavelength/channel retrieval functions occurring when 470nm and/or 870nm channels are not included in GOCART resource file.
+- Add explicit `find_package()` calls for missing dependencies for MAPL for builds with spack-stack. Will eventually be fixed in MAPL in later versions
+- Corrected the units of the gravimetric soil moisture to percent instead of fractional in the FENGSHA dust scheme.
+- Fix issue of GOCART/GEOSgcm circular CMake dependencies when used as external project
+- Fix UFS/Standalone CMake issue
+- Fix type of `k` in `SUvolcanicEmissions`
+
+### Added
+
+- Additional tuning parameters for the soil moisture and drylimit calculations for application specific tuning.
+- Required attributes for the 2D GOCART export fields in AERO_DP bundle have been set in subroutine append_to_bundle in Chem_AeroGeneric.F90. 
+  These export fields are imported by OBIO via Surface GC, and the missing of the attributes was causing the writing of surface import checkpoint to fail. 
+  The issue has been explained in detail on https://github.com/GEOS-ESM/GOCART/issues/258
+- Added export line to GOCART2G_GridCompMod to couple allow use of GOCART
+  SU sulfate production tendency elsewhere in Chemistry, specifically for
+  CARMA
+
+- Update ESMF CMake target to `ESMF::ESMF`
+
+
+- Moved present volcanic emission inventories to one or the other line for these new entries; set other
+  line /dev/null; this is stop gap until next time we update volcanic emission inventories, at which
+  point will provide (for AMIP and AMIP.20C) separate explosive and degassing emissions
+- Made accommodating changes for above in SU2G_GridCompMod.F90 and in the Process Library
+- Verified zero diff in current configuration (this is true of tracers and restarts, but not diagnostics:
+  until an actual split is made in the input emissions then the volcanic emissions are being assigned to
+  one or the other emission diagnostics (explosive or degassing).
+
+- Changed Chem_SettlingSimple in the process library to call Mie Query for radius and rhop inputs to the settling velocity calculation. 
+  The calls to Chem_SettlingSimple were then changed accordingly in each of the species' grid comps. 
+  Since the RH flag is no longer needed, it was removed from GA_EnvironmentMod.F90 and each of the instance RC files.
+- State Spec RC files for GOCART2G, CA, DU, NI, SU, and SS were updated such that the long names for AOD are more intuitive
+- Modified ExtData.yaml files to persist as climatological anthropogenic emissions after the end of the CEDS dataset in 2019. 
+  Analogous rc files removed as this capability is only available with ExtData2G
+- Update `components.yaml` to match that of GEOSgcm v11.6.1
+  - ESMA_env v4.29.0 (Baselibs 7.24.0, Updates for SLES15 at NCCS, various fixes)
+  - ESMA_cmake v3.48.0 (Fixes for NAS, debug flags, Updates for SLES15 at NCCS, MPI detection, ESMF and MPI CMake fixes for Spack)
+  - GMAO_Shared v1.9.8 (Bug fix for MITgcm, CI fixes, SLES15 Updates)
+  - MAPL 2.47.1 (Various fixes and features, support for Spack)
+- Update CI to use Baselibs by default from CircleCI Orb
+- Correct soil moisture parameterization in FENGSHA
+- Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
+- Add `soil_drylimit_factor` to the DU2G_instance_DU.rc and DU2G_GridCompMod.F90 files for FENGSHA
+- Moved process library macros to header file.
+
+## [v2.2.1] - 2023-05-30
+
+### Fixed
+
+- In dust and sea-salt, changed dimensions back to `globalCellCountPerDim` since these are needed to determine emission tuning parameters, not to allocate arrays.
+
+
+## [v2.2.0] - 2023-05-18
+
+### Fixed
+
+- Made needed code changes in `SS2G_GridCompMod.F90` and `CA2G_GridCompMod.F90` to permit data instances of of GOCART aerosols to run
+- Added missing brown carbon (BR) climatology hooks to yaml and rc files for data driven instances
+- Changed pointers to climatological deposition inputs in yaml and rc files to `/dev/null` since the files pointed to didn't provide them anyway, and in any case they are being used presently in the model
+- Changed pointers to climatological nitrate inputs in yaml and rc files to `/dev/null` since pointing to FP files was inconsistent with MERRA-2 files used for other species
+- Ensured zero-diff in performance of yaml vs. rc files for ExtData2G vs. ExtData1g for data driven aerosols
+- To do: remove hooks to old (legacy) GOCART.data instances in CHEM and setup scripts
+- Fixed rc file in legacy O3 component.
+- Fixed issue #223 where Global dimension was being used for allocating a local array
+- This fixes a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
+- Fix issue with scattering coefficient calculation with oc
+- Fix a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
+
 ### Changed
--removed lines for anthropogenic emissions of OC, BC, SO2, SO4, and NH3 in their repsective ExtData yaml files.
--used ExtData2G to persist aircraft emissions and MERRA-2 GMI inputs after 2019 to eliminate the need for duplicate files for future years
+- Comment out ASSERT to allow `GOCART_DT` to not match the `HEARTBEAT_DT`
+- Single-moment moist changes from Donifan
+- Change names of microphysics schemes to match refactored physics
+- Set `SS_SCALE` default to 0.0
+- Updates in CA2G for OpenMP
+- Updates for CI
+  - Update BCs version
+  - Update components to match GEOSgcm v11.0.0
+
+## [2.1.4] - 2023-05-12
+
+### Fixed
+
+- Fix in GOCART2G parent so that it can run with nitrates turned off. This patch of general utility was contributed by NOAA.
+
 
 ## [2.1.3] - 2023-02-27
 
 ### Added
 
 - Added `*` to CA State specs file to allow for ACG to substitute in the long name
-- Changes were made so GOCART2G and its children can be run with component level 
-OpenMP threading. The key change is to create the data structure ThreadWorkspace 
+- Changes were made so GOCART2G and its children can be run with component level
+OpenMP threading. The key change is to create the data structure ThreadWorkspace
 to hold variables that should be private to each thread to avoid race conditions.
 Additionally spatially distributed arrays that are not in any of the ESMF states
 were added to the ESMF internal state so they could be properly handled when
@@ -30,8 +133,6 @@ for SU2G, and deep_lakes_mask for SS2G. All of these arrays have MAPL_RestartSki
 option so they are not written to restart.
 - Aerosol single scattering backscatter coefficient for each instances and total at wavelengths_profile
 - Total (molecular + aerosols) attenuated backscatter coefficient from TOA and sfc at 532nm
-
-### Fixed
 
 ### Changed
 
@@ -50,11 +151,6 @@ option so they are not written to restart.
 
 - Extinction/Scattering profile exports at model RH at wavelengths_profile
 - Extinction/Scattering profile exports with RH=20% and RH=80% at wavelengths_profile
-
-### Fixed
-
-### Changed
-
 
 ## [2.1.1] - 2022-09-16
 

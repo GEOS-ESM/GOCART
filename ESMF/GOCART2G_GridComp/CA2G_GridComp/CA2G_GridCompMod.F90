@@ -3,7 +3,7 @@
 !=============================================================================
 !BOP
 
-! !MODULE: CA2G_GridCompMod - GOCART Carbonaceous Aerosol gridded component 
+! !MODULE: CA2G_GridCompMod - GOCART Carbonaceous Aerosol gridded component
 
 ! !INTERFACE:
 module CA2G_GridCompMod
@@ -11,7 +11,7 @@ module CA2G_GridCompMod
 !  !USES:
    use ESMF
    use MAPL
-   use GOCART2G_MieMod 
+   use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
@@ -33,6 +33,7 @@ module CA2G_GridCompMod
 ! !DESCRIPTION: This module implements GOCART2G's Carbonaceous Aerosol (CA) Gridded Component.
 
 ! !REVISION HISTORY:
+! 4January2024   Collow - Updated call for ChemSettling
 ! 15June2020  Sherman, da Silva, Darmenov, Clune -  First attempt at refactoring.
 
 !EOP
@@ -54,6 +55,8 @@ module CA2G_GridCompMod
        real               :: fMonoterpenes = 0.0 ! Fraction of monoterpene emissions -> aerosol
        real               :: fIsoprene = 0.0 ! Franction of isoprene emissions -> aerosol
        real               :: fHydrophobic ! Initially hydrophobic portion
+       real               :: tConvPhobicToPhilic ! e-folding time [days] hydrophobic to hydrophilic
+       real               :: tChemLoss(2)        ! e-folding time [days] for parameterized chemistry loss
        logical            :: diurnal_bb   ! diurnal biomass burning
        real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
@@ -61,7 +64,14 @@ module CA2G_GridCompMod
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
        type(ThreadWorkspace), allocatable :: workspaces(:)
-   end type CA2G_GridComp 
+       integer                         :: nPts = -1
+       integer, allocatable, dimension(:)  :: pstart, pend
+       real, allocatable, dimension(:)     :: pLat, &
+                                              pLon, &
+                                              pBase, &
+                                              pTop, &
+                                              pEmis
+   end type CA2G_GridComp
 
    type wrap_
       type (CA2G_GridComp), pointer     :: PTR !=> null()
@@ -72,7 +82,7 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: SetServices 
+! !IROUTINE: SetServices
 
 ! !INTERFACE:
   subroutine SetServices (GC, RC)
@@ -83,11 +93,11 @@ contains
 
 !   !DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !     the Initialize and Finalize services to generic versions. It also
-!     allocates our instance of a generic state and puts it in the 
+!     allocates our instance of a generic state and puts it in the
 !     gridded component (GC). Here we only set the two-stage run method
 !     and declare the data services.
 
-!   !REVISION HISTORY: 
+!   !REVISION HISTORY:
 !   june2019   E.Sherman, A.Da Silva, A.Darmenov, T.Clune  First attempt at refactoring
 
 !EOP
@@ -105,6 +115,7 @@ contains
     integer                                  :: i, nbins
     real                                     :: DEFVAL
     logical                                  :: data_driven = .true.
+    logical                                  :: file_exists
     integer :: num_threads
 
     __Iam__('SetServices')
@@ -132,14 +143,16 @@ contains
     num_threads = MAPL_get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
-!   Load resource file  
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', rc=status)
-    if (status /= 0) then
-        if (mapl_am_i_root()) print*,'CA2G_instance_'//trim(comp_name)//'.rc does not exist! &
-                                      Loading CA2G_instance_'//trim(comp_name)//'.rc instead'
-        call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', __RC__)
+    inquire(file='CA2G_instance_'//trim(comp_name)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'CA2G_instance_'//trim(comp_name)//'.rc does not exist! &
+                                      Loading CA2G_instance_'//trim(comp_name(1:5))//'.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name(1:5))//'.rc', __RC__)
     end if
 
 !   process generic config items
@@ -152,6 +165,12 @@ contains
 !   ----------------------------------------------
     call ESMF_ConfigGetAttribute (cfg, self%myDOW, label='my_day_of_week:', default=-1, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fhydrophobic, label='hydrophobic_fraction:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%tConvPhobicToPhilic, &
+                                  label='time_days_hydrophobic_to_hydrophilic:', default=2.5, __RC__)
+    call ESMF_ConfigFindLabel (cfg, 'time_days_chemical_destruction:', __RC__)
+    do i=1,size(self%tChemLoss)
+     call ESMF_ConfigGetAttribute (cfg, self%tChemLoss(i), default=-1., __RC__)
+    end do
     call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_ca_ratio:', default=1.0, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fMonoterpenes, label='monoterpenes_emission_fraction:', default=0.0, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fIsoprene, label='isoprene_emission_fraction:', default=0.0, __RC__)
@@ -215,7 +234,7 @@ contains
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
           dims       = MAPL_DimsHorzVert,                     &
-          vlocation  = MAPL_VLocationCenter, __RC__) 
+          vlocation  = MAPL_VLocationCenter, __RC__)
 
        call MAPL_AddInternalSpec(GC,                          &
           short_name = trim(comp_name)//'philic',             &
@@ -223,7 +242,7 @@ contains
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
           dims       = MAPL_DimsHorzVert,                     &
-          vlocation  = MAPL_VLocationCenter, __RC__) 
+          vlocation  = MAPL_VLocationCenter, __RC__)
 
        call MAPL_AddImportSpec(GC,                            &
           short_name = 'clim'//trim(GCsuffix)//'phobic',      &
@@ -231,7 +250,7 @@ contains
           units      = 'kg kg-1',                             &
           restart    = MAPL_RestartOptional,                  &
           dims       = MAPL_DimsHorzVert,                     &
-          vlocation  = MAPL_VLocationCenter, __RC__) 
+          vlocation  = MAPL_VLocationCenter, __RC__)
 
        call MAPL_AddImportSpec(GC,                            &
           short_name = 'clim'//trim(GCsuffix)//'philic',      &
@@ -252,7 +271,7 @@ contains
              vlocation  = MAPL_VLocationCenter,                              &
              restart    = MAPL_RestartSkip, __RC__)
 
-!        !wet deposition    
+!        !wet deposition
           call MAPL_AddImportSpec(GC,                                       &
              short_name = 'clim'//trim(GCsuffix)//'WT'//trim(field_name),                     &
              long_name  = 'Organic Carbon Mixing Ratio (bin '//trim(field_name)//')', &
@@ -328,22 +347,22 @@ contains
 !============================================================================
 !BOP
 
-! !IROUTINE: Initialize 
+! !IROUTINE: Initialize
 
 ! !INTERFACE:
   subroutine Initialize (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes CA's Grid Component. It primaryily fills 
-!               GOCART's AERO states with its carbonaceous aerosol fields. 
+! !DESCRIPTION: This initializes CA's Grid Component. It primaryily fills
+!               GOCART's AERO states with its carbonaceous aerosol fields.
 
-! !REVISION HISTORY: 
+! !REVISION HISTORY:
 ! june2019   E.Sherman  First attempt at refactoring
 
 !EOP
@@ -375,11 +394,12 @@ contains
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
+    logical                              :: file_exists
 
     __Iam__('Initialize')
 
 !****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
@@ -406,7 +426,7 @@ contains
 
 !   Get dimensions
 !   ---------------
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    call MAPL_GridGet (grid, localCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
 
@@ -427,16 +447,19 @@ contains
        self%diurnal_bb = .false.
     end if
 
-!   Load resource file  
+!   Load resource file
 !   -------------------
     cfg = ESMF_ConfigCreate (__RC__)
-    call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(COMP_NAME)//'.rc', rc=status)
-    if (status /= 0) then
-        if (mapl_am_i_root()) print*,'ERROR: CA2G_instance_'//trim(COMP_NAME)//'.rc does not exist!' 
-        return
+    inquire(file='CA2G_instance_'//trim(comp_name)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'CA2G_instance_'//trim(comp_name)//'.rc does not exist! &
+                                      Loading CA2G_instance_'//trim(comp_name(1:5))//'.rc instead'
+       call ESMF_ConfigLoadFile (cfg, 'CA2G_instance_'//trim(comp_name(1:5))//'.rc', __RC__)
     end if
 
-!   Call Generic Initialize 
+!   Call Generic Initialize
 !   ------------------------
     call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
 
@@ -450,7 +473,7 @@ contains
 
 !   If this is a data component, the data is provided in the import
 !   state via ExtData instead of the actual GOCART children
-!   ---------------------------------------------------------------- 
+!   ----------------------------------------------------------------
     if ( data_driven ) then
         providerState = import
         prefix = 'clim'
@@ -583,13 +606,13 @@ contains
 !============================================================================
 
 !BOP
-! !IROUTINE: Run 
+! !IROUTINE: Run
 
 ! !INTERFACE:
   subroutine Run (GC, import, export, clock, rc)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -610,7 +633,7 @@ contains
     __Iam__('Run')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -624,7 +647,7 @@ contains
 !   -----------------------------------
     call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
-!   Is SS data driven?
+!   Is CA data driven?
 !   ------------------
     call determine_data_driven (COMP_NAME, data_driven, __RC__)
 
@@ -643,19 +666,19 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run1 
+! !IROUTINE: Run1
 
 ! !INTERFACE:
   subroutine Run1 (GC, import, export, clock, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION:  Computes emissions/sources for Sea Salt
+! !DESCRIPTION:  Computes emissions/sources for Carbon
 
 !EOP
 !============================================================================
@@ -692,7 +715,7 @@ contains
    __Iam__('Run1')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -707,7 +730,7 @@ contains
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, & 
+    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, &
                         LONS = LONS, &
                         LATS = LATS, __RC__ )
 
@@ -718,7 +741,7 @@ contains
     else if (comp_name(1:5) == 'CA.bc') then
        GCsuffix = 'BC'
     else if (comp_name(1:5) == 'CA.br') then
-       GCsuffix = 'BR' 
+       GCsuffix = 'BR'
     end if
 
     call MAPL_GetPointer (internal, intPtr_phobic, trim(comp_name)//'phobic', __RC__)
@@ -779,7 +802,7 @@ contains
        aviation_cds_src = BC_AVIATION_CDS
        aviation_crs_src = BC_AVIATION_CRS
        allocate(biogvoc_src, mold=BC_BIOMASS, __STAT__)
-! Black carbon has no biogvoc_src, so we set it to zero. 
+! Black carbon has no biogvoc_src, so we set it to zero.
 ! biogvoc_src is still needed for the call to CAEmissions, however it
 ! effectivly does nothing since we set all its values to zero.
        biogvoc_src = 0.0
@@ -882,14 +905,14 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run2 
+! !IROUTINE: Run2
 
 ! !INTERFACE:
 
   subroutine Run2 (GC, import, export, clock, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
     type (ESMF_State),    intent(inout) :: import ! Import state
     type (ESMF_State),    intent(inout) :: export ! Export state
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -917,6 +940,7 @@ contains
     character(len=2)  :: GCsuffix
     character(len=ESMF_MAXSTR)      :: short_name
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
+    real, pointer, dimension(:,:)     :: flux_ptr
 
     real, parameter ::  cpd    = 1004.16
     integer                      :: i1, j1, i2, j2, km
@@ -926,7 +950,7 @@ contains
     __Iam__('Run2')
 
 !*****************************************************************************
-!   Begin... 
+!   Begin...
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
@@ -973,7 +997,7 @@ contains
     end if
 
     if (trim(comp_name) == 'CA.br') then
-       pSOA_VOC = pSOA_BIOB_VOC 
+       pSOA_VOC = pSOA_BIOB_VOC
        where (1.01 * pSOA_VOC > MAPL_UNDEF) pSOA_VOC = 0.0
 
        intPtr_philic = intPtr_philic + self%cdt * pSOA_VOC/airdens
@@ -982,19 +1006,31 @@ contains
     end if
 
 !   Ad Hoc transfer of hydrophobic to hydrophilic aerosols
-!   Following Chin's parameterization, the rate constant is
-!   k = 4.63e-6 s-1 (.4 day-1; e-folding time = 2.5 days)
-    call phobicTophilic (intPtr_phobic, intPtr_philic, HYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
+!   Rate controlled in RC file; tConvPhobicToPhilic < 0 means no transfer
+    call phobicToPhilic (intPtr_phobic, intPtr_philic, HYPHIL, &
+                         self%tConvPhobicToPhilic, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
+
+!   Ad Hoc chemical destruction of carbon
+!   This applies a simple exponential decay to both hydrophobic and
+!   hydrophilic modes with the time constant tChemLoss (e-folding
+!   time in days)
+    do n = 1, self%nbins
+       call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+       call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+       call carbonChemLoss (self%km, self%klid, n, self%cdt, MAPL_GRAV, delp, &
+                            self%tChemLoss(n), int_ptr, CH, __RC__)
+    end do
 
 !   CA Settling
 !   -----------
     do n = 1, self%nbins
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
-                           rh2, zle, delp, SD, __RC__)
+       nullify(flux_ptr)
+       flux_ptr => SD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           int_ptr, t, airdens, &
+                           rh2, zle, delp, flux_ptr, __RC__)
     end do
 
 !   CA Deposition
@@ -1074,7 +1110,7 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run_data -- ExtData Sea Salt Grid Component
+! !IROUTINE: Run_data -- ExtData Carbon Grid Component
 
 ! !INTERFACE:
 
@@ -1082,13 +1118,13 @@ contains
 
     ! !ARGUMENTS:
 
-    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component 
+    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component
     type (ESMF_State),    intent(inout) :: IMPORT   ! Import state
     type (ESMF_State),    intent(inout) :: EXPORT   ! Export state
     type (ESMF_State),    intent(inout) :: INTERNAL ! Interal state
     integer, optional,    intent(  out) :: RC       ! Error code:
 
-! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData. 
+! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
 !EOP
 !============================================================================
@@ -1105,7 +1141,7 @@ contains
     __Iam__('Run_data')
 
 !*****************************************************************************
-! Begin... 
+! Begin...
 
 ! Get my name and set-up traceback handle
 ! ---------------------------------------
@@ -1175,7 +1211,7 @@ contains
 
     __Iam__('CA2G::aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------
@@ -1192,7 +1228,7 @@ contains
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
@@ -1295,7 +1331,7 @@ contains
 
        bext_s  = bext_s  +             bext     ! extinction
        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction 
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
 
     end do
 
@@ -1337,7 +1373,7 @@ contains
 
     __Iam__('CA2G::monochromatic_aerosol_optics')
 
-!   Begin... 
+!   Begin...
 
 !   Mie Table instance/index
 !   ------------------------

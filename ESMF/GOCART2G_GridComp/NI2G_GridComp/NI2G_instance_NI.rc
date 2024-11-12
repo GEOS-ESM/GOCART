@@ -5,7 +5,7 @@
 nbins: 5
 
 aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_NI.v2_5.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_NI.v2_5.nc
+aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_NI.v2_5.nc
 
 # Scavenging efficiency per bin [km-1]
 fscav: 0.0   0.4    0.4    0.4    0.4
@@ -29,5 +29,3 @@ particle_radius_number: 0.0118  0.0118  0.0118  0.0118  0.0118
 sigma: 2.0  2.0  2.0  2.0  2.0
 
 pressure_lid_in_hPa: 0.01
-
-rhFlag: 0
