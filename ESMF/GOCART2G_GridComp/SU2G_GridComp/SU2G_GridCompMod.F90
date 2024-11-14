@@ -86,7 +86,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       !real, pointer :: h2o2_init(:,:,:)
 
 !     logic for 3 hourly oxident files
-      logical :: using_3HR_OX
+      logical :: using_1HR_OX
 
 !     Special handling for volcanic emissions
       character(len=255) :: volcano_srcfilen
@@ -177,7 +177,7 @@ contains
     allocate(self%sigma(self%nbins), __STAT__)
 
 !   process SU-specific items
-    call ESMF_ConfigGetAttribute(cfg, self%using_3HR_OX, label='using_3HR_OX:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%using_1HR_OX, label='using_1HR_OX:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen, label='volcano_srcfilen:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', __RC__)
@@ -1045,7 +1045,7 @@ contains
        !workspace%firstRun  = .false.
     !end if
 
-    if (self%using_3HR_OX) then
+    if (self%using_1HR_OX) then
         ! external oxident files are already 3-hourly, use them directly
         xh2o2 = SU_H2O2
         xoh   = SU_OH
