@@ -55,6 +55,6 @@ using_GMI_OH: .false.
 using_GMI_NO3: .false.
 using_GMI_H2O2: .false.
 
-# OH H202 NO3 from an offline 3-hourly simulation such as GEOS-CF
+# OH H202 NO3 from an offline 1-hourly simulation such as GEOS-CF
 # --------------------------------------------------------------
-using_3HR_OX: .true.
+using_1HR_OX: .true.
