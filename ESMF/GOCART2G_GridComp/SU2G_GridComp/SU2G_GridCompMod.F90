@@ -85,7 +85,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
 
-!     logic for 3 hourly oxident files
+!     logic for 1 hourly oxident files
       logical :: using_1HR_OX
 
 !     Special handling for volcanic emissions
