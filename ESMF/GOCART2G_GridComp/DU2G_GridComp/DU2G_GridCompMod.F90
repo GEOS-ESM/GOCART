@@ -174,7 +174,7 @@ contains
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
 
-    ! Point Sources 
+    ! Point Sources
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
     if ( (index(self%point_emissions_srcfilen,'/dev/null')>0) ) then
@@ -193,16 +193,16 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%f_sdl,    label='soil_drylimit_factor:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%kvhmax,   label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%drag_opt, label='drag_partition_option:', __RC__)
-       
+
        if (MAPL_AM_I_ROOT()) then
          write (*,*) "FENGSHA: config: alpha: " , self%alpha
          write (*,*) "FENGSHA: config: gamma: " , self%gamma
          write (*,*) "FENGSHA: config: soil_moisture_factor: " , self%f_swc
          write (*,*) "FENGSHA: config: soil_drylimit_factor: " , self%f_sdl
-         write (*,*) "FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: " ,  self%kvhmax
+         write (*,*) "FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: " , self%kvhmax
          write (*,*) "FENGSHA: config: drag_partition_option: " , self%drag_opt
        end if
-       
+
     case ('k14')
        call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
@@ -432,8 +432,8 @@ contains
     self => wrap%ptr
 
 !   Global dimensions are needed here for choosing tuning parameters
-!   ----------------------------------------------------------------    
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ ) 
+!   ----------------------------------------------------------------
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   TO DO: find a more robust way to implement resolution dependent tuning
