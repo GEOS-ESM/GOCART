@@ -61,6 +61,7 @@ module DU2G_GridCompMod
        integer                :: drag_opt       ! FENGSHA drag option 1 - input only, 2 - Darmenova, 3 - Leung
        real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
        real                   :: f_sdl          ! FENGSHA drylimit tuning factor
+       integer                :: distribution_opt ! FENGSHA distribution option 1 - Kok, 2 - Kok 2021, 3 - Meng 2022
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
