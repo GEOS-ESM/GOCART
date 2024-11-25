@@ -1046,14 +1046,10 @@ contains
     !end if
 
     if (self%using_1HR_OX) then
-        ! external oxident files are already 3-hourly, use them directly
+        ! external oxident files are already 1-hourly, use them directly
         xh2o2 = SU_H2O2
         xoh   = SU_OH
         xno3  = SU_NO3
-
-        call MAPL_MaxMin ( 'GOCART:OH   ', xoh)
-        call MAPL_MaxMin ( 'GOCART:H2O2 ', xh2o2)
-        call MAPL_MaxMin ( 'GOCART:NO3  ', xno3)
 
         ! Go from volume mixing ratio to # cm-3 (expected in chemistry)
         ! aidens = [kg m-3], MAPL_AIRMW = [kg/Kmole], MAPL_AVOGAD = [molecules/mole]
