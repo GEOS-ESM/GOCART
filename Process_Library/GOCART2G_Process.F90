@@ -143,7 +143,6 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
       real    :: diameter, dlam, totalVolume
       real    :: lambda, probability_agg
       real    :: cv
-      real    :: distribution
 
    ! !CONSTANTS
       real, parameter    :: medianMassDiameter = 1.13      ! updated median mass diameter [um]
