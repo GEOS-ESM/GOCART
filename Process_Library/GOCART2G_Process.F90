@@ -141,12 +141,16 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
    ! !Local Variables
       integer :: n, numBins
       real    :: diameter, dlam, totalVolume
+      real    :: lambda, probability_agg
+      real    :: cv
+      real    :: distribution
 
    ! !CONSTANTS
       real, parameter    :: medianMassDiameter = 1.13      ! updated median mass diameter [um]
       real, parameter    :: geometricStdDev = 1.92         ! updated geometric standard deviation [1]
       real, parameter    :: crackPropagationLength = 11.0  ! updated crack propagation length [um]
-      real, parameter    :: DAgg = 127.0                   ! updated aggregate diameter [um]
+      real, parameter    :: DAggretate = 127.0             ! updated aggregate diameter [um]
+      real, parameter    :: flambda = 0.15                 ! ratio of lambda to Daggregate
       real, parameter    :: factor = 1.e0 / (sqrt(2.e0) * log(geometricStdDev))  ! auxiliary constant
       real, parameter    :: pi = 3.141529265
       real, parameter    :: geometricStdDevAgg = 2.95
@@ -157,21 +161,30 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
    !-------------------------------------------------------------------------
    !  Begin...
 
+      ! Initialize distribution array to zero
+      distribution = 0.0
+
+      ! Assume all arrays are dimensioned consistently
+      numBins = size(radius)
+
+      ! Initialize total volume to zero
+      totalVolume = 0.0
+
       ! Loop over particle sizes
       do n = 1, numBins
          ! Diameter calculation
          diameter = 2.0 * radius(n)
 
-         ! f_\lambda * Dagg from Equation 2 in Meng et al. 2021
-         lambda = flambda * Dagg
+         ! f_\lambda * DAggretate from Equation 2 in Meng et al. 2021
+         lambda = flambda * DAggretate
 
          ! Pagg  from Equation 4 in Meng et al. 2021
          probability_agg = 1.0 / (DAggretate * log(geometricStdDevAgg) * sqrt ( 2. * pi)) &
                      * exp(-((log(DAggretate) - log(DAggretate)) ** 2) / (2. * (log(geometricStdDevAgg)) ** 2))
 
          !Calculate normalized volume Vemis
-         distribution(n) = D / cv * (1.0_dp + erf(factor * (log(D / medianMassDiameter)))) &
-                  * exp(-D / lambda) ** 3 * probability_agg * log(rUp(n) / rLow(n))
+         distribution(n) = diameter / cv * (1.0_dp + erf(factor * (log(diameter / medianMassDiameter)))) &
+                  * exp(-diameter / lambda) ** 3 * probability_agg * log(rUp(n) / rLow(n))
 
          totalVolume = totalVolume + distribution(n)
       end do
@@ -180,7 +193,7 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
         distribution(n) = distribution(n) / totalVolume
       end do
 
-      end subroutine DustAerosolDistributionMeng2022
+   end subroutine DustAerosolDistributionMeng2022
 !=====================================================================================
 !BOP
 !
@@ -190,14 +203,14 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
    subroutine DustAerosolDistributionKok2021 ( radius, rLow, rUp, distribution )
 
 ! !USES:
-   implicit NONE
+      implicit NONE
 
 ! !INPUT PARAMETERS:
-   real, dimension(:), intent(in)  :: radius      ! Dry particle bin effective radius [um]
-   real, dimension(:), intent(in)  :: rLow, rUp   ! Dry particle bin edge radii [um]
+      real, dimension(:), intent(in)  :: radius      ! Dry particle bin effective radius [um]
+      real, dimension(:), intent(in)  :: rLow, rUp   ! Dry particle bin edge radii [um]
 
 ! !OUTPUT PARAMETERS:
-   real, dimension(:), intent(out) :: distribution    ! Normalized dust aerosol distribution [1]
+      real, dimension(:), intent(out) :: distribution    ! Normalized dust aerosol distribution [1]
 
 ! !DESCRIPTION: Computes lognormal aerosol size distribution for dust bins according to Eq 2 in
 !               Meng et al. 2021, https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2021GL097287
@@ -209,43 +222,43 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
 !
 
 ! !Local Variables
-   integer :: n, numBins
-   real    :: diameter, dlam, totalVolume
+      integer :: n, numBins
+      real    :: diameter, dlam, totalVolume
 
 ! !CONSTANTS
-   real, parameter    :: medianMassDiameter = 3.5          ! updated median mass diameter [um]
-   real, parameter    :: geometricStdDev = 2.8             ! updated geometric standard deviation [1]
-   real, parameter    :: crackPropagationLength = 11.0     ! updated crack propagation length [um]
-   real, parameter    :: factor = 1.e0 / (sqrt(2.e0) * log(geometricStdDev))  ! auxiliary constant
+      real, parameter    :: medianMassDiameter = 3.5          ! updated median mass diameter [um]
+      real, parameter    :: geometricStdDev = 2.8             ! updated geometric standard deviation [1]
+      real, parameter    :: crackPropagationLength = 11.0     ! updated crack propagation length [um]
+      real, parameter    :: factor = 1.e0 / (sqrt(2.e0) * log(geometricStdDev))  ! auxiliary constant
 
-   character(len=*), parameter :: subroutineName = 'DustAerosolDistributionKok2021'
+      character(len=*), parameter :: subroutineName = 'DustAerosolDistributionKok2021'
 
 !EOP
 !-------------------------------------------------------------------------
 !  Begin...
 
-   ! Initialize distribution array to zero
-   distribution = 0.0
+      ! Initialize distribution array to zero
+      distribution = 0.0
 
-   ! Assume all arrays are dimensioned consistently
-   numBins = size(radius)
+      ! Assume all arrays are dimensioned consistently
+      numBins = size(radius)
 
-   ! Initialize total volume to zero
-   totalVolume = 0.0
+      ! Initialize total volume to zero
+      totalVolume = 0.0
 
-   ! Compute the distribution for each bin
-   do n = 1, numBins
-     diameter = 2.0 * radius(n)
-     dlam = diameter / crackPropagationLength
-     distribution(n) = diameter * (1.0 + erf(factor * log(diameter / medianMassDiameter))) &
-                     * exp(-dlam**3) * log(rUp(n) / rLow(n))
-     totalVolume = totalVolume + distribution(n)
-   end do
+      ! Compute the distribution for each bin
+      do n = 1, numBins
+      diameter = 2.0 * radius(n)
+      dlam = diameter / crackPropagationLength
+      distribution(n) = diameter * (1.0 + erf(factor * log(diameter / medianMassDiameter))) &
+                        * exp(-dlam**3) * log(rUp(n) / rLow(n))
+      totalVolume = totalVolume + distribution(n)
+      end do
 
-   ! Normalize the distribution
-   do n = 1, numBins
-     distribution(n) = distribution(n) / totalVolume
-   end do
+      ! Normalize the distribution
+      do n = 1, numBins
+      distribution(n) = distribution(n) / totalVolume
+      end do
 
    end subroutine DustAerosolDistributionKok2021
 
