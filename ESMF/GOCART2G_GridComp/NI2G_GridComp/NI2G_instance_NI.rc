@@ -31,3 +31,7 @@ sigma: 2.0  2.0  2.0  2.0  2.0
 pressure_lid_in_hPa: 0.01
 
 rhFlag: 0
+
+# OH H202 NO3 from an offline 1-hourly simulation such as GEOS-CF
+# --------------------------------------------------------------
+using_1HR_OX: .true.

@@ -58,6 +58,9 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
+
+!     logic for 1 hourly oxident files
+      logical :: using_1HR_OX
    end type NI2G_GridComp
 
    type wrap_
@@ -134,6 +137,9 @@ contains
 
     ! process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
+
+    ! process NI-specific items
+    call ESMF_ConfigGetAttribute(cfg, self%using_1HR_OX, label='using_1HR_OX:', __RC__)
 
 !   Is NI data driven?
 !   ------------------
@@ -761,8 +767,12 @@ contains
        !workspace%first = .false.
     !end if
 
+
+    if (self%using_1HR_OX) then
+!   Assume HNO3 is constant in the hour
+        xhno3 = NITATE_HNO3
 !   Recycle HNO3 every 3 hours
-    if (alarm_is_ringing) then
+    else if (alarm_is_ringing) then
        xhno3 = NITRATE_HNO3
     end if
 
