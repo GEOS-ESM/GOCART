@@ -770,7 +770,7 @@ contains
 
     if (self%using_1HR_OX) then
 !   Assume HNO3 is constant in the hour
-        xhno3 = NITATE_HNO3
+        xhno3 = NITRATE_HNO3
 !   Recycle HNO3 every 3 hours
     else if (alarm_is_ringing) then
        xhno3 = NITRATE_HNO3
