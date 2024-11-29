@@ -72,7 +72,7 @@ Exports:
     collection: NI2G_c48_CFv2.chm_inst_1hr_glo_L180x91_v72.%y4%m2%d2_%h2%n2z.nc4
     regrid: CONSERVE
     sample: NI2G_1hr
-    variable: hno3
+    variable: HNO3
   NI_regionMask:
     collection: NI2G_ARCTAS.region_mask.x540_y361.2008.nc
     regrid: VOTE
