@@ -507,6 +507,8 @@ contains
     type (ESMF_State),         pointer  :: gim(:)
     type (ESMF_State),         pointer  :: gex(:)
     type (ESMF_State)                   :: internal
+    type(ESMF_Alarm)                    :: alarm
+    logical                             :: timeToDoWork
 
     integer                             :: i
 
@@ -525,6 +527,14 @@ contains
 !   -----------------------------------
     call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
 
+! Check run_dt alarm. Bail out if not ringing.
+! --------------------------------------------
+    call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
+    timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+    if (.not. timeToDoWork) then
+       _RETURN(ESMF_SUCCESS)
+    end if
+    
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
@@ -643,6 +653,8 @@ contains
     real, parameter                 :: pi = 3.141529265
     integer                         :: ind550, ind532
     integer                         :: i1, i2, j1, j2, km, k,kk
+    type(ESMF_Alarm)                :: alarm
+    logical                         :: timeToDoWork
 
 #include "GOCART2G_DeclarePointer___.h"
 
@@ -661,6 +673,14 @@ contains
     call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
     VERIFY_(STATUS)
 
+! Check run_dt alarm. Bail out if not ringing.
+! --------------------------------------------
+    call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
+    timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+    if (.not. timeToDoWork) then
+       _RETURN(ESMF_SUCCESS)
+    end if
+    
 !   Get parameters from generic state.
 !   -----------------------------------
     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
