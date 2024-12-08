@@ -305,12 +305,10 @@ contains
     character (len=ESMF_MAXSTR)          :: prefix
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:)      :: int_ptr
     logical                              :: data_driven
     logical                              :: bands_are_present
     integer                              :: NUM_BANDS
     character (len=ESMF_MAXSTR), allocatable    :: aerosol_names(:)
-    real, pointer, dimension(:,:,:)      :: ple
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
@@ -418,11 +416,6 @@ contains
 
        call ESMF_StateGet (internal, 'NH4a', field, __RC__)
        call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
-!    end if
-
-!      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-       call findKlid (self%klid, self%plid, ple, __RC__)
     end if
 
 !   Fill AERO State with N03an(1,2,3) fields
@@ -434,33 +427,15 @@ contains
     fld = MAPL_FieldCreate (field, 'NO3an1', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
-    if (.not. data_driven) then
-!      Set internal NO3an1 values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'NO3an1', __RC__)
-       call setZeroKlid(self%km, self%klid, int_ptr)
-    end if
-
     call ESMF_StateGet (internal, 'NO3an2', field, __RC__)
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(4), __RC__)
     fld = MAPL_FieldCreate (field, 'NO3an2', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
-    if (.not. data_driven) then
-!      Set internal NO3an2 values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'NO3an2', __RC__)
-       call setZeroKlid(self%km, self%klid, int_ptr)
-    end if
-
     call ESMF_StateGet (internal, 'NO3an3', field, __RC__)
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(5), __RC__)
     fld = MAPL_FieldCreate (field, 'NO3an3', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set internal NO3an3 values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'NO3an3', __RC__)
-       call setZeroKlid(self%km, self%klid, int_ptr)
-    end if
 
     if (data_driven) then
        instance = instanceData
@@ -746,6 +721,13 @@ contains
     call ESMF_UserCompGetInternalState(GC, 'NI2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid (self%km, self%klid, NO3an1)
+    call setZeroKlid (self%km, self%klid, NO3an2)
+    call setZeroKlid (self%km, self%klid, NO3an3)
 
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
