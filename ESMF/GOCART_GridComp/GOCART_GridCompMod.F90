@@ -1129,7 +1129,7 @@ CONTAINS
    integer                         :: in, jn
 
    type(GOCART_state), pointer     :: myState
-
+   logical :: timeToDoWork
 
 !                               ---
 
@@ -1142,13 +1142,18 @@ CONTAINS
 !  -----------------------------------
    call MAPL_GetObjectFromGC ( GC, ggState, __RC__)
 
+   call MAPL_Get(ggState, RUNALARM=ALARM, _RC)
+   timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+   if (.not. timeToDoWork) then
+      _RETURN(ESMF_SUCCESS)
+   end if
+
    call MAPL_TimerOn(ggState, 'TOTAL')
    call MAPL_TimerOn(ggState, 'RUN')
 
 !  Get parameters from generic state.
 !  ----------------------------------
-   call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
-
+   call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, _RC)
 !  Get heartbeat time step 
 !  -----------------------
    call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
@@ -1333,6 +1338,7 @@ CONTAINS
    real, pointer, dimension(:,:,:) :: pso4, pso4v, pso4t
    real, allocatable               :: tau1(:,:), tau2(:,:)
    real                            :: c1, c2, c3
+   logical :: timeToDoWork
 
 !                               ---
 
@@ -1344,6 +1350,12 @@ CONTAINS
 !  Get my internal MAPL_Generic state
 !  -----------------------------------
    call MAPL_GetObjectFromGC ( GC, ggState, __RC__)
+
+   call MAPL_Get(ggState, RUNALARM=ALARM, _RC)
+   timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+   if (.not. timeToDoWork) then
+      _RETURN(ESMF_SUCCESS)
+   end if
 
    call MAPL_TimerOn(ggState, 'TOTAL')
    call MAPL_TimerOn(ggState, 'RUN')
@@ -1359,7 +1371,12 @@ CONTAINS
 
 !  Get parameters from generic state.
 !  ----------------------------------
-   call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
+   call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, _RC)
+
+    timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+    if (.not. timeToDoWork) then
+       _RETURN(ESMF_SUCCESS)
+    end if
 
 !  Get pre-ESMF parameters from gc and clock
 !  -----------------------------------------
