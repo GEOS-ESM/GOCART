@@ -724,8 +724,6 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-    call print_timeInfo(clock, "DU2G Run1 dt=", self%cdt, _RC)
-
 !   Extract nymd(yyyymmdd) from clock
 !   ---------------------------------
     call ESMF_ClockGet (clock, currTime=time, __RC__)
@@ -933,8 +931,6 @@ contains
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
-
-    call print_timeInfo(clock, "DU2G Run2 dt=", self%cdt, _RC)
 
     associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
@@ -1341,26 +1337,6 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
-  subroutine print_timeInfo(clock, preStr, dt, rc)
-    implicit none
-    type(ESMF_Clock), intent(inout) :: clock
-    character (len=*), intent(in) :: preStr
-    real, intent (in) :: dt
-    integer, optional, intent(out) :: rc
-
-    type(ESMF_Time) :: currTime
-    character (len=20) :: string
-    character (len=6) :: buf
-    integer :: status
-
-    call ESMF_ClockGet(clock, CurrTime = currTime, _RC)
-    call ESMF_TimeGet(currTime, timeString=string, _RC)
-    write(buf,'(f5.0)') dt
-    if(MAPL_Am_I_Root()) print *, preStr // buf // string
-
-    _RETURN(0)
-    
-  end subroutine print_timeInfo
 
 end module DU2G_GridCompMod
 
