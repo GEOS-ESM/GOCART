@@ -379,7 +379,6 @@ contains
     real, pointer, dimension(:,:,:)      :: int_ptr
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:)      :: ple
     logical                              :: data_driven
     logical                              :: bands_are_present
     integer, allocatable, dimension(:)   :: channels_
@@ -491,15 +490,6 @@ contains
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
     fld = MAPL_FieldCreate (field, trim(comp_name)//'philic', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-       call findKlid (self%klid, self%plid, ple, __RC__)
-!      Set internal CAphilic values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, trim(comp_name)//'philic', __RC__)
-       call setZeroKlid(self%km, self%klid, int_ptr)
-    end if
 
     if (data_driven) then
        instance = instanceData
@@ -974,6 +964,11 @@ contains
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid (self%km, self%klid, intPtr_philic)
 
 !   Add on SOA from Anthropogenic VOC oxidation
 !   -------------------------------------------

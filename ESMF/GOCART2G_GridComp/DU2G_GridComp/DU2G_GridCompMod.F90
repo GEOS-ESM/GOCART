@@ -380,8 +380,6 @@ contains
     character (len=ESMF_MAXSTR)          :: bin_index, prefix
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:,:)    :: int_ptr
-    real, pointer, dimension(:,:,:)      :: ple
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
@@ -486,15 +484,6 @@ contains
     call ESMF_StateGet (internal, 'DU', field, __RC__)
     fld = MAPL_FieldCreate (field, 'DU', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-       call findKlid (self%klid, self%plid, ple, __RC__)
-!      Set internal DU values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'DU', __RC__)
-       call setZeroKlid4d (self%km, self%klid, int_ptr)
-    end if
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
@@ -939,6 +928,11 @@ contains
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
 
+!   Set klid and Set internal DU values to 0 above klid
+!   ---------------------------------------------------
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid4d (self%km, self%klid, DU)
+
 !   Dust Settling
 !   -------------
     do n = 1, self%nbins
@@ -972,7 +966,7 @@ contains
 !  ----------------------------
    KIN = .TRUE.
    do n = 1, self%nbins
-      fwet = 0.8
+      fwet = 1.0
       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
                               KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)

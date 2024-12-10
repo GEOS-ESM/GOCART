@@ -39,6 +39,6 @@ particle_radius_number: 0.066  0.176  0.885  2.061  6.901
 
 nbins: 5
 
-pressure_lid_in_hPa: 0.01
+pressure_lid_in_hPa: 40.0
 
 
