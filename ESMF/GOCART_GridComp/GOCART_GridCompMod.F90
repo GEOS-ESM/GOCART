@@ -832,7 +832,6 @@ end if ! doing GOCART
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    integer                         :: hdt         ! model     timestep (secs)
-   integer                         :: rft
 
    type(ESMF_Grid)                 :: grid       
  
@@ -876,7 +875,6 @@ end if ! doing GOCART
    type(ESMF_Alarm)        :: alarm_HNO3
    type(ESMF_Time)         :: ringTime
    type(ESMF_TimeInterval) :: ringInterval
-   integer                 :: year, month, day, hh, mm, ss
 
    type(ESMF_State)           :: providerState
    character(len=ESMF_MAXSTR) :: prefix
@@ -902,20 +900,8 @@ end if ! doing GOCART
 
 !  Compute proper REFERENCE_TIME if not explicitly specified
 !  ---------------------------------------------------------
-   call MAPL_GetResource( ggState, hdt, Label='RUN_DT:',                                   __RC__ )
-   call MAPL_GetResource( ggState, cdt, Label='GOCART_DT:',             default=real(hdt), __RC__ )
-   call MAPL_GetResource( ggState, rft, Label='GOCART_REFERENCE_TIME:', default=-999,      __RC__ )
-
-   if (rft == -999 .and. int(cdt) /= hdt) then
-       hh  = int(  hdt/3600          )
-       mm  = int( (hdt-hh*3600)/60   )
-       ss  = int(  hdt-hh*3600-mm*60 )
-       rft = hh*10000 + mm*100 + ss
-
-       call MAPL_ConfigSetAttribute(cf, value=rft, Label="GOCART_REFERENCE_TIME:", __RC__ )
-       if (MAPL_AM_I_ROOT()) write(*,"(21x,'Re-Setting GOCART_REFERENCE_TIME: ',i6.6)") rft
-   endif
-
+   call MAPL_GetResource( ggState, hdt, Label='RUN_DT:',                       __RC__ )
+   call MAPL_GetResource( ggState, cdt, Label='GOCART_DT:', default=real(hdt), __RC__ )
 
 !  Initialize GEOS Generic
 !  ------------------------
@@ -1108,7 +1094,6 @@ CONTAINS
    type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
-   real                            :: hdt         ! heartbeat time step (secs)
    real, pointer                   :: var(:,:,:)
    integer                         :: n
 
@@ -1129,7 +1114,7 @@ CONTAINS
    integer                         :: in, jn
 
    type(GOCART_state), pointer     :: myState
-
+   logical :: timeToDoWork
 
 !                               ---
 
@@ -1142,27 +1127,23 @@ CONTAINS
 !  -----------------------------------
    call MAPL_GetObjectFromGC ( GC, ggState, __RC__)
 
+   call MAPL_Get(ggState, RUNALARM=ALARM, _RC)
+   timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+   if (.not. timeToDoWork) then
+      _RETURN(ESMF_SUCCESS)
+   end if
+
    call MAPL_TimerOn(ggState, 'TOTAL')
    call MAPL_TimerOn(ggState, 'RUN')
 
 !  Get parameters from generic state.
 !  ----------------------------------
-   call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
+   call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, __RC__)
 
-!  Get heartbeat time step 
-!  -----------------------
-   call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
- 
 !  Get pre-ESMF parameters from gc and clock
 !  -----------------------------------------
    call extract_ ( gc, clock, chemReg, gcChem, w_c, nymd, nhms, cdt, STATUS, state=myState )
    VERIFY_(STATUS)
-
-!  Until all the gas phase species handle GOCART_DT correctly, we must run at the heartbeat
-!  ----------------------------------------------------------------------------------------
-!  Assume that DT is always an integral number of seconds
-!  Add a fraction to both (and then truncate to int), to avoid cases like 900 /= 899.999999
-!! _ASSERT(abs(cdt-hdt) < 0.1, 'Implementation of GOCART_DT is problematic; set GOCART_DT = HEARTBEAT_DT')
 
    allocate(r4ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
    allocate(  ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
@@ -1201,7 +1182,7 @@ CONTAINS
 !  --------------------------------------------
    call MAPL_TimerOn(ggState,'AERO1')
    call Aero_GridCompRun1 ( gcChem, w_c, gc, impChem, expChem, &
-                            nymd, nhms, hdt, STATUS )
+                            nymd, nhms, cdt, STATUS )
    VERIFY_(STATUS)
    call MAPL_TimerOff(ggState,'AERO1')
 
@@ -1265,7 +1246,6 @@ CONTAINS
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
    type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
    integer                         :: nymd, nhms  ! time
-   real                            :: hdt         ! heartbeat timestep (secs)
    real                            :: cdt         ! chemistry timestep (secs)
    real, pointer                   :: var(:,:,:)
    integer                         :: n
@@ -1333,7 +1313,7 @@ CONTAINS
    real, pointer, dimension(:,:,:) :: pso4, pso4v, pso4t
    real, allocatable               :: tau1(:,:), tau2(:,:)
    real                            :: c1, c2, c3
-
+   logical :: timeToDoWork
 !                               ---
 
 !  Get my name and set-up traceback handle
@@ -1345,12 +1325,14 @@ CONTAINS
 !  -----------------------------------
    call MAPL_GetObjectFromGC ( GC, ggState, __RC__)
 
+   call MAPL_Get(ggState, RUNALARM=ALARM, _RC)
+   timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+   if (.not. timeToDoWork) then
+      _RETURN(ESMF_SUCCESS)
+   end if
+
    call MAPL_TimerOn(ggState, 'TOTAL')
    call MAPL_TimerOn(ggState, 'RUN')
-
-!  Get heartbeat time step 
-!  -----------------------
-   call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
 
 !  Is time to recycle H2O2 and HNO3?
 !  ---------------------------------
@@ -1359,7 +1341,7 @@ CONTAINS
 
 !  Get parameters from generic state.
 !  ----------------------------------
-   call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
+   call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, __RC__)
 
 !  Get pre-ESMF parameters from gc and clock
 !  -----------------------------------------
