@@ -33,10 +33,14 @@ pressure_lid_in_hPa: 0.01
 rhFlag: 0
 
 
-# HNO3 from GMI (default: .false.)
+# HNO3 from GMI one -way coupling  (default: .false.). If .true. using_GMI2 need to be .false.
 # -------------------------------
-using_GMI: .true.
+using_GMI: .false.
+
+# HNO3 from GMI two-way coupling (default: .false.) If .true. using_GMI need to be .false.
+using_GMI2: .true.
 
 # scaling factor for HNO3 from GMI. 
-# Enabled only if using_GMI:.true. (default:1)
+# Enabled only if using_GMI:.true. (default:0.2)
 hno3sf: 0.2
+

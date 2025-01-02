@@ -802,6 +802,7 @@ contains
       call MAPL_MaxMin ( 'GMI:HNO3  ', xhno3)
     
     else if(self%using_GMI2) then
+      print*,'using GMI 2 coupling step1'
       xhno3 = GMI_HNO3
       call MAPL_MaxMin ( 'GMI:HNO3  ', xhno3)      
 
@@ -831,16 +832,22 @@ contains
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
     if (associated(NIPNH3AQ)) NIPNH3AQ(:,:) = 0.
     
-    !CM  3d outputs 
+    !CM  debugging statement
+    if (MAPL_AM_I_ROOT()) print *, trim(Iam)//': NEW diag create associated 3D arrays.'
+   
     if (associated(NIPNO3AQ3D)) NIPNO3AQ3D(:,:,:) = 0.
     if (associated(NIPNH4AQ3D)) NIPNH4AQ3D(:,:,:) = 0.
     if (associated(NIPNH3AQ3D)) NIPNH3AQ3D(:,:,:) = 0.
     if (associated(NIPHNO3AQ3D)) NIPHNO3AQ3D(:,:,:) = 0.    
 
+    !CM  debugging statement
+    if (MAPL_AM_I_ROOT()) print *, trim(Iam)//': NEW diag call NIthermo.'
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, &
                    t, rh2, fMassHNO3, MAPL_AIRMW, SO4, NH3, NO3an1, NH4a, &
-                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ,NIPNO3AQ3D,NIPNO3AQ3D,NIPNH4AQ3D,NIPHNO3AQ3D,__RC__)
+                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ,NIPNO3AQ3D,NIPNH4AQ3D,NIPNH3AQ3D,NIPHNO3AQ3D, __RC__)
     
+    !CM  debugging statement
+    if (MAPL_AM_I_ROOT()) print *, trim(Iam)//': NEW diag create associated 3D arrays.'
     call NIheterogenousChem (NIHT,NIHT3D, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
@@ -851,6 +858,7 @@ contains
     
 ! CM: update GMI_HNO3 after loss for NO3 hetchem for 2way coupling.
     if(self%using_GMI2) then
+         print*,'using GMI 2 coupling step2'
          GMI_HNO3 = xhno3
     endif
 

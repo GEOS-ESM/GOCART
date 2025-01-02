@@ -67,8 +67,8 @@ category: EXPORT
   NIPNO3AQ      | kg m-2 s-1   | xy    | N     |                                | Nitrate Production from Aqueous Chemistry
   NIPNO3AQ3D    | kg m-2 s-1   | xyz   | C     |                                | 3D Nitrate Production from Aqueous Chemistry
   NIPNH4AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonium Production from Aqueous Chemistry
-  NIPNH4AQ3D    | kg m-2 s-1   | xyz   | C     |                                | 3D Ammonium production from Aqueous Chemistry
-  NIPNH3AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonia change from Aqueous Chemistry
+  NIPNH4AQ3D    | kg m-2 s-1   | xyz   | C     |                                | 3D Ammonium Production from Aqueous Chemistry
+  NIPNH3AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonia Change from Aqueous Chemistry
   NIPNH3AQ3D    | kg m-2 s-1   | xyz   | C     |                                | 3D Ammonia Change from Aqueous Chemistry
   NIPHNO3AQ3D   | kg m-2 s-1   | xyz   | C     |                                | 3D Nitric acid  Change from Aqueous Chemistry
   NIHT          | kg m-2 s-1   | xy    | N     | 3                              | Nitrate Production from Het Chem (Bin %d)
