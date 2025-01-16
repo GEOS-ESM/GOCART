@@ -21,7 +21,7 @@ endforeach ()
 if (GOCART_STANDALONE)
   project (
           GOCART
-          VERSION 2.1.1
+          VERSION 2.3.0
           LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
   if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
