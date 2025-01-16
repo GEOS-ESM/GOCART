@@ -98,7 +98,7 @@ category: EXPORT
  SUEXTTAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Aerosol Optical Depth
  SUSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Stratospheric Aerosol Optical Thickness
  SUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Aerosol Optical Depth Due to Scattering
- SUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Stratospheric Aerosol Optical Thickness Due to Scattering
+ SUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Stratospheric Aerosol Optical Depth Due to Scattering
  SO4SAREA      | m2 m-3     | xyz  | C    |                                | SO4 Surface Area Density
  SO4SNUM       | m-3        | xyz  | C    |                                | SO4 Number Density
 
@@ -111,8 +111,8 @@ category: INTERNAL
  DMS       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
  SO2       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
  SO4       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
- MSA       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid  
- H2O2_INIT |kg kg-1| xyz  | C    |                      | F |                           | private H2O2 that is saved and used to initialize 
+ MSA       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid
+ H2O2_INIT |kg kg-1| xyz  | C    |                      | F |                           | private H2O2 that is saved and used to initialize
 
 
 #********************************************************

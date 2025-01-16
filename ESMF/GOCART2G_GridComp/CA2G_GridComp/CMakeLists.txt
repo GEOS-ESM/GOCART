@@ -6,7 +6,9 @@ esma_add_library (${this}
 
 mapl_acg (${this}   CA2G_StateSpecs.rc
           IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
-          GET_POINTERS DECLARE_POINTERS)
+          GET_POINTERS DECLARE_POINTERS
+          LONG_NAME_PREFIX "GCsuffix")
+
 
 file (GLOB_RECURSE rc_files CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.rc *.yaml)
 foreach ( file ${rc_files} )
