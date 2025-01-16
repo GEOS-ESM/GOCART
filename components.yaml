@@ -35,5 +35,5 @@ GMAO_Shared:
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  tag: v2.38.1
+  tag: v2.47.1.2
   develop: develop
