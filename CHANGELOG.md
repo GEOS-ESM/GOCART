@@ -14,12 +14,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 -Filepath for CEDS has been updated in the ExtData yaml and rc files. Note the old version had an incorrect seasonal cycle.
 
+## [v2.3.0] - 2025-01-16
+
+### Changed
+
+- Filepath for CEDS has been updated in the ExtData yaml and rc files. Note the old version had an incorrect seasonal cycle.
+- State Spec RC files for GOCART2G, CA, DU, NI, SU, and SS were updated such that the long names for AOD are more intuitive
+- Updated CI to use v4 orb
+- Update components.yaml to match GEOSgcm `main` as of 2025-01-16
+
 ## [v2.2.1] - 2023-05-30
 
 ### Fixed
 
 - In dust and sea-salt, changed dimensions back to `globalCellCountPerDim` since these are needed to determine emission tuning parameters, not to allocate arrays.
-
 
 ## [v2.2.0] - 2023-05-18
 

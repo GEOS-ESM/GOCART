@@ -49,12 +49,12 @@ category: EXPORT
   NH3MASS       | kg/kg        | xyz   | C     |                                | Ammonia Mass Mixing Ratio
   NH4MASS       | kg/kg        | xyz   | C     |                                | Ammonium Aerosol Mass Mixing Ratio
   NIMASS        | kg/kg        | xyz   | C     |                                | Nitrate Mass Mixing Ratio
-  NIMASS25      | kg/kg        | xyz   | C     |                                | Nitrate Mass Mixing Ratio [PM2.5]
+  NIMASS25      | kg/kg        | xyz   | C     |                                | Nitrate Mass Mixing Ratio of Particulate Matter < 2.5 microns (PM2.5)
   HNO3CONC      | kg m-3       | xyz   | C     |                                | Nitric Acid Mass Concentration
   NH3CONC       | kg m-3       | xyz   | C     |                                | Ammonia Mass Concentration
   NH4CONC       | kg m-3       | xyz   | C     |                                | Ammonium Mass Concentration
   NICONC        | kg m-3       | xyz   | C     |                                | Nitrate Mass Concentration
-  NICONC25      | kg m-3       | xyz   | C     |                                | Nitrate Mass Concentration [PM2.5]
+  NICONC25      | kg m-3       | xyz   | C     |                                | Nitrate Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
   NIEXTCOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient
   NIEXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient - fixed RH=20%
   NIEXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient - fixed RH=80%
@@ -83,20 +83,20 @@ category: EXPORT
   NH3SMASS      | kg m-3       | xy    | N     |                                | Ammonia Surface Mass Concentration
   NH4SMASS      | kg m-3       | xy    | N     |                                | Ammonium Surface Mass Concentration
   NISMASS       | kg m-3       | xy    | N     |                                | Nitrate Surface Mass Concentration
-  NISMASS25     | kg m-3       | xy    | N     |                                | Nitrate Surface Mass Concentration [PM2.5]
+  NISMASS25     | kg m-3       | xy    | N     |                                | Nitrate Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
   HNO3CMASS     | kg m-3       | xy    | N     |                                | Nitric Acid Column Mass Density
   NH3CMASS      | kg m-3       | xy    | N     |                                | Ammonia Column Mass Density
   NH4CMASS      | kg m-3       | xy    | N     |                                | Ammonium Column Mass Density
   NICMASS       | kg m-2       | xy    | N     |                                | Nitrate Column Mass Density
-  NICMASS25     | kg m-2       | xy    | N     |                                | Nitrate Column Mass Density [PM2.5]
-  NIEXTTFM      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Extinction AOT - PM 1.0 um
-  NISCATFM      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Scattering AOT - PM 1.0 um
-  NIEXTT25      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Extinction AOT - PM 2.5 um
-  NISCAT25      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Scattering AOT - PM 2.5 um
-  NIEXTTAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Extinction AOT
-  NISTEXTTAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Extinction AOT Stratosphere
-  NISCATAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Scattering AOT
-  NISTSCATAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Scattering AOT Stratosphere
+  NICMASS25     | kg m-2       | xy    | N     |                                | Nitrate Column Mass Density of Particulate Matter < 2.5 microns (PM2.5)
+  NIEXTTFM      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Aerosol Optical Depth from Particulate Matter < 1 micron (PM1.0)
+  NISCATFM      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Aerosol Optical Depth Due to Scattering from Particulate Matter < 1 micron (PM1.0)
+  NIEXTT25      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Aerosol Optical Depth from Particulate Matter < 2.5 microns (PM2.5)
+  NISCAT25      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Aerosol Optical Depth Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)
+  NIEXTTAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Aerosol Optical Depth
+  NISTEXTTAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Stratospheric Aerosol Optical Thickness
+  NISCATAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Aerosol Optical Depth Due to Scattering
+  NISTSCATAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | Nitrate Stratospheric Aerosol Optical Thickness Due to Scattering
   NIANGSTR      | 1            | xy    | N     |                                | Nitrate Angstrom parameter [470-870 nm]
   NIFLUXU       | kg m-1 s-1   | xy    | N     |                                | Nitrate column u-wind mass flux
   NIFLUXV       | kg m-1 s-1   | xy    | N     |                                | Nitrate column v-wind mass flux
