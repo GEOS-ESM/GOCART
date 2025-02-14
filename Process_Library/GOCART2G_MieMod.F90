@@ -232,7 +232,7 @@ CONTAINS
       allocate(bsca_table(nrh_table,nch_table,nbin_table), __NF_STAT__)
       allocate(bbck_table(nrh_table,nch_table,nbin_table),  __NF_STAT__)
       allocate(g_table(nrh_table,nch_table,nbin_table), stat = rc )
-      allocate(pback_table(nrh_table,nch_table,nbin_table,nPol_table),  __NF_STAT__)
+      allocate(pback_table(nPol_table,nrh_table,nch_table,nbin_table),  __NF_STAT__)
       allocate(gf_table(nrh_table,nbin_table), __NF_STAT__)
       allocate(rhop_table(nrh_table,nbin_table), __NF_STAT__)
       allocate(rhod_table(nrh_table,nbin_table), __NF_STAT__)
@@ -347,7 +347,7 @@ CONTAINS
       allocate (this%bsca(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%bbck(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%g(this%nrh,this%nch,this%nbin),    __NF_STAT__)
-      allocate (pback(this%nrh,this%nch,this%nbin,this%nPol),    __NF_STAT__)
+      allocate (pback(this%nPol,this%nrh,this%nch,this%nbin),    __NF_STAT__)
       if ( nmom_ > 0 ) then
          allocate (this%pmom(this%nrh,this%nch,this%nbin,this%nMom,this%nPol),    __NF_STAT__)
       end if
@@ -417,17 +417,17 @@ CONTAINS
                enddo !n
 
                do ipol = 1, this%nPol
-                  real_tmp = pback_table(i,:,j,ipol)
+                  real_tmp = pback_table(ipol,i,:,j)
                   do n = 1, this%nch
                       call polint(channels_table,real_tmp,nch_table,    &
-                             this%wavelengths(n),pback(i,n,j,ipol),yerr)
+                             this%wavelengths(n),pback(ipol,i,n,j),yerr)
                   end do !n
                enddo !ipol
 
                if ( nmom_ > 0 ) then
                   do imom = 1, this%nMom
                      do ipol = 1, this%nPol
-                        real_tmp = pmom_table(i,:,j,ipol,imom)
+                        real_tmp = pmom_table(imom, ipol,i,:,j)
                         do n = 1, this%nch
                            call polint(channels_table, real_tmp,nch_table, &
                                 this%wavelengths(n),this%pmom(i,n,j,imom,ipol),yerr)
@@ -447,13 +447,13 @@ CONTAINS
          this%refi = refi_table
          pback     = pback_table
          if ( nmom_ > 0 ) then
-           this%pmom = reshape(pmom_table,[nrh_table, nch, nbin_table, nmom_, npol_table], order = [1,2,3,5,4])
+           this%pmom = reshape(pmom_table,[nrh_table, nch, nbin_table, nmom_, npol_table], order = [4,5,1,2,3])
          endif
       endif
 
 !     Pick p11, p12
-      this%p11 = pback(:,:,:,1)
-      this%p22 = pback(:,:,:,5)
+      this%p11 = pback(1,:,:,:)
+      this%p22 = pback(5,:,:,:)
 
 !     Now we do a mapping of the RH from the input table to some high
 !     resolution representation.  This is to spare us the need to
