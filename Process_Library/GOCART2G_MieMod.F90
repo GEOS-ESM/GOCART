@@ -156,6 +156,7 @@ CONTAINS
      
      real :: yerr
      integer :: nmom_, imom, ipol
+     real, allocatable, dimension(:) :: real_tmp, bext_tmp, bsca_tmp, bbck_tmp, g_tmp,refr_tmp, refi_tmp
      integer :: status
 
 #define NF_VERIFY_(expr) rc = expr; if (rc /= 0) return
@@ -193,7 +194,7 @@ CONTAINS
 
 !     Channels
 !     --------
-      NF_VERIFY_(nf90_inq_dimid(ncid,'lambda',idimid))
+      NF_VERIFY_(nf90_inq_dimid(ncid,'wavelength',idimid))
       NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nch_table))
 
       if (present(wavelengths) ) then
@@ -204,20 +205,20 @@ CONTAINS
       
 !     Dry Effective radius
 !     --------------------
-      NF_VERIFY_(nf90_inq_dimid(ncid,'radius',idimid))
+      NF_VERIFY_(nf90_inq_dimid(ncid,'bin',idimid))
       NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nbin_table))
 
 !     Moments of phase function
 !     -------------------------
       if ( nmom_ > 0 ) then
-         NF_VERIFY_(nf90_inq_dimid(ncid,'nMom',idimid))
+         NF_VERIFY_(nf90_inq_dimid(ncid,'m',idimid))
          NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nmom_table))
          if ( nmom_ > nmom_table ) then
 !            rc = 99
             print*,'Error: nmom_ > nmom_table, see:'//myname
             NF_VERIFY_(1)
          end if
-         NF_VERIFY_(nf90_inq_dimid(ncid,'nPol',idimid))
+         NF_VERIFY_(nf90_inq_dimid(ncid,'p',idimid))
          NF_VERIFY_(nf90_inquire_dimension(ncid,idimid,len=nPol_table))
       endif
 
@@ -227,21 +228,21 @@ CONTAINS
       allocate(channels_table(nch_table), __NF_STAT__)
       allocate(rh_table(nrh_table), __NF_STAT__)
       allocate(reff_table(nrh_table,nbin_table), __NF_STAT__)
-      allocate(bext_table(nch_table,nrh_table,nbin_table), __NF_STAT__)
-      allocate(bsca_table(nch_table,nrh_table,nbin_table), __NF_STAT__)
-      allocate(bbck_table(nch_table,nrh_table,nbin_table),  __NF_STAT__)
-      allocate(g_table(nch_table,nrh_table,nbin_table), stat = rc )
-      allocate(pback_table(nch_table,nrh_table,nbin_table,nPol_table),  __NF_STAT__)
+      allocate(bext_table(nrh_table,nch_table,nbin_table), __NF_STAT__)
+      allocate(bsca_table(nrh_table,nch_table,nbin_table), __NF_STAT__)
+      allocate(bbck_table(nrh_table,nch_table,nbin_table),  __NF_STAT__)
+      allocate(g_table(nrh_table,nch_table,nbin_table), stat = rc )
+      allocate(pback_table(nrh_table,nch_table,nbin_table,nPol_table),  __NF_STAT__)
       allocate(gf_table(nrh_table,nbin_table), __NF_STAT__)
       allocate(rhop_table(nrh_table,nbin_table), __NF_STAT__)
       allocate(rhod_table(nrh_table,nbin_table), __NF_STAT__)
       allocate(vol_table(nrh_table,nbin_table), __NF_STAT__)
       allocate(area_table(nrh_table,nbin_table), __NF_STAT__)
-      allocate(refr_table(nch_table,nrh_table,nbin_table), __NF_STAT__)
-      allocate(refi_table(nch_table,nrh_table,nbin_table), __NF_STAT__)
+      allocate(refr_table(nrh_table,nch_table,nbin_table), __NF_STAT__)
+      allocate(refi_table(nrh_table,nch_table,nbin_table), __NF_STAT__)
 
       if ( nmom_ > 0 ) then
-         allocate(pmom_table(nch_table,nrh_table,nbin_table,nmom_table,nPol_table), __NF_STAT__)
+         allocate(pmom_table(nmom_table,nPol_table,nrh_table,nch_table,nbin_table), __NF_STAT__)
       end if
       NF_VERIFY_(nf90_inq_varid(ncid,'lambda',ivarid))
       NF_VERIFY_(nf90_get_var(ncid,ivarid,channels_table))
@@ -394,45 +395,59 @@ CONTAINS
       if ( present(wavelengths) ) then
          do j = 1, this%nbin
             do i = 1, this%nrh
+               bext_tmp = bext_table(i,:,j)
+               bsca_tmp = bsca_table(i,:,j)
+               bbck_tmp = bbck_table(i,:,j)
+               g_tmp    = g_table(i,:,j)
+               refr_tmp = refr_table(i,:,j)
+               refi_tmp = refi_table(i,:,j)
                do n = 1, this%nch
-                  call polint(channels_table,bext_table(:,i,j),nch_table, &
+                  call polint(channels_table,bext_tmp,nch_table, &
                        this%wavelengths(n),this%bext(i,n,j),yerr)
-                  call polint(channels_table,bsca_table(:,i,j),nch_table, &
+                  call polint(channels_table,bsca_tmp,nch_table, &
                        this%wavelengths(n),this%bsca(i,n,j),yerr)
-                  call polint(channels_table,bbck_table(:,i,j),nch_table, &
+                  call polint(channels_table,bbck_tmp,nch_table, &
                        this%wavelengths(n),this%bbck(i,n,j),yerr)
-                  call polint(channels_table,g_table(:,i,j),nch_table,    &
+                  call polint(channels_table,g_tmp,nch_table,    &
                        this%wavelengths(n),this%g(i,n,j),yerr)
-                  call polint(channels_table,refr_table(:,i,j),nch_table, &
+                  call polint(channels_table,refr_tmp,nch_table, &
                        this%wavelengths(n),this%refr(i,n,j),yerr)
-                  call polint(channels_table,refi_table(:,i,j),nch_table, &
+                  call polint(channels_table,refi_tmp,nch_table, &
                        this%wavelengths(n),this%refi(i,n,j),yerr)
-                  do ipol = 1, this%nPol
-                      call polint(channels_table,pback_table(:,i,j,ipol),nch_table,    &
+               enddo !n
+
+               do ipol = 1, this%nPol
+                  real_tmp = pback_table(i,:,j,ipol)
+                  do n = 1, this%nch
+                      call polint(channels_table,real_tmp,nch_table,    &
                              this%wavelengths(n),pback(i,n,j,ipol),yerr)
-                  end do
-                  if ( nmom_ > 0 ) then
-                     do imom = 1, this%nMom
-                        do ipol = 1, this%nPol
-                           call polint(channels_table,pmom_table(:,i,j,imom,ipol),nch_table, &
+                  end do !n
+               enddo !ipol
+
+               if ( nmom_ > 0 ) then
+                  do imom = 1, this%nMom
+                     do ipol = 1, this%nPol
+                        real_tmp = pmom_table(i,:,j,ipol,imom)
+                        do n = 1, this%nch
+                           call polint(channels_table, real_tmp,nch_table, &
                                 this%wavelengths(n),this%pmom(i,n,j,imom,ipol),yerr)
                         enddo
                      enddo
-                  endif
-               enddo
+                  enddo
+               endif
             enddo
          enddo
       else !(no wavelength)
          !swap the order
-         this%bext = reshape(bext_table, [nrh_table, nch, nbin_table],order =[2,1,3])
-         this%bsca = reshape(bsca_table, [nrh_table, nch, nbin_table],order =[2,1,3])
-         this%bbck = reshape(bbck_table, [nrh_table, nch, nbin_table],order =[2,1,3])
-         this%g    = reshape(   g_table, [nrh_table, nch, nbin_table],order =[2,1,3])
-         this%refr = reshape(refr_table, [nrh_table, nch, nbin_table],order =[2,1,3])
-         this%refi = reshape(refi_table, [nrh_table, nch, nbin_table],order =[2,1,3])
-         pback     = reshape(pback_table,[nrh_table, nch, nbin_table, npol_table],order =[2,1,3,4])
+         this%bext = bext_table
+         this%bsca = bsca_table
+         this%bbck = bbck_table
+         this%g    = g_table
+         this%refr = refr_table
+         this%refi = refi_table
+         pback     = pback_table
          if ( nmom_ > 0 ) then
-           this%pmom = reshape(pmom_table,[nrh_table,nch, nbin_table, nmom_, npol_table], order = [2,1,3,4,5])
+           this%pmom = reshape(pmom_table,[nrh_table, nch, nbin_table, nmom_, npol_table], order = [1,2,3,5,4])
          endif
       endif
 
