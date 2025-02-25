@@ -190,6 +190,7 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Initialize,  Initialize, __RC__)
     call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run, __RC__)
     if (data_driven .neqv. .true.) then
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, __RC__)
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
     end if
 
@@ -376,7 +377,6 @@ contains
     type (ESMF_Field)                    :: field, fld
     character (len=ESMF_MAXSTR)          :: prefix, GCsuffix, diurnal_bb, bin_index
     character (len=ESMF_MAXSTR),allocatable :: aerosol_names(:)
-    real, pointer, dimension(:,:,:)      :: int_ptr
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
     logical                              :: data_driven
@@ -482,10 +482,6 @@ contains
     fld = MAPL_FieldCreate (field, trim(comp_name)//'phobic', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
-!   Set internal CAphobic values to 0 where above klid
-    call MAPL_GetPointer (internal, int_ptr, trim(comp_name)//'phobic', __RC__)
-    call setZeroKlid(self%km, self%klid, int_ptr)
-
     call ESMF_StateGet (internal, trim(comp_name)//'philic', field, __RC__)
     call ESMF_AttributeSet (field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
     fld = MAPL_FieldCreate (field, trim(comp_name)//'philic', __RC__)
@@ -585,7 +581,71 @@ contains
   end subroutine Initialize
 
 !============================================================================
+!BOP
+! !IROUTINE: Run0
 
+! !INTERFACE:
+  subroutine Run0 (GC, import, export, clock, RC)
+
+!   !ARGUMENTS:
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+    type (ESMF_State),    intent(inout) :: import ! Import state
+    type (ESMF_State),    intent(inout) :: export ! Export state
+    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+    integer, optional,    intent(  out) :: RC     ! Error code:
+
+! !DESCRIPTION:  Clears klid to 0.0 for Carbon
+
+!EOP
+!============================================================================
+! Locals
+    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    type (MAPL_MetaComp), pointer     :: MAPL
+    type (ESMF_State)                 :: internal
+    type (wrap_)                      :: wrap
+    type (CA2G_GridComp), pointer     :: self
+    real, pointer, dimension(:,:,:)   :: intPtr_phobic, intPtr_philic
+    real, pointer, dimension(:,:,:)   :: ple 
+
+    __Iam__('Run0')
+
+!*****************************************************************************
+!   Begin...
+
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    Iam = trim(COMP_NAME) // '::' // Iam
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+
+    call MAPL_GetPointer (internal, intPtr_phobic, trim(comp_name)//'phobic', __RC__)
+    call MAPL_GetPointer (internal, intPtr_philic, trim(comp_name)//'philic', __RC__)
+
+!   Get my private internal state
+!   ------------------------------
+    call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid (self%km, self%klid, intPtr_phobic)
+    call setZeroKlid (self%km, self%klid, intPtr_philic)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine Run0
+
+!============================================================================
 !BOP
 ! !IROUTINE: Run
 
@@ -599,7 +659,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: rc     ! Error code:
 
-! !DESCRIPTION: Run method for the Sea Salt Grid Component. Determines whether to run
+! !DESCRIPTION: Run method for the Carbon Grid Component. Determines whether to run
 !               data or computational run method.
 
 !EOP
@@ -968,6 +1028,7 @@ contains
 !   Set klid and Set internal values to 0 above klid
 !   ---------------------------------------------------
     call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid (self%km, self%klid, intPtr_phobic)
     call setZeroKlid (self%km, self%klid, intPtr_philic)
 
 !   Add on SOA from Anthropogenic VOC oxidation

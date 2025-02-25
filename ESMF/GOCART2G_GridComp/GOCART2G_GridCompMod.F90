@@ -527,6 +527,10 @@ contains
 !   -----------------------------------
     call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
 
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
+
 ! Check run_dt alarm. Bail out if not ringing.
 ! --------------------------------------------
     call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
@@ -534,10 +538,6 @@ contains
     if (.not. timeToDoWork) then
        _RETURN(ESMF_SUCCESS)
     end if
-    
-!   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
 
 !   Run the children
 !   -----------------
@@ -673,6 +673,20 @@ contains
     call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
     VERIFY_(STATUS)
 
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
+                    LONS=LONS, LATS=LATS, __RC__ )
+
+!   Run zero Klid for children    
+!   --------------------------   
+    do i = 1, size(gcs) 
+      call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
+      if ((index(child_name, 'data')) == 0) then ! only execute phase2 method if a computational instance
+         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, __RC__)
+      end if
+    end do         
+
 ! Check run_dt alarm. Bail out if not ringing.
 ! --------------------------------------------
     call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
@@ -681,11 +695,6 @@ contains
        _RETURN(ESMF_SUCCESS)
     end if
     
-!   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
-                    LONS=LONS, LATS=LATS, __RC__ )
-
 !   Get my internal state
 !   ---------------------
     call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
@@ -723,8 +732,8 @@ contains
 !   -----------------
     do i = 1, size(gcs)
       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
-      if ((index(child_name, 'data')) == 0) then ! only execute Run2 method if a computational instance
-         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, __RC__)
+      if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
+         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, __RC__)
       end if
     end do
 
