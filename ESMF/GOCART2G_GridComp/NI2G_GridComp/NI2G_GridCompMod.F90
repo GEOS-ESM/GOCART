@@ -144,8 +144,8 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, __RC__)
     if (data_driven .neqv. .true.) then
-       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, __RC__)
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, __RC__)
     end if
 
     DEFVAL = 0.0

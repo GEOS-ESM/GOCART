@@ -860,7 +860,6 @@ end if ! doing GOCART
    character(len=ESMF_MAXSTR)      :: aero_aci_modes(n_gocart_modes)
    character(len=ESMF_MAXSTR)      :: short_name
    real                            :: f_aci_seasalt, maxclean, ccntuning
-   character(LEN=ESMF_MAXSTR)      :: CLDMICRO
      
    type(MAPL_VarSpec), pointer     :: InternalSpec(:)
    integer                         :: instance

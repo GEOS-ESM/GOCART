@@ -200,8 +200,8 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, __RC__)
     if (data_driven .neqv. .true.) then
-       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, __RC__)
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, __RC__)
     end if
 
     DEFVAL = 0.0
@@ -1136,6 +1136,17 @@ contains
                             SUPSO4, SUPSO4g, SUPSO4aq, &
                             pso2, pmsa, pso4, pso4g, pso4aq, drydepositionf, & ! 3d diagnostics
                             __RC__)
+
+!    call MAPL_MaxMin('SU2G: DMS     ', DMS)
+!    call MAPL_MaxMin('SU2G: SO2     ', SO2)
+!    call MAPL_MaxMin('SU2G: SO4     ', SO4)
+!    call MAPL_MaxMin('SU2G: MSA     ', dummyMSA)
+!    call MAPL_MaxMin('SU2G: TEMP    ', t)
+!    call MAPL_MaxMin('SU2G: FCLD    ', fcld)
+!    call MAPL_MaxMin('SU2G: XH2O2   ', xh2o2)
+!    call MAPL_MaxMin('SU2G: H2O2_I  ', h2o2_init)
+!    call MAPL_MaxMin('SU2G: PSO4aq  ', pso4aq)
+!    call MAPL_MaxMin('SU2G: SUPSO4aq', SUPSO4aq)
 
     KIN = .true.
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
