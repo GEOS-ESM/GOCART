@@ -1,13 +1,4 @@
-#define __SUCCESS__ 0
-#define __FAIL__ 1
-#define __VERIFY__(x) if(x/=0) then; if(present(rc)) rc=x; return; endif
-#define __VERIFY_NO_OPT__(x) if(x/=0) then; rc=x; return; endif
-#define __RC__ rc=status); __VERIFY__(status
-#define __RC_NO_OPT__ rc=status); __VERIFY_NO_OPT__(status
-#define __STAT__ stat=status); __VERIFY__(status
-#define __IOSTAT__ iostat=status); __VERIFY__(status
-#define __RETURN__(x) if (present(rc)) rc=x; return
-#define __ASSERT__(expr) if(.not. (expr)) then; if (present(rc)) rc=-1; return; endif
+#include "Process.H"
 !-------------------------------------------------------------------------
 !
 ! !MODULE: GOCART2G_Process -- GOCART2G process library
@@ -53,7 +44,8 @@
    public wetRadius
    public hoppelCorrection
    public CAEmission
-   public phobicTophilic
+   public phobicToPhilic
+   public carbonChemLoss
    public NIheterogenousChem
    public SulfateDistributeEmissions
    public DMSemission
@@ -1441,9 +1433,9 @@ end function DarmenovaDragPartition
 !BOP
 ! !IROUTINE: Chem_SettlingSimple
 
-   subroutine Chem_SettlingSimple ( km, klid, flag, cdt, grav, &
-                                    radiusInp, rhopInp, int_qa, tmpu, &
-                                    rhoa, rh, hghte, delp, fluxout,  &
+   subroutine Chem_SettlingSimple ( km, klid, mie, bin, cdt, grav, &
+                                    int_qa, tmpu, rhoa, rh, hghte, &
+                                    delp, fluxout,  &
                                     vsettleOut, correctionMaring, rc)
 
 ! !USES:
@@ -1453,11 +1445,10 @@ end function DarmenovaDragPartition
 ! !INPUT PARAMETERS:
    integer, intent(in)    :: km     ! total model levels
    integer, intent(in)    :: klid   ! index for pressure lid
-   integer, intent(in) :: flag     ! flag to control particle swelling (see note)
+   type(GOCART2G_Mie),  intent(in) :: mie        ! mie table
+   integer, intent(in)    :: bin    ! aerosol bin index
    real, intent(in)    :: cdt
    real, intent(in)    :: grav   ! gravity [m/sec^2]
-   real, intent(in)  :: radiusInp  ! particle radius [microns]
-   real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
    real, pointer, dimension(:,:,:), intent(in)  :: rhoa   ! air density [kg/m^3]
@@ -1482,13 +1473,11 @@ end function DarmenovaDragPartition
 
 ! !DESCRIPTION: Gravitational settling of aerosol between vertical
 !               layers.  Assumes input radius in [m] and density (rhop)
-!               in [kg m-3]. If flag is set, use the Fitzgerald 1975 (flag = 1)
-!               or Gerber 1985 (flag = 2) parameterization to update the
-!               particle radius for the calculation (local variables radius
-!               and rhop).
+!               in [kg m-3]arrays from the optics files. 
 !
 ! !REVISION HISTORY:
-!
+!  02Jan2024  Collow    Removed calls to particle swelling and added 
+!                       interpolation based on RH
 !  17Sep2004  Colarco   Strengthen sedimentation flux out at surface
 !                       by setting removal to be valid from middle of
 !                       surface layer
@@ -1549,10 +1538,10 @@ end function DarmenovaDragPartition
    enddo
 
 !  If radius le 0 then get out
-   if(radiusInp .le. 0.) then
-      status = 100
-      __RETURN__(STATUS)
-   end if
+!   if(radiusInp .le. 0.) then
+!      status = 100
+!      __RETURN__(STATUS)
+!   end if
 
 !   Find the column dry mass before sedimentation
     do k = klid, km
@@ -1563,22 +1552,23 @@ end function DarmenovaDragPartition
        enddo
     enddo
 
-!   Particle swelling
-    call ParticleSwelling(i1, i2, j1, j2, km, rh, radiusInp, rhopInp, radius, rhop, flag)
-
+! Find radius and density of the wet particle
+    call mie%Query(550e-9,bin,   &
+                         qa*delp/grav, &
+                         rh, reff=radius, rhop=rhop, __RC__)  
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
           do i = i1, i2
-             call Chem_CalcVsettle(radius(i,j,k), rhop(i,j,k), rhoa(i,j,k), &
+            call Chem_CalcVsettle(radius(i,j,k)*1.e-6, rhop(i,j,k), rhoa(i,j,k), &
                                    tmpu(i,j,k), vsettle(i,j,k), grav)
           end do
        end do
     end do
-
+ 
     if(present(correctionMaring)) then
        if (correctionMaring) then
-          vsettle = max(1.0e-9, vsettle - v_upwardMaring)
+            vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
 
@@ -1601,7 +1591,6 @@ end function DarmenovaDragPartition
     if( associated(fluxout) ) then
        fluxout(:,:) = (cmass_before - cmass_after)/cdt
     endif
-
     int_qa = qa
 
    __RETURN__(__SUCCESS__)
@@ -1628,7 +1617,7 @@ end function DarmenovaDragPartition
    integer, intent(in) :: flag     ! flag to control particle swelling (see note)
    real, intent(in)    :: cdt
    real, intent(in)    :: grav   ! gravity [m/sec^2]
-   real, intent(in)  :: radiusInp  ! particle radius [microns]
+   real, intent(in)  :: radiusInp  ! particle radius [meters] (converted from microns in call to function)
    real, intent(in)  :: rhopInp    ! soil class density [kg/m^3]
    real, dimension(:,:,:), intent(inout) :: int_qa  ! aerosol [kg/kg]
    real, pointer, dimension(:,:,:), intent(in)  :: tmpu   ! temperature [K]
@@ -5636,16 +5625,17 @@ K_LOOP: do k = km, 1, -1
 
 !BOP
 !
-! !IROUTINE: phobicTophilic
+! !IROUTINE: phobicToPhilic
 !
 ! !INTERFACE:
    subroutine phobicTophilic (aerosol_phobic, aerosol_philic, aerosol_toHydrophilic, &
-                              km, cdt, grav, delp, rc)
+                              tConvPhobicToPhilic, km, cdt, grav, delp, rc)
 
 ! !USES:
    implicit NONE
 
 ! !INPUT PARAMETERS:
+   real, intent(in)      :: tConvPhobicToPhilic  ! e-folding time in days to transfer
    integer, intent(in)   :: km   ! total model level
    real, intent(in)      :: cdt  ! chemistry model time-step [sec]
    real, intent(in)      :: grav ! [m/sec^2]
@@ -5660,7 +5650,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !Local Variables
    integer :: i, j, k
-   real :: qUpdate, delq
+   real :: qUpdate, delq, ts
 
 !EOP
 !------------------------------------------------------------------------------------
@@ -5668,10 +5658,17 @@ K_LOOP: do k = km, 1, -1
 
    if(associated(aerosol_toHydrophilic)) aerosol_toHydrophilic = 0.0
 
+!  tConvPhobicToPhilic is the e-folding time (in days) of the conversion
+!  If < 0 no conversion is desired; exit the subroutine
+   if(tConvPhobicToPhilic < 0) then
+    __RETURN__(__SUCCESS__)
+   endif
+   ts = tConvPhobicToPhilic*86400.
+
    do k = 1, km
     do j = 1, ubound(delp, 2)
      do i = 1, ubound(delp, 1)
-      qUpdate = aerosol_phobic(i,j,k)*exp(-4.63e-6*cdt)
+      qUpdate = aerosol_phobic(i,j,k)*exp(-cdt/ts)
       qUpdate = max(qUpdate,1.e-32)
       delq = max(0.,aerosol_phobic(i,j,k)-qUpdate)
       aerosol_phobic(i,j,k) = qUpdate
@@ -5685,6 +5682,70 @@ K_LOOP: do k = km, 1, -1
 
    __RETURN__(__SUCCESS__)
   end subroutine phobicTophilic
+
+!============================================================================
+!BOP
+!
+! !IROUTINE: carbonChemLoss
+!
+! !INTERFACE:
+   subroutine carbonChemLoss (km, klid, n, cdt, grav, delp, &
+                              tChemLoss, int_qa, fluxout, rc)
+
+! !USES:
+   implicit NONE
+
+! !INPUT PARAMETERS:
+   real, intent(in)       :: tChemLoss  ! e-folding loss time [days]
+   integer, intent(in)    :: km         ! total model levels
+   integer, intent(in)    :: klid       ! index for pressure lid
+   integer, intent(in)    :: n          ! bin index number
+   real, intent(in)       :: cdt        ! time step [s]
+   real, intent(in)       :: grav       ! acceleration of gravity [m/sec^2]
+   real, dimension(:,:,:), intent(inout)          :: int_qa  ! aerosol [kg/kg]
+   real, pointer, dimension(:,:,:), intent(in)    :: delp    ! pressure level thickness [Pa]
+
+! !OUTPUT PARAMETERS:
+
+   real, pointer, dimension(:,:,:), intent(inout) :: fluxout ! Mass lost by chemistry [kg/m^2/s]
+   integer, optional, intent(out)                 :: rc      ! Error return code:
+                                                             !  0 - all is well
+                                                             !  1 -
+
+! !Local Variables
+   integer :: i, j, k
+   real :: qUpdate, delq, ts
+
+!EOP
+!------------------------------------------------------------------------------------
+!  Begin...
+
+   if(associated(fluxout)) fluxout(:,:,n) = 0.0
+
+!  tChemLoss is the e-folding time (in days) of parameterized chemistry loss
+!  If < 0 no loss is desired; exit the subroutine
+   if(tChemLoss < 0) then
+    __RETURN__(__SUCCESS__)
+   endif
+   ts = tChemLoss*86400.
+
+   do k = klid, km
+    do j = 1, ubound(delp, 2)
+     do i = 1, ubound(delp, 1)
+      qUpdate = int_qa(i,j,k)*exp(-cdt/ts)
+      qUpdate = max(qUpdate,1.e-32)
+      delq = max(0.,int_qa(i,j,k)-qUpdate)
+      int_qa(i,j,k) = qUpdate
+      if(associated(fluxout)) &
+       fluxout(i,j,n) = fluxout(i,j,n) &
+        + delq*delp(i,j,k)/grav/cdt
+
+     end do
+    end do
+   end do
+
+   __RETURN__(__SUCCESS__)
+  end subroutine carbonChemLoss
 
 
 !============================================================================
@@ -6617,7 +6678,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: SUvolcanicEmissions
 
    subroutine SUvolcanicEmissions (nVolc, vStart, vEnd, vSO2, vElev, vCloud, iPoint, &
-                                   jPoint, nhms, SO2EMVN, SO2EMVE, SO2, nSO2, SU_emis, km, cdt, grav,&
+                                   jPoint, nhms, SO2EMVol, SO2, nSO2, SU_emis, km, cdt, grav,&
                                    hghte, delp, area, vLat, vLon, rc)
 ! !USES:
    implicit NONE
@@ -6641,8 +6702,7 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:), intent(in)     :: vLat  ! latitude specified in file [degree]
    real, dimension(:), intent(in)     :: vLon  ! longitude specified in file [degree]
 ! !INOUT PARAMETERS:
-  real, pointer, dimension(:,:), intent(inout) :: SO2EMVN ! non-explosive volcanic emissions [kg m-2 s-1]
-  real, pointer, dimension(:,:), intent(inout) :: SO2EMVE ! explosive volcanic emissions [kg m-2 s-1]
+  real, pointer, dimension(:,:), intent(inout) :: SO2EMVol ! volcanic emissions [kg m-2 s-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SO2 ! SO2 [kg kg-1]
   real, pointer, dimension(:,:,:), intent(inout) :: SU_emis      ! SU emissions, kg/m2/s
   real, dimension(:), intent(inout) ::  vElev ! bottom elevation of emissions [m]
@@ -6658,15 +6718,14 @@ K_LOOP: do k = km, 1, -1
 ! 22July2020 E.Sherman
 !
 ! !Local Variables
-   integer  ::  i, j, it
+   integer  ::  i, j, k, it
    real, dimension(:,:,:), allocatable  :: emissions_point
    real :: so2volcano
 
-   real :: hup, hlow, dzvolc, dz, z1, k
+   real :: hup, hlow, dzvolc, dz, z1
    real :: deltaSO2v
    real, dimension(:,:), allocatable :: z0
    real, allocatable, dimension(:,:) :: srcSO2volc
-   real, allocatable, dimension(:,:) :: srcSO2volce
 
 !EOP
 !-------------------------------------------------------------------------
@@ -6675,13 +6734,9 @@ K_LOOP: do k = km, 1, -1
    if (nVolc > 0) then
 
    allocate(srcSO2volc, mold=area)
-   allocate(srcSO2volce, mold=area)
    srcSO2volc = 0.
-   srcSO2volce = 0.
 
-   if (associated(SU_emis)) SU_emis = 0.0
-   if (associated(SO2EMVN)) SO2EMVN = 0.
-   if (associated(SO2EMVE)) SO2EMVE = 0.
+   if (associated(SO2EMVol)) SO2EMVol = 0.
 
    allocate(z0, mold=area)
    z0 = hghte(:,:,km)
@@ -6720,11 +6775,7 @@ K_LOOP: do k = km, 1, -1
 
 !        Diagnostic - sum of volcanos
 !        ----------------------------
-         if (hup .eq. hlow) then
-            srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
-         else
-            srcSO2volce(i,j) = srcSO2volce(i,j) + so2volcano
-         endif
+         srcSO2volc(i,j) = srcSO2volc(i,j) + so2volcano
 
          dzvolc = hup-hlow
          do k = km, 1, -1
@@ -6771,9 +6822,8 @@ K_LOOP: do k = km, 1, -1
    enddo     ! it
   end if ! nVolc > 0
 
-  if (associated(SO2EMVN)) SO2EMVN = SO2EMVN + srcSO2volc
-  if (associated(SO2EMVE)) SO2EMVE = SO2EMVE + srcSO2volce
-  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc + srcSO2volce
+  if (associated(SO2EMVol)) SO2EMVol = SO2EMVol + srcSO2volc
+  if (associated(SU_emis)) SU_emis(:,:,nSO2) = SU_emis(:,:,nSO2) + srcSO2volc
 
   __RETURN__(__SUCCESS__)
   end subroutine SUvolcanicEmissions

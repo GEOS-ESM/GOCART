@@ -3,7 +3,7 @@
 #
 
 aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BRC.v1_5.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_BRC.v1_5.nc
+aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_BRC.v1_6.nc
 
 # Aircraft emission factor: convert input unit to kg C
 aircraft_fuel_emission_factor: 1.0000
@@ -17,10 +17,14 @@ pom_ca_ratio: 1.8
 # particle radius
 particle_radius_microns: 0.35 0.35
 
-rhFlag: 0
-
 # Initially hydrophobic portion
 hydrophobic_fraction: 0.5
+
+# Rate of conversion of hydrophobic to hydrophilic [days]
+time_days_hydrophobic_to_hydrophilic: 2.5
+
+# Rate of chemical destruction of carbon species [days]
+time_days_chemical_destruction: -1.   -1.
 
 # Scavenging efficiency per bin [km-1] (NOT USED UNLESS RAS IS CALLED)
 fscav: 0.0  0.4 

@@ -76,7 +76,6 @@ module GA_EnvironmentMod
        call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%molwght,    label='molecular_weight:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fnum,       label='fnum:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%rhFlag,     label='rhFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%plid,       label='pressure_lid_in_hPa:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fwet_ice,   label='fwet_ice:', default=1.0, __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fwet_snow,  label='fwet_snow:', default=1.0, __RC__)
