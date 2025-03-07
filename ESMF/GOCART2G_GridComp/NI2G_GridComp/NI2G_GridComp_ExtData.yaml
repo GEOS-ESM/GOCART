@@ -38,11 +38,6 @@ Exports:
   EMI_NH3_BB:
     - {starting: "2014-12-01T12:00", collection: NI2G_qfed2.emis_nh3.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: NI2G_sample_1, variable: biomass}
     - {starting: "2017-11-01T12:00", collection: NI2G_qfed2.emis_nh3.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: NI2G_sample_1, variable: biomass}
-  EMI_NH3_EN:
-    collection: NI2G_NH3-em-anthro_CMIP_CEDS_gn.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: NI2G_sample_1
-    variable: nh3
   EMI_NH3_IN:
     collection: /dev/null
     regrid: CONSERVE

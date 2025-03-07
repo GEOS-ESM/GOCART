@@ -42,16 +42,6 @@ Exports:
     regrid: CONSERVE
     sample: SU2G_sample_1
     variable: so2_aviation
-  SU_ANTHROL1:
-    collection: SU2G_SO2-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: SU2G_sample_1
-    variable: so2_nonenergy
-  SU_ANTHROL2:
-    collection: SU2G_SO2-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: SU2G_sample_1
-    variable: so2_energy
   SU_AVIATION_CDS:
     collection: /dev/null
     regrid: CONSERVE
@@ -90,16 +80,6 @@ Exports:
     regrid: CONSERVE
     sample: SU2G_sample_1
     variable: oh
-  SU_SHIPSO2:
-    collection: SU2G_SO2-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: SU2G_sample_1
-    variable: so2_shipping
-  SU_SHIPSO4:
-    collection: SU2G_SO4-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: SU2G_sample_1
-    variable: so4_shipping
   climSO4:
     collection: SU2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4
     sample: SU2G_sample_0

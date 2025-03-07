@@ -5,14 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - 2025-03-07
 
 ### Fixed
 
 ### Added
 
-### Changed
--Filepath for CEDS has been updated in the ExtData yaml and rc files. Note the old version had an incorrect seasonal cycle.
+### Removed
+-Anthropogenic emissions for nonenergy, energy, and shipping sectors have been removed from ExtData.yaml files for CA, SU, and NI as these emissions will enter through HEMCO instead.
+-Removed *ExtData.rc files to avoid confusion and those files became deprecated with ExtData2G.
 
 ## [v2.2.1] - 2023-05-30
 

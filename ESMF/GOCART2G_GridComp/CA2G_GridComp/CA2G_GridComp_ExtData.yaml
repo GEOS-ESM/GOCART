@@ -50,16 +50,6 @@ Exports:
     regrid: CONSERVE
     sample: CA2G_sample_1
     variable: bc_aviation
-  BC_ANTEBC1:
-    collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: CA2G_sample_1
-    variable: bc_nonenergy
-  BC_ANTEBC2:
-    collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: CA2G_sample_1
-    variable: bc_energy
   BC_AVIATION_CDS:
     collection: /dev/null
     regrid: CONSERVE
@@ -83,11 +73,6 @@ Exports:
   BC_BIOMASS:
     - {starting: "2014-12-01T12:00", collection: CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
     - {starting: "2017-11-01T12:00", collection: CA2G_qfed2.emis_bc.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
-  BC_SHIP:
-    collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: CA2G_sample_1
-    variable: bc_shipping
   BRC_AIRCRAFT:
     collection: /dev/null
     regrid: CONSERVE
@@ -141,16 +126,6 @@ Exports:
     regrid: CONSERVE
     sample: CA2G_sample_1
     variable: oc_aviation
-  OC_ANTEOC1:
-    collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: CA2G_sample_1
-    variable: oc_nonenergy
-  OC_ANTEOC2:
-    collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: CA2G_sample_1
-    variable: oc_energy
   OC_AVIATION_CDS:
     collection: /dev/null
     regrid: CONSERVE
@@ -179,11 +154,6 @@ Exports:
     regrid: CONSERVE
     sample: CA2G_sample_1
     variable: biomass
-  OC_SHIP:
-    collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
-    regrid: CONSERVE
-    sample: CA2G_sample_1
-    variable: oc_shipping
   climBCDP001:
     collection: /dev/null
   climBCDP002:
