@@ -96,7 +96,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
       real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
       !logical :: firstRun = .true.
-      real, allocatable  :: rmed(:)  ! Median radius of lognormal number distribution
+      real, allocatable  :: rmed(:)  ! Median radius [um] of lognormal number distribution
       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
 
