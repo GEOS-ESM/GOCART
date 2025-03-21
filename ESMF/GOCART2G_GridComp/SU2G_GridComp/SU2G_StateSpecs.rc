@@ -101,6 +101,7 @@ category: EXPORT
  SUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Stratospheric Aerosol Optical Depth Due to Scattering
  SO4SAREA      | m2 m-3     | xyz  | C    |                                | SO4 Surface Area Density
  SO4SNUM       | m-3        | xyz  | C    |                                | SO4 Number Density
+ H2O2CONC      | kg m-3     | xyz  | C    |                                | H2O2 Mass Concentration
 
 category: INTERNAL
 #----------------------------------------------------------------------------------------
