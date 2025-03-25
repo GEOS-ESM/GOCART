@@ -291,7 +291,6 @@ contains
 
     character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
     real                                   :: f_aci_seasalt, maxclean, ccntuning
-    character(LEN=ESMF_MAXSTR)             :: CLDMICRO
 
     __Iam__('Initialize')
 
@@ -424,9 +423,6 @@ contains
     call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)
     call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, __RC__)
 
-    call ESMF_ConfigGetAttribute( CF, CLDMICRO, Label='CLDMICR_OPTION:',  default="BACM_1M", RC=STATUS)
-    call ESMF_AttributeSet(aero, name='cldmicro', value=CLDMICRO, __RC__)
-
 !   Add variables to AERO state
     call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, __RC__)
@@ -527,6 +523,10 @@ contains
 !   -----------------------------------
     call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
 
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
+
 ! Check run_dt alarm. Bail out if not ringing.
 ! --------------------------------------------
     call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
@@ -534,10 +534,6 @@ contains
     if (.not. timeToDoWork) then
        _RETURN(ESMF_SUCCESS)
     end if
-    
-!   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
 
 !   Run the children
 !   -----------------
@@ -673,6 +669,20 @@ contains
     call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
     VERIFY_(STATUS)
 
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
+                    LONS=LONS, LATS=LATS, __RC__ )
+
+!   Run zero Klid for children    
+!   --------------------------   
+    do i = 1, size(gcs) 
+      call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
+      if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
+         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, __RC__)
+      end if
+    end do         
+
 ! Check run_dt alarm. Bail out if not ringing.
 ! --------------------------------------------
     call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
@@ -681,11 +691,6 @@ contains
        _RETURN(ESMF_SUCCESS)
     end if
     
-!   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
-                    LONS=LONS, LATS=LATS, __RC__ )
-
 !   Get my internal state
 !   ---------------------
     call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
@@ -723,7 +728,7 @@ contains
 !   -----------------
     do i = 1, size(gcs)
       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
-      if ((index(child_name, 'data')) == 0) then ! only execute Run2 method if a computational instance
+      if ((index(child_name, 'data')) == 0) then ! only execute phase2 method if a computational instance
          call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, __RC__)
       end if
     end do
@@ -1641,7 +1646,6 @@ contains
 
     real                            :: max_clean          ! max mixing ratio before considered polluted
     real                            :: ccn_tuning         ! tunes conversion factors for sulfate
-    character(LEN=ESMF_MAXSTR)      :: cld_micro
 
     character(len=ESMF_MAXSTR)      :: fld_name
 
@@ -1752,7 +1756,6 @@ contains
 !   Sea salt scaling fctor
 !   ----------------------
     call ESMF_AttributeGet(state, name='max_q_clean', value=max_clean, __RC__)
-    call ESMF_AttributeGet(state, name='cldmicro', value=cld_micro, __RC__)
     call ESMF_AttributeGet(state, name='ccn_tuning', value=ccn_tuning, __RC__)
 
 !   Aerosol mass mixing ratios
