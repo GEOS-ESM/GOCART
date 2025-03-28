@@ -9,7 +9,8 @@ category: IMPORT
 #-------------------------------------------------------------------------------------------------------
  DU_SRC     | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
  DU_Z0      | 1        | xy   | N    | SKIP    | scheme == 'k14'                          | aerodynamic_surface_roughness_for_aeolian_processes
- DU_GVF     | 1        | xy   | N    | OPT     | scheme == 'k14'                          | GVF
+ DU_GVF     | 1        | xy   | N    | OPT     | scheme == 'fengsha' .OR. scheme == 'k14' | GVF
+ DU_LAI     | 1        | xy   | N    | OPT     | scheme == 'fengsha'                      | LAI
  DU_SAND    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_sand_in_soil
  DU_SILT    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_silt_in_soil
  DU_CLAY    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_clay_in_soil
