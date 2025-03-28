@@ -1049,6 +1049,12 @@ contains
                                 SU_OH, SU_NO3, SU_H2O2, &
                                 xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
 
+    ! save for export
+    ! convert xoh to volume mixing ratio
+    SUXOH = xoh / (1000.*airdens / MAPL_AIRMW * (MAPL_AVOGAD/1000.) * 1.e-6)
+    SUXNO3 = xno3
+    SUXH2O2 = xh2o2
+
 !   SU Settling
 !   -----------
     do n = 1, self%nbins
