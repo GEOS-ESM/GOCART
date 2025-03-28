@@ -117,7 +117,7 @@ jobs:
           spack find --loaded
           FC=gfortran-14 CC=gcc-14 CXX=g++-14
           cmake -B build -S . -DCMAKE_INSTALL_PREFIX=$PWD/install -DCMAKE_BUILD_TYPE=Debug -DUSE_F2PY=OFF -DCMAKE_Fortran_COMPILER=${FC} -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}
-          cmake --build build -j 4
+          cmake --build build --parallel 4
           cmake --install build
 
   build_gocart:
@@ -213,6 +213,5 @@ jobs:
           spack find --loaded
           FC=gfortran-14 CC=gcc-14 CXX=g++-14
           cmake -B build -S . -DCMAKE_INSTALL_PREFIX=$PWD/install -DCMAKE_BUILD_TYPE=Debug -DUSE_F2PY=OFF -DCMAKE_Fortran_COMPILER=${FC} -DCMAKE_C_COMPILER=${CC} -DCMAKE_CXX_COMPILER=${CXX}
-          cmake --build build -j 4
-          cmake --install build
+          cmake --build build --target GOCART2G_GridComp --parallel 4
 

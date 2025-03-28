@@ -79,7 +79,7 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build build -j 4
+          cmake --build build --parallel 4
           cmake --install build
 
   build_gocart:
@@ -139,5 +139,4 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build build -j 4
-          cmake --install build
+          cmake --build build --target GOCART2G_GridComp --parallel 4
