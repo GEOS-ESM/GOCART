@@ -21,17 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Added GitHub Action CI tests
 
-## [2.4.0] - 2025-03-26
-
-### Removed
-
-### Changed
-
-### Fixed
-
-### Added
-
-
 ## [v2.4.0] - 2025-03-26
 
 
