@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GMAO_Shared v2.0.0
   - MAPL v2.54.1
   - HEMCO geos/v2.3.0
+- Updates to couple GOCART to the NOAA/UFS system after the ESMF 8.8.0 and MAPL 2.53.0 update
 
 ### Fixed
 ### Added
 
 - Added GitHub Action CI tests
+- Added new drag partition options for FENGSHA to use modeled GVF or LAI for drag partition following Darmenova (2011) and Martecorena (2005) (see https://github.com/GEOS-ESM/GOCART/pull/305)
 
 ## [v2.4.0] - 2025-03-26
 
@@ -72,6 +74,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Verified zero diff in current configuration (this is true of tracers and restarts, but not diagnostics:
   until an actual split is made in the input emissions then the volcanic emissions are being assigned to
   one or the other emission diagnostics (explosive or degassing).
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop
 - Changed Chem_SettlingSimple in the process library to call Mie Query for radius and rhop inputs to the settling velocity calculation.
   The calls to Chem_SettlingSimple were then changed accordingly in each of the species' grid comps.
   Since the RH flag is no longer needed, it was removed from GA_EnvironmentMod.F90 and each of the instance RC files.
