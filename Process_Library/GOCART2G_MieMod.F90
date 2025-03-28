@@ -62,7 +62,7 @@ module GOCART2G_MieMod
 !ams  real, pointer  :: pback(:,:,:,:) => Null()  ! (r,c,b,p) Backscatter phase function
       real, pointer  :: p11(:,:,:) => Null()      ! (r,c,b) Backscatter phase function, index 1 
       real, pointer  :: p22(:,:,:) => Null()      ! (r,c,b) Backscatter phase function, index 5
-      real, pointer  :: pmom(:,:,:,:,:) => Null() ! (r,c,b,m,p) moments of phase function
+      real, pointer  :: pmom(:,:,:,:,:) => Null() ! (m,p,r,c,b) moments of phase function
       real, pointer  :: gf(:,:) => Null()         ! (r,b) hygroscopic growth factor
       real, pointer  :: rhop(:,:) => Null()       ! (r,b) wet particle density [kg m-3]
       real, pointer  :: rhod(:,:) => Null()       ! (r,b) dry particle density [kg m-3]
@@ -349,7 +349,7 @@ CONTAINS
       allocate (this%g(this%nrh,this%nch,this%nbin),    __NF_STAT__)
       allocate (pback(this%nPol,this%nrh,this%nch,this%nbin),    __NF_STAT__)
       if ( nmom_ > 0 ) then
-         allocate (this%pmom(this%nrh,this%nch,this%nbin,this%nMom,this%nPol),    __NF_STAT__)
+         allocate (this%pmom(this%nMom,this%nPol,this%nrh,this%nch,this%nbin),    __NF_STAT__)
       end if
       allocate (this%gf(this%nrh,this%nbin),    __NF_STAT__)
       allocate (this%rhop(this%nrh,this%nbin),    __NF_STAT__)
@@ -427,10 +427,10 @@ CONTAINS
                if ( nmom_ > 0 ) then
                   do imom = 1, this%nMom
                      do ipol = 1, this%nPol
-                        real_tmp = pmom_table(imom, ipol,i,:,j)
+                        real_tmp = pmom_table(imom,ipol,i,:,j)
                         do n = 1, this%nch
                            call polint(channels_table, real_tmp,nch_table, &
-                                this%wavelengths(n),this%pmom(i,n,j,imom,ipol),yerr)
+                                this%wavelengths(n),this%pmom(imom,ipol,i,n,j),yerr)
                         enddo
                      enddo
                   enddo
@@ -447,7 +447,7 @@ CONTAINS
          this%refi = refi_table
          pback     = pback_table
          if ( nmom_ > 0 ) then
-           this%pmom = reshape(pmom_table,[nrh_table, nch, nbin_table, nmom_, npol_table], order = [4,5,1,2,3])
+           this%pmom = pmom_table
          endif
       endif
 

@@ -13,7 +13,7 @@
 
 #define __RHINTERP2__(table,rh,ah,bin,sh) reshape((table(rh,bin) * (1-ah) + table(rh+1,bin)*ah), shape(sh))
 #define __RHINTERP3__(table,rh,ah,ch,bin,sh) reshape((table(rh,ch,bin) * (1-ah) + table(rh+1,ch,bin)*ah), shape(sh))
-#define __RHINTERP5__(table,rh,ah,ch,bin,k,l,sh) reshape((table(rh,ch,bin,k,l) * (1-ah) + table(rh+1,ch,bin,k,l)*ah), shape(sh))
+#define __RHINTERP5__(table,rh,ah,m,p,ch,bin,sh) reshape((table(m,p,rh,ch,bin) * (1-ah) + table(m,p,rh+1,ch,bin)*ah), shape(sh))
 
 #define SUBCHANNEL_ IDENTITY_(QueryByChannel)IDENTITY_(SUFFIX_)
 #define SUBWAVELENGTH_ IDENTITY_(QueryByWavelength)IDENTITY_(SUFFIX_)
@@ -49,7 +49,7 @@
      real,    optional,      intent(out) :: bsca   (__DIMS__)      ! mass scattering efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: bbck   (__DIMS__)      ! mass backscatter efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (micron)
-     real,    optional,      intent(out) :: pmom   (__DIMS__,:,:)  ! moments of phase function 
+     real,    optional,      intent(out) :: pmom   (:,:,__DIMS__)  ! moments of phase function 
      real,    optional,      intent(out) :: p11    (__DIMS__)      ! P11 phase function at backscatter
      real,    optional,      intent(out) :: p22    (__DIMS__)      ! P22 phase function at backscatter
      real,    optional,      intent(out) :: gf     (__DIMS__)      ! Growth factor (ratio of wet to dry radius)
@@ -83,7 +83,7 @@
      integer, allocatable, dimension(:)       :: irh, qrh
      real, allocatable, dimension(:)          :: rh_, arh
      real, allocatable, dimension(__DIMS__)   :: bext_, bsca_
-     integer :: i, j
+     integer :: m, p
 
      character(len=*), parameter  :: Iam = 'Query'
 
@@ -159,9 +159,9 @@
      endif
 
      if (present(pmom)) then
-       do j = 1, size(this%pmom,5)
-          do i = 1, size(this%pmom,4)
-             pmom(__DIMS__,i,j)  =  __RHINTERP5__(this%pmom, irh, arh, channel, bin, i, j, rh)
+       do p = 1, size(this%pmom,2)
+          do m = 1, size(this%pmom,1)
+             pmom( m, p, __DIMS__ )  =  __RHINTERP5__(this%pmom, irh, arh, m, p, channel, bin, rh)
           enddo
        enddo
      endif
@@ -205,7 +205,7 @@
      real,    optional,      intent(out) :: bsca   (__DIMS__)      ! mass scattering efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: bbck   (__DIMS__)      ! mass backscatter efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (micron)
-     real,    optional,      intent(out) :: pmom   (__DIMS__,:,:)  ! moments of phase function
+     real,    optional,      intent(out) :: pmom   (:,:,__DIMS__)  ! moments of phase function
      real,    optional,      intent(out) :: p11    (__DIMS__)      ! P11 phase function at backscatter
      real,    optional,      intent(out) :: p22    (__DIMS__)      ! P22 phase function at backscatter
      real,    optional,      intent(out) :: gf     (__DIMS__)      ! Growth factor (ratio of wet to dry radius)

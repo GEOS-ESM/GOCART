@@ -4,7 +4,7 @@
 
 nbins: 5
 
-aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_NI.v2_5.RRTMG.nc
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v1.0.0/x/opticsBands_NI.v2_5.RRTMG.nc4
 aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_NI.v2_5.nc
 
 # Scavenging efficiency per bin [km-1]
