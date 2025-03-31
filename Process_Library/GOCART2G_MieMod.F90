@@ -244,7 +244,7 @@ CONTAINS
       if ( nmom_ > 0 ) then
          allocate(pmom_table(nmom_table,nPol_table,nrh_table,nch_table,nbin_table), __NF_STAT__)
       end if
-      NF_VERIFY_(nf90_inq_varid(ncid,'lambda',ivarid))
+      NF_VERIFY_(nf90_inq_varid(ncid,'wavelength',ivarid))
       NF_VERIFY_(nf90_get_var(ncid,ivarid,channels_table))
       NF_VERIFY_(nf90_inq_varid(ncid,'rEff',ivarid))
       NF_VERIFY_(nf90_get_var(ncid,ivarid,reff_table))

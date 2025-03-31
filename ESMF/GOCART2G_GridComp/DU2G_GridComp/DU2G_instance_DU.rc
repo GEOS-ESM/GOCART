@@ -3,7 +3,7 @@
 #
 
 aerosol_radBands_optics_file:      ExtData/chemistry/AerosolOptics/v1.0.0/x/opticsBands_DU.v15_3.RRTMG.nc4 
-aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_DU.v15_6.nc
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v1.0.0/x/optics_DU.v15_5.nc4
 
 particle_radius_microns: 0.73 1.4 2.4 4.5 8.0
 
