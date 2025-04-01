@@ -26,6 +26,7 @@ module Aerosol_Cap
   use MAPL
 
   use mpi
+  use ufs_trace_mod
 
   implicit none
 
@@ -73,6 +74,7 @@ module Aerosol_Cap
     ]
 
 
+  integer :: mype = -1
   private
 
   public :: SetServices
@@ -84,8 +86,15 @@ contains
     type(ESMF_GridComp)  :: model
     integer, intent(out) :: rc
 
+    type(ESMF_VM)        :: vm
     ! begin
     rc = ESMF_SUCCESS
+
+    call ESMF_GridCompGet(model, vm=vm, rc=rc)
+    call ESMF_VMGet(vm, localpet=mype, rc=rc)
+
+    if (mype == 0) call ufs_trace_init()
+    if (mype == 0) call ufs_trace("gocart", "SetServices", "B")
 
     ! the NUOPC model component will register the generic methods
     call NUOPC_CompDerive(model, model_routine_SS, rc=rc)
@@ -134,6 +143,7 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+    if (mype == 0) call ufs_trace("gocart", "SetServices", "E")
   end subroutine SetServices
 
   subroutine ModelInitializeP0(model, importState, exportState, clock, rc)
@@ -152,6 +162,7 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+    if (mype == 0) call ufs_trace("gocart", "ModelInitializeP0", "B")
 
     ! startup
     call AerosolLog(modelName//': Initializing ...', rc=rc)
@@ -189,6 +200,7 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+    if (mype == 0) call ufs_trace("gocart", "ModelInitializeP0", "E")
   end subroutine ModelInitializeP0
 
   subroutine ModelInitializeP1(model, importState, exportState, clock, rc)
@@ -199,6 +211,7 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+    if (mype == 0) call ufs_trace("gocart", "ModelInitializeP1", "B")
 
     ! -- advertise imported fields
     call NUOPC_Advertise(importState, importFieldNames, &
@@ -220,6 +233,7 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+    if (mype == 0) call ufs_trace("gocart", "ModelInitializeP1", "E")
   end subroutine ModelInitializeP1
 
   subroutine ModelDataInitialize(model, rc)
@@ -246,6 +260,7 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+    if (mype == 0) call ufs_trace("gocart", "ModelDataInitialize", "B")
 
     ! retrieve import/export states and clock from NUOPC component and
     ! pass them to the GOCART component
@@ -392,6 +407,7 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+    if (mype == 0) call ufs_trace("gocart", "ModelDataInitialize", "E")
   end subroutine ModelDataInitialize
 
   subroutine ModelAdvance(model, rc)
@@ -416,6 +432,7 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+    if (mype == 0) call ufs_trace("gocart", "ModelAdvance", "B")
 
     ! get component's information
     call NUOPC_CompGet(model, name=name, diagnostic=diagnostic, rc=rc)
@@ -501,6 +518,7 @@ contains
       end if
     end if
 
+    if (mype == 0) call ufs_trace("gocart", "ModelAdvance", "E")
   end subroutine ModelAdvance
 
   subroutine ModelFinalize(model, rc)
@@ -515,6 +533,7 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+    if (mype == 0) call ufs_trace("gocart", "ModelFinalize", "B")
 
     ! finalize
     call AerosolLog(modelName//': Finalizing ...', rc=rc)
@@ -570,6 +589,7 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+    if (mype == 0) call ufs_trace("gocart", "ModelFinalize", "E")
   end subroutine ModelFinalize
 
 end module Aerosol_Cap
