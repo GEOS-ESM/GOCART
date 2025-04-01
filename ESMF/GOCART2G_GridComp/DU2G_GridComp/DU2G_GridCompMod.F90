@@ -59,8 +59,10 @@ module DU2G_GridCompMod
        real, allocatable      :: sdist(:)       ! FENGSHA aerosol fractional size distribution [1]
        real                   :: alpha          ! FENGSHA scaling factor
        real                   :: gamma          ! FENGSHA tuning exponent
+       integer                :: drag_opt       ! FENGSHA drag option 1 - input only, 2 - Darmenova, 3 - Leung
        real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
        real                   :: f_sdl          ! FENGSHA drylimit tuning factor
+       integer                :: distribution_opt ! FENGSHA distribution option 1 - Kok, 2 - Kok 2021, 3 - Meng 2022
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
@@ -121,6 +123,7 @@ contains
     logical                            :: data_driven = .true.
     logical                            :: file_exists
     integer :: num_threads
+    character(len=255) :: msg
 
     __Iam__('SetServices')
 
@@ -162,6 +165,8 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
 
+    ! Choose Emission Scheme
+    !-----------------------
     call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
     self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
 
@@ -171,6 +176,7 @@ contains
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
 
+    ! Point Sources
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
     if ( (index(self%point_emissions_srcfilen,'/dev/null')>0) ) then
@@ -183,11 +189,22 @@ contains
 !   --------------------------------
     select case (self%emission_scheme)
     case ('fengsha')
-       call ESMF_ConfigGetAttribute (cfg, self%alpha,      label='alpha:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%gamma,      label='gamma:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%f_sdl,      label='soil_drylimit_factor:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,     label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%alpha,    label='alpha:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gamma,    label='gamma:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_swc,    label='soil_moisture_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_sdl,    label='soil_drylimit_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,   label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%drag_opt, label='drag_partition_option:', __RC__)
+
+       if (MAPL_AM_I_ROOT()) then
+         write (*,*) "FENGSHA: config: alpha: " , self%alpha
+         write (*,*) "FENGSHA: config: gamma: " , self%gamma
+         write (*,*) "FENGSHA: config: soil_moisture_factor: " , self%f_swc
+         write (*,*) "FENGSHA: config: soil_drylimit_factor: " , self%f_sdl
+         write (*,*) "FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: " , self%kvhmax
+         write (*,*) "FENGSHA: config: drag_partition_option: " , self%drag_opt
+       end if
+
     case ('k14')
        call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
@@ -305,6 +322,9 @@ contains
 #include "DU2G_Import___.h"
       end associate
 #include "DU2G_Internal___.h"
+      if (MAPL_AM_I_ROOT()) then
+         write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+      end if
     end if
 
 !   This state holds fields needed by radiation
@@ -414,8 +434,8 @@ contains
     self => wrap%ptr
 
 !   Global dimensions are needed here for choosing tuning parameters
-!   ----------------------------------------------------------------    
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ ) 
+!   ----------------------------------------------------------------
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   TO DO: find a more robust way to implement resolution dependent tuning
@@ -798,11 +818,10 @@ contains
        if (associated(DU_EROD)) DU_EROD = f_erod_
 
     case ('fengsha')
-
-       call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
-                                 du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_uthres,  &
-                                 self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
-                                 self%rhop, self%sdist, self%f_sdl, self%f_swc, emissions_surface,  __RC__)
+        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
+                du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres,  &
+                self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
+                self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
 
     case ('ginoux')
 
@@ -910,6 +929,7 @@ contains
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, parameter ::  cpd    = 1004.16
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
@@ -978,12 +998,27 @@ contains
 !  Dust Large-scale Wet Removal
 !  ----------------------------
    KIN = .TRUE.
-   do n = 1, self%nbins
-      fwet = 0.8
-      call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
-                              KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
-                              pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
-   end do
+   select case (self%wet_removal_scheme)
+   case ('gocart')
+      do n = 1, self%nbins
+         fwet = 0.8
+         call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
+                                 KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
+                                 pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
+      end do
+   case ('ufs')
+      rainout_eff = 0.0
+      do n = 1, self%nbins
+        rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+        rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+        rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+        call WetRemovalUFS     (self%km, self%klid, n, self%cdt, 'dust', KIN, MAPL_GRAV, &
+                                 self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
+                                 DU(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, DUWT, __RC__)
+      end do
+   case default
+      _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+   end select
 
 !  Compute diagnostics
 !  -------------------
