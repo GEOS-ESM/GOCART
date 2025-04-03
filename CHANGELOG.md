@@ -18,6 +18,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updates to couple GOCART to the NOAA/UFS system after the ESMF 8.8.0 and MAPL 2.53.0 update
 
 ### Fixed
+
+- fixed a bug that avoids dividing nSubsteps = 0
+
 ### Added
 
 - Added GitHub Action CI tests

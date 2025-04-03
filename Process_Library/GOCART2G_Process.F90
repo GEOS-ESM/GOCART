@@ -1918,6 +1918,8 @@ end function DarmenovaDragPartition
 
           dt_cfl  = 1 / maxval(tau_)
 
+          if (dt_cfl <= 0.) then
+             nSubSteps = 0
           if (dt_cfl > cdt) then
               ! no need for time sub-splitting
               nSubSteps = 1
@@ -2434,7 +2436,7 @@ end function DarmenovaDragPartition
           qmin = minval(dz(i,j,:)/vsettle(i,j,:))
           minTime = min(cdt,qmin)
       !   Now, how many iterations do we need to do?
-          if ( minTime < 0 ) then
+          if ( minTime <= 0 ) then
              nSubSteps = 0
           else if(minTime .ge. cdt) then
              nSubSteps = 1
@@ -2774,7 +2776,7 @@ end function DarmenovaDragPartition
     minTime = min(minTime,qmin)
 
 !   Now, how many iterations do we need to do?
-    if ( minTime < 0 ) then
+    if ( minTime <= 0 ) then
          nSubSteps = 0
 !         call mpout_log(myname,'no Settling because minTime = ', minTime )
     else if(minTime .ge. cdt) then
