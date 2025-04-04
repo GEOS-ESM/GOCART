@@ -1920,7 +1920,7 @@ end function DarmenovaDragPartition
 
           if (dt_cfl <= 0.) then
              nSubSteps = 0
-          if (dt_cfl > cdt) then
+          else if (dt_cfl > cdt) then
               ! no need for time sub-splitting
               nSubSteps = 1
               dt = cdt
