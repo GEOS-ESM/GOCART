@@ -222,7 +222,7 @@ contains
           vlocation=MAPL_VlocationCenter, &
           restart=MAPL_RestartOptional, &
           ungridded_dims=[self%nbins], &
-          friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           add2export=.true., __RC__)
 
 !      Pressure at layer edges
