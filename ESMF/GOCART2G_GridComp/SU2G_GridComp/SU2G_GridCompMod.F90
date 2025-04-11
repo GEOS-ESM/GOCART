@@ -771,7 +771,7 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)        :: lats
     real, pointer, dimension(:,:)        :: lons
-    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src
+    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src, so2_ocs_src
     real, dimension(:,:), allocatable :: so2biomass_src, so2biomass_src_, so2anthro_l1_src, &
                                          so2anthro_l2_src, so2ship_src, so4ship_src, dmso_conc, &
                                          aviation_lto_src, aviation_cds_src, aviation_crs_src
@@ -1003,7 +1003,7 @@ contains
 
 !   Add source of OCS-produced SO2
 !   ------------------------------
-    SO2 = SO2 + pSO2_OCS*self%cdt
+    SO2 = SO2 + so2_ocs_src*self%cdt
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
