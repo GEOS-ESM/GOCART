@@ -3,7 +3,7 @@
 #
 
 aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_SU.v1_3.RRTMG.nc
-aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_SU.v1_6.nc
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_SU.v1_3.nc
 
 nbins: 4
 
@@ -45,11 +45,5 @@ sigma: -1  -1  2.03  -1
 
 # OH H2O2 NO3 from GMI Combined Stratosphere Troposphere (Lower case yes to enable)
 # -------------------------------------------------------------------------------------
-#using_GMI_OH: no
-#using_GMI_NO3: no
-#using_GMI_H2O2: no
-export_H2O2: no
-using_GMI_OH: .false.
-using_GMI_NO3: .false.
-using_GMI_H2O2: .false.
-
+using_GMI: .false.
+disable_emissions: .false.

@@ -9,7 +9,7 @@ nbins: 4
 
 # Volcanic pointwise sources
 volcano_srcfilen_explosive: ExtData/chemistry/CARN/v202401/explosive/so2_explosive_volcanic_emissions_CARN_v202401.%y4%m2%d2.rc
-volcano_srcfilen_degassing: ExtData/chemistry/CARN/v202401/sfc/so2_volcanic_emissions_CARN_v202401.degassing_only.rc
+volcano_srcfilen_degassing: ExtData/chemistry/CARN/v202401/so2_volcanic_emissions_CARN_v202401.degassing_only.rc
 
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
@@ -48,11 +48,5 @@ sigma: -1  -1  2.03  -1
 
 # OH H2O2 NO3 from GMI Combined Stratosphere Troposphere (Lower case yes to enable)
 # -------------------------------------------------------------------------------------
-#using_GMI_OH: no
-#using_GMI_NO3: no
-#using_GMI_H2O2: no
-export_H2O2: no
-using_GMI_OH: .false.
-using_GMI_NO3: .false.
-using_GMI_H2O2: .false.
-
+using_GMI: .true.
+disable_emissions: .false.
