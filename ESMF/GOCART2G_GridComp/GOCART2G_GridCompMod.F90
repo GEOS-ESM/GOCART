@@ -1867,7 +1867,7 @@ contains
              varNameLen = varNameLen - 5
              call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
              q = q + ptr_3d(:,:,k0:k1)
-             hygroscopicity = k_OC
+             hygroscopicity(:,:,k0:k1) = k_OC
              density(:,:,k0:k1) = densOC
           end if
        end do
@@ -1882,7 +1882,7 @@ contains
              call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
              q = q + ptr_3d(:,:,k0:k1)
              hygroscopicity(:,:,k0:k1) = k_BR
-             density = densBR
+             density(:,:,k0:k1) = densBR
           end if
        end do
 
