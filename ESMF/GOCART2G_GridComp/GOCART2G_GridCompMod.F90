@@ -1808,8 +1808,8 @@ contains
        end do
 
     else if (index(mode_, 'sulforg') > 0) then ! Sulfate
-       hygroscopicity = 0.0
-       density = 0.0
+       hygroscopicity(:,:,k0:k1) = 0.0
+       density(:,:,k0:k1) = 0.0
 
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'SU') > 0) then
@@ -1828,7 +1828,7 @@ contains
              call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
              q = q + ptr_3d(:,:,k0:k1)
              hygroscopicity(:,:,k0:k1) = k_ORG * ptr_3d(:,:,k0:k1) + hygroscopicity(:,:,k0:k1)
-             density(:,:,k0:k1) = densORG * ptr_3d + density
+             density(:,:,k0:k1) = densORG * ptr_3d(:,:,k0:k1) + density(:,:,k0:k1)
           end if
 
        end do
