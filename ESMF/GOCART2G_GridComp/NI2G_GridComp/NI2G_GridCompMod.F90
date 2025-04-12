@@ -181,7 +181,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddInternalSpec(gc,&
@@ -191,7 +191,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddInternalSpec(gc,&
@@ -201,7 +201,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddImportSpec(gc,&
