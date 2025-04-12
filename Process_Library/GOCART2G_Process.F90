@@ -8028,10 +8028,10 @@ K_LOOP: do k = km, 1, -1
           do i = i1, i2
            rh_ = min(0.95,rh(i,j,k))
            gf = (1. + 1.19*rh_/(1.-rh_) )                   ! ratio of wet/dry volume, eq. 5
-           rwet = rmed * gf**(1./3.)                      ! wet effective radius, m
+           rwet = rmed * gf**(1./3.)*1.e-6                  ! wet effective radius, m (note unit change)
 !          Wet particle volume m3 m-3
            svol = SO4(i,j,k) * rhoa(i,j,k) / rhop * gf
-!          Integral of lognormal surface area m2 m-3
+!          Integral of lognormal surface area m2 m-3 (From Zender Table 1)
            if(present(sarea)) sarea(i,j,k) = 3./rwet*svol*exp(-5./2.*alog(sigma)**2.)
 !          Integral of lognormal number density # m-3
            if(present(snum)) snum(i,j,k) = svol / (rwet**3) * exp(-9/2.*alog(sigma)**2.) * 3./4./pi
