@@ -1180,10 +1180,6 @@ contains
                                  MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                  SU_OH, SU_NO3, SU_H2O2, &
                                  xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
-     call MAPL_MaxMin ( 'GOCART:OH   ', xoh)
-     call MAPL_MaxMin ( 'GOCART:H2O2 ', xh2o2)
-     call MAPL_MaxMin ( 'GOCART:NO3  ', xno3)
-
     endif
 
 !   SU Settling
@@ -1237,15 +1233,18 @@ contains
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
-    call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=short_name, __RC__)
-    call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-    CALL MAPL_MaxMin('GOCART: SO4:      ', int_ptr)
-    call ESMF_AttributeGet(aero, name='sulfate_surface_area_density', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
-        int_ptr = SO4SAREA(:,:,:)
-    end if
-    CALL MAPL_MaxMin('GOCART: SO4VSAREA:', so4sarea)
+
+    if(self%using_GMI) then
+     call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=short_name, __RC__)
+     call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+     CALL MAPL_MaxMin('GOCART: SO4:      ', int_ptr)
+     call ESMF_AttributeGet(aero, name='sulfate_surface_area_density', value=fld_name, __RC__)
+     if (fld_name /= '') then
+         call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+         int_ptr = SO4SAREA(:,:,:)
+     end if
+     CALL MAPL_MaxMin('GOCART: SO4SAREA:', so4sarea)
+    endif
 
 
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
