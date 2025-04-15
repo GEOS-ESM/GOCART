@@ -1729,7 +1729,7 @@ contains
     j2 = ubound(temperature, 2)
     km = ubound(temperature, 3)
 
-    call ESMF_AttributeGet(state, name='use_level', value=k, isPresent=isPresent, __RC__)
+    call ESMF_AttributeGet(state, name='at_level', value=k, isPresent=isPresent, __RC__)
     k0 = 1
     k1 = km
     if (isPresent) then
