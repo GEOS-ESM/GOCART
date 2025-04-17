@@ -1893,7 +1893,7 @@ contains
     call aap_(mode,                    &
 !#              q,                     &
               q,                     &
-              num,                     &
+              num(:,:,k0:k1),                     &
               diameter(:,:,k0:k1),     &
               sigma(:,:,k0:k1),        &
               f_dust(:,:,k0:k1),       &
