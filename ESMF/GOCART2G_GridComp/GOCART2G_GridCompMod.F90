@@ -1649,6 +1649,7 @@ contains
 
     character(len=ESMF_MAXSTR)      :: fld_name
 
+    integer                         :: k, k0, k1
     integer                         :: i2, j2, km
     integer                         :: b, i, j, n, aerosol_bin
     integer                         :: varNameLen
@@ -1675,10 +1676,15 @@ contains
     real, parameter :: k_BR    = 0.0001
 
     integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015
+    logical :: isPresent
+    class(BaseProfiler), pointer :: t_p
 
     __Iam__('GOCART2G::aerosol_activation_properties')
 
 !   Begin...
+
+    t_p => get_global_time_profiler()
+    call t_p%start('inside_aerosol_acti',_RC)
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
@@ -1727,6 +1733,14 @@ contains
     j2 = ubound(temperature, 2)
     km = ubound(temperature, 3)
 
+    call ESMF_AttributeGet(state, name='at_level', value=k, isPresent=isPresent, __RC__)
+    k0 = 1
+    k1 = km
+    if (isPresent) then
+       k0 = k
+       k1= k
+    end if
+
 !   Activation activation properties
 !   --------------------------------
     call ESMF_AttributeGet(state, name='aerosol_number_concentration', value=fld_name, __RC__)
@@ -1763,7 +1777,7 @@ contains
     mode_ = trim(mode)
     mode_ = ESMF_UtilStringLowerCase(mode_, __RC__)
 
-    allocate(q(i2,j2,km),  __STAT__)
+    allocate(q(i2,j2,k0:k1),  __STAT__)
     q = 0.0
 
     if (index(mode_, 'du00') > 0) then ! Dust
@@ -1773,11 +1787,11 @@ contains
              read (mode_(3:len(mode_)),*) aerosol_bin
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'DU', __RC__)
-             q = q + ptr_4d(:,:,:,aerosol_bin)
-             ptr_3d => ptr_4d(:,:,:,aerosol_bin)
+             q = q + ptr_4d(:,:,k0:k1,aerosol_bin)
+             ptr_3d => ptr_4d(:,:,k0:k1,aerosol_bin)
 
-             hygroscopicity = k_DU
-             density = densDU
+             hygroscopicity(:,:,k0:k1) = k_DU
+             density(:,:,k0:k1) = densDU
           end if
        end do
 
@@ -1788,26 +1802,26 @@ contains
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
              do j = 1, ubound(ptr_4d, 4)
-               q = q + ptr_4d(:,:,:,j)
-               ptr_3d => ptr_4d(:,:,:,j)
+               q = q + ptr_4d(:,:,k0:k1,j)
+               ptr_3d => ptr_4d(:,:,k0:k1,j)
              end do
 
-             hygroscopicity = k_SS
-             density = densSS
+             hygroscopicity(:,:,k0:k1) = k_SS
+             density(:,:,k0:k1) = densSS
           end if
        end do
 
     else if (index(mode_, 'sulforg') > 0) then ! Sulfate
-       hygroscopicity = 0.0
-       density = 0.0
+       hygroscopicity(:,:,k0:k1) = 0.0
+       density(:,:,k0:k1) = 0.0
 
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'SU') > 0) then
              call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
              call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
-             q = q + ptr_3d
-             hygroscopicity = k_SO4 * ptr_3d + hygroscopicity
-             density = densSO4 * ptr_3d + density
+             q = q + ptr_3d(:,:,k0:k1)
+             hygroscopicity(:,:,k0:k1) = k_SO4 * ptr_3d(:,:,k0:k1) + hygroscopicity(:,:,k0:k1)
+             density(:,:,k0:k1) = densSO4 * ptr_3d(:,:,k0:k1) + density(:,:,k0:k1)
           end if
 
           if (index(aeroList(i), 'CA.oc') > 0) then
@@ -1816,22 +1830,22 @@ contains
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
              varNameLen = varNameLen - 5
              call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
-             q = q + ptr_3d
-             hygroscopicity = k_ORG * ptr_3d + hygroscopicity
-             density = densORG * ptr_3d + density
+             q = q + ptr_3d(:,:,k0:k1)
+             hygroscopicity(:,:,k0:k1) = k_ORG * ptr_3d(:,:,k0:k1) + hygroscopicity(:,:,k0:k1)
+             density(:,:,k0:k1) = densORG * ptr_3d(:,:,k0:k1) + density(:,:,k0:k1)
           end if
 
        end do
 
           where (q > 2.0e-12 .and. hygroscopicity > tiny(0.0))
-             hygroscopicity = hygroscopicity / q
-             hygroscopicity = max(0.001, hygroscopicity)
+             hygroscopicity(:,:,k0:k1) = hygroscopicity(:,:,k0:k1) / q
+             hygroscopicity(:,:,k0:k1) = max(0.001, hygroscopicity(:,:,k0:k1))
 
-             density = density / q
-             density = min(max(density, densORG), densSO4)
+             density(:,:,k0:k1) = density(:,:,k0:k1) / q
+             density(:,:,k0:k1) = min(max(density(:,:,k0:k1), densORG), densSO4)
           elsewhere
-             hygroscopicity = k_SO4
-             density = densSO4
+             hygroscopicity(:,:,k0:k1) = k_SO4
+             density(:,:,k0:k1) = densSO4
           end where
 
     else if (index(mode_, 'bcphilic') > 0) then ! Black Carbon
@@ -1842,9 +1856,9 @@ contains
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
              varNameLen = varNameLen - 5
              call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
-             q = q + ptr_3d
-             hygroscopicity = k_BC
-             density = densBC
+             q = q + ptr_3d(:,:,k0:k1)
+             hygroscopicity(:,:,k0:k1) = k_BC
+             density(:,:,k0:k1) = densBC
           end if
        end do
 
@@ -1856,9 +1870,9 @@ contains
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
              varNameLen = varNameLen - 5
              call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
-             q = q + ptr_3d
-             hygroscopicity = k_OC
-             density = densOC
+             q = q + ptr_3d(:,:,k0:k1)
+             hygroscopicity(:,:,k0:k1) = k_OC
+             density(:,:,k0:k1) = densOC
           end if
        end do
 
@@ -1870,9 +1884,9 @@ contains
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
              varNameLen = varNameLen - 5
              call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
-             q = q + ptr_3d
-             hygroscopicity = k_BR
-             density = densBR
+             q = q + ptr_3d(:,:,k0:k1)
+             hygroscopicity(:,:,k0:k1) = k_BR
+             density(:,:,k0:k1) = densBR
           end if
        end do
 
@@ -1880,20 +1894,23 @@ contains
 
 !   Obtain aerosol activation properties of this aerosol mode
 !   ---------------------------------------------------------
-    call aap_(mode,               &
-              q,                  &
-              num,                &
-              diameter,           &
-              sigma,              &
-              f_dust,             &
-              f_soot,             &
-              f_organic,          &
-              density,            &
-              ptr_3d,             &
-              1, i2, 1, j2, km, &
+    call aap_(mode,                    &
+!#              q,                     &
+              q,                     &
+              num(:,:,k0:k1),                     &
+              diameter(:,:,k0:k1),     &
+              sigma(:,:,k0:k1),        &
+              f_dust(:,:,k0:k1),       &
+              f_soot(:,:,k0:k1),       &
+              f_organic(:,:,k0:k1),    &
+              density(:,:,k0:k1),      &
+              ptr_3d(:,:,k0:k1),       &
+              1, i2, 1, j2, (k1-k0+1), &
               __RC__)
 
     deallocate(q, __STAT__)
+
+    call t_p%stop('inside_aerosol_acti',_RC)
 
     RETURN_(ESMF_SUCCESS)
 
