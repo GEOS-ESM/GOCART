@@ -1677,10 +1677,14 @@ contains
 
     integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015
     logical :: isPresent
+    class(BaseProfiler), pointer :: t_p
 
     __Iam__('GOCART2G::aerosol_activation_properties')
 
 !   Begin...
+
+    t_p => get_global_time_profiler()
+    call t_p%start('inside_aerosol_acti',_RC)
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
@@ -1905,6 +1909,8 @@ contains
               __RC__)
 
     deallocate(q, __STAT__)
+
+    call t_p%stop('inside_aerosol_acti',_RC)
 
     RETURN_(ESMF_SUCCESS)
 
