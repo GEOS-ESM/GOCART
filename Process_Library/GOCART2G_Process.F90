@@ -1517,7 +1517,8 @@ end function DarmenovaDragPartition
 
    ONE_OVER_G = 1.0/grav
 
-   hsurf => hghte(i1:i2,j1:j2,km)
+   dk = ubound(hghte,3)
+   hsurf => hghte(i1:i2,j1:j2,dk)
 
    allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km), source=0.0)
    allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
@@ -1691,7 +1692,8 @@ end function DarmenovaDragPartition
 
    ONE_OVER_G = 1.0/grav
 
-   hsurf => hghte(i1:i2,j1:j2,km)
+   dk = ubound(hghte,3)
+   hsurf => hghte(i1:i2,j1:j2, dk)
 
    allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km), source=0.0)
    allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
@@ -2316,7 +2318,8 @@ end function DarmenovaDragPartition
 
    gravDP = grav
 
-   hsurf => hghte(i1:i2,j1:j2,km)
+   dk = ubound(hghte,3)
+   hsurf => hghte(i1:i2,j1:j2, dk)
 
 !  Allocate arrays
 !  ---------------
@@ -2659,7 +2662,8 @@ end function DarmenovaDragPartition
    i2 = ubound(hghte,1)
    j2 = ubound(hghte,2)
 
-   hsurf => hghte(i1:i2,j1:j2,km)
+   dk = ubound(hghte,3)
+   hsurf => hghte(i1:i2,j1:j2, dk)
 
 !  Allocate arrays
 !  ---------------
@@ -6401,7 +6405,8 @@ K_LOOP: do k = km, 1, -1
    i2 = size(rhoa,1)
    j2 = size(rhoa,2)
    allocate(hsurf(i1:i2,j1:j2))
-   hsurf = hghte(i1:i2,j1:j2,km)
+   k  = ubound(hghte,3) 
+   hsurf = hghte(i1:i2,j1:j2,k)
 
    allocate(srcSO2(i2,j2), srcSO4(i2,j2), srcDMS(i2,j2), srcSO4anthro(i2,j2), &
             srcSO2anthro(i2,j2), srcSO2bioburn(i2,j2), source=0.0)
