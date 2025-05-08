@@ -1152,7 +1152,7 @@ contains
         enddo
        endif
     enddo
-    call MAPL_MaxMin('GOCART: CA2GSAREA:', SAREA)
+    call MAPL_MaxMin(trim(COMP_NAME)//': CA2GSAREA:', SAREA)
     nullify(int_ptr)
     call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
     if (fld_name /= '') then
