@@ -43,6 +43,9 @@ fnum: 1.50e19  1.50e19
 # Number median radius [um]
 particle_radius_microns: 0.35 0.35
 
+# Number median radius [um]
+particle_radius_number: 0.0118 0.0118
+
 # Sigma of lognormal number distribution
 sigma: 2.0  2.0
 
