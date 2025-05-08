@@ -76,6 +76,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  *MASS        | kg kg-1      | xyz   | C     |                                | * Aerosol Mass Mixing Ratio
  *CONC        | kg m-3       | xyz   | C     |                                | * Aerosol Mass Concentration
+ *SAREA       | m2 m-3       | xyz   | C     |                                | * Aerosol Surface Area Density
  *EXTCOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient
  *EXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient - Fixed RH=20%
  *EXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient - Fixed RH=80%
@@ -106,7 +107,6 @@ category: EXPORT
  *FLUXU       | kg m-1 s-1   | xy    | N     |                                | * Aerosol column u-wind mass flux
  *FLUXV       | kg m-1 s-1   | xy    | N     |                                | * Aerosol column v-wind mass flux
  *AERIDX      | 1            | xy    | N     |                                | * Aerosol TOMS UV Aerosol Index
-
 
 
 category: INTERNAL

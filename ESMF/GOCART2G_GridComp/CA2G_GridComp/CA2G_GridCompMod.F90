@@ -60,7 +60,9 @@ module CA2G_GridCompMod
        logical            :: diurnal_bb   ! diurnal biomass burning
        real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
-!      !Workspae for point emissions
+       real, allocatable  :: rmed(:)  ! Median radius of lognormal number distribution
+       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
+!      !Workspace for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
        type(ThreadWorkspace), allocatable :: workspaces(:)
@@ -190,6 +192,12 @@ contains
        self%doing_point_emissions = .true.  ! we are good to go
     end if
 
+    allocate(self%rmed(self%nbins), __STAT__)
+    allocate(self%sigma(self%nbins), __STAT__)
+    call ESMF_ConfigGetAttribute(cfg, self%rmed, label='particle_radius_number:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%sigma, label='sigma:', __RC__)
+
+    
 !   Is CA data driven?
 !   ------------------
     call determine_data_driven (COMP_NAME, data_driven, __RC__)
@@ -579,6 +587,12 @@ contains
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 
+!+++PRC
+    ! Add variables to CA instance aero state for chemistry
+    call ESMF_AttributeSet(aero, NAME='effective_radius_in_microns', VALUE=self%radius(1), __RC__)
+    call add_aero (aero, label='surface_area_density', label2='SAREA', grid=grid, typekind=MAPL_R4,__RC__)
+!---PRC
+    
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
@@ -929,23 +943,24 @@ contains
     character (len=ESMF_MAXSTR)       :: COMP_NAME
     type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
+    type (ESMF_State)                 :: aero
     type (wrap_)                      :: wrap
     type (CA2G_GridComp), pointer     :: self
     type(MAPL_VarSpec), pointer       :: InternalSpec(:)
 
-    integer                           :: n
+    integer                           :: i,j,k,n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real                              :: fwet, svol, rh_, gf, rwet
     real, dimension(3)                :: rainout_eff
     logical                           :: KIN
     real, allocatable, dimension(:,:,:)   :: pSOA_VOC
     real, pointer, dimension(:,:,:)       :: int_ptr
     real, allocatable, dimension(:,:,:,:) :: int_arr
     character(len=2)  :: GCsuffix
-    character(len=ESMF_MAXSTR)      :: short_name
+    character(len=ESMF_MAXSTR)      :: short_name, fld_name
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
     real, pointer, dimension(:,:)     :: flux_ptr
-
+    
     real, parameter ::  cpd    = 1004.16
     integer                      :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
@@ -972,6 +987,9 @@ contains
 
     call MAPL_GetPointer (internal, intPtr_phobic, trim(comp_name)//'phobic', __RC__)
     call MAPL_GetPointer (internal, intPtr_philic, trim(comp_name)//'philic', __RC__)
+
+!   Get the aero state
+    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
 
 #include "CA2G_GetPointer___.h"
 
@@ -1105,8 +1123,45 @@ contains
                              fluxu=FLUXU, fluxv=FLUXV, &
                              conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, bckcoef=BCKCOEF, angstrom=ANGSTR,&
                              aerindx=AERIDX, NO3nFlag=.false., __RC__)
-
-
+!++PRC
+!  Calculate the sulfate surface area density [m2 m-3], possibly for use in
+!  StratChem or other component.  Assumption here is a specified effective
+!  radius (gcSU%radius for sulfate) and standard deviation of lognormal
+!  distribution.  Hydration is by grid box provided RH and is follows Petters
+!  and Kreeidenweis (ACP2007)
+   if(associated(SAREA)) then
+    do n = 1, self%nbins
+      call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+      call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+      if(self%rmed(n) > 0.) then
+       do k = self%klid, self%km
+         do j = j1, j2
+          do i = i1, i2
+           rh_ = min(0.95,rh2(i,j,k))
+           gf = (1. + 1.19*rh_/(1.-rh_) )                   ! ratio of wet/dry volume, eq. 5
+           if(n == 1) gf = 1.
+           rwet = self%rmed(n) * gf**(1./3.)*1.e-6          ! wet effective radius, m (note unit change)
+!          Wet particle volume m3 m-3
+           svol = int_ptr(i,j,k) * airdens(i,j,k) / self%rhop(n) * gf
+!          Integral of lognormal surface area m2 m-3 (From Zender Table 1)
+           SAREA(i,j,k) = SAREA(i,j,k) + 3./rwet*svol*exp(-5./2.*alog(self%sigma(n))**2.)
+!          Integral of lognormal number density # m-3
+!           if(present(snum)) snum(i,j,k) = svol / (rwet**3) * exp(-9/2.*alog(sigma)**2.) * 3./4./pi
+          enddo
+         enddo
+        enddo
+       endif
+    enddo
+    call MAPL_MaxMin('GOCART: CA2GSAREA:', SAREA)
+    nullify(int_ptr)
+    call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
+    if (fld_name /= '') then
+        call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+        int_ptr = SAREA
+    endif
+   endif
+!--PRC
+   
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
     j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
     km = ubound(RH2, 3)
