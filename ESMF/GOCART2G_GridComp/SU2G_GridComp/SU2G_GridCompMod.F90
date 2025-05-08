@@ -651,10 +651,10 @@ contains
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 
-    ! Add variables to SU instance's aero state. Used in GMI
-    call add_aero (aero, label='sulfate_surface_area_density', label2='SO4SAREA', grid=grid, typekind=MAPL_R4,__RC__)
+    ! Add variables to SU instance aero state for chemistry
+    call add_aero (aero, label='surface_area_density', label2='SAREA', grid=grid, typekind=MAPL_R4,__RC__)
     call ESMF_AttributeSet(aero, NAME='effective_radius_in_microns', VALUE=self%radius(3), __RC__)
- 
+    
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
@@ -673,6 +673,7 @@ contains
     call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
+    call ESMF_MethodAdd (aero, label='aerosol_microphysics', userRoutine=aerosol_microphysics, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1234,6 +1235,16 @@ contains
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
+!+++prc
+    call MAPL_MaxMin('GOCART: SO4SAREA:', so4sarea)
+    nullify(int_ptr)
+    call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
+    if (fld_name /= '') then
+        call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+        int_ptr = SO4SAREA
+    endif
+!---prc
+    
     if(self%using_GMI) then
      call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=short_name, __RC__)
      call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
@@ -1401,8 +1412,6 @@ contains
 !   -----------------
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, rh, trim(fld_name), __RC__)
-
-!    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
 
     allocate(ext_s(i1:i2, j1:j2, km), &
              ssa_s(i1:i2, j1:j2, km), &
@@ -1644,4 +1653,30 @@ contains
      _RETURN(_SUCCESS)
   end function
 
+!-----------------------------------------------------------------------------------
+  subroutine aerosol_microphysics(state, rc)
+
+    implicit none
+
+!   !ARGUMENTS:
+    type (ESMF_State)                                :: state
+    integer,            intent(out)                  :: rc
+
+!   !Local
+    character (len=ESMF_MAXSTR)                      :: fld_name
+    type(ESMF_Field)                                 :: fld
+
+    integer :: i, j, k
+
+    __Iam__('SU2G::aerosol_microphysics')
+
+!   Begin...
+
+!    call ESMF_AttributeGet(state, name='surface_area_density_for_chemistry', value=fld_name, __RC__)
+!    call MAPL_GetPointer(state, SO4SAREA, trim(fld_name), __RC__)
+
+    RETURN_(ESMF_SUCCESS)
+
+    end subroutine aerosol_microphysics
+    
 end module SU2G_GridCompMod
