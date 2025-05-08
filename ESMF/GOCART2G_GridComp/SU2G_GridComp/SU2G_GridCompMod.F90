@@ -1245,19 +1245,6 @@ contains
     endif
 !---prc
     
-    if(self%using_GMI) then
-     call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=short_name, __RC__)
-     call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-     CALL MAPL_MaxMin('GOCART: SO4:      ', int_ptr)
-     call ESMF_AttributeGet(aero, name='sulfate_surface_area_density', value=fld_name, __RC__)
-     if (fld_name /= '') then
-         call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
-         int_ptr = SO4SAREA(:,:,:)
-     end if
-     CALL MAPL_MaxMin('GOCART: SO4SAREA:', so4sarea)
-    endif
-
-
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
     j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
     km = ubound(RH2, 3)
