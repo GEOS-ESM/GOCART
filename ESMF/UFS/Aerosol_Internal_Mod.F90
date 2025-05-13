@@ -1,8 +1,6 @@
 module Aerosol_Internal_Mod
 
   use MAPL
-  use gFTL_StringIntegerMap
-  use gFTL_StringStringMap
 
   use Aerosol_Tracer_Mod, only: Aerosol_Tracer_T
 

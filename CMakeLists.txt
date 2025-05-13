@@ -2,24 +2,42 @@ cmake_minimum_required (VERSION 3.17)
 cmake_policy (SET CMP0053 NEW)
 cmake_policy (SET CMP0054 NEW)
 
-project (
-        GOCART
-        VERSION 2.0.7
-        LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
+# mepo can now clone subrepos in three styles
+set (ESMA_CMAKE_DIRS
+  cmake
+  @cmake
+  cmake@
+  )
 
-if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
-    message(SEND_ERROR "In-source builds are disabled. Please
-           issue cmake command in separate build directory.")
-endif ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
+foreach (dir IN LISTS ESMA_CMAKE_DIRS)
+  if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/${dir})
+    list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/${dir}")
+    set (ESMA_CMAKE_PATH "${CMAKE_CURRENT_LIST_DIR}/${dir}" CACHE PATH "Path to ESMA_cmake code")
+    include (esma)
+    set(GOCART_STANDALONE TRUE)
+  endif ()
+endforeach ()
 
-# Set the default build type to release
-if (NOT CMAKE_BUILD_TYPE)
-    message (STATUS "Setting build type to 'Release' as none was specified.")
-    set (CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-    # Set the possible values of build type for cmake-gui
-    set_property (CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
-            "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
-endif ()
+if (GOCART_STANDALONE)
+  project (
+          GOCART
+          VERSION 2.1.1
+          LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
+
+  if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
+      message(SEND_ERROR "In-source builds are disabled. Please
+            issue cmake command in separate build directory.")
+  endif ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
+
+  # Set the default build type to release
+  if (NOT CMAKE_BUILD_TYPE)
+      message (STATUS "Setting build type to 'Release' as none was specified.")
+      set (CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+      # Set the possible values of build type for cmake-gui
+      set_property (CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+              "Debug" "Release" "MinSizeRel" "RelWithDebInfo")
+  endif ()
+endif()
 
 # Set build options
 option (UFS_GOCART "Build GOCART component for UFS" OFF)
@@ -45,7 +63,9 @@ if (NOT COMMAND esma)
     include (esma)
 endif()
 
-ecbuild_declare_project()
+if(GOCART_STANDALONE)
+  ecbuild_declare_project()
+endif()
 
 if (NOT Baselibs_FOUND)
   # Find dependencies
@@ -57,14 +77,10 @@ if (NOT Baselibs_FOUND)
   if (NOT ESMF_FOUND)
     find_package (ESMF REQUIRED)
   endif ()
-
-  find_package (GFTL REQUIRED)
-  find_package (GFTL_SHARED REQUIRED)
-  find_package (PFLOGGER QUIET)
-  find_package (YAFYAML REQUIRED)
 endif ()
 
 if (UFS_GOCART)
+  find_package (GFTL_SHARED REQUIRED)
   find_package (MAPL REQUIRED)
   include(mapl_acg)
 elseif (IS_DIRECTORY "${PROJECT_SOURCE_DIR}/ESMF/Shared/MAPL@")
@@ -85,7 +101,9 @@ include_directories(${MPI_Fortran_INCLUDE_PATH})
 add_subdirectory (ESMF)
 add_subdirectory (Process_Library)
 
-ecbuild_install_project (NAME GOCART)
+if(GOCART_STANDALONE)
+  ecbuild_install_project (NAME GOCART)
+endif()
 
 # https://www.scivision.dev/cmake-auto-gitignore-build-dir/
 # --- auto-ignore build directory

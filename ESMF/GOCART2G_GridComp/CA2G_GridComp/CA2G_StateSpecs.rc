@@ -72,34 +72,39 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE                 |  DIMENSIONS   |          Additional Metadata
 #----------------------------------------------------------------------------------------
- NAME        | UNITS        | DIMS  | VLOC  | UNGRIDDED                      | LONG NAME
+ NAME         | UNITS        | DIMS  | VLOC  | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- *MASS       | kg kg-1      | xyz   | C     |                                | Carbonaceous Aerosol Mass Mixing Ratio
- *CONC       | kg m-3       | xyz   | C     |                                | Carbonaceous Aerosol Mass Concentration
- *EXTCOEF    | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Extinction Coefficient
- *SCACOEF    | m-1          | xyz   | C     | size(self%wavelengths_profile) | Carbonaceous Aerosol Scattering Coefficient
-#........... | ............ | ..... | ..... | .......                        | ............................................
- *EM         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Emission (Bin %d)
- *SD         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Sedimentation (Bin %d)
- *DP         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Dry Deposition (Bin %d)
- *WT         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Wet Deposition (Bin %d)
- *SV         | kg m-2 s-1   | xy    | N     | nbins                          | Carbonaceous Aerosol Convective Scavenging (Bin %d)
- *EMAN       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Anthropogenic Emissions
- *EMBB       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biomass Burning Emissions
- *EMBF       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biofuel Emissions
- *EMBG       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Biogenic Emissions
- *HYPHIL     | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol Hydrophobic to Hydrophilic
- *PSOA       | kg m-2 s-1   | xy    | N     |                                | Carbonaceous Aerosol SOA Production
- *SMASS      | kg m-3       | xy    | N     |                                | Carbonaceous Aerosol Surface Mass Concentration
- *CMASS      | kg m-2       | xy    | N     |                                | Carbonaceous Aerosol Column Mass Density
- *EXTTAU     | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT
- *STEXTTAU   | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Extinction AOT Stratosphere
- *SCATAU     | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT
- *STSCATAU   | 1            | xy    | N     | size(self%wavelengths_vertint) | Carbonaceous Aerosol Scattering AOT Stratosphere
- *ANGSTR     | 1            | xy    | N     |                                | Carbonaceous Aerosol Angstrom parameter [470-870 nm]
- *FLUXU      | kg m-1 s-1   | xy    | N     |                                | Carbonaceous Aerosol column u-wind mass flux
- *FLUXV      | kg m-1 s-1   | xy    | N     |                                | Carbonaceous Aerosol column v-wind mass flux
- *AERIDX     | 1            | xy    | N     |                                | Carbonaceous Aerosol TOMS UV Aerosol Index
+ *MASS        | kg kg-1      | xyz   | C     |                                | * Aerosol Mass Mixing Ratio
+ *CONC        | kg m-3       | xyz   | C     |                                | * Aerosol Mass Concentration
+ *EXTCOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient
+ *EXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient - Fixed RH=20%
+ *EXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient - Fixed RH=80%
+ *SCACOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Scattering Coefficient
+ *SCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Scattering Coefficient - Fixed RH=20%
+ *SCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Scattering Coefficient - Fixed RH=80%
+ *BCKCOEF     | m-1 sr-1     | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Backscatter Coefficient
+#............ | ............ | ..... | ..... | .......                        | ............................................
+ *EM          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Emission (Bin %d)
+ *SD          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Sedimentation (Bin %d)
+ *DP          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Dry Deposition (Bin %d)
+ *WT          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Wet Deposition (Bin %d)
+ *SV          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Convective Scavenging (Bin %d)
+ *EMAN        | kg m-2 s-1   | xy    | N     |                                | * Aerosol Anthropogenic Emissions
+ *EMBB        | kg m-2 s-1   | xy    | N     |                                | * Aerosol Biomass Burning Emissions
+ *EMBF        | kg m-2 s-1   | xy    | N     |                                | * Aerosol Biofuel Emissions
+ *EMBG        | kg m-2 s-1   | xy    | N     |                                | * Aerosol Biogenic Emissions
+ *HYPHIL      | kg m-2 s-1   | xy    | N     |                                | * Aerosol Hydrophobic to Hydrophilic
+ *PSOA        | kg m-2 s-1   | xy    | N     |                                | * Aerosol SOA Production
+ *SMASS       | kg m-3       | xy    | N     |                                | * Aerosol Surface Mass Concentration
+ *CMASS       | kg m-2       | xy    | N     |                                | * Aerosol Column Mass Density
+ *EXTTAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Extinction AOT
+ *STEXTTAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Extinction AOT Stratosphere
+ *SCATAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Scattering AOT
+ *STSCATAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | * Aerosol Scattering AOT Stratosphere
+ *ANGSTR      | 1            | xy    | N     |                                | * Aerosol Angstrom parameter [470-870 nm]
+ *FLUXU       | kg m-1 s-1   | xy    | N     |                                | * Aerosol column u-wind mass flux
+ *FLUXV       | kg m-1 s-1   | xy    | N     |                                | * Aerosol column v-wind mass flux
+ *AERIDX      | 1            | xy    | N     |                                | * Aerosol TOMS UV Aerosol Index
 
 
 
@@ -109,8 +114,8 @@ category: INTERNAL
 #--------------------------------------------------------------------------------------------------------------
   NAME   | UNITS   | DIMS | VLOC | RESTART              | ADD2EXPORT | FRIENDLYTO                | LONG NAME
 #--------------------------------------------------------------------------------------------------------------
- *phobic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
- *philic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | Carbonaceous Aerosol Mixing Ratio
+ *phobic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | * Hydrophobic Aerosol Mixing Ratio
+ *philic | kg kg-1 | xyz  | C    | MAPL_RestartOptional | T          | DYNAMICS:TURBULENCE:MOIST | * Hydrophilic Aerosol Mixing Ratio
 
 #********************************************************
 #
