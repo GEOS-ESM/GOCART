@@ -20,10 +20,6 @@
    use Chem_StateMod         ! Chemistry State
    use Chem_UtilMod
    use m_inpak90             ! Resource file management
-<<<<<<< HEAD
-!   USE Henrys_law_ConstantsMod, ONLY: get_HenrysLawCts
-=======
->>>>>>> refs/remotes/origin/feature/sbasu1/gocart_methane-v11.5.2
 
    implicit none
 
@@ -315,10 +311,6 @@ CONTAINS
    integer :: nbins, nbeg, nend, nbins_rc, nymd1, nhms1
    integer :: nTimes, begTime, incSecs
    real    :: qmin, qmax
-<<<<<<< HEAD
-!   REAL    :: c1,c2,c3,c4
-=======
->>>>>>> refs/remotes/origin/feature/sbasu1/gocart_methane-v11.5.2
 
    gcCO2%name = 'CO2 Constituent Package'
 
@@ -445,19 +437,6 @@ CONTAINS
      gcCO2%OCN_FLUX_CALC=.false.
    end if
 
-<<<<<<< HEAD
-!  Get Henrys Law cts for the parameterized convective wet removal
-!  cakelle2, 20240110: CO2 should not be washed out by convection,
-!  hence set parameter to invalid values
-!  -----------------------------------------------------------
-!   CALL get_HenrysLawCts('CO2',c1,c2,c3,c4)  
-   w_c%reg%Hcts(1,w_c%reg%i_CO2 : w_c%reg%j_CO2)=-1.
-   w_c%reg%Hcts(2,w_c%reg%i_CO2 : w_c%reg%j_CO2)=-1.
-   w_c%reg%Hcts(3,w_c%reg%i_CO2 : w_c%reg%j_CO2)=-1.
-   w_c%reg%Hcts(4,w_c%reg%i_CO2 : w_c%reg%j_CO2)=-1.
-
-=======
->>>>>>> refs/remotes/origin/feature/sbasu1/gocart_methane-v11.5.2
    DEALLOCATE(ier)
 
    return
