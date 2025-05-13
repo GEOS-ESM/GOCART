@@ -1129,7 +1129,13 @@ contains
 !  radius (gcSU%radius for sulfate) and standard deviation of lognormal
 !  distribution.  Hydration is by grid box provided RH and is follows Petters
 !  and Kreeidenweis (ACP2007)
+   
+   i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
+   j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
+   km = ubound(RH2, 3)
+
    if(associated(SAREA)) then
+    SAREA(:,:,:) = 0.
     do n = 1, self%nbins
       call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
       call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
@@ -1161,10 +1167,6 @@ contains
     endif
    endif
 !--PRC
-   
-    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
-    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
-    km = ubound(RH2, 3)
 
     allocate(RH20(i1:i2,j1:j2,km), __STAT__)
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
