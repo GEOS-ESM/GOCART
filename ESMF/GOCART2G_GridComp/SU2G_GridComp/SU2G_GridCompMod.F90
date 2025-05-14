@@ -100,6 +100,10 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
 
+!     PRC: logic for GMI coupling
+      logical :: using_GMI
+      logical :: disable_emissions
+ 
 !     Special handling for volcanic emissions
       character(len=255) :: volcano_srcfilen_degassing
       character(len=255) :: volcano_srcfilen_explosive
@@ -192,6 +196,8 @@ contains
     allocate(self%sigma(self%nbins), __STAT__)
 
 !   process SU-specific items
+    call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%disable_emissions, label='disable_emissions:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_degassing, label='volcano_srcfilen_degassing:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_explosive, label='volcano_srcfilen_explosive:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
@@ -334,7 +340,34 @@ contains
           RESTART    = MAPL_RestartSkip, __RC__)
     end if
 
-!   Import, Export, Internal states for computational instance
+    if(self%using_GMI) then
+
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'GMI_OH',                             &
+        LONG_NAME  = 'Hydroxyl_radical',                   &
+        UNITS      = 'mol/mol',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+        RESTART    = MAPL_RestartSkip,     __RC__)
+
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'GMI_H2O2',                           &
+        LONG_NAME  = 'Hydrogen_peroxide',                  &
+        UNITS      = 'mol/mol',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+        RESTART    = MAPL_RestartSkip,     __RC__)
+
+     call MAPL_AddImportSpec(GC,                           &
+        SHORT_NAME = 'GMI_NO3',                            &
+        LONG_NAME  = 'Nitrogen_trioxide',                  &
+        UNITS      = 'mol/mol',                            &
+        DIMS       = MAPL_DimsHorzVert,                    &
+        VLOCATION  = MAPL_VLocationCenter,                 &
+        RESTART    = MAPL_RestartSkip,     __RC__)
+    endif
+
+!   Import, Export, Internal states for computational instance 
 !   ----------------------------------------------------------
     if (.not. data_driven) then
 #include "SU2G_Export___.h"
@@ -618,6 +651,10 @@ contains
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 
+    ! Add variables to SU instance aero state for chemistry
+    call add_aero (aero, label='surface_area_density', label2='SAREA', grid=grid, typekind=MAPL_R4,__RC__)
+    call ESMF_AttributeSet(aero, NAME='effective_radius_in_microns', VALUE=self%radius(3), __RC__)
+    
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
@@ -734,7 +771,7 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)        :: lats
     real, pointer, dimension(:,:)        :: lons
-    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src
+    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src, so2_ocs_src
     real, dimension(:,:), allocatable :: so2biomass_src, so2biomass_src_, so2anthro_l1_src, &
                                          so2anthro_l2_src, so2ship_src, so4ship_src, dmso_conc, &
                                          aviation_lto_src, aviation_cds_src, aviation_crs_src
@@ -818,11 +855,27 @@ contains
     where(1.01*so4ship_src > MAPL_UNDEF)       so4ship_src = 0.
 
     aircraft_fuel_src = SU_AIRCRAFT
-    so2biomass_src = SU_BIOMASS
-    dmso_conc = SU_DMSO
-    aviation_lto_src = SU_AVIATION_LTO
-    aviation_cds_src = SU_AVIATION_CDS
-    aviation_crs_src = SU_AVIATION_CRS
+    so2biomass_src    = SU_BIOMASS
+    dmso_conc         = SU_DMSO
+    aviation_lto_src  = SU_AVIATION_LTO
+    aviation_cds_src  = SU_AVIATION_CDS
+    aviation_crs_src  = SU_AVIATION_CRS
+    so2_ocs_src       = pSO2_OCS
+
+!   PRC: turn off emissions
+    if(self%disable_emissions) then
+     so2anthro_l1_src  = 0.
+     so2anthro_l2_src  = 0.
+     so2ship_src       = 0.
+     so4ship_src       = 0.
+     aircraft_fuel_src = 0.
+     so2biomass_src    = 0.
+     dmso_conc         = 0.
+     aviation_lto_src  = 0.
+     aviation_cds_src  = 0.
+     aviation_crs_src  = 0.
+     so2_ocs_src       = 0.
+    endif
 
 !   As a safety check, where value is undefined set to 0
     where(1.01*so2biomass_src > MAPL_UNDEF)    so2biomass_src = 0.
@@ -950,7 +1003,7 @@ contains
 
 !   Add source of OCS-produced SO2
 !   ------------------------------
-    SO2 = SO2 + pSO2_OCS*self%cdt
+    SO2 = SO2 + so2_ocs_src*self%cdt
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
@@ -1019,6 +1072,7 @@ contains
     character (len=ESMF_MAXSTR)       :: COMP_NAME
     type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
+    type (ESMF_State)                 :: aero
     type (wrap_)                      :: wrap
     type (SU2G_GridComp), pointer     :: self
     type (ESMF_Time)                  :: time
@@ -1029,7 +1083,7 @@ contains
     logical                           :: KIN
     real, pointer, dimension(:,:)     :: lats
     real, pointer, dimension(:,:)     :: lons
-    character(len=ESMF_MAXSTR)        :: short_name
+    character(len=ESMF_MAXSTR)        :: short_name, fld_name
     real, pointer, dimension(:,:,:)   :: int_ptr
 
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
@@ -1066,6 +1120,9 @@ contains
                          LONS = LONS, &
                          LATS = LATS, __RC__ )
 
+!   Get the aero state
+    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
+
 #include "SU2G_GetPointer___.h"
 
     call MAPL_GetPointer(internal, dummyMSA, 'MSA', rc=status)
@@ -1095,22 +1152,35 @@ contains
     allocate(xoh, mold=airdens, __STAT__)
     allocate(xno3, mold=airdens, __STAT__)
     allocate(xh2o2, mold=airdens, __STAT__)
-    xoh = 0.0
-    xno3 = 0.0
 
-    !if (workspace%firstRun) then
-       !xh2o2          = MAPL_UNDEF
-       !h2o2_init = MAPL_UNDEF
-       !workspace%firstRun  = .false.
-    !end if
+    if(self%using_GMI) then
+     xoh = GMI_OH
+     xh2o2 = GMI_H2O2
+     xno3 = GMI_NO3
+     xoh =  xoh * (MAPL_AVOGAD/1000.) / MAPL_AIRMW * 1000. * airdens*1.00E-06
+     call MAPL_MaxMin ( 'GMI:OH   ', xoh)
+     call MAPL_MaxMin ( 'GMI:H2O2 ', xh2o2)
+     call MAPL_MaxMin ( 'GMI:NO3  ', xno3)
+     call MAPL_MaxMin ( 'GMI:rhoa ', airdens)
+    else
 
-    xh2o2 = h2o2_init
+     xoh = 0.0
+     xno3 = 0.0
 
-    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
-                                workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
-                                MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
-                                SU_OH, SU_NO3, SU_H2O2, &
-                                xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
+     if (workspace%firstRun) then
+        xh2o2          = MAPL_UNDEF
+        h2o2_init = MAPL_UNDEF
+        workspace%firstRun  = .false.
+     end if
+
+     xh2o2 = h2o2_init 
+
+     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+                                 workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
+                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
+                                 SU_OH, SU_NO3, SU_H2O2, &
+                                 xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
+    endif
 
 !   SU Settling
 !   -----------
@@ -1164,6 +1234,13 @@ contains
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
+    nullify(int_ptr)
+    call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
+    if (fld_name /= '') then
+        call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+        int_ptr = SO4SAREA
+    endif
+    
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
     j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
     km = ubound(RH2, 3)
@@ -1190,6 +1267,8 @@ contains
                             tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=rh80, u=u, v=v, &
                             DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH80,&
                             scacoef = SUSCACOEFRH80, __RC__)
+
+    deallocate(xoh, xh2o2, xno3, stat=STATUS)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1316,8 +1395,6 @@ contains
 !   -----------------
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, rh, trim(fld_name), __RC__)
-
-!    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
 
     allocate(ext_s(i1:i2, j1:j2, km), &
              ssa_s(i1:i2, j1:j2, km), &
