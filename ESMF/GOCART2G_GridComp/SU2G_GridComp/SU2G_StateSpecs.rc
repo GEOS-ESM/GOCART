@@ -36,6 +36,9 @@ category: IMPORT
  SU_NO3          | 1        | xyz  | C    | SKIP    | climatological NO3 source
  SU_OH           | 1        | xyz  | C    | SKIP    | climatological OH source
  SU_H2O2         | 1        | xyz  | C    | SKIP    | climatological H2O2 source
+ GMI_NO3         | 1        | xyz  | C    | SKIP    | GMI NO3 source
+ GMI_OH          | 1        | xyz  | C    | SKIP    | GMI OH source
+ GMI_H2O2        | 1        | xyz  | C    | SKIP    | GMI H2O2 source
 #........................................................................................
  SU_BIOMASS      | 1        | xy   | N    | SKIP    | biomass burning emissions
  SU_ANTHROL1     | 1        | xy   | N    | SKIP    | anthropogenic BF emissions
