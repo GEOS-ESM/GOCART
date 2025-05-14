@@ -18,7 +18,7 @@ fscav: 0.4  0.4  0.4  0.4  0.4
 
 # Emissions methods and scaling
 emission_scheme: 3                                     # 1 for Gong 2003, 2 for ...
-emission_scale:  0.500 0.425 0.350 0.300 0.275 0.250   # L181 global scaling factor
+emission_scale:  0.600 0.525 0.450 0.400 0.375 0.350   # L181 global scaling factor
 #emission_scale: 0.613 0.613 0.613 0.429 0.429 0.429   # L072 global scaling factor
 sstEmisFlag:     2                                     # Apply a correction to emissions based on SST (see code)
 hoppelFlag:      .false.              # Apply Hoppel correction (set non-zero, see Fan and Toon 2011)
