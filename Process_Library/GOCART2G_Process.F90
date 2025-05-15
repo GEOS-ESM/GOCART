@@ -4187,7 +4187,8 @@ end function DarmenovaDragPartition
                                   sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
                                   sfcmass25, colmass25, mass25, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, bckcoef,&
-                                  exttaufm, scataufm, angstrom, aerindx, NO3nFlag, rc )
+                                  exttaufm, scataufm, angstrom, aerindx, NO3nFlag, &
+                                  sarea, rc )
 
 ! !USES:
 
@@ -4238,6 +4239,7 @@ end function DarmenovaDragPartition
    real, optional, dimension(:,:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
    real, optional, dimension(:,:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
    real, optional, dimension(:,:), intent(inout)   :: angstrom  ! 470-870 nm Angstrom parameter
+   real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
    integer, optional, intent(out)   :: rc        ! Error return code:
                                                  !  0 - all is well
                                                  !  1 -
@@ -4255,7 +4257,7 @@ end function DarmenovaDragPartition
    integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
    integer :: ilam470, ilam870
-   real, allocatable, dimension(:,:,:) :: tau, ssa, bck
+   real, allocatable, dimension(:,:,:) :: tau, ssa, bck, area
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
@@ -4554,6 +4556,22 @@ end function DarmenovaDragPartition
          log(470./870.)
    endif
    deallocate(tau,ssa)
+
+!  Calculate the sulfate area density [m2 m-3], possibly for use in
+!  StratChem or other component.  Optics tables provide cross-sectional area
+!  for hydrated particle per kg dry mass but we want total surface area,
+!  which is 4 x cross section.
+   if(present(sarea)) then
+    sarea = 0.0
+    allocate(area(i1:i2,j1:j2,km), __STAT__)
+    do n = nbegin, nbins
+     call mie%Query(550e-9,n,   &
+                    aerosol(:,:,:,n)*delp/grav, rh, &
+                    area=area, __RC__)
+     sarea = sarea + 4.*area*aerosol(:,:,:,n)*rhoa
+    enddo
+    deallocate(area)
+   endif
    __RETURN__(__SUCCESS__)
    end subroutine Aero_Compute_Diags
 !====================================================================

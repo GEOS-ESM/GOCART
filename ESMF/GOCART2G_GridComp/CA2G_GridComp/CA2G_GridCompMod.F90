@@ -60,7 +60,7 @@ module CA2G_GridCompMod
        logical            :: diurnal_bb   ! diurnal biomass burning
        real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
-!      !Workspae for point emissions
+!      !Workspace for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
        type(ThreadWorkspace), allocatable :: workspaces(:)
@@ -579,6 +579,12 @@ contains
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 
+!+++PRC
+    ! Add variables to CA instance aero state for chemistry
+    call ESMF_AttributeSet(aero, NAME='effective_radius_in_microns', VALUE=self%radius(1), __RC__)
+    call add_aero (aero, label='surface_area_density', label2='SAREA', grid=grid, typekind=MAPL_R4,__RC__)
+!---PRC
+    
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
@@ -929,6 +935,7 @@ contains
     character (len=ESMF_MAXSTR)       :: COMP_NAME
     type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
+    type (ESMF_State)                 :: aero
     type (wrap_)                      :: wrap
     type (CA2G_GridComp), pointer     :: self
     type(MAPL_VarSpec), pointer       :: InternalSpec(:)
@@ -942,13 +949,13 @@ contains
     real, pointer, dimension(:,:,:)       :: int_ptr
     real, allocatable, dimension(:,:,:,:) :: int_arr
     character(len=2)  :: GCsuffix
-    character(len=ESMF_MAXSTR)      :: short_name
+    character(len=ESMF_MAXSTR)      :: short_name, fld_name
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
     real, pointer, dimension(:,:)     :: flux_ptr
-
+    
     real, parameter ::  cpd    = 1004.16
     integer                      :: i1, j1, i2, j2, km
-    real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, target, allocatable, dimension(:,:,:)   :: RH20,RH80, int_AREA
 #include "CA2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -972,6 +979,9 @@ contains
 
     call MAPL_GetPointer (internal, intPtr_phobic, trim(comp_name)//'phobic', __RC__)
     call MAPL_GetPointer (internal, intPtr_philic, trim(comp_name)//'philic', __RC__)
+
+!   Get the aero state
+    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
 
 #include "CA2G_GetPointer___.h"
 
@@ -1104,12 +1114,22 @@ contains
                              exttau=EXTTAU,stexttau=STEXTTAU, scatau=SCATAU, stscatau=STSCATAU,&
                              fluxu=FLUXU, fluxv=FLUXV, &
                              conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, bckcoef=BCKCOEF, angstrom=ANGSTR,&
-                             aerindx=AERIDX, NO3nFlag=.false., __RC__)
-
-
-    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
-    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
-    km = ubound(RH2, 3)
+                             aerindx=AERIDX, NO3nFlag=.false., SAREA=SAREA, __RC__)
+!++PRC
+!  Calculate the surface area density [m2 m-3], possibly for use in
+!  StratChem or other component.  Optics tables provide cross-sectional area
+!  for hydrated particle per kg dry mass but we want total surface area,
+!  which is 4 x cross section.
+   if(associated(SAREA)) then
+     call MAPL_MaxMin(trim(COMP_NAME)//': CA2GSAREA:', SAREA)
+     nullify(int_ptr)
+     call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
+     if (fld_name /= '') then
+         call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+         int_ptr = SAREA
+     endif
+   endif
+!--PRC
 
     allocate(RH20(i1:i2,j1:j2,km), __STAT__)
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
