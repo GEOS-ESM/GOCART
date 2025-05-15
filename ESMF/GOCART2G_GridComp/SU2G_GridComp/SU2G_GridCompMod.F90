@@ -1184,21 +1184,16 @@ contains
 
 !   SU Settling
 !   -----------
-    do n = 1, self%nbins
-       ! if radius == 0 then we're dealing with a gas which has no settling losses
-       if (self%radius(n) == 0.0) then
-          if (associated(SUSD)) SUSD(:,:,n) = 0.0
-          cycle
-       end if
-
-       call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
-       call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-       nullify(flux_ptr)
-       if (associated(SUSD)) flux_ptr => SUSD(:,:,n)
-       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
-                           int_ptr, t, airdens, &
-                           rh2, zle, delp, flux_ptr, __RC__)
-    end do
+!   Set default export value to 0.0 for all tracers
+    if (associated(SUSD)) SUSD(:,:,:) = 0.0
+!   Do settling only for sulfate aerosol tracer NSO4
+    call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=short_name, __RC__)
+    call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+    nullify(flux_ptr)
+    if (associated(SUSD)) flux_ptr => SUSD(:,:,nSO4)
+    call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
+                        int_ptr, t, airdens, &
+                        rh2, zle, delp, flux_ptr, __RC__)
 
     allocate(drydepositionf, mold=lwi, __STAT__)
     call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
@@ -1234,7 +1229,7 @@ contains
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
-    if(self%using_GMI) then
+    if(associated(SO4SAREA)) then
       nullify(int_ptr)
       call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
       if (fld_name /= '') then
