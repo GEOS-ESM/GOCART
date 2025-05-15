@@ -1234,11 +1234,13 @@ contains
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
                             SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
-    nullify(int_ptr)
-    call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
-        int_ptr = SO4SAREA
+    if(self%using_GMI) then
+      nullify(int_ptr)
+      call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
+      if (fld_name /= '') then
+          call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+          int_ptr = SO4SAREA
+      endif
     endif
     
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
