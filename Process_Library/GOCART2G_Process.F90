@@ -1916,11 +1916,9 @@ end function DarmenovaDragPartition
           dp_  = delp(i,j,:)
           tau_ = tau(i,j,:)
 
-          dt_cfl  = 1 / maxval(tau_)
+          dt_cfl  = abs(1.0 / maxval(tau_))
 
-          if (dt_cfl <= 0.) then
-             nSubSteps = 0
-          else if (dt_cfl > cdt) then
+          if (dt_cfl > cdt) then
               ! no need for time sub-splitting
               nSubSteps = 1
               dt = cdt
