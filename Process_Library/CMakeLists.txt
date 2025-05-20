@@ -5,9 +5,9 @@ set (srcs
   GOCART2G_Process.F90
   )
 
-esma_add_library(${this} 
-  SRCS ${srcs} 
-  DEPENDENCIES esmf NetCDF::NetCDF_Fortran
+esma_add_library(${this}
+  SRCS ${srcs}
+  DEPENDENCIES ESMF::ESMF NetCDF::NetCDF_Fortran
   )
 
 # CMake has an OpenMP issue with NAG Fortran: https://gitlab.kitware.com/cmake/cmake/-/issues/21280

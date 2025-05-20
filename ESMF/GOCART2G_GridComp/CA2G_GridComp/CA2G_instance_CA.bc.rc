@@ -3,7 +3,7 @@
 #
 
 aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BC.v1_3.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_BC.v1_3.nc
+aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_BC.v1_6.nc
 
 # Aircraft emission factor: convert input unit to kg C
 aircraft_fuel_emission_factor: 1.0000
@@ -13,6 +13,12 @@ aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
 
 # Initially hydrophobic portion
 hydrophobic_fraction: 0.8
+
+# Rate of conversion of hydrophobic to hydrophilic [days]
+time_days_hydrophobic_to_hydrophilic: 2.5
+
+# Rate of chemical destruction of carbon species [days]
+time_days_chemical_destruction: -1.  -1.
 
 # Scavenging efficiency per bin [km-1] (NOT USED UNLESS RAS IS CALLED)
 fscav: 0.0  0.4 
@@ -28,8 +34,6 @@ fnum: 1.50e19  1.50e19
 
 # Number median radius [um]
 particle_radius_microns: 0.35 0.35
-
-rhFlag: 0
 
 # Sigma of lognormal number distribution
 sigma: 2.0  2.0
