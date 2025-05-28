@@ -42,7 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed all ExtData.rc files
 
 ### Changed
--Filepath for CEDS has been updated in the ExtData yaml and rc files. Note the old version had an incorrect seasonal cycle.
 
 - Modified the file paths in carbon, sulfate, and nitrate ExtData.yaml files to used the revised version of the CEDS anthropogenic emissions. Note the previous version has an incorrect seasonal cycle.
 - Sulfate surface area density calculation in SU_Compute_Diags was incorrectly being passed the effective radius used for settling along with the sigma width of the number distribution.
