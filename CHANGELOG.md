@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed lines for anthropogenic emissions of OC, BC, SO2, SO4, and NH3 in their repsective ExtData yaml files as these will enter through HEMCO.
+
 ### Changed
 
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
@@ -52,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Removed all ExtData.rc files
+
 
 ### Changed
 
@@ -146,7 +149,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix a long standing issue that one can not start and stop the model in anything less than 3 hour increments to test start/stop regression because of GOCART.
 
 ### Changed
-
 - Comment out ASSERT to allow `GOCART_DT` to not match the `HEARTBEAT_DT`
 - Single-moment moist changes from Donifan
 - Change names of microphysics schemes to match refactored physics
@@ -161,6 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix in GOCART2G parent so that it can run with nitrates turned off. This patch of general utility was contributed by NOAA.
+
 
 ## [2.1.3] - 2023-02-27
 
