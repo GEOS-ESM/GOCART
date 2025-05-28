@@ -150,6 +150,7 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, __RC__)
     if (data_driven .neqv. .true.) then
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, __RC__)
     end if
 
     DEFVAL = 0.0
@@ -255,6 +256,9 @@ contains
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
 #include "SS2G_Internal___.h"
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+       end if
     end if
 
 !   This state holds fields needed by radiation
@@ -336,11 +340,9 @@ contains
     real, pointer, dimension(:,:)        :: lons
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:,:)    :: int_ptr
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
-    real, pointer, dimension(:,:,:)      :: ple
     real, pointer, dimension(:,:)        :: deep_lakes_mask
 
     integer, allocatable, dimension(:)   :: channels_
@@ -381,7 +383,7 @@ contains
 !   Get DTs
 !   -------
     call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)
-    call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
+    call MAPL_GetResource(mapl, CDT, Label='GOCART2G_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
 !  Load resource file and get number of bins
@@ -434,15 +436,6 @@ contains
 !    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
     fld = MAPL_FieldCreate (field, 'SS', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-       call findKlid (self%klid, self%plid, ple, __RC__)
-!      Set SS values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'SS', __RC__)
-       call setZeroKlid4d (self%km, self%klid, int_ptr)
-    end if
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
@@ -535,7 +528,68 @@ contains
   end subroutine Initialize
 
 !============================================================================
+!BOP
+! !IROUTINE: Run0
 
+! !INTERFACE:
+  subroutine Run0 (GC, import, export, clock, RC)
+
+!   !ARGUMENTS:
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+    type (ESMF_State),    intent(inout) :: import ! Import state
+    type (ESMF_State),    intent(inout) :: export ! Export state
+    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+    integer, optional,    intent(  out) :: RC     ! Error code:
+
+! !DESCRIPTION:  Clears klid to 0.0 for Seasalt
+
+!EOP
+!============================================================================
+! Locals
+    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    type (MAPL_MetaComp), pointer     :: MAPL
+    type (ESMF_State)                 :: internal
+    type (wrap_)                      :: wrap
+    type (SS2G_GridComp), pointer     :: self
+    real, pointer, dimension(:,:,:)   :: ple
+    real, pointer, dimension(:,:,:,:) :: ptr4d_int
+
+    __Iam__('Run0')
+
+!*****************************************************************************
+!   Begin...
+
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    Iam = trim(COMP_NAME) // '::' // Iam
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+
+!   Get my private internal state
+!   ------------------------------
+    call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call MAPL_GetPointer (internal, NAME='SS', ptr=ptr4d_int, __RC__)
+    call setZeroKlid4d (self%km, self%klid, ptr4d_int)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine Run0
+
+!============================================================================
 !BOP
 ! !IROUTINE: Run
 
@@ -751,6 +805,7 @@ contains
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
 #include "SS2G_DeclarePointer___.h"
@@ -780,6 +835,11 @@ contains
     call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid4d (self%km, self%klid, SS)
 
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
@@ -817,12 +877,27 @@ contains
 !   Large-scale Wet Removal
 !   ------------------------
     KIN = .TRUE.
-    do n = 1, self%nbins
-       fwet = 1.
-       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
-                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
-    end do
+    select case (self%wet_removal_scheme)
+    case ('gocart')
+       do n = 1, self%nbins
+          fwet = 1.
+          call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
+                                  KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
+                                  pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
+       end do
+    case ('ufs')
+       rainout_eff = 0.0
+       do n = 1, self%nbins
+          rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+          rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+          rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+          call WetRemovalUFS(self%km, self%klid, n, self%cdt, 'sea_salt', KIN, MAPL_GRAV, &
+                             self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, & 
+                             SS(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, SSWT, __RC__)
+       end do
+    case default
+       _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
 !   Compute diagnostics
 !   -------------------
