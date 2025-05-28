@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Several changes in the DT alarm logic
   - GOCART reference time removed in `GOCART2G_GridCompMod.F90`
   - Heartbeat time step removed and `timeToWork` logical added
+- Modified filepaths for the optics files to no longer link to a personal nobackup directory
 
 ### Fixed
 
