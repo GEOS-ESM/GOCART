@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- fix the bug nSubsteps =0 again with abs()
+
 ### Added
 
 ## [v2.4.1] - 2025-05-28
@@ -36,7 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- fix the bug nSubsteps =0 again with abs()
 - fixed a bug that avoids dividing nSubsteps = 0
 
 ### Added
