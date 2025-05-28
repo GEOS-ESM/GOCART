@@ -65,7 +65,7 @@ module GOCART2G_MieMod
       real, pointer  :: pmom(:,:,:,:,:) => Null() ! (r,c,b,m,p) moments of phase function
       real, pointer  :: gf(:,:) => Null()         ! (r,b) hygroscopic growth factor
       real, pointer  :: rhop(:,:) => Null()       ! (r,b) wet particle density [kg m-3]
-      real, pointer  :: rhod(:,:) => Null()       ! (r,b) wet particle density [kg m-3]
+      real, pointer  :: rhod(:,:) => Null()       ! (r,b) dry particle density [kg m-3]
       real, pointer  :: vol(:,:) => Null()        ! (r,b) wet particle volume [m3 kg-1]
       real, pointer  :: area(:,:) => Null()       ! (r,b) wet particle cross section [m2 kg-1]
       real, pointer  :: refr(:,:,:) => Null()     ! (r,c,b) real part of refractive index
@@ -291,7 +291,7 @@ CONTAINS
       endif
 
 !     Dry particle density (will be pulled from wet particle radius)
-      rc = nf90_inq_varid(ncid,'rhod',ivarid)
+      rc = nf90_inq_varid(ncid,'rhop',ivarid)
       if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
         rhod_table = -999.
       else
