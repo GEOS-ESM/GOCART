@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
+
+### Changed
+
+- The pressure lid change associated with the introduction of run0 to set 0 above the lid
+- Fwet value in dust modified from 0.8 to 1.0
+- Dust and Sea salt Emission scale factors updated for L181
+- Several changes in the DT alarm logic
+  - GOCART reference time removed in `GOCART2G_GridCompMod.F90`
+  - Heartbeat time step removed and `timeToWork` logical added
+
+### Fixed
+
+### Added
+
+## [v2.4.1] - 2025-05-28
+
 ### Changed
 
 - Update `components.yaml` to match that of GEOSgcm v11.7.1
@@ -28,7 +44,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added new drag partition options for FENGSHA to use modeled GVF or LAI for drag partition following Darmenova (2011) and Martecorena (2005) (see https://github.com/GEOS-ESM/GOCART/pull/305)
 
 ## [v2.4.0] - 2025-03-26
-
 
 ### Removed
 

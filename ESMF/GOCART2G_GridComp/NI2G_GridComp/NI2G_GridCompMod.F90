@@ -146,6 +146,7 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, __RC__)
     if (data_driven .neqv. .true.) then
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, __RC__)
     end if
 
     DEFVAL = 0.0
@@ -306,12 +307,10 @@ contains
     character (len=ESMF_MAXSTR)          :: prefix
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:)      :: int_ptr
     logical                              :: data_driven
     logical                              :: bands_are_present
     integer                              :: NUM_BANDS
     character (len=ESMF_MAXSTR), allocatable    :: aerosol_names(:)
-    real, pointer, dimension(:,:,:)      :: ple
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
@@ -355,7 +354,7 @@ contains
 !   Get DTs
 !   -------
     call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)
-    call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
+    call MAPL_GetResource(mapl, CDT, Label='GOCART2G_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
 !  Load resource file and get number of bins
@@ -419,11 +418,6 @@ contains
 
        call ESMF_StateGet (internal, 'NH4a', field, __RC__)
        call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), __RC__)
-!    end if
-
-!      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-       call findKlid (self%klid, self%plid, ple, __RC__)
     end if
 
 !   Fill AERO State with N03an(1,2,3) fields
@@ -435,33 +429,15 @@ contains
     fld = MAPL_FieldCreate (field, 'NO3an1', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
-    if (.not. data_driven) then
-!      Set internal NO3an1 values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'NO3an1', __RC__)
-       call setZeroKlid(self%km, self%klid, int_ptr)
-    end if
-
     call ESMF_StateGet (internal, 'NO3an2', field, __RC__)
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(4), __RC__)
     fld = MAPL_FieldCreate (field, 'NO3an2', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
 
-    if (.not. data_driven) then
-!      Set internal NO3an2 values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'NO3an2', __RC__)
-       call setZeroKlid(self%km, self%klid, int_ptr)
-    end if
-
     call ESMF_StateGet (internal, 'NO3an3', field, __RC__)
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(5), __RC__)
     fld = MAPL_FieldCreate (field, 'NO3an3', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set internal NO3an3 values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'NO3an3', __RC__)
-       call setZeroKlid(self%km, self%klid, int_ptr)
-    end if
 
     if (data_driven) then
        instance = instanceData
@@ -529,7 +505,72 @@ contains
   end subroutine Initialize
 
 !============================================================================
+!BOP
+! !IROUTINE: Run0
 
+! !INTERFACE:
+  subroutine Run0 (GC, import, export, clock, RC)
+
+!   !ARGUMENTS:
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+    type (ESMF_State),    intent(inout) :: import ! Import state
+    type (ESMF_State),    intent(inout) :: export ! Export state
+    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+    integer, optional,    intent(  out) :: RC     ! Error code:
+
+! !DESCRIPTION:  Clears klid to 0.0 for Nitrate
+
+!EOP
+!============================================================================
+! Locals
+    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    type (MAPL_MetaComp), pointer     :: MAPL
+    type (ESMF_State)                 :: internal
+    type (wrap_)                      :: wrap
+    type (NI2G_GridComp), pointer     :: self
+    real, pointer, dimension(:,:,:)   :: ple
+    real, pointer, dimension(:,:,:)   :: ptr3d_int
+
+    __Iam__('Run0')
+
+!*****************************************************************************
+!   Begin...
+
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    Iam = trim(COMP_NAME) // '::' // Iam
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+
+!   Get my private internal state
+!   ------------------------------
+    call ESMF_UserCompGetInternalState(GC, 'NI2G_GridComp', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call MAPL_GetPointer (internal, name='NO3an1', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+    call MAPL_GetPointer (internal, name='NO3an2', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+    call MAPL_GetPointer (internal, name='NO3an3', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine Run0
+
+!============================================================================
 !BOP
 ! !IROUTINE: Run
 
@@ -543,7 +584,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: rc     ! Error code:
 
-! !DESCRIPTION: Run method for the Sea Salt Grid Component. Determines whether to run
+! !DESCRIPTION: Run method for the Nitrate Grid Component. Determines whether to run
 !               data or computational run method.
 
 !EOP
@@ -693,7 +734,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION: Run2 method for the Dust Grid Component.
+! !DESCRIPTION: Run2 method for the Nitrate Grid Component.
 
 !EOP
 !============================================================================
@@ -747,6 +788,13 @@ contains
     call ESMF_UserCompGetInternalState(GC, 'NI2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid (self%km, self%klid, NO3an1)
+    call setZeroKlid (self%km, self%klid, NO3an2)
+    call setZeroKlid (self%km, self%klid, NO3an3)
 
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
@@ -993,7 +1041,7 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run_data -- ExtData Sea Salt Grid Component
+! !IROUTINE: Run_data -- ExtData Nitrate Grid Component
 
 ! !INTERFACE:
 
