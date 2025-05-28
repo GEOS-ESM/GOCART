@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Units error in sulfate surface area density calculation in Process Library corrected
+- Removed erroneous/extraneous friendly attributes to internal state for DU and NI
+  when in data_driven mode
+
 ### Added
 
 ## [v2.4.1] - 2025-05-28
