@@ -21,6 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- set hsurf to be the last indexed layer when index domains are different
+
 ### Added
 
 ## [v2.4.1] - 2025-05-28
@@ -36,7 +38,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- set hsurf to be the last indexed layer when index domains are different
 - fixed a bug that avoids dividing nSubsteps = 0
 
 ### Added
