@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 
+- Removed lines for anthropogenic emissions of OC, BC, SO2, SO4, and NH3 in their repsective ExtData yaml files as these will enter through HEMCO.
+
 ### Changed
 
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
@@ -52,7 +54,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - Removed all ExtData.rc files
--removed lines for anthropogenic emissions of OC, BC, SO2, SO4, and NH3 in their repsective ExtData yaml files as these will enter through HEMCO.
 
 
 ### Changed
