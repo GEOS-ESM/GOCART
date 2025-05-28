@@ -538,6 +538,9 @@ contains
 
 !      Wet deposition
        call append_to_bundle(trim(comp_name)//'WT', providerState, prefix, Bundle_DP, __RC__)
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+       end if
 
 !      Gravitational Settling
        call append_to_bundle(trim(comp_name)//'SD', providerState, prefix, Bundle_DP, __RC__)
@@ -933,6 +936,7 @@ contains
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
     real                              :: fwet
+    real, dimension(3)                :: rainout_eff
     logical                           :: KIN
     real, allocatable, dimension(:,:,:)   :: pSOA_VOC
     real, pointer, dimension(:,:,:)       :: int_ptr
@@ -1055,14 +1059,36 @@ contains
 
 !   Large-scale Wet Removal
 !   -------------------------------
-!   Hydrophobic mode (first tracer) is not removed
-    if (associated(WT)) WT(:,:,1)=0.0
     KIN = .true.
-!   Hydrophilic mode (second tracer) is removed
-    fwet = 1.
-    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
-                             KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
-                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
+
+    select case (self%wet_removal_scheme)
+
+    case ('gocart')
+!      Hydrophobic mode (first tracer) is not removed
+       if (associated(WT)) WT(:,:,1)=0.0
+
+!      Hydrophilic mode (second tracer) is removed
+       fwet = 1.
+       call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
+                                KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
+                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
+    case ('ufs')
+!      Both hydrophobic and hydrophilic modes can be removed
+       do n = 1, self%nbins
+          rainout_eff = 0.0
+          rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+          rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+          rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+
+          call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+          call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+          call WetRemovalUFS  (self%km, self%klid, n, self%cdt, GCsuffix, &
+                               KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, & 
+                               self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, WT, __RC__)
+       end do
+    case default
+       _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
 !   Compute diagnostics
 !   -------------------
