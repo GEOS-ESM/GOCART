@@ -8,6 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
+
+### Changed
+
+### Fixed
+
+### Added
+
+## [v2.4.1] - 2025-05-28
+
 ### Changed
 
 - Update `components.yaml` to match that of GEOSgcm v11.7.1
@@ -27,7 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added new drag partition options for FENGSHA to use modeled GVF or LAI for drag partition following Darmenova (2011) and Martecorena (2005) (see https://github.com/GEOS-ESM/GOCART/pull/305)
 
 ## [v2.4.0] - 2025-03-26
-
 
 ### Removed
 
