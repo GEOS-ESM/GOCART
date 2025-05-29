@@ -4188,7 +4188,7 @@ end function DarmenovaDragPartition
                                   sfcmass25, colmass25, mass25, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, bckcoef,&
                                   exttaufm, scataufm, angstrom, aerindx, NO3nFlag, &
-                                  sarea, rc )
+                                  sarea, reff, rc )
 
 ! !USES:
 
@@ -4258,7 +4258,7 @@ end function DarmenovaDragPartition
    integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
    integer :: ilam470, ilam870
-   real, allocatable, dimension(:,:,:) :: tau, ssa, bck, area
+   real, allocatable, dimension(:,:,:) :: tau, ssa, bck, area, tarea, pref
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um

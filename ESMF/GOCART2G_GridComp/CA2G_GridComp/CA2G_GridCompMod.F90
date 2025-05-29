@@ -567,7 +567,7 @@ contains
 
 !+++PRC
     ! Add variables to CA instance aero state for chemistry
-    call ESMF_AttributeSet(aero, NAME='effective_radius_in_microns', VALUE=self%radius(1), __RC__)
+    call add_aero (aero, label='effective_radius_in_microns', label2='REFF', grid=grid, typekind=MAPL_R4,__RC__)
     call add_aero (aero, label='surface_area_density', label2='SAREA', grid=grid, typekind=MAPL_R4,__RC__)
 !---PRC
     
@@ -1170,7 +1170,7 @@ contains
                              exttau=EXTTAU,stexttau=STEXTTAU, scatau=SCATAU, stscatau=STSCATAU,&
                              fluxu=FLUXU, fluxv=FLUXV, &
                              conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, bckcoef=BCKCOEF, angstrom=ANGSTR,&
-                             aerindx=AERIDX, NO3nFlag=.false., SAREA=SAREA, __RC__)
+                             aerindx=AERIDX, NO3nFlag=.false., SAREA=SAREA, REFF=REFF, __RC__)
 !++PRC
 !  Calculate the surface area density [m2 m-3], possibly for use in
 !  StratChem or other component.  Optics tables provide cross-sectional area
@@ -1183,6 +1183,16 @@ contains
      if (fld_name /= '') then
          call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
          int_ptr = SAREA
+     endif
+   endif
+
+    if(associated(REFF)) then ! Note unit conversion below
+     call MAPL_MaxMin(trim(COMP_NAME)//': CA2GREFF:', REFF)
+     nullify(int_ptr)
+     call ESMF_AttributeGet(aero, name='effective_radius_in_microns', value=fld_name, __RC__)
+     if (fld_name /= '') then
+         call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+         int_ptr = REFF*1.e6
      endif
    endif
 !--PRC
