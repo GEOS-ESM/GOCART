@@ -96,8 +96,6 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
       real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
       !logical :: firstRun = .true.
-      real, allocatable  :: rmed(:)  ! Median radius of lognormal number distribution
-      real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
 
 !     PRC: logic for GMI coupling
@@ -192,9 +190,6 @@ contains
 !   process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
-    allocate(self%rmed(self%nbins), __STAT__)
-    allocate(self%sigma(self%nbins), __STAT__)
-
 !   process SU-specific items
     call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%disable_emissions, label='disable_emissions:', __RC__)
@@ -202,8 +197,6 @@ contains
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_explosive, label='volcano_srcfilen_explosive:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', __RC__)
-    call ESMF_ConfigGetAttribute(cfg, self%rmed, label='particle_radius_number:', __RC__)
-    call ESMF_ConfigGetAttribute(cfg, self%sigma, label='sigma:', __RC__)
     call ESMF_ConfigFindLabel (cfg, 'aviation_vertical_layers:', __RC__)
     do i=1,size(self%aviation_layers)
        call ESMF_ConfigGetAttribute (cfg, self%aviation_layers(i), __RC__)
@@ -653,7 +646,7 @@ contains
 
     ! Add variables to SU instance aero state for chemistry
     call add_aero (aero, label='surface_area_density', label2='SAREA', grid=grid, typekind=MAPL_R4,__RC__)
-    call ESMF_AttributeSet(aero, NAME='effective_radius_in_microns', VALUE=self%radius(3), __RC__)
+    call add_aero (aero, label='effective_radius_in_microns', label2='REFF', grid=grid, typekind=MAPL_R4,__RC__)
     
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
@@ -1218,7 +1211,7 @@ contains
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
-    call SU_Compute_Diags ( self%km, self%klid, self%rmed(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
+    call SU_Compute_Diags ( self%km, self%klid, self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_Mie, &
                             self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
                             t, airdens, delp, ple,tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
@@ -1227,7 +1220,7 @@ contains
                             SO2SMASS, SO2CMASS, &
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
-                            SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
+                            SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, SO4REFF, __RC__)
 
     if(associated(SO4SAREA)) then
       nullify(int_ptr)
@@ -1235,6 +1228,15 @@ contains
       if (fld_name /= '') then
           call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
           int_ptr = SO4SAREA
+      endif
+    endif
+    
+    if(associated(SO4REFF)) then ! Note unit conversion below
+      nullify(int_ptr)
+      call ESMF_AttributeGet(aero, name='effective_radius_in_microns', value=fld_name, __RC__)
+      if (fld_name /= '') then
+          call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
+          int_ptr = SO4REFF*1.e6   
       endif
     endif
     
@@ -1246,7 +1248,7 @@ contains
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
     RH20(:,:,:) = 0.20
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, & 
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1256,7 +1258,7 @@ contains
                             scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, & 
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &

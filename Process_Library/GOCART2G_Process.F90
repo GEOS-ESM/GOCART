@@ -7724,7 +7724,7 @@ K_LOOP: do k = km, 1, -1
 !BOP
 ! !IROUTINE: SU_Compute_Diags
 
-   subroutine SU_Compute_Diags ( km, klid, rmed, sigma, rhop, grav, pi, nSO4, mie, &
+   subroutine SU_Compute_Diags ( km, klid, rhop, grav, pi, nSO4, mie, &
                                  wavelengths_profile, wavelengths_vertint, &
                                  tmpu, rhoa, delp, ple, tropp,rh, u, v, &
                                  DMS, SO2, SO4, MSA, &
@@ -7733,7 +7733,7 @@ K_LOOP: do k = km, 1, -1
                                  so2sfcmass, so2colmass, &
                                  so4sfcmass, so4colmass, &
                                  exttau, stexttau,scatau, stscatau,so4mass, so4conc, extcoef, &
-                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, rc )
+                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, reff, rc )
 
 ! !USES:
    implicit NONE
@@ -7741,8 +7741,6 @@ K_LOOP: do k = km, 1, -1
 ! !INPUT PARAMETERS:
    integer, intent(in) :: km    ! number of model levels
    integer,    intent(in)    :: klid   ! index for pressure lid
-   real, intent(in)    :: rmed  ! mean radius [um]
-   real, intent(in)    :: sigma ! Sigma of lognormal number distribution
    real, intent(in)    :: rhop  ! dry particle density [kg m-3]
    real, intent(in)    :: grav  ! gravity [m/sec]
    real, intent(in)    :: pi    ! pi constant
@@ -7786,6 +7784,7 @@ K_LOOP: do k = km, 1, -1
    real, optional, dimension(:,:),   intent(inout)  :: fluxv      ! Column mass flux in y direction
    real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
    real, optional, dimension(:,:,:), intent(inout)  :: snum       ! Sulfate number density [# m-2]
+   real, optional, dimension(:,:,:), intent(inout)  :: reff       ! Sulfate effective radius [m]
    integer, optional, intent(out)   :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 -
@@ -8043,6 +8042,14 @@ K_LOOP: do k = km, 1, -1
      sarea = 4.*sarea*SO4*rhoa
    endif
 
+!  Get the sulfate particle effective radius [m] possibly for use in chemistry
+   if(present(reff)) then
+     call mie%Query(550e-9,1,   &
+                         SO4*delp/grav, rh, &
+                         reff=reff, __RC__)
+   endif
+   
+   
 !  To implement if desired:
    if(present(snum)) then   
    endif
