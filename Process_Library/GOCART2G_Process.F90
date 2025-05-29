@@ -4238,8 +4238,9 @@ end function DarmenovaDragPartition
    real, optional, dimension(:,:,:,:), intent(inout) :: bckcoef   ! 3d backscatter coefficient, m-1 sr-1
    real, optional, dimension(:,:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
    real, optional, dimension(:,:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
-   real, optional, dimension(:,:), intent(inout)   :: angstrom  ! 470-870 nm Angstrom parameter
-   real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
+   real, optional, dimension(:,:), intent(inout)   :: angstrom    ! 470-870 nm Angstrom parameter
+   real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Aerosol surface area density [m2 m-3]
+   real, optional, dimension(:,:,:), intent(inout)  :: reff       ! Aerosol effective radius [m]
    integer, optional, intent(out)   :: rc        ! Error return code:
                                                  !  0 - all is well
                                                  !  1 -
@@ -4563,6 +4564,7 @@ end function DarmenovaDragPartition
 !  which is 4 x cross section.
    if(present(sarea)) then
     sarea = 0.0
+    if(present(reff))  reff  = 0.0
     allocate(area(i1:i2,j1:j2,km), __STAT__)
     do n = nbegin, nbins
      call mie%Query(550e-9,n,   &
@@ -4572,6 +4574,25 @@ end function DarmenovaDragPartition
     enddo
     deallocate(area)
    endif
+
+!  Also if present compute the species integrated effective radius by
+!  area weighting individual components
+   if(present(reff)) then
+    reff  = 0.0
+    allocate(tarea(i1:i2,j1:j2,km), area(i1:i2,j1:j2,km), pref(i1:i2,j1:j2,km), __STAT__)
+    tarea = 0.0
+    do n = nbegin, nbins
+     call mie%Query(550e-9,n,   &
+                    aerosol(:,:,:,n)*delp/grav, rh, &
+                    area=area, reff=pref, __RC__)
+     area  = 4.*area*aerosol(:,:,:,n)*rhoa
+     tarea = tarea + area
+     reff  = reff  + area*pref
+    enddo
+    reff = reff/tarea
+    deallocate(tarea, area, pref)
+   endif
+
    __RETURN__(__SUCCESS__)
    end subroutine Aero_Compute_Diags
 !====================================================================
