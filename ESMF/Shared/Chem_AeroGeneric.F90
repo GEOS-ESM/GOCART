@@ -165,18 +165,28 @@ contains
           do i = 1, size(orig_ptr, 3)
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varName)//trim(bin_index) , __RC__)
-             call MAPL_AllocateCoupling (field2D, __RC__)
+             field2D = ESMF_FieldEmptyCreate(name=trim(varName)//trim(bin_index), _RC)
+             call ESMF_FieldEmptySet(field2d, grid, _RC)
+             call ESMF_FieldEmptyComplete(field2d, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        indexflag=ESMF_INDEX_DELOCAL,  __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS', value='NA', _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value='NA', _RC)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
        end if
 
        if (index(trim(varname), 'SU') > 0) then ! only use SO4, which is the 3rd index
           ptr2d => orig_ptr(:,:,3)
-          field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                     name=trim(varName)//'003' , __RC__)
-          call MAPL_AllocateCoupling (field2D, __RC__)
+             field2D = ESMF_FieldEmptyCreate(name=trim(varName)//'003', _RC)
+             call ESMF_FieldEmptySet(field2d, grid, _RC)
+             call ESMF_FieldEmptyComplete(field2d, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        indexflag=ESMF_INDEX_DELOCAL,  __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS', value='NA', _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value='NA', _RC)
           call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
        end if
 
@@ -185,9 +195,14 @@ contains
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
              varNameNew = 'OC'//varName(6:7)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varNameNew)//trim(bin_index) , __RC__)
-             call MAPL_AllocateCoupling (field2D, __RC__)
+             field2D = ESMF_FieldEmptyCreate(name=trim(varNameNew)//trim(bin_index), _RC)
+             call ESMF_FieldEmptySet(field2d, grid, _RC)
+             call ESMF_FieldEmptyComplete(field2d, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        indexflag=ESMF_INDEX_DELOCAL,  __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS', value='NA', _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value='NA', _RC)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
        end if
@@ -197,9 +212,14 @@ contains
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
              varNameNew = 'BC'//varName(6:7)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varNameNew)//trim(bin_index) , __RC__)
-             call MAPL_AllocateCoupling (field2D, __RC__)
+             field2D = ESMF_FieldEmptyCreate(name=trim(varNameNew)//trim(bin_index), _RC)
+             call ESMF_FieldEmptySet(field2d, grid, _RC)
+             call ESMF_FieldEmptyComplete(field2d, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        indexflag=ESMF_INDEX_DELOCAL,  __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS', value='NA', _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value='NA', _RC)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
        end if
