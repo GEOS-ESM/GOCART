@@ -509,7 +509,7 @@ contains
     type(ESMF_Alarm)                    :: alarm
     logical                             :: timeToDoWork
 
-    integer                             :: i
+    integer                             :: i, user_status
 
     __Iam__('Run1')
 
@@ -541,7 +541,9 @@ contains
 !   Run the children
 !   -----------------
     do i = 1, size(gcs)
-      call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, __RC__)
+      call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, userRC=user_status, rc=status)
+      _VERIFY(status)
+      _VERIFY(user_status)
     end do
 
 
@@ -651,7 +653,7 @@ contains
     real                            :: nifactor
     real, parameter                 :: pi = 3.141529265
     integer                         :: ind550, ind532
-    integer                         :: i1, i2, j1, j2, km, k,kk
+    integer                         :: i1, i2, j1, j2, km, k,kk, user_status
     type(ESMF_Alarm)                :: alarm
     logical                         :: timeToDoWork
 
@@ -682,7 +684,9 @@ contains
     do i = 1, size(gcs) 
       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
       if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
-         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, __RC__)
+         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, userRC=user_status, rc=status)
+         _VERIFY(status)
+         _VERIFY(user_status)
       end if
     end do         
 
@@ -732,7 +736,9 @@ contains
     do i = 1, size(gcs)
       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
       if ((index(child_name, 'data')) == 0) then ! only execute phase2 method if a computational instance
-         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, __RC__)
+         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, userRC=user_status, rc=status)
+         _VERIFY(status)
+         _VERIFY(user_status)
       end if
     end do
 
