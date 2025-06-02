@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- In DU2G_GridCompMod.F90 remove unnecessary "if(associated())" check for DU_SRC
+  to future proof for application of new MAPL filtering
 
 ### Added
 
