@@ -12,7 +12,7 @@ module SS2G_GridCompMod
    use ESMF
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_VRFY, MAPL_RTRN, MAPL_ASSERT
    use MAPL_CommsMod, only: MAPL_AM_I_ROOT
-   use MAPL_Constants, only: MAPL_R4, MAPL_R8, MAPL_RADIANS_TO_DEGREES
+   use MAPL_Constants, only: MAPL_R4, MAPL_R8, MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
    use MAPL_Base, only: MAPL2_FieldCreate => MAPL_FieldCreate
    use MAPL_Base, only: MAPL2_StateAdd => MAPL_StateAdd
@@ -347,7 +347,6 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)          :: COMP_NAME
-    ! type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero
@@ -588,7 +587,6 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    ! type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
 
     logical                           :: data_driven
@@ -603,13 +601,9 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) //'::'// Iam
 
-!   Get my internal MAPL_Generic state
-!   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
-
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+    call MAPL_GridCompGetInternalState(GC, internal, _RC)
 
 !   Is SS data driven?
 !   ------------------
@@ -647,7 +641,6 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    ! type (MAPL_MetaComp), pointer     :: mapl
     type (ESMF_State)                 :: internal
     type (ESMF_Grid)                  :: grid
     type (wrap_)                      :: wrap
@@ -682,7 +675,7 @@ contains
 
 !   Get parameters from generic state.
 !   -----------------------------------
-    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
+    call MAPL_GridCompGetInternalState(GC, internal, _RC)
 
 #include "SS2G_GetPointer___.h"
 
@@ -771,7 +764,6 @@ contains
 !============================================================================
 ! Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    ! type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
     type (wrap_)                      :: wrap
     type (SS2G_GridComp), pointer     :: self
@@ -795,13 +787,9 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
-!   Get my internal MAPL_Generic state
-!   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
-
-!   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=INTERNAL, __RC__)
+!   Get internal state
+!   ------------------
+    call MAPL_GridCompGetInternalState(GC, internal, _RC)
 
 #include "SS2G_GetPointer___.h"
 
@@ -942,11 +930,11 @@ contains
 
 !   Update interal data pointers with ExtData
 !   -----------------------------------------
-    call MAPL_GetPointer (internal, NAME='SS', ptr=ptr4d_int, __RC__)
+    call MAPL_StateGetPointer(internal, itemName='SS', farrayPtr=ptr4d_int, _RC)
 
     do i = 1, self%nbins
     write(field_name, '(A, I0.3)') 'ss', i
-        call MAPL_GetPointer (import,  NAME='clim'//trim(field_name), ptr=ptr3d_imp, __RC__)
+        call MAPL_StateGetPointer(import, itemName='clim'//trim(field_name), farrayPtr=ptr3d_imp, _RC)
 
         ptr4d_int(:,:,:,i) = ptr3d_imp
     end do
@@ -1001,7 +989,7 @@ contains
 !   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
+    call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
 
 !    call MAPL_GetPointer (state, ple, 'PLE', __RC__)
 
@@ -1012,7 +1000,7 @@ contains
 !   Relative humidity
 !   -----------------
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, rh, trim(fld_name), __RC__)
+    call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
 !    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
 
@@ -1047,19 +1035,19 @@ contains
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
         var = ext_s(:,:,:)
     end if
 
     call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
         var = ssa_s(:,:,:)
     end if
 
    call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
         var = asy_s(:,:,:)
     end if
 
@@ -1153,7 +1141,7 @@ contains
 !   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer (state, ple, trim(fld_name), __RC__)
+    call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
 
 !    call MAPL_GetPointer (state, ple, 'PLE', __RC__)
 
@@ -1164,7 +1152,7 @@ contains
 !   Relative humidity
 !   -----------------
     call ESMF_AttributeGet (state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer (state, rh, trim(fld_name), __RC__)
+    call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
 !    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
 
@@ -1203,7 +1191,7 @@ contains
 
     call ESMF_AttributeGet (state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
-        call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+        call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
         var = sum(tau_s, dim=3)
     end if
 
