@@ -1173,7 +1173,6 @@ contains
                              aerindx=AERIDX, NO3nFlag=.false., SAREA=SAREA, REFF=REFF, __RC__)
 
     if(associated(SAREA)) then
-     call MAPL_MaxMin(trim(COMP_NAME)//': CA2GSAREA:', SAREA)
      nullify(int_ptr)
      call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
      if (fld_name /= '') then
@@ -1183,7 +1182,6 @@ contains
     endif
 
     if(associated(REFF)) then ! Note unit conversion below to microns
-     call MAPL_MaxMin(trim(COMP_NAME)//': CA2GREFF:', REFF)
      nullify(int_ptr)
      call ESMF_AttributeGet(aero, name='effective_radius_in_microns', value=fld_name, __RC__)
      if (fld_name /= '') then
