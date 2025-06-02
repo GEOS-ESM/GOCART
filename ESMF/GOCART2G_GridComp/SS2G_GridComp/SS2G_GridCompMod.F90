@@ -10,7 +10,19 @@ module SS2G_GridCompMod
 
 ! !USES:
    use ESMF
-   use MAPL
+   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_VRFY, MAPL_RTRN, MAPL_ASSERT
+   use MAPL_CommsMod, only: MAPL_AM_I_ROOT
+   use MAPL_Constants, only: MAPL_R4, MAPL_R8, MAPL_RADIANS_TO_DEGREES
+   use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
+   use MAPL_Base, only: MAPL2_FieldCreate => MAPL_FieldCreate
+   use MAPL_Base, only: MAPL2_StateAdd => MAPL_StateAdd
+   use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
+   use mapl3g_generic, only: MAPL_GridCompAddFieldSpec
+   use mapl3g_generic, only: MAPL_GridCompGetResource
+   use mapl3g_generic, only: MAPL_GridCompGetInternalState
+   use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
+   use mapl3g_Geom_API, only: MAPL_GridGet
+   use mapl3g_State_API, only: MAPL_StateGetPointer
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -105,7 +117,14 @@ contains
 
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    universal_cfg = ESMF_ConfigCreate(_RC)
+    call ESMF_ConfigLoadFile(universal_cfg, "GOCART2G_GridComp.rc", _RC)
+    if (MAPL_AM_I_ROOT()) then
+       print *, "----universal-cfg-start--"
+       call ESMF_ConfigPrint(universal_cfg, _RC)
+       print *, "----universal-cfg-stop---"
+    end if
     Iam = trim(COMP_NAME) // '::' // Iam
 
 !   Wrap internal state for storing in GC
@@ -122,6 +141,11 @@ contains
     else
        if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
+    end if
+    if (MAPL_AM_I_ROOT()) then
+       print *, "----ss2g-instance-start--"
+       call ESMF_ConfigPrint(cfg, _RC)
+       print *, "----ss2g-instance-stop---"
     end if
 
     ! process generic config items
@@ -143,6 +167,7 @@ contains
 !   Is SS data driven?
 !   ------------------
     call determine_data_driven (COMP_NAME, data_driven, __RC__)
+    print *, "DATA DRIVEN? ", data_driven
 
 !   Set entry points
 !   ------------------------
@@ -157,95 +182,95 @@ contains
 !   Import and Internal states if data instance
 !   -------------------------------------------
     if (data_driven) then
-
-   call MAPL_AddInternalSpec(gc,&
-         short_name='SS', &
-         long_name='Sea Salt Mixing Ratio all bins', &
-         units='kg kg-1', &
-         dims=MAPL_DimsHorzVert, &
-         vlocation=MAPL_VlocationCenter, &
-         restart=MAPL_RestartOptional, &
-         ungridded_dims=[self%nbins], &
-!         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-         add2export=.true., __RC__)
-
-
-   call MAPL_AddInternalSpec(gc,&
-        & short_name='DEEP_LAKES_MASK', &
-        & units='1', &
-        & dims=MAPL_DimsHorzOnly, &
-        & vlocation=MAPL_VlocationNone, &
-        & add2export=.false., &
-        & long_name='Deep Lakes Mask', &
-        & _RC)
+       _FAIL("data driven section has not been activated yet")
+!    call MAPL_AddInternalSpec(gc,&
+!          short_name='SS', &
+!          long_name='Sea Salt Mixing Ratio all bins', &
+!          units='kg kg-1', &
+!          dims=MAPL_DimsHorzVert, &
+!          vlocation=MAPL_VlocationCenter, &
+!          restart=MAPL_RestartOptional, &
+!          ungridded_dims=[self%nbins], &
+! !         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          add2export=.true., __RC__)
 
 
-!      Pressure at layer edges
-!      -----------------------
-       call MAPL_AddImportSpec(GC,                            &
-          SHORT_NAME = 'PLE',                                 &
-          LONG_NAME  = 'air_pressure',                        &
-          UNITS      = 'Pa',                                  &
-          DIMS       = MAPL_DimsHorzVert,                     &
-          VLOCATION  = MAPL_VLocationEdge,                    &
-          RESTART    = MAPL_RestartSkip,     __RC__)
+!    call MAPL_AddInternalSpec(gc,&
+!         & short_name='DEEP_LAKES_MASK', &
+!         & units='1', &
+!         & dims=MAPL_DimsHorzOnly, &
+!         & vlocation=MAPL_VlocationNone, &
+!         & add2export=.false., &
+!         & long_name='Deep Lakes Mask', &
+!         & _RC)
 
-!      RH: is between 0 and 1
-!      ----------------------
-       call MAPL_AddImportSpec(GC,                            &
-          SHORT_NAME = 'RH2',                                 &
-          LONG_NAME  = 'Rel_Hum_after_moist',                 &
-          UNITS      = '1',                                   &
-          DIMS       = MAPL_DimsHorzVert,                     &
-          VLOCATION  = MAPL_VLocationCenter,                  &
-          RESTART    = MAPL_RestartSkip,     __RC__)
 
-        do i = 1, self%nbins
-            write(field_name, '(A, I0.3)') '', i
-            call MAPL_AddImportSpec(GC,                                           &
-              SHORT_NAME = 'climss'//trim(field_name),                            &
-              LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')',  &
-              UNITS      = 'kg kg-1 s-1',                                             &
-              RESTART    = MAPL_RestartSkip,                                      &
-              DIMS       = MAPL_DimsHorzVert,                                     &
-              VLOCATION  = MAPL_VLocationCenter, __RC__)
+! !      Pressure at layer edges
+! !      -----------------------
+!        call MAPL_AddImportSpec(GC,                            &
+!           SHORT_NAME = 'PLE',                                 &
+!           LONG_NAME  = 'air_pressure',                        &
+!           UNITS      = 'Pa',                                  &
+!           DIMS       = MAPL_DimsHorzVert,                     &
+!           VLOCATION  = MAPL_VLocationEdge,                    &
+!           RESTART    = MAPL_RestartSkip,     __RC__)
 
-!           ! dry deposition
-            call MAPL_AddImportSpec(GC,                                           &
-              SHORT_NAME = 'climSSDP'//trim(field_name),                          &
-              LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')',  &
-              UNITS      = 'kg kg-1 s-1',                                             &
-              DIMS       = MAPL_DimsHorzOnly,                                     &
-              VLOCATION  = MAPL_VLocationCenter,                                  &
-              RESTART    = MAPL_RestartSkip, __RC__)
+! !      RH: is between 0 and 1
+! !      ----------------------
+!        call MAPL_AddImportSpec(GC,                            &
+!           SHORT_NAME = 'RH2',                                 &
+!           LONG_NAME  = 'Rel_Hum_after_moist',                 &
+!           UNITS      = '1',                                   &
+!           DIMS       = MAPL_DimsHorzVert,                     &
+!           VLOCATION  = MAPL_VLocationCenter,                  &
+!           RESTART    = MAPL_RestartSkip,     __RC__)
 
-!           ! wet deposition
-            call MAPL_AddImportSpec(GC,                                           &
-               SHORT_NAME = 'climSSWT'//trim(field_name),                         &
-               LONG_NAME  = 'Sea Salt wet removal (bin '//trim(field_name)//')', &
-               UNITS      = 'kg kg-1 s-1',                                            &
-               DIMS       = MAPL_DimsHorzOnly,                                    &
-               VLOCATION  = MAPL_VLocationCenter,                                 &
-               RESTART    = MAPL_RestartSkip, __RC__)
+!         do i = 1, self%nbins
+!             write(field_name, '(A, I0.3)') '', i
+!             call MAPL_AddImportSpec(GC,                                           &
+!               SHORT_NAME = 'climss'//trim(field_name),                            &
+!               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')',  &
+!               UNITS      = 'kg kg-1 s-1',                                             &
+!               RESTART    = MAPL_RestartSkip,                                      &
+!               DIMS       = MAPL_DimsHorzVert,                                     &
+!               VLOCATION  = MAPL_VLocationCenter, __RC__)
 
-!           ! gravitational settling
-            call MAPL_AddImportSpec(GC,                                           &
-               SHORT_NAME = 'climSSSD'//trim(field_name),                         &
-               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS      = 'kg kg-1 s-1',                                            &
-               DIMS       = MAPL_DimsHorzOnly,                                    &
-               VLOCATION  = MAPL_VLocationCenter,                                 &
-               RESTART    = MAPL_RestartSkip, __RC__)
+! !           ! dry deposition
+!             call MAPL_AddImportSpec(GC,                                           &
+!               SHORT_NAME = 'climSSDP'//trim(field_name),                          &
+!               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')',  &
+!               UNITS      = 'kg kg-1 s-1',                                             &
+!               DIMS       = MAPL_DimsHorzOnly,                                     &
+!               VLOCATION  = MAPL_VLocationCenter,                                  &
+!               RESTART    = MAPL_RestartSkip, __RC__)
 
-!        ! convective scavenging
-            call MAPL_AddImportSpec(GC,                                           &
-               SHORT_NAME = 'climSSSV'//trim(field_name),                         &
-               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS      = 'kg kg-1 s-1',                                            &
-               DIMS       = MAPL_DimsHorzOnly,                                    &
-               VLOCATION  = MAPL_VLocationCenter,                                 &
-               RESTART    = MAPL_RestartSkip, __RC__)
-        end do
+! !           ! wet deposition
+!             call MAPL_AddImportSpec(GC,                                           &
+!                SHORT_NAME = 'climSSWT'//trim(field_name),                         &
+!                LONG_NAME  = 'Sea Salt wet removal (bin '//trim(field_name)//')', &
+!                UNITS      = 'kg kg-1 s-1',                                            &
+!                DIMS       = MAPL_DimsHorzOnly,                                    &
+!                VLOCATION  = MAPL_VLocationCenter,                                 &
+!                RESTART    = MAPL_RestartSkip, __RC__)
+
+! !           ! gravitational settling
+!             call MAPL_AddImportSpec(GC,                                           &
+!                SHORT_NAME = 'climSSSD'//trim(field_name),                         &
+!                LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+!                UNITS      = 'kg kg-1 s-1',                                            &
+!                DIMS       = MAPL_DimsHorzOnly,                                    &
+!                VLOCATION  = MAPL_VLocationCenter,                                 &
+!                RESTART    = MAPL_RestartSkip, __RC__)
+
+! !        ! convective scavenging
+!             call MAPL_AddImportSpec(GC,                                           &
+!                SHORT_NAME = 'climSSSV'//trim(field_name),                         &
+!                LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+!                UNITS      = 'kg kg-1 s-1',                                            &
+!                DIMS       = MAPL_DimsHorzOnly,                                    &
+!                VLOCATION  = MAPL_VLocationCenter,                                 &
+!                RESTART    = MAPL_RestartSkip, __RC__)
+!         end do
     end if ! (data_driven)
 
 
@@ -259,24 +284,29 @@ contains
 
 !   This state holds fields needed by radiation
 !   ---------------------------------------------
-    call MAPL_AddExportSpec(GC,                                 &
-      SHORT_NAME = trim(COMP_NAME)//'_AERO',                   &
-       LONG_NAME  = 'aerosols_from_'//trim(COMP_NAME),  &
-       UNITS      = 'kg kg-1',                                  &
-       DIMS       = MAPL_DimsHorzVert,                          &
-       VLOCATION  = MAPL_VLocationCenter,                       &
-       DATATYPE   = MAPL_StateItem, __RC__)
+    call MAPL_GridCompAddFieldSpec(GC, &
+         STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
+         SHORT_NAME=trim(COMP_NAME)//"_AERO", &
+         STANDARD_NAME="aerosols_from_"//trim(COMP_NAME), &
+         DIMS="xyz", &
+         VSTAGGER=VERTICAL_STAGGER_CENTER, &
+         UNITS="kg kg-1", &
+         ! DATATYPE=MAPL_StateItem, &
+         _RC)
 
 !   This bundle is needed by surface for snow albedo modification
 !   by aerosol settling and deposition
 !   DEVELOPMENT NOTE - Change to StateItem in future
 !   ---------------------------------------------------------------
-    call MAPL_AddExportSpec(GC,                                   &
-       SHORT_NAME = trim(COMP_NAME)//'_AERO_DP',                  &
-       LONG_NAME  = 'aerosol_deposition_from_'//trim(COMP_NAME),  &
-       UNITS      = 'kg m-2 s-1',                                 &
-       DIMS       = MAPL_DimsHorzOnly,                            &
-       DATATYPE   = MAPL_BundleItem, __RC__)
+    call MAPL_GridCompAddFieldSpec(GC, &
+         STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
+         SHORT_NAME=trim(COMP_NAME)//"_AERO_DP", &
+         STANDARD_NAME="aerosol_deposition_from_"//trim(COMP_NAME), &
+         DIMS="xy", &
+         VSTAGGER=VERTICAL_STAGGER_NONE, &
+         UNITS="kg m-2 s-1", &
+         ! DATATYPE=MAPL_BundleItem, &
+         _RC)
 
 
 !   Store internal state in GC
@@ -286,7 +316,7 @@ contains
 
 !   Set generic services
 !   ----------------------------------
-    call MAPL_GenericSetServices (GC, __RC__)
+    ! call MAPL_GenericSetServices (GC, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -301,11 +331,11 @@ contains
   subroutine Initialize (GC, IMPORT, EXPORT, CLOCK, RC)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
-    type (ESMF_State),    intent(inout) :: IMPORT ! Import state
-    type (ESMF_State),    intent(inout) :: EXPORT ! Export state
-    type (ESMF_Clock),    intent(inout) :: CLOCK  ! The clock
-    integer, optional,    intent(  out) :: RC     ! Error code
+    type (ESMF_GridComp) :: GC  ! Gridded component
+    type (ESMF_State) :: IMPORT ! Import state
+    type (ESMF_State) :: EXPORT ! Export state
+    type (ESMF_Clock) :: CLOCK  ! The clock
+    integer, intent(out) :: RC  ! Error code
 
 ! !DESCRIPTION: This initializes SS' Grid Component. It primaryily fills
 !               GOCART's AERO states with its sea salt fields.
@@ -317,7 +347,7 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)          :: COMP_NAME
-    type (MAPL_MetaComp),      pointer   :: MAPL
+    ! type (MAPL_MetaComp),      pointer   :: MAPL
     type (ESMF_Grid)                     :: grid
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero
@@ -359,7 +389,7 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+    ! call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
 
 !   Get my internal private state
 !   -----------------------------
@@ -369,7 +399,7 @@ contains
 
 !   Global dimensions are needed here for choosing tuning parameters
 !   ----------------------------------------------------------------    
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
+    call MAPL2_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
 
@@ -380,8 +410,8 @@ contains
 
 !   Get DTs
 !   -------
-    call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)
-    call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
+    call MAPL_GridCompGetResource(GC, "RUN_DT", HDT, _RC)
+    call MAPL_GridCompGetResource(GC, "GOCART_DT", CDT, default=real(HDT), _RC)
     self%CDT = CDT
 
 !  Load resource file and get number of bins
@@ -397,13 +427,15 @@ contains
 
 !   Call Generic Initialize
 !   ----------------------------------------
-    call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
+    ! call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
 
 !   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, &
-                         LONS = LONS, &
-                         LATS = LATS, __RC__ )
+    !   -----------------------------------
+    call MAPL_GridCompGetInternalState(GC, internal, _RC)
+    call MAPL_GridGet(grid, latitudes=lats, longitudes=lons, _RC)
+    ! call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, &
+    !                      LONS = LONS, &
+    !                      LATS = LATS, __RC__ )
 
 !   Is SS data driven?
 !   ------------------
@@ -432,15 +464,15 @@ contains
 
     call ESMF_StateGet (internal, 'SS', field, __RC__)
 !    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
-    fld = MAPL_FieldCreate (field, 'SS', __RC__)
-    call MAPL_StateAdd (aero, fld, __RC__)
+    fld = MAPL2_FieldCreate (field, 'SS', __RC__)
+    call MAPL2_StateAdd (aero, fld, __RC__)
 
     if (.not. data_driven) then
 !      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+       call MAPL_StateGetPointer(import, ple, "PLE", _RC)
        call findKlid (self%klid, self%plid, ple, __RC__)
 !      Set SS values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'SS', __RC__)
+       call MAPL_StateGetPointer(internal, int_ptr, "SS", _RC)
        call setZeroKlid4d (self%km, self%klid, int_ptr)
     end if
 
@@ -527,7 +559,7 @@ contains
 !   ------------------------------------------------------------------
     !allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
     !call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, __RC__)
-    call MAPL_GetPointer (internal, NAME='DEEP_LAKES_MASK', ptr=deep_lakes_mask, __RC__)
+    call MAPL_StateGetPointer(internal, itemName="DEEP_LAKES_MASK", farrayPtr=deep_lakes_mask, _RC)
     call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, __RC__)
 
     RETURN_(ESMF_SUCCESS)
@@ -543,11 +575,11 @@ contains
   subroutine Run (GC, import, export, clock, rc)
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
-    type (ESMF_State),    intent(inout) :: import ! Import state
-    type (ESMF_State),    intent(inout) :: export ! Export state
-    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
-    integer, optional,    intent(  out) :: rc     ! Error code:
+    type (ESMF_GridComp) :: GC  ! Gridded component
+    type (ESMF_State) :: import ! Import state
+    type (ESMF_State) :: export ! Export state
+    type (ESMF_Clock) :: clock  ! The clock
+    integer, intent(out) :: rc  ! Error code:
 
 ! !DESCRIPTION: Run method for the Sea Salt Grid Component. Determines whether to run
 !               data or computational run method.
@@ -556,7 +588,7 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: MAPL
+    ! type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
 
     logical                           :: data_driven
@@ -615,7 +647,7 @@ contains
 !============================================================================
 !   !Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: mapl
+    ! type (MAPL_MetaComp), pointer     :: mapl
     type (ESMF_State)                 :: internal
     type (ESMF_Grid)                  :: grid
     type (wrap_)                      :: wrap
@@ -644,9 +676,9 @@ contains
 
 !   Get my internal MAPL_Generic state
 !   -----------------------------------
-    call MAPL_GetObjectFromGC (GC, mapl, __RC__)
+    ! call MAPL_GetObjectFromGC (GC, mapl, __RC__)
 
-    call MAPL_Get(mapl, grid=grid, __RC__)
+    ! call MAPL_Get(mapl, grid=grid, __RC__)
 
 !   Get parameters from generic state.
 !   -----------------------------------
@@ -727,11 +759,11 @@ contains
   subroutine Run2 (GC, import, export, clock, RC)
 
     ! !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
-    type (ESMF_State),    intent(inout) :: import ! Import state
-    type (ESMF_State),    intent(inout) :: export ! Export state
-    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
-    integer, optional,    intent(  out) :: RC     ! Error code:
+    type (ESMF_GridComp) :: GC  ! Gridded component
+    type (ESMF_State) :: import ! Import state
+    type (ESMF_State) :: export ! Export state
+    type (ESMF_Clock) :: clock  ! The clock
+    integer, intent(out) :: RC  ! Error code:
 
 ! !DESCRIPTION: Run2 method for the Dust Grid Component.
 
@@ -739,7 +771,7 @@ contains
 !============================================================================
 ! Locals
     character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: MAPL
+    ! type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
     type (wrap_)                      :: wrap
     type (SS2G_GridComp), pointer     :: self
@@ -1181,6 +1213,12 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
-
 end module SS2G_GridCompMod
 
+subroutine SetServices(gc, rc)
+   use ESMF
+   use SS2G_GridCompMod, only : mySetservices=>SetServices
+   type(ESMF_GridComp) :: gc
+   integer, intent(out) :: rc
+   call mySetServices(gc, rc=rc)
+end subroutine SetServices
