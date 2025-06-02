@@ -698,6 +698,7 @@ contains
     type (wrap_)                      :: wrap
     type (DU2G_GridComp), pointer     :: self
     type(ESMF_Time)                   :: time
+    type (ESMF_Config)                :: CF
 
     integer  :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     integer  :: import_shape(2), i2, j2
@@ -755,15 +756,25 @@ contains
     call MAPL_PackTime (nymd, iyr, imm , idd)
     call MAPL_PackTime (nhms, ihr, imn, isc)
 
+!   Load resource file
+!   -------------------
+    CF = ESMF_ConfigCreate (__RC__)
+    inquire(file='DU2G_instance_'//trim(COMP_NAME)//'.rc', exist=fileExists)
+    if (fileExists) then
+       call ESMF_ConfigLoadFile (CF, 'DU2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'DU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading DU2G_GridComp_DU.rc instead'
+       call ESMF_ConfigLoadFile (CF, 'DU2G_instance_DU.rc', __RC__)
+    end if
+
     associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
     end associate
 
 !   Set du_src to 0 where undefined
 !   --------------------------------
-    if (associated(du_src)) then
-       where (1.01*du_src > MAPL_UNDEF) du_src = 0.
-    endif
+    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
+
 !   Get dimensions
 !   ---------------
     import_shape = shape(wet1)
@@ -922,11 +933,12 @@ contains
     type (ESMF_State)                 :: internal
     type (wrap_)                      :: wrap
     type (DU2G_GridComp), pointer     :: self
+    type (ESMF_Config)                :: CF
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
     real                              :: fwet
-    logical                           :: KIN
+    logical                           :: KIN, file_exists
 
     integer                           :: i1, j1, i2, j2, km
     real, dimension(3)                :: rainout_eff
@@ -958,6 +970,17 @@ contains
     call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
     VERIFY_(STATUS)
     self => wrap%ptr
+
+!   Load resource file
+!   -------------------
+    CF = ESMF_ConfigCreate (__RC__)
+    inquire(file='DU2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
+    if (file_exists) then
+       call ESMF_ConfigLoadFile (CF, 'DU2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
+    else
+       if (mapl_am_i_root()) print*,'DU2G_instance_'//trim(COMP_NAME)//'.rc does not exist! Loading DU2G_GridComp_DU.rc instead'
+       call ESMF_ConfigLoadFile (CF, 'DU2G_instance_DU.rc', __RC__)
+    end if
 
     associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
