@@ -1171,12 +1171,8 @@ contains
                              fluxu=FLUXU, fluxv=FLUXV, &
                              conc=CONC, extcoef=EXTCOEF, scacoef=SCACOEF, bckcoef=BCKCOEF, angstrom=ANGSTR,&
                              aerindx=AERIDX, NO3nFlag=.false., SAREA=SAREA, REFF=REFF, __RC__)
-!++PRC
-!  Calculate the surface area density [m2 m-3], possibly for use in
-!  StratChem or other component.  Optics tables provide cross-sectional area
-!  for hydrated particle per kg dry mass but we want total surface area,
-!  which is 4 x cross section.
-   if(associated(SAREA)) then
+
+    if(associated(SAREA)) then
      call MAPL_MaxMin(trim(COMP_NAME)//': CA2GSAREA:', SAREA)
      nullify(int_ptr)
      call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
@@ -1184,9 +1180,9 @@ contains
          call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
          int_ptr = SAREA
      endif
-   endif
+    endif
 
-    if(associated(REFF)) then ! Note unit conversion below
+    if(associated(REFF)) then ! Note unit conversion below to microns
      call MAPL_MaxMin(trim(COMP_NAME)//': CA2GREFF:', REFF)
      nullify(int_ptr)
      call ESMF_AttributeGet(aero, name='effective_radius_in_microns', value=fld_name, __RC__)
@@ -1194,8 +1190,11 @@ contains
          call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
          int_ptr = REFF*1.e6
      endif
-   endif
-!--PRC
+    endif
+
+    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
+    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
+    km = ubound(RH2, 3)
 
     allocate(RH20(i1:i2,j1:j2,km), __STAT__)
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)

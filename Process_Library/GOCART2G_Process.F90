@@ -4564,7 +4564,6 @@ end function DarmenovaDragPartition
 !  which is 4 x cross section.
    if(present(sarea)) then
     sarea = 0.0
-    if(present(reff))  reff  = 0.0
     allocate(area(i1:i2,j1:j2,km), __STAT__)
     do n = nbegin, nbins
      call mie%Query(550e-9,n,   &
@@ -7820,7 +7819,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !Local Variables
    integer :: i, j, k, w, i1=1, j1=1, i2, j2, status
-   real, dimension(:,:,:), allocatable :: tau, ssa, bck
+   real, dimension(:,:,:), allocatable :: tau, ssa, bck, area
    real, dimension(:,:), allocatable :: tau470, tau870
    integer    :: ilam470, ilam870
    logical :: do_angstrom
@@ -8057,14 +8056,18 @@ K_LOOP: do k = km, 1, -1
 !  for hydrated particle per kg dry mass but we want total surface area,
 !  which is 4 x cross section.
    if(present(sarea)) then
+     sarea = 0.
+     allocate(area(i1:i2,j1:j2,km), __STAT__)
      call mie%Query(550e-9,1,   &
                          SO4*delp/grav, rh, &
-                         area=sarea, __RC__)
-     sarea = 4.*sarea*SO4*rhoa
+                         area=area, __RC__)
+     sarea = 4.*area*SO4*rhoa
+     deallocate(area)
    endif
 
 !  Get the sulfate particle effective radius [m] possibly for use in chemistry
    if(present(reff)) then
+     reff = 0.
      call mie%Query(550e-9,1,   &
                          SO4*delp/grav, rh, &
                          reff=reff, __RC__)

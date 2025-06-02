@@ -1289,7 +1289,7 @@ contains
       endif
     endif
     
-    if(associated(SO4REFF)) then ! Note unit conversion below
+    if(associated(SO4REFF)) then ! Note unit conversion below to microns
       nullify(int_ptr)
       call ESMF_AttributeGet(aero, name='effective_radius_in_microns', value=fld_name, __RC__)
       if (fld_name /= '') then
