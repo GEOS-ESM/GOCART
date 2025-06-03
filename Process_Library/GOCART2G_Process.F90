@@ -1473,10 +1473,10 @@ end function DarmenovaDragPartition
 
 ! !DESCRIPTION: Gravitational settling of aerosol between vertical
 !               layers.  Assumes input radius in [m] and density (rhop)
-!               in [kg m-3]arrays from the optics files. 
+!               in [kg m-3]arrays from the optics files.
 !
 ! !REVISION HISTORY:
-!  02Jan2024  Collow    Removed calls to particle swelling and added 
+!  02Jan2024  Collow    Removed calls to particle swelling and added
 !                       interpolation based on RH
 !  17Sep2004  Colarco   Strengthen sedimentation flux out at surface
 !                       by setting removal to be valid from middle of
@@ -1555,7 +1555,7 @@ end function DarmenovaDragPartition
 ! Find radius and density of the wet particle
     call mie%Query(550e-9,bin,   &
                          qa*delp/grav, &
-                         rh, reff=radius, rhop=rhop, __RC__)  
+                         rh, reff=radius, rhop=rhop, __RC__)
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
@@ -1565,7 +1565,7 @@ end function DarmenovaDragPartition
           end do
        end do
     end do
- 
+
     if(present(correctionMaring)) then
        if (correctionMaring) then
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
@@ -1879,62 +1879,118 @@ end function DarmenovaDragPartition
 !BOP
 ! !IROUTINE: SettlingSolver
 
-  subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
+   subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
 
-    implicit none
+   implicit none
 
-    integer, intent(in) :: i1, i2
-    integer, intent(in) :: j1, j2
-    integer, intent(in) :: km
+   integer, intent(in) :: i1, i2
+   integer, intent(in) :: j1, j2
+   integer, intent(in) :: km
 
-    real,    intent(in) :: cdt
+   real,    intent(in) :: cdt
 
-    real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
-    real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
-    real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
+   real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
+   real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
+   real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
 
-    real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
-
-
-    ! local
-    integer :: i, j, iit
-    integer :: nSubSteps
-
-    real, dimension(i1:i2, j1:j2, km) :: tau
-
-    real, dimension(km) :: dp_
-    real, dimension(km) :: tau_
-
-    real :: dt, dt_cfl
+   real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
 
 
-    tau = vs/dz
+   ! local
+   integer :: i, j, k, iit
+   integer :: nSubSteps
 
-    do j = j1, j2
+   real, dimension(i1:i2, j1:j2, km) :: tau
+
+   real, dimension(km) :: dp_
+   real, dimension(km) :: tau_
+   real, dimension(km) :: qa_old
+
+   real :: dt, dt_cfl, max_tau
+   real :: transfer_factor, loss_factor
+   real :: eps = 1.0e-30  ! Small number to prevent division by zero
+
+   ! Compute settling time scale tau = vs/dz with numerical safety
+   do k = 1, km
+      do j = j1, j2
+      do i = i1, i2
+         if (abs(vs(i,j,k)) > eps .and. dz(i,j,k) > eps) then
+            tau(i,j,k) = vs(i,j,k) / dz(i,j,k)
+         else
+            tau(i,j,k) = 0.0
+         endif
+      enddo
+      enddo
+   enddo
+
+   do j = j1, j2
       do i = i1, i2
 
-          dp_  = delp(i,j,:)
-          tau_ = tau(i,j,:)
+         dp_  = delp(i,j,:)
+         tau_ = tau(i,j,:)
 
-          dt_cfl  = abs(1.0 / maxval(tau_))
+         ! Find maximum tau with numerical safety
+         max_tau = maxval(abs(tau_))
 
-          if (dt_cfl > cdt) then
-              ! no need for time sub-splitting
-              nSubSteps = 1
-              dt = cdt
-          else
-              nSubSteps = ceiling(cdt / dt_cfl)
-              dt = cdt/nSubSteps
-          end if
+         if (max_tau > eps) then
+            dt_cfl = 0.5 / max_tau  ! Use CFL factor of 0.5 for stability
+         else
+            dt_cfl = cdt  ! If no settling, use full time step
+         endif
 
-          do iit = 1, nSubSteps
-              qa(i,j,   1) = qa(i,j,   1) * (1 - dt*tau_(1))
-              qa(i,j,2:km) = qa(i,j,2:km) + ( (dp_(1:km-1)/dp_(2:km))*(dt*tau_(1:km-1))*qa(i,j,1:km-1) ) &
-                                          - dt*tau_(2:km)*qa(i,j,2:km)
-          end do
+         if (dt_cfl >= cdt) then
+            ! no need for time sub-splitting
+            nSubSteps = 1
+            dt = cdt
+         else
+            nSubSteps = max(1, ceiling(cdt / dt_cfl))
+            dt = cdt / real(nSubSteps)
+         end if
+
+         ! Time integration with numerical safeguards
+         do iit = 1, nSubSteps
+            ! Store old values for mass conservation check
+            qa_old = qa(i,j,:)
+
+            ! Update top layer (only loss)
+            loss_factor = dt * abs(tau_(1))
+            if (loss_factor < 1.0) then
+               qa(i,j,1) = qa(i,j,1) * (1.0 - loss_factor)
+            else
+               qa(i,j,1) = 0.0  ! Complete settling if time step too large
+            endif
+
+            ! Update interior layers (gain from above, loss downward)
+            do k = 2, km
+               loss_factor = dt * abs(tau_(k))
+               if (k < km) then
+                  ! Layers with both gain and loss
+                  if (dp_(k-1) > eps .and. dp_(k) > eps) then
+                  transfer_factor = (dp_(k-1) / dp_(k)) * dt * abs(tau_(k-1))
+                  if (loss_factor < 1.0) then
+                     qa(i,j,k) = qa(i,j,k) * (1.0 - loss_factor) + transfer_factor * qa_old(k-1)
+                  else
+                     ! If loss factor >= 1, all mass settles out
+                     qa(i,j,k) = transfer_factor * qa_old(k-1)
+                  endif
+                  endif
+               else
+                  ! Bottom layer (only gain, no loss out of domain)
+                  if (dp_(k-1) > eps .and. dp_(k) > eps) then
+                  transfer_factor = (dp_(k-1) / dp_(k)) * dt * abs(tau_(k-1))
+                  qa(i,j,k) = qa(i,j,k) + transfer_factor * qa_old(k-1)
+                  endif
+               endif
+            enddo
+
+            ! Ensure non-negative concentrations
+            do k = 1, km
+               qa(i,j,k) = max(0.0, qa(i,j,k))
+            enddo
+         end do
 
       enddo
-    enddo
+   enddo
 
    end subroutine SettlingSolver
 
