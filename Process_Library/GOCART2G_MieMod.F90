@@ -319,13 +319,21 @@ CONTAINS
         refi_table = abs(refi_table)
       endif
 
-!     Wet particle volume [m3 kg-1]
-!     Ratio of wet to dry volume is gf^3, hence the following
-      vol_table = gf_table**3 / rhod_table
+!     Wet particle volume [m3 kg-1 dry mass]
+      rc = nf90_inq_varid(ncid,'volume',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
+        vol_table = gf_table**3 / rhod_table
+      else
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,vol_table))
+      endif
 
-!     Wet particle cross sectional area [m2 kg-1]
-!     Assume area is volume divided by (4./3.*reff)
-      area_table = vol_table / (4./3.*reff_table)
+!     Wet particle cross sectional area [m2 kg-1 dry mass]
+      rc = nf90_inq_varid(ncid,'area',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
+         area_table = vol_table / (4./3.*reff_table)
+      else
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,area_table))
+      endif
 
 !     Close the table file
 !     -------------------------------------
