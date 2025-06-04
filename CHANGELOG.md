@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
-
+- removed energy, non-energy, and shipping emissions of carbon, sulfate, and nitrate as these will enter through HEMCO
 ### Changed
 
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
