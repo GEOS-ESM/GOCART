@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Calculation of surface area density and effective radius for connection to chemistry
+  now comes from optics tables
+- Changed effective radius in MieQuery.H to remove in place units scaling; made 
+  corresponding change in Chem_SettlingSimple
+- Updated optics lookup tables to accommodate area and effective radius calculation
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
 - Fwet value in dust modified from 0.8 to 1.0
 - Dust and Sea salt Emission scale factors updated for L181
@@ -26,6 +31,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   when in data_driven mode
 
 ### Added
+- Added effective radius and surface area density to aerosol states for use in chemistry
+- Added logic in SU2G_GridCompMod.F90 through SU2G_instance_SU.rc to allow one-way
+  coupling of GMI OH, NO3, H2O2 to sulfur chemistry mechanism
 
 ## [v2.4.1] - 2025-05-28
 
