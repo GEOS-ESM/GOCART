@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 
 ### Fixed
+
 - fix SettlingSolver
   - ensuring no division by zero
   - ensuring mass conservation through pressure weighted mass transfer
