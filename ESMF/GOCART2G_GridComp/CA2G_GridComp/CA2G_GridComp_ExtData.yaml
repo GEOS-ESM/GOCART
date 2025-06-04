@@ -2,26 +2,8 @@ Collections:
   CA2G_BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4:
     template: ExtData/chemistry/CEDS/v2021-04-21-revised/L72/BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
     valid_range: "1979-01-15T12:00/2019-12-15T12:00"
-  CA2G_BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4:
-    template: ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
-    valid_range: "1979-01-15T12:00/2019-12-15T12:00"
-  CA2G_BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4:
-    template: ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
-    valid_range: "1979-01-15T12:00/2019-12-15T12:00"
-  CA2G_BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4:
-    template: ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
-    valid_range: "1979-01-15T12:00/2019-12-15T12:00"
   CA2G_OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4:
     template: ExtData/chemistry/CEDS/v2021-04-21-revised/L72/OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4
-    valid_range: "1979-01-15T12:00/2019-12-15T12:00"
-  CA2G_OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4:
-    template: ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4
-    valid_range: "1979-01-15T12:00/2019-12-15T12:00"
-  CA2G_OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4:
-    template: ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4
-    valid_range: "1979-01-15T12:00/2019-12-15T12:00"
-  CA2G_OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4:
-    template: ExtData/chemistry/CEDS/v2021-04-21-revised/sfc/OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
     valid_range: "1979-01-15T12:00/2019-12-15T12:00"
   CA2G_merra2.aer_Nv.2003-2015.2008%m2clm.nc4:
     template: ExtData/chemistry/MERRA2/v0.0.0/L72/merra2.aer_Nv.2003-2015.2008%m2clm.nc4
@@ -63,12 +45,6 @@ Exports:
   BC_AIRCRAFT:
     - {starting: "1979-01-15T12:00", collection: CA2G_BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: bc_aviation}
     - {starting: "2019-12-15T12:00", collection: CA2G_BC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: bc_aviation}
-  BC_ANTEBC1:
-    - {starting: "1979-01-15T12:00", collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: bc_nonenergy}
-    - {starting: "2019-12-15T12:00", collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: bc_nonenergy}
-  BC_ANTEBC2:
-    - {starting: "1979-01-15T12:00", collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: bc_energy}
-    - {starting: "2019-12-15T12:00", collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: bc_energy}
   BC_AVIATION_CDS:
     collection: /dev/null
     regrid: CONSERVE
@@ -92,9 +68,6 @@ Exports:
   BC_BIOMASS:
     - {starting: "2014-12-01T12:00", collection: CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
     - {starting: "2021-11-01T12:00", collection: CA2G_qfed2.emis_bc.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
-  BC_SHIP:
-    - {starting: "1979-01-15T12:00", collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: bc_shipping}
-    - {starting: "2019-12-15T12:00", collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: bc_shipping}
   BRC_AIRCRAFT:
     collection: /dev/null
     regrid: CONSERVE
@@ -146,12 +119,6 @@ Exports:
   OC_AIRCRAFT:
     - {starting: "1979-01-15T12:00", collection: CA2G_OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: oc_aviation}
     - {starting: "2019-12-15T12:00", collection: CA2G_OC-em-AIR-anthro_input4MIPs_emissions_CMIP_CEDS-2021-04-21_gn__aviation.x576_y361_z72_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: oc_aviation}
-  OC_ANTEOC1:
-    - {starting: "1979-01-15T12:00", collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: oc_nonenergy}
-    - {starting: "2019-12-15T12:00", collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_nonenergy.x2304_y1441_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: oc_nonenergy}
-  OC_ANTEOC2:
-    - {starting: "1979-01-15T12:00", collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: oc_energy}
-    - {starting: "2019-12-15T12:00", collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_energy.x2304_y1441_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: oc_energy}
   OC_AVIATION_CDS:
     collection: /dev/null
     regrid: CONSERVE
@@ -180,9 +147,6 @@ Exports:
     regrid: CONSERVE
     sample: CA2G_sample_1
     variable: biomass
-  OC_SHIP:
-    - {starting: "1979-01-15T12:00", collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4, sample: CA2G_sample_1, regrid: CONSERVE, variable: oc_shipping}
-    - {starting: "2019-12-15T12:00", collection: CA2G_OC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4, regrid: CONSERVE, sample: CA2G_sample_3, variable: oc_shipping}
   climBCDP001:
     collection: CA2G_merra2.aer_Nx.2003-2015.2008%m2clm.nc4
     sample: CA2G_sample_0
