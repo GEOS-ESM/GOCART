@@ -11,7 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - removed energy, non-energy, and shipping emissions of carbon, sulfate, and nitrate as these will enter through HEMCO
 ### Changed
 
+- The pressure lid change associated with the introduction of run0 to set 0 above the lid
+- Fwet value in dust modified from 0.8 to 1.0
+- Dust and Sea salt Emission scale factors updated for L181
+- Several changes in the DT alarm logic
+  - GOCART reference time removed in `GOCART2G_GridCompMod.F90`
+  - Heartbeat time step removed and `timeToWork` logical added
+- Modified filepaths for the optics files to no longer link to a personal nobackup directory
+
 ### Fixed
+
+- Units error in sulfate surface area density calculation in Process Library corrected
+- Removed erroneous/extraneous friendly attributes to internal state for DU and NI
+  when in data_driven mode
+- typo in filepath for BR optics file  
 
 ### Added
 

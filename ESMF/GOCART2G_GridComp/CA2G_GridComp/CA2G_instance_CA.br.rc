@@ -2,8 +2,8 @@
 # Resource file for Brown Carbon parameters.
 #
 
-aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BRC.v1_5.RRTMG.nc
-aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_BRC.v1_6.nc
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BRC.v1_6.RRTMG.nc
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_BRC.v1_6.nc
 
 # Aircraft emission factor: convert input unit to kg C
 aircraft_fuel_emission_factor: 1.0000
@@ -49,7 +49,7 @@ fnum: 9.76e17  9.76e17
 # Sigma of lognormal number distribution
 sigma: 2.20  2.20
 
-pressure_lid_in_hPa: 0.01
+pressure_lid_in_hPa: 40.0
 
 nbins: 2
 
