@@ -1560,7 +1560,7 @@ end function DarmenovaDragPartition
     do k = klid, km
        do j = j1, j2
           do i = i1, i2
-            call Chem_CalcVsettle(radius(i,j,k)*1.e-6, rhop(i,j,k), rhoa(i,j,k), &
+            call Chem_CalcVsettle(radius(i,j,k), rhop(i,j,k), rhoa(i,j,k), &
                                    tmpu(i,j,k), vsettle(i,j,k), grav)
           end do
        end do
