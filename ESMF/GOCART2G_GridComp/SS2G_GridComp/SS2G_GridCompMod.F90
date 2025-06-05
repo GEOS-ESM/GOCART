@@ -18,8 +18,11 @@ module SS2G_GridCompMod
    use MAPL_Base, only: MAPL2_StateAdd => MAPL_StateAdd
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
    use mapl3g_generic, only: MAPL_GridCompAddFieldSpec
+   use mapl3g_generic, only: MAPL_GridCompReexport
+   use mapl3g_generic, only: MAPL_GridCompGet
    use mapl3g_generic, only: MAPL_GridCompGetResource
    use mapl3g_generic, only: MAPL_GridCompGetInternalState
+   use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_State_API, only: MAPL_StateGetPointer
@@ -120,11 +123,6 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
     universal_cfg = ESMF_ConfigCreate(_RC)
     call ESMF_ConfigLoadFile(universal_cfg, "GOCART2G_GridComp.rc", _RC)
-    if (MAPL_AM_I_ROOT()) then
-       print *, "----universal-cfg-start--"
-       call ESMF_ConfigPrint(universal_cfg, _RC)
-       print *, "----universal-cfg-stop---"
-    end if
     Iam = trim(COMP_NAME) // '::' // Iam
 
 !   Wrap internal state for storing in GC
@@ -141,11 +139,6 @@ contains
     else
        if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
        call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
-    end if
-    if (MAPL_AM_I_ROOT()) then
-       print *, "----ss2g-instance-start--"
-       call ESMF_ConfigPrint(cfg, _RC)
-       print *, "----ss2g-instance-stop---"
     end if
 
     ! process generic config items
@@ -167,14 +160,14 @@ contains
 !   Is SS data driven?
 !   ------------------
     call determine_data_driven (COMP_NAME, data_driven, __RC__)
-    print *, "DATA DRIVEN? ", data_driven
+    if (MAPL_AM_I_ROOT()) print *, "DATA DRIVEN? ", data_driven
 
 !   Set entry points
 !   ------------------------
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
-    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, __RC__)
+    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, phase_name="Run", _RC)
     if (data_driven .neqv. .true.) then
-       call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, phase_name="Run2", _RC)
     end if
 
     DEFVAL = 0.0
@@ -291,7 +284,7 @@ contains
          DIMS="xyz", &
          VSTAGGER=VERTICAL_STAGGER_CENTER, &
          UNITS="kg kg-1", &
-         ! DATATYPE=MAPL_StateItem, &
+         ITEM_TYPE=MAPL_STATEITEM_STATE, &
          _RC)
 
 !   This bundle is needed by surface for snow albedo modification
@@ -305,7 +298,7 @@ contains
          DIMS="xy", &
          VSTAGGER=VERTICAL_STAGGER_NONE, &
          UNITS="kg m-2 s-1", &
-         ! DATATYPE=MAPL_BundleItem, &
+         ITEM_TYPE=MAPL_STATEITEM_FIELDBUNDLE, &
          _RC)
 
 
@@ -383,12 +376,11 @@ contains
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
+    call ESMF_GridCompGet(GC, NAME=COMP_NAME, _RC)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
 
-!   Get my internal MAPL_Generic state
-!   -----------------------------------
-    ! call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+    universal_cfg = ESMF_ConfigCreate(_RC)
+    call ESMF_ConfigLoadFile(universal_cfg, "GOCART2G_GridComp.rc", _RC)
 
 !   Get my internal private state
 !   -----------------------------
@@ -398,6 +390,7 @@ contains
 
 !   Global dimensions are needed here for choosing tuning parameters
 !   ----------------------------------------------------------------    
+    call MAPL_GridCompGet(GC, grid=grid, _RC)
     call MAPL2_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
