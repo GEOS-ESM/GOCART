@@ -21,11 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- fix the bug nSubsteps =0 again with abs()
+- fix SettlingSolver
+  - ensuring no division by zero
+  - ensuring mass conservation through pressure weighted mass transfer
+  - avoid negative concentrations
 - Units error in sulfate surface area density calculation in Process Library corrected
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
-- typo in filepath for BR optics file  
+- typo in filepath for BR optics file
 
 ### Added
 
