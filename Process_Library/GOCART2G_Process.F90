@@ -1975,10 +1975,23 @@ end function DarmenovaDragPartition
                    endif
                    endif
                 else
-                   ! Bottom layer (only gain, no loss out of domain)
+                  ! Bottom layer (gain from above, loss out of domain)
                    if (dp_(k-1) > eps .and. dp_(k) > eps) then
                    transfer_factor = (dp_(k-1) / dp_(k)) * dt * abs(tau_(k-1))
-                   qa(i,j,k) = qa(i,j,k) + transfer_factor * qa_old(k-1)
+                      ! Allow settling loss from bottom layer
+                      if (loss_factor < 1.0) then
+                         qa(i,j,k) = qa(i,j,k) * (1.0 - loss_factor) + transfer_factor * qa_old(k-1)
+                      else
+                         ! If loss factor >= 1, all existing mass settles out, only keep transferred mass
+                         qa(i,j,k) = transfer_factor * qa_old(k-1)
+                      endif
+                   else
+                      ! No transfer from above, but still allow settling loss
+                      if (loss_factor < 1.0) then
+                         qa(i,j,k) = qa(i,j,k) * (1.0 - loss_factor)
+                      else
+                         qa(i,j,k) = 0.0
+                      endif
                    endif
                 endif
              enddo
