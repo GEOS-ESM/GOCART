@@ -176,94 +176,109 @@ contains
 !   -------------------------------------------
     if (data_driven) then
        _FAIL("data driven section has not been activated yet")
-!    call MAPL_AddInternalSpec(gc,&
-!          short_name='SS', &
-!          long_name='Sea Salt Mixing Ratio all bins', &
-!          units='kg kg-1', &
-!          dims=MAPL_DimsHorzVert, &
-!          vlocation=MAPL_VlocationCenter, &
-!          restart=MAPL_RestartOptional, &
-!          ungridded_dims=[self%nbins], &
-! !         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-!          add2export=.true., __RC__)
+   call MAPL_GridCompAddFieldSpec(gc,&
+         state_intent=ESMF_STATEINTENT_INTERNAL, &
+         short_name='SS', &
+         standard_name='Sea Salt Mixing Ratio all bins', &
+         units='kg kg-1', &
+         dims='xyz', &
+         vstagger=VERTICAL_STAGGER_CENTER, &
+         ! restart=MAPL_RestartOptional, &
+         ungridded_dims=[self%nbins], &
+!         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+         add2export=.true., _RC)
 
 
-!    call MAPL_AddInternalSpec(gc,&
-!         & short_name='DEEP_LAKES_MASK', &
-!         & units='1', &
-!         & dims=MAPL_DimsHorzOnly, &
-!         & vlocation=MAPL_VlocationNone, &
-!         & add2export=.false., &
-!         & long_name='Deep Lakes Mask', &
-!         & _RC)
+   call MAPL_GridCompAddFieldSpec(gc,&
+        & state_intent=ESMF_STATEINTENT_INTERNAL, &
+        & short_name='DEEP_LAKES_MASK', &
+        & units='1', &
+        & dims='xy', &
+        & vstagger=VERTICAL_STAGGER_NONE, &
+        & add2export=.false., &
+        & standard_name='Deep Lakes Mask', &
+        & _RC)
 
 
-! !      Pressure at layer edges
-! !      -----------------------
-!        call MAPL_AddImportSpec(GC,                            &
-!           SHORT_NAME = 'PLE',                                 &
-!           LONG_NAME  = 'air_pressure',                        &
-!           UNITS      = 'Pa',                                  &
-!           DIMS       = MAPL_DimsHorzVert,                     &
-!           VLOCATION  = MAPL_VLocationEdge,                    &
-!           RESTART    = MAPL_RestartSkip,     __RC__)
+!      Pressure at layer edges
+!      -----------------------
+       call MAPL_GridCompAddFieldSpec(GC, &
+          STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+          SHORT_NAME='PLE', &
+          STANDARD_NAME='air_pressure', &
+          UNITS='Pa', &
+          DIMS='xyz', &
+          vstagger=VERTICAL_STAGGER_EDGE, &
+          ! RESTART=MAPL_RestartSkip, &
+          _RC)
 
-! !      RH: is between 0 and 1
-! !      ----------------------
-!        call MAPL_AddImportSpec(GC,                            &
-!           SHORT_NAME = 'RH2',                                 &
-!           LONG_NAME  = 'Rel_Hum_after_moist',                 &
-!           UNITS      = '1',                                   &
-!           DIMS       = MAPL_DimsHorzVert,                     &
-!           VLOCATION  = MAPL_VLocationCenter,                  &
-!           RESTART    = MAPL_RestartSkip,     __RC__)
+!      RH: is between 0 and 1
+!      ----------------------
+       call MAPL_GridCompAddFieldSpec(GC, &
+          STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+          SHORT_NAME='RH2', &
+          STANDARD_NAME='Rel_Hum_after_moist', &
+          UNITS='1', &
+          DIMS = 'xyz', &
+          VSTAGGER=VERTICAL_STAGGER_CENTER, &
+          ! RESTART=MAPL_RestartSkip, &
+          _RC)
 
-!         do i = 1, self%nbins
-!             write(field_name, '(A, I0.3)') '', i
-!             call MAPL_AddImportSpec(GC,                                           &
-!               SHORT_NAME = 'climss'//trim(field_name),                            &
-!               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')',  &
-!               UNITS      = 'kg kg-1 s-1',                                             &
-!               RESTART    = MAPL_RestartSkip,                                      &
-!               DIMS       = MAPL_DimsHorzVert,                                     &
-!               VLOCATION  = MAPL_VLocationCenter, __RC__)
+        do i = 1, self%nbins
+            write(field_name, '(A, I0.3)') '', i
+            call MAPL_GridCompAddFieldSpec(GC, &
+              STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+              SHORT_NAME='climss'//trim(field_name), &
+              STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+              UNITS='kg kg-1 s-1', &
+              ! RESTART=MAPL_RestartSkip, &
+              DIMS='xyz', &
+              VSTAGGER=VERTICAL_STAGGER_CENTER, _RC)
 
-! !           ! dry deposition
-!             call MAPL_AddImportSpec(GC,                                           &
-!               SHORT_NAME = 'climSSDP'//trim(field_name),                          &
-!               LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')',  &
-!               UNITS      = 'kg kg-1 s-1',                                             &
-!               DIMS       = MAPL_DimsHorzOnly,                                     &
-!               VLOCATION  = MAPL_VLocationCenter,                                  &
-!               RESTART    = MAPL_RestartSkip, __RC__)
+!           ! dry deposition
+            call MAPL_GridCompAddFieldSpec(GC, &
+              STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+              SHORT_NAME='climSSDP'//trim(field_name), &
+              STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+              UNITS='kg kg-1 s-1', &
+              DIMS='xy', &
+              VSTAGGER=VERTICAL_STAGGER_CENTER, &
+              ! RESTART=MAPL_RestartSkip, &
+              _RC)
 
-! !           ! wet deposition
-!             call MAPL_AddImportSpec(GC,                                           &
-!                SHORT_NAME = 'climSSWT'//trim(field_name),                         &
-!                LONG_NAME  = 'Sea Salt wet removal (bin '//trim(field_name)//')', &
-!                UNITS      = 'kg kg-1 s-1',                                            &
-!                DIMS       = MAPL_DimsHorzOnly,                                    &
-!                VLOCATION  = MAPL_VLocationCenter,                                 &
-!                RESTART    = MAPL_RestartSkip, __RC__)
+!           ! wet deposition
+            call MAPL_GridCompAddFieldSpec(GC, &
+               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+               SHORT_NAME='climSSWT'//trim(field_name), &
+               STANDARD_NAME='Sea Salt wet removal (bin '//trim(field_name)//')', &
+               UNITS='kg kg-1 s-1', &
+               DIMS='xy', &
+               VSTAGGER=VERTICAL_STAGGER_CENTER, &
+               ! RESTART=MAPL_RestartSkip, &
+               _RC)
 
-! !           ! gravitational settling
-!             call MAPL_AddImportSpec(GC,                                           &
-!                SHORT_NAME = 'climSSSD'//trim(field_name),                         &
-!                LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-!                UNITS      = 'kg kg-1 s-1',                                            &
-!                DIMS       = MAPL_DimsHorzOnly,                                    &
-!                VLOCATION  = MAPL_VLocationCenter,                                 &
-!                RESTART    = MAPL_RestartSkip, __RC__)
+!           ! gravitational settling
+            call MAPL_GridCompAddFieldSpec(GC, &
+               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+               SHORT_NAME='climSSSD'//trim(field_name), &
+               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+               UNITS='kg kg-1 s-1', &
+               DIMS='xy', &
+               VSTAGGER=VERTICAL_STAGGER_CENTER, &
+               ! RESTART=MAPL_RestartSkip, &
+               _RC)
 
-! !        ! convective scavenging
-!             call MAPL_AddImportSpec(GC,                                           &
-!                SHORT_NAME = 'climSSSV'//trim(field_name),                         &
-!                LONG_NAME  = 'Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-!                UNITS      = 'kg kg-1 s-1',                                            &
-!                DIMS       = MAPL_DimsHorzOnly,                                    &
-!                VLOCATION  = MAPL_VLocationCenter,                                 &
-!                RESTART    = MAPL_RestartSkip, __RC__)
-!         end do
+!        ! convective scavenging
+            call MAPL_GridCompAddFieldSpec(GC, &
+               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+               SHORT_NAME='climSSSV'//trim(field_name), &
+               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+               UNITS='kg kg-1 s-1', &
+               DIMS='xy', &
+               VSTAGGER=VERTICAL_STAGGER_CENTER, &
+               ! RESTART=MAPL_RestartSkip, &
+               _RC)
+        end do
     end if ! (data_driven)
 
 
@@ -284,7 +299,7 @@ contains
          DIMS="xyz", &
          VSTAGGER=VERTICAL_STAGGER_CENTER, &
          UNITS="kg kg-1", &
-         ITEM_TYPE=MAPL_STATEITEM_STATE, &
+         ITEMTYPE=MAPL_STATEITEM_STATE, &
          _RC)
 
 !   This bundle is needed by surface for snow albedo modification
@@ -298,7 +313,7 @@ contains
          DIMS="xy", &
          VSTAGGER=VERTICAL_STAGGER_NONE, &
          UNITS="kg m-2 s-1", &
-         ITEM_TYPE=MAPL_STATEITEM_FIELDBUNDLE, &
+         ITEMTYPE=MAPL_STATEITEM_FIELDBUNDLE, &
          _RC)
 
 
