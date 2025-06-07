@@ -58,7 +58,8 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
-   end type NI2G_GridComp
+       type(ESMF_Time) :: last_time_replenished
+    end type NI2G_GridComp
 
    type wrap_
       type (NI2G_GridComp), pointer     :: PTR !=> null()
@@ -499,6 +500,13 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
+    block
+      type(ESMF_TimeInterval) :: oneDay
+      call ESMF_TimeIntervalSet(oneDay,d=1,_RC)
+      call ESMF_ClockGet(clock,currTime=currentTime,_RC)
+      self%last_time_replenished = currentTime - oneDay
+    end block
+      
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Initialize
@@ -798,7 +806,7 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-    alarm_is_ringing = daily_alarm(clock,30000,_RC)
+    alarm_is_ringing = daily_alarm(clock,30000,self%last_time_replenished, _RC)
 
 !   Save local copy of HNO3 for first pass through run method regardless
     thread = MAPL_get_current_thread()
@@ -1399,37 +1407,31 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
-  function daily_alarm(clock,freq,rc) result(is_ringing)
+  function daily_alarm(clock,freq,last_time_replenished,rc) result(is_ringing)
      logical :: is_ringing
      type(ESMF_Clock), intent(in) :: clock
      integer, intent(in) :: freq
+     type(ESMF_Time), intent(inout) :: last_time_replenished
      integer, optional, intent(out) :: rc
 
      type(ESMF_Time) :: current_time
-     integer :: status,year,month,day,hour,minute,second,initial_time,int_seconds
-     integer :: nhh,nmm,nss,freq_sec
+     integer :: status
+     integer :: nhh,nmm,nss
 
-     type(ESMF_TimeInterval) :: new_diff,esmf_freq
-     type(ESMF_Time) :: reff_time,new_esmf_time
+     type(ESMF_TimeInterval) :: esmf_freq
 
-     call ESMF_ClockGet(clock,currTIme=current_time,_RC)
-     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
-
-     int_seconds = 0
+     call ESMF_ClockGet(clock,currTime=current_time,_RC)
+!     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
+          
      call MAPL_UnpackTIme(freq,nhh,nmm,nss) 
-     is_ringing = .false.
-     call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
-     new_esmf_time = reff_time
      call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
-     do while (int_seconds < 86400)      
-        if ( new_esmf_time == current_time) then
-           is_ringing = .true.
-           exit
-        end if
-        new_esmf_time = new_esmf_time + esmf_freq
-        new_diff = new_esmf_time - reff_time
-        call ESMF_TimeIntervalGet(new_diff,s=int_seconds,_RC)
-     enddo
+
+     is_ringing = .false.
+
+     if (current_time >= last_time_replenished + esmf_freq) then
+        is_ringing = .true.
+        last_time_replenished = current_time
+     end if
      _RETURN(_SUCCESS)
   end function
 
