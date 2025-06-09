@@ -17,7 +17,7 @@ module SS2G_GridCompMod
    use MAPL_Base, only: MAPL2_FieldCreate => MAPL_FieldCreate
    use MAPL_Base, only: MAPL2_StateAdd => MAPL_StateAdd
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
-   use mapl3g_generic, only: MAPL_GridCompAddFieldSpec
+   use mapl3g_generic, only: MAPL_GridCompAddSpec
    use mapl3g_generic, only: MAPL_GridCompReexport
    use mapl3g_generic, only: MAPL_GridCompGet
    use mapl3g_generic, only: MAPL_GridCompGetResource
@@ -176,7 +176,7 @@ contains
 !   -------------------------------------------
     if (data_driven) then
        _FAIL("data driven section has not been activated yet")
-   call MAPL_GridCompAddFieldSpec(gc,&
+   call MAPL_GridCompAddSpec(gc,&
          state_intent=ESMF_STATEINTENT_INTERNAL, &
          short_name='SS', &
          standard_name='Sea Salt Mixing Ratio all bins', &
@@ -186,23 +186,23 @@ contains
          ! restart=MAPL_RestartOptional, &
          ungridded_dims=[self%nbins], &
 !         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-         add2export=.true., _RC)
+         add_to_export=.true., _RC)
 
 
-   call MAPL_GridCompAddFieldSpec(gc,&
+   call MAPL_GridCompAddSpec(gc,&
         & state_intent=ESMF_STATEINTENT_INTERNAL, &
         & short_name='DEEP_LAKES_MASK', &
         & units='1', &
         & dims='xy', &
         & vstagger=VERTICAL_STAGGER_NONE, &
-        & add2export=.false., &
+        & add_to_export=.false., &
         & standard_name='Deep Lakes Mask', &
         & _RC)
 
 
 !      Pressure at layer edges
 !      -----------------------
-       call MAPL_GridCompAddFieldSpec(GC, &
+       call MAPL_GridCompAddSpec(GC, &
           STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
           SHORT_NAME='PLE', &
           STANDARD_NAME='air_pressure', &
@@ -214,7 +214,7 @@ contains
 
 !      RH: is between 0 and 1
 !      ----------------------
-       call MAPL_GridCompAddFieldSpec(GC, &
+       call MAPL_GridCompAddSpec(GC, &
           STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
           SHORT_NAME='RH2', &
           STANDARD_NAME='Rel_Hum_after_moist', &
@@ -226,7 +226,7 @@ contains
 
         do i = 1, self%nbins
             write(field_name, '(A, I0.3)') '', i
-            call MAPL_GridCompAddFieldSpec(GC, &
+            call MAPL_GridCompAddSpec(GC, &
               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
               SHORT_NAME='climss'//trim(field_name), &
               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
@@ -236,7 +236,7 @@ contains
               VSTAGGER=VERTICAL_STAGGER_CENTER, _RC)
 
 !           ! dry deposition
-            call MAPL_GridCompAddFieldSpec(GC, &
+            call MAPL_GridCompAddSpec(GC, &
               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
               SHORT_NAME='climSSDP'//trim(field_name), &
               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
@@ -247,7 +247,7 @@ contains
               _RC)
 
 !           ! wet deposition
-            call MAPL_GridCompAddFieldSpec(GC, &
+            call MAPL_GridCompAddSpec(GC, &
                STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
                SHORT_NAME='climSSWT'//trim(field_name), &
                STANDARD_NAME='Sea Salt wet removal (bin '//trim(field_name)//')', &
@@ -258,7 +258,7 @@ contains
                _RC)
 
 !           ! gravitational settling
-            call MAPL_GridCompAddFieldSpec(GC, &
+            call MAPL_GridCompAddSpec(GC, &
                STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
                SHORT_NAME='climSSSD'//trim(field_name), &
                STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
@@ -269,7 +269,7 @@ contains
                _RC)
 
 !        ! convective scavenging
-            call MAPL_GridCompAddFieldSpec(GC, &
+            call MAPL_GridCompAddSpec(GC, &
                STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
                SHORT_NAME='climSSSV'//trim(field_name), &
                STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
@@ -292,7 +292,7 @@ contains
 
 !   This state holds fields needed by radiation
 !   ---------------------------------------------
-    call MAPL_GridCompAddFieldSpec(GC, &
+    call MAPL_GridCompAddSpec(GC, &
          STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
          SHORT_NAME=trim(COMP_NAME)//"_AERO", &
          STANDARD_NAME="aerosols_from_"//trim(COMP_NAME), &
@@ -306,7 +306,7 @@ contains
 !   by aerosol settling and deposition
 !   DEVELOPMENT NOTE - Change to StateItem in future
 !   ---------------------------------------------------------------
-    call MAPL_GridCompAddFieldSpec(GC, &
+    call MAPL_GridCompAddSpec(GC, &
          STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
          SHORT_NAME=trim(COMP_NAME)//"_AERO_DP", &
          STANDARD_NAME="aerosol_deposition_from_"//trim(COMP_NAME), &
@@ -665,7 +665,8 @@ contains
 
 #include "SS2G_DeclarePointer___.h"
 
-   __Iam__('Run1')
+    __Iam__('Run1')
+    if (MAPL_AM_I_ROOT()) print *, "RUNNING RUN1....."
 
 !*****************************************************************************
 !   Begin...
@@ -747,6 +748,7 @@ contains
     deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
                fsstemis, fgridefficiency, __STAT__)
 
+    if (MAPL_AM_I_ROOT()) print *, "RUN1 COMPLETE"
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run1
@@ -786,6 +788,7 @@ contains
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
+    if (MAPL_AM_I_ROOT()) print *, "RUNNING RUN2....."
 
 !*****************************************************************************
 !   Begin...
@@ -885,6 +888,7 @@ contains
                             extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., __RC__)
 
     deallocate(RH20,RH80)
+    if (MAPL_AM_I_ROOT()) print *, "RUN2 COMPLETE"
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2
