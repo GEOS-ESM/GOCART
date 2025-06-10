@@ -1908,20 +1908,16 @@ end function DarmenovaDragPartition
 
    real :: dt, dt_cfl, max_tau
    real :: transfer_factor, loss_factor
-   real :: eps = 1.0e-30  ! Small number to prevent division by zero
+   real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
+   real, parameter :: cfl_factor = 0.5  ! CFL stability factor
 
    ! Compute settling time scale tau = vs/dz with numerical safety
-   do k = 1, km
-      do j = j1, j2
-      do i = i1, i2
-         if (abs(vs(i,j,k)) > eps .and. dz(i,j,k) > eps) then
-            tau(i,j,k) = vs(i,j,k) / dz(i,j,k)
-         else
-            tau(i,j,k) = 0.0
-         endif
-      enddo
-      enddo
-   enddo
+   ! Vectorized approach for better performance
+   where (abs(vs) > eps .and. dz > eps)
+      tau = vs / dz
+   elsewhere
+      tau = 0.0
+   end where
 
    do j = j1, j2
       do i = i1, i2
@@ -1930,10 +1926,10 @@ end function DarmenovaDragPartition
          tau_ = tau(i,j,:)
 
          ! Find maximum tau with numerical safety
-         max_tau = maxval(abs(tau_))
+         max_tau = maxval(tau_)
 
          if (max_tau > eps) then
-            dt_cfl = 0.5 / max_tau  ! Use CFL factor of 0.5 for stability
+            dt_cfl = cfl_factor / max_tau  ! CFL factor for stability
          else
             dt_cfl = cdt  ! If no settling, use full time step
          endif
@@ -1953,52 +1949,30 @@ end function DarmenovaDragPartition
             qa_old = qa(i,j,:)
 
             ! Update top layer (only loss)
-            loss_factor = dt * abs(tau_(1))
-            if (loss_factor < 1.0) then
-               qa(i,j,1) = qa(i,j,1) * (1.0 - loss_factor)
-            else
-               qa(i,j,1) = 0.0  ! Complete settling if time step too large
-            endif
+            loss_factor = dt * tau_(1)
+            qa(i,j,1) = max(0.0, qa(i,j,1) * (1.0 - min(loss_factor, 1.0)))
 
-            ! Update interior layers (gain from above, loss downward)
+            ! Update interior and bottom layers
             do k = 2, km
-               loss_factor = dt * abs(tau_(k))
-               if (k < km) then
-                  ! Layers with both gain and loss
-                  if (dp_(k-1) > eps .and. dp_(k) > eps) then
-                  transfer_factor = (dp_(k-1) / dp_(k)) * dt * abs(tau_(k-1))
-                  if (loss_factor < 1.0) then
-                     qa(i,j,k) = qa(i,j,k) * (1.0 - loss_factor) + transfer_factor * qa_old(k-1)
+               loss_factor = dt * tau_(k)
+               
+               ! Check if pressure layers are valid
+               if (dp_(k-1) > eps .and. dp_(k) > eps) then
+                  transfer_factor = (dp_(k-1) / dp_(k)) * dt * tau_(k-1)
+                  
+                  if (k < km) then
+                     ! Interior layers: gain from above, loss downward
+                     qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)) + &
+                                           transfer_factor * qa_old(k-1))
                   else
-                     ! If loss factor >= 1, all mass settles out
-                     qa(i,j,k) = transfer_factor * qa_old(k-1)
-                  endif
+                     ! Bottom layer: gain from above, allow settling loss
+                     qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)) + &
+                                           transfer_factor * qa_old(k-1))
                   endif
                else
-                  ! Bottom layer (gain from above, loss out of domain)
-                  if (dp_(k-1) > eps .and. dp_(k) > eps) then
-                     transfer_factor = (dp_(k-1) / dp_(k)) * dt * abs(tau_(k-1))
-                     ! Allow settling loss from bottom layer
-                     if (loss_factor < 1.0) then
-                        qa(i,j,k) = qa(i,j,k) * (1.0 - loss_factor) + transfer_factor * qa_old(k-1)
-                     else
-                        ! If loss factor >= 1, all existing mass settles out, only keep transferred mass
-                        qa(i,j,k) = transfer_factor * qa_old(k-1)
-                     endif
-                  else
-                     ! No transfer from above, but still allow settling loss
-                     if (loss_factor < 1.0) then
-                        qa(i,j,k) = qa(i,j,k) * (1.0 - loss_factor)
-                     else
-                        qa(i,j,k) = 0.0
-                     endif
-                  endif
+                  ! No valid transfer from above, only settling loss
+                  qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)))
                endif
-            enddo
-
-            ! Ensure non-negative concentrations
-            do k = 1, km
-               qa(i,j,k) = max(0.0, qa(i,j,k))
             enddo
          end do
 
