@@ -806,6 +806,10 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
+    !ALT: Caution: with the current implementation of the routine
+    ! daily_alarm, the next call might not function correctly if it is called
+    ! more than once for the entire Run method (including Run1 and Run2)
+    ! If needed, this could be fixed by adding extra bookkeeping logic
     alarm_is_ringing = daily_alarm(clock,30000,self%last_time_replenished, _RC)
 
 !   Save local copy of HNO3 for first pass through run method regardless
