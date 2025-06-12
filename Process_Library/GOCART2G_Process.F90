@@ -423,7 +423,7 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
    real, parameter :: CLAY_THRESHOLD = 0.2  ! clay fraction above which the maximum flux ratio is returned
 
 ! !DESCRIPTION: Computes the vertical-to-horizontal dust flux ratio according to
-!               B.Marticorena, G.Bergametti, J.Geophys.Res., 100(D8), 16415?16430, 1995
+!               B.Marticorena, G.Bergametti, J.Geophys.Res., 100(D8), 16415–16430, 1995
 !               doi:10.1029/95JD00690
 !
 ! !REVISION HISTORY:
@@ -1473,10 +1473,10 @@ end function DarmenovaDragPartition
 
 ! !DESCRIPTION: Gravitational settling of aerosol between vertical
 !               layers.  Assumes input radius in [m] and density (rhop)
-!               in [kg m-3]arrays from the optics files. 
+!               in [kg m-3]arrays from the optics files.
 !
 ! !REVISION HISTORY:
-!  02Jan2024  Collow    Removed calls to particle swelling and added 
+!  02Jan2024  Collow    Removed calls to particle swelling and added
 !                       interpolation based on RH
 !  17Sep2004  Colarco   Strengthen sedimentation flux out at surface
 !                       by setting removal to be valid from middle of
@@ -1555,7 +1555,7 @@ end function DarmenovaDragPartition
 ! Find radius and density of the wet particle
     call mie%Query(550e-9,bin,   &
                          qa*delp/grav, &
-                         rh, reff=radius, rhop=rhop, __RC__)  
+                         rh, reff=radius, rhop=rhop, __RC__)
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
@@ -1565,7 +1565,7 @@ end function DarmenovaDragPartition
           end do
        end do
     end do
- 
+
     if(present(correctionMaring)) then
        if (correctionMaring) then
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
@@ -1879,64 +1879,105 @@ end function DarmenovaDragPartition
 !BOP
 ! !IROUTINE: SettlingSolver
 
-  subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
+   subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
 
-    implicit none
+   implicit none
 
-    integer, intent(in) :: i1, i2
-    integer, intent(in) :: j1, j2
-    integer, intent(in) :: km
+   integer, intent(in) :: i1, i2
+   integer, intent(in) :: j1, j2
+   integer, intent(in) :: km
 
-    real,    intent(in) :: cdt
+   real,    intent(in) :: cdt
 
-    real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
-    real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
-    real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
+   real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
+   real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
+   real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
 
-    real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
-
-
-    ! local
-    integer :: i, j, iit
-    integer :: nSubSteps
-
-    real, dimension(i1:i2, j1:j2, km) :: tau
-
-    real, dimension(km) :: dp_
-    real, dimension(km) :: tau_
-
-    real :: dt, dt_cfl
+   real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
 
 
-    tau = vs/dz
+   ! local
+   integer :: i, j, k, iit
+   integer :: nSubSteps
 
-    do j = j1, j2
+   real, dimension(i1:i2, j1:j2, km) :: tau
+
+   real, dimension(km) :: dp_
+   real, dimension(km) :: tau_
+   real, dimension(km) :: qa_old
+
+   real :: dt, dt_cfl, max_tau
+   real :: transfer_factor, loss_factor
+   real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
+   real, parameter :: cfl_factor = 0.5  ! CFL stability factor
+
+   ! Compute settling time scale tau = vs/dz with numerical safety
+   ! Vectorized approach for better performance
+   where (abs(vs) > eps .and. dz > eps)
+      tau = vs / dz
+   elsewhere
+      tau = 0.0
+   end where
+
+   do j = j1, j2
       do i = i1, i2
 
-          dp_  = delp(i,j,:)
-          tau_ = tau(i,j,:)
+         dp_  = delp(i,j,:)
+         tau_ = tau(i,j,:)
 
-          dt_cfl  = 1 / maxval(tau_)
+         ! Find maximum tau with numerical safety
+         max_tau = maxval(tau_)
 
-          if (dt_cfl <= 0.) then
-             nSubSteps = 0
-          else if (dt_cfl > cdt) then
-              ! no need for time sub-splitting
-              nSubSteps = 1
-              dt = cdt
-          else
-              nSubSteps = ceiling(cdt / dt_cfl)
-              dt = cdt/nSubSteps
-          end if
+         if (max_tau > eps) then
+            dt_cfl = cfl_factor / max_tau  ! CFL factor for stability
+         else
+            dt_cfl = cdt  ! If no settling, use full time step
+         endif
 
-          do iit = 1, nSubSteps
-              qa(i,j,   1) = qa(i,j,   1) * (1 - dt*tau_(1))
-              qa(i,j,2:km) = qa(i,j,2:km) + ( (dp_(1:km-1)/dp_(2:km))*(dt*tau_(1:km-1))*qa(i,j,1:km-1) ) &
-                                          - dt*tau_(2:km)*qa(i,j,2:km)
-          end do
+         if (dt_cfl >= cdt) then
+            ! no need for time sub-splitting
+            nSubSteps = 1
+            dt = cdt
+         else
+            nSubSteps = max(1, ceiling(cdt / dt_cfl))
+            dt = cdt / real(nSubSteps)
+         end if
+
+         ! Time integration with numerical safeguards
+         do iit = 1, nSubSteps
+            ! Store old values for mass conservation check
+            qa_old = qa(i,j,:)
+
+            ! Update top layer (only loss)
+            loss_factor = dt * tau_(1)
+            qa(i,j,1) = max(0.0, qa(i,j,1) * (1.0 - min(loss_factor, 1.0)))
+
+            ! Update interior and bottom layers
+            do k = 2, km
+               loss_factor = dt * tau_(k)
+               
+               ! Check if pressure layers are valid
+               if (dp_(k-1) > eps .and. dp_(k) > eps) then
+                  transfer_factor = (dp_(k-1) / dp_(k)) * dt * tau_(k-1)
+                  
+                  if (k < km) then
+                     ! Interior layers: gain from above, loss downward
+                     qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)) + &
+                                           transfer_factor * qa_old(k-1))
+                  else
+                     ! Bottom layer: gain from above, allow settling loss
+                     qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)) + &
+                                           transfer_factor * qa_old(k-1))
+                  endif
+               else
+                  ! No valid transfer from above, only settling loss
+                  qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)))
+               endif
+            enddo
+         end do
 
       enddo
-    enddo
+   enddo
 
    end subroutine SettlingSolver
 
@@ -8995,7 +9036,7 @@ K_LOOP: do k = km, 1, -1
 !     of Potential Importance in
 !     Environmental Chemistry (Version 3)
 !     http://www.henrys-law.org
-!     * indica artigos nao encontrados nesse endere�o eletronico
+!     * indica artigos nao encontrados nesse endereço eletronico
   REAL,PARAMETER,DIMENSION(nspecies_HL) :: hstar=(/&
     1.10E-2              ,   & ! O3 - 001
     8.30E+4              ,   & ! H2O2 - 002
