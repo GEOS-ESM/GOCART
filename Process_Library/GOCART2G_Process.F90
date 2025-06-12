@@ -1955,11 +1955,11 @@ end function DarmenovaDragPartition
             ! Update interior and bottom layers
             do k = 2, km
                loss_factor = dt * tau_(k)
-               
+
                ! Check if pressure layers are valid
                if (dp_(k-1) > eps .and. dp_(k) > eps) then
                   transfer_factor = (dp_(k-1) / dp_(k)) * dt * tau_(k-1)
-                  
+
                   if (k < km) then
                      ! Interior layers: gain from above, loss downward
                      qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)) + &

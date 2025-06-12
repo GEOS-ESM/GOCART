@@ -22,16 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- fix SettlingSolver
-  - ensuring no division by zero
-  - ensuring mass conservation through pressure weighted mass transfer
-  - avoid negative concentrations
 - Units error in sulfate surface area density calculation in Process Library corrected
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
 
 ### Added
+
+## [v2.4.2] - 2025-06-12
+
+### Fixed
+
+- fix SettlingSolver
+  - ensuring no division by zero
+  - ensuring mass conservation through pressure weighted mass transfer
+  - avoid negative concentrations
 
 ## [v2.4.1] - 2025-05-28
 
