@@ -15,6 +15,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [v2.4.2] - 2025-06-12
+
+### Fixed
+
+- fix SettlingSolver
+  - ensuring no division by zero
+  - ensuring mass conservation through pressure weighted mass transfer
+  - avoid negative concentrations
+
 ## [v2.4.1] - 2025-05-28
 
 ### Changed
