@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - GOCART reference time removed in `GOCART2G_GridCompMod.F90`
   - Heartbeat time step removed and `timeToWork` logical added
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
+- Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
 
 ### Fixed
 
