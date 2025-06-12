@@ -22,7 +22,7 @@ install( FILES ${resource_files}
    DESTINATION etc
    )
 
-set (dependencies Chem_Base Chem_Shared MAPL GMAO_mpeu esmf)
+set (dependencies Chem_Base Chem_Shared MAPL GMAO_mpeu ESMF::ESMF)
 esma_add_library (${this}
   SRCS ${srcs}
   SUBCOMPONENTS ${alldirs}

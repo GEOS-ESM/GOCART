@@ -53,10 +53,10 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  NAME          | UNITS      | DIMS | VLOC | UNGRIDDED                      | LONG NAME
 #----------------------------------------------------------------------------------------
- SUEM          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfer Emission (Bin %d)
- SUDP          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Dry Deposition (Bin %d)
- SUSD          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Settling (Bin %d)
- SUWT          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Wet Deposition (Bin %d)
+ SUEM          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfur Emission (Bin %d)
+ SUDP          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfur Dry Deposition (Bin %d)
+ SUSD          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfur Settling (Bin %d)
+ SUWT          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfur Wet Deposition (Bin %d)
  SUSV          | kg m-2 s-1 | xy   | N    | self%nbins                     | Sulfate Convective Scavenging (Bin %d)
  SO4EMAN       | kg m-2 s-1 | xy   | N    |                                | SO4 Anthropogenic Emissions
  SO2EMAN       | kg m-2 s-1 | xy   | N    |                                | SO2 Anthropogenic Emissions
@@ -111,8 +111,8 @@ category: INTERNAL
  DMS       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Dimethylsulphide
  SO2       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphur dioxide
  SO4       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Sulphate aerosol
- MSA       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid  
- H2O2_INIT |kg kg-1| xyz  | C    |                      | F |                           | private H2O2 that is saved and used to initialize 
+ MSA       |kg kg-1| xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Methanesulphonic acid
+ H2O2_INIT |kg kg-1| xyz  | C    |                      | F |                           | private H2O2 that is saved and used to initialize
 
 
 #********************************************************
