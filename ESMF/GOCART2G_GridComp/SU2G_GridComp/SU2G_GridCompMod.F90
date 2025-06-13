@@ -91,6 +91,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       logical                :: doing_point_emissions = .false.
       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
+      type(ESMF_Time) :: last_time_replenished
    end type SU2G_GridComp
 
    type wrap_
@@ -607,6 +608,13 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
+    block
+      type(ESMF_TimeInterval) :: oneDay
+      call ESMF_TimeIntervalSet(oneDay,d=1,_RC)
+      call ESMF_ClockGet(clock,currTime=currentTime,_RC)
+      self%last_time_replenished = currentTime - oneDay
+    end block
+      
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Initialize
@@ -1079,7 +1087,11 @@ contains
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    alarm_is_ringing = daily_alarm(clock,30000,_RC)
+    !ALT: Caution: with the current implementation of the routine
+    ! daily_alarm, the next call might not function correctly if it is called
+    ! more than once for the entire Run method (including Run1 and Run2)
+    ! If needed, this could be fixed by adding extra bookkeeping logic
+    alarm_is_ringing = daily_alarm(clock,30000,self%last_time_replenished, _RC)
 !   recycle H2O2 every 3 hours
     if (alarm_is_ringing) then
        workspace%recycle_h2o2 = .true.
@@ -1136,17 +1148,6 @@ contains
                             SUPSO4, SUPSO4g, SUPSO4aq, &
                             pso2, pmsa, pso4, pso4g, pso4aq, drydepositionf, & ! 3d diagnostics
                             __RC__)
-
-!    call MAPL_MaxMin('SU2G: DMS     ', DMS)
-!    call MAPL_MaxMin('SU2G: SO2     ', SO2)
-!    call MAPL_MaxMin('SU2G: SO4     ', SO4)
-!    call MAPL_MaxMin('SU2G: MSA     ', dummyMSA)
-!    call MAPL_MaxMin('SU2G: TEMP    ', t)
-!    call MAPL_MaxMin('SU2G: FCLD    ', fcld)
-!    call MAPL_MaxMin('SU2G: XH2O2   ', xh2o2)
-!    call MAPL_MaxMin('SU2G: H2O2_I  ', h2o2_init)
-!    call MAPL_MaxMin('SU2G: PSO4aq  ', pso4aq)
-!    call MAPL_MaxMin('SU2G: SUPSO4aq', SUPSO4aq)
 
     KIN = .true.
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
@@ -1528,37 +1529,31 @@ contains
 
   end subroutine monochromatic_aerosol_optics
 
-  function daily_alarm(clock,freq,rc) result(is_ringing)
+  function daily_alarm(clock,freq,last_time_replenished,rc) result(is_ringing)
      logical :: is_ringing
      type(ESMF_Clock), intent(in) :: clock
      integer, intent(in) :: freq
+     type(ESMF_Time), intent(inout) :: last_time_replenished
      integer, optional, intent(out) :: rc
 
      type(ESMF_Time) :: current_time
-     integer :: status,year,month,day,hour,minute,second,initial_time,int_seconds
-     integer :: nhh,nmm,nss,freq_sec
+     integer :: status
+     integer :: nhh,nmm,nss
 
-     type(ESMF_TimeInterval) :: new_diff,esmf_freq
-     type(ESMF_Time) :: reff_time,new_esmf_time
+     type(ESMF_TimeInterval) :: esmf_freq
 
-     call ESMF_ClockGet(clock,currTIme=current_time,_RC)
-     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
-
-     int_seconds = 0
-     call MAPL_UnpackTIme(freq,nhh,nmm,nss)
-     is_ringing = .false.
-     call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
-     new_esmf_time = reff_time
+     call ESMF_ClockGet(clock,currTime=current_time,_RC)
+!     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
+          
+     call MAPL_UnpackTIme(freq,nhh,nmm,nss) 
      call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
-     do while (int_seconds < 86400)
-        if ( new_esmf_time == current_time) then
-           is_ringing = .true.
-           exit
-        end if
-        new_esmf_time = new_esmf_time + esmf_freq
-        new_diff = new_esmf_time - reff_time
-        call ESMF_TimeIntervalGet(new_diff,s=int_seconds,_RC)
-     enddo
+
+     is_ringing = .false.
+
+     if (current_time >= last_time_replenished + esmf_freq) then
+        is_ringing = .true.
+        last_time_replenished = current_time
+     end if
      _RETURN(_SUCCESS)
   end function
 
