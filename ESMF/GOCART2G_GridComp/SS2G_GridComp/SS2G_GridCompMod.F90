@@ -405,9 +405,8 @@ contains
 
 !   Global dimensions are needed here for choosing tuning parameters
 !   ----------------------------------------------------------------    
-    call MAPL_GridCompGet(GC, grid=grid, _RC)
+    call MAPL_GridCompGet(GC, grid=grid, num_levels=km, _RC)
     call MAPL2_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
-    km = dims(3)
     self%km = km
 
 !   Scaling factor to multiply calculated emissions by.  Applies to all size bins.
