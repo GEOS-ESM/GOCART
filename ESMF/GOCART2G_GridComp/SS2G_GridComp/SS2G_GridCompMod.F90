@@ -23,6 +23,7 @@ module SS2G_GridCompMod
    use mapl3g_generic, only: MAPL_GridCompGetResource
    use mapl3g_generic, only: MAPL_GridCompGetInternalState
    use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
+   use mapl3g_generic, only: MAPL_ClockGet
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_State_API, only: MAPL_StateGetPointer
@@ -371,19 +372,21 @@ contains
     character (len=ESMF_MAXSTR)          :: prefix, bin_index
     real, pointer, dimension(:,:)        :: lats
     real, pointer, dimension(:,:)        :: lons
+    type (ESMF_TimeInterval)             :: time_step
     real                                 :: CDT         ! chemistry timestep (secs)
-    integer                              :: HDT         ! model     timestep (secs)
+    real(ESMF_KIND_R4)                   :: HDT         ! model     timestep (secs)
     real, pointer, dimension(:,:,:,:)    :: int_ptr
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
-    real, pointer, dimension(:,:,:)      :: ple
+    real, pointer, dimension(:,:,:)      :: ple, ple0
     real, pointer, dimension(:,:)        :: deep_lakes_mask
 
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
     character(len=ESMF_MAXSTR)           :: file_
     logical                              :: file_exists
+    integer :: i1, i2, j1, j2
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -416,7 +419,7 @@ contains
 
 !   Get DTs
 !   -------
-    call MAPL_GridCompGetResource(GC, "RUN_DT", HDT, _RC)
+    call MAPL_ClockGet(clock, dt=HDT, _RC)
     call MAPL_GridCompGetResource(GC, "GOCART_DT", CDT, default=real(HDT), _RC)
     self%CDT = CDT
 
@@ -431,17 +434,10 @@ contains
        call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
-!   Call Generic Initialize
-!   ----------------------------------------
-    ! call MAPL_GenericInitialize (GC, import, export, clock, __RC__)
-
 !   Get parameters from generic state.
     !   -----------------------------------
     call MAPL_GridCompGetInternalState(GC, internal, _RC)
     call MAPL_GridGet(grid, latitudes=lats, longitudes=lons, _RC)
-    ! call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, &
-    !                      LONS = LONS, &
-    !                      LATS = LATS, __RC__ )
 
 !   Is SS data driven?
 !   ------------------
@@ -476,7 +472,9 @@ contains
     if (.not. data_driven) then
 !      Set klid
        call MAPL_StateGetPointer(import, ple, "PLE", _RC)
-       call findKlid (self%klid, self%plid, ple, __RC__)
+       i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+       ple0(i1:i2, j1:j2, 0:km) => ple(i1:i2, j1:j2, 1:km+1)
+       call findKlid (self%klid, self%plid, ple0, __RC__)
 !      Set SS values to 0 where above klid
        call MAPL_StateGetPointer(internal, int_ptr, "SS", _RC)
        call setZeroKlid4d (self%km, self%klid, int_ptr)
@@ -784,6 +782,7 @@ contains
 
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, pointer :: ple0(:, :, :), zle0(:, :, :), pfl_lsan0(:, :, :), pfi_lsan0(:, :, :)
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -809,6 +808,17 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
+    ! pchakrab: 0-based edge variables
+    km = self%km
+    i1 = lbound(zle, 1); i2 = ubound(zle, 1); j1 = lbound(zle, 2); j2 = ubound(zle, 2)
+    zle0(i1:i2, j1:j2, 0:km) => zle(i1:i2, j1:j2, 1:km+1)
+    i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+    ple0(i1:i2, j1:j2, 0:km) => ple(i1:i2, j1:j2, 1:km+1)
+    i1 = lbound(pfl_lsan, 1); i2 = ubound(pfl_lsan, 1); j1 = lbound(pfl_lsan, 2); j2 = ubound(pfl_lsan, 2)
+    pfl_lsan0(i1:i2, j1:j2, 0:km) => pfl_lsan(i1:i2, j1:j2, 1:km+1)
+    i1 = lbound(pfi_lsan, 1); i2 = ubound(pfi_lsan, 1); j1 = lbound(pfi_lsan, 2); j2 = ubound(pfi_lsan, 2)
+    pfi_lsan0(i1:i2, j1:j2, 0:km) => pfi_lsan(i1:i2, j1:j2, 1:km+1)
+
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
@@ -817,13 +827,13 @@ contains
     do n = 1, self%nbins
        call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
                            self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, SSSD, __RC__)
+                           rh2, zle0, delp, SSSD, __RC__)
     end do
 
 !   Deposition
 !   -----------
     drydepositionfrequency = 0.
-    call DryDeposition(self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
+    call DryDeposition(self%km, t, airdens, zle0, lwi, ustar, zpbl, sh,&
                        MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, __RC__ )
 
     ! increase deposition velocity over land
@@ -846,8 +856,8 @@ contains
     do n = 1, self%nbins
        fwet = 1.
        call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
-                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
+                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple0, t, airdens, &
+                               pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, SSWT, __RC__)
     end do
 
 !   Compute diagnostics
@@ -856,7 +866,7 @@ contains
     call Aero_Compute_Diags (self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
                              self%rup, self%wavelengths_profile*1.0e-9, &
                              self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
-                             delp, ple, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
+                             delp, ple0, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
                              SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
@@ -874,7 +884,7 @@ contains
                             rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=rh20,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
                             extcoef = SSEXTCOEFRH20, scacoef = SSSCACOEFRH20, NO3nFlag=.False., __RC__)
 
     RH80(:,:,:) = 0.80
@@ -883,7 +893,7 @@ contains
                             rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+                            rh=rh80,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
                             extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., __RC__)
 
     deallocate(RH20,RH80)
