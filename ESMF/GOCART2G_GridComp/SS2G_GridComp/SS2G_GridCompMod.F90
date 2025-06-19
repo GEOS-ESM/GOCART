@@ -360,7 +360,7 @@ contains
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero
     type (ESMF_State)                    :: providerState
-    type (ESMF_Config)                   :: cfg, universal_cfg
+    type (ESMF_Config)                   :: cfg
     type (ESMF_FieldBundle)              :: Bundle_DP
     type (wrap_)                         :: wrap
     type (SS2G_GridComp), pointer        :: self
@@ -396,9 +396,6 @@ contains
 !   -----------------------------------------------------------
     call ESMF_GridCompGet(GC, NAME=COMP_NAME, _RC)
     Iam = trim(COMP_NAME) // '::' //trim(Iam)
-
-    universal_cfg = ESMF_ConfigCreate(_RC)
-    call ESMF_ConfigLoadFile(universal_cfg, "GOCART2G_GridComp.rc", _RC)
 
 !   Get my internal private state
 !   -----------------------------
@@ -525,15 +522,10 @@ contains
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
-    call ESMF_ConfigGetAttribute (cfg, file_, &
-                                  label="aerosol_monochromatic_optics_file:", __RC__ )
+    call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_monochromatic_optics_file:", __RC__ )
     call ESMF_ConfigGetAttribute (cfg, nmom_, label="n_moments:", default=0,  __RC__)
-    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
-    allocate (channels_(i), __STAT__ )
-    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
-                                  label= "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", __RC__)
+    call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", channels_, _RC)
     self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
-    deallocate(channels_)
     ! Mie Table instance/index
     call ESMF_AttributeSet(aero, name='mie_table_instance', value=instance, __RC__)
 
