@@ -323,10 +323,6 @@ contains
     call ESMF_UserCompSetInternalState ( GC, 'SS2G_GridComp', wrap, STATUS )
     VERIFY_(STATUS)
 
-!   Set generic services
-!   ----------------------------------
-    ! call MAPL_GenericSetServices (GC, __RC__)
-
     RETURN_(ESMF_SUCCESS)
 
   end subroutine SetServices
