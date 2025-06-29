@@ -91,6 +91,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       logical                :: doing_point_emissions = .false.
       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
+      type(ESMF_Alarm) :: alarm
    end type SU2G_GridComp
 
    type wrap_
@@ -607,7 +608,13 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+! Deal with replenishment alarm (formerly the daily_alarm subroutine)
+! ===================================================================
+    self%alarm = createReplenishAlarm(clock, 30000, _RC)
+    _RETURN(ESMF_SUCCESS)
+
+  contains
+#include "createReplenishAlarm.h"
 
   end subroutine Initialize
 
@@ -1079,10 +1086,16 @@ contains
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    alarm_is_ringing = daily_alarm(clock,30000,_RC)
+!    alarm_is_ringing = daily_alarm(clock,30000,_RC)
+    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
 !   recycle H2O2 every 3 hours
     if (alarm_is_ringing) then
        workspace%recycle_h2o2 = .true.
+#ifdef DEBUG
+       if (MAPL_Am_I_Root()) then
+          print *,'DEBUG:: SU replenish alarm is ringing'
+       end if
+#endif
     end if
 
     allocate(xoh, mold=airdens, __STAT__)

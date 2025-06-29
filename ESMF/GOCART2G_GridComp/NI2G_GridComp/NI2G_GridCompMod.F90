@@ -58,7 +58,8 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
-   end type NI2G_GridComp
+       type(ESMF_Alarm) :: alarm
+    end type NI2G_GridComp
 
    type wrap_
       type (NI2G_GridComp), pointer     :: PTR !=> null()
@@ -499,8 +500,14 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+! Deal with replenishment alarm (formerly the daily_alarm subroutine)
+! ===================================================================
+    self%alarm = createReplenishAlarm(clock, 30000, _RC)
+    _RETURN(ESMF_SUCCESS)
 
+  contains
+#include "createReplenishAlarm.h"
+    
   end subroutine Initialize
 
 !============================================================================
@@ -798,7 +805,15 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-    alarm_is_ringing = daily_alarm(clock,30000,_RC)
+!    alarm_is_ringing = daily_alarm(clock,30000,_RC)
+    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
+#ifdef DEBUG
+    if (alarm_is_ringing) then
+          if (MAPL_Am_I_Root()) then
+             print *,'DEBUG:: NI replenish alarm is ringing'
+          end if
+    end if
+#endif
 
 !   Save local copy of HNO3 for first pass through run method regardless
     thread = MAPL_get_current_thread()
