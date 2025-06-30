@@ -13,6 +13,7 @@ module NI2G_GridCompMod
    use MAPL
    use GOCART2G_MieMod
    use Chem_AeroGeneric
+   use ReplenishAlarm
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
@@ -504,9 +505,6 @@ contains
 ! ===================================================================
     self%alarm = createReplenishAlarm(clock, 30000, _RC)
     _RETURN(ESMF_SUCCESS)
-
-  contains
-#include "createReplenishAlarm.h"
 
   end subroutine Initialize
 
@@ -1412,6 +1410,5 @@ contains
     RETURN_(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
-
 
 end module NI2G_GridCompMod

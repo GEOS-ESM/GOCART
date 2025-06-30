@@ -1,4 +1,17 @@
-    function createReplenishAlarm(clock,freq,rc) result(alarm)
+include "MAPL_Generic.h"
+
+module ReplenishAlarm
+   use ESMF
+   use MAPL
+
+   implicit none
+   private
+
+   public :: createReplenishAlarm
+
+   contains
+
+   function createReplenishAlarm(clock,freq,rc) result(alarm)
       type(ESMF_Alarm) :: alarm
       type(ESMF_Clock), intent(in) :: clock
       integer, intent(in) :: freq
@@ -14,11 +27,11 @@
       type(ESMF_Config) :: cf
       type(ESMF_Time) :: RingTime, currTime
       type(ESMF_TimeInterval) :: timeint, tstep
-      
+
       ! this section mimics MAPL2 way to create the run alarm
       ! the goal is to have a consistent way of setting the proper
       ! offset, so that the alarm would run when the parent calls the children
-      
+
       call MAPL_GetResource(MAPL, run_at_interval_start, &
            Label="RUN_AT_INTERVAL_START:", default=.false., _RC)
       call ESMF_GridCompGet(gc, name=comp_name, Config=cf, _RC)
@@ -27,7 +40,7 @@
       _ASSERT(run_at_interval_start .neqv. ival==0, "Inconsistent run alarm")
 
       call ESMF_ClockGet(clock, currTime=currTime, timestep=tstep, _RC)
-      call MAPL_UnpackTIme(freq,nhh,nmm,nss) 
+      call MAPL_UnpackTIme(freq,nhh,nmm,nss)
 
       !?call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
       call ESMF_TimeIntervalSet(timeint,h=nhh,m=nmm,s=nss,_RC)
@@ -82,3 +95,5 @@
 
       _RETURN(ESMF_SUCCESS)
     end function createReplenishAlarm
+
+end module ReplenishAlarm
