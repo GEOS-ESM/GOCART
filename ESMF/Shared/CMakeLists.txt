@@ -2,6 +2,7 @@ esma_set_this (OVERRIDE Chem_Shared2G)
 
 set (srcs
   Chem_AeroGeneric.F90
+  ReplenishAlarm.F90
   )
 
 esma_add_library(${this}
