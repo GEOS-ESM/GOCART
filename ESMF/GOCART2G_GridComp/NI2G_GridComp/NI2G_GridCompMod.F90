@@ -13,6 +13,7 @@ module NI2G_GridCompMod
    use MAPL
    use GOCART2G_MieMod
    use Chem_AeroGeneric
+   use ReplenishAlarm
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
@@ -58,7 +59,7 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
-       type(ESMF_Time) :: last_time_replenished
+       type(ESMF_Alarm) :: alarm
     end type NI2G_GridComp
 
    type wrap_
@@ -500,14 +501,10 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
-    block
-      type(ESMF_TimeInterval) :: oneDay
-      call ESMF_TimeIntervalSet(oneDay,d=1,_RC)
-      call ESMF_ClockGet(clock,currTime=currentTime,_RC)
-      self%last_time_replenished = currentTime - oneDay
-    end block
-      
-    RETURN_(ESMF_SUCCESS)
+! Deal with replenishment alarm (formerly the daily_alarm subroutine)
+! ===================================================================
+    self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Initialize
 
@@ -806,11 +803,14 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-    !ALT: Caution: with the current implementation of the routine
-    ! daily_alarm, the next call might not function correctly if it is called
-    ! more than once for the entire Run method (including Run1 and Run2)
-    ! If needed, this could be fixed by adding extra bookkeeping logic
-    alarm_is_ringing = daily_alarm(clock,30000,self%last_time_replenished, _RC)
+    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
+#ifdef DEBUG
+    if (alarm_is_ringing) then
+          if (MAPL_Am_I_Root()) then
+             print *,'DEBUG:: NI replenish alarm is ringing'
+          end if
+    end if
+#endif
 
 !   Save local copy of HNO3 for first pass through run method regardless
     thread = MAPL_get_current_thread()
@@ -1410,33 +1410,5 @@ contains
     RETURN_(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
-
-  function daily_alarm(clock,freq,last_time_replenished,rc) result(is_ringing)
-     logical :: is_ringing
-     type(ESMF_Clock), intent(in) :: clock
-     integer, intent(in) :: freq
-     type(ESMF_Time), intent(inout) :: last_time_replenished
-     integer, optional, intent(out) :: rc
-
-     type(ESMF_Time) :: current_time
-     integer :: status
-     integer :: nhh,nmm,nss
-
-     type(ESMF_TimeInterval) :: esmf_freq
-
-     call ESMF_ClockGet(clock,currTime=current_time,_RC)
-!     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
-          
-     call MAPL_UnpackTIme(freq,nhh,nmm,nss) 
-     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
-
-     is_ringing = .false.
-
-     if (current_time >= last_time_replenished + esmf_freq) then
-        is_ringing = .true.
-        last_time_replenished = current_time
-     end if
-     _RETURN(_SUCCESS)
-  end function
 
 end module NI2G_GridCompMod
