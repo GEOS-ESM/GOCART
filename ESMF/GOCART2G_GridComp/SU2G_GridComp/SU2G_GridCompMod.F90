@@ -1086,7 +1086,6 @@ contains
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-!    alarm_is_ringing = daily_alarm(clock,30000,_RC)
     alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
 !   recycle H2O2 every 3 hours
     if (alarm_is_ringing) then
@@ -1529,33 +1528,5 @@ contains
     RETURN_(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
-
-  function daily_alarm(clock,freq,last_time_replenished,rc) result(is_ringing)
-     logical :: is_ringing
-     type(ESMF_Clock), intent(in) :: clock
-     integer, intent(in) :: freq
-     type(ESMF_Time), intent(inout) :: last_time_replenished
-     integer, optional, intent(out) :: rc
-
-     type(ESMF_Time) :: current_time
-     integer :: status
-     integer :: nhh,nmm,nss
-
-     type(ESMF_TimeInterval) :: esmf_freq
-
-     call ESMF_ClockGet(clock,currTime=current_time,_RC)
-!     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
-
-     call MAPL_UnpackTIme(freq,nhh,nmm,nss)
-     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
-
-     is_ringing = .false.
-
-     if (current_time >= last_time_replenished + esmf_freq) then
-        is_ringing = .true.
-        last_time_replenished = current_time
-     end if
-     _RETURN(_SUCCESS)
-  end function
 
 end module SU2G_GridCompMod

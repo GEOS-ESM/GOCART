@@ -188,7 +188,7 @@ contains
     call createInstances_(self, GC, __RC__)
 
     call alarmResourcesToChildren(self, GC, _RC)
-    
+
 !   Define EXPORT states
 
 !   This state is needed by radiation and moist. It contains
@@ -676,14 +676,14 @@ contains
     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
                     LONS=LONS, LATS=LATS, __RC__ )
 
-!   Run zero Klid for children    
-!   --------------------------   
-    do i = 1, size(gcs) 
+!   Run zero Klid for children
+!   --------------------------
+    do i = 1, size(gcs)
       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
       if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
          call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, __RC__)
       end if
-    end do         
+    end do
 
 ! Check run_dt alarm. Bail out if not ringing.
 ! --------------------------------------------
@@ -692,7 +692,7 @@ contains
     if (.not. timeToDoWork) then
        _RETURN(ESMF_SUCCESS)
     end if
-    
+
 !   Get my internal state
 !   ---------------------
     call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
@@ -1371,7 +1371,7 @@ contains
 !==============================================================================
   subroutine alarmResourcesToChildren(self, GC, rc)
 
-!   Description: 
+!   Description:
     implicit none
 
     type (GOCART_State), pointer,            intent(in   )     :: self
@@ -1385,7 +1385,7 @@ contains
     type (MAPL_MetaComp), pointer :: MAPL
 !    character(len=ESMF_MAXSTR) :: lbl
     character(len=:), allocatable :: lbl, label
-    
+
 !-----------------------------------------------------------------------------
 !   Begin...
 !   Get my internal MAPL_Generic state
@@ -1395,7 +1395,7 @@ contains
     call MAPL_GetResource(MAPL, lvalue, Label=label, default=.false., _RC)
 
     lbl = 'p:'//label
-    
+
     call setChildResource (MAPL, self%DU, Label=lbl, value = lvalue, _RC)
     call setChildResource (MAPL, self%SS, Label=lbl, value = lvalue, _RC)
     call setChildResource (MAPL, self%CA, Label=lbl, value = lvalue, _RC)
@@ -1403,7 +1403,7 @@ contains
     call setChildResource (MAPL, self%NI, Label=lbl, value = lvalue, _RC)
 
     deallocate(lbl, label)
-    
+
     _RETURN(ESMF_SUCCESS)
 
   contains
@@ -1416,7 +1416,7 @@ contains
       character(len=*), intent(in) :: label
       integer, intent(  out)     :: rc
       integer :: ivalue
-      
+
       ! local
       integer  :: i, n, id
       type (ESMF_GridComp), pointer :: cgc
@@ -1425,7 +1425,7 @@ contains
 
       ivalue = 0
       if (lvalue) ivalue=1
-      
+
       n=size(species%instances)
 
       do i = 1, n
