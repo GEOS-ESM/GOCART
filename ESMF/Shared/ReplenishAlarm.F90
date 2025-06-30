@@ -1,4 +1,4 @@
-include "MAPL_Generic.h"
+#include "MAPL_Generic.h"
 
 module ReplenishAlarm
    use ESMF
@@ -11,11 +11,13 @@ module ReplenishAlarm
 
    contains
 
-   function createReplenishAlarm(clock,freq,rc) result(alarm)
-      type(ESMF_Alarm) :: alarm
+   function createReplenishAlarm(gc,clock,freq,rc) result(alarm)
+      type(ESMF_GridComp), intent(inout) :: gc
       type(ESMF_Clock), intent(in) :: clock
       integer, intent(in) :: freq
       integer, optional, intent(out) :: rc
+
+      type(ESMF_Alarm) :: alarm
 
       integer :: status, ival
       logical :: run_at_interval_start
@@ -27,10 +29,15 @@ module ReplenishAlarm
       type(ESMF_Config) :: cf
       type(ESMF_Time) :: RingTime, currTime
       type(ESMF_TimeInterval) :: timeint, tstep
+      type(MAPL_MetaComp), pointer :: MAPL
 
       ! this section mimics MAPL2 way to create the run alarm
       ! the goal is to have a consistent way of setting the proper
       ! offset, so that the alarm would run when the parent calls the children
+
+      ! Get my internal MAPL_Generic state
+      ! -----------------------------------
+      call MAPL_GetObjectFromGC (gc, MAPL, _RC)
 
       call MAPL_GetResource(MAPL, run_at_interval_start, &
            Label="RUN_AT_INTERVAL_START:", default=.false., _RC)

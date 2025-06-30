@@ -503,7 +503,7 @@ contains
 
 ! Deal with replenishment alarm (formerly the daily_alarm subroutine)
 ! ===================================================================
-    self%alarm = createReplenishAlarm(clock, 30000, _RC)
+    self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
     _RETURN(ESMF_SUCCESS)
 
   end subroutine Initialize
