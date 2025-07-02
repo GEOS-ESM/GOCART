@@ -5839,8 +5839,8 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: SulfateUpdate1HROxidants
 
    subroutine SulfateUpdate1HROxidants (nymd_current, nhms_current, lonRad, latRad, &
-                                     rhoa, km, cdt, &
-                                     undefval, radToDeg, nAvogadro, airMolWght, &
+                                     rhoa, km, &
+                                     undefval, radToDeg, nAvogadro, pi, airMolWght, &
                                      oh_1hr, no3_1hr, h2o2_1hr, &
                                      xoh, xno3, xh2o2, rc)
 ! !USES:
@@ -5852,10 +5852,10 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:), intent(in)   :: lonRad, latRad ! model grid lon and lat
    real, dimension(:,:,:), intent(in) :: rhoa           ! layer air density [kg/m^3]
    integer, intent(in)    :: km         ! number of model levels
-   real, intent(in)       :: cdt        ! chemistry model time-step
    real, intent(in)       :: undefval   ! value for undefined values
    real, intent(in)       :: radToDeg   ! radian to degrees conversion
    real, intent(in)       :: nAvogadro  ! Avogadro's number [molecules per mole of air]
+   real, intent(in)       :: pi         ! pi constant
    real, intent(in)       :: airMolWght ! air molecular weight [kg/Kmole]
    real, pointer, dimension(:,:,:) :: oh_1hr, &   ! hourly OH [vmr]
                                       no3_1hr, &  ! hourly NO3 [vmr]
@@ -5881,10 +5881,9 @@ K_LOOP: do k = km, 1, -1
 
 ! !Local Variables
    integer :: i, j, k, jday
-   real    :: xhour, xhouruse
+   real    :: xhour
    real, dimension(:,:), allocatable  :: cossza, sza
-   real, dimension(:,:), allocatable  :: tcosz, tday, tnight
-   integer :: n, ndystep
+   integer :: n
    integer :: i1=1, j1=1, i2, j2
 
 !EOP
@@ -5894,8 +5893,8 @@ K_LOOP: do k = km, 1, -1
     i2 = size(rhoa,1)
     j2 = size(rhoa,2)
 
-    allocate(cossza(i1:i2,j1:j2), sza(i1:i2,j1:j2), tcosz(i1:i2,j1:j2), &
-             tday(i1:i2,j1:j2), tnight(i1:i2,j1:j2), source=0.0)
+    allocate(cossza(i1:i2,j1:j2), sza(i1:i2,j1:j2), &
+             source=0.0)
 
 !   Oxidant fields
     where(1.01*oh_1hr(i1:i2,j1:j2,1:km) > undefval) oh_1hr(i1:i2,j1:j2,1:km) = 0.
@@ -5906,9 +5905,6 @@ K_LOOP: do k = km, 1, -1
 
     where(1.01*h2o2_hr(i1:i2,j1:j2,1:km) > undefval) h2o2_1hr(i1:i2,j1:j2,1:km) = 0.
     where(     h2o2_hr(i1:i2,j1:j2,1:km) < 0       ) h2o2_1hr(i1:i2,j1:j2,1:km) = 0.
-
-
-
 
 !   The expectation here is that OH, H2O2, and NO3 are being read in the form
 !   volume mixing ratio from a file (so, like GMI would provide).
@@ -5930,29 +5926,6 @@ K_LOOP: do k = km, 1, -1
              + real(mod(nhms_current,100)) &
              ) / 3600.
 
-!   Want to find the sum of the cos(sza) 
-!   tcosz is the sum of cossza over the whole day
-!   tday is the time of day spent in light, tnight is time of day spend in night
-!   Requires integrating over future times, so cannot use w_c%cosz
-    xHourUse = xHour
-    ndystep = 86400. / cdt
-    cossza(:,:) = 0.
-    tcosz(:,:) = 0.
-    tday(:,:) = 0.
-    do n = 1, ndystep
-       call szangle(jday,xHourUse,lonRad,latRad,PI,radToDeg,sza,cossza, i2, j2)
-       tcosz = tcosz + cossza
-       xHourUse = xHourUse + cdt/3600.
-       if(xHourUse .gt. 24.) xHourUse = xHourUse - 24.
-!      Find the daylight portion of the day
-       do j = j1, j2
-          do i = i1, i2
-             if(cossza(i,j) .gt. 0.) tday(i,j) = tday(i,j) + cdt
-          end do
-       end do
-    end do
-
-    tnight(i1:i2,j1:j2) = (86400.-tday(i1:i2,j1:j2))
 
 !   Find the cos(sza) for the current time step
     call szangle(jday,xHour,lonRad,latRad,PI,radToDeg,sza,cossza, i2, j2)
@@ -5961,7 +5934,7 @@ K_LOOP: do k = km, 1, -1
 !   NO3
 !   If there is daylight then no3 is small (assume zero) 
     do k=1,km
-       where(cossza(i1:i2,j1:j2) > 0 .OR. tnight(i1:i2,j1:j2) < tiny(1.0))
+       where(cossza(i1:i2,j1:j2) > 0)
           xno3(i1:i2,j1:j2,k) = 0.00
        end where
     end do
