@@ -1047,9 +1047,10 @@ contains
 
     if (self%using_1HR_OX) then
         ! external oxident files are already 1-hourly
-        call SulfateUpdate1HROxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+        ! set no3 to zero during the day.  Mostly for diagnostics.
+        call SulfateUpdate1HROxidants (nymd, nhms, LONS, LATS, airdens, self%km, &
                                 MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
-                                MAPL_AVOGAD/1000., MAPL_AIRMW, &
+                                MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
                                 SU_OH, SU_NO3, SU_H2O2, &
                                 xoh, xno3, xh2o2, __RC__)
 
