@@ -1046,14 +1046,13 @@ contains
     !end if
 
     if (self%using_1HR_OX) then
-        ! external oxident files are already 1-hourly, use them directly
-        xh2o2 = SU_H2O2
-        xoh   = SU_OH
-        xno3  = SU_NO3
+        ! external oxident files are already 1-hourly
+        call SulfateUpdate1HROxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+                                MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
+                                MAPL_AVOGAD/1000., MAPL_AIRMW, &
+                                SU_OH, SU_NO3, SU_H2O2, &
+                                xoh, xno3, xh2o2, __RC__)
 
-        ! Go from volume mixing ratio to # cm-3 (expected in chemistry)
-        ! aidens = [kg m-3], MAPL_AIRMW = [kg/Kmole], MAPL_AVOGAD = [molecules/mole]
-        xoh = xoh * 1000.*airdens / MAPL_AIRMW * (MAPL_AVOGAD/1000.) * 1.e-6        
     else
         ! external oxident files are monthly, scale these to 3-hourly
         xh2o2 = h2o2_init
