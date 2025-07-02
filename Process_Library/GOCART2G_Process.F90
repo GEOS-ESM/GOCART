@@ -5903,8 +5903,8 @@ K_LOOP: do k = km, 1, -1
     where(1.01*no3_1hr(i1:i2,j1:j2,1:km) > undefval) no3_1hr(i1:i2,j1:j2,1:km) = 0.
     where(     no3_1hr(i1:i2,j1:j2,1:km) < 0       ) no3_1hr(i1:i2,j1:j2,1:km) = 0.
 
-    where(1.01*h2o2_hr(i1:i2,j1:j2,1:km) > undefval) h2o2_1hr(i1:i2,j1:j2,1:km) = 0.
-    where(     h2o2_hr(i1:i2,j1:j2,1:km) < 0       ) h2o2_1hr(i1:i2,j1:j2,1:km) = 0.
+    where(1.01*h2o2_1hr(i1:i2,j1:j2,1:km) > undefval) h2o2_1hr(i1:i2,j1:j2,1:km) = 0.
+    where(     h2o2_1hr(i1:i2,j1:j2,1:km) < 0       ) h2o2_1hr(i1:i2,j1:j2,1:km) = 0.
 
 !   The expectation here is that OH, H2O2, and NO3 are being read in the form
 !   volume mixing ratio from a file (so, like GMI would provide).
