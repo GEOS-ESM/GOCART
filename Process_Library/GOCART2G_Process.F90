@@ -56,6 +56,7 @@
    public DMSemission
    public SUvolcanicEmissions
    public SulfateUpdateOxidants
+   public SulfateUpdate1HROxidants
    public SU_Wet_Removal
    public SU_Compute_Diags
    public SulfateChemDriver
