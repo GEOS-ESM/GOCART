@@ -255,6 +255,9 @@ contains
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
 #include "SS2G_Internal___.h"
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+       end if
     end if
 
 !   This state holds fields needed by radiation
@@ -696,11 +699,12 @@ contains
 
 !      For the Hoppel correction need to compute the wet radius and settling velocity
 !      in the surface
-       if (self%hoppelFlag) then
-          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
-                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
-                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
-       end if
+!     Collow: commented out 9 Jan 2024 as this is not consistent with the updated settling based on the optics files. The flag to call this is set to false in the instance RC file. This should be revistited in the future.
+!       if (self%hoppelFlag) then
+!          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
+!                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
+!                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
+!       end if
 
        memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
        dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
@@ -733,7 +737,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION: Run2 method for the Dust Grid Component.
+! !DESCRIPTION: Run2 method for the Sea Salt Grid Component.
 
 !EOP
 !============================================================================
@@ -750,7 +754,9 @@ contains
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, pointer, dimension(:,:)     :: flux_ptr
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -785,9 +791,11 @@ contains
 !   Sea Salt Settling
 !   -----------------
     do n = 1, self%nbins
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, SSSD, __RC__)
+       nullify(flux_ptr)
+       if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           SS(:,:,:,n), t, airdens, &
+                           rh2, zle, delp, flux_ptr, __RC__)
     end do
 
 !   Deposition
@@ -813,12 +821,27 @@ contains
 !   Large-scale Wet Removal
 !   ------------------------
     KIN = .TRUE.
-    do n = 1, self%nbins
-       fwet = 1.
-       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
-                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
-    end do
+    select case (self%wet_removal_scheme)
+    case ('gocart')
+       do n = 1, self%nbins
+          fwet = 1.
+          call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
+                                  KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
+                                  pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
+       end do
+    case ('ufs')
+       rainout_eff = 0.0
+       do n = 1, self%nbins
+          rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+          rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+          rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+          call WetRemovalUFS(self%km, self%klid, n, self%cdt, 'sea_salt', KIN, MAPL_GRAV, &
+                             self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, & 
+                             SS(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, SSWT, __RC__)
+       end do
+    case default
+       _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
 !   Compute diagnostics
 !   -------------------
@@ -840,8 +863,8 @@ contains
 
     RH20(:,:,:) = 0.20
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            nbins=self%nbins, rlow=self%rlow, rup=self%rup, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
@@ -849,8 +872,8 @@ contains
 
     RH80(:,:,:) = 0.80
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            nbins=self%nbins, rlow=self%rlow, rup=self%rup, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &

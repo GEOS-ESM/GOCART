@@ -1,9 +1,9 @@
 #
-# Resource file Dust parameters. 
+# Resource file Dust parameters.
 #
 
-aerosol_radBands_optics_file:      ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_DU.v15_3.RRTMG.nc 
-aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_DU.v15_3.nc
+aerosol_radBands_optics_file:      ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_DU.v15_3.RRTMG.nc
+aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_DU.v15_6.nc
 
 particle_radius_microns: 0.73 1.4 2.4 4.5 8.0
 
@@ -18,7 +18,7 @@ particle_density: 2500. 2650. 2650. 2650. 2650.
 # -----------------------
 emission_scheme: ginoux
 #Ch_DU: 0.2 0.2 0.07 0.07 0.07 0.056 #original values for (a,b,c,d,e,f)
-Ch_DU:  0.3 0.3 0.11 0.11 0.11 0.088 
+Ch_DU:  0.3 0.3 0.11 0.11 0.11 0.088
 
 # source_fraction: 0.0435465   0.106903   0.220117   0.484606   0.144828
 source_fraction: 0.1 0.25 0.25 0.25 0.25
@@ -41,8 +41,16 @@ soil_moisture_factor: 0.8
 # clay fraction scaling factor
 soil_clay_factor: 1.0
 
+# Wet Removal Scheme Option | gocart, ufs
+wet_removal_scheme: gocart ! default value
+
 # Scavenging efficiency per bin [km-1]
 fscav: 0.2  0.2  0.2  0.2  0.2
+
+# Rainout efficiency per bin for wet_removal_scheme == ufs
+fwet_ice: 0.8 0.8 0.8 1.0 1.0
+fwet_snow: 0.8 0.8 0.8 1.0 1.0
+fwet_rain: 0.8 0.8 0.8 1.0 1.0
 
 # Molecular weight of species [kg mole-1]
 molecular_weight: 0.1  0.1  0.1  0.1  0.1
@@ -50,18 +58,17 @@ molecular_weight: 0.1  0.1  0.1  0.1  0.1
 # Number of particles per kg mass
 fnum: 2.45e14  3.28e13  6.52e12  9.89e11 1.76e11
 
-rhFlag: 0
-
 # Maring settling velocity correction
-maringFlag: .true. 
+maringFlag: .true.
 
 nbins: 5
 
 pressure_lid_in_hPa: 0.01
 
 # FENGSHA settings
-alpha: 0.3
-gamma: 1.3
-vertical_to_horizontal_flux_ratio_limit: 2.e-04
+alpha: 0.16
+gamma: 1
+soil_moisture_factor: 1.0
 soil_drylimit_factor: 1.0
-# soil_moisture_factor: 1.0
+vertical_to_horizontal_flux_ratio_limit: 2.e-04
+drag_partition_option: 2

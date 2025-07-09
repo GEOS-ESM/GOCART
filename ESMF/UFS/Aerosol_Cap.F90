@@ -8,9 +8,9 @@ module Aerosol_Cap
     NUOPC_ModelGet, &
     SetVM, &
     model_routine_SS            => SetServices,          &
-    model_routine_Run           => routine_Run,          &
-    model_label_Advance         => label_Advance,        &
+    model_label_Advertise       => label_Advertise,      &
     model_label_DataInitialize  => label_DataInitialize, &
+    model_label_Advance         => label_Advance,        &
     model_label_Finalize        => label_Finalize
 
   use Aerosol_Comp_mod
@@ -103,23 +103,15 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
-    ! switch to IPDv03
-    call ESMF_GridCompSetEntryPoint(model, ESMF_METHOD_INITIALIZE, &
-      userRoutine=ModelInitializeP0, phase=0, rc=rc)
+    ! specialize the model component
+    call NUOPC_CompSpecialize(model, &
+      specLabel=model_label_Advertise, specRoutine=ModelAdvertise, &
+      rc=rc)
     if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
 
-    ! set entry point for methods that require specific implementation
-    call NUOPC_CompSetEntryPoint(model, ESMF_METHOD_INITIALIZE, &
-      phaseLabelList=(/"IPDv03p1"/), userRoutine=ModelInitializeP1, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! - set component's initialization status
     call NUOPC_CompSpecialize(model, &
       specLabel=model_label_DataInitialize, specRoutine=ModelDataInitialize, &
       rc=rc)
@@ -146,23 +138,24 @@ contains
     if (mype == 0) call ufs_trace("gocart", "SetServices", "E")
   end subroutine SetServices
 
-  subroutine ModelInitializeP0(model, importState, exportState, clock, rc)
+  subroutine ModelAdvertise(model, rc)
     type(ESMF_GridComp)  :: model
-    type(ESMF_State)     :: importState
-    type(ESMF_State)     :: exportState
-    type(ESMF_Clock)     :: clock
     integer, intent(out) :: rc
 
     ! local variables
-    integer                    :: verbosity
-    character(len=ESMF_MAXSTR) :: name
-
-    ! local parameters
-    character(len=*), parameter :: rName = "ModelInitializeP0"
+    type(ESMF_State)     :: importState, exportState
 
     ! begin
     rc = ESMF_SUCCESS
-    if (mype == 0) call ufs_trace("gocart", "ModelInitializeP0", "B")
+    if (mype == 0) call ufs_trace("gocart", "ModelAdvertise", "B")
+
+    ! query for importState and exportState
+    call NUOPC_ModelGet(model, importState=importState, &
+      exportState=exportState, rc=rc)
+    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
+      line=__LINE__, &
+      file=__FILE__)) &
+      return  ! bail out
 
     ! startup
     call AerosolLog(modelName//': Initializing ...', rc=rc)
@@ -170,48 +163,6 @@ contains
       line=__LINE__,  &
       file=__FILE__)) &
       return  ! bail out
-
-   ! get component's info
-    call NUOPC_CompGet(model, name=name, verbosity=verbosity, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! intro
-    call NUOPC_LogIntro(name, rName, verbosity, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! switch to IPDv01 by filtering all other phaseMap entries
-    call NUOPC_CompFilterPhaseMap(model, ESMF_METHOD_INITIALIZE, &
-      acceptStringList=(/"IPDv03p"/), rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__, &
-      file=__FILE__)) &
-      return  ! bail out
-
-    ! extro
-    call NUOPC_LogExtro(name, rName, verbosity, rc=rc)
-    if (ESMF_LogFoundError(rcToCheck=rc, msg=ESMF_LOGERR_PASSTHRU, &
-      line=__LINE__,  &
-      file=__FILE__)) &
-      return  ! bail out
-
-    if (mype == 0) call ufs_trace("gocart", "ModelInitializeP0", "E")
-  end subroutine ModelInitializeP0
-
-  subroutine ModelInitializeP1(model, importState, exportState, clock, rc)
-    type(ESMF_GridComp)  :: model
-    type(ESMF_State)     :: importState, exportState
-    type(ESMF_Clock)     :: clock
-    integer, intent(out) :: rc
-
-    ! begin
-    rc = ESMF_SUCCESS
-    if (mype == 0) call ufs_trace("gocart", "ModelInitializeP1", "B")
 
     ! -- advertise imported fields
     call NUOPC_Advertise(importState, importFieldNames, &
@@ -233,8 +184,8 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
-    if (mype == 0) call ufs_trace("gocart", "ModelInitializeP1", "E")
-  end subroutine ModelInitializeP1
+    if (mype == 0) call ufs_trace("gocart", "ModelAdvertise", "E")
+  end subroutine ModelAdvertise
 
   subroutine ModelDataInitialize(model, rc)
     type(ESMF_GridComp)  :: model

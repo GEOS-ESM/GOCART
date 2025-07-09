@@ -3,7 +3,7 @@
 #
 
 aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_SS.v3_3.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_SS.v3_3.nc
+aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_SS.v3_6.nc
 
 particle_radius_microns: 0.079 0.316 1.119 2.818 7.772
 
@@ -13,8 +13,16 @@ radius_upper: 0.1 0.5 1.5 5.0 10.0
 
 particle_density: 2200. 2200. 2200. 2200. 2200.
 
+# Wet Removal Scheme Option | gocart, ufs
+wet_removal_scheme: gocart ! default value
+
 # Scavenging efficiency per bin [km-1]
-fscav: 0.4  0.4  0.4  0.4  0.4 
+fscav: 0.4  0.4  0.4  0.4  0.4
+
+# Rainout efficiency per bin for wet_removal_scheme == ufs
+fwet_ice: 1.0 1.0 1.0 1.0 1.0
+fwet_snow: 1.0 1.0 1.0 1.0 1.0
+fwet_rain: 1.0 1.0 1.0 1.0 1.0
 
 # Emissions methods and scaling
 emission_scheme: 3                                     # 1 for Gong 2003, 2 for ...
@@ -22,10 +30,6 @@ emission_scale:  0.613 0.613 0.613 0.429 0.429 0.429   # a global scaling factor
 sstEmisFlag:     2                                     # Apply a correction to emissions based on SST (see code)
 hoppelFlag:      .false.              # Apply Hoppel correction (set non-zero, see Fan and Toon 2011)
 weibullFlag:     .false.              # Apply Weibull distribution (set non-zero, see Fan and Toon 2011)
-
-# Method of apply relative humidity to particle radius
-rhFlag:          2       # RH swelling of Seasalt (1 for Fitzgerald 1975,
-                         #                         2 for Gerber 1985 method)
 
 # Molecular weight of species [kg mole-1]
 molecular_weight: 0.058  0.058  0.058  0.058  0.058

@@ -33,6 +33,7 @@ module CA2G_GridCompMod
 ! !DESCRIPTION: This module implements GOCART2G's Carbonaceous Aerosol (CA) Gridded Component.
 
 ! !REVISION HISTORY:
+! 4January2024   Collow - Updated call for ChemSettling
 ! 15June2020  Sherman, da Silva, Darmenov, Clune -  First attempt at refactoring.
 
 !EOP
@@ -54,6 +55,8 @@ module CA2G_GridCompMod
        real               :: fMonoterpenes = 0.0 ! Fraction of monoterpene emissions -> aerosol
        real               :: fIsoprene = 0.0 ! Franction of isoprene emissions -> aerosol
        real               :: fHydrophobic ! Initially hydrophobic portion
+       real               :: tConvPhobicToPhilic ! e-folding time [days] hydrophobic to hydrophilic
+       real               :: tChemLoss(2)        ! e-folding time [days] for parameterized chemistry loss
        logical            :: diurnal_bb   ! diurnal biomass burning
        real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
@@ -162,6 +165,12 @@ contains
 !   ----------------------------------------------
     call ESMF_ConfigGetAttribute (cfg, self%myDOW, label='my_day_of_week:', default=-1, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fhydrophobic, label='hydrophobic_fraction:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%tConvPhobicToPhilic, &
+                                  label='time_days_hydrophobic_to_hydrophilic:', default=2.5, __RC__)
+    call ESMF_ConfigFindLabel (cfg, 'time_days_chemical_destruction:', __RC__)
+    do i=1,size(self%tChemLoss)
+     call ESMF_ConfigGetAttribute (cfg, self%tChemLoss(i), default=-1., __RC__)
+    end do
     call ESMF_ConfigGetAttribute (cfg, self%ratPOM, label='pom_ca_ratio:', default=1.0, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fMonoterpenes, label='monoterpenes_emission_fraction:', default=0.0, __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%fIsoprene, label='isoprene_emission_fraction:', default=0.0, __RC__)
@@ -529,6 +538,9 @@ contains
 
 !      Wet deposition
        call append_to_bundle(trim(comp_name)//'WT', providerState, prefix, Bundle_DP, __RC__)
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+       end if
 
 !      Gravitational Settling
        call append_to_bundle(trim(comp_name)//'SD', providerState, prefix, Bundle_DP, __RC__)
@@ -924,6 +936,7 @@ contains
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
     real                              :: fwet
+    real, dimension(3)                :: rainout_eff
     logical                           :: KIN
     real, allocatable, dimension(:,:,:)   :: pSOA_VOC
     real, pointer, dimension(:,:,:)       :: int_ptr
@@ -931,6 +944,7 @@ contains
     character(len=2)  :: GCsuffix
     character(len=ESMF_MAXSTR)      :: short_name
     real, pointer, dimension(:,:,:)  :: intPtr_phobic, intPtr_philic
+    real, pointer, dimension(:,:)     :: flux_ptr
 
     real, parameter ::  cpd    = 1004.16
     integer                      :: i1, j1, i2, j2, km
@@ -996,19 +1010,31 @@ contains
     end if
 
 !   Ad Hoc transfer of hydrophobic to hydrophilic aerosols
-!   Following Chin's parameterization, the rate constant is
-!   k = 4.63e-6 s-1 (.4 day-1; e-folding time = 2.5 days)
-    call phobicTophilic (intPtr_phobic, intPtr_philic, HYPHIL, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
+!   Rate controlled in RC file; tConvPhobicToPhilic < 0 means no transfer
+    call phobicToPhilic (intPtr_phobic, intPtr_philic, HYPHIL, &
+                         self%tConvPhobicToPhilic, self%km, self%cdt, MAPL_GRAV, delp, __RC__)
+
+!   Ad Hoc chemical destruction of carbon
+!   This applies a simple exponential decay to both hydrophobic and
+!   hydrophilic modes with the time constant tChemLoss (e-folding
+!   time in days)
+    do n = 1, self%nbins
+       call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+       call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+       call carbonChemLoss (self%km, self%klid, n, self%cdt, MAPL_GRAV, delp, &
+                            self%tChemLoss(n), int_ptr, CH, __RC__)
+    end do
 
 !   CA Settling
 !   -----------
     do n = 1, self%nbins
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), int_ptr, t, airdens, &
-                           rh2, zle, delp, SD, __RC__)
+       nullify(flux_ptr)
+       flux_ptr => SD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           int_ptr, t, airdens, &
+                           rh2, zle, delp, flux_ptr, __RC__)
     end do
 
 !   CA Deposition
@@ -1033,14 +1059,36 @@ contains
 
 !   Large-scale Wet Removal
 !   -------------------------------
-!   Hydrophobic mode (first tracer) is not removed
-    if (associated(WT)) WT(:,:,1)=0.0
     KIN = .true.
-!   Hydrophilic mode (second tracer) is removed
-    fwet = 1.
-    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
-                             KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
-                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
+
+    select case (self%wet_removal_scheme)
+
+    case ('gocart')
+!      Hydrophobic mode (first tracer) is not removed
+       if (associated(WT)) WT(:,:,1)=0.0
+
+!      Hydrophilic mode (second tracer) is removed
+       fwet = 1.
+       call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
+                                KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
+                                pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
+    case ('ufs')
+!      Both hydrophobic and hydrophilic modes can be removed
+       do n = 1, self%nbins
+          rainout_eff = 0.0
+          rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+          rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+          rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+
+          call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+          call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+          call WetRemovalUFS  (self%km, self%klid, n, self%cdt, GCsuffix, &
+                               KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, & 
+                               self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, WT, __RC__)
+       end do
+    case default
+       _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
 !   Compute diagnostics
 !   -------------------
