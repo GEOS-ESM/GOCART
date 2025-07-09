@@ -358,9 +358,8 @@ subroutine CH4_GridCompRun ( gcCH4, w_c, impChem, expChem, nymd, nhms, cdt, rc )
       call MAPL_GetPointer(impChem, qtot, 'QTOT', __RC__) ! Sourish
       call MAPL_GetPointer(expChem, CH4_dry, 'CH4DRY', __RC__)
       if (associated(CH4_dry)) &
-         CH4_dry(i1:i2,j1:j2,1:km) = CH4_total(i1:i2,j1:j2,1:km) / (1. - qtot(i1:i2,j1:j2,1:km))
+         CH4_dry(i1:i2,j1:j2,1:km) = CH4_total / (1.- qtot(i1:i2,j1:j2,1:km))
    end if
-
 end subroutine CH4_GridCompRun
 
 
