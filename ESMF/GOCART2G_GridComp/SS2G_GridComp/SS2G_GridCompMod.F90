@@ -105,6 +105,7 @@ contains
     character (len=ESMF_MAXSTR)                 :: COMP_NAME
     type (ESMF_Config)                          :: cfg
     type (ESMF_Config)                          :: universal_cfg
+    type (ESMF_HConfig)                         :: hconfig
     type (wrap_)                                :: wrap
     type (SS2G_GridComp), pointer               :: self
 
@@ -142,6 +143,9 @@ contains
        call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
+    call MAPL_GridCompGet(GC, hconfig=hconfig, _RC)
+    call ESMF_HConfigFileSave(hconfig, filename="seasalt-hconfig.yaml", _RC)
+
     ! process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
@@ -168,7 +172,8 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, phase_name="Run", _RC)
     if (data_driven .neqv. .true.) then
-       call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, phase_name="Run2", _RC)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
     end if
 
     DEFVAL = 0.0
@@ -177,78 +182,77 @@ contains
 !   -------------------------------------------
     if (data_driven) then
        _FAIL("data driven section has not been activated yet")
-   call MAPL_GridCompAddSpec(gc,&
-         state_intent=ESMF_STATEINTENT_INTERNAL, &
-         short_name='SS', &
-         standard_name='Sea Salt Mixing Ratio all bins', &
-         units='kg kg-1', &
-         dims='xyz', &
-         vstagger=VERTICAL_STAGGER_CENTER, &
-         ! restart=MAPL_RestartOptional, &
-         ungridded_dims=[self%nbins], &
-!         friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-         add_to_export=.true., _RC)
 
+       call MAPL_GridCompAddSpec(gc,&
+            state_intent=ESMF_STATEINTENT_INTERNAL, &
+            short_name='SS', &
+            standard_name='Sea Salt Mixing Ratio all bins', &
+            units='kg kg-1', &
+            dims='xyz', &
+            vstagger=VERTICAL_STAGGER_CENTER, &
+            ! restart=MAPL_RestartOptional, &
+            ungridded_dims=[self%nbins], &
+            ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+            add_to_export=.true., _RC)
 
-   call MAPL_GridCompAddSpec(gc,&
-        & state_intent=ESMF_STATEINTENT_INTERNAL, &
-        & short_name='DEEP_LAKES_MASK', &
-        & units='1', &
-        & dims='xy', &
-        & vstagger=VERTICAL_STAGGER_NONE, &
-        & add_to_export=.false., &
-        & standard_name='Deep Lakes Mask', &
-        & _RC)
-
+       call MAPL_GridCompAddSpec(gc,&
+            & state_intent=ESMF_STATEINTENT_INTERNAL, &
+            & short_name='DEEP_LAKES_MASK', &
+            & units='1', &
+            & dims='xy', &
+            & vstagger=VERTICAL_STAGGER_NONE, &
+            & add_to_export=.false., &
+            & standard_name='Deep Lakes Mask', &
+            & _RC)
 
 !      Pressure at layer edges
 !      -----------------------
        call MAPL_GridCompAddSpec(GC, &
-          STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-          SHORT_NAME='PLE', &
-          STANDARD_NAME='air_pressure', &
-          UNITS='Pa', &
-          DIMS='xyz', &
-          vstagger=VERTICAL_STAGGER_EDGE, &
-          ! RESTART=MAPL_RestartSkip, &
-          _RC)
+            STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+            SHORT_NAME='PLE', &
+            STANDARD_NAME='air_pressure', &
+            UNITS='Pa', &
+            DIMS='xyz', &
+            vstagger=VERTICAL_STAGGER_EDGE, &
+            ! RESTART=MAPL_RestartSkip, &
+            _RC)
 
 !      RH: is between 0 and 1
 !      ----------------------
        call MAPL_GridCompAddSpec(GC, &
-          STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-          SHORT_NAME='RH2', &
-          STANDARD_NAME='Rel_Hum_after_moist', &
-          UNITS='1', &
-          DIMS = 'xyz', &
-          VSTAGGER=VERTICAL_STAGGER_CENTER, &
-          ! RESTART=MAPL_RestartSkip, &
-          _RC)
+            STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+            SHORT_NAME='RH2', &
+            STANDARD_NAME='Rel_Hum_after_moist', &
+            UNITS='1', &
+            DIMS = 'xyz', &
+            VSTAGGER=VERTICAL_STAGGER_CENTER, &
+            ! RESTART=MAPL_RestartSkip, &
+            _RC)
 
-        do i = 1, self%nbins
-            write(field_name, '(A, I0.3)') '', i
-            call MAPL_GridCompAddSpec(GC, &
-              STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-              SHORT_NAME='climss'//trim(field_name), &
-              STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-              UNITS='kg kg-1 s-1', &
-              ! RESTART=MAPL_RestartSkip, &
-              DIMS='xyz', &
-              VSTAGGER=VERTICAL_STAGGER_CENTER, _RC)
+       do i = 1, self%nbins
+          write(field_name, '(A, I0.3)') '', i
+          call MAPL_GridCompAddSpec(GC, &
+               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+               SHORT_NAME='climss'//trim(field_name), &
+               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+               UNITS='kg kg-1 s-1', &
+               ! RESTART=MAPL_RestartSkip, &
+               DIMS='xyz', &
+               VSTAGGER=VERTICAL_STAGGER_CENTER, _RC)
 
 !           ! dry deposition
-            call MAPL_GridCompAddSpec(GC, &
-              STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-              SHORT_NAME='climSSDP'//trim(field_name), &
-              STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-              UNITS='kg kg-1 s-1', &
-              DIMS='xy', &
-              VSTAGGER=VERTICAL_STAGGER_CENTER, &
-              ! RESTART=MAPL_RestartSkip, &
-              _RC)
+          call MAPL_GridCompAddSpec(GC, &
+               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+               SHORT_NAME='climSSDP'//trim(field_name), &
+               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+               UNITS='kg kg-1 s-1', &
+               DIMS='xy', &
+               VSTAGGER=VERTICAL_STAGGER_CENTER, &
+               ! RESTART=MAPL_RestartSkip, &
+               _RC)
 
 !           ! wet deposition
-            call MAPL_GridCompAddSpec(GC, &
+          call MAPL_GridCompAddSpec(GC, &
                STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
                SHORT_NAME='climSSWT'//trim(field_name), &
                STANDARD_NAME='Sea Salt wet removal (bin '//trim(field_name)//')', &
@@ -259,7 +263,7 @@ contains
                _RC)
 
 !           ! gravitational settling
-            call MAPL_GridCompAddSpec(GC, &
+          call MAPL_GridCompAddSpec(GC, &
                STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
                SHORT_NAME='climSSSD'//trim(field_name), &
                STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
@@ -270,7 +274,7 @@ contains
                _RC)
 
 !        ! convective scavenging
-            call MAPL_GridCompAddSpec(GC, &
+          call MAPL_GridCompAddSpec(GC, &
                STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
                SHORT_NAME='climSSSV'//trim(field_name), &
                STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
@@ -279,7 +283,7 @@ contains
                VSTAGGER=VERTICAL_STAGGER_CENTER, &
                ! RESTART=MAPL_RestartSkip, &
                _RC)
-        end do
+       end do
     end if ! (data_driven)
 
 
@@ -289,6 +293,9 @@ contains
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
 #include "SS2G_Internal___.h"
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+       end if
     end if
 
 !   This state holds fields needed by radiation
@@ -383,6 +390,7 @@ contains
     character(len=ESMF_MAXSTR)           :: file_
     logical                              :: file_exists
     integer :: i1, i2, j1, j2
+
     __Iam__('Initialize')
 
 !****************************************************************************
@@ -400,7 +408,7 @@ contains
     self => wrap%ptr
 
 !   Global dimensions are needed here for choosing tuning parameters
-!   ----------------------------------------------------------------    
+!   ----------------------------------------------------------------
     call MAPL_GridCompGet(GC, grid=grid, num_levels=km, _RC)
     call MAPL2_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     self%km = km
@@ -413,7 +421,7 @@ contains
 !   Get DTs
 !   -------
     call MAPL_ClockGet(clock, dt=HDT, _RC)
-    call MAPL_GridCompGetResource(GC, "GOCART_DT", CDT, default=real(HDT), _RC)
+    call MAPL_GridCompGetResource(GC, "GOCART2G_DT", CDT, default=real(HDT), _RC)
     self%CDT = CDT
 
 !  Load resource file and get number of bins
@@ -461,17 +469,6 @@ contains
 !    call ESMF_AttributeSet(field, NAME='klid', value=self%klid, __RC__)
     fld = MAPL2_FieldCreate (field, 'SS', __RC__)
     call MAPL2_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set klid
-       call MAPL_StateGetPointer(import, ple, "PLE", _RC)
-       i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-       ple0(i1:i2, j1:j2, 0:km) => ple(i1:i2, j1:j2, 1:km+1)
-       call findKlid (self%klid, self%plid, ple0, __RC__)
-!      Set SS values to 0 where above klid
-       call MAPL_StateGetPointer(internal, int_ptr, "SS", _RC)
-       call setZeroKlid4d (self%km, self%klid, int_ptr)
-    end if
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
@@ -559,7 +556,66 @@ contains
   end subroutine Initialize
 
 !============================================================================
+!BOP
+! !IROUTINE: Run0
 
+! !INTERFACE:
+  subroutine Run0 (GC, import, export, clock, RC)
+
+!   !ARGUMENTS:
+    type (ESMF_GridComp) :: GC  ! Gridded component
+    type (ESMF_State) :: IMPORT ! Import state
+    type (ESMF_State) :: EXPORT ! Export state
+    type (ESMF_Clock) :: CLOCK  ! The clock
+    integer, intent(out) :: RC  ! Error code
+
+! !DESCRIPTION:  Clears klid to 0.0 for Seasalt
+
+!EOP
+!============================================================================
+! Locals
+    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    type (ESMF_State)                 :: internal
+    type (wrap_)                      :: wrap
+    type (SS2G_GridComp), pointer     :: self
+    real, pointer, dimension(:,:,:)   :: ple, ple0
+    real, pointer, dimension(:,:,:,:) :: ptr4d_int
+    integer                           :: i1, j1, i2, j2, km
+
+    __Iam__('Run0')
+
+!*****************************************************************************
+!   Begin...
+
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    Iam = trim(COMP_NAME) // '::' // Iam
+
+    ! Get internal state
+    call MAPL_GridCompGetInternalState(GC, internal, _RC)
+
+!   Get my private internal state
+!   ------------------------------
+    call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    km = self%km
+    call MAPL_StateGetPointer(import, ple, "PLE", _RC)
+    i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+    ple0(i1:i2, j1:j2, 0:km) => ple(i1:i2, j1:j2, 1:km+1)
+    call findKlid (self%klid, self%plid, ple0, _RC)
+    call MAPL_StateGetPointer(internal, ptr4d_int, "SS", _RC)
+    call setZeroKlid4d (self%km, self%klid, ptr4d_int)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine Run0
+
+!============================================================================
 !BOP
 ! !IROUTINE: Run
 
@@ -715,11 +771,12 @@ contains
 
 !      For the Hoppel correction need to compute the wet radius and settling velocity
 !      in the surface
-       if (self%hoppelFlag) then
-          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
-                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
-                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
-       end if
+!     Collow: commented out 9 Jan 2024 as this is not consistent with the updated settling based on the optics files. The flag to call this is set to false in the instance RC file. This should be revistited in the future.
+!       if (self%hoppelFlag) then
+!          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
+!                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
+!                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
+!       end if
 
        memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
        dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
@@ -753,7 +810,7 @@ contains
     type (ESMF_Clock) :: clock  ! The clock
     integer, intent(out) :: RC  ! Error code:
 
-! !DESCRIPTION: Run2 method for the Dust Grid Component.
+! !DESCRIPTION: Run2 method for the Sea Salt Grid Component.
 
 !EOP
 !============================================================================
@@ -769,8 +826,11 @@ contains
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer :: ple0(:, :, :), zle0(:, :, :), pfl_lsan0(:, :, :), pfi_lsan0(:, :, :)
+    real, pointer, dimension(:,:)     :: flux_ptr
+
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -813,9 +873,11 @@ contains
 !   Sea Salt Settling
 !   -----------------
     do n = 1, self%nbins
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
-                           rh2, zle0, delp, SSSD, __RC__)
+       nullify(flux_ptr)
+       if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           SS(:,:,:,n), t, airdens, &
+                           rh2, zle0, delp, flux_ptr, _RC)
     end do
 
 !   Deposition
