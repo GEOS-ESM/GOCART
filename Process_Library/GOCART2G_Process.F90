@@ -1880,63 +1880,70 @@ end function DarmenovaDragPartition
 ! !IROUTINE: SettlingSolver
 
    subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
+! !USES:
+    implicit none
 
-   implicit none
+! !INPUT PARAMETERS:
+    integer, intent(in) :: i1, i2
+    integer, intent(in) :: j1, j2
+    integer, intent(in) :: km
 
-   integer, intent(in) :: i1, i2
-   integer, intent(in) :: j1, j2
-   integer, intent(in) :: km
+    real,    intent(in) :: cdt
 
-   real,    intent(in) :: cdt
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
 
-   real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
-   real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
-   real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
+! !OUTPUT PARAMETERS:
+    real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
 
-   real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
+! !LOCAL VARIABLES:
+    integer :: i, j, k, iit
+    integer :: nSubSteps
 
+    real, dimension(i1:i2, j1:j2, km) :: tau
 
-   ! local
-   integer :: i, j, k, iit
-   integer :: nSubSteps
+    real, dimension(km) :: dp_
+    real, dimension(km) :: tau_
+    real, dimension(km) :: qa_old
 
-   real, dimension(i1:i2, j1:j2, km) :: tau
+    real :: dt, dt_cfl, max_tau
+    real :: transfer_factor, loss_factor
+    real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
+    real, parameter :: cfl_factor = 0.1  ! CFL stability factor
 
-   real, dimension(km) :: dp_
-   real, dimension(km) :: tau_
-   real, dimension(km) :: qa_old
+! !DESCRIPTION: This subroutine solves the settling of particles
+!               in the vertical layers of the atmosphere.
+!               It uses a time-splitting method to ensure stability
+!               and mass conservation. The settling velocity is
+!               calculated based on the input parameters and
+!               the particle properties.
+!
+! !REVISION HISTORY:
+!  14Jul2025: B. Baker refactored to improve performance and readability
+!
+!EOP
+!-------------------------------------------------------------------------
 
-   real :: dt, dt_cfl, max_tau
-   real :: transfer_factor, loss_factor
-   real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
-   real, parameter :: cfl_factor = 0.5  ! CFL stability factor
+    tau = vs / dz
 
-   ! Compute settling time scale tau = vs/dz with numerical safety
-   ! Vectorized approach for better performance
-   where (abs(vs) > eps .and. dz > eps)
-      tau = vs / dz
-   elsewhere
-      tau = 0.0
-   end where
-
-   do j = j1, j2
-      do i = i1, i2
+    ! loop over grid points
+    jloop : do j = j1, j2
+      iloop : do i = i1, i2
 
          dp_  = delp(i,j,:)
          tau_ = tau(i,j,:)
 
-         ! Find maximum tau with numerical safety
+          ! Find maximum tau with numerical safety
          max_tau = maxval(tau_)
 
-         if (max_tau > eps) then
-            dt_cfl = cfl_factor / max_tau  ! CFL factor for stability
-         else
-            dt_cfl = cdt  ! If no settling, use full time step
-         endif
+         dt_cfl = cfl_factor / max_tau
+
+
 
          if (dt_cfl >= cdt) then
             ! no need for time sub-splitting
-            nSubSteps = 1
+            nSubSteps = 0
             dt = cdt
          else
             nSubSteps = max(1, ceiling(cdt / dt_cfl))
@@ -1944,41 +1951,30 @@ end function DarmenovaDragPartition
          end if
 
          ! Time integration with numerical safeguards
-         do iit = 1, nSubSteps
-            ! Store old values for mass conservation check
-            qa_old = qa(i,j,:)
+         iitloop : do iit = 1, nSubSteps
+             ! Store old values for mass conservation check
+             qa_old = qa(i,j,:)
 
-            ! Update top layer (only loss)
-            loss_factor = dt * tau_(1)
+             ! Update top layer (only loss)
+            loss_factor = max(0.0,min(1.0, dt * tau_(1)))
             qa(i,j,1) = max(0.0, qa(i,j,1) * (1.0 - min(loss_factor, 1.0)))
 
             ! Update interior and bottom layers
-            do k = 2, km
-               loss_factor = dt * tau_(k)
+            kloop: do k = 2, km
+               loss_factor = max(0.0,min(1.0, dt * tau_(k)))
 
                ! Check if pressure layers are valid
                if (dp_(k-1) > eps .and. dp_(k) > eps) then
                   transfer_factor = (dp_(k-1) / dp_(k)) * dt * tau_(k-1)
-
-                  if (k < km) then
-                     ! Interior layers: gain from above, loss downward
-                     qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)) + &
-                                           transfer_factor * qa_old(k-1))
-                  else
-                     ! Bottom layer: gain from above, allow settling loss
-                     qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)) + &
-                                           transfer_factor * qa_old(k-1))
-                  endif
+                  qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0))) + &
+                                 transfer_factor * qa_old(k-1)
                else
-                  ! No valid transfer from above, only settling loss
                   qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)))
-               endif
-            enddo
-         end do
-
-      enddo
-   enddo
-
+               end if
+            end do kloop
+         end do iitloop
+      end do iloop
+     end do jloop
    end subroutine SettlingSolver
 
 !==================================================================================
