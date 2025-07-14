@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
+- fix settling solver for numerical instability under certain convective conditions
 
 ### Added
 
