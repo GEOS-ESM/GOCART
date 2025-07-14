@@ -30,6 +30,7 @@ module SS2G_GridCompMod
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
+   use pflogger, only: logger_t => logger
 
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
@@ -114,6 +115,7 @@ contains
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
     logical                                     :: file_exists
+    class(logger_t), pointer                    :: logger
 
     __Iam__('SetServices')
 
@@ -143,11 +145,11 @@ contains
        call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
     end if
 
-    call MAPL_GridCompGet(GC, hconfig=hconfig, _RC)
+    call MAPL_GridCompGet(GC, hconfig=hconfig, logger=logger, _RC)
     call ESMF_HConfigFileSave(hconfig, filename="seasalt-hconfig.yaml", _RC)
 
     ! process generic config items
-    call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config(hconfig, logger, _RC)
 
     allocate(self%rlow(self%nbins), self%rup(self%nbins), self%rmed(self%nbins), __STAT__)
 
