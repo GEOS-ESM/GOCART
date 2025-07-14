@@ -27,6 +27,7 @@ module SS2G_GridCompMod
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_State_API, only: MAPL_StateGetPointer
+   use mapl3g_HConfig_get, only: HConfigParams, MAPL_HConfigGet
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -104,8 +105,6 @@ contains
 
 !   !Locals
     character (len=ESMF_MAXSTR)                 :: COMP_NAME
-    type (ESMF_Config)                          :: cfg
-    type (ESMF_Config)                          :: universal_cfg
     type (ESMF_HConfig)                         :: hconfig
     type (wrap_)                                :: wrap
     type (SS2G_GridComp), pointer               :: self
@@ -125,8 +124,6 @@ contains
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
-    universal_cfg = ESMF_ConfigCreate(_RC)
-    call ESMF_ConfigLoadFile(universal_cfg, "GOCART2G_GridComp.rc", _RC)
     Iam = trim(COMP_NAME) // '::' // Iam
 
 !   Wrap internal state for storing in GC
@@ -134,19 +131,7 @@ contains
     allocate (self, __STAT__)
     wrap%ptr => self
 
-!   Load resource file
-!   -------------------
-    cfg = ESMF_ConfigCreate (__RC__)
-    inquire(file='SS2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
-    if (file_exists) then
-       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
-    else
-       if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
-       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
-    end if
-
     call MAPL_GridCompGet(GC, hconfig=hconfig, logger=logger, _RC)
-    call ESMF_HConfigFileSave(hconfig, filename="seasalt-hconfig.yaml", _RC)
 
     ! process generic config items
     call self%GA_Environment%load_from_config(hconfig, logger, _RC)
@@ -154,15 +139,14 @@ contains
     allocate(self%rlow(self%nbins), self%rup(self%nbins), self%rmed(self%nbins), __STAT__)
 
     ! process SS-specific items
-!    call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%sstEmisFlag, label='sstEmisFlag:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%weibullFlag,  label='weibullFlag:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%hoppelFlag, label='hoppelFlag:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%emission_scheme, label='emission_scheme:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%emission_scale_res, label='emission_scale:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rlow, label='radius_lower:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rup, label='radius_upper:', __RC__)
-    call ESMF_ConfigGetAttribute (cfg, self%rmed, label='particle_radius_number:', __RC__)
+    self%sstEmisFlag = ESMF_HConfigAsI4(hconfig, keyString="sstEmisFlag", _RC)
+    self%weibullFlag = ESMF_HConfigAsLogical(hconfig, keyString="weibullFlag", _RC)
+    self%hoppelFlag = ESMF_HConfigAsLogical(hconfig, keyString="hoppelFlag", _RC)
+    self%emission_scheme = ESMF_HConfigAsI4(hconfig, keyString="emission_scheme", _RC)
+    self%emission_scale_res = ESMF_HConfigAsR4Seq(hconfig, keyString="emission_scale", __RC__)
+    self%rlow = ESMF_HConfigAsR4Seq(hconfig, keyString="radius_lower", _RC)
+    self%rup = ESMF_HConfigAsR4Seq(hconfig, keyString="radius_upper", _RC)
+    self%rmed = ESMF_HConfigAsR4Seq(hconfig, keyString="particle_radius_number", _RC)
 
 !   Is SS data driven?
 !   ------------------
@@ -365,7 +349,8 @@ contains
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero
     type (ESMF_State)                    :: providerState
-    type (ESMF_Config)                   :: cfg
+    type (ESMF_HConfig)                  :: hconfig
+    type (HConfigParams)                 :: params
     type (ESMF_FieldBundle)              :: Bundle_DP
     type (wrap_)                         :: wrap
     type (SS2G_GridComp), pointer        :: self
@@ -389,9 +374,10 @@ contains
 
     integer, allocatable, dimension(:)   :: channels_
     integer                              :: nmom_
-    character(len=ESMF_MAXSTR)           :: file_
+    character(:), allocatable            :: file_
     logical                              :: file_exists
     integer :: i1, i2, j1, j2
+    class(logger_t), pointer             :: logger
 
     __Iam__('Initialize')
 
@@ -425,17 +411,6 @@ contains
     call MAPL_ClockGet(clock, dt=HDT, _RC)
     call MAPL_GridCompGetResource(GC, "GOCART2G_DT", CDT, default=real(HDT), _RC)
     self%CDT = CDT
-
-!  Load resource file and get number of bins
-!  -------------------------------------------
-    cfg = ESMF_ConfigCreate (__RC__)
-    inquire(file='SS2G_instance_'//trim(COMP_NAME)//'.rc', exist=file_exists)
-    if (file_exists) then
-       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_'//trim(COMP_NAME)//'.rc', __RC__)
-    else
-       if (mapl_am_i_root()) print*,'SS2G_instance_'//trim(COMP_NAME)//'.rc does not exist! loading SS2G_instance_SS.rc instead'
-       call ESMF_ConfigLoadFile (cfg, 'SS2G_instance_SS.rc', __RC__)
-    end if
 
 !   Get parameters from generic state.
     !   -----------------------------------
@@ -511,14 +486,16 @@ contains
 
 !   Create Radiation Mie Table
 !   --------------------------
-    call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
-    self%rad_Mie = GOCART2G_Mie(trim(file_), __RC__)
+    call MAPL_GridCompGet(GC, hconfig=hconfig, logger=logger, _RC)
+    file_ = ESMF_HConfigAsString(hconfig, keyString="aerosol_radBands_optics_file", _RC)
+    self%rad_Mie = GOCART2G_Mie(file_, __RC__)
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
-    call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_monochromatic_optics_file:", __RC__ )
-    call ESMF_ConfigGetAttribute (cfg, nmom_, label="n_moments:", default=0,  __RC__)
+    file_ = ESMF_HConfigAsString(hconfig, keyString="aerosol_monochromatic_optics_file", _RC)
+    params = HConfigParams(hconfig, "n_moments", logger=logger)
+    call MAPL_HConfigGet(params, nmom_, 0, _RC)
     call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", channels_, _RC)
     self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
     ! Mie Table instance/index
