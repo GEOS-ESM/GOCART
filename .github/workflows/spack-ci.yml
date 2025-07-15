@@ -51,11 +51,13 @@ jobs:
           mepo clone --partial blobless
           mepo status
 
-      - name: Mepo develop usual suspects
-        run: |
-          ls
-          mepo develop GEOSgcm_GridComp GEOSgcm_App GMAO_Shared GEOS_Util
-          mepo status
+      #######################################################################
+      # - name: Mepo develop usual suspects                                 #
+      #   run: |                                                            #
+      #     ls                                                              #
+      #     mepo develop GEOSgcm_GridComp GEOSgcm_App GMAO_Shared GEOS_Util #
+      #     mepo status                                                     #
+      #######################################################################
 
       - name: Update other branches
         if:
