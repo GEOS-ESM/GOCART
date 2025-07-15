@@ -24,6 +24,7 @@ workflows:
           mepodevelop: true
           develop_repos: GMAO_Shared
           persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
+
       # Build GOCART like UFS
       - ci/build:
           name: build-GOCART2G-like-UFS-on-<< matrix.compiler >>
@@ -39,6 +40,7 @@ workflows:
           develop_repos: GMAO_Shared
           extra_cmake_options: "-DBUILD_WITH_FLAP=OFF -DBUILD_WITH_PFLOGGER=OFF -DBUILD_SHARED_MAPL=OFF -DUSE_EXTDATA2G=OFF"
           persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
+
       # Build GEOSgcm
       - ci/build:
           name: build-GEOSgcm-on-<< matrix.compiler >>
