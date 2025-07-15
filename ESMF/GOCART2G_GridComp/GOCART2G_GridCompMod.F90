@@ -382,6 +382,7 @@ contains
                    grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
+    call ESMF_AttributeSet(aero, name='use_photolysis_table', value=0, __RC__)
     call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
     call ESMF_AttributeSet(aero, name='aerosolName', value='', __RC__)
     call ESMF_AttributeSet(aero, name='im', value=dims(1), __RC__)
@@ -1467,6 +1468,7 @@ contains
     integer                                          :: i, n, b, j
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band
+    integer                                          :: usePhotTable
     integer, parameter                               :: n_bands = 1
 
     character (len=ESMF_MAXSTR), allocatable         :: itemList(:), aeroList(:)
@@ -1485,6 +1487,11 @@ contains
 !   --------------
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
+!   Are we using a photolysis table?
+!   --------------------------------
+    usePhotTable = 0
+    call ESMF_AttributeGet(state, name='use_photolysis_table', value=usePhotTable, __RC__)    
+    
 !   Relative humidity
 !   -----------------
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
@@ -1554,6 +1561,9 @@ contains
 !       ! set band in child's aero state
         call ESMF_AttributeSet(child_state, name='band_for_aerosol_optics', value=band, __RC__)
 
+!       ! set if we are using photolysis table
+        call ESMF_AttributeSet(child_state, name='use_photolysis_table', value=usePhotTable, __RC__)
+        
 !       ! execute the aerosol optics method
         call ESMF_MethodExecute(child_state, label="aerosol_optics", __RC__)
 
@@ -1575,7 +1585,7 @@ contains
             call MAPL_GetPointer(child_state, asy_, trim(fld_name), __RC__)
         end if
 
-!       ! Sum aerosol optic properties from each child
+!       ! Sum aerosol optical properties from each child
         ext = ext + ext_
         ssa = ssa + ssa_
         asy = asy + asy_

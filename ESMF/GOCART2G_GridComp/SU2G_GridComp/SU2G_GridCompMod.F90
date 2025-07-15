@@ -612,6 +612,10 @@ contains
     call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
     self%rad_Mie = GOCART2G_Mie(trim(file_), __RC__)
 
+!   Trigger for photolysis calculations
+!   -----------------------------------
+    call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
+
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
@@ -1415,7 +1419,9 @@ contains
     integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band
-
+    integer                                          :: usePhotTable
+    real                                             :: wavelength
+    
     integer :: i, j, k
 
     __Iam__('SU2G::aerosol_optics')
@@ -1437,6 +1443,11 @@ contains
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
+!   Are we doing a photolysis calculation?
+!   --------------------------------------
+    usePhotTable = 0
+    call ESMF_AttributeGet (state, name='use_photolysis_table', value=usePhotTable, __RC__)
+    
 !   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
@@ -1482,7 +1493,12 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    if (usePhotTable) then
+       wavelength = band*1.e-9
+       call miephot_ (self%diag_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    else
+       call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    endif
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1548,6 +1564,44 @@ contains
     RETURN_(ESMF_SUCCESS)
 
     end subroutine mie_
+
+    subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, basym_s, rc)
+
+    implicit none
+
+    type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
+    integer,                       intent(in   ) :: nbins            ! number of bins
+    real,                          intent(in )   :: wavelength       ! wavelength in nm
+    real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
+    real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
+    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    integer,                       intent(  out) :: rc
+
+    ! local
+    integer                           :: l
+    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
+    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
+    real                              :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
+
+    __Iam__('DU2G::aerosol_optics::mie_')
+
+     bext_s  = 0.0d0
+     bssa_s  = 0.0d0
+     basym_s = 0.0d0
+
+     do l = 1, nbins
+        ! tau is converted to bext
+        call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
+        bext_s  = bext_s  +             bext     ! extinction
+        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+        basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scattering
+     end do
+
+     RETURN_(ESMF_SUCCESS)
+
+    end subroutine miephot_
 
   end subroutine aerosol_optics
 
