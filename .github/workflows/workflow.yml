@@ -45,6 +45,7 @@ jobs:
           fetch-depth: 1
           filter: blob:none
           repository: GEOS-ESM/GEOSgcm
+          ref: release/MAPL-v3
 
       - name: Set all directories as git safe
         run: |
