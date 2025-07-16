@@ -57,7 +57,7 @@ module CA2G_GridCompMod
        real               :: fHydrophobic ! Initially hydrophobic portion
        real               :: tConvPhobicToPhilic ! e-folding time [days] hydrophobic to hydrophilic
        real               :: tChemLoss(2)        ! e-folding time [days] for parameterized chemistry loss
-       logical            :: diurnal_bb   ! diurnal biomass burning
+       logical            :: diurnal_bb          ! diurnal biomass burning
        real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
 !      !Workspae for point emissions
