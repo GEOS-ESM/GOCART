@@ -363,7 +363,7 @@ contains
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
-    real, pointer, dimension(:,:,:)      :: ple, ple0
+    real, pointer, dimension(:,:,:)      :: ple
     real, pointer, dimension(:,:)        :: deep_lakes_mask
 
     integer, allocatable, dimension(:)   :: channels_
@@ -576,8 +576,9 @@ contains
     km = self%km
     call MAPL_StateGetPointer(import, ple, "PLE", _RC)
     i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-    ple0(i1:i2, j1:j2, 0:km) => ple(i1:i2, j1:j2, 1:km+1)
+    allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
     call findKlid (self%klid, self%plid, ple0, _RC)
+    deallocate(ple0)
     call MAPL_StateGetPointer(internal, ptr4d_int, "SS", _RC)
     call setZeroKlid4d (self%km, self%klid, ptr4d_int)
 
@@ -826,16 +827,20 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
-    ! pchakrab: 0-based edge variables
+    ! Edge variables are expected to be 0-based
     km = self%km
+    ! zle0
     i1 = lbound(zle, 1); i2 = ubound(zle, 1); j1 = lbound(zle, 2); j2 = ubound(zle, 2)
-    zle0(i1:i2, j1:j2, 0:km) => zle(i1:i2, j1:j2, 1:km+1)
+    allocate(zle0(i1:i2, j1:j2, 0:km), source=zle(i1:i2, j1:j2, 1:km+1))
+    ! ple0
     i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-    ple0(i1:i2, j1:j2, 0:km) => ple(i1:i2, j1:j2, 1:km+1)
+    allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
+    ! pfl_lsan0
     i1 = lbound(pfl_lsan, 1); i2 = ubound(pfl_lsan, 1); j1 = lbound(pfl_lsan, 2); j2 = ubound(pfl_lsan, 2)
-    pfl_lsan0(i1:i2, j1:j2, 0:km) => pfl_lsan(i1:i2, j1:j2, 1:km+1)
+    allocate(pfl_lsan0(i1:i2, j1:j2, 0:km), source=pfl_lsan(i1:i2, j1:j2, 1:km+1))
+    ! pfi_lsan0
     i1 = lbound(pfi_lsan, 1); i2 = ubound(pfi_lsan, 1); j1 = lbound(pfi_lsan, 2); j2 = ubound(pfi_lsan, 2)
-    pfi_lsan0(i1:i2, j1:j2, 0:km) => pfi_lsan(i1:i2, j1:j2, 1:km+1)
+    allocate(pfi_lsan0(i1:i2, j1:j2, 0:km), source=pfi_lsan(i1:i2, j1:j2, 1:km+1))
 
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
@@ -916,8 +921,10 @@ contains
                             rh=rh80,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
                             extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., __RC__)
 
-    deallocate(RH20,RH80)
+    deallocate(RH20, RH80)
+    deallocate(ple0, zle0, pfl_lsan0, pfi_lsan0)
     if (MAPL_AM_I_ROOT()) print *, "RUN2 COMPLETE"
+
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Run2
