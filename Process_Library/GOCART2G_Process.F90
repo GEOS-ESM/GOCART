@@ -1436,7 +1436,8 @@ end function DarmenovaDragPartition
    subroutine Chem_SettlingSimple ( km, klid, mie, bin, cdt, grav, &
                                     int_qa, tmpu, rhoa, rh, hghte, &
                                     delp, fluxout,  &
-                                    vsettleOut, correctionMaring, rc)
+                                    vsettleOut, correctionMaring, &
+                                    settling_scheme, rc)
 
 ! !USES:
 
@@ -1468,6 +1469,9 @@ end function DarmenovaDragPartition
 
 !  Optionally correct the settling velocity following Maring et al, 2003
    logical, optional, intent(in)    :: correctionMaring
+
+!  Optionally choose the default gocart settling scheme or the one used in the UFS
+   integer, intent(in) :: settling_scheme ! 1 - use SettlingSolver, 2 - use SettlingSolverUFS
 
    character(len=*), parameter :: myname = 'SettlingSimple'
 
@@ -1577,7 +1581,12 @@ end function DarmenovaDragPartition
     endif
 
 !   Time integration
-    call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+    select case (settling_scheme)
+      case (1)  ! Use the default gocart SettlingSolver
+         call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+      case (2)  ! Use the new SettlingSolverUFS
+         call SettlingSolverUFS(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+    end select
 
 !   Find the column dry mass after sedimentation and thus the loss flux
     do k = klid, km
@@ -1604,7 +1613,8 @@ end function DarmenovaDragPartition
    subroutine Chem_Settling ( km, klid, bin, flag, cdt, grav, &
                               radiusInp, rhopInp, int_qa, tmpu, &
                               rhoa, rh, hghte, delp, fluxout,  &
-                              vsettleOut, correctionMaring, rc)
+                              vsettleOut, correctionMaring, &
+                              settling_scheme, rc)
 
 ! !USES:
 
@@ -1638,6 +1648,9 @@ end function DarmenovaDragPartition
 
 !  Optionally correct the settling velocity following Maring et al, 2003
    logical, optional, intent(in)    :: correctionMaring
+
+!  Optionally choose the default gocart settling scheme or the one used in the UFS
+   integer, optional, intent(in)    :: settling_scheme ! 1 - use SettlingSolver, 2 - use SettlingSolverUFS
 
    character(len=*), parameter :: myname = 'Settling'
 
@@ -1750,7 +1763,13 @@ end function DarmenovaDragPartition
     endif
 
 !   Time integration
-    call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+    select case (settling_scheme)
+      case (1)  ! Use the default gocart SettlingSolver
+         call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+      case (2)  ! Use the new SettlingSolverUFS
+         call SettlingSolverUFS(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+    end select
+
 
 !   Find the column dry mass after sedimentation and thus the loss flux
     do k = klid, km
@@ -1879,7 +1898,73 @@ end function DarmenovaDragPartition
 !BOP
 ! !IROUTINE: SettlingSolver
 
-   subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
+  subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
+
+    implicit none
+
+    integer, intent(in) :: i1, i2
+    integer, intent(in) :: j1, j2
+    integer, intent(in) :: km
+
+    real,    intent(in) :: cdt
+
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
+
+    real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
+
+
+    ! local
+    integer :: i, j, iit
+    integer :: nSubSteps
+
+    real, dimension(i1:i2, j1:j2, km) :: tau
+
+    real, dimension(km) :: dp_
+    real, dimension(km) :: tau_
+
+    real :: dt, dt_cfl
+
+
+    tau = vs/dz
+
+    do j = j1, j2
+      do i = i1, i2
+
+          dp_  = delp(i,j,:)
+          tau_ = tau(i,j,:)
+
+          dt_cfl  = 1 / maxval(tau_)
+
+          if (dt_cfl <= 0.) then
+             nSubSteps = 0
+          else if (dt_cfl > cdt) then
+              ! no need for time sub-splitting
+              nSubSteps = 1
+              dt = cdt
+          else
+              nSubSteps = ceiling(cdt / dt_cfl)
+              dt = cdt/nSubSteps
+          end if
+
+          do iit = 1, nSubSteps
+              qa(i,j,   1) = qa(i,j,   1) * (1 - dt*tau_(1))
+              qa(i,j,2:km) = qa(i,j,2:km) + ( (dp_(1:km-1)/dp_(2:km))*(dt*tau_(1:km-1))*qa(i,j,1:km-1) ) &
+                                          - dt*tau_(2:km)*qa(i,j,2:km)
+          end do
+
+      enddo
+    enddo
+
+   end subroutine SettlingSolver
+
+
+!==================================================================================
+!BOP
+! !IROUTINE: SettlingSolverUFS
+
+   subroutine SettlingSolverUFS(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
 ! !USES:
     implicit none
 
@@ -1975,7 +2060,7 @@ end function DarmenovaDragPartition
          end do iitloop
       end do iloop
      end do jloop
-   end subroutine SettlingSolver
+   end subroutine SettlingSolverUFS
 
 !==================================================================================
 !BOP
