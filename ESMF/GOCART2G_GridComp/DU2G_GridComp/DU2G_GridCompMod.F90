@@ -556,7 +556,22 @@ contains
 !   -----------------------------------
     call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
     
-!   Create Diagnostics Mie Table
+!   Create Photolysis Mie Table
+!   ---------------------------
+!   Get file names for the optical tables
+    call ESMF_ConfigGetAttribute (cfg, file_, &
+                                  label="aerosol_monochromatic_optics_file:", __RC__ )
+!    call ESMF_ConfigGetAttribute (cfg, nmom_, label="n_moments:", default=0,  __RC__)
+    nmom_ = 8
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
+    allocate (channels_(i), __STAT__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
+                                  label= "aerosol_photolysis_wavelength_in_nm_from_LUT:", __RC__)
+    self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    deallocate(channels_)
+    nmom_ = 0
+
+    !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, file_, &
@@ -1201,6 +1216,7 @@ contains
     type(ESMF_Field)                                 :: fld
 
     real(kind=DP), dimension(:,:,:), allocatable     :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
+    real(kind=DP), dimension(:,:,:,:), allocatable   :: pmom_s               ! (lon:,lat:,lev:,nmom:)
     real, dimension(:,:,:), allocatable              :: x
     integer                                          :: instance
     integer                                          :: n, nbins
@@ -1275,7 +1291,8 @@ contains
 
     if (usePhotTable) then
        wavelength = band*1.e-9
-       call miephot_ (self%diag_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+       allocate(pmom_s(i1:i2, j1:j2, km, self%phot_Mie%nmom), __STAT__)
+       call miephot_ (self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, pmom_s, __RC__)
     else
        call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
     endif
@@ -1299,6 +1316,7 @@ contains
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    if (usePhotTable) deallocate(pmom_s, __STAT__)
     deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
@@ -1343,7 +1361,7 @@ contains
 
     end subroutine mie_
 
-    subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, basym_s, rc)
+    subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, bpmom_s, rc)
 
     implicit none
 
@@ -1354,28 +1372,36 @@ contains
     real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
     real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
     real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bpmom_s(size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4))
     integer,                       intent(  out) :: rc
 
     ! local
-    integer                           :: l
+    integer                           :: l, m
     real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
     real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-    real                              :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
+    real                              :: pmom (size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4),6)
 
     __Iam__('DU2G::aerosol_optics::mie_')
 
      bext_s  = 0.0d0
      bssa_s  = 0.0d0
-     basym_s = 0.0d0
+     bpmom_s = 0.0d0
 
      do l = 1, nbins
         ! tau is converted to bext
-        call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
+        call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, pmom=pmom, ssa=bssa, __RC__)
         bext_s  = bext_s  +             bext     ! extinction
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
-        basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scattering
+        do m = 1, mie%nmom
+           if(MAPL_AM_I_ROOT()) print *, 'DUphot: ', wavelength, l, m,  pmom(1,1,1,m,1)
+           bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
+        enddo
      end do
+!    Normalize moments
+     do m = 1, mie%nmom
+        bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) / bssa_s
+     enddo
+     
 
      RETURN_(ESMF_SUCCESS)
 
