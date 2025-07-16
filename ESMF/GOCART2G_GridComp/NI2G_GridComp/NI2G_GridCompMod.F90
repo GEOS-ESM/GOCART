@@ -456,6 +456,21 @@ contains
 !   -----------------------------------
     call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
     
+!   Create Photolysis Mie Table
+!   ---------------------------
+!   Get file names for the optical tables
+    call ESMF_ConfigGetAttribute (cfg, file_, &
+                                  label="aerosol_monochromatic_optics_file:", __RC__ )
+!    call ESMF_ConfigGetAttribute (cfg, nmom_, label="n_moments:", default=0,  __RC__)
+    nmom_ = 8
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
+    allocate (channels_(i), __STAT__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
+                                  label= "aerosol_photolysis_wavelength_in_nm_from_LUT:", __RC__)
+    self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    deallocate(channels_)
+    nmom_ = 0
+    
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
@@ -1207,7 +1222,7 @@ contains
 
     if (usePhotTable) then
        wavelength = band*1.e-9
-       call miephot_ (self%diag_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+       call miephot_ (self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
     else
        call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
     endif
