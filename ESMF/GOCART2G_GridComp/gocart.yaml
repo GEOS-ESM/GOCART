@@ -8,7 +8,7 @@ mapl:
 
   children:
     SeaSalt:
-      dso: /home/pchakrab/workspace/code/GEOSgcm/MAPL3/build/install/lib/libSS2G_GridComp.so
+      dso: libSS2G_GridComp.so
       config_file: seasalt.yaml
 
   geometry:
