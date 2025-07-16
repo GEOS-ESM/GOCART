@@ -10,3 +10,18 @@ mapl:
     SeaSalt:
       dso: /home/pchakrab/workspace/code/GEOSgcm/MAPL3/build/install/lib/libSS2G_GridComp.so
       config_file: seasalt.yaml
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 48
+      jm_world: 288
+      pole: PC
+      dateline: DC
+    vertical_grid:
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 72
+      field_edge: PLE
+      field_center: PE
