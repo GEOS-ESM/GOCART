@@ -258,6 +258,7 @@ contains
 #include "SS2G_Internal___.h"
        if (MAPL_AM_I_ROOT()) then
           write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+          write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
        end if
     end if
 
@@ -370,7 +371,7 @@ contains
     self => wrap%ptr
 
 !   Global dimensions are needed here for choosing tuning parameters
-!   ----------------------------------------------------------------    
+!   ----------------------------------------------------------------
     call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
@@ -808,6 +809,7 @@ contains
     real, dimension(3)                :: rainout_eff
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
+    integer :: settling_opt
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -846,12 +848,21 @@ contains
 
 !   Sea Salt Settling
 !   -----------------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        nullify(flux_ptr)
        if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            SS(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, flux_ptr, __RC__)
+                           rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
     end do
 
 !   Deposition
@@ -892,7 +903,7 @@ contains
           rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
           rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
           call WetRemovalUFS(self%km, self%klid, n, self%cdt, 'sea_salt', KIN, MAPL_GRAV, &
-                             self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, & 
+                             self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
                              SS(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, SSWT, __RC__)
        end do
     case default
