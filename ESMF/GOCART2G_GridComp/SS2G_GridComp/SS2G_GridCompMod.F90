@@ -104,7 +104,6 @@ contains
 
 !   !Locals
     character (len=ESMF_MAXSTR)                 :: COMP_NAME
-    type (ESMF_HConfig)                         :: hconfig
     type (wrap_)                                :: wrap
     type (SS2G_GridComp), pointer               :: self
     character (len=ESMF_MAXSTR)                 :: field_name
@@ -130,10 +129,8 @@ contains
     allocate (self, __STAT__)
     wrap%ptr => self
 
-    call MAPL_GridCompGet(gc, hconfig=hconfig, logger=logger, _RC)
-
     ! process generic config items
-    call self%GA_Environment%load_from_config(hconfig, logger, _RC)
+    call self%GA_Environment%load_from_config(gc, _RC)
 
     ! process SS-specific items
     call MAPL_GridCompGetResource(gc, "sstEmisFlag", self%sstEmisFlag, _RC)
