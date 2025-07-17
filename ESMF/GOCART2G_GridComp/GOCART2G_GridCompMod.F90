@@ -17,11 +17,11 @@ module GOCART2G_GridCompMod
 
 ! !Establish the Childen's SetServices
  !-----------------------------------
-   use DU2G_GridCompMod,    only   : DU2G_setServices  => SetServices
+   ! use DU2G_GridCompMod,    only   : DU2G_setServices  => SetServices
    use SS2G_GridCompMod,    only   : SS2G_setServices  => SetServices
-   use SU2G_GridCompMod,    only   : SU2G_setServices  => SetServices
-   use CA2G_GridCompMod,    only   : CA2G_setServices  => SetServices
-   use NI2G_GridCompMod,    only   : NI2G_setServices  => SetServices
+   ! use SU2G_GridCompMod,    only   : SU2G_setServices  => SetServices
+   ! use CA2G_GridCompMod,    only   : CA2G_setServices  => SetServices
+   ! use NI2G_GridCompMod,    only   : NI2G_setServices  => SetServices
 
    implicit none
    private
@@ -1335,11 +1335,11 @@ contains
 !   filing the AERO states that are passed to radiation.
 !   This is achieved by arranging the names of the active instances first.
 
-    call addChildren__ (gc, self%DU, setServices=DU2G_setServices, __RC__)
+    ! call addChildren__ (gc, self%DU, setServices=DU2G_setServices, __RC__)
     call addChildren__ (gc, self%SS, setServices=SS2G_setServices, __RC__)
-    call addChildren__ (gc, self%CA, setServices=CA2G_setServices, __RC__)
-    call addChildren__ (gc, self%SU, setServices=SU2G_setServices, __RC__)
-    call addChildren__ (gc, self%NI, setServices=NI2G_setServices, __RC__)
+    ! call addChildren__ (gc, self%CA, setServices=CA2G_setServices, __RC__)
+    ! call addChildren__ (gc, self%SU, setServices=SU2G_setServices, __RC__)
+    ! call addChildren__ (gc, self%NI, setServices=NI2G_setServices, __RC__)
 
     RETURN_(ESMF_SUCCESS)
 

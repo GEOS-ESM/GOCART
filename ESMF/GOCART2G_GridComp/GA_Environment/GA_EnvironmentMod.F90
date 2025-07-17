@@ -5,6 +5,7 @@ module GA_EnvironmentMod
    use ESMF
    use MAPL
    use GOCART2G_MieMod
+   use mapl3g_generic, only: MAPL_GridCompGetResource
 
    implicit none
    private
@@ -16,7 +17,7 @@ module GA_EnvironmentMod
        real, allocatable      :: radius(:)      ! particle effective radius [um]
        real, allocatable      :: rhop(:)        ! soil class density [kg m-3]
        real, allocatable      :: fscav(:)       ! scavenging efficiency
-!      logical                :: scav_byColdCloud ! new flag example
+       ! logical              :: scav_byColdCloud ! new flag example
        real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES, 
        real, allocatable      :: fnum(:)        ! number of particles per kg mass
        real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice
@@ -38,58 +39,42 @@ module GA_EnvironmentMod
        procedure :: load_from_config
     end type GA_Environment
 
-
-    !LOCALS
-     integer :: status
-     integer :: nbins
-     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_channels
-
  contains
 
-
-    subroutine load_from_config(self, cfg, universal_cfg, rc)
+    subroutine load_from_config(self, gc, rc)
        class(GA_Environment), intent(inout) :: self
-       type(ESMF_Config), intent(inout) :: cfg
-       type(ESMF_Config), intent(inout) :: universal_cfg
+       type(ESMF_GridComp), intent(inout) :: gc
        integer, optional, intent(out) :: rc
 
-       !   Local variables
-       character(len=ESMF_MAXSTR) :: wet_removal_scheme
+       ! Local variables
+       character(:), allocatable :: wet_removal_scheme
+       real, allocatable :: ones(:)
+       integer :: nbins, status
 
-       !   Get nbins from cfg
-       call ESMF_ConfigGetAttribute (cfg, self%nbins, label='nbins:', __RC__)
+       call MAPL_GridCompGetResource(gc, "nbins", self%nbins, _RC)
        nbins = self%nbins
 
-       n_wavelengths_profile = ESMF_ConfigGetLen (universal_cfg, label='wavelengths_for_profile_aop_in_nm:', __RC__)
-       n_wavelengths_vertint = ESMF_ConfigGetLen (universal_cfg, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+       call MAPL_GridCompGetResource(gc, "particle_radius_microns", self%radius, _RC)
+       call MAPL_GridCompGetResource(gc, "particle_density", self%rhop, _RC)
+       call MAPL_GridCompGetResource(gc, "fscav", self%fscav, _RC)
+       call MAPL_GridCompGetResource(gc, "molecular_weight", self%molwght, _RC)
+       call MAPL_GridCompGetResource(gc, "fnum", self%fnum, _RC)
+       call MAPL_GridCompGetResource(gc, "pressure_lid_in_hPa", self%plid, _RC)
 
-       !   Parse config file into private internal state
-       !   ----------------------------------------------
-       allocate(self%radius(nbins), self%rhop(nbins), self%fscav(nbins), self%molwght(nbins), &
-                self%fnum(nbins), self%fwet_ice(nbins), self%fwet_snow(nbins), self%fwet_rain(nbins), &
-                self%wavelengths_profile(n_wavelengths_profile), &
-                self%wavelengths_vertint(n_wavelengths_vertint), &
-                __STAT__)
-       
-       call ESMF_ConfigGetAttribute (cfg, self%radius,     label='particle_radius_microns:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%rhop,       label='particle_density:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%molwght,    label='molecular_weight:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%fnum,       label='fnum:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%plid,       label='pressure_lid_in_hPa:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%fwet_ice,   label='fwet_ice:', default=1.0, __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%fwet_snow,  label='fwet_snow:', default=1.0, __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%fwet_rain,  label='fwet_rain:', default=1.0, __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%wet_radius_thr,  label='wet_radius_thr:', default=0.05, __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%washout_tuning,  label='washout_tuning:', default=1.0, __RC__)
-       call ESMF_ConfigGetAttribute (cfg, wet_removal_scheme, label='wet_removal_scheme:', default='gocart', __RC__)
-       self%wet_removal_scheme = ESMF_UtilStringLowerCase(trim(wet_removal_scheme), __RC__)
+       call MAPL_GridCompGetResource(gc, "wet_radius_thr", self%wet_radius_thr, default=0.05, _RC)
+       call MAPL_GridCompGetResource(gc, "washout_tuning", self%washout_tuning, default=1.0, _RC)
+       call MAPL_GridCompGetResource(gc, "wet_removal_scheme", wet_removal_scheme, default="gocart", _RC)
+       self%wet_removal_scheme = ESMF_UtilStringLowerCase(wet_removal_scheme, _RC)
 
-       call ESMF_ConfigGetAttribute (universal_cfg, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
-       call ESMF_ConfigGetAttribute (universal_cfg, self%wavelengths_vertint, &
-                                     label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
+       allocate(ones(nbins), source=1.0)
+       call MAPL_GridCompGetResource(gc, "fwet_ice", self%fwet_ice, default=ones, _RC)
+       call MAPL_GridCompGetResource(gc, "fwet_snow", self%fwet_snow, default=ones, _RC)
+       call MAPL_GridCompGetResource(gc, "fwet_rain", self%fwet_rain, default=ones, _RC)
 
-       call validate_config(self, __RC__)
+       call MAPL_GridCompGetResource(gc, "wavelengths_for_profile_aop_in_nm", self%wavelengths_profile, _RC)
+       call MAPL_GridCompGetResource(gc, "wavelengths_for_vertically_integrated_aop_in_nm", self%wavelengths_vertint, _RC)
+
+       call validate_config(self, _RC)
 
     end subroutine load_from_config
 

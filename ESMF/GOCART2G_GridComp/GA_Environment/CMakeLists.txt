@@ -2,7 +2,7 @@ esma_set_this ()
 
 esma_add_library (${this}
   SRCS ${this}Mod.F90
-  DEPENDENCIES MAPL Chem_Shared2G Process_Library ESMF::ESMF
+  DEPENDENCIES MAPL MAPL.generic3g Chem_Shared2G Process_Library ESMF::ESMF
   )
 
 # CMake has an OpenMP issue with NAG Fortran: https://gitlab.kitware.com/cmake/cmake/-/issues/21280
