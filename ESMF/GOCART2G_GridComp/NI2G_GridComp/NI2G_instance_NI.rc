@@ -29,3 +29,7 @@ particle_radius_number: 0.0118  0.0118  0.0118  0.0118  0.0118
 sigma: 2.0  2.0  2.0  2.0  2.0
 
 pressure_lid_in_hPa: 0.01
+
+# SettlingSolver options
+# Options: 'gocart' or 'ufs'
+settling_scheme: 'gocart'
