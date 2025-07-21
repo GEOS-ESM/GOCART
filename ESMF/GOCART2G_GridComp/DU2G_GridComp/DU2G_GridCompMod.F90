@@ -324,6 +324,7 @@ contains
 #include "DU2G_Internal___.h"
       if (MAPL_AM_I_ROOT()) then
          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+         write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
       end if
     end if
 
@@ -933,6 +934,7 @@ contains
     real, parameter ::  cpd    = 1004.16
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
+    integer                           :: settling_opt
 #include "DU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -968,12 +970,22 @@ contains
 
 !   Dust Settling
 !   -------------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        nullify(flux_ptr)
        if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            DU(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, __RC__)
+                           rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, &
+                           settling_scheme=settling_opt, __RC__)
     end do
 
 !   Dust Deposition

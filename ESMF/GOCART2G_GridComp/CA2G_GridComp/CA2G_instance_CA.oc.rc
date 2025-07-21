@@ -58,3 +58,7 @@ pressure_lid_in_hPa: 0.01
 nbins: 2
 
 point_emissions_srcfilen: /dev/null
+
+# SettlingSolver options
+# Options: 'gocart' or 'ufs'
+settling_scheme: 'gocart'
