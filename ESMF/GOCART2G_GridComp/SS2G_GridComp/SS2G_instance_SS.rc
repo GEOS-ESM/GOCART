@@ -46,3 +46,6 @@ nbins: 5
 pressure_lid_in_hPa: 40.0
 
 
+# SettlingSolver options
+# Options: 'gocart' or 'ufs'
+settling_scheme: 'gocart'

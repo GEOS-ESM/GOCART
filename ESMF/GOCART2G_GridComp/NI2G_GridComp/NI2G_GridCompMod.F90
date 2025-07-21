@@ -768,6 +768,7 @@ contains
     integer :: i, j
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread
+    integer :: settling_opt
 
 #include "NI2G_DeclarePointer___.h"
 
@@ -847,27 +848,36 @@ contains
 
 !   NI Settling
 !   -----------
+    select case (self%settling_scheme)
+    case ('gocart')
+        settling_opt=1
+    case ('ufs')
+        settling_opt=2
+    case default
+        _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
 !   Ammonium - settles like bin 1 of nitrate
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
-                              NH4a, t, airdens, rh2, zle, delp, NH4SD, __RC__)
+                              NH4a, t, airdens, rh2, zle, delp, NH4SD, settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 1
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,1)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                         NO3an1, t, airdens, &
-                        rh2, zle, delp, flux_ptr, __RC__)
+                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 2
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,2)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 2, self%cdt, MAPL_GRAV, &
                         NO3an2, t, airdens, &
-                        rh2, zle, delp, flux_ptr, __RC__)
+                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 3
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,3)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 3, self%cdt, MAPL_GRAV, &
                         NO3an3, t, airdens, &
-                        rh2, zle, delp, flux_ptr, __RC__)
+                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
 
 
 

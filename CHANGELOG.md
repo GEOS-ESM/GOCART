@@ -29,6 +29,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [v2.4.3] - 2025-07-21
+
+### Changed
+
+- Added new SettlingSolver scheme `SettlingSolverUFS` and rolled back the previous `SettlingSolver`
+
+### Fixed
+
+- fix UFS settling solver for numerical instability under certain convective conditions
+
+### Added
+
+ - Added option for choosing SettlingSolver
+   - `gocart' - Default GOCART Settling scheme | 'ufs' - New Settling scheme
+
 ## [v2.4.2] - 2025-06-12
 
 ### Fixed
