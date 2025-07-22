@@ -1577,7 +1577,9 @@ end function DarmenovaDragPartition
     endif
 
     if (present(vsettleOut)) then
-       vsettleOut = vsettle
+       if (associated(vsettleOut)) then
+          vsettleOut = vsettle
+       end if
     end if
 
 !   Time integration
