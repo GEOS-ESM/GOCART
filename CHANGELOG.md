@@ -19,7 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Heartbeat time step removed and `timeToWork` logical added
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 - Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
-- Added new SettlingSolver scheme `SettlingSolverUFS` and rolled back the previous `SettlingSolver`
 
 ### Fixed
 
@@ -27,7 +26,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
-- fix UFS settling solver for numerical instability under certain convective conditions
 
 ### Added
 
