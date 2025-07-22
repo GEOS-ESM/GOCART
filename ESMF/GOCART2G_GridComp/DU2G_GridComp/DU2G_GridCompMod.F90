@@ -32,6 +32,7 @@ module DU2G_GridCompMod
 ! !DESCRIPTION: This module implements GOCART's Dust (DU) Gridded Component.
 
 ! !REVISION HISTORY:
+! 4January2024   Collow - Updated call for ChemSettling
 ! 16Oct2019  Sherman, da Silva, Darmenov, Clune -  First attempt at refactoring
 
 !EOP
@@ -58,8 +59,10 @@ module DU2G_GridCompMod
        real, allocatable      :: sdist(:)       ! FENGSHA aerosol fractional size distribution [1]
        real                   :: alpha          ! FENGSHA scaling factor
        real                   :: gamma          ! FENGSHA tuning exponent
+       integer                :: drag_opt       ! FENGSHA drag option 1 - input only, 2 - Darmenova, 3 - Leung
        real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
        real                   :: f_sdl          ! FENGSHA drylimit tuning factor
+       integer                :: distribution_opt ! FENGSHA distribution option 1 - Kok, 2 - Kok 2021, 3 - Meng 2022
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
@@ -120,6 +123,7 @@ contains
     logical                            :: data_driven = .true.
     logical                            :: file_exists
     integer :: num_threads
+    character(len=255) :: msg
 
     __Iam__('SetServices')
 
@@ -161,6 +165,8 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
 
+    ! Choose Emission Scheme
+    !-----------------------
     call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
     self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
 
@@ -170,6 +176,7 @@ contains
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
 
+    ! Point Sources
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
     if ( (index(self%point_emissions_srcfilen,'/dev/null')>0) ) then
@@ -182,11 +189,22 @@ contains
 !   --------------------------------
     select case (self%emission_scheme)
     case ('fengsha')
-       call ESMF_ConfigGetAttribute (cfg, self%alpha,      label='alpha:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%gamma,      label='gamma:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%f_sdl,      label='soil_drylimit_factor:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,     label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%alpha,    label='alpha:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gamma,    label='gamma:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_swc,    label='soil_moisture_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_sdl,    label='soil_drylimit_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,   label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%drag_opt, label='drag_partition_option:', __RC__)
+
+       if (MAPL_AM_I_ROOT()) then
+         write (*,*) "FENGSHA: config: alpha: " , self%alpha
+         write (*,*) "FENGSHA: config: gamma: " , self%gamma
+         write (*,*) "FENGSHA: config: soil_moisture_factor: " , self%f_swc
+         write (*,*) "FENGSHA: config: soil_drylimit_factor: " , self%f_sdl
+         write (*,*) "FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: " , self%kvhmax
+         write (*,*) "FENGSHA: config: drag_partition_option: " , self%drag_opt
+       end if
+
     case ('k14')
        call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
@@ -208,6 +226,7 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run, __RC__)
     if (data_driven .neqv. .true.) then
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run0, __RC__)
     end if
 
     DEFVAL = 0.0
@@ -225,7 +244,7 @@ contains
           vlocation=MAPL_VlocationCenter, &
           restart=MAPL_RestartOptional, &
           ungridded_dims=[self%nbins], &
-          friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           add2export=.true., __RC__)
 
 !      Pressure at layer edges
@@ -304,6 +323,11 @@ contains
 #include "DU2G_Import___.h"
       end associate
 #include "DU2G_Internal___.h"
+      if (MAPL_AM_I_ROOT()) then
+         write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+         write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
+      end if
+
     end if
 
 !   This state holds fields needed by radiation
@@ -383,8 +407,6 @@ contains
     character (len=ESMF_MAXSTR)          :: bin_index, prefix
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:,:)    :: int_ptr
-    real, pointer, dimension(:,:,:)      :: ple
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
@@ -413,8 +435,8 @@ contains
     self => wrap%ptr
 
 !   Global dimensions are needed here for choosing tuning parameters
-!   ----------------------------------------------------------------    
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ ) 
+!   ----------------------------------------------------------------
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   TO DO: find a more robust way to implement resolution dependent tuning
@@ -437,7 +459,7 @@ contains
 !   Get DTs
 !   -------
     call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)
-    call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
+    call MAPL_GetResource(mapl, CDT, Label='GOCART2G_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
 !   Load resource file
@@ -489,15 +511,6 @@ contains
     call ESMF_StateGet (internal, 'DU', field, __RC__)
     fld = MAPL_FieldCreate (field, 'DU', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-       call findKlid (self%klid, self%plid, ple, __RC__)
-!      Set internal DU values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'DU', __RC__)
-       call setZeroKlid4d (self%km, self%klid, int_ptr)
-    end if
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
@@ -590,6 +603,67 @@ contains
 
   end subroutine Initialize
 
+!============================================================================
+!BOP
+! !IROUTINE: Run0
+
+! !INTERFACE:
+  subroutine Run0 (GC, import, export, clock, RC)
+
+!   !ARGUMENTS:
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+    type (ESMF_State),    intent(inout) :: import ! Import state
+    type (ESMF_State),    intent(inout) :: export ! Export state
+    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+    integer, optional,    intent(  out) :: RC     ! Error code:
+
+! !DESCRIPTION:  Clears klid to 0.0 for Dust
+
+!EOP
+!============================================================================
+! Locals
+    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    type (MAPL_MetaComp), pointer     :: MAPL
+    type (ESMF_State)                 :: internal
+    type (wrap_)                      :: wrap
+    type (DU2G_GridComp), pointer     :: self
+    real, pointer, dimension(:,:,:)   :: ple
+    real, pointer, dimension(:,:,:,:) :: ptr4d_int
+
+    __Iam__('Run0')
+
+!*****************************************************************************
+!   Begin...
+
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    Iam = trim(COMP_NAME) // '::' // Iam
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+
+!   Get my private internal state
+!   ------------------------------
+    call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call MAPL_GetPointer (internal, NAME='DU', ptr=ptr4d_int, __RC__)
+    call setZeroKlid4d (self%km, self%klid, ptr4d_int)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine Run0
 
 !============================================================================
 !BOP
@@ -797,11 +871,10 @@ contains
        if (associated(DU_EROD)) DU_EROD = f_erod_
 
     case ('fengsha')
-
-       call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
-                                 du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_uthres,  &
-                                 self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
-                                 self%rhop, self%sdist, self%f_sdl, self%f_swc, emissions_surface,  __RC__)
+        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
+                du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres,  &
+                self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
+                self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
 
     case ('ginoux')
 
@@ -909,8 +982,11 @@ contains
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, parameter ::  cpd    = 1004.16
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, pointer, dimension(:,:)     :: flux_ptr
+    integer                           :: settling_opt
 #include "DU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -944,14 +1020,29 @@ contains
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
 
+!   Set klid and Set internal DU values to 0 above klid
+!   ---------------------------------------------------
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid4d (self%km, self%klid, DU)
+
 !   Dust Settling
 !   -------------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), DU(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, DUSD, correctionMaring=self%maringFlag, __RC__)
-
-
+       nullify(flux_ptr)
+       if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           DU(:,:,:,n), t, airdens, &
+                           rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, &
+                           settling_scheme=settling_opt, __RC__)
     end do
 
 !   Dust Deposition
@@ -976,12 +1067,27 @@ contains
 !  Dust Large-scale Wet Removal
 !  ----------------------------
    KIN = .TRUE.
-   do n = 1, self%nbins
-      fwet = 0.8
-      call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
-                              KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
-                              pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
-   end do
+   select case (self%wet_removal_scheme)
+   case ('gocart')
+      do n = 1, self%nbins
+         fwet = 1.0
+         call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
+                                 KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
+                                 pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
+      end do
+   case ('ufs')
+      rainout_eff = 0.0
+      do n = 1, self%nbins
+        rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+        rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+        rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+        call WetRemovalUFS     (self%km, self%klid, n, self%cdt, 'dust', KIN, MAPL_GRAV, &
+                                 self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
+                                 DU(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, DUWT, __RC__)
+      end do
+   case default
+      _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+   end select
 
 !  Compute diagnostics
 !  -------------------

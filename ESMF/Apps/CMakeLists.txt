@@ -1,7 +1,7 @@
 esma_set_this ()
 
 set (srcs
-  GOCART2G_SimpleBundleMod.F90 
+  GOCART2G_SimpleBundleMod.F90
   aop_calculator.F90
   GOCART2G_AopMod.F90
   )
@@ -18,10 +18,10 @@ endforeach ()
 set (resource_files
    aop_calculator.rc
    )
-install( FILES ${resource_files} 
+install( FILES ${resource_files}
    DESTINATION etc
    )
-esma_add_library(${this} 
-  SRCS ${srcs} 
-  DEPENDENCIES MAPL Process_Library esmf NetCDF::NetCDF_Fortran
+esma_add_library(${this}
+  SRCS ${srcs}
+  DEPENDENCIES MAPL Process_Library ESMF::ESMF NetCDF::NetCDF_Fortran
   )
