@@ -342,6 +342,9 @@ contains
 #include "SU2G_Export___.h"
 #include "SU2G_Import___.h"
 #include "SU2G_Internal___.h"
+        if (MAPL_AM_I_ROOT()) then
+            write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
+        end if
     end if
 
 !   This state holds fields needed by radiation
@@ -1102,6 +1105,7 @@ contains
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
+    integer :: settling_opt
 #include "SU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1182,6 +1186,15 @@ contains
 
 !   SU Settling
 !   -----------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        ! if radius == 0 then we're dealing with a gas which has no settling losses
        if (self%radius(n) == 0.0) then
@@ -1195,7 +1208,8 @@ contains
        if (associated(SUSD)) flux_ptr => SUSD(:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                            int_ptr, t, airdens, &
-                           rh2, zle, delp, flux_ptr, __RC__)
+                           rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
+
     end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
