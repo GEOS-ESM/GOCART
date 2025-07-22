@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 - Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
 - Added new SettlingSolver scheme `SettlingSolverUFS` and rolled back the previous `SettlingSolver`
+- Updated settling routine and calls to allow settling velocity diagnostics in output field
 
 ### Fixed
 

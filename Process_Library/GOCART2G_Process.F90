@@ -1465,7 +1465,7 @@ end function DarmenovaDragPartition
                                                   !  0 - all is well
                                                   !  1 -
 !  Optionally output the settling velocity calculated
-   real, pointer, optional, dimension(:,:,:)  :: vsettleOut
+   real, pointer, optional, intent (inout)  :: vsettleOut (:,:,:)
 
 !  Optionally correct the settling velocity following Maring et al, 2003
    logical, optional, intent(in)    :: correctionMaring
@@ -1576,9 +1576,9 @@ end function DarmenovaDragPartition
        endif
     endif
 
-    if(present(vsettleOut)) then
+    if (present(vsettleOut)) then
        vsettleOut = vsettle
-    endif
+    end if
 
 !   Time integration
     select case (settling_scheme)
