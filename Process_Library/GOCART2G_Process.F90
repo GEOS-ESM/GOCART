@@ -1898,21 +1898,21 @@ end function DarmenovaDragPartition
 !BOP
 ! !IROUTINE: SettlingSolver
 
-   subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
+  subroutine SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
 
-   implicit none
+    implicit none
 
-   integer, intent(in) :: i1, i2
-   integer, intent(in) :: j1, j2
-   integer, intent(in) :: km
+    integer, intent(in) :: i1, i2
+    integer, intent(in) :: j1, j2
+    integer, intent(in) :: km
 
-   real,    intent(in) :: cdt
+    real,    intent(in) :: cdt
 
-   real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
-   real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
-   real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
 
-   real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
+    real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
 
 
     ! local
@@ -1986,15 +1986,15 @@ end function DarmenovaDragPartition
     integer :: i, j, k, iit
     integer :: nSubSteps
 
-   real, dimension(i1:i2, j1:j2, km) :: tau
+    real, dimension(i1:i2, j1:j2, km) :: tau
 
-   real, dimension(km) :: dp_
-   real, dimension(km) :: tau_
-   real, dimension(km) :: qa_old
+    real, dimension(km) :: dp_
+    real, dimension(km) :: tau_
+    real, dimension(km) :: qa_old
 
-   real :: dt, dt_cfl, max_tau
-   real :: transfer_factor, loss_factor
-   real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
+    real :: dt, dt_cfl, max_tau
+    real :: transfer_factor, loss_factor
+    real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
     real, parameter :: cfl_factor = 0.1  ! CFL stability factor
 
 ! !DESCRIPTION: This subroutine solves the settling of particles
@@ -2010,7 +2010,7 @@ end function DarmenovaDragPartition
 !EOP
 !-------------------------------------------------------------------------
 
-      tau = vs / dz
+    tau = vs / dz
 
     ! loop over grid points
     jloop : do j = j1, j2
@@ -2019,21 +2019,21 @@ end function DarmenovaDragPartition
          dp_  = delp(i,j,:)
          tau_ = tau(i,j,:)
 
-         ! Find maximum tau with numerical safety
+          ! Find maximum tau with numerical safety
          max_tau = maxval(tau_)
 
          dt_cfl = cfl_factor / max_tau
 
 
 
-          if (dt_cfl >= cdt) then
-             ! no need for time sub-splitting
+         if (dt_cfl >= cdt) then
+            ! no need for time sub-splitting
             nSubSteps = 0
-             dt = cdt
-          else
-             nSubSteps = max(1, ceiling(cdt / dt_cfl))
-             dt = cdt / real(nSubSteps)
-          end if
+            dt = cdt
+         else
+            nSubSteps = max(1, ceiling(cdt / dt_cfl))
+            dt = cdt / real(nSubSteps)
+         end if
 
          ! Time integration with numerical safeguards
          iitloop : do iit = 1, nSubSteps
@@ -2053,9 +2053,9 @@ end function DarmenovaDragPartition
                   transfer_factor = (dp_(k-1) / dp_(k)) * dt * tau_(k-1)
                   qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0))) + &
                                  transfer_factor * qa_old(k-1)
-                   else
+               else
                   qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)))
-                endif
+               end if
             end do kloop
          end do iitloop
       end do iloop

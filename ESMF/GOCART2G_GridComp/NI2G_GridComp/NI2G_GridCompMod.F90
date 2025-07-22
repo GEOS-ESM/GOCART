@@ -507,7 +507,7 @@ contains
       call ESMF_ClockGet(clock,currTime=currentTime,_RC)
       self%last_time_replenished = currentTime - oneDay
     end block
-      
+
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Initialize
@@ -1413,7 +1413,7 @@ contains
      call ESMF_ClockGet(clock,currTime=current_time,_RC)
 !     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
 
-     call MAPL_UnpackTIme(freq,nhh,nmm,nss) 
+     call MAPL_UnpackTIme(freq,nhh,nmm,nss)
      call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
 
      is_ringing = .false.

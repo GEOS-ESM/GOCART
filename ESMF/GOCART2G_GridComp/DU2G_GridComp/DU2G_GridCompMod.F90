@@ -327,6 +327,7 @@ contains
          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
          write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
       end if
+
     end if
 
 !   This state holds fields needed by radiation

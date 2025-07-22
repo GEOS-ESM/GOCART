@@ -57,7 +57,7 @@ module CA2G_GridCompMod
        real               :: fHydrophobic ! Initially hydrophobic portion
        real               :: tConvPhobicToPhilic ! e-folding time [days] hydrophobic to hydrophilic
        real               :: tChemLoss(2)        ! e-folding time [days] for parameterized chemistry loss
-       logical            :: diurnal_bb   ! diurnal biomass burning
+       logical            :: diurnal_bb          ! diurnal biomass burning
        real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
 !      !Workspae for point emissions
@@ -620,7 +620,7 @@ contains
     type (wrap_)                      :: wrap
     type (CA2G_GridComp), pointer     :: self
     real, pointer, dimension(:,:,:)   :: intPtr_phobic, intPtr_philic
-    real, pointer, dimension(:,:,:)   :: ple 
+    real, pointer, dimension(:,:,:)   :: ple
 
     __Iam__('Run0')
 
@@ -1102,9 +1102,10 @@ contains
        nullify(flux_ptr)
        flux_ptr => SD(:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
-                           int_ptr, t, airdens, &
+                        int_ptr, t, airdens, &
                         rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
     end do
+
 
 !   CA Deposition
 !   -----------
@@ -1152,7 +1153,7 @@ contains
           call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
           call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
           call WetRemovalUFS  (self%km, self%klid, n, self%cdt, GCsuffix, &
-                               KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, & 
+                               KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, &
                                self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, WT, __RC__)
        end do
     case default
@@ -1484,7 +1485,7 @@ contains
 !   --------------------
     call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)

@@ -18,7 +18,7 @@ particle_density: 2500. 2650. 2650. 2650. 2650.
 # -----------------------
 emission_scheme: ginoux
 Ch_DU:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
-#Ch_DU: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f) 
+#Ch_DU: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)
 
 # source_fraction: 0.0435465   0.106903   0.220117   0.484606   0.144828
 source_fraction: 0.1 0.25 0.25 0.25 0.25

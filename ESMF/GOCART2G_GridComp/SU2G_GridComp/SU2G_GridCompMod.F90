@@ -637,7 +637,7 @@ contains
       call ESMF_ClockGet(clock,currTime=currentTime,_RC)
       self%last_time_replenished = currentTime - oneDay
     end block
-      
+
     RETURN_(ESMF_SUCCESS)
 
   end subroutine Initialize
@@ -895,7 +895,7 @@ contains
     where(1.01*aviation_crs_src > MAPL_UNDEF ) aviation_crs_src = 0.
 
 !   Start with a clean emission diagnostic
-    if(associated(SUEM)) SUEM = 0.0    
+    if(associated(SUEM)) SUEM = 0.0
 
 
 !   Update emissions/production if necessary (daily)
@@ -1206,6 +1206,8 @@ contains
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
        nullify(flux_ptr)
        if (associated(SUSD)) flux_ptr => SUSD(:,:,n)
+
+
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                            int_ptr, t, airdens, &
                            rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
@@ -1254,7 +1256,7 @@ contains
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
     RH20(:,:,:) = 0.20
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1264,7 +1266,7 @@ contains
                             scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &

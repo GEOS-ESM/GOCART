@@ -17,10 +17,10 @@ module GA_EnvironmentMod
        real, allocatable      :: rhop(:)        ! soil class density [kg m-3]
        real, allocatable      :: fscav(:)       ! scavenging efficiency
 !      logical                :: scav_byColdCloud ! new flag example
-       real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES, 
+       real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES,
        real, allocatable      :: fnum(:)        ! number of particles per kg mass
        real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice
-       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow 
+       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow
        real, allocatable      :: fwet_rain(:)   ! large scale wet removal scaling factor for rain
        real                   :: washout_tuning ! tuning factor for washout process (1 by default)
        real                   :: wet_radius_thr ! wet radius threshold [um]
@@ -72,7 +72,7 @@ module GA_EnvironmentMod
                 self%wavelengths_profile(n_wavelengths_profile), &
                 self%wavelengths_vertint(n_wavelengths_vertint), &
                 __STAT__)
-       
+
        call ESMF_ConfigGetAttribute (cfg, self%radius,     label='particle_radius_microns:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%rhop,       label='particle_density:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)

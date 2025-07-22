@@ -371,7 +371,7 @@ contains
     self => wrap%ptr
 
 !   Global dimensions are needed here for choosing tuning parameters
-!   ----------------------------------------------------------------    
+!   ----------------------------------------------------------------
     call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
@@ -903,7 +903,7 @@ contains
           rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
           rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
           call WetRemovalUFS(self%km, self%klid, n, self%cdt, 'sea_salt', KIN, MAPL_GRAV, &
-                             self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, & 
+                             self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
                              SS(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, SSWT, __RC__)
        end do
     case default
