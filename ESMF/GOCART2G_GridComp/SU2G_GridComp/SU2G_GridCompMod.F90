@@ -345,7 +345,7 @@ contains
         if (MAPL_AM_I_ROOT()) then
             write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
         end if
-    endif
+    end if
 
 !   This state holds fields needed by radiation
 !   ---------------------------------------------
