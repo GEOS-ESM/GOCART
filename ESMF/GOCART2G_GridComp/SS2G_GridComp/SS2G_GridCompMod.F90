@@ -30,7 +30,6 @@ module SS2G_GridCompMod
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
-   use pflogger, only: logger_t => logger
 
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
@@ -46,7 +45,7 @@ module SS2G_GridCompMod
 ! !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
 
-real, parameter ::  cpd    = 1004.16
+   real, parameter ::  cpd    = 1004.16
 
 ! !DESCRIPTION: This module implements GOCART's Sea Salt (SS) Gridded Component.
 
@@ -59,17 +58,17 @@ real, parameter ::  cpd    = 1004.16
 
 !  !Sea Salt state
    type, extends(GA_Environment) :: SS2G_GridComp
-       real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
-       real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
-       real, allocatable      :: rmed(:)        ! number median radius [um]
-       integer                :: sstEmisFlag    ! Choice of SST correction to emissions:
-!                                                 0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
-       logical                :: hoppelFlag     ! Apply the Hoppel correction to emissions (Fan and Toon, 2011)
-       logical                :: weibullFlag    ! Apply the Weibull distribution to wind speed for emissions (Fan and Toon, 2011)
-       !real, allocatable      :: deep_lakes_mask(:,:)
-       integer                :: emission_scheme
-       real                   :: emission_scale ! global scaling factor
-       real                   :: emission_scale_res(NHRES) ! global scaling factor
+      real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
+      real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
+      real, allocatable      :: rmed(:)        ! number median radius [um]
+      integer                :: sstEmisFlag    ! Choice of SST correction to emissions:
+      !                                          0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
+      logical                :: hoppelFlag     ! Apply the Hoppel correction to emissions (Fan and Toon, 2011)
+      logical                :: weibullFlag    ! Apply the Weibull distribution to wind speed for emissions (Fan and Toon, 2011)
+      !real, allocatable      :: deep_lakes_mask(:,:)
+      integer                :: emission_scheme
+      real                   :: emission_scale ! global scaling factor
+      real                   :: emission_scale_res(NHRES) ! global scaling factor
    end type SS2G_GridComp
 
    type wrap_
@@ -84,11 +83,11 @@ contains
 ! !IROUTINE: SetServices
 
 ! !INTERFACE:
-  subroutine SetServices ( GC, RC )
+   subroutine SetServices ( GC, RC )
 
 !   !ARGUMENTS:
-    type (ESMF_GridComp), intent(INOUT)   :: GC  ! gridded component
-    integer,              intent(  OUT)   :: RC  ! return code
+      type (ESMF_GridComp), intent(INOUT)   :: GC  ! gridded component
+      integer,              intent(  OUT)   :: RC  ! return code
 
 !    DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
 !     the Initialize and Finalize services to generic versions. It also
@@ -103,218 +102,203 @@ contains
 !============================================================================
 
 !   !Locals
-    character (len=ESMF_MAXSTR)                 :: COMP_NAME
-    type (wrap_)                                :: wrap
-    type (SS2G_GridComp), pointer               :: self
-    character (len=ESMF_MAXSTR)                 :: field_name
-    integer                                     :: i
-    real                                        :: DEFVAL
-    logical                                     :: data_driven=.true.
-    logical                                     :: file_exists
-    class(logger_t), pointer                    :: logger
-    real, allocatable                           :: emission_scale_res(:)
+      character (len=ESMF_MAXSTR)                 :: COMP_NAME
+      type (wrap_)                                :: wrap
+      type (SS2G_GridComp), pointer               :: self
+      character (len=ESMF_MAXSTR)                 :: field_name
+      integer                                     :: i
+      real                                        :: DEFVAL
+      logical                                     :: data_driven=.true.
+      logical                                     :: file_exists
+      real, allocatable                           :: emission_scale_res(:)
+      type(ESMF_HConfig)                          :: hconfig
+      __Iam__('SetServices')
 
-    __Iam__('SetServices')
+      ! Get my name and set-up traceback handle
+      call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+      Iam = trim(COMP_NAME) // '::' // Iam
 
-!****************************************************************************
-!   Begin...
+      call MAPL_GridCompGet(gc, hconfig=hconfig, _RC)
+      call ESMF_HConfigFileSave(hconfig, "seasalt-hconfig.yaml", _RC)
 
-!   Get my name and set-up traceback handle
-!   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
-    Iam = trim(COMP_NAME) // '::' // Iam
+      ! Wrap internal state for storing in GC
+      allocate (self, __STAT__)
+      wrap%ptr => self
 
-!   Wrap internal state for storing in GC
-!   -------------------------------------
-    allocate (self, __STAT__)
-    wrap%ptr => self
+      ! Process generic config items
+      call self%GA_Environment%load_from_config(gc, _RC)
 
-    ! process generic config items
-    call self%GA_Environment%load_from_config(gc, _RC)
+      ! Process SS-specific items
+      call MAPL_GridCompGetResource(gc, "sstEmisFlag", self%sstEmisFlag, _RC)
+      call MAPL_GridCompGetResource(gc, "weibullFlag", self%weibullFlag, _RC)
+      call MAPL_GridCompGetResource(gc, "hoppelFlag", self%hoppelFlag, _RC)
+      call MAPL_GridCompGetResource(gc, "emission_scheme", self%emission_scheme, _RC)
+      call MAPL_GridCompGetResource(gc, "emission_scale", emission_scale_res, _RC)
+      _ASSERT(size(emission_scale_res)==NHRES, "emission scale has wrong size")
+      self%emission_scale_res = emission_scale_res
+      call MAPL_GridCompGetResource(gc, "radius_lower", self%rlow, _RC)
+      call MAPL_GridCompGetResource(gc, "radius_upper", self%rup, _RC)
+      call MAPL_GridCompGetResource(gc, "particle_radius_number", self%rmed, _RC)
 
-    ! process SS-specific items
-    call MAPL_GridCompGetResource(gc, "sstEmisFlag", self%sstEmisFlag, _RC)
-    call MAPL_GridCompGetResource(gc, "weibullFlag", self%weibullFlag, _RC)
-    call MAPL_GridCompGetResource(gc, "hoppelFlag", self%hoppelFlag, _RC)
-    call MAPL_GridCompGetResource(gc, "emission_scheme", self%emission_scheme, _RC)
-    call MAPL_GridCompGetResource(gc, "emission_scale", emission_scale_res, _RC)
-    _ASSERT(size(emission_scale_res)==NHRES, "emission scale has wrong size")
-    self%emission_scale_res = emission_scale_res
-    call MAPL_GridCompGetResource(gc, "radius_lower", self%rlow, _RC)
-    call MAPL_GridCompGetResource(gc, "radius_upper", self%rup, _RC)
-    call MAPL_GridCompGetResource(gc, "particle_radius_number", self%rmed, _RC)
+      ! Is SS data driven?
+      call determine_data_driven (COMP_NAME, data_driven, __RC__)
+      if (MAPL_AM_I_ROOT()) print *, "DATA DRIVEN? ", data_driven
 
-!   Is SS data driven?
-!   ------------------
-    call determine_data_driven (COMP_NAME, data_driven, __RC__)
-    if (MAPL_AM_I_ROOT()) print *, "DATA DRIVEN? ", data_driven
+      ! Set entry points
+      call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
+      call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, phase_name="Run", _RC)
+      if (data_driven .neqv. .true.) then
+         call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
+         call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
+      end if
 
-!   Set entry points
-!   ------------------------
-    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_INITIALIZE,  Initialize, __RC__)
-    call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, phase_name="Run", _RC)
-    if (data_driven .neqv. .true.) then
-       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
-       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
-    end if
+      DEFVAL = 0.0
 
-    DEFVAL = 0.0
+      ! Import and Internal states if data instance
+      if (data_driven) then
+         _FAIL("data driven section has not been activated yet")
 
-!   Import and Internal states if data instance
-!   -------------------------------------------
-    if (data_driven) then
-       _FAIL("data driven section has not been activated yet")
+         call MAPL_GridCompAddSpec(gc,&
+              state_intent=ESMF_STATEINTENT_INTERNAL, &
+              short_name='SS', &
+              standard_name='Sea Salt Mixing Ratio all bins', &
+              units='kg kg-1', &
+              dims='xyz', &
+              vstagger=VERTICAL_STAGGER_CENTER, &
+              ! restart=MAPL_RestartOptional, &
+              ungridded_dims=[self%nbins], &
+              ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+              add_to_export=.true., _RC)
 
-       call MAPL_GridCompAddSpec(gc,&
-            state_intent=ESMF_STATEINTENT_INTERNAL, &
-            short_name='SS', &
-            standard_name='Sea Salt Mixing Ratio all bins', &
-            units='kg kg-1', &
-            dims='xyz', &
-            vstagger=VERTICAL_STAGGER_CENTER, &
-            ! restart=MAPL_RestartOptional, &
-            ungridded_dims=[self%nbins], &
-            ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-            add_to_export=.true., _RC)
+         call MAPL_GridCompAddSpec(gc,&
+              state_intent=ESMF_STATEINTENT_INTERNAL, &
+              short_name='DEEP_LAKES_MASK', &
+              units='1', &
+              dims='xy', &
+              vstagger=VERTICAL_STAGGER_NONE, &
+              add_to_export=.false., &
+              standard_name='Deep Lakes Mask', &
+              _RC)
 
-       call MAPL_GridCompAddSpec(gc,&
-            & state_intent=ESMF_STATEINTENT_INTERNAL, &
-            & short_name='DEEP_LAKES_MASK', &
-            & units='1', &
-            & dims='xy', &
-            & vstagger=VERTICAL_STAGGER_NONE, &
-            & add_to_export=.false., &
-            & standard_name='Deep Lakes Mask', &
-            & _RC)
+         ! Pressure at layer edges
+         call MAPL_GridCompAddSpec(GC, &
+              STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+              SHORT_NAME='PLE', &
+              STANDARD_NAME='air_pressure', &
+              UNITS='Pa', &
+              DIMS='xyz', &
+              vstagger=VERTICAL_STAGGER_EDGE, &
+              ! RESTART=MAPL_RestartSkip, &
+              _RC)
 
-!      Pressure at layer edges
-!      -----------------------
-       call MAPL_GridCompAddSpec(GC, &
-            STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-            SHORT_NAME='PLE', &
-            STANDARD_NAME='air_pressure', &
-            UNITS='Pa', &
-            DIMS='xyz', &
-            vstagger=VERTICAL_STAGGER_EDGE, &
-            ! RESTART=MAPL_RestartSkip, &
-            _RC)
+         ! RH: is between 0 and 1
+         call MAPL_GridCompAddSpec(GC, &
+              STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+              SHORT_NAME='RH2', &
+              STANDARD_NAME='Rel_Hum_after_moist', &
+              UNITS='1', &
+              DIMS = 'xyz', &
+              VSTAGGER=VERTICAL_STAGGER_CENTER, &
+              ! RESTART=MAPL_RestartSkip, &
+              _RC)
 
-!      RH: is between 0 and 1
-!      ----------------------
-       call MAPL_GridCompAddSpec(GC, &
-            STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-            SHORT_NAME='RH2', &
-            STANDARD_NAME='Rel_Hum_after_moist', &
-            UNITS='1', &
-            DIMS = 'xyz', &
-            VSTAGGER=VERTICAL_STAGGER_CENTER, &
-            ! RESTART=MAPL_RestartSkip, &
-            _RC)
+         do i = 1, self%nbins
+            write(field_name, '(A, I0.3)') '', i
+            call MAPL_GridCompAddSpec(GC, &
+                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+                 SHORT_NAME='climss'//trim(field_name), &
+                 STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+                 UNITS='kg kg-1 s-1', &
+                 ! RESTART=MAPL_RestartSkip, &
+                 DIMS='xyz', &
+                 VSTAGGER=VERTICAL_STAGGER_CENTER, _RC)
 
-       do i = 1, self%nbins
-          write(field_name, '(A, I0.3)') '', i
-          call MAPL_GridCompAddSpec(GC, &
-               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-               SHORT_NAME='climss'//trim(field_name), &
-               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS='kg kg-1 s-1', &
-               ! RESTART=MAPL_RestartSkip, &
-               DIMS='xyz', &
-               VSTAGGER=VERTICAL_STAGGER_CENTER, _RC)
+            ! dry deposition
+            call MAPL_GridCompAddSpec(GC, &
+                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+                 SHORT_NAME='climSSDP'//trim(field_name), &
+                 STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+                 UNITS='kg kg-1 s-1', &
+                 DIMS='xy', &
+                 VSTAGGER=VERTICAL_STAGGER_CENTER, &
+                 ! RESTART=MAPL_RestartSkip, &
+                 _RC)
 
-!           ! dry deposition
-          call MAPL_GridCompAddSpec(GC, &
-               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-               SHORT_NAME='climSSDP'//trim(field_name), &
-               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS='kg kg-1 s-1', &
-               DIMS='xy', &
-               VSTAGGER=VERTICAL_STAGGER_CENTER, &
-               ! RESTART=MAPL_RestartSkip, &
-               _RC)
+            ! wet deposition
+            call MAPL_GridCompAddSpec(GC, &
+                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+                 SHORT_NAME='climSSWT'//trim(field_name), &
+                 STANDARD_NAME='Sea Salt wet removal (bin '//trim(field_name)//')', &
+                 UNITS='kg kg-1 s-1', &
+                 DIMS='xy', &
+                 VSTAGGER=VERTICAL_STAGGER_CENTER, &
+                 ! RESTART=MAPL_RestartSkip, &
+                 _RC)
 
-!           ! wet deposition
-          call MAPL_GridCompAddSpec(GC, &
-               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-               SHORT_NAME='climSSWT'//trim(field_name), &
-               STANDARD_NAME='Sea Salt wet removal (bin '//trim(field_name)//')', &
-               UNITS='kg kg-1 s-1', &
-               DIMS='xy', &
-               VSTAGGER=VERTICAL_STAGGER_CENTER, &
-               ! RESTART=MAPL_RestartSkip, &
-               _RC)
+            ! gravitational settling
+            call MAPL_GridCompAddSpec(GC, &
+                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+                 SHORT_NAME='climSSSD'//trim(field_name), &
+                 STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+                 UNITS='kg kg-1 s-1', &
+                 DIMS='xy', &
+                 VSTAGGER=VERTICAL_STAGGER_CENTER, &
+                 ! RESTART=MAPL_RestartSkip, &
+                 _RC)
 
-!           ! gravitational settling
-          call MAPL_GridCompAddSpec(GC, &
-               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-               SHORT_NAME='climSSSD'//trim(field_name), &
-               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS='kg kg-1 s-1', &
-               DIMS='xy', &
-               VSTAGGER=VERTICAL_STAGGER_CENTER, &
-               ! RESTART=MAPL_RestartSkip, &
-               _RC)
+            ! convective scavenging
+            call MAPL_GridCompAddSpec(GC, &
+                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
+                 SHORT_NAME='climSSSV'//trim(field_name), &
+                 STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
+                 UNITS='kg kg-1 s-1', &
+                 DIMS='xy', &
+                 VSTAGGER=VERTICAL_STAGGER_CENTER, &
+                 ! RESTART=MAPL_RestartSkip, &
+                 _RC)
+         end do
+      end if ! (data_driven)
 
-!        ! convective scavenging
-          call MAPL_GridCompAddSpec(GC, &
-               STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-               SHORT_NAME='climSSSV'//trim(field_name), &
-               STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-               UNITS='kg kg-1 s-1', &
-               DIMS='xy', &
-               VSTAGGER=VERTICAL_STAGGER_CENTER, &
-               ! RESTART=MAPL_RestartSkip, &
-               _RC)
-       end do
-    end if ! (data_driven)
-
-
-!   Import, Export, Internal states for computational instance
-!   ----------------------------------------------------------
-    if (.not. data_driven) then
+      ! Import, Export, Internal states for computational instance
+      if (.not. data_driven) then
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
 #include "SS2G_Internal___.h"
-       if (MAPL_AM_I_ROOT()) then
-          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
-       end if
-    end if
+         if (MAPL_AM_I_ROOT()) then
+            write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+         end if
+      end if
 
-!   This state holds fields needed by radiation
-!   ---------------------------------------------
-    call MAPL_GridCompAddSpec(GC, &
-         STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
-         SHORT_NAME=trim(COMP_NAME)//"_AERO", &
-         STANDARD_NAME="aerosols_from_"//trim(COMP_NAME), &
-         DIMS="xyz", &
-         VSTAGGER=VERTICAL_STAGGER_CENTER, &
-         UNITS="kg kg-1", &
-         ITEMTYPE=MAPL_STATEITEM_STATE, &
-         _RC)
+      ! This state holds fields needed by radiation
+      call MAPL_GridCompAddSpec(GC, &
+           STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
+           SHORT_NAME=trim(COMP_NAME)//"_AERO", &
+           STANDARD_NAME="aerosols_from_"//trim(COMP_NAME), &
+           DIMS="xyz", &
+           VSTAGGER=VERTICAL_STAGGER_CENTER, &
+           UNITS="kg kg-1", &
+           ITEMTYPE=MAPL_STATEITEM_STATE, &
+           _RC)
 
-!   This bundle is needed by surface for snow albedo modification
-!   by aerosol settling and deposition
-!   DEVELOPMENT NOTE - Change to StateItem in future
-!   ---------------------------------------------------------------
-    call MAPL_GridCompAddSpec(GC, &
-         STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
-         SHORT_NAME=trim(COMP_NAME)//"_AERO_DP", &
-         STANDARD_NAME="aerosol_deposition_from_"//trim(COMP_NAME), &
-         DIMS="xy", &
-         VSTAGGER=VERTICAL_STAGGER_NONE, &
-         UNITS="kg m-2 s-1", &
-         ITEMTYPE=MAPL_STATEITEM_FIELDBUNDLE, &
-         _RC)
+      ! This bundle is needed by surface for snow albedo modification
+      ! by aerosol settling and deposition
+      ! DEVELOPMENT NOTE - Change to StateItem in future
+      call MAPL_GridCompAddSpec(GC, &
+           STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
+           SHORT_NAME=trim(COMP_NAME)//"_AERO_DP", &
+           STANDARD_NAME="aerosol_deposition_from_"//trim(COMP_NAME), &
+           DIMS="xy", &
+           VSTAGGER=VERTICAL_STAGGER_NONE, &
+           UNITS="kg m-2 s-1", &
+           ITEMTYPE=MAPL_STATEITEM_FIELDBUNDLE, &
+           _RC)
 
+      ! Store internal state in GC
+      call ESMF_UserCompSetInternalState(GC, 'SS2G_GridComp', wrap, _RC)
 
-!   Store internal state in GC
-!   --------------------------
-    call ESMF_UserCompSetInternalState ( GC, 'SS2G_GridComp', wrap, STATUS )
-    VERIFY_(STATUS)
+      RETURN_(ESMF_SUCCESS)
 
-    RETURN_(ESMF_SUCCESS)
-
-  end subroutine SetServices
+   end subroutine SetServices
 
 !============================================================================
 !BOP
