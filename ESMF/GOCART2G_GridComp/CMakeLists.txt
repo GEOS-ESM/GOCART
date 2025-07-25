@@ -7,32 +7,35 @@ set (alldirs
   # CA2G_GridComp
   # NI2G_GridComp
   # SU2G_GridComp
-  )
+)
 
 set (srcs
   GOCART2G_GridCompMod.F90
-  )
+)
 
 set (resource_files
-   GOCART2G_GridComp.rc
-   )
+  GOCART2G_GridComp.yaml
+)
 
 install( FILES ${resource_files}
-   DESTINATION etc
-   )
+  DESTINATION etc
+)
 
-set (dependencies MAPL Chem_Shared2G Process_Library ESMF::ESMF)
+set (dependencies Chem_Shared2G Process_Library ESMF::ESMF)
 esma_add_library (${this}
   SRCS ${srcs}
   SUBCOMPONENTS ${alldirs}
   DEPENDENCIES ${dependencies}
-  )
+  TYPE SHARED
+)
 
-mapl_acg (${this}   GOCART2G_StateSpecs.rc
-          IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS
-          GET_POINTERS DECLARE_POINTERS)
+mapl_acg (
+  ${this} GOCART2G_StateSpecs.rc
+  IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS GET_POINTERS DECLARE_POINTERS
+  3g
+)
 
 # CMake has an OpenMP issue with NAG Fortran: https://gitlab.kitware.com/cmake/cmake/-/issues/21280
 if (NOT CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
-   target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
+  target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
 endif ()

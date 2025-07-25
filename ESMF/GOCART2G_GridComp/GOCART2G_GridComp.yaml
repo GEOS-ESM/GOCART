@@ -1,15 +1,24 @@
 ---
 # Optics parameters
-aerosol_monochromatic_optics_wavelength_in_nm_from_LUT: [470, 550, 670, 870]
 wavelengths_for_profile_aop_in_nm: 550  # must be included in LUT
 wavelengths_for_vertically_integrated_aop_in_nm: 550  # must be included in LUT
+aerosol_monochromatic_optics_wavelength_in_nm_from_LUT: [470, 550, 670, 870]
+
+ACTIVE_INSTANCES:
+  DU: [DU]  # [DU.data]
+  SS: [SS]  # [SS.data]
+  SU: [SU]  # [SU.data]
+  CA: [CA.oc, CA.bc, CA.br]  # [CA.oc.data, CA.bc.data]
+  NI: [NI]  # [NI.data]
+
+PASSIVE_INSTANCES:
+  DU: []
+  SS: []
+  SU: []
+  CA: []
+  NI: []
 
 mapl:
-
-  children:
-    SeaSalt:
-      dso: libSS2G_GridComp.so
-      config_file: seasalt.yaml
 
   geometry:
     esmf_geom:
