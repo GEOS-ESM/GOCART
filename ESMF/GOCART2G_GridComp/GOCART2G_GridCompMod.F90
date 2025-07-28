@@ -1,11 +1,8 @@
 #include "MAPL_Generic.h"
 
 !BOP
-
 !MODULE: GOCART2G_GridCompMod - The GOCART 2nd Generation Aerosol Grid Component
-
 !INTERFACE:
-
 module GOCART2G_GridCompMod
 
    !USES:
@@ -87,7 +84,6 @@ contains
    !BOP
    !IROUTINE: SetServices -- Sets ESMF services for this component
    !INTERFACE:
-
    subroutine SetServices (gc, rc)
 
       !ARGUMENTS:
@@ -113,7 +109,7 @@ contains
       __Iam__('SetServices')
 
       ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (GC, name=comp_name, __RC__)
+      call ESMF_GridCompGet (gc, name=comp_name, _RC)
       Iam = trim(comp_name)//'::'//'SetServices'
 
       ! Wrap internal state for storing in gc
@@ -121,9 +117,9 @@ contains
       wrap%ptr => self
 
       ! Set the Initialize, Run, Finalize entry points
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Initialize,  Initialize,  __RC__)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run,  Run1, phase_name="Run1", __RC__)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run,  Run2, phase_name="Run2", __RC__)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Initialize,  Initialize,  _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run,  Run1, phase_name="Run1", _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run,  Run2, phase_name="Run2", _RC)
 
       ! Store internal state in GC
       call ESMF_UserCompSetInternalState(gc, 'GOCART_State', wrap, _RC)
@@ -134,7 +130,7 @@ contains
       call MAPL_GridCompGetResource(gc, "use_threads", use_threads, default=.false., _RC)
 
       ! ! Get my internal MAPL_Generic state
-      ! call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+      ! call MAPL_GetObjectFromGC (GC, MAPL, _RC)
       ! ! set use_threads
       ! call MAPL%set_use_threads(use_threads)
 
@@ -145,7 +141,7 @@ contains
       _ASSERT(.not. (self%NI%n_active > 1), "GOCART supports only one active nitrate instance")
 
       ! Create children's gridded components and invoke their SetServices
-      call create_instances_(self, gc, __RC__)
+      call create_instances_(self, gc, _RC)
 
       ! Define EXPORT states
 
@@ -178,7 +174,7 @@ contains
       ! pchakrab: TODO - NEEDS PORTING - ACTIVATE ONCE SU HAS BEEN PORTED
       ! ! Allow children of Chemistry to connect to these fields
       ! if ((self%SU%instances(1)%is_active)) then
-      !    call MAPL_AddExportSpec (GC, SHORT_NAME='PSO4', CHILD_ID=self%SU%instances(1)%id, __RC__)
+      !    call MAPL_AddExportSpec (GC, SHORT_NAME='PSO4', CHILD_ID=self%SU%instances(1)%id, _RC)
       ! end if
 
       ! pchakrab: TODO - ACTIVATE ONCE NI HAS BEEN PORTED
@@ -221,66 +217,62 @@ contains
    !BOP
    !IROUTINE: Initialize -- Initialize method for the composite Gridded Component
    !INTERFACE:
-   subroutine Initialize (GC, import, export, clock, RC)
+   subroutine Initialize (gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type (ESMF_GridComp) :: GC     ! Gridded component
+      type (ESMF_GridComp) :: gc  ! Gridded component
       type (ESMF_State) :: import ! Import state
       type (ESMF_State) :: export ! Export state
       type (ESMF_Clock) :: clock  ! The clock
-      integer, intent(out) :: RC     ! Error code
+      integer, intent(out) :: rc  ! Error code
 
       !DESCRIPTION:  This initializes the GOCART Grid Component. It primarily creates
       !                its exports and births its children.
 
       !REVISION HISTORY:
       ! 14oct2019   E.Sherman  First attempt at refactoring
-
       !EOP
-      character (len=ESMF_MAXSTR)            :: COMP_NAME
-      ! type (ESMF_GridComp),       pointer    :: gcs(:)
-      ! type (ESMF_State),          pointer    :: gex(:)
-      type (ESMF_Grid)                       :: grid
-      type (ESMF_Config)                     :: CF
-      ! type (ESMF_State)                      :: aero
-      ! type (ESMF_FieldBundle)                :: aero_dp
-      type (GOCART_State),      pointer      :: self
-      type (wrap_)                           :: wrap
-      integer                                :: n_modes
-      integer, parameter                     :: n_gocart_modes = 14
-      integer                                :: dims(3)
-      ! character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
-      real                                   :: maxclean, ccntuning
 
+      character (len=ESMF_MAXSTR) :: comp_name
+      type (ESMF_Grid) :: grid
+      type (ESMF_Config) :: CF
+      type (GOCART_State), pointer :: self
+      type (wrap_) :: wrap
+      integer :: im, jm, km
+      ! type (ESMF_GridComp), pointer :: gcs(:)
+      ! type (ESMF_State), pointer :: gex(:)
+      ! type (ESMF_State) :: aero
+      ! type (ESMF_FieldBundle) :: aero_dp
+      ! integer :: n_modes
+      ! integer, parameter :: n_gocart_modes = 14
+      ! character(len=ESMF_MAXSTR) :: aero_aci_modes(n_gocart_modes)
+      ! real :: maxclean, ccntuning
       __Iam__('Initialize')
 
-
       ! Get the target components name and set-up traceback handle.
-      call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, __RC__)
-      Iam = trim(COMP_NAME)//'::'//'Initialize'
+      call ESMF_GridCompGet (gc, name=comp_name, _RC)
+      Iam = trim(comp_name)//'::'//'Initialize'
 
       if (mapl_am_i_root()) then
-         print *, TRIM(Iam)//': Starting...'
-         print *,' '
+         print *, trim(Iam)//': Starting...'
       end if
 
-      call MAPL2_GridGet ( grid, localCellCountPerDim=dims, __RC__ )
+      call MAPL_GridCompGet(gc, grid=grid, num_levels=km, _RC)
+      call MAPL_GridGet(grid, im=im, jm=jm, _RC)
 
       ! Get my internal state
       call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, _RC)
       self => wrap%ptr
 
-      CF = ESMF_ConfigCreate (__RC__)
-      call ESMF_ConfigLoadFile (CF, 'AGCM.rc', __RC__) ! should the rc file be changed?
+      ! CF = ESMF_ConfigCreate (_RC)
+      ! call ESMF_ConfigLoadFile (CF, 'AGCM.rc', _RC) ! should the rc file be changed?
 
       ! ! Get children and their export states from my generic state
-      ! call MAPL_Get (MAPL, gcs=gcs, gex=gex, __RC__ )
-
+      ! call MAPL_Get (MAPL, gcs=gcs, gex=gex, _RC )
 
       ! ! Fill AERO_RAD, AERO_ACI, and AERO_DP with the children's states
-      ! call ESMF_StateGet (export, 'AERO', aero, __RC__)
-      ! call ESMF_StateGet (export, 'AERO_DP', aero_dp, __RC__)
-
+      ! call ESMF_StateGet (export, 'AERO', aero, _RC)
+      ! call ESMF_StateGet (export, 'AERO_DP', aero_dp, _RC)
 
       ! ! Add children's AERO states to GOCART2G's AERO states
       ! ! Only active instances are passed to radiation
@@ -381,9 +373,12 @@ contains
       ! ! Attach the aerosol optics method
       ! call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
 
+      if (mapl_am_i_root()) then
+         print *, trim(Iam)//': ...complete.'
+      end if
       RETURN_(ESMF_SUCCESS)
 
-   ! contains
+      ! contains
 
       ! subroutine add_aero_states_(instances)
       !    type(Instance), intent(in) :: instances(:)
@@ -420,98 +415,77 @@ contains
 
    end subroutine Initialize
 
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!BOP
-! !IROUTINE: RUN -- Run method for GOCART2G
-
-
-! !INTERFACE:
-
-   subroutine Run1 (GC, import, export, clock, RC)
-
-! !ARGUMENTS:
-      type (ESMF_GridComp) :: GC     ! Gridded component
+   !BOP
+   !IROUTINE: RUN -- Run method for GOCART2G
+   !INTERFACE:
+   subroutine Run1 (gc, import, export, clock, RC)
+      !ARGUMENTS:
+      type (ESMF_GridComp) :: gc  ! Gridded component
       type (ESMF_State) :: import ! Import state
       type (ESMF_State) :: export ! Export state
       type (ESMF_Clock) :: clock  ! The clock
-      integer, intent(  out) :: RC     ! Error code:
+      integer, intent(out) :: RC  ! Error code:
 
-! !DESCRIPTION: Run method
-
-!EOP
-!============================================================================
-
-!   Locals
-      character(len=ESMF_MAXSTR)          :: COMP_NAME
-      ! type (ESMF_GridComp),      pointer  :: gcs(:)
-      ! type (ESMF_State),         pointer  :: gim(:)
-      ! type (ESMF_State),         pointer  :: gex(:)
-      ! type (ESMF_State)                   :: internal
-      type(ESMF_Alarm)                    :: alarm
-      logical                             :: timeToDoWork
-
-      integer                             :: i
-
+      !DESCRIPTION: Run method
+      !EOP
+      character(len=ESMF_MAXSTR) :: comp_name
+      ! type (ESMF_GridComp), pointer :: gcs(:)
+      ! type (ESMF_State), pointer :: gim(:)
+      ! type (ESMF_State),  pointer :: gex(:)
+      ! type (ESMF_State) :: internal
+      type(ESMF_Alarm) :: alarm
+      logical :: timeToDoWork
+      integer :: iter
       __Iam__('Run1')
 
-!****************************************************************************
-! Begin...
+      ! Get my name and set-up traceback handle
+      call ESMF_GridCompGet(gc, name=comp_name, _RC)
+      Iam = trim(comp_name)//'::'//Iam
+      if (mapl_am_i_root()) then
+         print *, trim(Iam)//': Starting...'
+      end if
 
+      ! ! Get my internal MAPL_Generic state
+      ! call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
 
-!   Get my name and set-up traceback handle
-!   ---------------------------------------
-      call ESMF_GridCompGet( GC, NAME=COMP_NAME, __RC__ )
-      Iam = trim(COMP_NAME)//'::'//Iam
+      ! ! Get parameters from generic state.
+      ! call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
 
-! !   Get my internal MAPL_Generic state
-! !   -----------------------------------
-!     call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
+      ! ! Check run_dt alarm. Bail out if not ringing.
+      ! call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
+      ! timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+      ! if (.not. timeToDoWork) then
+      !    _RETURN(ESMF_SUCCESS)
+      ! end if
 
-! !   Get parameters from generic state.
-! !   -----------------------------------
-!     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
+      ! Run the children
+      ! do i = 1, size(gcs)
+      !    call ESMF_GridCompRun(gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, __RC__)
+      ! end do
+      call MAPL_GridCompRunChildren(gc, phase_name="Run", _RC)
 
-! ! Check run_dt alarm. Bail out if not ringing.
-! ! --------------------------------------------
-!     call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
-!     timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
-!     if (.not. timeToDoWork) then
-!        _RETURN(ESMF_SUCCESS)
-!     end if
-
-! !   Run the children
-! !   -----------------
-!     do i = 1, size(gcs)
-!       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, __RC__)
-!     end do
-      call MAPL_GridCompRunChildren(gc, phase_name="Run1", _RC)
-
-      RETURN_(ESMF_SUCCESS)
-
+      if (mapl_am_i_root()) then
+         print *, trim(Iam)//': ...complete.'
+      end if
+      RETURN_(_SUCCESS)
    end subroutine Run1
 
-!============================================================================
-!BOP
-! !IROUTINE: RUN2 -- Run2 method for GOCART2G component
-
-! !INTERFACE:
-
+   !BOP
+   !IROUTINE: RUN2 -- Run2 method for GOCART2G component
+   !INTERFACE:
    subroutine Run2 (GC, import, export, clock, RC)
 
-! !ARGUMENTS:
+      !ARGUMENTS:
       type (ESMF_GridComp) :: GC     ! Gridded component
       type (ESMF_State) :: import ! Import state
       type (ESMF_State) :: export ! Export state
       type (ESMF_Clock) :: clock  ! The clock
       integer, intent(  out) :: RC     ! Error code:
 
-! !DESCRIPTION: This version uses the MAPL\_GenericSetServices. This function sets
-!                the Initialize and Finalize services, as well as allocating
+      !DESCRIPTION: This version uses the MAPL\_GenericSetServices. This function sets
+      !                the Initialize and Finalize services, as well as allocating
+      !EOP
 
-!EOP
-!============================================================================
-
-!   Locals
       character(len=ESMF_MAXSTR)          :: COMP_NAME
       type (ESMF_Grid)                    :: grid
       type (ESMF_GridComp),      pointer  :: gcs(:)
@@ -1243,7 +1217,6 @@ contains
       integer :: iter, n_active, n_passive
       __Iam__('GOCART2G::setup_instances_')
 
-      call ESMF_HConfigFileSave(active_cfg, "active-cfg.yaml", _RC)
       active_instances = ESMF_HConfigAsStringSeq(active_cfg, keyString=species%name, stringLen=ESMF_MAXSTR, _RC)
       n_active = size(active_instances)
       passive_instances = ESMF_HConfigAsStringSeq(passive_cfg, keyString=species%name, stringLen=ESMF_MAXSTR, _RC)
@@ -1297,13 +1270,16 @@ contains
 
       integer :: iter
       character(len=:), allocatable :: child_name, hconfig_file
-      __Iam__('GOCART2G::createInstances_::add_children__')
+      type(ESMF_HConfig) :: hconfig
+      __Iam__('GOCART2G::add_children__')
 
       do iter = 1, size(species%instances)
          species%instances(iter)%id = iter ! pchakrab: TODO - this needs to go
          child_name = species%instances(iter)%name
          hconfig_file = species%name // "_instance_" // child_name // ".yaml"
-         call MAPL_GridCompAddChild(gc, child_name, user_setservices(setservices), hconfig_file, _RC)
+         hconfig = ESMF_HConfigCreate(filename=hconfig_file, _RC)
+         call MAPL_GridCompAddChild(gc, child_name, user_setservices(setservices), hconfig, _RC)
+         call ESMF_HConfigDestroy(hconfig, _RC)
       end do
 
       RETURN_(ESMF_SUCCESS)
