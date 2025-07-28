@@ -111,15 +111,11 @@ contains
       logical                                     :: data_driven=.true.
       logical                                     :: file_exists
       real, allocatable                           :: emission_scale_res(:)
-      type(ESMF_HConfig)                          :: hconfig
       __Iam__('SetServices')
 
       ! Get my name and set-up traceback handle
       call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
       Iam = trim(COMP_NAME) // '::' // Iam
-
-      call MAPL_GridCompGet(gc, hconfig=hconfig, _RC)
-      call ESMF_HConfigFileSave(hconfig, "seasalt-hconfig.yaml", _RC)
 
       ! Wrap internal state for storing in GC
       allocate (self, __STAT__)
