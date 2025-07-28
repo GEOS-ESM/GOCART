@@ -37,4 +37,6 @@ mapl:
   misc:
     activate_all_imports: true
     activate_all_exports: true
-    write_exports: true
+    restart:
+      import: true
+      internal: true
