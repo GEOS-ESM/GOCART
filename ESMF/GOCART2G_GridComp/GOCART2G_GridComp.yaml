@@ -20,6 +20,13 @@ PASSIVE_INSTANCES:
 
 mapl:
 
+  misc:
+    activate_all_imports: true
+    activate_all_exports: true
+    restart:
+      import: true
+      internal: true
+
   geometry:
     esmf_geom:
       class: CubedSphere
