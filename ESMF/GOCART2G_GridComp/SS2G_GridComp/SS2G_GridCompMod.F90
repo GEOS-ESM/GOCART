@@ -11,7 +11,6 @@ module SS2G_GridCompMod
    use ESMF
    use pflogger, only: logger_t => logger
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_VRFY, MAPL_RTRN, MAPL_Assert, MAPL_Return
-   use MAPL_CommsMod, only: MAPL_AM_I_ROOT
    use MAPL_Constants, only: MAPL_R4, MAPL_R8, MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
    use MAPL_Base, only: MAPL2_FieldCreate => MAPL_FieldCreate
@@ -800,7 +799,6 @@ contains
       deallocate(RH20, RH80)
       deallocate(ple0, zle0, pfl_lsan0, pfi_lsan0)
       call logger%info("Run2: ...complete")
-      if (MAPL_AM_I_ROOT()) print *, "RUN2 COMPLETE"
 
       _RETURN(_SUCCESS)
 
