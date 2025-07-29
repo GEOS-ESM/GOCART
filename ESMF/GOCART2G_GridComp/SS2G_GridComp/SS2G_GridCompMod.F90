@@ -135,7 +135,7 @@ contains
 
       ! Is SS data driven?
       call determine_data_driven(comp_name, data_driven, _RC)
-      call logger%info("DATA DRIVE? %l", data_driven)
+      call logger%info("DATA DRIVEN? %l", data_driven)
 
       ! Set entry points
       call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_INITIALIZE,  Initialize, _RC)
@@ -612,7 +612,7 @@ contains
 
       __Iam__('Run1')
       call MAPL_GridCompGet(gc, logger=logger, _RC)
-      call logger%info("RUN1: starting...")
+      call logger%info("Run1: starting...")
 
       ! Get my name and set-up traceback handle
       call ESMF_GridCompGet (GC, NAME=COMP_NAME, _RC)
@@ -685,7 +685,7 @@ contains
       deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
            fsstemis, fgridefficiency, __STAT__)
 
-      call logger%info("RUN1: ...complete")
+      call logger%info("Run1: ...complete")
       RETURN_(_SUCCESS)
 
    end subroutine Run1
