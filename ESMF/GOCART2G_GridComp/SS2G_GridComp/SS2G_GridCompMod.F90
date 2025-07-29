@@ -10,7 +10,7 @@ module SS2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
-   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_VRFY, MAPL_RTRN, MAPL_ASSERT
+   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_VRFY, MAPL_RTRN, MAPL_Assert, MAPL_Return
    use MAPL_CommsMod, only: MAPL_AM_I_ROOT
    use MAPL_Constants, only: MAPL_R4, MAPL_R8, MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
@@ -106,12 +106,9 @@ contains
       logical                                     :: file_exists
       real, allocatable                           :: emission_scale_res(:)
       class(Logger_t), pointer :: logger
-      __Iam__('SetServices')
+      integer :: status
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (gc, name=comp_name, _RC)
-      Iam = trim(comp_name) // '::' // Iam
-
+      call ESMF_GridCompGet(gc, name=comp_name, _RC)
       call MAPL_GridCompGet(gc, logger=logger, _RC)
 
       ! Wrap internal state for storing in gc
@@ -263,8 +260,8 @@ contains
       ! This state holds fields needed by radiation
       call MAPL_GridCompAddSpec(gc, &
            STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
-           SHORT_NAME=trim(COMP_NAME)//"_AERO", &
-           STANDARD_NAME="aerosols_from_"//trim(COMP_NAME), &
+           SHORT_NAME=trim(comp_name)//"_AERO", &
+           STANDARD_NAME="aerosols_from_"//trim(comp_name), &
            DIMS="xyz", &
            VSTAGGER=VERTICAL_STAGGER_CENTER, &
            UNITS="kg kg-1", &
@@ -276,8 +273,8 @@ contains
       ! DEVELOPMENT NOTE - Change to StateItem in future
       call MAPL_GridCompAddSpec(gc, &
            STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
-           SHORT_NAME=trim(COMP_NAME)//"_AERO_DP", &
-           STANDARD_NAME="aerosol_deposition_from_"//trim(COMP_NAME), &
+           SHORT_NAME=trim(comp_name)//"_AERO_DP", &
+           STANDARD_NAME="aerosol_deposition_from_"//trim(comp_name), &
            DIMS="xy", &
            VSTAGGER=VERTICAL_STAGGER_NONE, &
            UNITS="kg m-2 s-1", &
@@ -287,20 +284,20 @@ contains
       ! Store internal state in gc
       call ESMF_UserCompSetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
 
-      RETURN_(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine SetServices
 
    !BOP
    !IROUTINE: Initialize
    !INTERFACE:
-   subroutine Initialize (GC, IMPORT, EXPORT, CLOCK, RC)
+   subroutine Initialize (gc, import, export, clock, RC)
 
       !ARGUMENTS:
-      type (ESMF_GridComp) :: GC  ! Gridded component
-      type (ESMF_State) :: IMPORT ! Import state
-      type (ESMF_State) :: EXPORT ! Export state
-      type (ESMF_Clock) :: CLOCK  ! The clock
+      type (ESMF_GridComp) :: gc  ! Gridded component
+      type (ESMF_State) :: import ! Import state
+      type (ESMF_State) :: export ! Export state
+      type (ESMF_Clock) :: clock  ! The clock
       integer, intent(out) :: RC  ! Error code
 
       !DESCRIPTION: This initializes SS' Grid Component. It primaryily fills
@@ -310,7 +307,7 @@ contains
       !EOP
 
       !Locals
-      character (len=ESMF_MAXSTR)          :: COMP_NAME
+      character (len=ESMF_MAXSTR)          :: comp_name
       type (ESMF_Grid)                     :: grid
       type (ESMF_State)                    :: internal
       type (ESMF_State)                    :: aero
@@ -340,21 +337,17 @@ contains
       integer                              :: nmom_
       character(:), allocatable            :: file_
       logical                              :: file_exists
-      integer :: i1, i2, j1, j2
-
-      __Iam__('Initialize')
+      integer :: i1, i2, j1, j2, status
 
       ! Get the target components name and set-up traceback handle.
-      call ESMF_GridCompGet(GC, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) // '::' //trim(Iam)
+      call ESMF_GridCompGet(gc, NAME=comp_name, _RC)
 
       ! Get my internal private state
-      call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
-      VERIFY_(STATUS)
+      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
       self => wrap%ptr
 
       ! Global dimensions are needed here for choosing tuning parameters
-      call MAPL_GridCompGet(GC, grid=grid, num_levels=km, _RC)
+      call MAPL_GridCompGet(gc, grid=grid, num_levels=km, _RC)
       call MAPL2_GridGet (grid, globalCellCountPerDim=dims, _RC )
       self%km = km
 
@@ -364,15 +357,15 @@ contains
 
       ! Get DTs
       call MAPL_ClockGet(clock, dt=HDT, _RC)
-      call MAPL_GridCompGetResource(GC, "GOCART2G_DT", CDT, default=real(HDT), _RC)
+      call MAPL_GridCompGetResource(gc, "GOCART2G_DT", CDT, default=real(HDT), _RC)
       self%CDT = CDT
 
       ! Get parameters from generic state.
-      call MAPL_GridCompGetInternalState(GC, internal, _RC)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
       call MAPL_GridGet(grid, latitudes=lats, longitudes=lons, _RC)
 
       ! Is SS data driven?
-      call determine_data_driven (COMP_NAME, data_driven, _RC)
+      call determine_data_driven (comp_name, data_driven, _RC)
 
       ! If this is a data component, the data is provided in the import
       ! state via ExtData instead of the actual GOCART children
@@ -390,8 +383,8 @@ contains
       call ESMF_AttributeSet(field, NAME='fnum', valueList=self%fnum, itemCount=self%nbins, _RC)
 
       ! Fill AERO State with sea salt fields
-      call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , _RC)
-      call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO_DP' , Bundle_DP, _RC)
+      call ESMF_StateGet (export, trim(comp_name)//'_AERO'    , aero    , _RC)
+      call ESMF_StateGet (export, trim(comp_name)//'_AERO_DP' , Bundle_DP, _RC)
 
       call ESMF_StateGet (internal, 'SS', field, _RC)
       ! call ESMF_AttributeSet(field, NAME='klid', value=self%klid, _RC)
@@ -476,7 +469,7 @@ contains
       call MAPL_StateGetPointer(internal, itemName="DEEP_LAKES_MASK", farrayPtr=deep_lakes_mask, _RC)
       call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, _RC)
 
-      RETURN_(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine Initialize
 
@@ -484,10 +477,9 @@ contains
    !IROUTINE: Run0
 
    !INTERFACE:
-   subroutine Run0 (GC, import, export, clock, RC)
-
+   subroutine Run0 (gc, import, export, clock, RC)
       !ARGUMENTS:
-      type (ESMF_GridComp) :: GC  ! Gridded component
+      type (ESMF_GridComp) :: gc  ! Gridded component
       type (ESMF_State) :: IMPORT ! Import state
       type (ESMF_State) :: EXPORT ! Export state
       type (ESMF_Clock) :: CLOCK  ! The clock
@@ -497,27 +489,21 @@ contains
       !EOP
 
       ! Locals
-      character (len=ESMF_MAXSTR)       :: COMP_NAME
       type (ESMF_State)                 :: internal
       type (wrap_)                      :: wrap
       type (SS2G_GridComp), pointer     :: self
       real, pointer, dimension(:,:,:)   :: ple, ple0
       real, pointer, dimension(:,:,:,:) :: ptr4d_int
-      integer                           :: i1, j1, i2, j2, km
-      __Iam__('Run0')
-
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (GC, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) // '::' // Iam
+      integer                           :: i1, j1, i2, j2, km, status
 
       ! Get internal state
-      call MAPL_GridCompGetInternalState(GC, internal, _RC)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, _RC)
+      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
       self => wrap%ptr
 
-      ! Set klid and Set internal values to 0 above klid
+      ! Set klid and set internal values to 0 above klid
       km = self%km
       call MAPL_StateGetPointer(import, ple, "PLE", _RC)
       i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
@@ -527,8 +513,7 @@ contains
       call MAPL_StateGetPointer(internal, ptr4d_int, "SS", _RC)
       call setZeroKlid4d (self%km, self%klid, ptr4d_int)
 
-      RETURN_(ESMF_SUCCESS)
-
+      _RETURN(_SUCCESS)
    end subroutine Run0
 
    !BOP
@@ -548,41 +533,33 @@ contains
       !EOP
 
       !Locals
-      character (len=ESMF_MAXSTR)       :: comp_name
-      type (ESMF_State)                 :: internal
-
-      logical                           :: data_driven
-
-      __Iam__('Run')
-
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, name=comp_name, _RC)
-      Iam = trim(COMP_NAME) //'::'// Iam
-
-      ! Get parameters from generic state.
-      call MAPL_GridCompGetInternalState(gc, internal, _RC)
+      character (len=ESMF_MAXSTR) :: comp_name
+      type (ESMF_State) :: internal
+      logical :: data_driven
+      integer :: status
 
       ! Is SS data driven?
+      call ESMF_GridCompGet(gc, name=comp_name, _RC)
       call determine_data_driven(comp_name, data_driven, _RC)
 
       ! Update INTERNAL state variables with ExtData
       if (data_driven) then
+         call MAPL_GridCompGetInternalState(gc, internal, _RC)
          call Run_data(gc, import, export, internal, _RC)
       else
          call Run1(gc, import, export, clock, _RC)
       end if
 
-      RETURN_(_SUCCESS)
-
+      _RETURN(_SUCCESS)
    end subroutine Run
 
    !BOP
    !IROUTINE: Run1
    !INTERFACE:
-   subroutine Run1 (GC, import, export, clock, RC)
+   subroutine Run1 (gc, import, export, clock, RC)
 
       !ARGUMENTS:
-      type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+      type (ESMF_GridComp), intent(inout) :: gc     ! Gridded component
       type (ESMF_State),    intent(inout) :: import ! Import state
       type (ESMF_State),    intent(inout) :: export ! Export state
       type (ESMF_Clock),    intent(inout) :: clock  ! The clock
@@ -592,7 +569,6 @@ contains
       !EOP
 
       !Locals
-      character (len=ESMF_MAXSTR)       :: COMP_NAME
       type (ESMF_State)                 :: internal
       type (ESMF_Grid)                  :: grid
       type (wrap_)                      :: wrap
@@ -605,31 +581,24 @@ contains
 
       real(kind=DP), allocatable, dimension(:,:) :: gweibull
 
-      integer :: n
+      integer :: n, status
       class(logger_t), pointer :: logger
 
 #include "SS2G_DeclarePointer___.h"
 
-      __Iam__('Run1')
       call MAPL_GridCompGet(gc, logger=logger, _RC)
       call logger%info("Run1: starting...")
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (GC, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) //'::'// Iam
-
       ! Get my internal MAPL_Generic state
-      ! call MAPL_GetObjectFromGC (GC, mapl, _RC)
+      ! call MAPL_GetObjectFromGC (gc, mapl, _RC)
 
       ! call MAPL_Get(mapl, grid=grid, _RC)
 
-      ! Get parameters from generic state.
-      call MAPL_GridCompGetInternalState(GC, internal, _RC)
-
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 #include "SS2G_GetPointer___.h"
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, _RC)
+      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
       self => wrap%ptr
 
       ! Sea Salt Source (and modifications)
@@ -686,238 +655,200 @@ contains
            fsstemis, fgridefficiency, __STAT__)
 
       call logger%info("Run1: ...complete")
-      RETURN_(_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine Run1
 
-!============================================================================
-!BOP
-! !IROUTINE: Run2
+   !BOP
+   !IROUTINE: Run2
+   !INTERFACE:
 
-! !INTERFACE:
+   subroutine Run2 (gc, import, export, clock, RC)
 
-  subroutine Run2 (GC, import, export, clock, RC)
+      !ARGUMENTS:
+      type (ESMF_GridComp) :: gc  ! Gridded component
+      type (ESMF_State) :: import ! Import state
+      type (ESMF_State) :: export ! Export state
+      type (ESMF_Clock) :: clock  ! The clock
+      integer, intent(out) :: RC  ! Error code:
 
-    ! !ARGUMENTS:
-    type (ESMF_GridComp) :: GC  ! Gridded component
-    type (ESMF_State) :: import ! Import state
-    type (ESMF_State) :: export ! Export state
-    type (ESMF_Clock) :: clock  ! The clock
-    integer, intent(out) :: RC  ! Error code:
+      !DESCRIPTION: Run2 method for the Sea Salt Grid Component.
+      !EOP
 
-! !DESCRIPTION: Run2 method for the Sea Salt Grid Component.
+      ! Locals
+      type (ESMF_State)                 :: internal
+      type (wrap_)                      :: wrap
+      type (SS2G_GridComp), pointer     :: self
 
-!EOP
-!============================================================================
-! Locals
-    character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (ESMF_State)                 :: internal
-    type (wrap_)                      :: wrap
-    type (SS2G_GridComp), pointer     :: self
+      integer                           :: n
+      real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
+      real                              :: fwet
+      logical                           :: KIN
 
-    integer                           :: n
-    real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
-    logical                           :: KIN
-
-    integer                           :: i1, j1, i2, j2, km
-    real, dimension(3)                :: rainout_eff
-    real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
-    real, pointer :: ple0(:, :, :), zle0(:, :, :), pfl_lsan0(:, :, :), pfi_lsan0(:, :, :)
-    real, pointer, dimension(:,:)     :: flux_ptr
-
+      integer                           :: i1, j1, i2, j2, km
+      real, dimension(3)                :: rainout_eff
+      real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+      real, pointer :: ple0(:, :, :), zle0(:, :, :), pfl_lsan0(:, :, :), pfi_lsan0(:, :, :)
+      real, pointer, dimension(:,:)     :: flux_ptr
+      class(logger_t), pointer :: logger
+      integer :: status
 #include "SS2G_DeclarePointer___.h"
 
-    __Iam__('Run2')
-    if (MAPL_AM_I_ROOT()) print *, "RUNNING RUN2....."
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("Run2: starting...")
 
-!*****************************************************************************
-!   Begin...
-
-!   Get my name and set-up traceback handle
-!   ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, _RC)
-    Iam = trim(COMP_NAME) // '::' // Iam
-
-!   Get internal state
-!   ------------------
-    call MAPL_GridCompGetInternalState(GC, internal, _RC)
-
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 #include "SS2G_GetPointer___.h"
 
-!   Get my private internal state
-!   ------------------------------
-    call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
-    self => wrap%ptr
+      ! Get my private internal state
+      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
+      self => wrap%ptr
 
-    ! Edge variables are expected to be 0-based
-    km = self%km
-    ! zle0
-    i1 = lbound(zle, 1); i2 = ubound(zle, 1); j1 = lbound(zle, 2); j2 = ubound(zle, 2)
-    allocate(zle0(i1:i2, j1:j2, 0:km), source=zle(i1:i2, j1:j2, 1:km+1))
-    ! ple0
-    i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-    allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
-    ! pfl_lsan0
-    i1 = lbound(pfl_lsan, 1); i2 = ubound(pfl_lsan, 1); j1 = lbound(pfl_lsan, 2); j2 = ubound(pfl_lsan, 2)
-    allocate(pfl_lsan0(i1:i2, j1:j2, 0:km), source=pfl_lsan(i1:i2, j1:j2, 1:km+1))
-    ! pfi_lsan0
-    i1 = lbound(pfi_lsan, 1); i2 = ubound(pfi_lsan, 1); j1 = lbound(pfi_lsan, 2); j2 = ubound(pfi_lsan, 2)
-    allocate(pfi_lsan0(i1:i2, j1:j2, 0:km), source=pfi_lsan(i1:i2, j1:j2, 1:km+1))
+      ! Edge variables are expected to be 0-based
+      km = self%km
+      ! zle0
+      i1 = lbound(zle, 1); i2 = ubound(zle, 1); j1 = lbound(zle, 2); j2 = ubound(zle, 2)
+      allocate(zle0(i1:i2, j1:j2, 0:km), source=zle(i1:i2, j1:j2, 1:km+1))
+      ! ple0
+      i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+      allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
+      ! pfl_lsan0
+      i1 = lbound(pfl_lsan, 1); i2 = ubound(pfl_lsan, 1); j1 = lbound(pfl_lsan, 2); j2 = ubound(pfl_lsan, 2)
+      allocate(pfl_lsan0(i1:i2, j1:j2, 0:km), source=pfl_lsan(i1:i2, j1:j2, 1:km+1))
+      ! pfi_lsan0
+      i1 = lbound(pfi_lsan, 1); i2 = ubound(pfi_lsan, 1); j1 = lbound(pfi_lsan, 2); j2 = ubound(pfi_lsan, 2)
+      allocate(pfi_lsan0(i1:i2, j1:j2, 0:km), source=pfi_lsan(i1:i2, j1:j2, 1:km+1))
 
-    allocate(dqa, mold=lwi, __STAT__)
-    allocate(drydepositionfrequency, mold=lwi, __STAT__)
+      allocate(dqa, mold=lwi, __STAT__)
+      allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-!   Sea Salt Settling
-!   -----------------
-    do n = 1, self%nbins
-       nullify(flux_ptr)
-       if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
-       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
-                           SS(:,:,:,n), t, airdens, &
-                           rh2, zle0, delp, flux_ptr, _RC)
-    end do
+      ! Sea Salt Settling
+      do n = 1, self%nbins
+         nullify(flux_ptr)
+         if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
+         call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+              SS(:,:,:,n), t, airdens, &
+              rh2, zle0, delp, flux_ptr, _RC)
+      end do
 
-!   Deposition
-!   -----------
-    drydepositionfrequency = 0.
-    call DryDeposition(self%km, t, airdens, zle0, lwi, ustar, zpbl, sh,&
-                       MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, _RC )
+      ! Deposition
+      drydepositionfrequency = 0.
+      call DryDeposition(self%km, t, airdens, zle0, lwi, ustar, zpbl, sh,&
+           MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, _RC )
 
-    ! increase deposition velocity over land
-    where (abs(lwi - LAND) < 0.5)
-        drydepositionfrequency = 5.0 * drydepositionfrequency
-    end where
+      ! increase deposition velocity over land
+      where (abs(lwi - LAND) < 0.5)
+         drydepositionfrequency = 5.0 * drydepositionfrequency
+      end where
 
-    do n = 1, self%nbins
-       dqa = 0.
-       dqa = max(0.0, SS(:,:,self%km,n)*(1.-exp(-drydepositionfrequency*self%cdt)))
-       SS(:,:,self%km,n) = SS(:,:,self%km,n) - dqa
-       if (associated(SSDP)) then
-          SSDP(:,:,n) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
-       end if
-    end do
+      do n = 1, self%nbins
+         dqa = 0.
+         dqa = max(0.0, SS(:,:,self%km,n)*(1.-exp(-drydepositionfrequency*self%cdt)))
+         SS(:,:,self%km,n) = SS(:,:,self%km,n) - dqa
+         if (associated(SSDP)) then
+            SSDP(:,:,n) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
+         end if
+      end do
 
-!   Large-scale Wet Removal
-!   ------------------------
-    KIN = .TRUE.
-    do n = 1, self%nbins
-       fwet = 1.
-       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple0, t, airdens, &
-                               pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, SSWT, _RC)
-    end do
+      ! Large-scale Wet Removal
+      KIN = .TRUE.
+      do n = 1, self%nbins
+         fwet = 1.
+         call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
+              KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple0, t, airdens, &
+              pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, SSWT, _RC)
+      end do
 
-!   Compute diagnostics
-!   -------------------
-!   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
-    call Aero_Compute_Diags (self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
-                             self%rup, self%wavelengths_profile*1.0e-9, &
-                             self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
-                             delp, ple0, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
-                             SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
-                             SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF,    &
-                             SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,_RC)
+      ! Compute diagnostics
+      ! Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
+      call Aero_Compute_Diags( &
+           self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
+           self%rup, self%wavelengths_profile*1.0e-9, &
+           self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
+           delp, ple0, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
+           SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
+           SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF,    &
+           SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,_RC)
 
-    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
-    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
-    km = ubound(RH2, 3)
+      i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
+      j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
+      km = ubound(RH2, 3)
 
-    allocate(RH20(i1:i2,j1:j2,km), __STAT__)
-    allocate(RH80(i1:i2,j1:j2,km), __STAT__)
+      allocate(RH20(i1:i2,j1:j2,km), __STAT__)
+      allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
-    RH20(:,:,:) = 0.20
-    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
-                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
-                            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=rh20,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
-                            extcoef = SSEXTCOEFRH20, scacoef = SSSCACOEFRH20, NO3nFlag=.False., _RC)
+      RH20(:,:,:) = 0.20
+      call Aero_Compute_Diags( &
+           mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
+           nbins=self%nbins, rlow=self%rlow, &
+           rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+           wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
+           grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
+           rh=rh20,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
+           extcoef = SSEXTCOEFRH20, scacoef = SSSCACOEFRH20, NO3nFlag=.False., _RC)
 
-    RH80(:,:,:) = 0.80
-    call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
-                            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
-                            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-                            rh=rh80,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
-                            extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., _RC)
+      RH80(:,:,:) = 0.80
+      call Aero_Compute_Diags( &
+           mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
+           nbins=self%nbins, rlow=self%rlow, &
+           rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+           wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
+           grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
+           rh=rh80,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
+           extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., _RC)
 
-    deallocate(RH20, RH80)
-    deallocate(ple0, zle0, pfl_lsan0, pfi_lsan0)
-    if (MAPL_AM_I_ROOT()) print *, "RUN2 COMPLETE"
+      deallocate(RH20, RH80)
+      deallocate(ple0, zle0, pfl_lsan0, pfi_lsan0)
+      call logger%info("Run2: ...complete")
+      if (MAPL_AM_I_ROOT()) print *, "RUN2 COMPLETE"
 
-    RETURN_(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
-  end subroutine Run2
+   end subroutine Run2
 
-!============================================================================
-!BOP
-! !IROUTINE: Run_data -- ExtData Sea Salt Grid Component
+   !BOP
+   !IROUTINE: Run_data -- ExtData Sea Salt Grid Component
+   !INTERFACE:
 
-! !INTERFACE:
+   subroutine Run_data(gc, import, export, internal, RC)
+      !ARGUMENTS:
+      type (ESMF_GridComp), intent(inout) :: gc       ! Gridded component
+      type (ESMF_State),    intent(inout) :: import   ! Import state
+      type (ESMF_State),    intent(inout) :: export   ! Export state
+      type (ESMF_State),    intent(inout) :: internal ! Interal state
+      integer, optional,    intent(  out) :: rc       ! Error code:
 
-  subroutine Run_data (GC, IMPORT, EXPORT, INTERNAL, RC)
+      !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
+      !EOP
 
-    ! !ARGUMENTS:
+      ! Locals
+      type (wrap_)                       :: wrap
+      type (SS2G_GridComp), pointer      :: self
 
-    type (ESMF_GridComp), intent(inout) :: GC       ! Gridded component
-    type (ESMF_State),    intent(inout) :: IMPORT   ! Import state
-    type (ESMF_State),    intent(inout) :: EXPORT   ! Export state
-    type (ESMF_State),    intent(inout) :: INTERNAL ! Interal state
-    integer, optional,    intent(  out) :: RC       ! Error code:
+      integer                            :: i
+      character (len=ESMF_MAXSTR)        :: field_name
 
-! !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
+      real, pointer, dimension(:,:,:,:)  :: ptr4d_int
+      real, pointer, dimension(:,:,:)    :: ptr3d_imp
+      integer :: status
 
-!EOP
-!============================================================================
-! Locals
-    character (len=ESMF_MAXSTR)        :: COMP_NAME
-    type (wrap_)                       :: wrap
-    type (SS2G_GridComp), pointer      :: self
+      ! Get my private internal state
+      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
+      self => wrap%ptr
 
-    integer                            :: i
-    character (len=ESMF_MAXSTR)        :: field_name
+      ! Update interal data pointers with ExtData
+      call MAPL_StateGetPointer(internal, itemName='SS', farrayPtr=ptr4d_int, _RC)
 
-    real, pointer, dimension(:,:,:,:)  :: ptr4d_int
-    real, pointer, dimension(:,:,:)    :: ptr3d_imp
+      do i = 1, self%nbins
+         write(field_name, '(A, I0.3)') 'ss', i
+         call MAPL_StateGetPointer(import, itemName='clim'//trim(field_name), farrayPtr=ptr3d_imp, _RC)
+         ptr4d_int(:,:,:,i) = ptr3d_imp
+      end do
 
-    __Iam__('Run_data')
+      _RETURN(_SUCCESS)
+   end subroutine Run_data
 
-!*****************************************************************************
-! Begin...
-
-! Get my name and set-up traceback handle
-! ---------------------------------------
-    call ESMF_GridCompGet (GC, NAME=COMP_NAME, _RC)
-    Iam = trim(COMP_NAME) //'::'//Iam
-
-!   Get my private internal state
-!   ------------------------------
-    call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
-    self => wrap%ptr
-
-!   Update interal data pointers with ExtData
-!   -----------------------------------------
-    call MAPL_StateGetPointer(internal, itemName='SS', farrayPtr=ptr4d_int, _RC)
-
-    do i = 1, self%nbins
-    write(field_name, '(A, I0.3)') 'ss', i
-        call MAPL_StateGetPointer(import, itemName='clim'//trim(field_name), farrayPtr=ptr3d_imp, _RC)
-
-        ptr4d_int(:,:,:,i) = ptr3d_imp
-    end do
-
-    RETURN_(ESMF_SUCCESS)
-
-  end subroutine Run_data
-
-
-!-------------------------------------------------------------------------------------
-  subroutine aerosol_optics(state, rc)
+   subroutine aerosol_optics(state, rc)
 
     implicit none
 
