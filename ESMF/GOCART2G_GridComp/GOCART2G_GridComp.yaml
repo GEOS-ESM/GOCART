@@ -25,19 +25,3 @@ mapl:
     activate_all_exports: true
     restart:
       import: true
-      internal: true
-
-  geometry:
-    esmf_geom:
-      class: CubedSphere
-      im_world: 48
-      jm_world: 288
-      pole: PC
-      dateline: DC
-    vertical_grid:
-      class: model
-      standard_name: air_pressure
-      units: hPa
-      num_levels: 72
-      field_edge: PLE
-      field_center: PE
