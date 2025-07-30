@@ -9,7 +9,6 @@ module GOCART2G_GridCompMod
    use ESMF
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_VRFY, MAPL_RTRN, MAPL_Return, MAPL_Assert
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
-   use MAPL_CommsMod, only: MAPL_AM_I_ROOT
    use MAPL_Constants, only: MAPL_R4, MAPL_GRAV, MAPL_PI
 
    use MAPL, only: MAPL_ConfigSetAttribute
@@ -23,6 +22,7 @@ module GOCART2G_GridCompMod
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_Geom_API, only: MAPL_GridGet
+   use pflogger, only: logger_t => logger
 
    use Chem_AeroGeneric
 
@@ -84,7 +84,7 @@ contains
    !BOP
    !IROUTINE: SetServices -- Sets ESMF services for this component
    !INTERFACE:
-   subroutine SetServices (gc, rc)
+   subroutine SetServices(gc, rc)
 
       !ARGUMENTS:
       type (ESMF_GridComp), intent(INOUT) :: gc ! gridded component
@@ -100,26 +100,25 @@ contains
       !  14oct2019  Sherman, da Silva, Darmenov, Clune - First attempt at refactoring for ESMF compatibility
 
       !EOP
-      character(len=ESMF_MAXSTR) :: comp_name
       type(ESMF_HConfig) :: hconfig
       type(GOCART_State), pointer :: self
       type(wrap_) :: wrap
       integer, allocatable :: wavelengths_diagmie(:)
-      logical :: use_threads
-      __Iam__('SetServices')
+      ! logical :: use_threads
+      class(logger_t), pointer :: logger
+      integer :: status
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (gc, name=comp_name, _RC)
-      Iam = trim(comp_name)//'::'//'SetServices'
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("SetServices:: starting...")
 
       ! Wrap internal state for storing in gc
-      allocate (self, __STAT__)
+      allocate (self, _STAT)
       wrap%ptr => self
 
       ! Set the Initialize, Run, Finalize entry points
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Initialize,  Initialize,  _RC)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run,  Run1, phase_name="Run1", _RC)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run,  Run2, phase_name="Run2", _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Initialize, Initialize,  _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run1, phase_name="Run1", _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run2, phase_name="Run2", _RC)
 
       ! Store internal state in GC
       call ESMF_UserCompSetInternalState(gc, 'GOCART_State', wrap, _RC)
@@ -127,7 +126,7 @@ contains
       call MAPL_GridCompGetResource(gc, "wavelengths_for_profile_aop_in_nm", self%wavelengths_profile, _RC)
       call MAPL_GridCompGetResource(gc, "wavelengths_for_vertically_integrated_aop_in_nm", self%wavelengths_vertint, _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", wavelengths_diagmie, _RC)
-      call MAPL_GridCompGetResource(gc, "use_threads", use_threads, default=.false., _RC)
+      ! call MAPL_GridCompGetResource(gc, "use_threads", use_threads, default=.false., _RC)
 
       ! ! Get my internal MAPL_Generic state
       ! call MAPL_GetObjectFromGC (GC, MAPL, _RC)
@@ -210,7 +209,8 @@ contains
       !    end if
       ! end if
 
-      RETURN_(ESMF_SUCCESS)
+      call logger%info("SetServices:: ...complete")
+      _RETURN(_SUCCESS)
 
    end subroutine SetServices
 
@@ -247,15 +247,14 @@ contains
       ! integer, parameter :: n_gocart_modes = 14
       ! character(len=ESMF_MAXSTR) :: aero_aci_modes(n_gocart_modes)
       ! real :: maxclean, ccntuning
-      __Iam__('Initialize')
+      class(logger_t), pointer :: logger
+      integer :: status
 
       ! Get the target components name and set-up traceback handle.
       call ESMF_GridCompGet (gc, name=comp_name, _RC)
-      Iam = trim(comp_name)//'::'//'Initialize'
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
 
-      if (mapl_am_i_root()) then
-         print *, trim(Iam)//': Starting...'
-      end if
+      call logger%info("Initialize:: starting...")
 
       call MAPL_GridCompGet(gc, grid=grid, num_levels=km, _RC)
       call MAPL_GridGet(grid, im=im, jm=jm, _RC)
@@ -285,58 +284,58 @@ contains
       ! ! Begin AERO_RAD
       ! ! Add variables to AERO_RAD state. Used in aerosol optics calculations
       ! call add_aero (aero, label='air_pressure_for_aerosol_optics', label2='PLE', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
-      !      label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
+      !      label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, _RC)
 
       ! ! Used in get_mixRatioSum
       ! call add_aero (aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='sum_of_internalState_aerosol_CA.oc', label2='aerosolSumCA.oc', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='sum_of_internalState_aerosol_CA.bc', label2='aerosolSumCA.bc', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='sum_of_internalState_aerosol_CA.br', label2='aerosolSumCA.br', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
       ! call add_aero (aero, label='sum_of_internalState_aerosol_SU', label2='aerosolSumSU', &
-      !      grid=grid, typekind=MAPL_R4, __RC__)
+      !      grid=grid, typekind=MAPL_R4, _RC)
 
-      ! call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
-      ! call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
-      ! call ESMF_AttributeSet(aero, name='aerosolName', value='', __RC__)
-      ! call ESMF_AttributeSet(aero, name='im', value=dims(1), __RC__)
-      ! call ESMF_AttributeSet(aero, name='jm', value=dims(2), __RC__)
-      ! call ESMF_AttributeSet(aero, name='km', value=dims(3), __RC__)
+      ! call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, _RC)
+      ! call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0., _RC)
+      ! call ESMF_AttributeSet(aero, name='aerosolName', value='', _RC)
+      ! call ESMF_AttributeSet(aero, name='im', value=dims(1), _RC)
+      ! call ESMF_AttributeSet(aero, name='jm', value=dims(2), _RC)
+      ! call ESMF_AttributeSet(aero, name='km', value=dims(3), _RC)
 
       ! ! Attach method to return sum of aerosols. Used in GAAS.
-      ! call ESMF_MethodAdd (aero, label='get_mixRatioSum', userRoutine=get_mixRatioSum, __RC__)
+      ! call ESMF_MethodAdd (aero, label='get_mixRatioSum', userRoutine=get_mixRatioSum, _RC)
 
       ! ! Attach method to create a Bundle of aerosol fields. Used in GAAS.
-      ! call ESMF_MethodAdd (aero, label='serialize_bundle', userRoutine=serialize_bundle, __RC__)
+      ! call ESMF_MethodAdd (aero, label='serialize_bundle', userRoutine=serialize_bundle, _RC)
 
       ! ! Attach the monochromatic aerosol optics method. Used in GAAS.
       ! call ESMF_MethodAdd (aero, label='get_monochromatic_aop', &
-      !      userRoutine=get_monochromatic_aop, __RC__)
+      !      userRoutine=get_monochromatic_aop, _RC)
 
       ! ! Attach the aerosol optics method. Used in Radiation.
-      ! call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, __RC__)
+      ! call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, _RC)
 
       ! ! This attribute indicates if the aerosol optics method is implemented or not.
       ! ! Radiation will not call the aerosol optics method unless this attribute is
       ! ! explicitly set to true.
-      ! call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., __RC__)
+      ! call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., _RC)
 
       ! ! Begin adding necessary aerosol cloud interaction information
       ! aero_aci_modes =  [ &
@@ -348,35 +347,33 @@ contains
 
       ! n_modes = size(aero_aci_modes)
 
-      ! call ESMF_AttributeSet(aero, name='number_of_aerosol_modes', value=n_modes, __RC__)
-      ! call ESMF_AttributeSet(aero, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, __RC__)
+      ! call ESMF_AttributeSet(aero, name='number_of_aerosol_modes', value=n_modes, _RC)
+      ! call ESMF_AttributeSet(aero, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, _RC)
 
       ! ! max mixing ratio before switching to "polluted" size distributions
-      ! call ESMF_ConfigGetAttribute(CF, maxclean, default=1.0e-9, label='MAXCLEAN:', __RC__)
-      ! call ESMF_AttributeSet(aero, name='max_q_clean', value=maxclean, __RC__)
+      ! call ESMF_ConfigGetAttribute(CF, maxclean, default=1.0e-9, label='MAXCLEAN:', _RC)
+      ! call ESMF_AttributeSet(aero, name='max_q_clean', value=maxclean, _RC)
 
-      ! call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', __RC__)
-      ! call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, __RC__)
+      ! call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', _RC)
+      ! call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, _RC)
 
       ! ! Add variables to AERO state
-      ! call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='width_of_aerosol_mode', label2='SIGMA', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='aerosol_number_concentration', label2='NUM', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='aerosol_dry_size', label2='DGN', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='aerosol_density', label2='density', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='aerosol_hygroscopicity', label2='KAPPA', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='fraction_of_dust_aerosol', label2='FDUST', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='fraction_of_soot_aerosol', label2='FSOOT', grid=grid, typekind=MAPL_R4, __RC__)
-      ! call add_aero (aero, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, __RC__)
+      ! call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='width_of_aerosol_mode', label2='SIGMA', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='aerosol_number_concentration', label2='NUM', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='aerosol_dry_size', label2='DGN', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='aerosol_density', label2='density', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='aerosol_hygroscopicity', label2='KAPPA', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='fraction_of_dust_aerosol', label2='FDUST', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='fraction_of_soot_aerosol', label2='FSOOT', grid=grid, typekind=MAPL_R4, _RC)
+      ! call add_aero (aero, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, _RC)
 
       ! ! Attach the aerosol optics method
-      ! call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
+      ! call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, _RC)
 
-      if (mapl_am_i_root()) then
-         print *, trim(Iam)//': ...complete.'
-      end if
-      RETURN_(ESMF_SUCCESS)
+      call logger%info("Initialize:: ...complete")
+      _RETURN(_SUCCESS)
 
       ! contains
 
@@ -396,17 +393,17 @@ contains
       !       if (.not. instances(i)%is_active) cycle
       !       id = instances(i)%id
 
-      !       ! call ESMF_GridCompGet (gcs(id), __RC__ ) ! WHY, OH WHY???
+      !       ! call ESMF_GridCompGet (gcs(id), _RC ) ! WHY, OH WHY???
 
-      !       call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO', child_state, __RC__)
-      !       call ESMF_StateAdd (aero, [child_state], __RC__)
+      !       call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO', child_state, _RC)
+      !       call ESMF_StateAdd (aero, [child_state], _RC)
 
       !       if (instances(i)%name(1:2) /= 'NI') then
-      !          call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_DP', child_bundle, __RC__)
-      !          call ESMF_FieldBundleGet (child_bundle, fieldCount=field_count, __RC__)
+      !          call ESMF_StateGet (gex(id), trim(instances(i)%name)//'_AERO_DP', child_bundle, _RC)
+      !          call ESMF_FieldBundleGet (child_bundle, fieldCount=field_count, _RC)
       !          allocate (field_list(field_count), __STAT__)
-      !          call ESMF_FieldBundleGet (child_bundle, fieldList=field_list, __RC__)
-      !          call ESMF_FieldBundleAdd (aero_dp, field_list, multiflag=.true., __RC__)
+      !          call ESMF_FieldBundleGet (child_bundle, fieldList=field_list, _RC)
+      !          call ESMF_FieldBundleAdd (aero_dp, field_list, multiflag=.true., _RC)
       !          deallocate(field_list, __STAT__)
       !       end if
       !    end do
@@ -428,46 +425,18 @@ contains
 
       !DESCRIPTION: Run method
       !EOP
-      character(len=ESMF_MAXSTR) :: comp_name
-      ! type (ESMF_GridComp), pointer :: gcs(:)
-      ! type (ESMF_State), pointer :: gim(:)
-      ! type (ESMF_State),  pointer :: gex(:)
-      ! type (ESMF_State) :: internal
-      type(ESMF_Alarm) :: alarm
-      logical :: timeToDoWork
-      integer :: iter
-      __Iam__('Run1')
+      class(logger_t), pointer :: logger
+      integer :: status
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, name=comp_name, _RC)
-      Iam = trim(comp_name)//'::'//Iam
-      if (mapl_am_i_root()) then
-         print *, trim(Iam)//': Starting...'
-      end if
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("Run1: starting...")
+      call MAPL_GridCompRunChildren(gc, phase_name="Run1", _RC)
+      call logger%info("Run1: ...complete")
 
-      ! ! Get my internal MAPL_Generic state
-      ! call MAPL_GetObjectFromGC ( GC, MAPL, __RC__ )
-
-      ! ! Get parameters from generic state.
-      ! call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, __RC__ )
-
-      ! ! Check run_dt alarm. Bail out if not ringing.
-      ! call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
-      ! timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
-      ! if (.not. timeToDoWork) then
-      !    _RETURN(ESMF_SUCCESS)
-      ! end if
-
-      ! Run the children
-      ! do i = 1, size(gcs)
-      !    call ESMF_GridCompRun(gcs(i), importState=gim(i), exportState=gex(i), phase=1, clock=clock, __RC__)
-      ! end do
-      call MAPL_GridCompRunChildren(gc, phase_name="Run", _RC)
-
-      if (mapl_am_i_root()) then
-         print *, trim(Iam)//': ...complete.'
-      end if
-      RETURN_(_SUCCESS)
+      _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(import)
+      _UNUSED_DUMMY(export)
+      _UNUSED_DUMMY(clock)
    end subroutine Run1
 
    !BOP
@@ -568,56 +537,47 @@ contains
       integer                         :: i1, i2, j1, j2, km, k,kk
       type(ESMF_Alarm)                :: alarm
       logical                         :: timeToDoWork
+      class(logger_t), pointer :: logger
 
 #include "GOCART2G_DeclarePointer___.h"
 
       __Iam__('Run2')
 
-!****************************************************************************
-! Begin...
-
-!   Get my name and set-up traceback handle
-!   ---------------------------------------
-      call ESMF_GridCompGet( GC, NAME=COMP_NAME, __RC__ )
+      ! Get my name and set-up traceback handle
+      call ESMF_GridCompGet(gc, name=comp_name, _RC)
       Iam = trim(COMP_NAME)//'::'//Iam
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("Run2: starting...")
 
-! !   Get my internal MAPL_Generic state
-! !   -----------------------------------
-!     call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
-!     VERIFY_(STATUS)
+      ! ! Get my internal MAPL_Generic state
+      ! call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
+      ! VERIFY_(STATUS)
 
-! !   Get parameters from generic state.
-! !   -----------------------------------
-!     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
-!                     LONS=LONS, LATS=LATS, __RC__ )
+      ! ! Get parameters from generic state.
+      ! call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
+      !      LONS=LONS, LATS=LATS, _RC )
 
-! !   Run zero Klid for children
-! !   --------------------------
-!     do i = 1, size(gcs)
-!       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
-!       if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
-!          call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, __RC__)
-!       end if
-!     end do
+      ! ! Run zero Klid for children - pchakrab: I think that is the phase Run0
+      ! do i = 1, size(gcs)
+      !    call ESMF_GridCompGet (gcs(i), NAME=child_name, _RC )
+      !    if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
+      !       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, _RC)
+      !    end if
+      ! end do
+      call MAPL_GridCompRunChildren(gc, phase_name="Run0", _RC)
 
-      call MAPL_GridCompRunChildren(gc, phase_name="Run3", _RC)
+      ! ! Check run_dt alarm. Bail out if not ringing.
+      ! call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
+      ! timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+      ! if (.not. timeToDoWork) then
+      !    _RETURN(ESMF_SUCCESS)
+      ! end if
 
-! ! Check run_dt alarm. Bail out if not ringing.
-! ! --------------------------------------------
-!     call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
-!     timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
-!     if (.not. timeToDoWork) then
-!        _RETURN(ESMF_SUCCESS)
-!     end if
-
-!   Get my internal state
-!   ---------------------
-      call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
-      VERIFY_(STATUS)
+      ! Get my internal state
+      call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, _RC)
       self => wrap%ptr
 
 #include "GOCART2G_GetPointer___.h"
-
       if(associated(totexttau)) totexttau = 0.
       if(associated(totstexttau)) totstexttau = 0.
       if(associated(totscatau)) totscatau = 0.
@@ -626,34 +586,34 @@ contains
       if(associated(totscat25)) totscat25 = 0.
       if(associated(totexttfm)) totexttfm = 0.
       if(associated(totscatfm)) totscatfm = 0.
-      if(associated(totextcoef))     totextcoef = 0.
+      if(associated(totextcoef)) totextcoef = 0.
       if(associated(totextcoefrh20)) totextcoefrh20 = 0.
       if(associated(totextcoefrh80)) totextcoefrh80 = 0.
-      if(associated(totscacoef))     totscacoef = 0.
+      if(associated(totscacoef)) totscacoef = 0.
       if(associated(totscacoefrh20)) totscacoefrh20 = 0.
       if(associated(totscacoefrh80)) totscacoefrh80 = 0.
-      if(associated(totbckcoef))     totbckcoef = 0.
-      if(associated(totabcktoa))     totabcktoa = 0.
-      if(associated(totabcksfc))     totabcksfc = 0.
-      if(associated(pm))        pm(:,:)        = 0.
-      if(associated(pm25))      pm25(:,:)      = 0.
-      if(associated(pm_rh35))   pm_rh35(:,:)   = 0.
+      if(associated(totbckcoef)) totbckcoef = 0.
+      if(associated(totabcktoa)) totabcktoa = 0.
+      if(associated(totabcksfc)) totabcksfc = 0.
+      if(associated(pm)) pm(:,:) = 0.
+      if(associated(pm25)) pm25(:,:) = 0.
+      if(associated(pm_rh35)) pm_rh35(:,:) = 0.
       if(associated(pm25_rh35)) pm25_rh35(:,:) = 0.
-      if(associated(pm_rh50))   pm_rh50(:,:)   = 0.
+      if(associated(pm_rh50)) pm_rh50(:,:) = 0.
       if(associated(pm25_rh50)) pm25_rh50(:,:) = 0.
-      if(associated(pso4tot))   pso4tot(:,:,:) = 0.
+      if(associated(pso4tot)) pso4tot(:,:,:) = 0.
 
-!   Run the children
-!   -----------------
-      do i = 1, size(gcs)
-         call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
-         if ((index(child_name, 'data')) == 0) then ! only execute phase2 method if a computational instance
-            call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, __RC__)
-         end if
-      end do
+      ! ! Run the children
+      ! do i = 1, size(gcs)
+      !    call ESMF_GridCompGet (gcs(i), NAME=child_name, _RC )
+      !    if ((index(child_name, 'data')) == 0) then ! only execute phase2 method if a computational instance
+      !       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, _RC)
+      !    end if
+      ! end do
+      ! pchakrab: TODO - how to exclude "data" versions of children??
+      call MAPL_GridCompRunChildren(gc, phase_name="Run2", _RC)
 
-!   Compute total aerosol diagnostic values for export
-!   --------------------------------------------------
+      ! Compute total aerosol diagnostic values for export
       call MAPL_GridCompGet(gc, grid=grid, _RC)
       call MAPL_GridGet(grid, latitudes=lats, _RC)
       if(associated(totangstr)) then
@@ -685,28 +645,27 @@ contains
          c3 = -log(470./870.)
       end if
 
-
-!   Dust
+      ! Dust
       do n = 1, size(self%DU%instances)
          if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name, 'data') == 0 )) then
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttau, 'DUEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustexttau, 'DUSTEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatau, 'DUSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustscatau, 'DUSTSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoef, 'DUEXTCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh20, 'DUEXTCOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh80, 'DUEXTCOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoef, 'DUSCACOEF', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh20, 'DUSCACOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh80, 'DUSCACOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dubckcoef, 'DUBCKCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatfm, 'DUSCATFM', __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duangstr, 'DUANGSTR', __RC__)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttau, 'DUEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustexttau, 'DUSTEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatau, 'DUSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustscatau, 'DUSTSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoef, 'DUEXTCOEF', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh20, 'DUEXTCOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh80, 'DUEXTCOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoef, 'DUSCACOEF', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh20, 'DUSCACOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh80, 'DUSCACOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dubckcoef, 'DUBCKCOEF', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatfm, 'DUSCATFM', _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duangstr, 'DUANGSTR', _RC)
 
-            !   Iterate over the wavelengths
+            ! Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
                if(associated(totexttau) .and. associated(duexttau)) totexttau(:,:,w) = totexttau(:,:,w)+duexttau(:,:,w)
                if(associated(totstexttau) .and. associated(dustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+dustexttau(:,:,w)
@@ -728,8 +687,8 @@ contains
                if(associated(totbckcoef) .and. associated(dubckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+dubckcoef(:,:,:,w)
             end do
 
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   __RC__)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25, 'DUSMASS25', __RC__)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   _RC)
+            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25, 'DUSMASS25', _RC)
             if(associated(pm)        .and. associated(dusmass))   pm        = pm        + dusmass
             if(associated(pm25)      .and. associated(dusmass25)) pm25      = pm25      + dusmass25
             if(associated(pm_rh35)   .and. associated(dusmass))   pm_rh35   = pm_rh35   + dusmass
@@ -744,25 +703,25 @@ contains
          end if
       end do
 
-!   Sea Salt
+      ! Sea Salt
       do n = 1, size(self%SS%instances)
          if ((self%SS%instances(n)%is_active) .and. (index(self%SS%instances(n)%name, 'data') == 0 )) then
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttau, 'SSEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstexttau, 'SSSTEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatau, 'SSSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstscatau, 'SSSTSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoef, 'SSEXTCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh20, 'SSEXTCOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh80, 'SSEXTCOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoef, 'SSSCACOEF', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh20, 'SSSCACOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh80, 'SSSCACOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssbckcoef, 'SSBCKCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextt25, 'SSEXTT25', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscat25, 'SSSCAT25', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttfm, 'SSEXTTFM', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatfm, 'SSSCATFM', __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssangstr, 'SSANGSTR', __RC__)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttau, 'SSEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstexttau, 'SSSTEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatau, 'SSSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstscatau, 'SSSTSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoef, 'SSEXTCOEF', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh20, 'SSEXTCOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh80, 'SSEXTCOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoef, 'SSSCACOEF', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh20, 'SSSCACOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh80, 'SSSCACOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssbckcoef, 'SSBCKCOEF', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextt25, 'SSEXTT25', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscat25, 'SSSCAT25', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttfm, 'SSEXTTFM', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatfm, 'SSSCATFM', _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssangstr, 'SSANGSTR', _RC)
 
       !   Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -786,8 +745,8 @@ contains
                if(associated(totbckcoef) .and. associated(ssbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ssbckcoef(:,:,:,w)
             enddo
 
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass,   'SSSMASS',   __RC__)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass25, 'SSSMASS25', __RC__)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass,   'SSSMASS',   _RC)
+            call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass25, 'SSSMASS25', _RC)
             if(associated(pm)        .and. associated(sssmass))   pm        = pm        + sssmass
             if(associated(pm25)      .and. associated(sssmass25)) pm25      = pm25      + sssmass25
             if(associated(pm_rh35)   .and. associated(sssmass))   pm_rh35   = pm_rh35   + 1.86*sssmass
@@ -805,22 +764,22 @@ contains
 !   Nitrates - NOTE! Nitrates currently only support one active instance
       do n = 1, size(self%NI%instances)
          if ((self%NI%instances(n)%is_active) .and. (index(self%NI%instances(n)%name, 'data') == 0 )) then
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoef, 'NIEXTCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nibckcoef, 'NIBCKCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatfm, 'NISCATFM', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niangstr, 'NIANGSTR', __RC__)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoef, 'NIEXTCOEF', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nibckcoef, 'NIBCKCOEF', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatfm, 'NISCATFM', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niangstr, 'NIANGSTR', _RC)
 
       !   Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -844,9 +803,9 @@ contains
                if(associated(totbckcoef) .and. associated(nibckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+nibckcoef(:,:,:,w)
             end do
 
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', __RC__)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   __RC__)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', _RC)
+            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   _RC)
             if(associated(pm)        .and. associated(nismass)   .and. associated(nh4smass)) pm        = pm   + nismass   + nh4smass
             if(associated(pm25)      .and. associated(nismass25) .and. associated(nh4smass)) pm25      = pm25 + nismass25 + nh4smass
             if(associated(pm_rh35)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh35   = pm_rh35   + 1.33*(nismass   + nh4smass)
@@ -869,18 +828,18 @@ contains
 
       do n = 1, size(self%SU%instances)
          if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoef, 'SUEXTCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), subckcoef, 'SUBCKCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', __RC__)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoef, 'SUEXTCOEF', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), subckcoef, 'SUBCKCOEF', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', _RC)
 
           !   Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -904,10 +863,10 @@ contains
                if(associated(totbckcoef) .and. associated(subckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+subckcoef(:,:,:,w)
             end do
 
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', __RC__)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', _RC)
             if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', __RC__)
+            call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', _RC)
             if(associated(so4smass)) then
                if(associated(pm)       ) pm        = pm        + nifactor*so4smass
                if(associated(pm25)     ) pm25      = pm25      + nifactor*so4smass
@@ -930,18 +889,18 @@ contains
          if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
               .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
 
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', __RC__)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', _RC)
 
           !   Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -965,7 +924,7 @@ contains
                if(associated(totbckcoef) .and. associated(bcbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+bcbckcoef(:,:,:,w)
             end do
 
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', __RC__)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', _RC)
             if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
             if(associated(pm25)      .and. associated(bcsmass)) pm25      = pm25      + bcsmass
             if(associated(pm_rh35)   .and. associated(bcsmass)) pm_rh35   = pm_rh35   + bcsmass
@@ -980,18 +939,18 @@ contains
 
          else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
               .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', __RC__)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', _RC)
 
           !   Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -1015,7 +974,7 @@ contains
                if(associated(totbckcoef) .and. associated(ocbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ocbckcoef(:,:,:,w)
             end do
 
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', __RC__)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', _RC)
             if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
             if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
             if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
@@ -1030,18 +989,18 @@ contains
 
          else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
               .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', __RC__)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', __RC__)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', _RC)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', _RC)
 
             !   Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -1065,7 +1024,7 @@ contains
                if(associated(totbckcoef) .and. associated(brbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+brbckcoef(:,:,:,w)
             end do
 
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', __RC__)
+            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', _RC)
             if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
             if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
             if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
@@ -1169,6 +1128,7 @@ contains
 
       endif ! end of total attenuated backscatter coef calculation
 
+      call logger%info("Run2: ...complete")
       RETURN_(ESMF_SUCCESS)
 
    end subroutine Run2
@@ -1252,11 +1212,11 @@ contains
 
       __Iam__('GOCART2G::create_instances_')
 
-      ! call add_children__ (gc, self%DU, DU2G_SetServices, __RC__)
+      ! call add_children__ (gc, self%DU, DU2G_SetServices, _RC)
       call add_children__(gc, self%SS, SS2G_SetServices, _RC)
-      ! call add_children__ (gc, self%SU, SU2G_SetServices, __RC__)
-      ! call add_children__ (gc, self%CA, CA2G_SetServices, __RC__)
-      ! call add_children__ (gc, self%NI, NI2G_SetServices, __RC__)
+      ! call add_children__ (gc, self%SU, SU2G_SetServices, _RC)
+      ! call add_children__ (gc, self%CA, CA2G_SetServices, _RC)
+      ! call add_children__ (gc, self%NI, NI2G_SetServices, _RC)
 
       RETURN_(ESMF_SUCCESS)
    end subroutine create_instances_
@@ -1320,39 +1280,39 @@ contains
 ! !   Get list of child states within state and add to aeroList
 ! !   Remember, AERO_RAD contains its children's AERO_RAD states
 ! !   ----------------------------------------------------------
-!     call ESMF_StateGet (state, itemCount=n, __RC__)
+!     call ESMF_StateGet (state, itemCount=n, _RC)
 !     allocate (itemList(n), __STAT__)
 !     allocate (itemTypes(n), __STAT__)
-!     call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+!     call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
 ! !  Create empty ESMF_FieldBundle to add Children's aerosol fields to
-!    bundle = ESMF_FieldBundleCreate(name="serialized_aerosolBundle", __RC__)
-!    call MAPL_StateAdd(state, bundle, __RC__)
+!    bundle = ESMF_FieldBundleCreate(name="serialized_aerosolBundle", _RC)
+!    call MAPL_StateAdd(state, bundle, _RC)
 
 !    do i = 1, n
 !       if (itemTypes(i) /= ESMF_StateItem_State) cycle ! exclude non-states
-!       call ESMF_StateGet (state, trim(itemList(i)), child_state, __RC__)
-!       call ESMF_AttributeGet (child_state, name='internal_variable_name', itemCount=nbins, __RC__)
+!       call ESMF_StateGet (state, trim(itemList(i)), child_state, _RC)
+!       call ESMF_AttributeGet (child_state, name='internal_variable_name', itemCount=nbins, _RC)
 !       allocate (aeroName(nbins), __STAT__)
-!       call ESMF_AttributeGet (child_state, name='internal_variable_name', valueList=aeroName, __RC__)
+!       call ESMF_AttributeGet (child_state, name='internal_variable_name', valueList=aeroName, _RC)
 
 
 !       do b = 1, size(aeroName)
-!          call ESMF_StateGet (child_state, trim(aeroName(b)), field, __RC__)
-!          call ESMF_FieldGet (field, rank=rank, __RC__)
+!          call ESMF_StateGet (child_state, trim(aeroName(b)), field, _RC)
+!          call ESMF_FieldGet (field, rank=rank, _RC)
 
 !          if (rank == 3) then
-!             call MAPL_FieldBundleAdd (bundle, field, __RC__)
+!             call MAPL_FieldBundleAdd (bundle, field, _RC)
 
 !          else if (rank == 4) then ! serialize 4d variables to mulitple 3d variables
-!             call ESMF_FieldGet (field, grid=grid, __RC__)
-!             call MAPL_GetPointer (child_state, orig_ptr, trim(aeroName(b)), __RC__)
+!             call ESMF_FieldGet (field, grid=grid, _RC)
+!             call MAPL_GetPointer (child_state, orig_ptr, trim(aeroName(b)), _RC)
 !             do j = 1, size(orig_ptr, 4)
 !                write (binIndexstr, '(I0.3)') j
 !                ptr3d => orig_ptr(:,:,:,j)
 !                serializedField = ESMF_FieldCreate (grid=grid, datacopyFlag=ESMF_DATACOPY_REFERENCE, &
-!                                               farrayPtr=ptr3d, name=trim(aeroName(b))//trim(binIndexstr), __RC__)
-!                call MAPL_FieldBundleAdd (bundle, serializedField, __RC__) ! probably need to add a flag to allow for adding multilple fields of the same name.
+!                                               farrayPtr=ptr3d, name=trim(aeroName(b))//trim(binIndexstr), _RC)
+!                call MAPL_FieldBundleAdd (bundle, serializedField, _RC) ! probably need to add a flag to allow for adding multilple fields of the same name.
 !             end do ! do j
 !          end if ! if (rank
 !       end do ! do b
@@ -1399,17 +1359,17 @@ contains
 
 !   Radiation band
 !   --------------
-    call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
+    call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, _RC)
 
 !   Relative humidity
 !   -----------------
-    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+    call MAPL_GetPointer(state, RH, trim(fld_name), _RC)
 
 !   Pressure at layer edges
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+    call MAPL_GetPointer(state, PLE, trim(fld_name), _RC)
 
     i1 = lbound(ple, 1); i2 = ubound(ple, 1)
     j1 = lbound(ple, 2); j2 = ubound(ple, 2)
@@ -1421,10 +1381,10 @@ contains
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
-    call ESMF_StateGet (state, itemCount=n, __RC__)
+    call ESMF_StateGet (state, itemCount=n, _RC)
     allocate (itemList(n), __STAT__)
     allocate (itemTypes(n), __STAT__)
-    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
     b=0
     do i = 1, n
@@ -1449,46 +1409,46 @@ contains
 
 !  ! Get aerosol optic properties from children
    do i = 1, size(aeroList)
-        call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+        call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
 
 !       ! set RH in child's aero state
-        call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+        call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
 
         if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), _RC)
             as_ptr_3d = rh
         end if
 
 !       ! set PLE in child's aero state
-        call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+        call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
 
         if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), _RC)
             as_ptr_3d = ple
         end if
 
 !       ! set band in child's aero state
-        call ESMF_AttributeSet(child_state, name='band_for_aerosol_optics', value=band, __RC__)
+        call ESMF_AttributeSet(child_state, name='band_for_aerosol_optics', value=band, _RC)
 
 !       ! execute the aerosol optics method
-        call ESMF_MethodExecute(child_state, label="aerosol_optics", __RC__)
+        call ESMF_MethodExecute(child_state, label="aerosol_optics", _RC)
 
 !       ! Retrieve extinction from each child
-        call ESMF_AttributeGet(child_state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+        call ESMF_AttributeGet(child_state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
         if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, ext_, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, ext_, trim(fld_name), _RC)
         end if
 
 !       ! Retrieve scattering extinction from each child
-        call ESMF_AttributeGet(child_state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
+        call ESMF_AttributeGet(child_state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, _RC)
         if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, ssa_, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, ssa_, trim(fld_name), _RC)
         end if
 
 !       ! Retrieve asymetry parameter multiplied by scatering extiction from each child
-        call ESMF_AttributeGet(child_state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+        call ESMF_AttributeGet(child_state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, _RC)
         if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, asy_, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, asy_, trim(fld_name), _RC)
         end if
 
 !       ! Sum aerosol optic properties from each child
@@ -1500,21 +1460,21 @@ contains
 
 
 !   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
-    call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+    call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
     if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        call MAPL_GetPointer(state, var, trim(fld_name), _RC)
         var = ext(:,:,:)
     end if
 
-    call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
+    call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, _RC)
     if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        call MAPL_GetPointer(state, var, trim(fld_name), _RC)
         var = ssa(:,:,:)
     end if
 
-    call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+    call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, _RC)
     if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        call MAPL_GetPointer(state, var, trim(fld_name), _RC)
         var = asy(:,:,:)
     end if
 
@@ -1601,10 +1561,10 @@ contains
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
-    call ESMF_StateGet (state, itemCount=n, __RC__)
+    call ESMF_StateGet (state, itemCount=n, _RC)
     allocate (itemList(n), __STAT__)
     allocate (itemTypes(n), __STAT__)
-    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
     b=0
     do i = 1, n
@@ -1625,22 +1585,22 @@ contains
 
 !   Aerosol mode
 !   ------------
-    call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, __RC__)
+    call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, _RC)
 
 !   Land fraction
 !   -------------
-    call ESMF_AttributeGet(state, name='fraction_of_land_type', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, f_land, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='fraction_of_land_type', value=fld_name, _RC)
+    call MAPL_GetPointer(state, f_land, trim(fld_name), _RC)
 
 !   Pressure at layer edges
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+    call MAPL_GetPointer(state, ple, trim(fld_name), _RC)
 
 !   Temperature
 !   -----------
-    call ESMF_AttributeGet(state, name='air_temperature', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, temperature, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='air_temperature', value=fld_name, _RC)
+    call MAPL_GetPointer(state, temperature, trim(fld_name), _RC)
 
     i2 = ubound(temperature, 1)
     j2 = ubound(temperature, 2)
@@ -1648,39 +1608,39 @@ contains
 
 !   Activation activation properties
 !   --------------------------------
-    call ESMF_AttributeGet(state, name='aerosol_number_concentration', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, num, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='aerosol_number_concentration', value=fld_name, _RC)
+    call MAPL_GetPointer(state, num, trim(fld_name), _RC)
 
-    call ESMF_AttributeGet(state, name='aerosol_dry_size', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, diameter, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='aerosol_dry_size', value=fld_name, _RC)
+    call MAPL_GetPointer(state, diameter, trim(fld_name), _RC)
 
-    call ESMF_AttributeGet(state, name='width_of_aerosol_mode', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, sigma, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='width_of_aerosol_mode', value=fld_name, _RC)
+    call MAPL_GetPointer(state, sigma, trim(fld_name), _RC)
 
-    call ESMF_AttributeGet(state, name='aerosol_density', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, density, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='aerosol_density', value=fld_name, _RC)
+    call MAPL_GetPointer(state, density, trim(fld_name), _RC)
 
-    call ESMF_AttributeGet(state, name='aerosol_hygroscopicity', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, hygroscopicity, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='aerosol_hygroscopicity', value=fld_name, _RC)
+    call MAPL_GetPointer(state, hygroscopicity, trim(fld_name), _RC)
 
-    call ESMF_AttributeGet(state, name='fraction_of_dust_aerosol', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, f_dust, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='fraction_of_dust_aerosol', value=fld_name, _RC)
+    call MAPL_GetPointer(state, f_dust, trim(fld_name), _RC)
 
-    call ESMF_AttributeGet(state, name='fraction_of_soot_aerosol', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, f_soot, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='fraction_of_soot_aerosol', value=fld_name, _RC)
+    call MAPL_GetPointer(state, f_soot, trim(fld_name), _RC)
 
-    call ESMF_AttributeGet(state, name='fraction_of_organic_aerosol', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, f_organic, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='fraction_of_organic_aerosol', value=fld_name, _RC)
+    call MAPL_GetPointer(state, f_organic, trim(fld_name), _RC)
 
 !   Sea salt scaling fctor
 !   ----------------------
-    call ESMF_AttributeGet(state, name='max_q_clean', value=max_clean, __RC__)
-    call ESMF_AttributeGet(state, name='ccn_tuning', value=ccn_tuning, __RC__)
+    call ESMF_AttributeGet(state, name='max_q_clean', value=max_clean, _RC)
+    call ESMF_AttributeGet(state, name='ccn_tuning', value=ccn_tuning, _RC)
 
 !   Aerosol mass mixing ratios
 !   --------------------------
     mode_ = trim(mode)
-    mode_ = ESMF_UtilStringLowerCase(mode_, __RC__)
+    mode_ = ESMF_UtilStringLowerCase(mode_, _RC)
 
     allocate(q(i2,j2,km),  __STAT__)
     q = 0.0
@@ -1690,8 +1650,8 @@ contains
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'DU') > 0) then
              read (mode_(3:len(mode_)),*) aerosol_bin
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_4d, 'DU', __RC__)
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
+             call MAPL_GetPointer(child_state, ptr_4d, 'DU', _RC)
              q = q + ptr_4d(:,:,:,aerosol_bin)
              ptr_3d => ptr_4d(:,:,:,aerosol_bin)
 
@@ -1704,8 +1664,8 @@ contains
        ! compute the total mass mixing ratio and impose a tri-modal size distribution
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'SS') > 0) then
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_4d, 'SS', __RC__)
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
+             call MAPL_GetPointer(child_state, ptr_4d, 'SS', _RC)
              do j = 1, ubound(ptr_4d, 4)
                q = q + ptr_4d(:,:,:,j)
                ptr_3d => ptr_4d(:,:,:,j)
@@ -1722,19 +1682,19 @@ contains
 
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'SU') > 0) then
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-             call MAPL_GetPointer(child_state, ptr_3d, 'SO4', __RC__)
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
+             call MAPL_GetPointer(child_state, ptr_3d, 'SO4', _RC)
              q = q + ptr_3d
              hygroscopicity = k_SO4 * ptr_3d + hygroscopicity
              density = densSO4 * ptr_3d + density
           end if
 
           if (index(aeroList(i), 'CA.oc') > 0) then
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
              varNameLen = len_trim(aeroList(i))
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
              varNameLen = varNameLen - 5
-             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', _RC)
              q = q + ptr_3d
              hygroscopicity = k_ORG * ptr_3d + hygroscopicity
              density = densORG * ptr_3d + density
@@ -1756,11 +1716,11 @@ contains
     else if (index(mode_, 'bcphilic') > 0) then ! Black Carbon
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.bc') > 0) then
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
              varNameLen = len_trim(aeroList(i))
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
              varNameLen = varNameLen - 5
-             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', _RC)
              q = q + ptr_3d
              hygroscopicity = k_BC
              density = densBC
@@ -1770,11 +1730,11 @@ contains
     else if (index(mode_, 'ocphilic') > 0) then ! Organic Carbon
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.oc') > 0) then
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
              varNameLen = len_trim(aeroList(i))
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
              varNameLen = varNameLen - 5
-             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', _RC)
              q = q + ptr_3d
              hygroscopicity = k_OC
              density = densOC
@@ -1784,11 +1744,11 @@ contains
     else if (index(mode_, 'brcphilic') > 0) then ! Organic Carbon
        do i = 1, size(aeroList)
           if (index(aeroList(i), 'CA.br') > 0) then
-             call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+             call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
              varNameLen = len_trim(aeroList(i))
 !            the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
              varNameLen = varNameLen - 5
-             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', __RC__)
+             call MAPL_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', _RC)
              q = q + ptr_3d
              hygroscopicity = k_BR
              density = densBR
@@ -1810,7 +1770,7 @@ contains
               density,            &
               ptr_3d,             &
               1, i2, 1, j2, km, &
-              __RC__)
+              _RC)
 
     deallocate(q, __STAT__)
 
@@ -1856,7 +1816,7 @@ contains
       !real, parameter    :: max_clean = 5.0e-7  !max mixing ratio before considered polluted
 
      mode_ = trim(mode)
-     mode_ = ESMF_UtilStringLowerCase(mode_, __RC__)
+     mode_ = ESMF_UtilStringLowerCase(mode_, _RC)
 
      num       = 0.0
      diameter  = 1.0e-9
@@ -2073,17 +2033,17 @@ contains
 
 !   Radiation band
 !   --------------
-    call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+    call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, _RC)
 
 !   Relative humidity
 !   -----------------
-    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+    call MAPL_GetPointer(state, RH, trim(fld_name), _RC)
 
 !   Pressure at layer edges
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
+    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+    call MAPL_GetPointer(state, PLE, trim(fld_name), _RC)
 
     i1 = lbound(ple, 1); i2 = ubound(ple, 1)
     j1 = lbound(ple, 2); j2 = ubound(ple, 2)
@@ -2094,10 +2054,10 @@ contains
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
-    call ESMF_StateGet (state, itemCount=n, __RC__)
+    call ESMF_StateGet (state, itemCount=n, _RC)
     allocate (itemList(n), __STAT__)
     allocate (itemTypes(n), __STAT__)
-    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
     b=0
     do i = 1, n
@@ -2118,34 +2078,34 @@ contains
 
 !   ! Get aerosol optic properties from children
     do i = 1, size(aeroList)
-       call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
+       call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
 
 !      ! set RH in child's aero state
-       call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+       call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
 
        if (fld_name /= '') then
-          call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+          call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), _RC)
           as_ptr_3d = rh
        end if
 
 !      ! set PLE in child's aero state
-       call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+       call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
 
        if (fld_name /= '') then
-          call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+          call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), _RC)
           as_ptr_3d = ple
        end if
 
 !      ! set wavelength in child's aero state
-       call ESMF_AttributeSet(child_state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+       call ESMF_AttributeSet(child_state, name='wavelength_for_aerosol_optics', value=wavelength, _RC)
 
 !      ! execute the aerosol optics method
-       call ESMF_MethodExecute(child_state, label="monochromatic_aerosol_optics", __RC__)
+       call ESMF_MethodExecute(child_state, label="monochromatic_aerosol_optics", _RC)
 
 !      ! Retrieve extinction from each child
-       call ESMF_AttributeGet(child_state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+       call ESMF_AttributeGet(child_state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
        if (fld_name /= '') then
-          call MAPL_GetPointer(child_state, tau_, trim(fld_name), __RC__)
+          call MAPL_GetPointer(child_state, tau_, trim(fld_name), _RC)
        end if
 
 !      ! Sum aerosol optic properties from each child
@@ -2153,9 +2113,9 @@ contains
     end do
 
 !   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
-    call ESMF_AttributeGet(state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+    call ESMF_AttributeGet(state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
     if (fld_name /= '') then
-       call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+       call MAPL_GetPointer(state, var, trim(fld_name), _RC)
        var = tau
     end if
 
@@ -2192,20 +2152,20 @@ contains
 !--------------------------------------------------------------------------------------
 !   Begin...
 
-    call ESMF_AttributeGet(state, name='aerosolName', value=aeroName, __RC__)
-    call ESMF_AttributeGet(state, name='im', value=im, __RC__)
-    call ESMF_AttributeGet(state, name='jm', value=jm, __RC__)
-    call ESMF_AttributeGet(state, name='km', value=km, __RC__)
+    call ESMF_AttributeGet(state, name='aerosolName', value=aeroName, _RC)
+    call ESMF_AttributeGet(state, name='im', value=im, _RC)
+    call ESMF_AttributeGet(state, name='jm', value=jm, _RC)
+    call ESMF_AttributeGet(state, name='km', value=km, _RC)
 
     allocate(aeroOut(im,jm,km), __STAT__)
     aeroOut = 0.0
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
-    call ESMF_StateGet (state, itemCount=n, __RC__)
+    call ESMF_StateGet (state, itemCount=n, _RC)
     allocate (itemList(n), __STAT__)
     allocate (itemTypes(n), __STAT__)
-    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, __RC__)
+    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
     b=0
     do i = 1, n
@@ -2228,65 +2188,65 @@ contains
 !   Retrieve summed aerosol mixing ratios from active instances
     select case (trim(aeroName))
        case ('dust')
-          call getAerosolSum ('DU', state, aeroList, aeroOut, __RC__)
+          call getAerosolSum ('DU', state, aeroList, aeroOut, _RC)
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_DU', value=fld_name, __RC__)
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_DU', value=fld_name, _RC)
           if (fld_name /= '') then
-             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             call MAPL_GetPointer (state, var, trim(fld_name), _RC)
              var = aeroOut
           end if
 
        case ('seasalt')
-          call getAerosolSum ('SS', state, aeroList, aeroOut, __RC__)
+          call getAerosolSum ('SS', state, aeroList, aeroOut, _RC)
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_SS', value=fld_name, __RC__)
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_SS', value=fld_name, _RC)
           if (fld_name /= '') then
-             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             call MAPL_GetPointer (state, var, trim(fld_name), _RC)
              var = aeroOut
           end if
 
        case ('organicCarbon')
-          call getAerosolSum ('CA.oc', state, aeroList, aeroOut, __RC__)
+          call getAerosolSum ('CA.oc', state, aeroList, aeroOut, _RC)
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.oc', value=fld_name, __RC__)
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.oc', value=fld_name, _RC)
           if (fld_name /= '') then
-             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             call MAPL_GetPointer (state, var, trim(fld_name), _RC)
              var = aeroOut
           end if
 
        case ('blackCarbon')
-          call getAerosolSum ('CA.bc', state, aeroList, aeroOut, __RC__)
+          call getAerosolSum ('CA.bc', state, aeroList, aeroOut, _RC)
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.bc', value=fld_name, __RC__)
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.bc', value=fld_name, _RC)
           if (fld_name /= '') then
-             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             call MAPL_GetPointer (state, var, trim(fld_name), _RC)
              var = aeroOut
           end if
 
        case ('brownCarbon')
-          call getAerosolSum ('CA.br', state, aeroList, aeroOut, __RC__)
+          call getAerosolSum ('CA.br', state, aeroList, aeroOut, _RC)
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.br', value=fld_name, __RC__)
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.br', value=fld_name, _RC)
           if (fld_name /= '') then
-             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             call MAPL_GetPointer (state, var, trim(fld_name), _RC)
              var = aeroOut
           end if
 
        case ('sulfate')
-          call getAerosolSum ('SU', state, aeroList, aeroOut, __RC__)
+          call getAerosolSum ('SU', state, aeroList, aeroOut, _RC)
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_SU', value=fld_name, __RC__)
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_SU', value=fld_name, _RC)
           if (fld_name /= '') then
-             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             call MAPL_GetPointer (state, var, trim(fld_name), _RC)
              var = aeroOut
           end if
 
        case ('nitrate')
-          call getAerosolSum ('NI', state, aeroList, aeroOut, __RC__)
+          call getAerosolSum ('NI', state, aeroList, aeroOut, _RC)
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_NI', value=fld_name, __RC__)
+          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_NI', value=fld_name, _RC)
           if (fld_name /= '') then
-             call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+             call MAPL_GetPointer (state, var, trim(fld_name), _RC)
              var = aeroOut
           end if
 
@@ -2322,12 +2282,12 @@ contains
     aeroOut = 0.0
     do i = 1, size(aeroList)
        if (trim(aeroList(i)(1:endInd)) == trim(aeroToken)) then
-          call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
-          call ESMF_MethodExecute(child_state, label="get_mixR", __RC__)
+          call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
+          call ESMF_MethodExecute(child_state, label="get_mixR", _RC)
           call ESMF_AttributeGet(child_state, name='sum_of_internalState_aerosol', &
-                                 value=fld_name, __RC__)
+                                 value=fld_name, _RC)
           if (fld_name /= '') then
-             call MAPL_GetPointer(child_state, ptr3d, trim(fld_name), __RC__)
+             call MAPL_GetPointer(child_state, ptr3d, trim(fld_name), _RC)
              aeroOut = aeroOut + ptr3d
           end if
        end if
