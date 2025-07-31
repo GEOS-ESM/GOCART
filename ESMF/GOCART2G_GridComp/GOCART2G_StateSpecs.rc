@@ -5,13 +5,32 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE       | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
-     NAME   | UNITS    | DIMS | VLOC | RESTART | LONG NAME
+     NAME   | UNITS    | DIMS | VLOC | RESTART | UNGRIDDED | LONG NAME
 #----------------------------------------------------------------------------------------
- DELP       | Pa       | xyz  | C    |         | pressure_thickness
-# RH2       | 1        | xyz  | C    |         | Rel_Hum_after_moist
- AIRDENS    | kg/m^3   | xyz  | C    | OPT     | moist_air_density
- T          | K        | xyz  | C    | OPT     | air_temperature
- PLE        | Pa       | xyz  | E    | OPT     | air_pressure
+ DELP          | Pa       | xyz  | C    |         |                                | pressure_thickness
+# RH2          | 1        | xyz  | C    |         |                                | Rel_Hum_after_moist
+ AIRDENS       | kg/m^3   | xyz  | C    | OPT     |                                | moist_air_density
+ T             | K        | xyz  | C    | OPT     |                                | air_temperature
+ PLE           | Pa       | xyz  | E    | OPT     |                                | air_pressure
+#-imports-from-seasalt-
+ SSEXTTAU      | 1        | xy   | N    | OPT     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth
+ SSSTEXTTAU    | 1        | xy   | N    | OPT     | size(self%wavelengths_vertint) | Sea Salt Stratospheric Aerosol Optical Thickness
+ SSSCATAU      | 1        | xy   | N    | OPT     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth Due to Scattering
+ SSSTSCATAU    | 1        | xy   | N    | OPT     | size(self%wavelengths_vertint) | Sea Salt Stratospheric Aerosol Optical Thickness Due to Scattering
+ SSEXTCOEF     | m-1      | xyz  | C    | OPT     | size(self%wavelengths_profile) | Sea Salt Extinction Coefficient
+ SSEXTCOEFRH20 | m-1      | xyz  | C    | OPT     | size(self%wavelengths_profile) | Sea Salt Extinction Coefficient - Fixed RH=20%
+ SSEXTCOEFRH80 | m-1      | xyz  | C    | OPT     | size(self%wavelengths_profile) | Sea Salt Extinction Coefficient - Fixed RH=80%
+ SSSCACOEF     | m-1      | xyz  | C    | OPT     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient
+ SSSCACOEFRH20 | m-1      | xyz  | C    | OPT     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient - Fixed RH=20%
+ SSSCACOEFRH80 | m-1      | xyz  | C    | OPT     | size(self%wavelengths_profile) | Sea Salt Scattering Coefficient - Fixed RH=80%
+ SSBCKCOEF     | m-1 sr-1 | xyz  | C    | OPT     | size(self%wavelengths_profile) | Sea Salt Backscatter Coefficient
+ SSEXTT25      | 1        | xy   | N    | OPT     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth from Particulate Matter < 2.5 microns (PM2.5)
+ SSSCAT25      | 1        | xy   | N    | OPT     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)
+ SSEXTTFM      | 1        | xy   | N    | OPT     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth from Particulate Matter < 1 micron (PM1.0)
+ SSSCATFM      | 1        | xy   | N    | OPT     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth Due to Scattering from Particulate Matter < 1 micron (PM1.0)
+ SSANGSTR      | 1        | xy   | N    | OPT     |                                | Sea Salt Angstrom parameter [470-870 nm]
+ SSSMASS       | kg m-3   | xy   | N    | OPT     |                                | Sea Salt Surface Mass Concentration
+ SSSMASS25     | kg m-3   | xy   | N    | OPT     |                                | Sea Salt Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
 
 category: EXPORT
 #----------------------------------------------------------------------------------------

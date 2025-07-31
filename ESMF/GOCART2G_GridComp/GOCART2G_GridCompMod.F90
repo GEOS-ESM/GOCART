@@ -106,7 +106,8 @@ contains
       integer, allocatable :: wavelengths_diagmie(:)
       ! logical :: use_threads
       class(logger_t), pointer :: logger
-      integer :: status
+      character(len=:), allocatable :: child_item_names
+      integer :: iter, status
 
       call MAPL_GridCompGet(gc, logger=logger, _RC)
       call logger%info("SetServices:: starting...")
@@ -208,6 +209,23 @@ contains
       !            _RC)
       !    end if
       ! end if
+
+      ! Connections to Sea Salt's export items
+      child_item_names= &
+           "SSEXTTAU, SSSTEXTTAU, SSSCATAU, SSSTSCATAU, " // &
+           "SSEXTCOEF, SSEXTCOEFRH20, SSEXTCOEFRH80, " // &
+           "SSSCACOEF, SSSCACOEFRH20, SSSCACOEFRH80, " // &
+           "SSBCKCOEF, SSEXTT25, SSSCAT25, SSEXTTFM, SSSCATFM, " // &
+           "SSANGSTR, SSSMASS, SSSMASS25"
+      do iter = 1, size(self%SS%instances)
+         if ((self%SS%instances(iter)%is_active) .and. (index(self%SS%instances(iter)%name, 'data') == 0 )) then
+            call MAPL_GridCompAddConnectivity( &
+                 gc, &
+                 src_comp=self%SS%instances(iter)%name, &
+                 src_names=child_item_names, &
+                 dst_comp="<self>", _RC)
+         end if
+      end do
 
       call logger%info("SetServices:: ...complete")
       _RETURN(_SUCCESS)
@@ -442,10 +460,10 @@ contains
    !BOP
    !IROUTINE: RUN2 -- Run2 method for GOCART2G component
    !INTERFACE:
-   subroutine Run2 (GC, import, export, clock, RC)
+   subroutine Run2 (gc, import, export, clock, RC)
 
       !ARGUMENTS:
-      type (ESMF_GridComp) :: GC     ! Gridded component
+      type (ESMF_GridComp) :: gc     ! Gridded component
       type (ESMF_State) :: import ! Import state
       type (ESMF_State) :: export ! Export state
       type (ESMF_Clock) :: clock  ! The clock
@@ -468,7 +486,8 @@ contains
       integer                             :: i, n, w
       real, pointer, dimension(:,:)       :: LATS
 
-      real, pointer, dimension(:,:,:) :: duexttau, dustexttau, &
+      real, pointer, dimension(:,:,:) :: &
+           duexttau, dustexttau, &
            duscatau, dustscatau, &
            duextt25, duscat25, &
            duexttfm, duscatfm
@@ -476,19 +495,9 @@ contains
       real, pointer, dimension(:,:,:,:) :: duextcoefrh20, duextcoefrh80
       real, pointer, dimension(:,:,:,:) :: duscacoefrh20, duscacoefrh80
       real, pointer, dimension(:,:,:,:) :: dubckcoef
-      real, pointer, dimension(:,:)   :: duangstr, dusmass,  &
-           dusmass25
-      real, pointer, dimension(:,:,:) :: ssexttau, ssstexttau, &
-           ssscatau, ssstscatau, &
-           ssextt25, ssscat25, &
-           ssexttfm, ssscatfm
-      real, pointer, dimension(:,:,:,:) :: ssextcoef, ssscacoef
-      real, pointer, dimension(:,:,:,:) :: ssextcoefrh20, ssextcoefrh80
-      real, pointer, dimension(:,:,:,:) :: ssscacoefrh20, ssscacoefrh80
-      real, pointer, dimension(:,:,:,:) :: ssbckcoef
-      real, pointer, dimension(:,:)   :: ssangstr, sssmass,  &
-           sssmass25
-      real, pointer, dimension(:,:,:) :: niexttau, nistexttau, &
+      real, pointer, dimension(:,:)   :: duangstr, dusmass, dusmass25
+      real, pointer, dimension(:,:,:) :: &
+           niexttau, nistexttau, &
            niscatau, nistscatau, &
            niextt25, niscat25, &
            niexttfm, niscatfm
@@ -550,7 +559,7 @@ contains
       call logger%info("Run2: starting...")
 
       ! ! Get my internal MAPL_Generic state
-      ! call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
+      ! call MAPL_GetObjectFromGC ( gc, MAPL, RC=STATUS )
       ! VERIFY_(STATUS)
 
       ! ! Get parameters from generic state.
@@ -574,7 +583,7 @@ contains
       ! end if
 
       ! Get my internal state
-      call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, _RC)
+      call ESMF_UserCompGetInternalState(gc, 'GOCART_State', wrap, _RC)
       self => wrap%ptr
 
 #include "GOCART2G_GetPointer___.h"
@@ -625,19 +634,9 @@ contains
                exit
             end if
          end do
-
-         if (ind550 == 0) then
-            !$omp critical (G2G_1)
-            print*,trim(Iam),' : 550nm wavelengths is not present in GOCART2G_GridComp.rc.',&
-                 ' Cannot produce TOTANGSTR variable without 550nm wavelength.'
-            !$omp end critical (G2G_1)
-            VERIFY_(100)
-         end if
-
+         _ASSERT(ind550 /= 0, "Cannot produce TOTANGSTR variable without 550nm wavelength")
          totangstr = 0.0
-         allocate(tau1(SIZE(LATS,1), SIZE(LATS,2)), &
-              tau2(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
-
+         allocate(tau1(SIZE(LATS,1), SIZE(LATS,2)), tau2(SIZE(LATS,1), SIZE(LATS,2)), _STAT)
          tau1(:,:) = tiny(1.0)
          tau2(:,:) = tiny(1.0)
          c1 = -log(470./550.)
@@ -645,108 +644,104 @@ contains
          c3 = -log(470./870.)
       end if
 
-      ! Dust
-      do n = 1, size(self%DU%instances)
-         if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name, 'data') == 0 )) then
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttau, 'DUEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustexttau, 'DUSTEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatau, 'DUSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustscatau, 'DUSTSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoef, 'DUEXTCOEF', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh20, 'DUEXTCOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh80, 'DUEXTCOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoef, 'DUSCACOEF', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh20, 'DUSCACOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh80, 'DUSCACOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dubckcoef, 'DUBCKCOEF', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatfm, 'DUSCATFM', _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), duangstr, 'DUANGSTR', _RC)
+      ! ! Dust
+      ! do n = 1, size(self%DU%instances)
+      !    if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name, 'data') == 0 )) then
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttau, 'DUEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustexttau, 'DUSTEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatau, 'DUSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustscatau, 'DUSTSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoef, 'DUEXTCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh20, 'DUEXTCOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh80, 'DUEXTCOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoef, 'DUSCACOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh20, 'DUSCACOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh80, 'DUSCACOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dubckcoef, 'DUBCKCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatfm, 'DUSCATFM', _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duangstr, 'DUANGSTR', _RC)
 
-            ! Iterate over the wavelengths
-            do w = 1, size(self%wavelengths_vertint)
-               if(associated(totexttau) .and. associated(duexttau)) totexttau(:,:,w) = totexttau(:,:,w)+duexttau(:,:,w)
-               if(associated(totstexttau) .and. associated(dustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+dustexttau(:,:,w)
-               if(associated(totscatau) .and. associated(duscatau)) totscatau(:,:,w) = totscatau(:,:,w)+duscatau(:,:,w)
-               if(associated(totstscatau) .and. associated(dustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+dustscatau(:,:,w)
-               if(associated(totextt25) .and. associated(duextt25)) totextt25(:,:,w) = totextt25(:,:,w)+duextt25(:,:,w)
-               if(associated(totscat25) .and. associated(duscat25)) totscat25(:,:,w) = totscat25(:,:,w)+duscat25(:,:,w)
-               if(associated(totexttfm) .and. associated(duexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+duexttfm(:,:,w)
-               if(associated(totscatfm) .and. associated(duscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+duscatfm(:,:,w)
-            end do
+      !       ! Iterate over the wavelengths
+      !       do w = 1, size(self%wavelengths_vertint)
+      !          if(associated(totexttau) .and. associated(duexttau)) totexttau(:,:,w) = totexttau(:,:,w)+duexttau(:,:,w)
+      !          if(associated(totstexttau) .and. associated(dustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+dustexttau(:,:,w)
+      !          if(associated(totscatau) .and. associated(duscatau)) totscatau(:,:,w) = totscatau(:,:,w)+duscatau(:,:,w)
+      !          if(associated(totstscatau) .and. associated(dustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+dustscatau(:,:,w)
+      !          if(associated(totextt25) .and. associated(duextt25)) totextt25(:,:,w) = totextt25(:,:,w)+duextt25(:,:,w)
+      !          if(associated(totscat25) .and. associated(duscat25)) totscat25(:,:,w) = totscat25(:,:,w)+duscat25(:,:,w)
+      !          if(associated(totexttfm) .and. associated(duexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+duexttfm(:,:,w)
+      !          if(associated(totscatfm) .and. associated(duscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+duscatfm(:,:,w)
+      !       end do
 
-            do w = 1, size(self%wavelengths_profile)
-               if(associated(totextcoef) .and. associated(duextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+duextcoef(:,:,:,w)
-               if(associated(totextcoefrh20) .and. associated(duextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+duextcoefrh20(:,:,:,w)
-               if(associated(totextcoefrh80) .and. associated(duextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+duextcoefrh80(:,:,:,w)
-               if(associated(totscacoef) .and. associated(duscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+duscacoef(:,:,:,w)
-               if(associated(totscacoefrh20) .and. associated(duscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+duscacoefrh20(:,:,:,w)
-               if(associated(totscacoefrh80) .and. associated(duscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+duscacoefrh80(:,:,:,w)
-               if(associated(totbckcoef) .and. associated(dubckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+dubckcoef(:,:,:,w)
-            end do
+      !       do w = 1, size(self%wavelengths_profile)
+      !          if(associated(totextcoef) .and. associated(duextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+duextcoef(:,:,:,w)
+      !          if(associated(totextcoefrh20) .and. associated(duextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+duextcoefrh20(:,:,:,w)
+      !          if(associated(totextcoefrh80) .and. associated(duextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+duextcoefrh80(:,:,:,w)
+      !          if(associated(totscacoef) .and. associated(duscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+duscacoef(:,:,:,w)
+      !          if(associated(totscacoefrh20) .and. associated(duscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+duscacoefrh20(:,:,:,w)
+      !          if(associated(totscacoefrh80) .and. associated(duscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+duscacoefrh80(:,:,:,w)
+      !          if(associated(totbckcoef) .and. associated(dubckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+dubckcoef(:,:,:,w)
+      !       end do
 
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   _RC)
-            call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25, 'DUSMASS25', _RC)
-            if(associated(pm)        .and. associated(dusmass))   pm        = pm        + dusmass
-            if(associated(pm25)      .and. associated(dusmass25)) pm25      = pm25      + dusmass25
-            if(associated(pm_rh35)   .and. associated(dusmass))   pm_rh35   = pm_rh35   + dusmass
-            if(associated(pm25_rh35) .and. associated(dusmass25)) pm25_rh35 = pm25_rh35 + dusmass25
-            if(associated(pm_rh50)   .and. associated(dusmass))   pm_rh50   = pm_rh50   + dusmass
-            if(associated(pm25_rh50) .and. associated(dusmass25)) pm25_rh50 = pm25_rh50 + dusmass25
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   _RC)
+      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25, 'DUSMASS25', _RC)
+      !       if(associated(pm)        .and. associated(dusmass))   pm        = pm        + dusmass
+      !       if(associated(pm25)      .and. associated(dusmass25)) pm25      = pm25      + dusmass25
+      !       if(associated(pm_rh35)   .and. associated(dusmass))   pm_rh35   = pm_rh35   + dusmass
+      !       if(associated(pm25_rh35) .and. associated(dusmass25)) pm25_rh35 = pm25_rh35 + dusmass25
+      !       if(associated(pm_rh50)   .and. associated(dusmass))   pm_rh50   = pm_rh50   + dusmass
+      !       if(associated(pm25_rh50) .and. associated(dusmass25)) pm25_rh50 = pm25_rh50 + dusmass25
 
-            if(associated(totangstr) .and. associated(duexttau) .and. associated(duangstr)) then
-               tau1 = tau1 + duexttau(:,:,ind550)*exp(c1*duangstr)
-               tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
-            end if
-         end if
-      end do
+      !       if(associated(totangstr) .and. associated(duexttau) .and. associated(duangstr)) then
+      !          tau1 = tau1 + duexttau(:,:,ind550)*exp(c1*duangstr)
+      !          tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
+      !       end if
+      !    end if
+      ! end do
 
       ! Sea Salt
       do n = 1, size(self%SS%instances)
          if ((self%SS%instances(n)%is_active) .and. (index(self%SS%instances(n)%name, 'data') == 0 )) then
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttau, 'SSEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstexttau, 'SSSTEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatau, 'SSSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssstscatau, 'SSSTSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoef, 'SSEXTCOEF', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh20, 'SSEXTCOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextcoefrh80, 'SSEXTCOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoef, 'SSSCACOEF', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh20, 'SSSCACOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscacoefrh80, 'SSSCACOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssbckcoef, 'SSBCKCOEF', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssextt25, 'SSEXTT25', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscat25, 'SSSCAT25', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssexttfm, 'SSEXTTFM', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssscatfm, 'SSSCATFM', _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), ssangstr, 'SSANGSTR', _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSEXTTAU", farrayPtr=ssexttau, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSSTEXTTAU", farrayPtr=ssstexttau, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSSCATAU", farrayPtr=ssscatau, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSSTSCATAU", farrayPtr=ssstscatau, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSEXTCOEF",farrayPtr=ssextcoef,  _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSEXTCOEFRH20", farrayPtr=ssextcoefrh20, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSEXTCOEFRH80", farrayPtr=ssextcoefrh80, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSSCACOEF", farrayPtr=ssscacoef, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSSCACOEFRH20", farrayPtr=ssscacoefrh20, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSSCACOEFRH80", farrayPtr=ssscacoefrh80, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSBCKCOEF", farrayPtr=ssbckcoef, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSEXTT25", farrayPtr=ssextt25, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSSCAT25", farrayPtr=ssscat25, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSEXTTFM", farrayPtr=ssexttfm, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSSCATFM", farrayPtr=ssscatfm, _RC)
+            ! call MAPL_StateGetPointer(import, itemName="SSANGSTR", farrayPtr=ssangstr, _RC)
+            ! print *, "SSEXTTAU: ", minval(ssexttau), maxval(ssexttau), sum(ssexttau)
 
-      !   Iterate over the wavelengths
-            do w = 1, size(self%wavelengths_vertint)
-               if(associated(totexttau) .and. associated(ssexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ssexttau(:,:,w)
-               if(associated(totstexttau) .and. associated(ssstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+ssstexttau(:,:,w)
-               if(associated(totscatau) .and. associated(ssscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ssscatau(:,:,w)
-               if(associated(totstscatau) .and. associated(ssstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+ssstscatau(:,:,w)
-               if(associated(totextt25) .and. associated(ssextt25)) totextt25(:,:,w) = totextt25(:,:,w)+ssextt25(:,:,w)
-               if(associated(totscat25) .and. associated(ssscat25)) totscat25(:,:,w) = totscat25(:,:,w)+ssscat25(:,:,w)
-               if(associated(totexttfm) .and. associated(ssexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+ssexttfm(:,:,w)
-               if(associated(totscatfm) .and. associated(ssscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+ssscatfm(:,:,w)
-            end do
+            if(associated(totexttau)) totexttau(:,:,:) = totexttau(:,:,:) + ssexttau(:,:,:)
+            if(associated(totexttau)) totexttau(:,:,:) = totexttau(:,:,:) + ssexttau(:,:,:)
+            if(associated(totstexttau)) totstexttau(:,:,:) = totstexttau(:,:,:) + ssstexttau(:,:,:)
+            if(associated(totscatau)) totscatau(:,:,:) = totscatau(:,:,:) + ssscatau(:,:,:)
+            if(associated(totstscatau)) totstscatau(:,:,:) = totstscatau(:,:,:) + ssstscatau(:,:,:)
+            if(associated(totextt25)) totextt25(:,:,:) = totextt25(:,:,:) + ssextt25(:,:,:)
+            if(associated(totscat25)) totscat25(:,:,:) = totscat25(:,:,:) + ssscat25(:,:,:)
+            if(associated(totexttfm)) totexttfm(:,:,:) = totexttfm(:,:,:) + ssexttfm(:,:,:)
+            if(associated(totscatfm)) totscatfm(:,:,:) = totscatfm(:,:,:) + ssscatfm(:,:,:)
+            if(associated(totextcoef)) totextcoef(:,:,:,:) = totextcoef(:,:,:,:) + ssextcoef(:,:,:,:)
+            if(associated(totextcoefrh20)) totextcoefrh20(:,:,:,:) = totextcoefrh20(:,:,:,:) + ssextcoefrh20(:,:,:,:)
+            if(associated(totextcoefrh80)) totextcoefrh80(:,:,:,:) = totextcoefrh80(:,:,:,:) + ssextcoefrh80(:,:,:,:)
+            if(associated(totscacoef)) totscacoef(:,:,:,:) = totscacoef(:,:,:,:) + ssscacoef(:,:,:,:)
+            if(associated(totscacoefrh20)) totscacoefrh20(:,:,:,:) = totscacoefrh20(:,:,:,:) + ssscacoefrh20(:,:,:,:)
+            if(associated(totscacoefrh80)) totscacoefrh80(:,:,:,:) = totscacoefrh80(:,:,:,:) + ssscacoefrh80(:,:,:,:)
+            if(associated(totbckcoef)) totbckcoef(:,:,:,:) = totbckcoef(:,:,:,:) + ssbckcoef(:,:,:,:)
 
-            do w = 1, size(self%wavelengths_profile)
-               if(associated(totextcoef) .and. associated(ssextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+ssextcoef(:,:,:,w)
-               if(associated(totextcoefrh20) .and. associated(ssextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+ssextcoefrh20(:,:,:,w)
-               if(associated(totextcoefrh80) .and. associated(ssextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+ssextcoefrh80(:,:,:,w)
-               if(associated(totscacoef) .and. associated(ssscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ssscacoef(:,:,:,w)
-               if(associated(totscacoefrh20) .and. associated(ssscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ssscacoefrh20(:,:,:,w)
-               if(associated(totscacoefrh80) .and. associated(ssscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+ssscacoefrh80(:,:,:,w)
-               if(associated(totbckcoef) .and. associated(ssbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ssbckcoef(:,:,:,w)
-            enddo
-
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass,   'SSSMASS',   _RC)
-            call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass25, 'SSSMASS25', _RC)
+            ! call MAPL_StateGetPointer(import, farrayPtr=sssmass, itemName="SSSMASS",   _RC)
+            ! call MAPL_StateGetPointer(import, farrayPtr=sssmass25, itemName="SSSMASS25", _RC)
             if(associated(pm)        .and. associated(sssmass))   pm        = pm        + sssmass
             if(associated(pm25)      .and. associated(sssmass25)) pm25      = pm25      + sssmass25
             if(associated(pm_rh35)   .and. associated(sssmass))   pm_rh35   = pm_rh35   + 1.86*sssmass
@@ -755,378 +750,371 @@ contains
             if(associated(pm25_rh50) .and. associated(sssmass25)) pm25_rh50 = pm25_rh50 + 2.42*sssmass25
 
             if(associated(totangstr) .and. associated(ssexttau) .and. associated(ssangstr)) then
-               tau1 = tau1 + ssexttau(:,:,ind550)*exp(c1*ssangstr)
-               tau2 = tau2 + ssexttau(:,:,ind550)*exp(c2*ssangstr)
+               tau1 = tau1 + ssexttau(:,:,ind550) * exp(c1*ssangstr)
+               tau2 = tau2 + ssexttau(:,:,ind550) * exp(c2*ssangstr)
             end if
          end if
       end do
 
-!   Nitrates - NOTE! Nitrates currently only support one active instance
-      do n = 1, size(self%NI%instances)
-         if ((self%NI%instances(n)%is_active) .and. (index(self%NI%instances(n)%name, 'data') == 0 )) then
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoef, 'NIEXTCOEF', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nibckcoef, 'NIBCKCOEF', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatfm, 'NISCATFM', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), niangstr, 'NIANGSTR', _RC)
+      ! ! Nitrates - NOTE! Nitrates currently only support one active instance
+      ! do n = 1, size(self%NI%instances)
+      !    if ((self%NI%instances(n)%is_active) .and. (index(self%NI%instances(n)%name, 'data') == 0 )) then
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoef, 'NIEXTCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nibckcoef, 'NIBCKCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatfm, 'NISCATFM', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niangstr, 'NIANGSTR', _RC)
 
-      !   Iterate over the wavelengths
-            do w = 1, size(self%wavelengths_vertint)
-               if(associated(totexttau) .and. associated(niexttau)) totexttau(:,:,w) = totexttau(:,:,w)+niexttau(:,:,w)
-               if(associated(totstexttau) .and. associated(nistexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+nistexttau(:,:,w)
-               if(associated(totscatau) .and. associated(niscatau)) totscatau(:,:,w) = totscatau(:,:,w)+niscatau(:,:,w)
-               if(associated(totstscatau) .and. associated(nistscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+nistscatau(:,:,w)
-               if(associated(totextt25) .and. associated(niextt25)) totextt25(:,:,w) = totextt25(:,:,w)+niextt25(:,:,w)
-               if(associated(totscat25) .and. associated(niscat25)) totscat25(:,:,w) = totscat25(:,:,w)+niscat25(:,:,w)
-               if(associated(totexttfm) .and. associated(niexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+niexttfm(:,:,w)
-               if(associated(totscatfm) .and. associated(niscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+niscatfm(:,:,w)
-            end do
+      !       ! Iterate over the wavelengths
+      !       do w = 1, size(self%wavelengths_vertint)
+      !          if(associated(totexttau) .and. associated(niexttau)) totexttau(:,:,w) = totexttau(:,:,w)+niexttau(:,:,w)
+      !          if(associated(totstexttau) .and. associated(nistexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+nistexttau(:,:,w)
+      !          if(associated(totscatau) .and. associated(niscatau)) totscatau(:,:,w) = totscatau(:,:,w)+niscatau(:,:,w)
+      !          if(associated(totstscatau) .and. associated(nistscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+nistscatau(:,:,w)
+      !          if(associated(totextt25) .and. associated(niextt25)) totextt25(:,:,w) = totextt25(:,:,w)+niextt25(:,:,w)
+      !          if(associated(totscat25) .and. associated(niscat25)) totscat25(:,:,w) = totscat25(:,:,w)+niscat25(:,:,w)
+      !          if(associated(totexttfm) .and. associated(niexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+niexttfm(:,:,w)
+      !          if(associated(totscatfm) .and. associated(niscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+niscatfm(:,:,w)
+      !       end do
 
-            do w = 1, size(self%wavelengths_profile)
-               if(associated(totextcoef) .and. associated(niextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+niextcoef(:,:,:,w)
-               if(associated(totextcoefrh20) .and. associated(niextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+niextcoefrh20(:,:,:,w)
-               if(associated(totextcoefrh80) .and. associated(niextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+niextcoefrh80(:,:,:,w)
-               if(associated(totscacoef) .and. associated(niscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+niscacoef(:,:,:,w)
-               if(associated(totscacoefrh20) .and. associated(niscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+niscacoefrh20(:,:,:,w)
-               if(associated(totscacoefrh80) .and. associated(niscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+niscacoefrh80(:,:,:,w)
-               if(associated(totbckcoef) .and. associated(nibckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+nibckcoef(:,:,:,w)
-            end do
+      !       do w = 1, size(self%wavelengths_profile)
+      !          if(associated(totextcoef) .and. associated(niextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+niextcoef(:,:,:,w)
+      !          if(associated(totextcoefrh20) .and. associated(niextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+niextcoefrh20(:,:,:,w)
+      !          if(associated(totextcoefrh80) .and. associated(niextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+niextcoefrh80(:,:,:,w)
+      !          if(associated(totscacoef) .and. associated(niscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+niscacoef(:,:,:,w)
+      !          if(associated(totscacoefrh20) .and. associated(niscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+niscacoefrh20(:,:,:,w)
+      !          if(associated(totscacoefrh80) .and. associated(niscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+niscacoefrh80(:,:,:,w)
+      !          if(associated(totbckcoef) .and. associated(nibckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+nibckcoef(:,:,:,w)
+      !       end do
 
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', _RC)
-            call MAPL_GetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   _RC)
-            if(associated(pm)        .and. associated(nismass)   .and. associated(nh4smass)) pm        = pm   + nismass   + nh4smass
-            if(associated(pm25)      .and. associated(nismass25) .and. associated(nh4smass)) pm25      = pm25 + nismass25 + nh4smass
-            if(associated(pm_rh35)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh35   = pm_rh35   + 1.33*(nismass   + nh4smass)
-            if(associated(pm25_rh35) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh35 = pm25_rh35 + 1.33*(nismass25 + nh4smass)
-            if(associated(pm_rh50)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh50   = pm_rh50   + 1.51*(nismass   + nh4smass)
-            if(associated(pm25_rh50) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh50 = pm25_rh50 + 1.51*(nismass25 + nh4smass)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', _RC)
+      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   _RC)
+      !       if(associated(pm)        .and. associated(nismass)   .and. associated(nh4smass)) pm        = pm   + nismass   + nh4smass
+      !       if(associated(pm25)      .and. associated(nismass25) .and. associated(nh4smass)) pm25      = pm25 + nismass25 + nh4smass
+      !       if(associated(pm_rh35)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh35   = pm_rh35   + 1.33*(nismass   + nh4smass)
+      !       if(associated(pm25_rh35) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh35 = pm25_rh35 + 1.33*(nismass25 + nh4smass)
+      !       if(associated(pm_rh50)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh50   = pm_rh50   + 1.51*(nismass   + nh4smass)
+      !       if(associated(pm25_rh50) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh50 = pm25_rh50 + 1.51*(nismass25 + nh4smass)
 
-            if(associated(totangstr) .and. associated(niexttau) .and. associated(niangstr)) then
-               tau1 = tau1 + niexttau(:,:,ind550)*exp(c1*niangstr)
-               tau2 = tau2 + niexttau(:,:,ind550)*exp(c2*niangstr)
-            end if
-         end if
-      end do
+      !       if(associated(totangstr) .and. associated(niexttau) .and. associated(niangstr)) then
+      !          tau1 = tau1 + niexttau(:,:,ind550)*exp(c1*niangstr)
+      !          tau2 = tau2 + niexttau(:,:,ind550)*exp(c2*niangstr)
+      !       end if
+      !    end if
+      ! end do
 
-!   Sulfates
-      nifactor = 132.14/96.06
-      if (size(self%NI%instances) > 0) then
-         if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) nifactor = 1.0
-      end if
+      ! ! Sulfates
+      ! nifactor = 132.14/96.06
+      ! if (size(self%NI%instances) > 0) then
+      !    if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) nifactor = 1.0
+      ! end if
 
-      do n = 1, size(self%SU%instances)
-         if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoef, 'SUEXTCOEF', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), subckcoef, 'SUBCKCOEF', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', _RC)
+      ! do n = 1, size(self%SU%instances)
+      !    if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoef, 'SUEXTCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), subckcoef, 'SUBCKCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', _RC)
 
-          !   Iterate over the wavelengths
-            do w = 1, size(self%wavelengths_vertint)
-               if(associated(totexttau) .and. associated(suexttau)) totexttau(:,:,w) = totexttau(:,:,w)+suexttau(:,:,w)
-               if(associated(totstexttau) .and. associated(sustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+sustexttau(:,:,w)
-               if(associated(totscatau) .and. associated(suscatau)) totscatau(:,:,w) = totscatau(:,:,w)+suscatau(:,:,w)
-               if(associated(totstscatau) .and. associated(sustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+sustscatau(:,:,w)
-               if(associated(totextt25) .and. associated(suexttau)) totextt25(:,:,w) = totextt25(:,:,w)+suexttau(:,:,w)
-               if(associated(totscat25) .and. associated(suscatau)) totscat25(:,:,w) = totscat25(:,:,w)+suscatau(:,:,w)
-               if(associated(totexttfm) .and. associated(suexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+suexttau(:,:,w)
-               if(associated(totscatfm) .and. associated(suscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+suscatau(:,:,w)
-            end do
+      !     !   Iterate over the wavelengths
+      !       do w = 1, size(self%wavelengths_vertint)
+      !          if(associated(totexttau) .and. associated(suexttau)) totexttau(:,:,w) = totexttau(:,:,w)+suexttau(:,:,w)
+      !          if(associated(totstexttau) .and. associated(sustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+sustexttau(:,:,w)
+      !          if(associated(totscatau) .and. associated(suscatau)) totscatau(:,:,w) = totscatau(:,:,w)+suscatau(:,:,w)
+      !          if(associated(totstscatau) .and. associated(sustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+sustscatau(:,:,w)
+      !          if(associated(totextt25) .and. associated(suexttau)) totextt25(:,:,w) = totextt25(:,:,w)+suexttau(:,:,w)
+      !          if(associated(totscat25) .and. associated(suscatau)) totscat25(:,:,w) = totscat25(:,:,w)+suscatau(:,:,w)
+      !          if(associated(totexttfm) .and. associated(suexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+suexttau(:,:,w)
+      !          if(associated(totscatfm) .and. associated(suscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+suscatau(:,:,w)
+      !       end do
 
-            do w = 1, size(self%wavelengths_profile)
-               if(associated(totextcoef) .and. associated(suextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+suextcoef(:,:,:,w)
-               if(associated(totextcoefrh20) .and. associated(suextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+suextcoefrh20(:,:,:,w)
-               if(associated(totextcoefrh80) .and. associated(suextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+suextcoefrh80(:,:,:,w)
-               if(associated(totscacoef) .and. associated(suscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+suscacoef(:,:,:,w)
-               if(associated(totscacoefrh20) .and. associated(suscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+suscacoefrh20(:,:,:,w)
-               if(associated(totscacoefrh80) .and. associated(suscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+suscacoefrh80(:,:,:,w)
-               if(associated(totbckcoef) .and. associated(subckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+subckcoef(:,:,:,w)
-            end do
+      !       do w = 1, size(self%wavelengths_profile)
+      !          if(associated(totextcoef) .and. associated(suextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+suextcoef(:,:,:,w)
+      !          if(associated(totextcoefrh20) .and. associated(suextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+suextcoefrh20(:,:,:,w)
+      !          if(associated(totextcoefrh80) .and. associated(suextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+suextcoefrh80(:,:,:,w)
+      !          if(associated(totscacoef) .and. associated(suscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+suscacoef(:,:,:,w)
+      !          if(associated(totscacoefrh20) .and. associated(suscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+suscacoefrh20(:,:,:,w)
+      !          if(associated(totscacoefrh80) .and. associated(suscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+suscacoefrh80(:,:,:,w)
+      !          if(associated(totbckcoef) .and. associated(subckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+subckcoef(:,:,:,w)
+      !       end do
 
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', _RC)
-            if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', _RC)
+      !       if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
-            call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', _RC)
-            if(associated(so4smass)) then
-               if(associated(pm)       ) pm        = pm        + nifactor*so4smass
-               if(associated(pm25)     ) pm25      = pm25      + nifactor*so4smass
-               if(associated(pm_rh35)  ) pm_rh35   = pm_rh35   + 1.33*nifactor*so4smass
-               if(associated(pm25_rh35)) pm25_rh35 = pm25_rh35 + 1.33*nifactor*so4smass
-               if(associated(pm_rh50)  ) pm_rh50   = pm_rh50   + 1.51*nifactor*so4smass
-               if(associated(pm25_rh50)) pm25_rh50 = pm25_rh50 + 1.51*nifactor*so4smass
-            end if
+      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', _RC)
+      !       if(associated(so4smass)) then
+      !          if(associated(pm)       ) pm        = pm        + nifactor*so4smass
+      !          if(associated(pm25)     ) pm25      = pm25      + nifactor*so4smass
+      !          if(associated(pm_rh35)  ) pm_rh35   = pm_rh35   + 1.33*nifactor*so4smass
+      !          if(associated(pm25_rh35)) pm25_rh35 = pm25_rh35 + 1.33*nifactor*so4smass
+      !          if(associated(pm_rh50)  ) pm_rh50   = pm_rh50   + 1.51*nifactor*so4smass
+      !          if(associated(pm25_rh50)) pm25_rh50 = pm25_rh50 + 1.51*nifactor*so4smass
+      !       end if
 
-            if(associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
-               tau1 = tau1 + suexttau(:,:,ind550)*exp(c1*suangstr)
-               tau2 = tau2 + suexttau(:,:,ind550)*exp(c2*suangstr)
-            end if
-         end if
-      end do
+      !       if(associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
+      !          tau1 = tau1 + suexttau(:,:,ind550)*exp(c1*suangstr)
+      !          tau2 = tau2 + suexttau(:,:,ind550)*exp(c2*suangstr)
+      !       end if
+      !    end if
+      ! end do
 
 
-!   Carbonaceous aerosols
-      do n = 1, size(self%CA%instances)
-         if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
-              .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
+      ! ! Carbonaceous aerosols
+      ! do n = 1, size(self%CA%instances)
+      !    if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
+      !         .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
 
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', _RC)
 
-          !   Iterate over the wavelengths
-            do w = 1, size(self%wavelengths_vertint)
-               if(associated(totexttau) .and. associated(bcexttau)) totexttau(:,:,w) = totexttau(:,:,w)+bcexttau(:,:,w)
-               if(associated(totstexttau) .and. associated(bcstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+bcstexttau(:,:,w)
-               if(associated(totscatau) .and. associated(bcscatau)) totscatau(:,:,w) = totscatau(:,:,w)+bcscatau(:,:,w)
-               if(associated(totstscatau) .and. associated(bcstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+bcstscatau(:,:,w)
-               if(associated(totextt25) .and. associated(bcexttau)) totextt25(:,:,w) = totextt25(:,:,w)+bcexttau(:,:,w)
-               if(associated(totscat25) .and. associated(bcscatau)) totscat25(:,:,w) = totscat25(:,:,w)+bcscatau(:,:,w)
-               if(associated(totexttfm) .and. associated(bcexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+bcexttau(:,:,w)
-               if(associated(totscatfm) .and. associated(bcscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+bcscatau(:,:,w)
-            end do
+      !       ! Iterate over the wavelengths
+      !       do w = 1, size(self%wavelengths_vertint)
+      !          if(associated(totexttau) .and. associated(bcexttau)) totexttau(:,:,w) = totexttau(:,:,w)+bcexttau(:,:,w)
+      !          if(associated(totstexttau) .and. associated(bcstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+bcstexttau(:,:,w)
+      !          if(associated(totscatau) .and. associated(bcscatau)) totscatau(:,:,w) = totscatau(:,:,w)+bcscatau(:,:,w)
+      !          if(associated(totstscatau) .and. associated(bcstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+bcstscatau(:,:,w)
+      !          if(associated(totextt25) .and. associated(bcexttau)) totextt25(:,:,w) = totextt25(:,:,w)+bcexttau(:,:,w)
+      !          if(associated(totscat25) .and. associated(bcscatau)) totscat25(:,:,w) = totscat25(:,:,w)+bcscatau(:,:,w)
+      !          if(associated(totexttfm) .and. associated(bcexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+bcexttau(:,:,w)
+      !          if(associated(totscatfm) .and. associated(bcscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+bcscatau(:,:,w)
+      !       end do
 
-            do w = 1, size(self%wavelengths_profile)
-               if(associated(totextcoef) .and. associated(bcextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+bcextcoef(:,:,:,w)
-               if(associated(totextcoefrh20) .and. associated(bcextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+bcextcoefrh20(:,:,:,w)
-               if(associated(totextcoefrh80) .and. associated(bcextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+bcextcoefrh80(:,:,:,w)
-               if(associated(totscacoef) .and. associated(bcscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+bcscacoef(:,:,:,w)
-               if(associated(totscacoefrh20) .and. associated(bcscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+bcscacoefrh20(:,:,:,w)
-               if(associated(totscacoefrh80) .and. associated(bcscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+bcscacoefrh80(:,:,:,w)
-               if(associated(totbckcoef) .and. associated(bcbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+bcbckcoef(:,:,:,w)
-            end do
+      !       do w = 1, size(self%wavelengths_profile)
+      !          if(associated(totextcoef) .and. associated(bcextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+bcextcoef(:,:,:,w)
+      !          if(associated(totextcoefrh20) .and. associated(bcextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+bcextcoefrh20(:,:,:,w)
+      !          if(associated(totextcoefrh80) .and. associated(bcextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+bcextcoefrh80(:,:,:,w)
+      !          if(associated(totscacoef) .and. associated(bcscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+bcscacoef(:,:,:,w)
+      !          if(associated(totscacoefrh20) .and. associated(bcscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+bcscacoefrh20(:,:,:,w)
+      !          if(associated(totscacoefrh80) .and. associated(bcscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+bcscacoefrh80(:,:,:,w)
+      !          if(associated(totbckcoef) .and. associated(bcbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+bcbckcoef(:,:,:,w)
+      !       end do
 
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', _RC)
-            if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
-            if(associated(pm25)      .and. associated(bcsmass)) pm25      = pm25      + bcsmass
-            if(associated(pm_rh35)   .and. associated(bcsmass)) pm_rh35   = pm_rh35   + bcsmass
-            if(associated(pm25_rh35) .and. associated(bcsmass)) pm25_rh35 = pm25_rh35 + bcsmass
-            if(associated(pm_rh50)   .and. associated(bcsmass)) pm_rh50   = pm_rh50   + bcsmass
-            if(associated(pm25_rh50) .and. associated(bcsmass)) pm25_rh50 = pm25_rh50 + bcsmass
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', _RC)
+      !       if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
+      !       if(associated(pm25)      .and. associated(bcsmass)) pm25      = pm25      + bcsmass
+      !       if(associated(pm_rh35)   .and. associated(bcsmass)) pm_rh35   = pm_rh35   + bcsmass
+      !       if(associated(pm25_rh35) .and. associated(bcsmass)) pm25_rh35 = pm25_rh35 + bcsmass
+      !       if(associated(pm_rh50)   .and. associated(bcsmass)) pm_rh50   = pm_rh50   + bcsmass
+      !       if(associated(pm25_rh50) .and. associated(bcsmass)) pm25_rh50 = pm25_rh50 + bcsmass
 
-            if(associated(totangstr) .and. associated(bcexttau) .and. associated(bcangstr)) then
-               tau1 = tau1 + bcexttau(:,:,ind550)*exp(c1*bcangstr)
-               tau2 = tau2 + bcexttau(:,:,ind550)*exp(c2*bcangstr)
-            end if
+      !       if(associated(totangstr) .and. associated(bcexttau) .and. associated(bcangstr)) then
+      !          tau1 = tau1 + bcexttau(:,:,ind550)*exp(c1*bcangstr)
+      !          tau2 = tau2 + bcexttau(:,:,ind550)*exp(c2*bcangstr)
+      !       end if
 
-         else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
-              .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', _RC)
+      !    else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
+      !         .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', _RC)
 
-          !   Iterate over the wavelengths
-            do w = 1, size(self%wavelengths_vertint)
-               if(associated(totexttau) .and. associated(ocexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ocexttau(:,:,w)
-               if(associated(totstexttau) .and. associated(ocstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+ocstexttau(:,:,w)
-               if(associated(totscatau) .and. associated(ocscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ocscatau(:,:,w)
-               if(associated(totstscatau) .and. associated(ocstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+ocstscatau(:,:,w)
-               if(associated(totextt25) .and. associated(ocexttau)) totextt25(:,:,w) = totextt25(:,:,w)+ocexttau(:,:,w)
-               if(associated(totscat25) .and. associated(ocscatau)) totscat25(:,:,w) = totscat25(:,:,w)+ocscatau(:,:,w)
-               if(associated(totexttfm) .and. associated(ocexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+ocexttau(:,:,w)
-               if(associated(totscatfm) .and. associated(ocscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+ocscatau(:,:,w)
-            end do
+      !       ! Iterate over the wavelengths
+      !       do w = 1, size(self%wavelengths_vertint)
+      !          if(associated(totexttau) .and. associated(ocexttau)) totexttau(:,:,w) = totexttau(:,:,w)+ocexttau(:,:,w)
+      !          if(associated(totstexttau) .and. associated(ocstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+ocstexttau(:,:,w)
+      !          if(associated(totscatau) .and. associated(ocscatau)) totscatau(:,:,w) = totscatau(:,:,w)+ocscatau(:,:,w)
+      !          if(associated(totstscatau) .and. associated(ocstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+ocstscatau(:,:,w)
+      !          if(associated(totextt25) .and. associated(ocexttau)) totextt25(:,:,w) = totextt25(:,:,w)+ocexttau(:,:,w)
+      !          if(associated(totscat25) .and. associated(ocscatau)) totscat25(:,:,w) = totscat25(:,:,w)+ocscatau(:,:,w)
+      !          if(associated(totexttfm) .and. associated(ocexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+ocexttau(:,:,w)
+      !          if(associated(totscatfm) .and. associated(ocscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+ocscatau(:,:,w)
+      !       end do
 
-            do w = 1, size(self%wavelengths_profile)
-               if(associated(totextcoef) .and. associated(ocextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+ocextcoef(:,:,:,w)
-               if(associated(totextcoefrh20) .and. associated(ocextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+ocextcoefrh20(:,:,:,w)
-               if(associated(totextcoefrh80) .and. associated(ocextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+ocextcoefrh80(:,:,:,w)
-               if(associated(totscacoef) .and. associated(ocscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ocscacoef(:,:,:,w)
-               if(associated(totscacoefrh20) .and. associated(ocscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ocscacoefrh20(:,:,:,w)
-               if(associated(totscacoefrh80) .and. associated(ocscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+ocscacoefrh80(:,:,:,w)
-               if(associated(totbckcoef) .and. associated(ocbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ocbckcoef(:,:,:,w)
-            end do
+      !       do w = 1, size(self%wavelengths_profile)
+      !          if(associated(totextcoef) .and. associated(ocextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+ocextcoef(:,:,:,w)
+      !          if(associated(totextcoefrh20) .and. associated(ocextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+ocextcoefrh20(:,:,:,w)
+      !          if(associated(totextcoefrh80) .and. associated(ocextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+ocextcoefrh80(:,:,:,w)
+      !          if(associated(totscacoef) .and. associated(ocscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+ocscacoef(:,:,:,w)
+      !          if(associated(totscacoefrh20) .and. associated(ocscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+ocscacoefrh20(:,:,:,w)
+      !          if(associated(totscacoefrh80) .and. associated(ocscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+ocscacoefrh80(:,:,:,w)
+      !          if(associated(totbckcoef) .and. associated(ocbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ocbckcoef(:,:,:,w)
+      !       end do
 
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', _RC)
-            if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
-            if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
-            if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-            if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  !
-            if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*ocsmass  ! needs to be revisited: OCpho + 1.24 OCphi
-            if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', _RC)
+      !       if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
+      !       if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
+      !       if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
+      !       if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  !
+      !       if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*ocsmass  ! needs to be revisited: OCpho + 1.24 OCphi
+      !       if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
 
-            if(associated(totangstr) .and. associated(ocexttau) .and. associated(ocangstr)) then
-               tau1 = tau1 + ocexttau(:,:,ind550)*exp(c1*ocangstr)
-               tau2 = tau2 + ocexttau(:,:,ind550)*exp(c2*ocangstr)
-            end if
+      !       if(associated(totangstr) .and. associated(ocexttau) .and. associated(ocangstr)) then
+      !          tau1 = tau1 + ocexttau(:,:,ind550)*exp(c1*ocangstr)
+      !          tau2 = tau2 + ocexttau(:,:,ind550)*exp(c2*ocangstr)
+      !       end if
 
-         else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
-              .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', _RC)
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', _RC)
+      !    else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
+      !         .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', _RC)
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', _RC)
 
-            !   Iterate over the wavelengths
-            do w = 1, size(self%wavelengths_vertint)
-               if(associated(totexttau) .and. associated(brexttau)) totexttau(:,:,w) = totexttau(:,:,w)+brexttau(:,:,w)
-               if(associated(totstexttau) .and. associated(brstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+brstexttau(:,:,w)
-               if(associated(totscatau) .and. associated(brscatau)) totscatau(:,:,w) = totscatau(:,:,w)+brscatau(:,:,w)
-               if(associated(totstscatau) .and. associated(brstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+brstscatau(:,:,w)
-               if(associated(totextt25) .and. associated(brexttau)) totextt25(:,:,w) = totextt25(:,:,w)+brexttau(:,:,w)
-               if(associated(totscat25) .and. associated(brscatau)) totscat25(:,:,w) = totscat25(:,:,w)+brscatau(:,:,w)
-               if(associated(totexttfm) .and. associated(brexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+brexttau(:,:,w)
-               if(associated(totscatfm) .and. associated(brscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+brscatau(:,:,w)
-            end do
+      !       ! Iterate over the wavelengths
+      !       do w = 1, size(self%wavelengths_vertint)
+      !          if(associated(totexttau) .and. associated(brexttau)) totexttau(:,:,w) = totexttau(:,:,w)+brexttau(:,:,w)
+      !          if(associated(totstexttau) .and. associated(brstexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+brstexttau(:,:,w)
+      !          if(associated(totscatau) .and. associated(brscatau)) totscatau(:,:,w) = totscatau(:,:,w)+brscatau(:,:,w)
+      !          if(associated(totstscatau) .and. associated(brstscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+brstscatau(:,:,w)
+      !          if(associated(totextt25) .and. associated(brexttau)) totextt25(:,:,w) = totextt25(:,:,w)+brexttau(:,:,w)
+      !          if(associated(totscat25) .and. associated(brscatau)) totscat25(:,:,w) = totscat25(:,:,w)+brscatau(:,:,w)
+      !          if(associated(totexttfm) .and. associated(brexttau)) totexttfm(:,:,w) = totexttfm(:,:,w)+brexttau(:,:,w)
+      !          if(associated(totscatfm) .and. associated(brscatau)) totscatfm(:,:,w) = totscatfm(:,:,w)+brscatau(:,:,w)
+      !       end do
 
-            do w = 1, size(self%wavelengths_profile)
-               if(associated(totextcoef) .and. associated(brextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+brextcoef(:,:,:,w)
-               if(associated(totextcoefrh20) .and. associated(brextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+brextcoefrh20(:,:,:,w)
-               if(associated(totextcoefrh80) .and. associated(brextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+brextcoefrh80(:,:,:,w)
-               if(associated(totscacoef) .and. associated(brscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+brscacoef(:,:,:,w)
-               if(associated(totscacoefrh20) .and. associated(brscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+brscacoefrh20(:,:,:,w)
-               if(associated(totscacoefrh80) .and. associated(brscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+brscacoefrh80(:,:,:,w)
-               if(associated(totbckcoef) .and. associated(brbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+brbckcoef(:,:,:,w)
-            end do
+      !       do w = 1, size(self%wavelengths_profile)
+      !          if(associated(totextcoef) .and. associated(brextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+brextcoef(:,:,:,w)
+      !          if(associated(totextcoefrh20) .and. associated(brextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+brextcoefrh20(:,:,:,w)
+      !          if(associated(totextcoefrh80) .and. associated(brextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+brextcoefrh80(:,:,:,w)
+      !          if(associated(totscacoef) .and. associated(brscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+brscacoef(:,:,:,w)
+      !          if(associated(totscacoefrh20) .and. associated(brscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+brscacoefrh20(:,:,:,w)
+      !          if(associated(totscacoefrh80) .and. associated(brscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+brscacoefrh80(:,:,:,w)
+      !          if(associated(totbckcoef) .and. associated(brbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+brbckcoef(:,:,:,w)
+      !       end do
 
-            call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', _RC)
-            if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
-            if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
-            if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
-            if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  !
-            if(associated(pm_rh50)   .and. associated(brsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
-            if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
+      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', _RC)
+      !       if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
+      !       if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
+      !       if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
+      !       if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  !
+      !       if(associated(pm_rh50)   .and. associated(brsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
+      !       if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
 
-            if(associated(totangstr) .and. associated(brexttau) .and. associated(brangstr)) then
-               tau1 = tau1 + brexttau(:,:,ind550)*exp(c1*brangstr)
-               tau2 = tau2 + brexttau(:,:,ind550)*exp(c2*brangstr)
-            end if
-         end if
-      end do
+      !       if(associated(totangstr) .and. associated(brexttau) .and. associated(brangstr)) then
+      !          tau1 = tau1 + brexttau(:,:,ind550)*exp(c1*brangstr)
+      !          tau2 = tau2 + brexttau(:,:,ind550)*exp(c2*brangstr)
+      !       end if
+      !    end if
+      ! end do
 
-!   Finish calculating totangstr
+      ! Finish calculating totangstr
       if(associated(totangstr)) then
          totangstr = log(tau1/tau2)/c3
       end if
 
-!  Calculate the total (molecular + aer) single scattering attenuated backscater coef from the TOA
-      if(associated(totabcktoa).or.associated(totabcksfc)) then
-         if (.not.associated(totextcoef) .or. .not.associated(totbckcoef)) then
-            print*,trim(Iam),' : TOTEXTCOEF and TOTBCKCOEF and their children needs to be requested in HISTORY.rc.',&
-                 ' Cannot produce TOTABCKTOA or TOTABCKSFC variables without these exports.'
-            VERIFY_(100)
-         endif
+      ! pchakrab - THE FOLLOWING CODE IS DIFFICULT TO TEST
+      ! For testing, we activate all exports, but 532nm wavelengths are not provides
+      ! Commenting out, for now
+      ! ! Calculate the total (molecular + aer) single scattering attenuated backscater coef from the TOA
+      ! if(associated(totabcktoa).or.associated(totabcksfc)) then
+      !    _ASSERT(associated(totextcoef), "Cannot produce TOTABCKTOA/TOTABCKSFC without totextcoef")
+      !    _ASSERT(associated(totbckcoef), "Cannot produce TOTABCKTOA/TOTABCKSFC without totbckcoef")
+      !    ind532 = 0
+      !    do w = 1, size(self%wavelengths_profile) ! find index for 532nm to compute TBA
+      !       if ((self%wavelengths_profile(w)*1.e-9 .ge. 5.31e-7) .and. &
+      !            (self%wavelengths_profile(w)*1.e-9 .le. 5.33e-7)) then
+      !          ind532 = w
+      !          exit
+      !       end if
+      !    end do
+      !    _ASSERT(ind532 /= 0, "Cannot produce TOTBCKCOEF variables without 532nm wavelength")
 
-         ind532 = 0
-         do w = 1, size(self%wavelengths_profile) ! find index for 532nm to compute TBA
-            if ((self%wavelengths_profile(w)*1.e-9 .ge. 5.31e-7) .and. &
-                 (self%wavelengths_profile(w)*1.e-9 .le. 5.33e-7)) then
-               ind532 = w
-               exit
-            end if
-         end do
+      !    ! Pressure at layer edges (ple shape (im,jm, km+1) on the edge
+      !    i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+      !    j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+      !    km = ubound(ple, 3) ! km =72 index starts at 0
+      !    ! Pressure for each layer
+      !    allocate(P(i1:i2,j1:j2,km), __STAT__)
+      !    do k = 1, km
+      !       P(:,:,k) = 0.5 * (ple(:,:,k-1) + ple(:,:,k))   ! in Pa
+      !    enddo
 
-         if (ind532 == 0) then
-            print*,trim(Iam),' : 532nm wavelengths is not present in GOCART2G_GridComp.rc.',&
-                 ' Cannot produce TOTBCKCOEF variable without 532nm wavelength.'
-            VERIFY_(100)
-         end if
+      !    !molecular backscattering cross section for each layer at 532nm: Cair  * P(Pa) / T(K)
+      !    !Cair = 4.51944e-9 at 532nm # unit K Pa-1 m-1 sr-1 http://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19960051003.pdf
+      !    allocate(backscat_mol(i1:i2,j1:j2,km), __STAT__)
+      !    backscat_mol = (5.45e-32/1.380648e-23) * (532./550.)**(-4.0)  * P / T
+      !    ! tau mol for each layer
+      !    allocate(tau_mol_layer(i1:i2,j1:j2,km), delz(i1:i2,j1:j2,km),__STAT__)
+      !    delz  = delp / (MAPL_GRAV * airdens)
+      !    tau_mol_layer = backscat_mol * 8.* pi /3. * delz
 
-        ! Pressure at layer edges (ple shape (im,jm, km+1) on the edge
+      !    ! tau aer for each layer
+      !    allocate(tau_aer_layer(i1:i2,j1:j2,km), __STAT__)
+      !    tau_aer_layer = totextcoef(:,:,:,ind532) * delz
 
-         i1 = lbound(ple, 1); i2 = ubound(ple, 1)
-         j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-         km = ubound(ple, 3) ! km =72 index starts at 0
-       ! Pressure for each layer
-         allocate(P(i1:i2,j1:j2,km), __STAT__)
-         do k = 1, km
-            P(:,:,k) = 0.5 * (ple(:,:,k-1) + ple(:,:,k))   ! in Pa
-         enddo
+      !    allocate(tau_aer(i1:i2,j1:j2), __STAT__)
+      !    allocate(tau_mol(i1:i2,j1:j2), __STAT__)
 
-      !molecular backscattering cross section for each layer at 532nm: Cair  * P(Pa) / T(K)
-      !Cair = 4.51944e-9 at 532nm # unit K Pa-1 m-1 sr-1 http://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/19960051003.pdf
-         allocate(backscat_mol(i1:i2,j1:j2,km), __STAT__)
-         backscat_mol = (5.45e-32/1.380648e-23) * (532./550.)**(-4.0)  * P / T
-         ! tau mol for each layer
-         allocate(tau_mol_layer(i1:i2,j1:j2,km), delz(i1:i2,j1:j2,km),__STAT__)
-         delz  = delp / (MAPL_GRAV * airdens)
-         tau_mol_layer = backscat_mol * 8.* pi /3. * delz
+      !    ! TOTAL ABCK TOA
+      !    ! top layer
+      !    totabcktoa(:,:,1) = (totbckcoef(:,:,1,ind532) + backscat_mol(:,:,1)) * exp(-tau_aer_layer(:,:,1)) * exp(-tau_mol_layer(:,:,1))
+      !    ! layer 2 to the layer at the surface(km)
+      !    do k = 2, km
+      !       tau_aer = 0.
+      !       tau_mol = 0. ! for each layer
+      !       do kk = 1, k
+      !          tau_aer = tau_aer + tau_aer_layer(:,:,kk)
+      !          tau_mol = tau_mol + tau_mol_layer(:,:,kk)
+      !       enddo
+      !       tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
+      !       tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
+      !       totabcktoa(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
+      !    enddo
 
-       ! tau aer for each layer
-         allocate(tau_aer_layer(i1:i2,j1:j2,km), __STAT__)
-         tau_aer_layer = totextcoef(:,:,:,ind532) * delz
+      !    ! TOTAL ABCK SFC
+      !    ! bottom layer
+      !    totabcksfc(:,:,km) = (totbckcoef(:,:,km,ind532) + backscat_mol(:,:,km)) * exp(-tau_aer_layer(:,:,km)) * exp(-tau_mol_layer(:,:,km))
+      !    ! layer 2nd from the surface to the top of the atmoshere (km)
+      !    do k = km-1, 1, -1
+      !       tau_aer = 0.
+      !       tau_mol = 0. ! for each layer
+      !       do kk = km, k+1, -1
+      !          tau_aer = tau_aer + tau_aer_layer(:,:,kk)
+      !          tau_mol = tau_mol + tau_mol_layer(:,:,kk)
+      !       enddo
+      !       tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
+      !       tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
+      !       totabcksfc(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
+      !    enddo
 
-         allocate(tau_aer(i1:i2,j1:j2), __STAT__)
-         allocate(tau_mol(i1:i2,j1:j2), __STAT__)
-
-       ! TOTAL ABCK TOA
-       ! top layer
-         totabcktoa(:,:,1) = (totbckcoef(:,:,1,ind532) + backscat_mol(:,:,1)) * exp(-tau_aer_layer(:,:,1)) * exp(-tau_mol_layer(:,:,1))
-       ! layer 2 to the layer at the surface(km)
-         do k = 2, km
-            tau_aer = 0.
-            tau_mol = 0. ! for each layer
-            do kk = 1, k
-               tau_aer = tau_aer + tau_aer_layer(:,:,kk)
-               tau_mol = tau_mol + tau_mol_layer(:,:,kk)
-            enddo
-            tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
-            tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
-            totabcktoa(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
-         enddo
-
-       ! TOTAL ABCK SFC
-       ! bottom layer
-         totabcksfc(:,:,km) = (totbckcoef(:,:,km,ind532) + backscat_mol(:,:,km)) * exp(-tau_aer_layer(:,:,km)) * exp(-tau_mol_layer(:,:,km))
-       ! layer 2nd from the surface to the top of the atmoshere (km)
-         do k = km-1, 1, -1
-            tau_aer = 0.
-            tau_mol = 0. ! for each layer
-            do kk = km, k+1, -1
-               tau_aer = tau_aer + tau_aer_layer(:,:,kk)
-               tau_mol = tau_mol + tau_mol_layer(:,:,kk)
-            enddo
-            tau_aer = tau_aer + 0.5 *  tau_aer_layer(:,:,k)
-            tau_mol = tau_mol + 0.5 *  tau_mol_layer(:,:,k)
-            totabcksfc(:,:,k) = (totbckcoef(:,:,k,ind532) + backscat_mol(:,:,k)) * exp(-tau_aer) * exp(-tau_mol)
-         enddo
-
-      endif ! end of total attenuated backscatter coef calculation
+      ! endif ! end of total attenuated backscatter coef calculation
 
       call logger%info("Run2: ...complete")
       _RETURN(_SUCCESS)
