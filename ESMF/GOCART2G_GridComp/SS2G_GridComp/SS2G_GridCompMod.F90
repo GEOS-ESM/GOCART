@@ -109,6 +109,7 @@ contains
 
       call ESMF_GridCompGet(gc, name=comp_name, _RC)
       call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("SetServices:: starting...")
 
       ! Wrap internal state for storing in gc
       allocate (self, __STAT__)
@@ -283,6 +284,7 @@ contains
       ! Store internal state in gc
       call ESMF_UserCompSetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
 
+      call logger%info("SetServices:: ...complete")
       _RETURN(_SUCCESS)
 
    end subroutine SetServices
@@ -337,9 +339,12 @@ contains
       character(:), allocatable            :: file_
       logical                              :: file_exists
       integer :: i1, i2, j1, j2, status
+      class(logger_t), pointer :: logger
 
       ! Get the target components name and set-up traceback handle.
       call ESMF_GridCompGet(gc, NAME=comp_name, _RC)
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("Initialize:: starting...")
 
       ! Get my internal private state
       call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
@@ -468,6 +473,7 @@ contains
       call MAPL_StateGetPointer(internal, itemName="DEEP_LAKES_MASK", farrayPtr=deep_lakes_mask, _RC)
       call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, _RC)
 
+      call logger%info("Initialize:: ...complete")
       _RETURN(_SUCCESS)
 
    end subroutine Initialize
@@ -494,6 +500,10 @@ contains
       real, pointer, dimension(:,:,:)   :: ple, ple0
       real, pointer, dimension(:,:,:,:) :: ptr4d_int
       integer                           :: i1, j1, i2, j2, km, status
+      class(logger_t), pointer :: logger
+
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("Run0:: starting...")
 
       ! Get internal state
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
@@ -512,6 +522,7 @@ contains
       call MAPL_StateGetPointer(internal, ptr4d_int, "SS", _RC)
       call setZeroKlid4d (self%km, self%klid, ptr4d_int)
 
+      call logger%info("Run0:: ...complete")
       _RETURN(_SUCCESS)
    end subroutine Run0
 
