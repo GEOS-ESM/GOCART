@@ -25,3 +25,6 @@ mapl:
     activate_all_exports: true
     restart:
       import: true
+    checkpoint:
+      export: true
+      import: true
