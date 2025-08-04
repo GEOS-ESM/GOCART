@@ -40,3 +40,7 @@ mapl:
     restart:
       import: true
       internal: true
+    checkpoint:
+      export: true
+      import: true
+      internal: true
