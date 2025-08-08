@@ -988,7 +988,6 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
     real, dimension(3)                :: rainout_eff
     logical                           :: KIN
     real, allocatable, dimension(:,:,:)   :: pSOA_VOC
@@ -1138,9 +1137,8 @@ contains
        if (associated(WT)) WT(:,:,1)=0.0
 
 !      Hydrophilic mode (second tracer) is removed
-       fwet = 1.
        call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
-                                KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
+                                KIN, MAPL_GRAV, self%fwet(2), philic, ple, t, airdens, &
                                 pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
     case ('ufs')
 !      Both hydrophobic and hydrophilic modes can be removed
