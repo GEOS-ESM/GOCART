@@ -561,8 +561,7 @@ contains
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, file_, &
                                   label="aerosol_monochromatic_optics_file:", __RC__ )
-!    call ESMF_ConfigGetAttribute (cfg, nmom_, label="n_moments:", default=0,  __RC__)
-    nmom_ = 8
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label="n_phase_function_moments_photolysis:", default=0,  __RC__)
     i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
     allocate (channels_(i), __STAT__ )
     call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
@@ -571,7 +570,7 @@ contains
     deallocate(channels_)
     nmom_ = 0
 
-    !   Create Diagnostics Mie Table
+!   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
     call ESMF_ConfigGetAttribute (cfg, file_, &
@@ -595,6 +594,12 @@ contains
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8, __RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8, __RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8, __RC__)
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
+    if(nmom_ > 0) then
+       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
+                      grid=grid, typekind=MAPL_R8, ungrid=nmom_, __RC__)
+       nmom_ = 0
+    endif
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
                    grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
@@ -1207,6 +1212,7 @@ contains
     integer, parameter                               :: DP=kind(1.0d0)
     real, dimension(:,:,:), pointer                  :: ple, rh
     real(kind=DP), dimension(:,:,:), pointer         :: var
+    real(kind=DP), dimension(:,:,:,:), pointer       :: var4d
     real, dimension(:,:,:,:), pointer                :: q, q_4d
     integer, allocatable                             :: opaque_self(:)
     type(C_PTR)                                      :: address
@@ -1309,10 +1315,18 @@ contains
         var = ssa_s(:,:,:)
     end if
 
-    call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
-        var = asy_s(:,:,:)
+    if (usePhotTable) then
+       call ESMF_AttributeGet (state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var4d, trim(fld_name), __RC__)
+           var4d = pmom_s(:,:,:,:)
+     end if
+    else
+       call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+           var = asy_s(:,:,:)
+     end if
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
@@ -1372,16 +1386,16 @@ contains
     real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
     real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
     real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bpmom_s(size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4))
+    real(kind=DP), intent(  out) :: bpmom_s(size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4))
     integer,                       intent(  out) :: rc
 
     ! local
     integer                           :: l, m
     real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
     real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-    real                              :: pmom (size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4),6)
+    real                              :: pmom (size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4),6)
 
-    __Iam__('DU2G::aerosol_optics::mie_')
+    __Iam__('DU2G::aerosol_optics::miephot_')
 
      bext_s  = 0.0d0
      bssa_s  = 0.0d0

@@ -108,7 +108,8 @@ contains
     type (GOCART_State), pointer                  :: self
     type (wrap_)                                  :: wrap
 
-    integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie, n_wavelengths_photmie
+    integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
+    integer :: n_wavelengths_photmie, n_moments_photmie
     integer, allocatable, dimension(:) :: wavelengths_diagmie, wavelengths_photmie
     type (MAPL_MetaComp),       pointer    :: MAPL
     logical :: use_threads
@@ -147,7 +148,6 @@ contains
     n_wavelengths_vertint = ESMF_ConfigGetLen (myCF, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     n_wavelengths_diagmie = ESMF_ConfigGetLen (myCF, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
     n_wavelengths_photmie = ESMF_ConfigGetLen (myCF, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
-
     allocate(self%wavelengths_profile(n_wavelengths_profile), self%wavelengths_vertint(n_wavelengths_vertint), &
              wavelengths_diagmie(n_wavelengths_diagmie), wavelengths_photmie(n_wavelengths_photmie), __STAT__)
 
@@ -155,13 +155,14 @@ contains
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, wavelengths_photmie, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
+    call ESMF_ConfigGetAttribute (myCF, n_moments_photmie, label='n_phase_function_moments_photolysis:', default=0, __RC__)
 
 !   Set wavelengths in universal config
-
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_photmie, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
+    call MAPL_ConfigSetAttribute (cf, n_moments_photmie, label='n_phase_function_moments_photolysis:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, use_threads, label='use_threads:', default=.FALSE., __RC__)
 
 !   Get my internal MAPL_Generic state

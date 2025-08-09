@@ -46,7 +46,7 @@ contains
 
 
 !====================================================================================
-  subroutine add_aero (state, label, label2, grid, typekind, ptr, rc)
+  subroutine add_aero (state, label, label2, grid, typekind, ptr, ungrid, rc)
 
 !   Description: Adds fields to aero state for aerosol optics calcualtions.
 
@@ -58,8 +58,9 @@ contains
     type (ESMF_Grid),                           intent(inout)     :: grid
     integer,                                    intent(in   )     :: typekind
     real, pointer, dimension(:,:,:), optional,  intent(in   )     :: ptr
+    integer, optional,                          intent(in   )     :: ungrid
     integer,                                    intent(  out)     :: rc
-
+    
     ! locals
     type (ESMF_Field)                                             :: field
     character (len=ESMF_MAXSTR)                                   :: field_name
@@ -79,7 +80,11 @@ contains
        else if ((trim(field_name) == 'FRLAND') .or. (trim(field_name) == 'monochromatic_EXT')) then
           call MAPL_FieldAllocCommit(field, dims=MAPL_DimsHorzOnly, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
        else
-          call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
+          if(present(ungrid)) then
+             call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, ungrid=[ungrid], hw=0, __RC__)
+          else        
+             call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
+          end if
        end if
        call MAPL_StateAdd (state, field, __RC__)
     end if
