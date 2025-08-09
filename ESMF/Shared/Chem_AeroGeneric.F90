@@ -17,7 +17,7 @@ module  Chem_AeroGeneric
 ! !USES:
    use ESMF
    use MAPL
-!   USE Chem_MieMod2G
+!   USE GOCART2G_MieMod
 
    implicit none
    private
@@ -31,6 +31,7 @@ module  Chem_AeroGeneric
    public setZeroKlid4d
    public findKlid
    public get_mixR
+   
 !
 ! !DESCRIPTION:
 !
@@ -426,7 +427,6 @@ contains
     end do
 
  end subroutine get_mixR
-
 
 end module  Chem_AeroGeneric
 

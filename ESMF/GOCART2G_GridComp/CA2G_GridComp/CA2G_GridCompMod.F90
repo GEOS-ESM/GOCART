@@ -592,6 +592,12 @@ contains
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
+    if(nmom_ > 0) then
+       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
+                      grid=grid, typekind=MAPL_R8, ungrid=nmom_, __RC__)
+       nmom_ = 0
+    endif
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
@@ -1471,8 +1477,8 @@ contains
        call mie%Query( band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
 
        bext_s  = bext_s  +             bext     ! extinction
-       bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
+       bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymmetry parameter multiplied by scattering
 
     end do
 
@@ -1516,10 +1522,6 @@ contains
            bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
         enddo
      end do
-!    Normalize moments
-     do m = 1, mie%nmom
-        bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) / bssa_s
-     enddo
      
 
      RETURN_(ESMF_SUCCESS)

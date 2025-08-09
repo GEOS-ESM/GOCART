@@ -1368,7 +1368,7 @@ contains
         call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
         bext_s  = bext_s  +             bext     ! extinction
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
-        basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scattering
+        basym_s = basym_s + gasym*(bssa*bext)    ! asymmetry parameter multiplied by scattering
      end do
 
      RETURN_(ESMF_SUCCESS)
@@ -1411,10 +1411,6 @@ contains
            bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
         enddo
      end do
-!    Normalize moments
-     do m = 1, mie%nmom
-        bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) / bssa_s
-     enddo
      
 
      RETURN_(ESMF_SUCCESS)
