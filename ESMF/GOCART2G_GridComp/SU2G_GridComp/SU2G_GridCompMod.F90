@@ -628,7 +628,6 @@ contains
                                   label= "aerosol_photolysis_wavelength_in_nm_from_LUT:", __RC__)
     self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
     deallocate(channels_)
-    nmom_ = 0
 
 !   Create Diagnostics Mie Table
 !   -----------------------------
@@ -665,7 +664,6 @@ contains
     if(nmom_ > 0) then
        call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
                       grid=grid, typekind=MAPL_R8, ungrid=nmom_, __RC__)
-       nmom_ = 0
     endif
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
@@ -1423,6 +1421,7 @@ contains
     integer, parameter                               :: DP=kind(1.0d0)
     real, dimension(:,:,:), pointer                  :: ple, rh
     real(kind=DP), dimension(:,:,:), pointer         :: var
+    real(kind=DP), dimension(:,:,:,:), pointer       :: var4d
     real, dimension(:,:,:), pointer                  :: q
     real, dimension(:,:,:,:), pointer                :: q_4d
     integer, allocatable                             :: opaque_self(:)
@@ -1534,10 +1533,18 @@ contains
         var = ssa_s(:,:,:)
     end if
 
-   call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
-        var = asy_s(:,:,:)
+    if (usePhotTable) then
+       call ESMF_AttributeGet (state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var4d, trim(fld_name), __RC__)
+           var4d = pmom_s(:,:,:,:)
+     end if
+    else
+       call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+           var = asy_s(:,:,:)
+     end if
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)

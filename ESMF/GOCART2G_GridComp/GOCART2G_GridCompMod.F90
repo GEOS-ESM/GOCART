@@ -1527,7 +1527,7 @@ contains
     allocate(ext(i1:i2,j1:j2,km),  &
              ssa(i1:i2,j1:j2,km),  &
              asy(i1:i2,j1:j2,km), __STAT__)
-    if(nmom > 0) allocate(pmom(i1:i2,j1:j2,km,nmom), __STAT__)
+    allocate(pmom(i1:i2,j1:j2,km,8), __STAT__)
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
@@ -1582,7 +1582,7 @@ contains
 
 !       ! set if we are using photolysis table
         call ESMF_AttributeSet(child_state, name='use_photolysis_table', value=usePhotTable, __RC__)
-        
+        if(MAPL_AM_I_ROOT()) print *, 'GOCART1:phot:', usePhotTable 
 !       ! execute the aerosol optics method
         call ESMF_MethodExecute(child_state, label="aerosol_optics", __RC__)
 
@@ -1600,10 +1600,12 @@ contains
 
 !       ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
 !       ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
+        if(MAPL_AM_I_ROOT()) print *, 'GOCART2:phot:', usePhotTable
         if(usePhotTable) then
           call ESMF_AttributeGet(child_state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
           if (fld_name /= '') then
               call MAPL_GetPointer(child_state, pmom_, trim(fld_name), __RC__)
+if(MAPL_AM_I_ROOT()) print *, 'GOCART7:phot:', pmom_(1,1,72,1)
           end if
 
         else
@@ -1616,7 +1618,9 @@ contains
 !       ! Sum aerosol optical properties from each child
         ext = ext + ext_
         ssa = ssa + ssa_
+        if(MAPL_AM_I_ROOT()) print *, 'GOCART3:phot:', usePhotTable
         if(usePhotTable) then
+if(MAPL_AM_I_ROOT()) print *, 'GOCART6:phot:', pmom_(1,1,72,1)
            pmom = pmom + pmom_
         else
            asy = asy + asy_
@@ -1637,10 +1641,11 @@ contains
         call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
         var = ssa(:,:,:)
     end if
-
+        if(MAPL_AM_I_ROOT()) print *, 'GOCART4:phot:', usePhotTable
     if(usePhotTable) then
        call ESMF_AttributeGet(state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
        if (fld_name /= '') then
+if(MAPL_AM_I_ROOT()) print *, 'GOCART5:phot:', pmom(1,1,72,1)
            call MAPL_GetPointer(state, var4d, trim(fld_name), __RC__)
            var4d = pmom(:,:,:,:)
        end if
@@ -1653,7 +1658,7 @@ contains
     end if
 
     deallocate(ext, ssa, asy, __STAT__)
-    if(nmom > 0) deallocate(pmom, __STAT__)
+    deallocate(pmom, __STAT__)
 
 
 
