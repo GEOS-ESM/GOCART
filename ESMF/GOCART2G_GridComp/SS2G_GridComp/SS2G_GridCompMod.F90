@@ -24,6 +24,7 @@ module SS2G_GridCompMod
    use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
    use mapl3g_generic, only: MAPL_ClockGet
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
+   use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use GOCART2G_MieMod
@@ -178,7 +179,7 @@ contains
               UNITS='Pa', &
               DIMS='xyz', &
               vstagger=VERTICAL_STAGGER_EDGE, &
-              ! RESTART=MAPL_RestartSkip, &
+              RESTART=MAPL_RESTART_SKIP, &
               _RC)
 
          ! RH: is between 0 and 1
@@ -189,7 +190,7 @@ contains
               UNITS='1', &
               DIMS = 'xyz', &
               VSTAGGER=VERTICAL_STAGGER_CENTER, &
-              ! RESTART=MAPL_RestartSkip, &
+              RESTART=MAPL_RESTART_SKIP, &
               _RC)
 
          do i = 1, self%nbins
@@ -199,7 +200,7 @@ contains
                  SHORT_NAME='climss'//trim(field_name), &
                  STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
-                 ! RESTART=MAPL_RestartSkip, &
+                 RESTART=MAPL_RESTART_SKIP, &
                  DIMS='xyz', &
                  VSTAGGER=VERTICAL_STAGGER_CENTER, _RC)
 
@@ -211,7 +212,7 @@ contains
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
                  VSTAGGER=VERTICAL_STAGGER_CENTER, &
-                 ! RESTART=MAPL_RestartSkip, &
+                 RESTART=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! wet deposition
@@ -222,7 +223,7 @@ contains
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
                  VSTAGGER=VERTICAL_STAGGER_CENTER, &
-                 ! RESTART=MAPL_RestartSkip, &
+                 RESTART=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! gravitational settling
@@ -233,7 +234,7 @@ contains
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
                  VSTAGGER=VERTICAL_STAGGER_CENTER, &
-                 ! RESTART=MAPL_RestartSkip, &
+                 RESTART=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! convective scavenging
@@ -244,7 +245,7 @@ contains
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
                  VSTAGGER=VERTICAL_STAGGER_CENTER, &
-                 ! RESTART=MAPL_RestartSkip, &
+                 RESTART=MAPL_RESTART_SKIP, &
                  _RC)
          end do
       end if ! (data_driven)

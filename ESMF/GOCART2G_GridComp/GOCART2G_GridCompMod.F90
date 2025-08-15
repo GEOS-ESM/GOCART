@@ -10,7 +10,6 @@ module GOCART2G_GridCompMod
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Return, MAPL_Assert
    use MAPL_Constants, only: MAPL_R4, MAPL_GRAV, MAPL_PI
 
-   use MAPL, only: MAPL_ConfigSetAttribute
    use MAPL, only: MAPL2_GetPointer => MAPL_GetPointer
 
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
@@ -18,6 +17,7 @@ module GOCART2G_GridCompMod
    use mapl3g_generic, only: MAPL_GridCompGetResource
    ! use mapl3g_generic, only: OuterMetaComponent, MAPL_GridCompGetOuterMeta
    use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
+   use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_Geom_API, only: MAPL_GridGet
