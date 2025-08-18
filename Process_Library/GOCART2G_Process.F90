@@ -7268,7 +7268,7 @@ K_LOOP: do k = km, 1, -1
                                h2o2_int, ple, rhoa, precc, precl, pfllsan, pfilsan, tmpu, &
                                nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, MSA, &
                                fluxout, pSO4_colflux, pSO4wet_colflux, &
-                               pso4, pso4wet, rc )
+                               pso4, pso4wet, fwetSO4, rc )
 
 
 ! !USES:
@@ -7285,6 +7285,7 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]
    real, intent(in) :: fMassSO4, fMassSO2
    real, dimension(:,:,:) :: h2o2_int
+   real, intent(in)    :: fwetSO4   ! large scale removal efficiency   
    real, pointer, dimension(:,:,:), intent(in) :: ple     ! level edge air pressure
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density, [kg m-3]
    real, pointer, dimension(:,:), intent(in)   :: precc   ! total convective precip, [mm day-1]
@@ -7351,7 +7352,7 @@ K_LOOP: do k = km, 1, -1
 
 !  Rain parameters (from where?)
    real, parameter :: B0_ls = 1.0e-4
-   real, parameter :: F0_ls = 1.0
+   real :: F0_ls 
    real, parameter :: XL_ls = 5.0e-4
    real, parameter :: B0_cv = 1.5e-3
    real, parameter :: F0_cv = 0.3
@@ -7389,6 +7390,7 @@ K_LOOP: do k = km, 1, -1
 
    dims = shape(rhoa)
    i2 = dims(1); j2 = dims(2)
+   F0_ls = fwetSO4
 
 !  check if doing MSA and define nbins_ accordingly
 !   if (associated(MSA)) then
