@@ -1232,7 +1232,7 @@ contains
                           delp, fMassSO4, fMassSO2, &
                           h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
-                          SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, self%fwet(3), __RC__ )
+                          SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%rmed(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
