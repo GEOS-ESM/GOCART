@@ -544,6 +544,9 @@ contains
 
 !      Gravitational Settling
        call append_to_bundle(trim(comp_name)//'SD', providerState, prefix, Bundle_DP, __RC__)
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
+       end if
     end if
 
     self%instance = instance
@@ -949,6 +952,7 @@ contains
     real, parameter ::  cpd    = 1004.16
     integer                      :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    integer :: settling_opt
 #include "CA2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1027,6 +1031,15 @@ contains
 
 !   CA Settling
 !   -----------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
@@ -1034,7 +1047,7 @@ contains
        flux_ptr => SD(:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            int_ptr, t, airdens, &
-                           rh2, zle, delp, flux_ptr, __RC__)
+                        rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
     end do
 
 !   CA Deposition

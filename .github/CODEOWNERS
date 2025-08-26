@@ -7,12 +7,12 @@
 * @GEOS-ESM/aerosol-team
 
 # NOAA Extras are Tom, Weiyuan for now
-/CCPP/                  @GEOS-ESM/mapl-team @amdasilva
-/ESMF/Aerosol_GridComp/ @GEOS-ESM/mapl-team @amdasilva
-/ESMF/NUOPC/            @GEOS-ESM/mapl-team @amdasilva
-/ESMF/UFS/              @GEOS-ESM/mapl-team @amdasilva
+/CCPP/                  @GEOS-ESM/mapl-team @GEOS-ESM/aerosol-team
+/ESMF/Aerosol_GridComp/ @GEOS-ESM/mapl-team @GEOS-ESM/aerosol-team
+/ESMF/NUOPC/            @GEOS-ESM/mapl-team @GEOS-ESM/aerosol-team
+/ESMF/UFS/              @GEOS-ESM/mapl-team @GEOS-ESM/aerosol-team
 
 # The CMake Team should know/approve these
-/.github/    @GEOS-ESM/cmake-team @amdasilva
-/.circleci/  @GEOS-ESM/cmake-team @amdasilva
-/.codebuild/ @GEOS-ESM/cmake-team @amdasilva
+/.github/    @GEOS-ESM/cmake-team @GEOS-ESM/aerosol-team
+/.circleci/  @GEOS-ESM/cmake-team @GEOS-ESM/aerosol-team
+/.codebuild/ @GEOS-ESM/cmake-team @GEOS-ESM/aerosol-team
