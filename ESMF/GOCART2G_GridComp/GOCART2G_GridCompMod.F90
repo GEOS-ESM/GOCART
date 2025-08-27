@@ -21,6 +21,7 @@ module GOCART2G_GridCompMod
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_Geom_API, only: MAPL_GridGet
+   use mapl3g_UngriddedDim, only: UngriddedDim
    use pflogger, only: logger_t => logger
 
    use Chem_AeroGeneric
@@ -106,6 +107,7 @@ contains
       ! logical :: use_threads
       class(logger_t), pointer :: logger
       character(len=:), allocatable :: child_item_names
+      type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: iter, status
 
       call MAPL_GridCompGet(gc, logger=logger, _RC)
@@ -127,6 +129,16 @@ contains
       call MAPL_GridCompGetResource(gc, "wavelengths_for_vertically_integrated_aop_in_nm", self%wavelengths_vertint, _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", wavelengths_diagmie, _RC)
       ! call MAPL_GridCompGetResource(gc, "use_threads", use_threads, default=.false., _RC)
+
+      ! Defined UngriddedDim items
+      ungrd_wavelengths_profile = UngriddedDim( &
+           size(self%wavelengths_profile), &
+           name="wavelengths_profile", &
+           units="nm")
+      ungrd_wavelengths_vertint = UngriddedDim( &
+           size(self%wavelengths_vertint), &
+           name="wavelengths_vertint", &
+           units="nm")
 
       ! ! Get my internal MAPL_Generic state
       ! call MAPL_GetObjectFromGC (GC, MAPL, _RC)
@@ -543,7 +555,7 @@ contains
       !       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, _RC)
       !    end if
       ! end do
-      call MAPL_GridCompRunChildren(gc, phase_name="Run0", _RC)
+      ! call MAPL_GridCompRunChildren(gc, phase_name="Run0", _RC)
 
       ! Get internal state
       call ESMF_UserCompGetInternalState(gc, 'GOCART_State', wrap, _RC)
@@ -668,7 +680,6 @@ contains
       ! Sea Salt
       do n = 1, size(self%SS%instances)
          if ((self%SS%instances(n)%is_active) .and. (index(self%SS%instances(n)%name, 'data') == 0 )) then
-            if(associated(totexttau)) totexttau(:,:,:) = totexttau(:,:,:) + ssexttau(:,:,:)
             if(associated(totexttau)) totexttau(:,:,:) = totexttau(:,:,:) + ssexttau(:,:,:)
             if(associated(totstexttau)) totstexttau(:,:,:) = totstexttau(:,:,:) + ssstexttau(:,:,:)
             if(associated(totscatau)) totscatau(:,:,:) = totscatau(:,:,:) + ssscatau(:,:,:)
