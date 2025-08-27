@@ -555,7 +555,7 @@ contains
       !       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, _RC)
       !    end if
       ! end do
-      ! call MAPL_GridCompRunChildren(gc, phase_name="Run0", _RC)
+      call MAPL_GridCompRunChildren(gc, phase_name="Run0", _RC)
 
       ! Get internal state
       call ESMF_UserCompGetInternalState(gc, 'GOCART_State', wrap, _RC)
