@@ -27,6 +27,7 @@ module SS2G_GridCompMod
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_State_API, only: MAPL_StateGetPointer
+   use mapl3g_UngriddedDim, only: UngriddedDim
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -38,9 +39,9 @@ module SS2G_GridCompMod
    private
 
    integer, parameter :: instanceComputational = 1
-   integer, parameter :: instanceData          = 2
+   integer, parameter :: instanceData = 2
    real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
-   integer, parameter     :: DP=kind(1.0d0)
+   integer, parameter :: DP=kind(1.0d0)
 
    !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
@@ -106,6 +107,8 @@ contains
       logical                                     :: file_exists
       real, allocatable                           :: emission_scale_res(:)
       class(Logger_t), pointer :: logger
+      type(UngriddedDim) :: ungrd_nbins
+      type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: status
 
       call ESMF_GridCompGet(gc, name=comp_name, _RC)
@@ -118,6 +121,17 @@ contains
 
       ! Process generic config items
       call self%GA_Environment%load_from_config(gc, _RC)
+
+      ! Defined UngriddedDim items
+      ungrd_nbins = UngriddedDim(self%nbins, name="nbins", units="1")
+      ungrd_wavelengths_profile = UngriddedDim( &
+           size(self%wavelengths_profile), &
+           name="wavelengths_profile", &
+           units="nm")
+      ungrd_wavelengths_vertint = UngriddedDim( &
+           size(self%wavelengths_vertint), &
+           name="wavelengths_vertint", &
+           units="nm")
 
       ! Process SS-specific items
       call MAPL_GridCompGetResource(gc, "sstEmisFlag", self%sstEmisFlag, _RC)
@@ -140,7 +154,7 @@ contains
       call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_RUN, Run, phase_name="Run1", _RC)
       if (data_driven .neqv. .true.) then
          call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
-         call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
+         ! call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
       end if
 
       DEFVAL = 0.0
@@ -157,7 +171,7 @@ contains
               dims='xyz', &
               vstagger=VERTICAL_STAGGER_CENTER, &
               ! restart=MAPL_RestartOptional, &
-              ungridded_dims=[self%nbins], &
+              ungridded_dims=[ungrd_nbins], &
               ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
               add_to_export=.true., _RC)
 
@@ -608,6 +622,8 @@ contains
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 #include "SS2G_GetPointer___.h"
 
+      if (associated(SSSMASS)) SSSMASS = 0.
+
       ! Get my private internal state
       call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
       self => wrap%ptr
@@ -730,6 +746,10 @@ contains
       i1 = lbound(pfi_lsan, 1); i2 = ubound(pfi_lsan, 1); j1 = lbound(pfi_lsan, 2); j2 = ubound(pfi_lsan, 2)
       allocate(pfi_lsan0(i1:i2, j1:j2, 0:km), source=pfi_lsan(i1:i2, j1:j2, 1:km+1))
 
+      ! Set klid and Set internal values to 0 above klid
+      call findKlid (self%klid, self%plid, ple0, __RC__)
+      call setZeroKlid4d (self%km, self%klid, SS)
+
       allocate(dqa, mold=lwi, __STAT__)
       allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
@@ -739,7 +759,7 @@ contains
          if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
          call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
               SS(:,:,:,n), t, airdens, &
-              rh2, zle0, delp, flux_ptr, _RC)
+              rh2, zle0, delp, flux_ptr, settling_scheme=1, _RC)
       end do
 
       ! Deposition
