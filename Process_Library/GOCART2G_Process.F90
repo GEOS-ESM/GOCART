@@ -8728,12 +8728,12 @@ K_LOOP: do k = km, 1, -1
       fc = cloud(i,j,k)
       if(fc .gt. 0. .and. SO2_cd .gt. 0. .and. tk .gt. 258.) then
 !      Check on H2O2 vmr -> is SO2 vmr greater?
-!       if(fMr * SO2_cd .gt. h2o2) then
-!        fc = fc*(h2o2/(fMR*SO2_cd))
+       if(fMr * SO2_cd .gt. h2o2) then
+        fc = fc*(h2o2/(fMR*SO2_cd))
 !        h2o2 = h2o2*(1.-cloud(i,j,k))
 !       else
 !        h2o2 = h2o2*(1. - cloud(i,j,k)*(fMR*SO2_cd)/h2o2)
-!       endif
+       endif
        SO2 = SO2_cd*(1.-fc)
 !      aqueous loss rate (mixing ratio/timestep)
        L2 = SO2_cd * fc
