@@ -6959,8 +6959,8 @@ K_LOOP: do k = km, 1, -1
    subroutine SulfateUpdateOxidants (nymd_current, nhms_current, lonRad, latRad, &
                                      rhoa, km, cdt, nymd_last, &
                                      undefval, radToDeg, nAvogadro, pi, airMolWght, &
-                                     oh_clim, no3_clim, h2o2_clim, &
-                                     xoh, xno3, xh2o2, recycle_h2o2, rc)
+                                     oh_clim, no3_clim, &
+                                     xoh, xno3, rc)
 ! !USES:
    implicit NONE
 
@@ -6978,10 +6978,9 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)       :: pi         ! pi constant
    real, intent(in)       :: airMolWght ! air molecular weight [kg/Kmole]
    real, pointer, dimension(:,:,:) :: oh_clim, &   ! climatological OH
-                                      no3_clim, &  ! climatological NO3
-                                      h2o2_clim  ! climatological H2O2
-   real, dimension(:,:,:), intent(inout) :: xoh, xno3, xh2o2 ! returned oxidant values
-   logical, intent(inout) :: recycle_h2o2
+                                      no3_clim     ! climatological NO3
+   real, dimension(:,:,:), intent(inout) :: xoh, xno3 ! returned oxidant values
+
 
 ! !OUTPUT PARAMETERS:
   integer, optional, intent(out)   :: rc    ! Error return code:
@@ -7032,16 +7031,12 @@ K_LOOP: do k = km, 1, -1
     where(1.01*no3_clim(i1:i2,j1:j2,1:km) > undefval) no3_clim(i1:i2,j1:j2,1:km) = 0.
     where(     no3_clim(i1:i2,j1:j2,1:km) < 0       ) no3_clim(i1:i2,j1:j2,1:km) = 0.
 
-    where(1.01*h2o2_clim(i1:i2,j1:j2,1:km) > undefval) h2o2_clim(i1:i2,j1:j2,1:km) = 0.
-    where(     h2o2_clim(i1:i2,j1:j2,1:km) < 0       ) h2o2_clim(i1:i2,j1:j2,1:km) = 0.
+!    where(1.01*h2o2_clim(i1:i2,j1:j2,1:km) > undefval) h2o2_clim(i1:i2,j1:j2,1:km) = 0.
+!    where(     h2o2_clim(i1:i2,j1:j2,1:km) < 0       ) h2o2_clim(i1:i2,j1:j2,1:km) = 0.
 
-!   The first time through the reads we will save the h2o2 monthly
-!   average in the instantaneous field
+!   Update H2O2
 !   ---------------------------------
-    if (nymd_last == nymd_current) then
-       xh2o2 = h2o2_clim
-       nymd_last = nymd_current
-    end if
+!    xh2o2 = h2o2_clim
 
 !   Find the day number of the year and hour (needed for later doing sza)
 !   ----------------------------------
@@ -7051,12 +7046,6 @@ K_LOOP: do k = km, 1, -1
              + real(mod(nhms_current,100)) &
              ) / 3600.
 
-!   Recycle H2O2 to input on 3 hour boundaries if not coupled to GMI
-!   ----------------------------------
-    if (recycle_h2o2) then
-       xh2o2 = h2o2_clim
-       recycle_h2o2 = .false.
-    end if
 
 !   If not getting instantaneous values from GMI, update for time of day.
 !   ---------------------------------------------------------------------
@@ -7265,7 +7254,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: SU_Wet_Removal
 
    subroutine SU_Wet_Removal ( km, nbins, klid, cdt, kin, grav, airMolWght, delp, fMassSO4, fMassSO2, &
-                               h2o2_int, ple, rhoa, precc, precl, pfllsan, pfilsan, tmpu, &
+                               h2o2_clim, ple, rhoa, precc, precl, pfllsan, pfilsan, tmpu, &
                                nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, MSA, &
                                fluxout, pSO4_colflux, pSO4wet_colflux, &
                                pso4, pso4wet, rc )
@@ -7284,7 +7273,7 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)    :: airMolWght ! air molecular weight [kg]
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]
    real, intent(in) :: fMassSO4, fMassSO2
-   real, dimension(:,:,:) :: h2o2_int
+   real, dimension(:,:,:) :: h2o2_clim
    real, pointer, dimension(:,:,:), intent(in) :: ple     ! level edge air pressure
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density, [kg m-3]
    real, pointer, dimension(:,:), intent(in)   :: precc   ! total convective precip, [mm day-1]
@@ -7471,7 +7460,7 @@ K_LOOP: do k = km, 1, -1
        BT = B * Td_ls
        if (BT.gt.10.) BT = 10.               !< Avoid overflow >
 !      What is the soluble amount of SO2?
-       SO2Soluble = min(fmr*SO2(i,j,k),h2o2_int(i,j,k)*one)/fmr
+       SO2Soluble = min(fmr*SO2(i,j,k),h2o2_clim(i,j,k)*one)/fmr
        if(SO2Soluble .lt. 0.) SO2Soluble = 0.
 
 !      Adjust SU amounts
@@ -7483,14 +7472,14 @@ K_LOOP: do k = km, 1, -1
        endif
 
 !      Adjust H2O2 concentration in cloudy portion of cell
-       if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
+!       if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
 !        gcSU%h2o2_int(i,j,k) = max(zero,(1.-F)*gcSU%h2o2_int(i,j,k))
 ! GOCART removes all
-        h2o2_int(i,j,k) = 0.
-       else
-        h2o2_int(i,j,k) &
-          = h2o2_int(i,j,k) - F*fmr*SO2(i,j,k)
-       endif
+!        h2o2_int(i,j,k) = 0.
+!       else
+!        h2o2_int(i,j,k) &
+!          = h2o2_int(i,j,k) - F*fmr*SO2(i,j,k)
+!       endif
 
        do n = 1, nbins
         if (DC(n).lt.0.) DC(n) = 0.
@@ -7549,7 +7538,7 @@ K_LOOP: do k = km, 1, -1
         if (BT.gt.10.) BT = 10.
 
 !      What is the soluble amount of SO2?
-       SO2Soluble = min(fmr*SO2(i,j,k),h2o2_int(i,j,k)*one)/fmr
+       SO2Soluble = min(fmr*SO2(i,j,k),h2o2_clim(i,j,k)*one)/fmr
        if(SO2Soluble .lt. 0.) SO2Soluble = 0.
 
 !      Adjust SU amounts
@@ -7561,14 +7550,14 @@ K_LOOP: do k = km, 1, -1
        end if
 
 !       Adjust H2O2 concentration in cloudy portion of cell
-        if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
-         h2o2_int(i,j,k) = max(zero,(one-F)*h2o2_int(i,j,k))
+!        if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
+!         h2o2_int(i,j,k) = max(zero,(one-F)*h2o2_int(i,j,k))
 !  GOCART removes all
 !         gcSU%h2o2_int(i,j,k) = 0.
-        else
-         h2o2_int(i,j,k) &
-           = h2o2_int(i,j,k) - F*fmr*SO2(i,j,k)
-        endif
+!        else
+!         h2o2_int(i,j,k) &
+!           = h2o2_int(i,j,k) - F*fmr*SO2(i,j,k)
+!        endif
 
         do n = 1, nbins
          if (DC(n).lt.0.) DC(n) = 0.
@@ -7603,7 +7592,7 @@ K_LOOP: do k = km, 1, -1
        if (BT.gt.10.) BT = 10.               !< Avoid overflow >
 
 !      Adjust SO2 for H2O2 oxidation
-       SO2Soluble = min(fmr*SO2(i,j,k),h2o2_int(i,j,k)*one)/fmr
+       SO2Soluble = min(fmr*SO2(i,j,k),h2o2_clim(i,j,k)*one)/fmr
        if(SO2Soluble .lt. 0.) SO2Soluble = 0.
 
 !      Adjust SU amounts
@@ -7619,12 +7608,12 @@ K_LOOP: do k = km, 1, -1
        end if
 
 !      Adjust H2O2 concentration in cloudy portion of cell
-       if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
-        h2o2_int(i,j,k) = max(zero,(one-F)*h2o2_int(i,j,k))
-       else
-        h2o2_int(i,j,k) &
-          = h2o2_int(i,j,k) - F*fmr*SO2(i,j,k)
-       endif
+!       if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
+!        h2o2_int(i,j,k) = max(zero,(one-F)*h2o2_int(i,j,k))
+!       else
+!        h2o2_int(i,j,k) &
+!          = h2o2_int(i,j,k) - F*fmr*SO2(i,j,k)
+!       endif
 
        do n = 1, nbins
         if (DC(n).lt.0.) DC(n) = 0.
@@ -7683,7 +7672,7 @@ K_LOOP: do k = km, 1, -1
         if (BT.gt.10.) BT = 10.
 
 !       Adjust SO2 for H2O2 oxidation
-        SO2Soluble = min(fmr*SO2(i,j,k),h2o2_int(i,j,k)*one)/fmr
+        SO2Soluble = min(fmr*SO2(i,j,k),h2o2_clim(i,j,k)*one)/fmr
         if(SO2Soluble .lt. 0.) SO2Soluble = 0.
 
 !       Adjust SU amounts
@@ -7698,12 +7687,12 @@ K_LOOP: do k = km, 1, -1
         end if
 
 !       Adjust H2O2 concentration in cloudy portion of cell
-        if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
-         h2o2_int(i,j,k) = max(zero,(one-F)*h2o2_int(i,j,k))
-        else
-         h2o2_int(i,j,k) &
-           = h2o2_int(i,j,k) - F*fmr*SO2(i,j,k)
-        endif
+!        if(fmr*SO2(i,j,k) .gt. h2o2_int(i,j,k)) then
+!         h2o2_int(i,j,k) = max(zero,(one-F)*h2o2_int(i,j,k))
+!        else
+!         h2o2_int(i,j,k) &
+!           = h2o2_int(i,j,k) - F*fmr*SO2(i,j,k)
+!        endif
 
         do n = 1, nbins
          if (DC(n).lt.0.) DC(n) = 0.
@@ -8176,7 +8165,7 @@ K_LOOP: do k = km, 1, -1
                                  nymd, nhms, lonRad, latRad, &
                                  dms, so2, so4, msa, &
                                  nDMS, nSO2, nSO4, nMSA, &
-                                 xoh, xno3, xh2o2, h2o2_init, &
+                                 xoh, xno3, h2o2_clim, &
                                  delp, tmpu, cloud, rhoa, hghte, &
                                  ustar, shflux, oro, pblh, z0h, &
                                  SU_dep, SU_PSO2, SU_PMSA, &
@@ -8219,10 +8208,11 @@ K_LOOP: do k = km, 1, -1
    real, pointer, dimension(:,:), intent(in)   :: oro    ! land-ocean-ice mask
    real, pointer, dimension(:,:), intent(in)   :: pblh   ! planetary boundary layer height [m]
    real, pointer, dimension(:,:), intent(in)   :: z0h    ! surface roughness for heat [m]
+   real, pointer, dimension(:,:,:), intent(in)   :: h2o2_clim ! H2O2 read in from file [kg/kg]
 
 ! !INOUTPUT PARAMETERS:
-   real, dimension(:,:,:), intent(inout) :: xoh, xno3, xh2o2 ! OH, NO3, H2O2 respectievly [kg/kg]
-   real, dimension(:,:,:) :: h2o2_init ! private H2O2 that is saved and used to initialize [kg/kg]
+   real, dimension(:,:,:), intent(inout) :: xoh, xno3 ! OH, NO3, H2O2 respectievly [kg/kg]
+   !real, dimension(:,:,:) :: h2o2_init ! private H2O2 that is saved and used to initialize [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout) :: SU_dep ! Sulfate Dry Deposition All Bins [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout)   :: SU_PSO2 ! SO2 Prod from DMS Oxidation [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout)   :: SU_PMSA ! MSA Prod from DMS Oxidation [kg m-2 s-1]
@@ -8356,7 +8346,7 @@ K_LOOP: do k = km, 1, -1
 !  SO2 source and oxidation to SO4
    call SulfateChemDriver_SO2 (km, klid, cdt, airMolWght, nAvogadro, cpd, grav, &
                                fMassSO4, fMassSO2, &
-                               so2, nSO2, xoh, xh2o2, &
+                               so2, nSO2, xoh, h2o2_clim, &
                                tmpu, rhoa, delp, oro, cloud, drydepositionfrequency, &
                                pSO2_DMS, pSO4g_SO2, pSO4aq_SO2, SU_dep, &
                                __RC__)
@@ -8395,8 +8385,7 @@ K_LOOP: do k = km, 1, -1
                                   __RC__)
    end if
 
-!  Save the h2o2 value after chemistry
-   h2o2_init = xh2o2
+
 
    __RETURN__(__SUCCESS__)
    end subroutine SulfateChemDriver
@@ -8576,7 +8565,7 @@ K_LOOP: do k = km, 1, -1
 
    subroutine SulfateChemDriver_SO2 (km, klid, cdt, airMolWght, nAvogadro, cpd, grav, &
                                      fMassSO4, fMassSO2, &
-                                     qa, nSO2, xoh, xh2o2, &
+                                     qa, nSO2, xoh, h2o2_clim, &
                                      tmpu, rhoa, delp, oro, cloud, drydepf, &
                                      pSO2_DMS, pSO4g_SO2, pSO4aq_SO2, SU_dep, &
                                      rc)
@@ -8600,11 +8589,12 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), intent(in) :: cloud  ! cloud fraction for radiation [1]
    real, dimension(:,:), intent(in)   :: drydepf  ! dry deposition frequency [s-1]
    real, pointer, dimension(:,:), intent(in) :: oro  ! land-ocean-ice mask
-   real, dimension(:,:,:), intent(in) :: pSO2_DMS ! SO2 production from DMS oxidation [kg m-2 s-1]
+   real, dimension(:,:,:), intent(in) :: pSO2_DMS ! SO2 production from DMS oxidation [kg/kg]
+   real, dimension(:,:,:), intent(in) :: h2o2_clim ! H2O2 [kg m-2 s-1]
 
 ! !INOUTPUT PARAMETERS:
    real, dimension(:,:,:), intent(inout) :: qa  ! dimethyl sulfide [kg/kg]
-   real, dimension(:,:,:), intent(inout) :: xoh, xh2o2  ! OH, H2O2 respectievly [kg/kg]
+   real, dimension(:,:,:), intent(inout) :: xoh ! OH [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout) :: SU_dep ! Sulfate Dry Deposition All Bins [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
@@ -8682,7 +8672,7 @@ K_LOOP: do k = km, 1, -1
 
       tk   = tmpu(i,j,k)
       oh   = xoh(i,j,k)
-      h2o2 = max(xh2o2(i,j,k),tiny(xh2o2(i,j,k)))
+      h2o2 = max(h2o2_clim(i,j,k),tiny(h2o2_clim(i,j,k)))
 
 !     air molecules in # cm-3
       air  = 1000.*rhoa(i,j,k) / airMolWght * nAvogadro * 1.e-6
@@ -8738,12 +8728,12 @@ K_LOOP: do k = km, 1, -1
       fc = cloud(i,j,k)
       if(fc .gt. 0. .and. SO2_cd .gt. 0. .and. tk .gt. 258.) then
 !      Check on H2O2 vmr -> is SO2 vmr greater?
-       if(fMr * SO2_cd .gt. h2o2) then
-        fc = fc*(h2o2/(fMR*SO2_cd))
-        h2o2 = h2o2*(1.-cloud(i,j,k))
-       else
-        h2o2 = h2o2*(1. - cloud(i,j,k)*(fMR*SO2_cd)/h2o2)
-       endif
+!       if(fMr * SO2_cd .gt. h2o2) then
+!        fc = fc*(h2o2/(fMR*SO2_cd))
+!        h2o2 = h2o2*(1.-cloud(i,j,k))
+!       else
+!        h2o2 = h2o2*(1. - cloud(i,j,k)*(fMR*SO2_cd)/h2o2)
+!       endif
        SO2 = SO2_cd*(1.-fc)
 !      aqueous loss rate (mixing ratio/timestep)
        L2 = SO2_cd * fc
@@ -8752,9 +8742,6 @@ K_LOOP: do k = km, 1, -1
        L2 = 0.
       endif
 
-!     Ideally you would update the H2O2 mixing ratio at this point
-!     and then reset it periodically
-      xh2o2(i,j,k) = max(h2o2,tiny(h2o2))
 
       SO2 = max(SO2,tiny(SO2))
       qa(i,j,k) = SO2

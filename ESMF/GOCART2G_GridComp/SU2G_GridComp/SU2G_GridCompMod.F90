@@ -87,7 +87,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
                                              pEmis
       logical :: firstRun = .true.
       integer :: nymd_oxidants = -1 ! Update the oxidant files?
-      logical :: recycle_H2O2 = .false.
+      !logical :: recycle_H2O2 = .false.
    end type ThreadWorkspace
 
    type, extends(GA_Environment) :: SU2G_GridComp
@@ -1091,7 +1091,7 @@ contains
     character(len=ESMF_MAXSTR)        :: short_name
     real, pointer, dimension(:,:,:)   :: int_ptr
 
-    real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
+    real, dimension(:,:,:), allocatable :: xoh, xno3
 
     real, dimension(:,:), allocatable   :: drydepositionf
 
@@ -1151,20 +1151,10 @@ contains
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
-!   recycle H2O2 every 3 hours
-    if (alarm_is_ringing) then
-       workspace%recycle_h2o2 = .true.
-#ifdef DEBUG
-       if (MAPL_Am_I_Root()) then
-          print *,'DEBUG:: SU replenish alarm is ringing'
-       end if
-#endif
-    end if
 
     allocate(xoh, mold=airdens, __STAT__)
     allocate(xno3, mold=airdens, __STAT__)
-    allocate(xh2o2, mold=airdens, __STAT__)
+!    allocate(xh2o2, mold=airdens, __STAT__)
     xoh = 0.0
     xno3 = 0.0
 
@@ -1174,13 +1164,13 @@ contains
        !workspace%firstRun  = .false.
     !end if
 
-    xh2o2 = h2o2_init
+!    xh2o2 = h2o2_init
 
     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
                                 workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
-                                SU_OH, SU_NO3, SU_H2O2, &
-                                xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
+                                SU_OH, SU_NO3, &
+                                xoh, xno3, __RC__)
 
 !   SU Settling
 !   -----------
@@ -1219,7 +1209,7 @@ contains
                             nymd, nhms, lons, lats, &
                             dms, so2, so4, dummyMSA, &
                             nDMS, nSO2, nSO4, nMSA, &
-                            xoh, xno3, xh2o2, h2o2_init, &
+                            xoh, xno3, SU_H2O2, &
                             delp, t, fcld, airdens, zle, &
                             ustar, sh, lwi, zpbl, z0h, &
                             SUDP, SUPSO2, SUPMSA, &
@@ -1229,8 +1219,8 @@ contains
 
     KIN = .true.
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
-                          delp, fMassSO4, fMassSO2, &
-                          h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
+                          delp, fMassSO4, fMassSO2, SU_H2O2, &
+                          ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
 
