@@ -17,11 +17,11 @@ module GA_EnvironmentMod
        real, allocatable      :: radius(:)      ! particle effective radius [um]
        real, allocatable      :: rhop(:)        ! soil class density [kg m-3]
        real, allocatable      :: fscav(:)       ! scavenging efficiency
-       ! logical              :: scav_byColdCloud ! new flag example
-       real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES, 
+!      logical                :: scav_byColdCloud ! new flag example
+       real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES,
        real, allocatable      :: fnum(:)        ! number of particles per kg mass
        real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice
-       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow 
+       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow
        real, allocatable      :: fwet_rain(:)   ! large scale wet removal scaling factor for rain
        real                   :: washout_tuning ! tuning factor for washout process (1 by default)
        real                   :: wet_radius_thr ! wet radius threshold [um]
@@ -33,6 +33,7 @@ module GA_EnvironmentMod
        real                   :: plid           ! pressure lid [hPa]
        integer                :: klid           ! vertical index of pressure lid
        character(:), allocatable :: wet_removal_scheme     ! name of wet removal scheme
+       character(:), allocatable :: settling_scheme        ! settling option (1 - use SettlingSolver, 2 - use SettlingSolverUFS)
        real, allocatable      :: wavelengths_profile(:) ! wavelengths for profile aop [nm]
        real, allocatable      :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
     contains
@@ -48,6 +49,7 @@ module GA_EnvironmentMod
 
        ! Local variables
        character(:), allocatable :: wet_removal_scheme
+       character(:), allocatable :: settling_scheme
        real, allocatable :: ones(:)
        integer :: nbins, status
 
@@ -64,7 +66,9 @@ module GA_EnvironmentMod
        call MAPL_GridCompGetResource(gc, "wet_radius_thr", self%wet_radius_thr, default=0.05, _RC)
        call MAPL_GridCompGetResource(gc, "washout_tuning", self%washout_tuning, default=1.0, _RC)
        call MAPL_GridCompGetResource(gc, "wet_removal_scheme", wet_removal_scheme, default="gocart", _RC)
+       call ESMF_ConfigGetAttribute (gc, "settling_scheme", settling_scheme, default='gocart', _RC)
        self%wet_removal_scheme = ESMF_UtilStringLowerCase(wet_removal_scheme, _RC)
+       self%settling_scheme = ESMF_UtilStringLowerCase(settling_scheme, _RC)
 
        allocate(ones(nbins), source=1.0)
        call MAPL_GridCompGetResource(gc, "fwet_ice", self%fwet_ice, default=ones, _RC)
@@ -101,6 +105,7 @@ module GA_EnvironmentMod
 
        !   * Wet removal scheme
        _ASSERT_RC(any(self%wet_removal_scheme == [character(len=7) :: 'gocart','ufs']), "Error. Unallowed wet removal scheme: "//trim(self%wet_removal_scheme)//". Allowed: gocart, ufs", ESMF_RC_NOT_IMPL)
+       _ASSERT_RC(any(self%settling_scheme == [character(len=7) :: 'gocart','ufs']), "Error. Unallowed settling option: "//trim(self%settling_scheme)//". Allowed: gocart, ufs", ESMF_RC_NOT_IMPL)
 
     end subroutine validate_config
 

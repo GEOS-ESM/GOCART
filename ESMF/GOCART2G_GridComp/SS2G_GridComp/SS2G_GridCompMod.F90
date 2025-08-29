@@ -277,6 +277,7 @@ contains
 #include "SS2G_Internal___.h"
        if (MAPL_AM_I_ROOT()) then
           write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+          write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
        end if
     end if
 
@@ -801,7 +802,7 @@ contains
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer :: ple0(:, :, :), zle0(:, :, :), pfl_lsan0(:, :, :), pfi_lsan0(:, :, :)
     real, pointer, dimension(:,:)     :: flux_ptr
-
+    integer :: settling_opt
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -847,12 +848,21 @@ contains
 
 !   Sea Salt Settling
 !   -----------------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        nullify(flux_ptr)
        if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            SS(:,:,:,n), t, airdens, &
-                           rh2, zle0, delp, flux_ptr, _RC)
+                           rh2, zle0, delp, flux_ptr, settling_scheme=settling_opt, _RC)
     end do
 
 !   Deposition
@@ -878,12 +888,27 @@ contains
 !   Large-scale Wet Removal
 !   ------------------------
     KIN = .TRUE.
-    do n = 1, self%nbins
-       fwet = 1.
-       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple0, t, airdens, &
-                               pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, SSWT, __RC__)
-    end do
+    select case (self%wet_removal_scheme)
+    case ('gocart')
+       do n = 1, self%nbins
+          fwet = 1.
+          call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
+                                  KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple0, t, airdens, &
+                                  pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, SSWT, __RC__)
+       end do
+    case ('ufs')
+       rainout_eff = 0.0
+       do n = 1, self%nbins
+          rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+          rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+          rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+          call WetRemovalUFS(self%km, self%klid, n, self%cdt, 'sea_salt', KIN, MAPL_GRAV, &
+                             self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
+                             SS(:,:,:,n), ple0, t, airdens, pfl_lsan0, pfi_lsan0, SSWT, __RC__)
+       end do
+    case default
+       _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
 !   Compute diagnostics
 !   -------------------
