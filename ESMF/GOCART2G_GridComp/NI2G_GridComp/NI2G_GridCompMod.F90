@@ -504,7 +504,7 @@ contains
 
 ! Deal with replenishment alarm (formerly the daily_alarm subroutine)
 ! ===================================================================
-    self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
+!    self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
     _RETURN(ESMF_SUCCESS)
 
   end subroutine Initialize
@@ -758,7 +758,7 @@ contains
     real, pointer, dimension(:,:)     :: flux_ptr
     real, pointer, dimension(:,:,:)   :: fluxWT_ptr
 
-    logical                         :: alarm_is_ringing
+!    logical                         :: alarm_is_ringing
     integer                         :: i1, j1, i2, j2, km
     real, target,allocatable, dimension(:,:,:)   :: RH20,RH80
     integer :: rhFlag
@@ -805,14 +805,14 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
-#ifdef DEBUG
-    if (alarm_is_ringing) then
-          if (MAPL_Am_I_Root()) then
-             print *,'DEBUG:: NI replenish alarm is ringing'
-          end if
-    end if
-#endif
+!    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
+!#ifdef DEBUG
+!    if (alarm_is_ringing) then
+!          if (MAPL_Am_I_Root()) then
+!             print *,'DEBUG:: NI replenish alarm is ringing'
+!          end if
+!    end if
+!#endif
 
 !   Save local copy of HNO3 for first pass through run method regardless
     thread = MAPL_get_current_thread()
@@ -824,9 +824,9 @@ contains
     !end if
 
 !   Recycle HNO3 every 3 hours
-    if (alarm_is_ringing) then
-       xhno3 = NITRATE_HNO3
-    end if
+    !if (alarm_is_ringing) then
+    !   xhno3 = NITRATE_HNO3
+    !end if
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
@@ -834,10 +834,10 @@ contains
 
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, &
                    t, rh2, fMassHNO3, MAPL_AIRMW, SO4, NH3, NO3an1, NH4a, &
-                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
+                   NITRATE_HNO3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
 
 
-    call NIheterogenousChem (NIHT, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
+    call NIheterogenousChem (NIHT, NITRATE_HNO3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
                              self%fnumDU, self%fnumSS, self%km, self%klid, &

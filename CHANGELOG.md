@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
+- Alarm to replenish hydrogen peroxide and nitric acid every three hours
+- Depletion of hydrogen peroxide and nitric acid
+- H2O2 from state specs (no longer in restart file) 
 
 ### Changed
 
