@@ -66,7 +66,7 @@ module GA_EnvironmentMod
        call MAPL_GridCompGetResource(gc, "wet_radius_thr", self%wet_radius_thr, default=0.05, _RC)
        call MAPL_GridCompGetResource(gc, "washout_tuning", self%washout_tuning, default=1.0, _RC)
        call MAPL_GridCompGetResource(gc, "wet_removal_scheme", wet_removal_scheme, default="gocart", _RC)
-       call ESMF_ConfigGetAttribute (gc, "settling_scheme", settling_scheme, default='gocart', _RC)
+       call MAPL_GridCompGetResource(gc, "settling_scheme", settling_scheme, default='gocart', _RC)
        self%wet_removal_scheme = ESMF_UtilStringLowerCase(wet_removal_scheme, _RC)
        self%settling_scheme = ESMF_UtilStringLowerCase(settling_scheme, _RC)
 
