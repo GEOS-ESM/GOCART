@@ -41,7 +41,6 @@ module GOCART2G_GridCompMod
 
    ! Private State
    type :: Instance
-      ! integer :: id = -1
       character(:), allocatable :: name
       logical :: is_active
    end type Instance
@@ -128,6 +127,7 @@ contains
       call MAPL_GridCompGetResource(gc, "wavelengths_for_profile_aop_in_nm", self%wavelengths_profile, _RC)
       call MAPL_GridCompGetResource(gc, "wavelengths_for_vertically_integrated_aop_in_nm", self%wavelengths_vertint, _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", wavelengths_diagmie, _RC)
+      ! pchakrab: TODO - Do we re-implement threading?
       ! call MAPL_GridCompGetResource(gc, "use_threads", use_threads, default=.false., _RC)
 
       ! Defined UngriddedDim items
@@ -547,7 +547,7 @@ contains
       call MAPL_GridCompGet(gc, logger=logger, _RC)
       call logger%info("Run2: starting...")
 
-      ! ! Run zero Klid for children - pchakrab: I think that is the phase Run0
+      ! Run zero Klid for children
       ! pchakrab: TODO - how to exclude "data" versions of children??
       ! do i = 1, size(gcs)
       !    call ESMF_GridCompGet (gcs(i), NAME=child_name, _RC )
@@ -587,7 +587,7 @@ contains
       if(associated(pm25_rh50)) pm25_rh50(:,:) = 0.
       if(associated(pso4tot)) pso4tot(:,:,:) = 0.
 
-      ! ! Run the children
+      ! Run the children
       ! do i = 1, size(gcs)
       !    call ESMF_GridCompGet (gcs(i), NAME=child_name, _RC )
       !    if ((index(child_name, 'data')) == 0) then ! only execute phase2 method if a computational instance
