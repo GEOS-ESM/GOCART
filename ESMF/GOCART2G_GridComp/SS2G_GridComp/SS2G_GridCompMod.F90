@@ -718,7 +718,7 @@ contains
       real, pointer :: ple0(:, :, :), zle0(:, :, :), pfl_lsan0(:, :, :), pfi_lsan0(:, :, :)
       real, pointer, dimension(:,:)     :: flux_ptr
       class(logger_t), pointer :: logger
-      integer :: status
+      integer :: settling_opt, status
 #include "SS2G_DeclarePointer___.h"
 
       call MAPL_GridCompGet(gc, logger=logger, _RC)
@@ -754,12 +754,21 @@ contains
       allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
       ! Sea Salt Settling
+      select case(self%settling_scheme)
+      case("gocart")
+         settling_opt = 1
+      case("ufs")
+         settling_opt = 2
+      case default
+         _ASSERT_RC(.false., 'Unsupported settling scheme: '//trim(self%settling_scheme), ESMF_RC_NOT_IMPL)
+      end select
+
       do n = 1, self%nbins
          nullify(flux_ptr)
          if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
          call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
               SS(:,:,:,n), t, airdens, &
-              rh2, zle0, delp, flux_ptr, settling_scheme=1, _RC)
+              rh2, zle0, delp, flux_ptr, settling_scheme=settling_opt, _RC)
       end do
 
       ! Deposition
