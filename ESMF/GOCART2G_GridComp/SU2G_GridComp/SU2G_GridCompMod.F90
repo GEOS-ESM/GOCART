@@ -13,6 +13,7 @@ module SU2G_GridCompMod
    use MAPL
    use GOCART2G_MieMod
    use Chem_AeroGeneric
+   use ReplenishAlarm
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
@@ -108,7 +109,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       logical                :: doing_point_emissions = .false.
       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
-      type(ESMF_Time) :: last_time_replenished
+      type(ESMF_Alarm) :: alarm
    end type SU2G_GridComp
 
    type wrap_
@@ -342,6 +343,9 @@ contains
 #include "SU2G_Export___.h"
 #include "SU2G_Import___.h"
 #include "SU2G_Internal___.h"
+        if (MAPL_AM_I_ROOT()) then
+            write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
+        end if
     end if
 
 !   This state holds fields needed by radiation
@@ -628,14 +632,10 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
-    block
-      type(ESMF_TimeInterval) :: oneDay
-      call ESMF_TimeIntervalSet(oneDay,d=1,_RC)
-      call ESMF_ClockGet(clock,currTime=currentTime,_RC)
-      self%last_time_replenished = currentTime - oneDay
-    end block
-      
-    RETURN_(ESMF_SUCCESS)
+! Deal with replenishment alarm (formerly the daily_alarm subroutine)
+! ===================================================================
+    self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Initialize
 
@@ -892,7 +892,7 @@ contains
     where(1.01*aviation_crs_src > MAPL_UNDEF ) aviation_crs_src = 0.
 
 !   Start with a clean emission diagnostic
-    if(associated(SUEM)) SUEM = 0.0    
+    if(associated(SUEM)) SUEM = 0.0
 
 
 !   Update emissions/production if necessary (daily)
@@ -1102,6 +1102,7 @@ contains
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
+    integer :: settling_opt
 #include "SU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1150,14 +1151,15 @@ contains
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    !ALT: Caution: with the current implementation of the routine
-    ! daily_alarm, the next call might not function correctly if it is called
-    ! more than once for the entire Run method (including Run1 and Run2)
-    ! If needed, this could be fixed by adding extra bookkeeping logic
-    alarm_is_ringing = daily_alarm(clock,30000,self%last_time_replenished, _RC)
+    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
 !   recycle H2O2 every 3 hours
     if (alarm_is_ringing) then
        workspace%recycle_h2o2 = .true.
+#ifdef DEBUG
+       if (MAPL_Am_I_Root()) then
+          print *,'DEBUG:: SU replenish alarm is ringing'
+       end if
+#endif
     end if
 
     allocate(xoh, mold=airdens, __STAT__)
@@ -1182,6 +1184,15 @@ contains
 
 !   SU Settling
 !   -----------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        ! if radius == 0 then we're dealing with a gas which has no settling losses
        if (self%radius(n) == 0.0) then
@@ -1193,9 +1204,12 @@ contains
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
        nullify(flux_ptr)
        if (associated(SUSD)) flux_ptr => SUSD(:,:,n)
+
+
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                            int_ptr, t, airdens, &
-                           rh2, zle, delp, flux_ptr, __RC__)
+                           rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
+
     end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
@@ -1240,7 +1254,7 @@ contains
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
     RH20(:,:,:) = 0.20
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1250,7 +1264,7 @@ contains
                             scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1592,33 +1606,5 @@ contains
     RETURN_(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
-
-  function daily_alarm(clock,freq,last_time_replenished,rc) result(is_ringing)
-     logical :: is_ringing
-     type(ESMF_Clock), intent(in) :: clock
-     integer, intent(in) :: freq
-     type(ESMF_Time), intent(inout) :: last_time_replenished
-     integer, optional, intent(out) :: rc
-
-     type(ESMF_Time) :: current_time
-     integer :: status
-     integer :: nhh,nmm,nss
-
-     type(ESMF_TimeInterval) :: esmf_freq
-
-     call ESMF_ClockGet(clock,currTime=current_time,_RC)
-!     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
-
-     call MAPL_UnpackTIme(freq,nhh,nmm,nss)
-     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
-
-     is_ringing = .false.
-
-     if (current_time >= last_time_replenished + esmf_freq) then
-           is_ringing = .true.
-        last_time_replenished = current_time
-        end if
-     _RETURN(_SUCCESS)
-  end function
 
 end module SU2G_GridCompMod

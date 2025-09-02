@@ -57,7 +57,7 @@ module CA2G_GridCompMod
        real               :: fHydrophobic ! Initially hydrophobic portion
        real               :: tConvPhobicToPhilic ! e-folding time [days] hydrophobic to hydrophilic
        real               :: tChemLoss(2)        ! e-folding time [days] for parameterized chemistry loss
-       logical            :: diurnal_bb   ! diurnal biomass burning
+       logical            :: diurnal_bb          ! diurnal biomass burning
        real               :: eAircraftfuel       ! Aircraft emission factor: go from kg fuel to kg C
        real               :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
 !      !Workspae for point emissions
@@ -530,6 +530,9 @@ contains
 
 !      Gravitational Settling
        call append_to_bundle(trim(comp_name)//'SD', providerState, prefix, Bundle_DP, __RC__)
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
+       end if
     end if
 
     self%instance = instance
@@ -617,7 +620,7 @@ contains
     type (wrap_)                      :: wrap
     type (CA2G_GridComp), pointer     :: self
     real, pointer, dimension(:,:,:)   :: intPtr_phobic, intPtr_philic
-    real, pointer, dimension(:,:,:)   :: ple 
+    real, pointer, dimension(:,:,:)   :: ple
 
     __Iam__('Run0')
 
@@ -999,6 +1002,7 @@ contains
     real, parameter ::  cpd    = 1004.16
     integer                      :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    integer :: settling_opt
 #include "CA2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1083,15 +1087,25 @@ contains
 
 !   CA Settling
 !   -----------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
        nullify(flux_ptr)
        flux_ptr => SD(:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
-                           int_ptr, t, airdens, &
-                           rh2, zle, delp, flux_ptr, __RC__)
+                        int_ptr, t, airdens, &
+                        rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
     end do
+
 
 !   CA Deposition
 !   -----------
@@ -1139,7 +1153,7 @@ contains
           call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
           call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
           call WetRemovalUFS  (self%km, self%klid, n, self%cdt, GCsuffix, &
-                               KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, & 
+                               KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, &
                                self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, WT, __RC__)
        end do
     case default
@@ -1471,7 +1485,7 @@ contains
 !   --------------------
     call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
 
-!   Pressure at layer edges 
+!   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
     call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
