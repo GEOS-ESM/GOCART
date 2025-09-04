@@ -1553,9 +1553,10 @@ contains
         end if
     end do
 
-    ext = 0.0d0
-    ssa = 0.0d0
-    asy = 0.0d0
+    ext  = 0.0d0
+    ssa  = 0.0d0
+    asy  = 0.0d0
+    pmom = 0.0d0
 
 !  ! Get aerosol optic properties from children
    do i = 1, size(aeroList)
