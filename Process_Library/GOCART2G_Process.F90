@@ -4592,7 +4592,7 @@ end function DarmenovaDragPartition
     enddo
     reff = reff/tarea
 !   Trap zero reff for low concentrations
-    where(reff(i1:i2,j1:j2,km) < 1.e-12) reff(i1:i2,j1:j2,km) =  pref0(i1:i2,j1:j2,km)
+    where(reff < 1.e-12) reff =  pref0
     
     deallocate(tarea, area, pref, pref0)
    endif
