@@ -4258,7 +4258,7 @@ end function DarmenovaDragPartition
    integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
    integer :: ilam470, ilam870
-   real, allocatable, dimension(:,:,:) :: tau, ssa, bck, area, tarea, pref
+   real, allocatable, dimension(:,:,:) :: tau, ssa, bck, area, tarea, pref, pref0
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
@@ -4578,18 +4578,23 @@ end function DarmenovaDragPartition
 !  area weighting individual components
    if(present(reff)) then
     reff  = 0.0
-    allocate(tarea(i1:i2,j1:j2,km), area(i1:i2,j1:j2,km), pref(i1:i2,j1:j2,km), __STAT__)
+    allocate(tarea(i1:i2,j1:j2,km), area(i1:i2,j1:j2,km), &
+             pref0(i1:i2,j1:j2,km), pref(i1:i2,j1:j2,km), __STAT__)
     tarea = 0.0
     do n = nbegin, nbins
      call mie%Query(550e-9,n,   &
                     aerosol(:,:,:,n)*delp/grav, rh, &
                     area=area, reff=pref, __RC__)
+     if(n .eq. nbegin) pref0 = pref
      area  = 4.*area*aerosol(:,:,:,n)*rhoa
      tarea = tarea + area
      reff  = reff  + area*pref
     enddo
     reff = reff/tarea
-    deallocate(tarea, area, pref)
+!   Trap zero reff for low concentrations
+    where(reff(i1:i2,j1:j2,km) < 1.e-12) reff(i1:i2,j1:j2,km) =  pref0(i1:i2,j1:j2,km)
+    
+    deallocate(tarea, area, pref, pref0)
    endif
 
    __RETURN__(__SUCCESS__)
