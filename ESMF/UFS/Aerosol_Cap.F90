@@ -26,7 +26,9 @@ module Aerosol_Cap
   use MAPL
 
   use mpi
+#ifdef UFS_TRACING
   use ufs_trace_mod
+#endif
 
   implicit none
 
@@ -93,8 +95,10 @@ contains
     call ESMF_GridCompGet(model, vm=vm, rc=rc)
     call ESMF_VMGet(vm, localpet=mype, rc=rc)
 
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace_init()
     if (mype == 0) call ufs_trace("gocart", "SetServices", "B")
+#endif
 
     ! the NUOPC model component will register the generic methods
     call NUOPC_CompDerive(model, model_routine_SS, rc=rc)
@@ -135,7 +139,9 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "SetServices", "E")
+#endif
   end subroutine SetServices
 
   subroutine ModelAdvertise(model, rc)
@@ -147,7 +153,9 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "ModelAdvertise", "B")
+#endif
 
     ! query for importState and exportState
     call NUOPC_ModelGet(model, importState=importState, &
@@ -184,7 +192,9 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "ModelAdvertise", "E")
+#endif
   end subroutine ModelAdvertise
 
   subroutine ModelDataInitialize(model, rc)
@@ -211,7 +221,9 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "ModelDataInitialize", "B")
+#endif
 
     ! retrieve import/export states and clock from NUOPC component and
     ! pass them to the GOCART component
@@ -358,7 +370,9 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "ModelDataInitialize", "E")
+#endif
   end subroutine ModelDataInitialize
 
   subroutine ModelAdvance(model, rc)
@@ -383,7 +397,9 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "ModelAdvance", "B")
+#endif
 
     ! get component's information
     call NUOPC_CompGet(model, name=name, diagnostic=diagnostic, rc=rc)
@@ -469,7 +485,9 @@ contains
       end if
     end if
 
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "ModelAdvance", "E")
+#endif
   end subroutine ModelAdvance
 
   subroutine ModelFinalize(model, rc)
@@ -484,7 +502,9 @@ contains
 
     ! begin
     rc = ESMF_SUCCESS
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "ModelFinalize", "B")
+#endif
 
     ! finalize
     call AerosolLog(modelName//': Finalizing ...', rc=rc)
@@ -540,7 +560,9 @@ contains
       file=__FILE__)) &
       return  ! bail out
 
+#ifdef UFS_TRACING
     if (mype == 0) call ufs_trace("gocart", "ModelFinalize", "E")
+#endif
   end subroutine ModelFinalize
 
 end module Aerosol_Cap
