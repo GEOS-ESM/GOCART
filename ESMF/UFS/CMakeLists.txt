@@ -10,7 +10,11 @@ set (srcs
   Aerosol_Tracer_Mod.F90
   )
 
-set (dependencies Aerosol_GridComp MAPL ESMF::ESMF ufs_utils)
+if(UFS_TRACING)
+set (dependencies Aerosol_GridComp MAPL ESMF::ESMF ufs_tracing)
+else()
+set (dependencies Aerosol_GridComp MAPL ESMF::ESMF)
+endif()
 esma_add_library (${this}
   SRCS ${srcs}
   DEPENDENCIES ${dependencies})
