@@ -10,14 +10,11 @@ module SS2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
-   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_VRFY, MAPL_RTRN, MAPL_Assert, MAPL_Return
-   use MAPL_Constants, only: MAPL_R4, MAPL_R8, MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
+   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
+   use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
-   use MAPL_Base, only: MAPL2_FieldCreate => MAPL_FieldCreate
-   use MAPL_Base, only: MAPL2_StateAdd => MAPL_StateAdd
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
    use mapl3g_generic, only: MAPL_GridCompAddSpec
-   use mapl3g_generic, only: MAPL_GridCompReexport
    use mapl3g_generic, only: MAPL_GridCompGet
    use mapl3g_generic, only: MAPL_GridCompGetResource
    use mapl3g_generic, only: MAPL_GridCompGetInternalState
@@ -40,34 +37,34 @@ module SS2G_GridCompMod
 
    integer, parameter :: instanceComputational = 1
    integer, parameter :: instanceData = 2
-   real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
-   integer, parameter :: DP=kind(1.0d0)
+   real, parameter :: OCEAN = 0.0, LAND = 1.0, SEA_ICE = 2.0
+   integer, parameter :: DP = kind(1.0d0)
+   ! character(len=*), parameter :: namespace = "/user/SS"
 
    !PUBLIC MEMBER FUNCTIONS:
    PUBLIC  SetServices
 
-   real, parameter ::  cpd    = 1004.16
+   real, parameter :: cpd = 1004.16
 
    !DESCRIPTION: This module implements GOCART's Sea Salt (SS) Gridded Component.
    !REVISION HISTORY:
    ! 24Oct2019  E.Sherman  First attempt at refactoring.
    !EOP
 
-   integer, parameter         :: NHRES = 6
+   integer, parameter :: NHRES = 6
 
    !Sea Salt state
    type, extends(GA_Environment) :: SS2G_GridComp
-      real, allocatable      :: rlow(:)        ! particle effective radius lower bound [um]
-      real, allocatable      :: rup(:)         ! particle effective radius upper bound [um]
-      real, allocatable      :: rmed(:)        ! number median radius [um]
-      integer                :: sstEmisFlag    ! Choice of SST correction to emissions:
-      !                                          0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
-      logical                :: hoppelFlag     ! Apply the Hoppel correction to emissions (Fan and Toon, 2011)
-      logical                :: weibullFlag    ! Apply the Weibull distribution to wind speed for emissions (Fan and Toon, 2011)
-      !real, allocatable      :: deep_lakes_mask(:,:)
-      integer                :: emission_scheme
-      real                   :: emission_scale ! global scaling factor
-      real                   :: emission_scale_res(NHRES) ! global scaling factor
+      real, allocatable :: rlow(:) ! particle effective radius lower bound [um]
+      real, allocatable :: rup(:)  ! particle effective radius upper bound [um]
+      real, allocatable :: rmed(:) ! number median radius [um]
+      integer :: sstEmisFlag ! SST correction to emissions: 0 - none; 1 - Jaegle et al. 2011; 2 - GEOS5
+      logical :: hoppelFlag  ! Apply Hoppel correction to emissions (Fan and Toon, 2011)
+      logical :: weibullFlag ! Apply Weibull distribution to wind speed for emissions (Fan and Toon, 2011)
+      !real, allocatable :: deep_lakes_mask(:,:)
+      integer :: emission_scheme
+      real :: emission_scale ! global scaling factor
+      real :: emission_scale_res(NHRES) ! global scaling factor
    end type SS2G_GridComp
 
    type wrap_
@@ -79,7 +76,6 @@ contains
    !BOP
    !IROUTINE: SetServices
    !INTERFACE:
-
    subroutine SetServices(gc, rc)
 
       !ARGUMENTS:
@@ -323,42 +319,37 @@ contains
       !EOP
 
       !Locals
-      character (len=ESMF_MAXSTR)          :: comp_name
-      type (ESMF_Grid)                     :: grid
-      type (ESMF_State)                    :: internal
-      type (ESMF_State)                    :: aero
-      type (ESMF_State)                    :: providerState
-      type (ESMF_FieldBundle)              :: Bundle_DP
-      type (wrap_)                         :: wrap
-      type (SS2G_GridComp), pointer        :: self
+      type(ESMF_Geom) :: geom
+      type(ESMF_Grid) :: grid
+      type(ESMF_State) :: internal, aero, provider_state
+      type(ESMF_Field) :: field
+      type(ESMF_FieldBundle) :: bundle_dp
+      type(ESMF_TimeInterval) :: time_step
+      type(ESMF_Info) :: field_info, aero_info
 
-      integer, allocatable                 :: mieTable_pointer(:)
-      integer                              :: i, dims(3), km
-      integer                              :: instance
-      type (ESMF_Field)                    :: field, fld
-      character (len=ESMF_MAXSTR)          :: prefix, bin_index
-      real, pointer, dimension(:,:)        :: lats
-      real, pointer, dimension(:,:)        :: lons
-      type (ESMF_TimeInterval)             :: time_step
-      real                                 :: CDT         ! chemistry timestep (secs)
-      real(ESMF_KIND_R4)                   :: HDT         ! model     timestep (secs)
-      real, pointer, dimension(:,:,:,:)    :: int_ptr
-      logical                              :: data_driven
-      integer                              :: NUM_BANDS
-      logical                              :: bands_are_present
-      real, pointer, dimension(:,:,:)      :: ple
-      real, pointer, dimension(:,:)        :: deep_lakes_mask
+      type(wrap_) :: wrap
+      type(SS2G_GridComp), pointer :: self
 
-      integer, allocatable, dimension(:)   :: channels_
-      integer                              :: nmom_
-      character(:), allocatable            :: file_
-      logical                              :: file_exists
+      character(len=:), allocatable :: comp_name
+      character(len=ESMF_MAXSTR) :: prefix, bin_index
+      character(:), allocatable :: file_
+
+      real, pointer, dimension(:,:,:,:) :: int_ptr
+      real, pointer, dimension(:,:,:) :: ple
+      real, pointer, dimension(:,:) :: deep_lakes_mask, lats, lons
+      real :: CDT ! chemistry timestep (secs)
+      real(ESMF_KIND_R4) :: HDT ! model timestep (secs)
+
+      logical :: data_driven, bands_are_present, file_exists
+
+      integer, allocatable, dimension(:) :: mieTable_pointer, channels_
+      integer :: instance, nmom_
+      integer :: i, dims(3), km
       integer :: i1, i2, j1, j2, status
+
       class(logger_t), pointer :: logger
 
-      ! Get the target components name and set-up traceback handle.
-      call ESMF_GridCompGet(gc, NAME=comp_name, _RC)
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name,logger=logger, _RC)
       call logger%info("Initialize:: starting...")
 
       ! Get my internal private state
@@ -366,8 +357,8 @@ contains
       self => wrap%ptr
 
       ! Global dimensions are needed here for choosing tuning parameters
-      call MAPL_GridCompGet(gc, grid=grid, num_levels=km, _RC)
-      call MAPL2_GridGet (grid, globalCellCountPerDim=dims, _RC )
+      call MAPL_GridCompGet(gc, geom=geom, grid=grid, num_levels=km, _RC)
+      call MAPL2_GridGet(grid, globalCellCountPerDim=dims, _RC)
       self%km = km
 
       ! Scaling factor to multiply calculated emissions by.  Applies to all size bins.
@@ -381,70 +372,61 @@ contains
 
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
-      call MAPL_GridGet(grid, latitudes=lats, longitudes=lons, _RC)
 
       ! Is SS data driven?
       call determine_data_driven (comp_name, data_driven, _RC)
 
       ! If this is a data component, the data is provided in the import
       ! state via ExtData instead of the actual GOCART children
-      if ( data_driven ) then
-         providerState = import
+      provider_state = export
+      prefix = ''
+      if (data_driven) then
+         provider_state = import
          prefix = 'clim'
-      else
-         providerState = export
-         prefix = ''
       end if
 
       ! Add attribute information for SS export. Used in NI hetergenous chemistry.
-      call ESMF_StateGet (export, 'SS', field, _RC)
-      call ESMF_AttributeSet(field, NAME='radius', valueList=self%rmed, itemCount=self%nbins, _RC)
-      call ESMF_AttributeSet(field, NAME='fnum', valueList=self%fnum, itemCount=self%nbins, _RC)
+      call ESMF_StateGet(export, 'SS', field, _RC)
+      call ESMF_InfoGetFromHost(field, field_info, _RC)
+      call ESMF_InfoSet(field_info, key="radius", values=self%rmed, _RC)
+      call ESMF_InfoSet(field_info, key="fnum", values=self%fnum, _RC)
+      call ESMF_InfoSet(field_info, key="ScavengingFractionPerKm", value=self%fscav(1), _RC)
 
       ! Fill AERO State with sea salt fields
-      call ESMF_StateGet (export, trim(comp_name)//'_AERO'    , aero    , _RC)
-      call ESMF_StateGet (export, trim(comp_name)//'_AERO_DP' , Bundle_DP, _RC)
-
-      call ESMF_StateGet (internal, 'SS', field, _RC)
+      call ESMF_StateGet(export, trim(comp_name)//'_AERO', aero, _RC)
+      call ESMF_StateGet(export, trim(comp_name)//'_AERO_DP', bundle_dp, _RC)
+       
+      call ESMF_StateGet(internal, 'SS', field, _RC)
       ! call ESMF_AttributeSet(field, NAME='klid', value=self%klid, _RC)
-      fld = MAPL2_FieldCreate (field, 'SS', _RC)
-      call MAPL2_StateAdd (aero, fld, _RC)
-
-      call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), _RC)
+      ! pchakrab: I'm confused here. Why are we renaming SS as SS?
+      ! fld = MAPL2_FieldCreate(field, 'SS', _RC) ! pchakrab: This is equivalent to fld = field
+      ! call MAPL2_StateAdd(aero, fld, _RC)
+      call ESMF_StateAdd(aero, [field], _RC)
 
       if (data_driven) then
          instance = instanceData
-
          do i = 1, self%nbins
             write (bin_index, '(A, I0.3)') '', i
             ! Dry deposition
-            call append_to_bundle('SSDP'//trim(bin_index), providerState, prefix, Bundle_DP, _RC)
-
+            call append_to_bundle('SSDP'//trim(bin_index), provider_state, prefix, bundle_dp, _RC)
             ! Wet deposition (Convective scavenging)
-            call append_to_bundle('SSSV'//trim(bin_index), providerState, prefix, Bundle_DP, _RC)
-
+            call append_to_bundle('SSSV'//trim(bin_index), provider_state, prefix, bundle_dp, _RC)
             ! Wet deposition
-            call append_to_bundle('SSWT'//trim(bin_index), providerState, prefix, Bundle_DP, _RC)
-
+            call append_to_bundle('SSWT'//trim(bin_index), provider_state, prefix, bundle_dp, _RC)
             ! Gravitational Settling
-            call append_to_bundle('SSSD'//trim(bin_index), providerState, prefix, Bundle_DP, _RC)
+            call append_to_bundle('SSSD'//trim(bin_index), provider_state, prefix, bundle_dp, _RC)
          end do
       else
          instance = instanceComputational
-
          ! Dry deposition
-         call append_to_bundle('SSDP', providerState, prefix, Bundle_DP, _RC)
-
+         call append_to_bundle('SSDP', provider_state, prefix, bundle_dp, _RC)
          ! Wet deposition (Convective scavenging)
-         call append_to_bundle('SSSV', providerState, prefix, Bundle_DP, _RC)
-
+         call append_to_bundle('SSSV', provider_state, prefix, bundle_dp, _RC)
          ! Wet deposition
-         call append_to_bundle('SSWT', providerState, prefix, Bundle_DP, _RC)
-
+         call append_to_bundle('SSWT', provider_state, prefix, bundle_dp, _RC)
          ! Gravitational Settling
-         call append_to_bundle('SSSD', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SSSD', provider_state, prefix, bundle_dp, _RC)
       end if
-
       self%instance = instance
 
       ! Create Radiation Mie Table
@@ -457,36 +439,49 @@ contains
       call MAPL_GridCompGetResource(gc, "n_moments", nmom_, default=0, _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", channels_, _RC)
       self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, _RC)
-      ! Mie Table instance/index
-      call ESMF_AttributeSet(aero, name='mie_table_instance', value=instance, _RC)
 
       ! Add variables to SS instance's aero state. This is used in aerosol optics calculations
-      call add_aero (aero, label='air_pressure_for_aerosol_optics',             label2='PLE', grid=grid, typekind=MAPL_R4, _RC)
-      call add_aero (aero, label='relative_humidity_for_aerosol_optics',        label2='RH',  grid=grid, typekind=MAPL_R4,_RC)
+      ! add_aero adds 1 to km, when creating field PLE
+      call add_aero(aero, label='air_pressure_for_aerosol_optics', label2='PLE', geom=geom, km=self%km, _RC)
+      call add_aero(aero, label='relative_humidity_for_aerosol_optics', label2='RH', geom=geom, km=self%km, _RC)
       ! call ESMF_StateGet (import, 'PLE', field, _RC)
-      ! call MAPL_StateAdd (aero, field, _RC)
+      ! call MAPL2_StateAdd (aero, field, _RC)
       ! call ESMF_StateGet (import, 'RH2', field, _RC)
-      ! call MAPL_StateAdd (aero, field, _RC)
-      call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,_RC)
-      call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,_RC)
-      call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,_RC)
-      call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
-           label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,_RC)
-      call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, _RC)
-      call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, _RC)
-      call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0., _RC)
+      ! call MAPL2_StateAdd (aero, field, _RC)
+      call add_aero( &
+           aero, &
+           label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call add_aero( &
+           aero, &
+           label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call add_aero(aero, &
+           label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call add_aero( &
+           aero, &
+           label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
+           geom=geom, typekind=ESMF_TYPEKIND_R4,_RC)
+      call add_aero(aero, label='sum_of_internalState_aerosol', label2='aerosolSum', geom=geom, km=self%km, _RC)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
+      call ESMF_InfoSet(aero_info, key="mie_table_instance", value=instance, _RC)
+      call ESMF_InfoSet(aero_info, key="band_for_aerosol_optics", value=0, _RC)
+      call ESMF_InfoSet(aero_info, key="wavelength_for_aerosol_optics", value=0, _RC)
       mieTable_pointer = transfer(c_loc(self), [1])
-      call ESMF_AttributeSet (aero, name='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer), _RC)
-      call ESMF_AttributeSet (aero, name='internal_variable_name', value='SS', _RC)
-      call ESMF_MethodAdd (aero, label='aerosol_optics', userRoutine=aerosol_optics, _RC)
-      call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, _RC)
-      call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, _RC)
+      call ESMF_InfoSet(aero_info, key="mieTable_pointer", values=mieTable_pointer, _RC)
+      call ESMF_InfoSet(aero_info, key="internal_variable_name", value="SS", _RC)
+      ! Add callback methods
+      call ESMF_MethodAdd(aero, label="aerosol_optics", userRoutine=aerosol_optics, _RC)
+      call ESMF_MethodAdd(aero, label="monochromatic_aerosol_optics", userRoutine=monochromatic_aerosol_optics, _RC)
+      call ESMF_MethodAdd(aero, label="get_mixR", userRoutine=get_mixR, _RC)
 
       ! Mask to prevent emissions from the Great Lakes and the Caspian Sea
       !allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
       !call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, _RC)
       call MAPL_StateGetPointer(internal, itemName="DEEP_LAKES_MASK", farrayPtr=deep_lakes_mask, _RC)
-      call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, _RC)
+      call MAPL_GridGet(grid, latitudes=lats, longitudes=lons, _RC)
+      call deepLakesMask(lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, _RC)
 
       call logger%info("Initialize:: ...complete")
       _RETURN(_SUCCESS)
@@ -890,38 +885,40 @@ contains
    subroutine aerosol_optics(state, rc)
 
       !ARGUMENTS:
-      type (ESMF_State)                                :: state
-      integer,            intent(out)                  :: rc
+      type(ESMF_State) :: state
+      integer, intent(out) :: rc
 
       !Local
-      integer, parameter                               :: DP=kind(1.0d0)
-      real, dimension(:,:,:), pointer                  :: ple, rh
-      real(kind=DP), dimension(:,:,:), pointer         :: var
-      real, dimension(:,:,:,:), pointer                :: q, q_4d
-      integer, allocatable                             :: opaque_self(:)
-      type(C_PTR)                                      :: address
-      type(SS2G_GridComp), pointer                     :: self
+      integer, parameter :: DP=kind(1.0d0)
+      real, dimension(:,:,:), pointer :: ple, rh
+      real(kind=DP), dimension(:,:,:), pointer :: var
+      real, dimension(:,:,:,:), pointer :: q, q_4d
+      integer, allocatable :: opaque_self(:)
+      type(C_PTR) :: address
+      type(SS2G_GridComp), pointer :: self
 
-      character (len=ESMF_MAXSTR)                      :: fld_name, int_fld_name
-      type(ESMF_Field)                                 :: fld
+      character(len=ESMF_MAXSTR) :: fld_name, int_fld_name
+      type(ESMF_Field) :: fld
+      type(ESMF_Info) :: info
 
-      real(kind=DP), dimension(:,:,:), allocatable     :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
-      real, dimension(:,:,:), allocatable              :: x
-      integer                                          :: instance
-      integer                                          :: n, nbins
-      integer                                          :: i1, j1, i2, j2, km
-      integer                                          :: band
+      real(kind=DP), dimension(:,:,:), allocatable :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
+      real, dimension(:,:,:), allocatable :: x
+      integer :: instance
+      integer :: n, nbins
+      integer :: i1, j1, i2, j2, km
+      integer :: band
       integer :: k, status
 
+      call ESMF_InfoGetFromHost(state, info, _RC)
+
       ! Mie Table instance/index
-      call ESMF_AttributeGet(state, name='mie_table_instance', value=instance, _RC)
+      call ESMF_InfoGet(info, key="mie_table_instance", value=instance, _RC)
 
       ! Radiation band
-      band = 0
-      call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, _RC)
+      call ESMF_InfoGet(info, key="band_for_aerosol_optics", value=band, default=0, _RC)
 
       ! Pressure at layer edges
-      call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
 
       ! call MAPL_GetPointer (state, ple, 'PLE', _RC)
@@ -931,7 +928,7 @@ contains
       km = ubound(ple, 3)
 
       ! Relative humidity
-      call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
       ! call MAPL_GetPointer (state, rh, 'RH2', _RC)
@@ -942,9 +939,9 @@ contains
            asy_s(i1:i2, j1:j2, km), &
            x(i1:i2, j1:j2, km), _STAT)
 
-      call ESMF_AttributeGet(state, name='internal_variable_name', value=int_fld_name, _RC)
-      call ESMF_StateGet (state, trim(int_fld_name), field=fld, _RC) !add as attribute - dont hard code?
-      call ESMF_FieldGet (fld, farrayPtr=q, _RC)
+      call ESMF_InfoGet(info, key="internal_variable_name", value=int_fld_name, _RC)
+      call ESMF_StateGet(state, trim(int_fld_name), field=fld, _RC) !add as attribute - dont hard code?
+      call ESMF_FieldGet(fld, farrayPtr=q, _RC)
 
       nbins = size(q,4)
 
@@ -957,28 +954,26 @@ contains
          end do
       end do
 
-      call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, _RC)
-      allocate (opaque_self(n), _STAT)
-      call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, _RC)
+      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
 
-      call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, _RC)
+      call mie_(self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, _RC)
 
-      call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= '') then
          call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = ext_s(:,:,:)
       end if
 
-      call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= '') then
          call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = ssa_s(:,:,:)
       end if
 
-      call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= '') then
          call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = asy_s(:,:,:)
@@ -992,21 +987,21 @@ contains
    contains
 
       subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
-         type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
-         integer,                       intent(in   ) :: nbins            ! number of bins
-         integer,                       intent(in )   :: band             ! channel
-         real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
-         real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
-         real(kind=8), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         real(kind=8), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         real(kind=8), intent(  out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         integer,           intent(out)  :: rc
+         type(GOCART2G_Mie), intent(inout) :: mie ! mie table
+         integer, intent(in) :: nbins   ! number of bins
+         integer, intent(in) :: band    ! channel
+         real, intent(in) :: q(:,:,:,:) ! aerosol mass mixing ratio, kg kg-1
+         real, intent(in) :: rh(:,:,:)  ! relative humidity
+         real(kind=8), intent(out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+         real(kind=8), intent(out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+         real(kind=8), intent(out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
+         integer, intent(out)  :: rc
 
          ! local
-         integer                           :: l
-         real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
-         real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-         real                              :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
+         integer :: l
+         real :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
+         real :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
+         real :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
          integer :: status
 
          bext_s  = 0.0d0
@@ -1030,36 +1025,39 @@ contains
    subroutine monochromatic_aerosol_optics(state, rc)
 
       !ARGUMENTS:
-      type (ESMF_State)                                :: state
-      integer,            intent(out)                  :: rc
+      type (ESMF_State) :: state
+      integer, intent(out) :: rc
 
       !Local
-      real, dimension(:,:,:), pointer                  :: ple, rh
-      real, dimension(:,:), pointer                    :: var
-      real, dimension(:,:,:,:), pointer                :: q, q_4d
-      integer, allocatable                             :: opaque_self(:)
-      type(C_PTR)                                      :: address
-      type(SS2G_GridComp), pointer                     :: self
+      real, dimension(:,:,:), pointer :: ple, rh
+      real, dimension(:,:), pointer :: var
+      real, dimension(:,:,:,:), pointer :: q, q_4d
+      integer, allocatable :: opaque_self(:)
+      type(C_PTR) :: address
+      type(SS2G_GridComp), pointer :: self
 
-      character (len=ESMF_MAXSTR)                      :: fld_name
-      type(ESMF_Field)                                 :: fld
+      character(len=ESMF_MAXSTR) :: fld_name
+      type(ESMF_Field) :: fld
+      type(ESMF_Info) :: info
 
-      real, dimension(:,:,:), allocatable              :: tau_s, tau, x ! (lon:,lat:,lev:)
-      integer                                          :: instance
-      integer                                          :: n, nbins, k
-      integer                                          :: i1, j1, i2, j2, km, i, j
-      real                                             :: wavelength
+      real, dimension(:,:,:), allocatable :: tau_s, tau, x ! (lon:,lat:,lev:)
+      integer :: instance
+      integer :: n, nbins, k
+      integer :: i1, j1, i2, j2, km, i, j
+      real :: wavelength
       integer :: status
 
+      call ESMF_InfoGetFromHost(state, info, _RC)
+
       ! Mie Table instance/index
-      call ESMF_AttributeGet (state, name='mie_table_instance', value=instance, _RC)
+      call ESMF_InfoGet(info, key="mie_table_instance", value=instance, _RC)
 
       ! Radiation band
       wavelength = 0.
-      call ESMF_AttributeGet (state, name='wavelength_for_aerosol_optics', value=wavelength, _RC)
+      call ESMF_InfoGet(info, key="wavelength_for_aerosol_optics", value=wavelength, _RC)
 
       ! Pressure at layer edges
-      call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
 
       ! call MAPL_GetPointer (state, ple, 'PLE', _RC)
@@ -1069,7 +1067,7 @@ contains
       km = ubound(ple, 3)
 
       ! Relative humidity
-      call ESMF_AttributeGet (state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
       ! call MAPL_GetPointer (state, rh, 'RH2', _RC)
@@ -1081,8 +1079,8 @@ contains
       tau_s = 0.
       tau   = 0.
 
-      call ESMF_StateGet (state, 'SS', field=fld, _RC)
-      call ESMF_FieldGet (fld, farrayPtr=q, _RC)
+      call ESMF_StateGet(state, 'SS', field=fld, _RC)
+      call ESMF_FieldGet(fld, farrayPtr=q, _RC)
 
       nbins = size(q,4)
 
@@ -1096,9 +1094,7 @@ contains
          end do
       end do
 
-      call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, _RC)
-      allocate (opaque_self(n), _STAT)
-      call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, _RC)
+      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1108,7 +1104,7 @@ contains
          tau_s = tau_s + tau
       end do
 
-      call ESMF_AttributeGet (state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= '') then
          call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = sum(tau_s, dim=3)
