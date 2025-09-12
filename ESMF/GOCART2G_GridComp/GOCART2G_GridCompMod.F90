@@ -8,9 +8,7 @@ module GOCART2G_GridCompMod
    !USES:
    use ESMF
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Return, MAPL_Assert
-   use MAPL_Constants, only: MAPL_R4, MAPL_GRAV, MAPL_PI
-
-   use MAPL, only: MAPL2_GetPointer => MAPL_GetPointer
+   use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
 
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
    use mapl3g_generic, only: MAPL_GridCompAddChild, MAPL_GridCompAddConnectivity, MAPL_GridCompRunChildren
@@ -19,7 +17,8 @@ module GOCART2G_GridCompMod
    use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
-   use mapl3g_State_API, only: MAPL_StateGetPointer
+   use mapl3g_FieldBundle_API, only: MAPL_FieldBundleAdd
+   use mapl3g_State_API, only: MAPL_StateGetPointer, MAPL_StateAdd
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_UngriddedDim, only: UngriddedDim
    use pflogger, only: logger_t => logger
@@ -249,34 +248,37 @@ contains
    subroutine Initialize (gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type (ESMF_GridComp) :: gc  ! Gridded component
-      type (ESMF_State) :: import ! Import state
-      type (ESMF_State) :: export ! Export state
-      type (ESMF_Clock) :: clock  ! The clock
-      integer, intent(out) :: rc  ! Error code
+      type(ESMF_GridComp) :: gc  ! Gridded component
+      type(ESMF_State) :: import ! Import state
+      type(ESMF_State) :: export ! Export state
+      type(ESMF_Clock) :: clock  ! The clock
+      integer, intent(out) :: rc ! Error code
 
       !DESCRIPTION:  This initializes the GOCART Grid Component. It primarily creates
       !                its exports and births its children.
-
       !REVISION HISTORY:
       ! 14oct2019   E.Sherman  First attempt at refactoring
       !EOP
-
-      character (len=ESMF_MAXSTR) :: comp_name
-      type (ESMF_Grid) :: grid
-      type (GOCART_State), pointer :: self
-      type (wrap_) :: wrap
+      
+      type(ESMF_Geom) :: geom
+      type(ESMF_Grid) :: grid
+      type(ESMF_State) :: aero
+      type(ESMF_Info) :: info
+      type(GOCART_State), pointer :: self
+      type(wrap_) :: wrap
+      ! integer :: n_modes
+      character(len=ESMF_MAXSTR), allocatable :: aero_aci_modes(:)
+      real :: maxclean, ccntuning
       integer :: im, jm, km
       class(logger_t), pointer :: logger
       integer :: status
 
       ! Get the target components name and set-up traceback handle.
-      call ESMF_GridCompGet (gc, name=comp_name, _RC)
       call MAPL_GridCompGet(gc, logger=logger, _RC)
 
       call logger%info("Initialize:: starting...")
 
-      call MAPL_GridCompGet(gc, grid=grid, num_levels=km, _RC)
+      call MAPL_GridCompGet(gc, geom=geom, grid=grid, num_levels=km, _RC)
       call MAPL_GridGet(grid, im=im, jm=jm, _RC)
 
       ! Get my internal state
@@ -289,8 +291,7 @@ contains
       ! ! Get children and their export states from my generic state
       ! call MAPL_Get (MAPL, gcs=gcs, gex=gex, _RC )
 
-      ! ! Fill AERO_RAD, AERO_ACI, and AERO_DP with the children's states
-      ! call ESMF_StateGet (export, 'AERO', aero, _RC)
+      ! Fill AERO_RAD, AERO_ACI, and AERO_DP with the children's states
       ! call ESMF_StateGet (export, 'AERO_DP', aero_dp, _RC)
 
       ! ! Add children's AERO states to GOCART2G's AERO states
@@ -301,96 +302,89 @@ contains
       ! call add_aero_states_(self%CA%instances(:))
       ! call add_aero_states_(self%NI%instances(:))
 
-      ! ! Begin AERO_RAD
-      ! ! Add variables to AERO_RAD state. Used in aerosol optics calculations
-      ! call add_aero (aero, label='air_pressure_for_aerosol_optics', label2='PLE', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
-      !      label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, _RC)
+      ! Begin AERO_RAD
+      call ESMF_StateGet(export, 'AERO', aero, _RC)
+      ! Add variables to AERO_RAD state. Used in aerosol optics calculations
+      call add_aero(aero, label='air_pressure_for_aerosol_optics', label2='PLE', geom=geom, km=km, _RC)
+      call add_aero(aero, label='relative_humidity_for_aerosol_optics', label2='RH', geom=geom, km=km, _RC)
+      call add_aero(aero, label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', geom=geom, km=km, _RC)
+      call add_aero(aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', geom=geom, km=km, _RC)
+      call add_aero(aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', geom=geom, km=km, _RC)
+      call add_aero( &
+           aero, &
+           label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
+           geom=geom, _RC)
 
-      ! ! Used in get_mixRatioSum
-      ! call add_aero (aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='sum_of_internalState_aerosol_CA.oc', label2='aerosolSumCA.oc', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='sum_of_internalState_aerosol_CA.bc', label2='aerosolSumCA.bc', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='sum_of_internalState_aerosol_CA.br', label2='aerosolSumCA.br', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='sum_of_internalState_aerosol_SU', label2='aerosolSumSU', &
-      !      grid=grid, typekind=MAPL_R4, _RC)
+      ! Used in get_mixRatioSum
+      call add_aero(aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', geom=geom, km=km, _RC)
+      call add_aero(aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', geom=geom, km=km, _RC)
+      call add_aero(aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', geom=geom, km=km, _RC)
+      call add_aero(aero, label='sum_of_internalState_aerosol_CA.oc', label2='aerosolSumCA.oc', geom=geom, km=km, _RC)
+      call add_aero(aero, label='sum_of_internalState_aerosol_CA.bc', label2='aerosolSumCA.bc', geom=geom, km=km, _RC)
+      call add_aero(aero, label='sum_of_internalState_aerosol_CA.br', label2='aerosolSumCA.br', geom=geom, km=km, _RC)
+      call add_aero(aero, label='sum_of_internalState_aerosol_SU', label2='aerosolSumSU', geom=geom, km=km, _RC)
 
-      ! call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, _RC)
-      ! call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0., _RC)
-      ! call ESMF_AttributeSet(aero, name='aerosolName', value='', _RC)
-      ! call ESMF_AttributeSet(aero, name='im', value=dims(1), _RC)
-      ! call ESMF_AttributeSet(aero, name='jm', value=dims(2), _RC)
-      ! call ESMF_AttributeSet(aero, name='km', value=dims(3), _RC)
+      call ESMF_InfoGetFromHost(aero, info, _RC)
+      call ESMF_InfoSet(info, key="band_for_aerosol_optics", value=0, _RC)
+      call ESMF_InfoSet(info, key="wavelength_for_aerosol_optics", value=0., _RC)
+      call ESMF_InfoSet(info, key="aerosolName", value="", _RC)
+      call ESMF_InfoSet(info, key="im", value=im, _RC)
+      call ESMF_InfoSet(info, key="jm", value=jm, _RC)
+      call ESMF_InfoSet(info, key="km", value=km, _RC)
 
-      ! ! Attach method to return sum of aerosols. Used in GAAS.
-      ! call ESMF_MethodAdd (aero, label='get_mixRatioSum', userRoutine=get_mixRatioSum, _RC)
+      ! Attach method to return sum of aerosols. Used in GAAS.
+      call ESMF_MethodAdd(aero, label='get_mixRatioSum', userRoutine=get_mixRatioSum, _RC)
 
-      ! ! Attach method to create a Bundle of aerosol fields. Used in GAAS.
-      ! call ESMF_MethodAdd (aero, label='serialize_bundle', userRoutine=serialize_bundle, _RC)
+      ! Attach method to create a Bundle of aerosol fields. Used in GAAS.
+      call ESMF_MethodAdd(aero, label='serialize_bundle', userRoutine=serialize_bundle, _RC)
 
-      ! ! Attach the monochromatic aerosol optics method. Used in GAAS.
-      ! call ESMF_MethodAdd (aero, label='get_monochromatic_aop', &
-      !      userRoutine=get_monochromatic_aop, _RC)
+      ! Attach the monochromatic aerosol optics method. Used in GAAS.
+      call ESMF_MethodAdd(aero, label='get_monochromatic_aop', userRoutine=get_monochromatic_aop, _RC)
 
-      ! ! Attach the aerosol optics method. Used in Radiation.
-      ! call ESMF_MethodAdd (aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, _RC)
+      ! Attach the aerosol optics method. Used in Radiation.
+      call ESMF_MethodAdd(aero, label='run_aerosol_optics', userRoutine=run_aerosol_optics, _RC)
 
-      ! ! This attribute indicates if the aerosol optics method is implemented or not.
-      ! ! Radiation will not call the aerosol optics method unless this attribute is
-      ! ! explicitly set to true.
-      ! call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., _RC)
+      ! This attribute indicates if the aerosol optics method is implemented or not.
+      ! Radiation will not call the aerosol optics method unless this attribute is
+      ! explicitly set to true.
+      call ESMF_InfoSet(info, key='implements_aerosol_optics_method', value=.true., _RC)
 
-      ! ! Begin adding necessary aerosol cloud interaction information
-      ! aero_aci_modes =  [ &
-      !      'du001    ', 'du002    ', 'du003    ', &
-      !      'du004    ', 'du005    ',              &
-      !      'ss001    ', 'ss002    ', 'ss003    ', &
-      !      'sulforg01', 'sulforg02', 'sulforg03', &
-      !      'bcphilic ', 'ocphilic ', 'brcphilic'}
-
+      ! Begin adding necessary aerosol cloud interaction information
+      aero_aci_modes =  [ &
+           'du001    ', 'du002    ', 'du003    ', &
+           'du004    ', 'du005    ',              &
+           'ss001    ', 'ss002    ', 'ss003    ', &
+           'sulforg01', 'sulforg02', 'sulforg03', &
+           'bcphilic ', 'ocphilic ', 'brcphilic']
       ! n_modes = size(aero_aci_modes)
 
-      ! call ESMF_AttributeSet(aero, name='number_of_aerosol_modes', value=n_modes, _RC)
-      ! call ESMF_AttributeSet(aero, name='aerosol_modes', itemcount=n_modes, valuelist=aero_aci_modes, _RC)
+      ! call ESMF_InfoSet(info, key='number_of_aerosol_modes', value=n_modes, _RC)
+      call ESMF_InfoSet(info, key='aerosol_modes', values=aero_aci_modes, _RC)
 
-      ! ! max mixing ratio before switching to "polluted" size distributions
-      ! call ESMF_ConfigGetAttribute(CF, maxclean, default=1.0e-9, label='MAXCLEAN:', _RC)
-      ! call ESMF_AttributeSet(aero, name='max_q_clean', value=maxclean, _RC)
+      ! max mixing ratio before switching to "polluted" size distributions
+      call MAPL_GridCompGetResource(gc, "MAXCLEAN", maxclean, default=1.0e-9, _RC)
+      call ESMF_InfoSet(info, key='max_q_clean', value=maxclean, _RC)
 
       ! call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label='CCNTUNING:', _RC)
-      ! call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, _RC)
+      call MAPL_GridCompGetResource(gc, "CCNTUNING", ccntuning, default=1.8, _RC)
+      call ESMF_InfoSet(info, key='ccn_tuning', value=ccntuning, _RC)
 
-      ! ! Add variables to AERO state
-      ! call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='width_of_aerosol_mode', label2='SIGMA', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='aerosol_number_concentration', label2='NUM', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='aerosol_dry_size', label2='DGN', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='aerosol_density', label2='density', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='aerosol_hygroscopicity', label2='KAPPA', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='fraction_of_dust_aerosol', label2='FDUST', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='fraction_of_soot_aerosol', label2='FSOOT', grid=grid, typekind=MAPL_R4, _RC)
-      ! call add_aero (aero, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, _RC)
+      ! Add variables to AERO state
+      call add_aero(aero, label='air_temperature', label2='T', geom=geom, km=km, _RC)
+      call add_aero(aero, label='fraction_of_land_type', label2='FRLAND', geom=geom, _RC)
+      call add_aero(aero, label='width_of_aerosol_mode', label2='SIGMA', geom=geom, km=km, _RC)
+      call add_aero(aero, label='aerosol_number_concentration', label2='NUM', geom=geom, km=km, _RC)
+      call add_aero(aero, label='aerosol_dry_size', label2='DGN', geom=geom, km=km, _RC)
+      call add_aero(aero, label='aerosol_density', label2='density', geom=geom, km=km, _RC)
+      call add_aero(aero, label='aerosol_hygroscopicity', label2='KAPPA', geom=geom, km=km, _RC)
+      call add_aero(aero, label='fraction_of_dust_aerosol', label2='FDUST', geom=geom, km=km, _RC)
+      call add_aero(aero, label='fraction_of_soot_aerosol', label2='FSOOT', geom=geom, km=km, _RC)
+      call add_aero(aero, label='fraction_of_organic_aerosol', label2='FORGANIC', geom=geom, km=km, _RC)
 
-      ! ! Attach the aerosol optics method
-      ! call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, _RC)
+      ! Attach the aerosol optics method
+      call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, _RC)
+
+      ! call ESMF_StatePrint(aero, _RC)
 
       call logger%info("Initialize:: ...complete")
       _RETURN(_SUCCESS)
@@ -1185,123 +1179,123 @@ contains
       _RETURN(_SUCCESS)
    end subroutine add_children__
 
-!===================================================================================
-!   subroutine serialize_bundle (state, rc)
+   subroutine serialize_bundle(state, rc)
+      !ARGUMENTS:
+      type(ESMF_State) :: state
+      integer, intent(out) :: rc
 
-!     implicit none
+      !Local
+      character(len=ESMF_MAXSTR), allocatable :: itemList(:)
+      type(ESMF_State) :: child_state
+      type(ESMF_StateItem_Flag), allocatable :: itemTypes(:)
+      type(ESMF_FieldBundle) :: bundle
+      type(ESMF_Grid) :: grid
+      type(ESMF_Field) :: field, serializedField
+      type(ESMF_Info) :: info
 
-! !   !ARGUMENTS:
-!     type (ESMF_State)                             :: state
-!     integer,            intent(out)               :: rc
+      character(len=ESMF_MAXSTR) :: binIndexstr
+      character(len=ESMF_MAXSTR), allocatable :: aeroName(:)
 
-! !   !Local
-!     character (len=ESMF_MAXSTR), allocatable      :: itemList(:)
-!     type (ESMF_State)                             :: child_state
-!     type (ESMF_StateItem_Flag), allocatable       :: itemTypes(:)
-!     type (ESMF_FieldBundle)                       :: bundle
-!     type (ESMF_Grid)                              :: grid
-!     type (ESMF_Field)                             :: field, serializedField
+      real, pointer, dimension(:,:,:,:) :: orig_ptr
+      real, pointer, dimension(:,:,:) :: ptr3d
 
-!     character (len=ESMF_MAXSTR)                   :: binIndexstr
-!     character (len=ESMF_MAXSTR), allocatable      :: aeroName(:)
+      integer :: b, i, j, n, rank, nbins, status
 
-!     real, pointer, dimension(:,:,:,:)             :: orig_ptr
-!     real, pointer, dimension(:,:,:)               :: ptr3d
+      !Description: Callback for AERO_RAD state used in GAAS module to provide a
+      !                 serialized ESMF_Bundle of aerosol fields.
 
-!     integer     :: b, i, j, n, rank, nbins
+      ! Get list of child states within state and add to aeroList
+      ! Remember, AERO_RAD contains its children's AERO_RAD states
+      call ESMF_StateGet(state, itemCount=n, _RC)
+      allocate(itemList(n), _STAT)
+      allocate(itemTypes(n), _STAT)
+      call ESMF_StateGet(state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
-!     __Iam__('GOCART2G::serialize_bundle')
+      ! Create empty ESMF_FieldBundle to add Children's aerosol fields to
+      bundle = ESMF_FieldBundleCreate(name="serialized_aerosolBundle", _RC)
+      call MAPL_StateAdd(state, [bundle], _RC)
 
-! !   !Description: Callback for AERO_RAD state used in GAAS module to provide a
-! !                 serialized ESMF_Bundle of aerosol fields.
-! !-----------------------------------------------------------------------------------
-! !   Begin...
+      do i = 1, n
+         if (itemTypes(i) /= ESMF_STATEITEM_STATE) cycle ! exclude non-states
+         call ESMF_StateGet(state, trim(itemList(i)), child_state, _RC)
+         call ESMF_InfoGetFromHost(state, info, _RC)
+         call ESMF_InfoGet(info, key="internal_variable_name", values=aeroName, _RC)
+         do b = 1, size(aeroName)
+            call ESMF_StateGet(child_state, trim(aeroName(b)), field, _RC)
+            call ESMF_FieldGet(field, rank=rank, _RC)
+            select case(rank)
+            case(3)
+               call MAPL_FieldBundleAdd(bundle, [field], _RC)
+            case(4) ! serialize 4d variables to mulitple 3d variables
+               call ESMF_FieldGet(field, grid=grid, _RC)
+               call MAPL_StateGetPointer(child_state, itemName=trim(aeroName(b)), farrayPtr=orig_ptr, _RC)
+               do j = 1, size(orig_ptr, 4)
+                  write (binIndexstr, '(I0.3)') j
+                  ptr3d => orig_ptr(:,:,:,j)
+                  ! pchakrab: TODO, we are sharing data here
+                  serializedField = ESMF_FieldCreate( &
+                       grid=grid, &
+                       datacopyFlag=ESMF_DATACOPY_REFERENCE, &
+                       farrayPtr=ptr3d, &
+                       name=trim(aeroName(b))//trim(binIndexstr), _RC)
+                  ! probably need to add a flag to allow for adding multilple fields of the same name
+                  call MAPL_FieldBundleAdd(bundle, [serializedField], _RC)
+               end do ! do j
+            case default
+               _FAIL("rank not supported")
+            end select ! select case
+         end do ! do b
+         deallocate (aeroName, _STAT)
+      end do ! do i
 
-! !   Get list of child states within state and add to aeroList
-! !   Remember, AERO_RAD contains its children's AERO_RAD states
-! !   ----------------------------------------------------------
-!     call ESMF_StateGet (state, itemCount=n, _RC)
-!     allocate (itemList(n), __STAT__)
-!     allocate (itemTypes(n), __STAT__)
-!     call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
-
-! !  Create empty ESMF_FieldBundle to add Children's aerosol fields to
-!    bundle = ESMF_FieldBundleCreate(name="serialized_aerosolBundle", _RC)
-!    call MAPL_StateAdd(state, bundle, _RC)
-
-!    do i = 1, n
-!       if (itemTypes(i) /= ESMF_StateItem_State) cycle ! exclude non-states
-!       call ESMF_StateGet (state, trim(itemList(i)), child_state, _RC)
-!       call ESMF_AttributeGet (child_state, name='internal_variable_name', itemCount=nbins, _RC)
-!       allocate (aeroName(nbins), __STAT__)
-!       call ESMF_AttributeGet (child_state, name='internal_variable_name', valueList=aeroName, _RC)
-
-
-!       do b = 1, size(aeroName)
-!          call ESMF_StateGet (child_state, trim(aeroName(b)), field, _RC)
-!          call ESMF_FieldGet (field, rank=rank, _RC)
-
-!          if (rank == 3) then
-!             call MAPL_FieldBundleAdd (bundle, field, _RC)
-
-!          else if (rank == 4) then ! serialize 4d variables to mulitple 3d variables
-!             call ESMF_FieldGet (field, grid=grid, _RC)
-!             call MAPL_GetPointer (child_state, orig_ptr, trim(aeroName(b)), _RC)
-!             do j = 1, size(orig_ptr, 4)
-!                write (binIndexstr, '(I0.3)') j
-!                ptr3d => orig_ptr(:,:,:,j)
-!                serializedField = ESMF_FieldCreate (grid=grid, datacopyFlag=ESMF_DATACOPY_REFERENCE, &
-!                                               farrayPtr=ptr3d, name=trim(aeroName(b))//trim(binIndexstr), _RC)
-!                call MAPL_FieldBundleAdd (bundle, serializedField, _RC) ! probably need to add a flag to allow for adding multilple fields of the same name.
-!             end do ! do j
-!          end if ! if (rank
-!       end do ! do b
-!       deallocate (aeroName, __STAT__)
-!    end do ! do i
-
-!   end subroutine serialize_bundle
+      _RETURN(_SUCCESS)
+   end subroutine serialize_bundle
 
    subroutine run_aerosol_optics (state, rc)
 
       !ARGUMENTS:
-      type (ESMF_State)                                :: state
-      integer,            intent(out)                  :: rc
+      type(ESMF_State) :: state
+      integer, intent(out) :: rc
 
       !Local
-      real, dimension(:,:,:), pointer                  :: ple
-      real, dimension(:,:,:), pointer                  :: rh
-      real, dimension(:,:,:), pointer                  :: var
+      real, dimension(:,:,:), pointer :: ple
+      real, dimension(:,:,:), pointer :: rh
+      real, dimension(:,:,:), pointer  :: var
 
-      character (len=ESMF_MAXSTR)                      :: fld_name
+      character(len=:), allocatable :: fld_name
 
-      real(kind=8), dimension(:,:,:),pointer           :: ext_, ssa_, asy_      ! (lon:,lat:,lev:)
-      real(kind=8), dimension(:,:,:), allocatable      :: ext,  ssa,  asy       ! (lon:,lat:,lev:)
+      real(kind=8), dimension(:,:,:), pointer :: ext_, ssa_, asy_    ! (lon:,lat:,lev:)
+      real(kind=8), dimension(:,:,:), allocatable :: ext,  ssa,  asy ! (lon:,lat:,lev:)
 
-      integer                                          :: i, n, b, j
-      integer                                          :: i1, j1, i2, j2, km
-      integer                                          :: band
-      integer, parameter                               :: n_bands = 1
+      integer :: i, n, b, j
+      integer :: i1, j1, i2, j2, km
+      integer :: band
+      integer, parameter :: n_bands = 1
 
-      character (len=ESMF_MAXSTR), allocatable         :: itemList(:), aeroList(:)
-      type (ESMF_State)                                :: child_state
-      real, pointer,     dimension(:,:,:)              :: as_ptr_3d
+      character(len=ESMF_MAXSTR), allocatable :: itemList(:), aeroList(:)
+      type(ESMF_State) :: child_state
+      real, pointer, dimension(:,:,:) :: as_ptr_3d
 
-      type (ESMF_StateItem_Flag), allocatable          :: itemTypes(:)
+      type(ESMF_StateItem_Flag), allocatable :: itemTypes(:)
+      type(ESMF_Info) :: info, child_info
       integer :: status
 
       ! Description: Used in Radiation gridded components to provide aerosol properties
 
+      call ESMF_InfoGetFromHost(state, info, _RC)
+
       ! Radiation band
-      call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, _RC)
+      call ESMF_InfoGet(info, key='band_for_aerosol_optics', value=band, _RC)
 
       ! Relative humidity
-      call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, RH, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
       ! Pressure at layer edges
-      call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, PLE, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
+      ! TODO: pchakrab - CAREFUL! In MAPL3 land, PLE is (:, :, 1:km+1), instead of (:, :, 0:km)
       i1 = lbound(ple, 1); i2 = ubound(ple, 1)
       j1 = lbound(ple, 2); j2 = ubound(ple, 2)
       km = ubound(ple, 3)
@@ -1312,23 +1306,23 @@ contains
            asy(i1:i2,j1:j2,km), _STAT)
 
       ! Get list of child states within state and add to aeroList
-      call ESMF_StateGet (state, itemCount=n, _RC)
-      allocate (itemList(n), __STAT__)
-      allocate (itemTypes(n), __STAT__)
-      call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
+      call ESMF_StateGet(state, itemCount=n, _RC)
+      allocate(itemList(n), _STAT)
+      allocate(itemTypes(n), _STAT)
+      call ESMF_StateGet(state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
       b=0
       do i = 1, n
-         if (itemTypes(i) == ESMF_StateItem_State) then
+         if (itemTypes(i) == ESMF_STATEITEM_STATE) then
             b = b + 1
          end if
       end do
 
-      allocate (aeroList(b), __STAT__)
+      allocate (aeroList(b), _STAT)
 
       j = 1
       do i = 1, n
-         if (itemTypes(i) == ESMF_StateItem_State) then
+         if (itemTypes(i) == ESMF_STATEITEM_STATE) then
             aeroList(j) = trim(itemList(i))
             j = j + 1
          end if
@@ -1342,70 +1336,72 @@ contains
       do i = 1, size(aeroList)
          call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
 
+         call ESMF_InfoGetFromHost(child_state, child_info, _RC)
+
          ! set RH in child's aero state
-         call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+         call ESMF_InfoGet(child_info, key='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
 
          if (fld_name /= '') then
-            call MAPL2_GetPointer(child_state, as_ptr_3d, trim(fld_name), _RC)
+            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
             as_ptr_3d = rh
          end if
 
          ! set PLE in child's aero state
-         call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+         call ESMF_InfoGet(child_info, key='air_pressure_for_aerosol_optics', value=fld_name, _RC)
 
          if (fld_name /= '') then
-            call MAPL2_GetPointer(child_state, as_ptr_3d, trim(fld_name), _RC)
+            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
             as_ptr_3d = ple
          end if
 
          ! set band in child's aero state
-         call ESMF_AttributeSet(child_state, name='band_for_aerosol_optics', value=band, _RC)
+         call ESMF_InfoSet(child_info, key='band_for_aerosol_optics', value=band, _RC)
 
          ! execute the aerosol optics method
          call ESMF_MethodExecute(child_state, label="aerosol_optics", _RC)
 
          ! Retrieve extinction from each child
-         call ESMF_AttributeGet(child_state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
+         call ESMF_InfoGet(child_info, key='extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
          if (fld_name /= '') then
-            call MAPL2_GetPointer(child_state, ext_, trim(fld_name), _RC)
+            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ext_, _RC)
          end if
 
          ! Retrieve scattering extinction from each child
-         call ESMF_AttributeGet(child_state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, _RC)
+         call ESMF_InfoGet(child_info, key='single_scattering_albedo_of_ambient_aerosol', value=fld_name, _RC)
          if (fld_name /= '') then
-            call MAPL2_GetPointer(child_state, ssa_, trim(fld_name), _RC)
+            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ssa_, _RC)
          end if
 
          ! Retrieve asymetry parameter multiplied by scatering extiction from each child
-         call ESMF_AttributeGet(child_state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, _RC)
+         call ESMF_InfoGet(child_info, key='asymmetry_parameter_of_ambient_aerosol', value=fld_name, _RC)
          if (fld_name /= '') then
-            call MAPL2_GetPointer(child_state, asy_, trim(fld_name), _RC)
+            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=asy_, _RC)
          end if
 
          ! Sum aerosol optic properties from each child
          ext = ext + ext_
          ssa = ssa + ssa_
          asy = asy + asy_
-
       end do
 
+      call ESMF_InfoGetFromHost(state, info, _RC)
 
       ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
-      call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key='extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
       if (fld_name /= '') then
-         call MAPL2_GetPointer(state, var, trim(fld_name), _RC)
+         call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = ext(:,:,:)
       end if
 
-      call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key='single_scattering_albedo_of_ambient_aerosol', value=fld_name, _RC)
       if (fld_name /= '') then
-         call MAPL2_GetPointer(state, var, trim(fld_name), _RC)
+         call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = ssa(:,:,:)
       end if
 
-      call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, _RC)
+      call ESMF_InfoGet(info, key='asymmetry_parameter_of_ambient_aerosol', value=fld_name, _RC)
       if (fld_name /= '') then
-         call MAPL2_GetPointer(state, var, trim(fld_name), _RC)
+         call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = asy(:,:,:)
       end if
 
@@ -1418,71 +1414,72 @@ contains
    subroutine aerosol_activation_properties(state, rc)
 
       ! Arguments
-      type(ESMF_State)     :: state
+      type(ESMF_State) :: state
       integer, intent(out) :: rc
 
       ! Local
-      character(len=ESMF_MAXSTR)      :: mode              ! mode name
-      character(len=ESMF_MAXSTR)      :: mode_             ! lowercase mode name
+      character(len=ESMF_MAXSTR) :: mode                ! mode name
+      character(len=ESMF_MAXSTR) :: mode_               ! lowercase mode name
 
-      type(ESMF_State)                :: child_state
+      type(ESMF_State) :: child_state
+      type(ESMF_Info) :: info
 
-      real, dimension(:,:,:), pointer :: ple               ! pressure at the edges of model layers
-      real, dimension(:,:,:), pointer :: temperature       ! air temperature
-      real, dimension(:,:),   pointer :: f_land            ! fraction of land type in a grid cell
+      real, dimension(:,:,:), pointer :: ple            ! pressure at the edges of model layers
+      real, dimension(:,:,:), pointer :: temperature    ! air temperature
+      real, dimension(:,:), pointer :: f_land           ! fraction of land type in a grid cell
 
-      real, dimension(:,:,:), pointer :: f                 ! correction factor for sea salt
+      real, dimension(:,:,:), pointer :: f              ! correction factor for sea salt
 
-      real, dimension(:,:,:), allocatable :: q             ! aerosol mass mixing ratio
-      real, dimension(:,:,:,:), pointer   :: ptr_4d        ! aerosol mass mixing ratio (temporary)
-      real, dimension(:,:,:), pointer     :: ptr_3d        ! aerosol mass mixing ratio (temporary)
+      real, dimension(:,:,:), allocatable :: q          ! aerosol mass mixing ratio
+      real, dimension(:,:,:,:), pointer :: ptr_4d       ! aerosol mass mixing ratio (temporary)
+      real, dimension(:,:,:), pointer :: ptr_3d         ! aerosol mass mixing ratio (temporary)
 
-      real, dimension(:,:,:), pointer :: num               ! number concentration of aerosol particles
-      real, dimension(:,:,:), pointer :: diameter          ! dry size of aerosol
-      real, dimension(:,:,:), pointer :: sigma             ! width of aerosol mode
-      real, dimension(:,:,:), pointer :: density           ! density of aerosol
-      real, dimension(:,:,:), pointer :: hygroscopicity    ! hygroscopicity of aerosol
-      real, dimension(:,:,:), pointer :: f_dust            ! fraction of dust aerosol
-      real, dimension(:,:,:), pointer :: f_soot            ! fraction of soot aerosol
-      real, dimension(:,:,:), pointer :: f_organic         ! fraction of organic aerosol
+      real, dimension(:,:,:), pointer :: num            ! number concentration of aerosol particles
+      real, dimension(:,:,:), pointer :: diameter       ! dry size of aerosol
+      real, dimension(:,:,:), pointer :: sigma          ! width of aerosol mode
+      real, dimension(:,:,:), pointer :: density        ! density of aerosol
+      real, dimension(:,:,:), pointer :: hygroscopicity ! hygroscopicity of aerosol
+      real, dimension(:,:,:), pointer :: f_dust         ! fraction of dust aerosol
+      real, dimension(:,:,:), pointer :: f_soot         ! fraction of soot aerosol
+      real, dimension(:,:,:), pointer :: f_organic      ! fraction of organic aerosol
 
-      real                            :: max_clean          ! max mixing ratio before considered polluted
-      real                            :: ccn_tuning         ! tunes conversion factors for sulfate
+      real :: max_clean          ! max mixing ratio before considered polluted
+      real :: ccn_tuning         ! tunes conversion factors for sulfate
 
-      character(len=ESMF_MAXSTR)      :: fld_name
+      character(len=:), allocatable :: fld_name
 
-      integer                         :: i2, j2, km
-      integer                         :: b, i, j, n, aerosol_bin
-      integer                         :: varNameLen
+      integer :: i2, j2, km
+      integer :: b, i, j, n, aerosol_bin
+      integer :: varNameLen
 
-      character (len=ESMF_MAXSTR), allocatable  :: itemList(:), aeroList(:)
-      type (ESMF_StateItem_Flag), allocatable   :: itemTypes(:)
+      character(len=ESMF_MAXSTR), allocatable :: itemList(:), aeroList(:)
+      type(ESMF_StateItem_Flag), allocatable :: itemTypes(:)
 
       ! auxilliary parameters
       real, parameter :: densSO4 = 1700.0
       real, parameter :: densORG = 1600.0
-      real, parameter :: densSS  = 2200.0
-      real, parameter :: densDU  = 1700.0
-      real, parameter :: densBC  = 1600.0
-      real, parameter :: densOC  =  900.0
-      real, parameter :: densBR  =  900.0
+      real, parameter :: densSS = 2200.0
+      real, parameter :: densDU = 1700.0
+      real, parameter :: densBC = 1600.0
+      real, parameter :: densOC =  900.0
+      real, parameter :: densBR =  900.0
 
-      real, parameter :: k_SO4   = 0.65
-      real, parameter :: k_ORG   = 0.20
-      real, parameter :: k_SS    = 1.28
-      real, parameter :: k_DU    = 0.0001
-      real, parameter :: k_BC    = 0.0001
-      real, parameter :: k_OC    = 0.0001
-      real, parameter :: k_BR    = 0.0001
+      real, parameter :: k_SO4 = 0.65
+      real, parameter :: k_ORG = 0.20
+      real, parameter :: k_SS = 1.28
+      real, parameter :: k_DU = 0.0001
+      real, parameter :: k_BC = 0.0001
+      real, parameter :: k_OC = 0.0001
+      real, parameter :: k_BR = 0.0001
 
       integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015
       integer :: status
 
       ! Get list of child states within state and add to aeroList
-      call ESMF_StateGet (state, itemCount=n, _RC)
-      allocate (itemList(n), __STAT__)
-      allocate (itemTypes(n), __STAT__)
-      call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
+      call ESMF_StateGet(state, itemCount=n, _RC)
+      allocate(itemList(n), _STAT)
+      allocate(itemTypes(n), _STAT)
+      call ESMF_StateGet(state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
       b=0
       do i = 1, n
@@ -1491,7 +1488,7 @@ contains
          end if
       end do
 
-      allocate (aeroList(b), __STAT__)
+      allocate(aeroList(b), _STAT)
 
       j = 1
       do i = 1, n
@@ -1501,59 +1498,61 @@ contains
          end if
       end do
 
+      call ESMF_InfoGetFromHost(state, info, _RC)
+      
       ! Aerosol mode
-      call ESMF_AttributeGet(state, name='aerosol_mode', value=mode, _RC)
+      call ESMF_InfoGet(info, key='aerosol_mode', value=mode, _RC)
 
       ! Land fraction
-      call ESMF_AttributeGet(state, name='fraction_of_land_type', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, f_land, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='fraction_of_land_type', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=f_land, _RC)
 
       ! Pressure at layer edges
-      call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, ple, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
       ! Temperature
-      call ESMF_AttributeGet(state, name='air_temperature', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, temperature, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='air_temperature', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=temperature, _RC)
 
       i2 = ubound(temperature, 1)
       j2 = ubound(temperature, 2)
       km = ubound(temperature, 3)
 
       ! Activation activation properties
-      call ESMF_AttributeGet(state, name='aerosol_number_concentration', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, num, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='aerosol_number_concentration', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=num, _RC)
 
-      call ESMF_AttributeGet(state, name='aerosol_dry_size', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, diameter, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='aerosol_dry_size', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=diameter, _RC)
 
-      call ESMF_AttributeGet(state, name='width_of_aerosol_mode', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, sigma, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='width_of_aerosol_mode', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=sigma, _RC)
 
-      call ESMF_AttributeGet(state, name='aerosol_density', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, density, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='aerosol_density', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=density, _RC)
 
-      call ESMF_AttributeGet(state, name='aerosol_hygroscopicity', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, hygroscopicity, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='aerosol_hygroscopicity', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=hygroscopicity, _RC)
 
-      call ESMF_AttributeGet(state, name='fraction_of_dust_aerosol', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, f_dust, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='fraction_of_dust_aerosol', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=f_dust, _RC)
 
-      call ESMF_AttributeGet(state, name='fraction_of_soot_aerosol', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, f_soot, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='fraction_of_soot_aerosol', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=f_soot, _RC)
 
-      call ESMF_AttributeGet(state, name='fraction_of_organic_aerosol', value=fld_name, _RC)
-      call MAPL2_GetPointer(state, f_organic, trim(fld_name), _RC)
+      call ESMF_InfoGet(info, key='fraction_of_organic_aerosol', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=f_organic, _RC)
 
       ! Sea salt scaling fctor
-      call ESMF_AttributeGet(state, name='max_q_clean', value=max_clean, _RC)
-      call ESMF_AttributeGet(state, name='ccn_tuning', value=ccn_tuning, _RC)
+      call ESMF_InfoGet(info, key='max_q_clean', value=max_clean, _RC)
+      call ESMF_InfoGet(info, key='ccn_tuning', value=ccn_tuning, _RC)
 
       ! Aerosol mass mixing ratios
       mode_ = trim(mode)
       mode_ = ESMF_UtilStringLowerCase(mode_, _RC)
 
-      allocate(q(i2,j2,km),  __STAT__)
+      allocate(q(i2,j2,km), _STAT)
       q = 0.0
 
       if (index(mode_, 'du00') > 0) then ! Dust
@@ -1562,7 +1561,7 @@ contains
             if (index(aeroList(i), 'DU') > 0) then
                read (mode_(3:len(mode_)),*) aerosol_bin
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
-               call MAPL2_GetPointer(child_state, ptr_4d, 'DU', _RC)
+               call MAPL_StateGetPointer(child_state, itemName="DU", farrayPtr=ptr_4d, _RC)
                q = q + ptr_4d(:,:,:,aerosol_bin)
                ptr_3d => ptr_4d(:,:,:,aerosol_bin)
 
@@ -1576,7 +1575,7 @@ contains
          do i = 1, size(aeroList)
             if (index(aeroList(i), 'SS') > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
-               call MAPL2_GetPointer(child_state, ptr_4d, 'SS', _RC)
+               call MAPL_StateGetPointer(child_state, itemName="SS", farrayPtr=ptr_4d, _RC)
                do j = 1, ubound(ptr_4d, 4)
                   q = q + ptr_4d(:,:,:,j)
                   ptr_3d => ptr_4d(:,:,:,j)
@@ -1594,7 +1593,7 @@ contains
          do i = 1, size(aeroList)
             if (index(aeroList(i), 'SU') > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
-               call MAPL2_GetPointer(child_state, ptr_3d, 'SO4', _RC)
+               call MAPL_StateGetPointer(child_state, itemName="SO4", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
                hygroscopicity = k_SO4 * ptr_3d + hygroscopicity
                density = densSO4 * ptr_3d + density
@@ -1603,14 +1602,14 @@ contains
             if (index(aeroList(i), 'CA.oc') > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
-               ! the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
+               ! the '5' refers to '_AERO', which we want to remove
+               ! to get the CA component name (e.g. CA.oc, or CA.oc.data)
                varNameLen = varNameLen - 5
-               call MAPL2_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', _RC)
+               call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen)//"philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
                hygroscopicity = k_ORG * ptr_3d + hygroscopicity
                density = densORG * ptr_3d + density
             end if
-
          end do
 
          where (q > 2.0e-12 .and. hygroscopicity > tiny(0.0))
@@ -1629,9 +1628,10 @@ contains
             if (index(aeroList(i), 'CA.bc') > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
-               !  the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
+               ! the '5' refers to '_AERO', which we want to remove
+               ! to get the CA component name (e.g. CA.bc, or CA.bc.data)
                varNameLen = varNameLen - 5
-               call MAPL2_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', _RC)
+               call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen)//"philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
                hygroscopicity = k_BC
                density = densBC
@@ -1643,9 +1643,10 @@ contains
             if (index(aeroList(i), 'CA.oc') > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
-               ! the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.oc, or CA.oc.data)
+               ! the '5' refers to '_AERO', which we want to remove
+               ! to get the CA component name (e.g. CA.oc, or CA.oc.data)
                varNameLen = varNameLen - 5
-               call MAPL2_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', _RC)
+               call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen)//"philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
                hygroscopicity = k_OC
                density = densOC
@@ -1657,9 +1658,10 @@ contains
             if (index(aeroList(i), 'CA.br') > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
-               ! the '5' refers to '_AERO', which we want to remove to get the CA component name (e.g. CA.bc, or CA.bc.data)
+               ! the '5' refers to '_AERO', which we want to remove
+               ! to get the CA component name (e.g. CA.bc, or CA.bc.data)
                varNameLen = varNameLen - 5
-               call MAPL2_GetPointer(child_state, ptr_3d, aeroList(i)(1:varNameLen)//'philic', _RC)
+               call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen)//"philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
                hygroscopicity = k_BR
                density = densBR
@@ -1680,7 +1682,7 @@ contains
            f_organic,          &
            density,            &
            ptr_3d,             &
-           1, i2, 1, j2, km, &
+           1, i2, 1, j2, km,   &
            _RC)
 
       deallocate(q, _STAT)
@@ -1692,33 +1694,32 @@ contains
       subroutine aap_(mode, q, num, diameter, sigma, f_dust, f_soot, f_organic, dens_, q_, &
            i1, i2, j1, j2, km, rc)
 
-         integer, intent(in) :: i1, i2                                  ! dimension bounds
-         integer, intent(in) :: j1, j2                                  ! ... // ..
-         integer, intent(in) :: km                                      ! ... // ..
+         integer, intent(in) :: i1, i2                             ! dimension bounds
+         integer, intent(in) :: j1, j2                             ! ... // ..
+         integer, intent(in) :: km                                 ! ... // ..
 
-         character(len=*),  intent(in )               :: mode           ! name of aerosol mode
-         real, intent(in),  dimension(i1:i2,j1:j2,km) :: q              ! aerosol mass mixing ratio, kg kg-1
-         real, intent(in),  dimension(i1:i2,j1:j2,km) :: q_             ! auxiliary mass
-         real, intent(in),  dimension(i1:i2,j1:j2,km) :: dens_          ! density
+         character(len=*), intent(in ) :: mode                     ! name of aerosol mode
+         real, intent(in), dimension(i1:i2,j1:j2,km) :: q          ! aerosol mass mixing ratio, kg kg-1
+         real, intent(in), dimension(i1:i2,j1:j2,km) :: q_         ! auxiliary mass
+         real, intent(in), dimension(i1:i2,j1:j2,km) :: dens_      ! density
 
-         real, intent(out), dimension(i1:i2,j1:j2,km) :: num            ! number concentration of aerosol particles
-         real, intent(out), dimension(i1:i2,j1:j2,km) :: diameter       ! dry size of aerosol
-         real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma          ! width of aerosol mode
-         real, intent(out), dimension(i1:i2,j1:j2,km) :: f_dust         ! fraction of dust aerosol
-         real, intent(out), dimension(i1:i2,j1:j2,km) :: f_soot         ! fraction of soot aerosol
-         real, intent(out), dimension(i1:i2,j1:j2,km) :: f_organic      ! fraction of organic aerosol
+         real, intent(out), dimension(i1:i2,j1:j2,km) :: num       ! number concentration of aerosol particles
+         real, intent(out), dimension(i1:i2,j1:j2,km) :: diameter  ! dry size of aerosol
+         real, intent(out), dimension(i1:i2,j1:j2,km) :: sigma     ! width of aerosol mode
+         real, intent(out), dimension(i1:i2,j1:j2,km) :: f_dust    ! fraction of dust aerosol
+         real, intent(out), dimension(i1:i2,j1:j2,km) :: f_soot    ! fraction of soot aerosol
+         real, intent(out), dimension(i1:i2,j1:j2,km) :: f_organic ! fraction of organic aerosol
 
-         integer, intent(out) :: rc                                     ! return code
+         integer, intent(out) :: rc
 
          ! local
-         integer :: STATUS
-         character(len=ESMF_MAXSTR) :: mode_
-         character(len=ESMF_MAXSTR) :: Iam = 'GOCART::aerosol_activation_properties::aap_()'
+         integer :: status
+         character(len=:), allocatable :: mode_
 
          integer, parameter :: UNKNOWN_AEROSOL_MODE = 2015
 
-         integer            :: kinx
-         real               :: fmassaux, fmassclean
+         integer :: kinx
+         real :: fmassaux, fmassclean
          real, dimension(3) :: TPI, DPGI, SIGI
          real, dimension(3) :: TPIclean, DPGIclean, SIGIclean
          real, dimension(i1:i2,j1:j2,km) :: qaux
@@ -1893,7 +1894,7 @@ contains
             num = q / ((MAPL_PI/6.0) * densOrg * diameter*diameter*diameter * exp(4.5*sigma*sigma))
 
          case default
-            __raise__(UNKNOWN_AEROSOL_MODE,"Unknown aerosol mode used in the GOCART aerosol activation properties method: "//trim(mode))
+            _FAIL("Unknown aerosol mode used in the GOCART aerosol activation properties method: "//trim(mode))
 
          end select
 
@@ -1904,304 +1905,291 @@ contains
 
    end subroutine aerosol_activation_properties
 
+   subroutine get_monochromatic_aop (state, rc)
 
-!===================================================================================
-  subroutine get_monochromatic_aop (state, rc)
+      implicit none
 
-    implicit none
+      !ARGUMENTS:
+      type(ESMF_State) :: state
+      integer, intent(out) :: rc
 
-!   !ARGUMENTS:
-    type (ESMF_State)                                :: state
-    integer,            intent(out)                  :: rc
+      !Local
+      real, dimension(:,:,:), pointer :: ple
+      real, dimension(:,:,:), pointer :: rh
+      real, dimension(:,:), pointer :: var
+      character(len=:), allocatable :: fld_name
+      real, dimension(:,:), pointer :: tau_      ! (lon:,lat:,lev:)
+      real, dimension(:,:), allocatable :: tau   ! (lon:,lat:,lev:)
+      integer :: i, n, b, j
+      integer :: i1, j1, i2, j2, km
+      real :: wavelength
+      character(len=ESMF_MAXSTR), allocatable :: itemList(:), aeroList(:)
+      type(ESMF_State) :: child_state
+      real, pointer, dimension(:,:,:) :: as_ptr_3d
+      type(ESMF_StateItem_Flag), allocatable :: itemTypes(:)
+      type(ESMF_Info) :: info, child_info
+      integer :: status
 
-!   !Local
-    real, dimension(:,:,:), pointer                  :: ple
-    real, dimension(:,:,:), pointer                  :: rh
-    real, dimension(:,:), pointer                    :: var
+      ! Description: Used in GAAS gridded component to provide aerosol properties
 
-    character (len=ESMF_MAXSTR)                      :: fld_name
+      call ESMF_InfoGetFromHost(state, info, _RC)
 
-    real, dimension(:,:),pointer                     :: tau_      ! (lon:,lat:,lev:)
-    real, dimension(:,:), allocatable                :: tau       ! (lon:,lat:,lev:)
+      ! Radiation band
+      call ESMF_InfoGet(info, key='wavelength_for_aerosol_optics', value=wavelength, _RC)
 
-    integer                                          :: i, n, b, j
-    integer                                          :: i1, j1, i2, j2, km
-    real                                             :: wavelength
+      ! Relative humidity
+      call ESMF_InfoGet(info, key='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
-    character (len=ESMF_MAXSTR), allocatable         :: itemList(:), aeroList(:)
-    type (ESMF_State)                                :: child_state
-    real, pointer,     dimension(:,:,:)              :: as_ptr_3d
+      ! Pressure at layer edges
+      call ESMF_InfoGet(info, key='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
-    type (ESMF_StateItem_Flag), allocatable          :: itemTypes(:)
-    integer :: status
+      ! TODO: pchakrab - CAREFUL! ple in MAPL3 is (:, :, 1:km+1), instead of (:, :, km)
+      i1 = lbound(ple, 1); i2 = ubound(ple, 1)
+      j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+      km = ubound(ple, 3)
 
-!   Description: Used in GAAS gridded component to provide aerosol properties
-!-----------------------------------------------------------------------------------
-!   Begin...
+      allocate(tau(i1:i2,j1:j2), _STAT)
+      tau = 0.0
 
-!   Radiation band
-!   --------------
-    call ESMF_AttributeGet(state, name='wavelength_for_aerosol_optics', value=wavelength, _RC)
+      ! Get list of child states within state and add to aeroList
+      call ESMF_StateGet (state, itemCount=n, _RC)
+      allocate(itemList(n), _STAT)
+      allocate(itemTypes(n), _STAT)
+      call ESMF_StateGet(state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
-!   Relative humidity
-!   -----------------
-    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
-    call MAPL2_GetPointer(state, RH, trim(fld_name), _RC)
-
-!   Pressure at layer edges
-!   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
-    call MAPL2_GetPointer(state, PLE, trim(fld_name), _RC)
-
-    i1 = lbound(ple, 1); i2 = ubound(ple, 1)
-    j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-                         km = ubound(ple, 3)
-
-    allocate(tau(i1:i2,j1:j2), __STAT__)
-    tau = 0.0
-
-!   Get list of child states within state and add to aeroList
-!   ---------------------------------------------------------
-    call ESMF_StateGet (state, itemCount=n, _RC)
-    allocate (itemList(n), __STAT__)
-    allocate (itemTypes(n), __STAT__)
-    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
-
-    b=0
-    do i = 1, n
-        if (itemTypes(i) == ESMF_StateItem_State) then
+      b=0
+      do i = 1, n
+         if (itemTypes(i) == ESMF_StateItem_State) then
             b = b + 1
-        end if
-    end do
+         end if
+      end do
 
-    allocate (aeroList(b), __STAT__)
+      allocate(aeroList(b), _STAT)
 
-    j = 1
-    do i = 1, n
-        if (itemTypes(i) == ESMF_StateItem_State) then
+      j = 1
+      do i = 1, n
+         if (itemTypes(i) == ESMF_StateItem_State) then
             aeroList(j) = trim(itemList(i))
             j = j + 1
-        end if
-    end do
+         end if
+      end do
 
-!   ! Get aerosol optic properties from children
-    do i = 1, size(aeroList)
-       call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
+      ! Get aerosol optic properties from children
+      do i = 1, size(aeroList)
+         call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
+         call ESMF_InfoGetFromHost(child_state, child_info, _RC)
 
-!      ! set RH in child's aero state
-       call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+         ! set RH in child's aero state
+         call ESMF_InfoGet(child_info, key='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
 
-       if (fld_name /= '') then
-          call MAPL2_GetPointer(child_state, as_ptr_3d, trim(fld_name), _RC)
-          as_ptr_3d = rh
-       end if
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
+            as_ptr_3d = rh
+         end if
 
-!      ! set PLE in child's aero state
-       call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+         ! set PLE in child's aero state
+         call ESMF_InfoGet(child_info, key='air_pressure_for_aerosol_optics', value=fld_name, _RC)
 
-       if (fld_name /= '') then
-          call MAPL2_GetPointer(child_state, as_ptr_3d, trim(fld_name), _RC)
-          as_ptr_3d = ple
-       end if
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
+            as_ptr_3d = ple
+         end if
 
-!      ! set wavelength in child's aero state
-       call ESMF_AttributeSet(child_state, name='wavelength_for_aerosol_optics', value=wavelength, _RC)
+         ! set wavelength in child's aero state
+         call ESMF_InfoSet(child_info, key='wavelength_for_aerosol_optics', value=wavelength, _RC)
 
-!      ! execute the aerosol optics method
-       call ESMF_MethodExecute(child_state, label="monochromatic_aerosol_optics", _RC)
+         ! execute the aerosol optics method
+         call ESMF_MethodExecute(child_state, label="monochromatic_aerosol_optics", _RC)
 
-!      ! Retrieve extinction from each child
-       call ESMF_AttributeGet(child_state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
-       if (fld_name /= '') then
-          call MAPL2_GetPointer(child_state, tau_, trim(fld_name), _RC)
-       end if
+         ! Retrieve extinction from each child
+         call ESMF_InfoGet(child_info, key='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=tau_, _RC)
+         end if
 
-!      ! Sum aerosol optic properties from each child
-       tau = tau + tau_
-    end do
+         ! Sum aerosol optic properties from each child
+         tau = tau + tau_
+      end do
 
-!   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
-    call ESMF_AttributeGet(state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
-    if (fld_name /= '') then
-       call MAPL2_GetPointer(state, var, trim(fld_name), _RC)
-       var = tau
-    end if
+      ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
+      call ESMF_InfoGet(info, key='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
+      if (fld_name /= '') then
+         call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+         var = tau
+      end if
 
-    deallocate(tau, __STAT__)
+      deallocate(tau, _STAT)
+      
+      _RETURN(_SUCCESS)
 
-   _RETURN(_SUCCESS)
+   end subroutine get_monochromatic_aop
 
-  end subroutine get_monochromatic_aop
+   subroutine get_mixRatioSum (state, rc)
 
+      implicit none
 
-!===================================================================================
-  subroutine get_mixRatioSum (state, rc)
+      !ARGUMENTS:
+      type(ESMF_State) :: state
+      integer, intent(out) :: rc
 
-    implicit none
+      !Local
+      character(len=ESMF_MAXSTR), allocatable :: itemList(:), aeroList(:)
+      character(len=:), allocatable :: aeroName, fld_name
 
-!   !ARGUMENTS:
-    type (ESMF_State)                                :: state
-    integer,            intent(out)                  :: rc
+      real, pointer, dimension(:,:,:) :: var
+      real, dimension(:,:,:), allocatable :: aeroOut
+      type(ESMF_StateItem_Flag), allocatable :: itemTypes(:)
+      type(ESMF_Info) :: info
 
-!   !Local
-    character (len=ESMF_MAXSTR), allocatable         :: itemList(:), aeroList(:)
-    character (len=ESMF_MAXSTR)                      :: aeroName
-    character (len=ESMF_MAXSTR)                      :: fld_name
+      integer :: b, i, n, j, im, jm, km, status
 
-    real, pointer, dimension(:,:,:)                  :: var
-    real, dimension(:,:,:), allocatable              :: aeroOut
-    type (ESMF_StateItem_Flag), allocatable          :: itemTypes(:)
+      ! Description: Used in GAAS gridded component to provide sum of aerosol mixing ratio
 
-    integer  :: b, i, n, j, im, jm, km, status
+      call ESMF_InfoGetFromHost(state, info, _RC)
+      
+      call ESMF_InfoGet(info, key='aerosolName', value=aeroName, _RC)
+      call ESMF_InfoGet(info, key='im', value=im, _RC)
+      call ESMF_InfoGet(info, key='jm', value=jm, _RC)
+      call ESMF_InfoGet(info, key='km', value=km, _RC)
 
-!   Description: Used in GAAS gridded component to provide sum of aerosol mixing ratio
-!--------------------------------------------------------------------------------------
-!   Begin...
+      allocate(aeroOut(im,jm,km), _STAT)
+      aeroOut = 0.0
 
-    call ESMF_AttributeGet(state, name='aerosolName', value=aeroName, _RC)
-    call ESMF_AttributeGet(state, name='im', value=im, _RC)
-    call ESMF_AttributeGet(state, name='jm', value=jm, _RC)
-    call ESMF_AttributeGet(state, name='km', value=km, _RC)
+      ! Get list of child states within state and add to aeroList
+      call ESMF_StateGet(state, itemCount=n, _RC)
+      allocate(itemList(n), _STAT)
+      allocate(itemTypes(n), _STAT)
+      call ESMF_StateGet(state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
 
-    allocate(aeroOut(im,jm,km), __STAT__)
-    aeroOut = 0.0
-
-!   Get list of child states within state and add to aeroList
-!   ---------------------------------------------------------
-    call ESMF_StateGet (state, itemCount=n, _RC)
-    allocate (itemList(n), __STAT__)
-    allocate (itemTypes(n), __STAT__)
-    call ESMF_StateGet (state, itemNameList=itemList, itemTypeList=itemTypes, _RC)
-
-    b=0
-    do i = 1, n
-        if (itemTypes(i) == ESMF_StateItem_State) then
+      b=0
+      do i = 1, n
+         if (itemTypes(i) == ESMF_StateItem_State) then
             b = b + 1
-        end if
-    end do
+         end if
+      end do
 
-    allocate (aeroList(b), __STAT__)
+      allocate(aeroList(b), _STAT)
 
-    j = 1
-    do i = 1, n
-        if (itemTypes(i) == ESMF_StateItem_State) then
+      j = 1
+      do i = 1, n
+         if (itemTypes(i) == ESMF_StateItem_State) then
             aeroList(j) = trim(itemList(i))
             j = j + 1
-        end if
-    end do
+         end if
+      end do
 
+      ! Retrieve summed aerosol mixing ratios from active instances
+      select case (trim(aeroName))
+      case ('dust')
+         call getAerosolSum('DU', state, aeroList, aeroOut, _RC)
 
-!   Retrieve summed aerosol mixing ratios from active instances
-    select case (trim(aeroName))
-       case ('dust')
-          call getAerosolSum ('DU', state, aeroList, aeroOut, _RC)
+         call ESMF_InfoGet(info, key='sum_of_internalState_aerosol_DU', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+            var = aeroOut
+         end if
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_DU', value=fld_name, _RC)
-          if (fld_name /= '') then
-             call MAPL2_GetPointer (state, var, trim(fld_name), _RC)
-             var = aeroOut
-          end if
+      case ('seasalt')
+         call getAerosolSum('SS', state, aeroList, aeroOut, _RC)
 
-       case ('seasalt')
-          call getAerosolSum ('SS', state, aeroList, aeroOut, _RC)
+         call ESMF_InfoGet(info, key='sum_of_internalState_aerosol_SS', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+            var = aeroOut
+         end if
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_SS', value=fld_name, _RC)
-          if (fld_name /= '') then
-             call MAPL2_GetPointer (state, var, trim(fld_name), _RC)
-             var = aeroOut
-          end if
+      case ('organicCarbon')
+         call getAerosolSum('CA.oc', state, aeroList, aeroOut, _RC)
 
-       case ('organicCarbon')
-          call getAerosolSum ('CA.oc', state, aeroList, aeroOut, _RC)
+         call ESMF_InfoGet(info, key='sum_of_internalState_aerosol_CA.oc', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+            var = aeroOut
+         end if
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.oc', value=fld_name, _RC)
-          if (fld_name /= '') then
-             call MAPL2_GetPointer (state, var, trim(fld_name), _RC)
-             var = aeroOut
-          end if
+      case ('blackCarbon')
+         call getAerosolSum('CA.bc', state, aeroList, aeroOut, _RC)
 
-       case ('blackCarbon')
-          call getAerosolSum ('CA.bc', state, aeroList, aeroOut, _RC)
+         call ESMF_InfoGet(info, key='sum_of_internalState_aerosol_CA.bc', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+            var = aeroOut
+         end if
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.bc', value=fld_name, _RC)
-          if (fld_name /= '') then
-             call MAPL2_GetPointer (state, var, trim(fld_name), _RC)
-             var = aeroOut
-          end if
+      case ('brownCarbon')
+         call getAerosolSum ('CA.br', state, aeroList, aeroOut, _RC)
 
-       case ('brownCarbon')
-          call getAerosolSum ('CA.br', state, aeroList, aeroOut, _RC)
+         call ESMF_InfoGet(info, key='sum_of_internalState_aerosol_CA.br', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+            var = aeroOut
+         end if
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_CA.br', value=fld_name, _RC)
-          if (fld_name /= '') then
-             call MAPL2_GetPointer (state, var, trim(fld_name), _RC)
-             var = aeroOut
-          end if
+      case ('sulfate')
+         call getAerosolSum('SU', state, aeroList, aeroOut, _RC)
 
-       case ('sulfate')
-          call getAerosolSum ('SU', state, aeroList, aeroOut, _RC)
+         call ESMF_InfoGet(info, key='sum_of_internalState_aerosol_SU', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+            var = aeroOut
+         end if
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_SU', value=fld_name, _RC)
-          if (fld_name /= '') then
-             call MAPL2_GetPointer (state, var, trim(fld_name), _RC)
-             var = aeroOut
-          end if
+      case ('nitrate')
+         call getAerosolSum('NI', state, aeroList, aeroOut, _RC)
 
-       case ('nitrate')
-          call getAerosolSum ('NI', state, aeroList, aeroOut, _RC)
+         call ESMF_InfoGet(info, key='sum_of_internalState_aerosol_NI', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+            var = aeroOut
+         end if
 
-          call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol_NI', value=fld_name, _RC)
-          if (fld_name /= '') then
-             call MAPL2_GetPointer (state, var, trim(fld_name), _RC)
-             var = aeroOut
-          end if
+      case default
+         !$omp critical (G2G_2)
+         print *,"Invalid aerosolName of '",trim(aeroName), "' in GOCART2G::get_mixRatioSum"
+         !$omp end critical (G2G_2)
+      end select
 
-       case default
-          !$omp critical (G2G_2)
-          print *,"Invalid aerosolName of '",trim(aeroName), "' in GOCART2G::get_mixRatioSum"
-          !$omp end critical (G2G_2)
-    end select
+      _RETURN(_SUCCESS)
 
-contains
-    subroutine getAerosolSum (aeroToken, state, aeroList, aeroOut, rc)
+   contains
 
-    implicit none
+      subroutine getAerosolSum(aeroToken, state, aeroList, aeroOut, rc)
+         !ARGUMENTS:
+         character(len=*), intent(in) :: aeroToken
+         type(ESMF_State), intent(in) :: state
+         character(len=ESMF_MAXSTR), intent(in) :: aeroList(:)
+         real, dimension(:,:,:), intent(out) :: aeroOut
+         integer, optional, intent(out) :: rc
 
-!   !ARGUMENTS:
-    character (len=*), intent(in)                  :: aeroToken
-    type (ESMF_State),           intent(in)        :: state
-    character (len=ESMF_MAXSTR), intent(in)        :: aeroList(:)
-    real, dimension(:,:,:),      intent(out)       :: aeroOut
-    integer, optional,           intent(out)       :: rc
+         !LOCALS:
+         integer :: i, endInd
+         character(len=ESMF_MAXSTR) :: fld_name
+         type(ESMF_State) :: child_state
+         type(ESMF_Info) :: child_info
+         real, pointer, dimension(:,:,:) :: ptr3d
 
-!   !LOCALS:
-    integer                               :: i, endInd
-    character (len=ESMF_MAXSTR)           :: fld_name
-    type (ESMF_State)                     :: child_state
-    real, pointer, dimension(:,:,:)       :: ptr3d
+         endInd = len_trim(aeroToken)
 
+         aeroOut = 0.0
+         do i = 1, size(aeroList)
+            if (trim(aeroList(i)(1:endInd)) == trim(aeroToken)) then
+               call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
+               call ESMF_MethodExecute(child_state, label="get_mixR", _RC)
+               call ESMF_InfoGetFromHost(child_state, child_info, _RC)
+               call ESMF_InfoGet(child_info, key='sum_of_internalState_aerosol', value=fld_name, _RC)
+               if (fld_name /= '') then
+                  call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ptr3d, _RC)
+                  aeroOut = aeroOut + ptr3d
+               end if
+            end if
+         end do
 
-!   Begin...
+         _RETURN(_SUCCESS)
+      end subroutine getAerosolSum
 
-    endInd = len_trim(aeroToken)
-
-    aeroOut = 0.0
-    do i = 1, size(aeroList)
-       if (trim(aeroList(i)(1:endInd)) == trim(aeroToken)) then
-          call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
-          call ESMF_MethodExecute(child_state, label="get_mixR", _RC)
-          call ESMF_AttributeGet(child_state, name='sum_of_internalState_aerosol', &
-                                 value=fld_name, _RC)
-          if (fld_name /= '') then
-             call MAPL2_GetPointer(child_state, ptr3d, trim(fld_name), _RC)
-             aeroOut = aeroOut + ptr3d
-          end if
-       end if
-    end do
-
-    end subroutine getAerosolSum
-
-  end subroutine get_mixRatioSum
+   end subroutine get_mixRatioSum
 
 end module GOCART2G_GridCompMod
 
