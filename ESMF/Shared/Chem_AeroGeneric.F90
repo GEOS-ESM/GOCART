@@ -16,7 +16,6 @@ module  Chem_AeroGeneric
    use mapl3g_Field_API, only: MAPL_FieldGet, MAPL_FieldCreate
    use mapl3g_FieldInfo, only: FieldInfoSetInternal
    use mapl3g_FieldBundle_API, only: MAPL_FieldBundleAdd
-   use mapl3g_State_API, only: MAPL_StateAdd
    use mapl3g_VerticalStaggerLoc, only: VerticalStaggerLoc, VERTICAL_STAGGER_EDGE, VERTICAL_STAGGER_CENTER
    use mapl3g_UngriddedDims, only: UngriddedDims
    ! USE Chem_MieMod2G
@@ -87,12 +86,12 @@ contains
                  num_levels=km, &
                  vert_staggerloc=VERTICAL_STAGGER_CENTER, _RC)
          end if
-         call MAPL_StateAdd(state, [field], _RC)
+         call ESMF_StateAdd(state, [field], _RC)
       end if
 
       ! if (field_name /= "") then
       !     field = ptr
-      !     call MAPL_StateAdd(state, [field], _RC)
+      !     call ESMF_StateAdd(state, [field], _RC)
       ! end if
 
       _RETURN(_SUCCESS)

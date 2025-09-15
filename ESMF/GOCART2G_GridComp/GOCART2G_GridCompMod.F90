@@ -18,7 +18,7 @@ module GOCART2G_GridCompMod
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_FieldBundle_API, only: MAPL_FieldBundleAdd
-   use mapl3g_State_API, only: MAPL_StateGetPointer, MAPL_StateAdd
+   use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_UngriddedDim, only: UngriddedDim
    use pflogger, only: logger_t => logger
@@ -1213,7 +1213,7 @@ contains
 
       ! Create empty ESMF_FieldBundle to add Children's aerosol fields to
       bundle = ESMF_FieldBundleCreate(name="serialized_aerosolBundle", _RC)
-      call MAPL_StateAdd(state, [bundle], _RC)
+      call ESMF_StateAdd(state, [bundle], _RC)
 
       do i = 1, n
          if (itemTypes(i) /= ESMF_STATEITEM_STATE) cycle ! exclude non-states
