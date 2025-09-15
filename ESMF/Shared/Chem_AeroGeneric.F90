@@ -1,31 +1,29 @@
-
 #include "MAPL_Generic.h"
 
 !-------------------------------------------------------------------------
 !      NASA/GSFC, Global Modeling & Assimilation Office, Code 610.1      !
 !-------------------------------------------------------------------------
 !BOP
-!
-
 ! !MODULE: Chem_AeroGeneric - Utilitarian subroutines used by GOCART2G children.
-!
-!
+
 ! !INTERFACE:
-!
 module  Chem_AeroGeneric
 
-! !USES:
+   !USES:
    use ESMF
-   use MAPL
+   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use mapl3g_State_API, only: MAPL_StateGetPointer
-   use mapl3g_Field_API, only: MAPL_FieldGet
-!   USE Chem_MieMod2G
+   use mapl3g_Field_API, only: MAPL_FieldGet, MAPL_FieldCreate
+   use mapl3g_FieldInfo, only: FieldInfoSetInternal
+   use mapl3g_FieldBundle_API, only: MAPL_FieldBundleAdd
+   use mapl3g_VerticalStaggerLoc, only: VerticalStaggerLoc, VERTICAL_STAGGER_EDGE, VERTICAL_STAGGER_CENTER
+   use mapl3g_UngriddedDims, only: UngriddedDims
+   ! USE Chem_MieMod2G
 
    implicit none
    private
 
-!
-! !PUBLIC MEMBER FUNCTIONS:
+   !PUBLIC MEMBER FUNCTIONS:
    public add_aero
    public append_to_bundle
    public determine_data_driven
@@ -33,398 +31,359 @@ module  Chem_AeroGeneric
    public setZeroKlid4d
    public findKlid
    public get_mixR
-!
-! !DESCRIPTION:
-!
-!  These subroutines perform repetitive tasks needed by GOCART2G children.
-!
-! !REVISION HISTORY:
-!
-!  March2020 Sherman, da Silva, Darmenov, Clune - created
-!
-!EOP
-!-------------------------------------------------------------------------
+
+   !DESCRIPTION:
+   ! These subroutines perform repetitive tasks needed by GOCART2G children.
+
+   !REVISION HISTORY:
+   !  March2020 Sherman, da Silva, Darmenov, Clune - created
+   !EOP
+
 contains
 
+   subroutine add_aero(state, label, label2, geom, km, typekind, ptr, rc)
 
-!====================================================================================
-  subroutine add_aero (state, label, label2, grid, typekind, ptr, rc)
+      ! Description: Adds fields to aero state for aerosol optics calcualtions.
 
-!   Description: Adds fields to aero state for aerosol optics calcualtions.
+      type(ESMF_State), intent(inout) :: state
+      character(len=*), intent(in) :: label
+      character(len=*), intent(in) :: label2
+      type(ESMF_Geom), intent(in) :: geom
+      integer, optional, intent(in) :: km
+      type(ESMF_TypeKind_Flag), optional, intent(in) :: typekind
+      real, pointer, dimension(:,:,:), optional, intent(in) :: ptr
+      integer, intent(out) :: rc
 
-    implicit none
+      ! locals
+      type(ESMF_Field) :: field
+      type(ESMF_Info) :: info
+      character(len=:), allocatable :: field_name
+      type(ESMF_TypeKind_Flag) :: typekind_
+      integer :: status
 
-    type (ESMF_State),                          intent(inout)     :: state
-    character (len=*),                          intent(in   )     :: label
-    character (len=*),                          intent(in   )     :: label2
-    type (ESMF_Grid),                           intent(inout)     :: grid
-    integer,                                    intent(in   )     :: typekind
-    real, pointer, dimension(:,:,:), optional,  intent(in   )     :: ptr
-    integer,                                    intent(  out)     :: rc
+      typekind_ = ESMF_TYPEKIND_R4
+      if (present(typekind)) typekind_ = typekind
 
-    ! locals
-    type (ESMF_Field)                                             :: field
-    character (len=ESMF_MAXSTR)                                   :: field_name
+      call ESMF_InfoGetFromHost(state, info, _RC)
+      call ESMF_InfoSet(info, key=trim(label), value=trim(label2), _RC)
 
-    __Iam__('add_aero')
+      field_name = trim(label2)
+      if (field_name /= "") then
+         if (trim(field_name) == "PLE") then
+            _ASSERT(present(km), "missing km for a 3D field")
+            field = MAPL_FieldCreate( &
+                 geom, typekind_, &
+                 name=field_name, &
+                 num_levels=km+1, &
+                 vert_staggerloc=VERTICAL_STAGGER_EDGE, _RC)
+         else if ((trim(field_name) == "FRLAND") .or. (trim(field_name) == "monochromatic_EXT")) then
+            field = MAPL_FieldCreate(geom, typekind_, name=field_name, _RC)
+         else
+            _ASSERT(present(km), "missing km for a 3D field")
+            field = MAPL_FieldCreate( &
+                 geom, typekind_, &
+                 name=field_name, &
+                 num_levels=km, &
+                 vert_staggerloc=VERTICAL_STAGGER_CENTER, _RC)
+         end if
+         call ESMF_StateAdd(state, [field], _RC)
+      end if
 
-!----------------------------------------------------------------------------------
-!   Begin...
+      ! if (field_name /= "") then
+      !     field = ptr
+      !     call ESMF_StateAdd(state, [field], _RC)
+      ! end if
 
-    call ESMF_AttributeSet (state, name=trim(label), value=trim(label2),  __RC__)
+      _RETURN(_SUCCESS)
 
-    call ESMF_AttributeGet (state, name=trim(label), value=field_name, __RC__)
-    if (field_name /= '') then
-       field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
-       if (trim(field_name) == 'PLE') then
-          call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationEdge, typekind=typekind, hw=0, __RC__)
-       else if ((trim(field_name) == 'FRLAND') .or. (trim(field_name) == 'monochromatic_EXT')) then
-          call MAPL_FieldAllocCommit(field, dims=MAPL_DimsHorzOnly, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
-       else
-          call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
-       end if
-       call MAPL_StateAdd (state, field, __RC__)
-    end if
+   end subroutine add_aero
 
-!   if (field_name /= '') then
-!       field = ptr
-!       call MAPL_StateAdd (state, field, __RC__)
-!   end if
+   recursive subroutine determine_data_driven(comp_name, data_driven, rc)
+      !ARGUMENTS:
+      character(len=*), intent(in) :: comp_name
+      logical, intent(out) :: data_driven
+      integer, optional, intent(out) :: rc
 
-    RETURN_(ESMF_SUCCESS)
+      !Local
+      integer :: i
 
-  end subroutine add_aero
+      ! Description: Determines whether gridded component is data driven or not.
 
-!=====================================================================================
+      data_driven = .false.
+      i = index(comp_name, 'data')
+      if (i > 0) then
+         data_driven = .true.
+      end if
 
-  recursive subroutine determine_data_driven(COMP_NAME, data_driven, RC)
+      _RETURN(_SUCCESS)
+   end subroutine determine_data_driven
 
-    !ARGUMENTS:
-    integer, optional,               intent(  out)   :: RC          ! Error code:
-    character (len=ESMF_MAXSTR),     intent(in   )   :: COMP_NAME
-    logical,                         intent(  out)   :: data_driven
+   subroutine append_to_bundle(varname, provider_state, prefix, bundle, rc)
+      !ARGUMENTS:
+      character(len=*), intent(in) :: varname, prefix
+      type(ESMF_State), intent(inout) :: provider_state
+      type(ESMF_FieldBundle), intent(inout) :: bundle
+      integer, intent(out) :: rc
 
-    !Local
-    integer                                          :: i
+      !Local
+      type(ESMF_Field) :: field, field2d
+      type(ESMF_Info) :: info
+      type(ESMF_Geom) :: geom
+      real, pointer :: orig_ptr(:,:,:)
+      real, pointer :: ptr2d(:,:)
+      character(len=ESMF_MAXSTR) :: bin_index
+      character(:), allocatable :: varname_new, units, stdname
+      type(VerticalStaggerLoc) :: vert_stagger
+      integer :: dim_count, iter, status
 
-!   Description: Determines whether gridded component is data driven or not.
+      ! Description: Adds deposition variables to deposition bundle
 
-     __Iam__('determine_data_driven')
+      ! Dry deposition
+      call ESMF_StateGet(provider_state, trim(prefix)//trim(varname), field, _RC)
+      call ESMF_FieldGet(field, dimCount=dim_count, _RC)
 
-!   Begin...
+      _ASSERT(dim_count==2 .or. dim_count==3, "only 2d and 3d fields are supported")
 
-!   Is DU data driven?
-!   ------------------
-    data_driven = .false.
+      select case(dim_count)
+      case(2) ! this handles data instances
+         call MAPL_FieldBundleAdd(bundle, [field], _RC)
 
-    i = index(COMP_NAME, 'data')
-    if (i > 0) then
-      data_driven = .true.
-    end if
+      case(3) ! this handles computational instances
+         call MAPL_FieldGet(field, geom=geom, units=units, standard_name=stdname, vert_staggerloc=vert_stagger, _RC)
+         stdname = stdname(1:index(stdname, "(Bin")-1)
+         call MAPL_StateGetPointer(provider_state, itemName=trim(prefix)//trim(varname), farrayPtr=orig_ptr, _RC)
 
-    RETURN_(ESMF_SUCCESS)
+         if ((index(trim(varname), "DU") > 0) .or. (index(trim(varname), "SS") > 0)) then
+            do iter = 1, size(orig_ptr, 3)
+               write (bin_index, "(A, I0.3)") "", iter
+               ptr2d => orig_ptr(:,:,iter)
+               field2d = ESMF_FieldCreate( &
+                    geom, &
+                    farray=ptr2d, &
+                    indexflag=ESMF_INDEX_DELOCAL, &
+                    datacopyflag=ESMF_DATACOPY_REFERENCE, &
+                    name=trim(varname)//trim(bin_index), _RC)
+               call ESMF_InfoGetFromHost(field2d, info, _RC)
+               call FieldInfoSetInternal( &
+                    info, &
+                    vert_staggerloc=vert_stagger, &
+                    ungridded_dims=UngriddedDims(), &
+                    units=units, &
+                    standard_name=stdname//' Bin '//trim(bin_index), &
+                    long_name="unknown", _RC)
+               call MAPL_FieldBundleAdd(bundle, [field2d], _RC)
+            end do
+         end if
+         
+         ! if (index(trim(varname), 'SU') > 0) then ! only use SO4, which is the 3rd index
+         !    ptr2d => orig_ptr(:,:,3)
+         !    field2d = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+         !         name=trim(varname)//'003' , indexflag=ESMF_INDEX_DELOCAL, _RC)
+         !    call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
+         !    call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+         !    call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
+         !    call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin 003', _RC)
+         !    call MAPL2_AllocateCoupling(field2d, _RC)
+         !    call MAPL2_FieldBundleAdd(bundle, field2d, _RC)
+         ! end if
 
-  end subroutine determine_data_driven
+         ! if (index(trim(varname), 'CA.oc') > 0) then
+         !    do iter = 1, size(orig_ptr, 3)
+         !       write (bin_index,'(A, I0.3)') '', iter
+         !       ptr2d => orig_ptr(:,:,iter)
+         !       varname_new = 'OC'//varname(6:7)
+         !       field2d = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+         !            name=trim(varname_new)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, _RC)
+         !       call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
+         !       call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+         !       call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
+         !       call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin '//trim(bin_index), _RC)
+         !       call MAPL2_AllocateCoupling(field2d, _RC)
+         !       call MAPL2_FieldBundleAdd(bundle, field2d, _RC)
+         !    end do
+         ! end if
 
-!=====================================================================================
+         ! if (index(trim(varname), 'CA.bc') > 0) then
+         !    do i = 1, size(orig_ptr, 3)
+         !       write (bin_index,'(A, I0.3)') '', iter
+         !       ptr2d => orig_ptr(:,:,iter)
+         !       varname_new = 'BC'//varname(6:7)
+         !       field2d = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+         !            name=trim(varname_new)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, _RC)
+         !       call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
+         !       call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+         !       call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
+         !       call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin '//trim(bin_index), _RC)
+         !       call MAPL2_AllocateCoupling(field2d, _RC)
+         !       call MAPL2_FieldBundleAdd(bundle, field2d, _RC)
+         !    end do
+         ! end if
 
-  subroutine append_to_bundle(varName, providerState, prefix, bundle, rc)
+      case default
+         _FAIL("dim_count is other than 2 and 3")
+      end select
 
-    implicit none
+      _RETURN(_SUCCESS)
+   end subroutine append_to_bundle
 
-!   !ARGUMENTS:
-    character (len=*),           intent(in   )   :: varName, prefix
-    type (ESMF_State),           intent(inout)   :: providerState
-    type (ESMF_FieldBundle),     intent(inout)   :: bundle
-    integer,                     intent(  out)   :: rc  ! return code
-
-!   !Local
-    type (ESMF_Field)     :: field, field2D
-    type (ESMF_Grid)      :: grid
-    integer               :: dimCount, i
-    real, pointer         :: orig_ptr(:,:,:)
-    real, pointer         :: ptr2d(:,:)
-    character(len=ESMF_MAXSTR) :: bin_index, varNameNew
-    character(:), allocatable :: units, stdname
-
-!   Description: Adds deposition variables to deposition bundle
-
-     __Iam__('append_to_bundle')
-
-!   Dry deposition
-!   ---------------
-    call ESMF_StateGet (providerState, trim(prefix)//trim(varName), field, __RC__)
-    call MAPL_AllocateCoupling (field, __RC__)
-    call ESMF_FieldGet (field, dimCount=dimCount, __RC__)
-
-    if (dimCount == 2) then ! this handles data instances
-       call MAPL_FieldBundleAdd (bundle, field, __RC__)
-
-    else if (dimCount == 3) then ! this handles computational instances
-       call ESMF_FieldGet (field, grid=grid, __RC__)
-       call MAPL_StateGetPointer(providerState, itemName=trim(prefix)//trim(varName), farrayPtr=orig_ptr, _RC)
-       call MAPL_FieldGet(field, units=units, standard_name=stdname, _RC)
-       stdname=stdname(1:index(stdname, '(Bin')-1)
-
-       if ((index(trim(varname), 'DU') > 0) .or. (index(trim(varname), 'SS') > 0)) then
-          do i = 1, size(orig_ptr, 3)
-             write (bin_index,'(A, I0.3)') '', i
-             ptr2d => orig_ptr(:,:,i)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
-                                        name=trim(varName)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
-             call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
-             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
-             call ESMF_AttributeSet(field2d, name='UNITS', value=trim(units), _RC)
-             call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin '//trim(bin_index), _RC)
-             call MAPL_AllocateCoupling (field2D, __RC__)
-             call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
-          end do
-       end if
-
-       if (index(trim(varname), 'SU') > 0) then ! only use SO4, which is the 3rd index
-          ptr2d => orig_ptr(:,:,3)
-          field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
-                                     name=trim(varName)//'003' , indexflag=ESMF_INDEX_DELOCAL, __RC__)
-          call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
-          call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
-          call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
-          call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin 003', _RC)
-          call MAPL_AllocateCoupling (field2D, __RC__)
-          call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
-       end if
-
-       if (index(trim(varname), 'CA.oc') > 0) then
-          do i = 1, size(orig_ptr, 3)
-             write (bin_index,'(A, I0.3)') '', i
-             ptr2d => orig_ptr(:,:,i)
-             varNameNew = 'OC'//varName(6:7)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
-                                        name=trim(varNameNew)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
-             call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
-             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
-             call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
-             call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin '//trim(bin_index), _RC)
-             call MAPL_AllocateCoupling (field2D, __RC__)
-             call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
-          end do
-       end if
-
-       if (index(trim(varname), 'CA.bc') > 0) then
-          do i = 1, size(orig_ptr, 3)
-             write (bin_index,'(A, I0.3)') '', i
-             ptr2d => orig_ptr(:,:,i)
-             varNameNew = 'BC'//varName(6:7)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
-                                        name=trim(varNameNew)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
-             call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
-             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
-             call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
-             call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin '//trim(bin_index), _RC)
-             call MAPL_AllocateCoupling (field2D, __RC__)
-             call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
-          end do
-       end if
-
-    else if (dimCount > 3) then
-       if(mapl_am_i_root()) print*,'Chem_AeroGenric::append_to_bundle does not currently support fields greater than 3 dimensions'
-       VERIFY_(824)
-    end if
-
-    RETURN_(ESMF_SUCCESS)
-
-  end subroutine append_to_bundle
-
-!===================================================================================
-!BOP
-! !IROUTINE: setZeroKlid
+   !BOP
+   !IROUTINE: setZeroKlid
    subroutine setZeroKlid(km, klid, int_ptr)
 
-! !USES:
-   implicit NONE
+      !INPUT PARAMETERS:
+      integer, intent(in) :: km   ! total model levels
+      integer, intent(in) :: klid ! index for pressure level
 
-! !INPUT PARAMETERS:
-   integer, intent(in) :: km   ! total model levels
-   integer, intent(in) :: klid ! index for pressure level
+      !INOUTPUT PARAMETERS:
+      real, dimension(:,:,:), intent(inout) :: int_ptr ! aerosol pointer
 
-! !INOUTPUT PARAMETERS:
-   real, dimension(:,:,:), intent(inout) :: int_ptr ! aerosol pointer
+      !DESCRIPTION: Set values to 0 where above klid
+      !REVISION HISTORY:
+      ! 25Aug2020 E.Sherman - Written
 
-! !DESCRIPTION: Set values to 0 where above klid
-!
-! !REVISION HISTORY:
-!
-! 25Aug2020 E.Sherman - Written
-!
-! !Local Variables
-   integer :: k
+      !Local Variables
+      integer :: k
+      !EOP
 
-!EOP
-!----------------------------------------------------------------------------------
-!  Begin...
-
-    do k = 1, km
-       if (k < klid) then
-          int_ptr(:,:,k) = 0.0
-       else if (k >= klid) then
-          exit
-       end if
-    end do
-
-   end subroutine setZeroKlid
-!===================================================================================
-!BOP
-! !IROUTINE: setZeroKlid
-   subroutine setZeroKlid4d (km, klid, int_ptr)
-
-! !USES:
-   implicit NONE
-
-! !INPUT PARAMETERS:
-   integer, intent(in) :: km   ! total model levels
-   integer, intent(in) :: klid ! index for pressure level
-
-! !INOUTPUT PARAMETERS:
-   real, dimension(:,:,:,:), intent(inout) :: int_ptr ! aerosol pointer
-
-! !DESCRIPTION: Set values to 0 where above klid
-!
-! !REVISION HISTORY:
-!
-! 25Aug2020 E.Sherman - Written
-!
-! !Local Variables
-   integer :: k, n
-
-!EOP
-!----------------------------------------------------------------------------------
-!  Begin...
-
-   do n = 1, ubound(int_ptr, 4)
       do k = 1, km
          if (k < klid) then
-            int_ptr(:,:,k,n) = 0.0
+            int_ptr(:,:,k) = 0.0
          else if (k >= klid) then
             exit
          end if
       end do
-   end do
+
+   end subroutine setZeroKlid
+
+   !BOP
+   !IROUTINE: setZeroKlid
+   subroutine setZeroKlid4d (km, klid, int_ptr)
+
+      !INPUT PARAMETERS:
+      integer, intent(in) :: km   ! total model levels
+      integer, intent(in) :: klid ! index for pressure level
+
+      !INOUTPUT PARAMETERS:
+      real, dimension(:,:,:,:), intent(inout) :: int_ptr ! aerosol pointer
+
+      !DESCRIPTION: Set values to 0 where above klid
+      !REVISION HISTORY:
+      ! 25Aug2020 E.Sherman - Written
+
+      !Local Variables
+      integer :: k, n
+      !EOP
+
+      do n = 1, ubound(int_ptr, 4)
+         do k = 1, km
+            if (k < klid) then
+               int_ptr(:,:,k,n) = 0.0
+            else if (k >= klid) then
+               exit
+            end if
+         end do
+      end do
 
    end subroutine setZeroKlid4d
 
-
-!===================================================================================
-!BOP
-! !IROUTINE: findKlid
+   !BOP
+   !IROUTINE: findKlid
    subroutine findKlid (klid, plid, ple, rc)
 
-! !USES:
-   implicit NONE
+      !INPUT PARAMETERS:
+      integer, intent(inout) :: klid ! index for pressure lid
+      real, intent(in) :: plid ! pressure lid [hPa]
+      real, dimension(:,:,:), intent(in) :: ple  ! air pressure [Pa]
 
-! !INPUT PARAMETERS:
-   integer, intent(inout) :: klid ! index for pressure lid
-   real, intent(in)       :: plid ! pressure lid [hPa]
-   real, dimension(:,:,:), intent(in) :: ple  ! air pressure [Pa]
+      !OUTPUT PARAMETERS:
+      integer, intent(out) :: rc ! return code; 0 - all is good, 1 - bad
 
-! !OUTPUT PARAMETERS:
-   integer, intent(out) :: rc ! return code; 0 - all is good
-!                                            1 - bad
+      !DESCRIPTION: Finds corresponding vertical index for defined pressure lid
+      !REVISION HISTORY:
+      ! 25Aug2020 E.Sherman - Written
 
-! !DESCRIPTION: Finds corresponding vertical index for defined pressure lid
-!
-! !REVISION HISTORY:
-!
-! 25Aug2020 E.Sherman - Written
-!
-! !Local Variables
-   integer :: k, j, i
-   real :: plid_, diff, refDiff
-   real, allocatable, dimension(:) :: pres  ! pressure at each model level [Pa]
+      !Local Variables
+      integer :: k, j, i
+      real :: plid_, diff, refDiff
+      real, allocatable, dimension(:) :: pres  ! pressure at each model level [Pa]
+      !EOP
 
-!EOP
-!----------------------------------------------------------------------------------
-!  Begin...
-   klid = 1
-   rc = 0
+      klid = 1
+      rc = 0
 
-!  convert from hPa to Pa
-   plid_ = plid*100.0
+      ! convert from hPa to Pa
+      plid_ = plid*100.0
 
-   allocate(pres(ubound(ple,3)))
+      allocate(pres(ubound(ple,3)))
 
-!  find pressure at each model level
-   do k = 1, ubound(ple,3)
-      pres(k) = ple(1,1,k)
-   end do
+      ! find pressure at each model level
+      do k = 1, ubound(ple,3)
+         pres(k) = ple(1,1,k)
+      end do
 
-!  find smallest absolute difference between plid and average pressure at each model level
-   refDiff = 150000.0
-   do k = 1, ubound(ple,3)
-      diff = abs(pres(k) - plid_)
-      if (diff < refDiff) then
-         klid = k
-         refDiff = diff
-      end if
-   end do
-
-!  Check to make sure that all pressures at (i,j) were the same
-   do j = 1, ubound(ple,2)
-      do i = 1, ubound(ple,1)
-         if (pres(klid) /= ple(i,j,klid)) then
-            rc = 1
-            return
+      ! find smallest absolute difference between plid and average pressure at each model level
+      refDiff = 150000.0
+      do k = 1, ubound(ple,3)
+         diff = abs(pres(k) - plid_)
+         if (diff < refDiff) then
+            klid = k
+            refDiff = diff
          end if
       end do
-   end do
+
+      ! Check to make sure that all pressures at (i,j) were the same
+      do j = 1, ubound(ple,2)
+         do i = 1, ubound(ple,1)
+            if (pres(klid) /= ple(i,j,klid)) then
+               rc = 1
+               return
+            end if
+         end do
+      end do
 
    end subroutine findKlid
 
-!===================================================================================
-!BOP
-! !IROUTINE: get_mixR
-  subroutine get_mixR (state, rc)
+   !BOP
+   !IROUTINE: get_mixR
+   subroutine get_mixR (state, rc)
 
-! !USES:
-    implicit none
+      !ARGUMENTS:
+      type (ESMF_State) :: state
+      integer, intent(out) :: rc
 
-!   !ARGUMENTS:
-    type (ESMF_State)                                :: state
-    integer,            intent(out)                  :: rc
+      !LOCALS:
+      type(ESMF_Info) :: info
+      real, dimension(:,:,:), pointer :: ptr3d
+      real, dimension(:,:,:,:), pointer :: ptr4d
+      real, dimension(:,:,:), pointer :: aeroSum
+      character(len=:), allocatable :: fld_name
+      integer :: i
+      character(len=ESMF_MAXSTR), allocatable :: aerosolNames(:)
+      integer :: status
+      !EOP
 
-!   !LOCALS:
-    real, dimension(:,:,:), pointer                  :: ptr3d
-    real, dimension(:,:,:,:), pointer                :: ptr4d
-    real, dimension(:,:,:), pointer                  :: aeroSum
-    character (len=ESMF_MAXSTR)                      :: fld_name
-    integer                                          :: aeroN, i
-    character (len=ESMF_MAXSTR), allocatable         :: aerosolNames(:)
-    integer                                          :: status
+      call ESMF_InfoGetFromHost(state, info, _RC)
+      call ESMF_InfoGet(info, key="internal_variable_name", values=aerosolNames, _RC)
 
-!   Begin...
+      ! Zero out previous aerosol sum value so it doesn't keep growing.
+      call ESMF_AttributeGet (state, name="sum_of_internalState_aerosol", value=fld_name, _RC)
+      if (fld_name /= '') then
+         call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=aeroSum, _RC)
+         aeroSum = 0.0
+      end if
 
-    call ESMF_AttributeGet(state, name='internal_variable_name', itemCount=aeroN, __RC__)
-    allocate (aerosolNames(aeroN), __STAT__)
-    call ESMF_AttributeGet(state, name='internal_variable_name', valueList=aerosolNames, __RC__)
+      do i = 1, size(aerosolNames)
+         if ((aerosolNames(i) == 'DU') .or. (aerosolNames(i) == 'SS')) then
+            call MAPL_StateGetPointer(state, itemName=aerosolNames(i), farrayPtr=ptr4d, _RC)
+            aeroSum = sum(ptr4d, dim=4) !DU and SS only have 1 internal state variable so no need to =+
+         else
+            call MAPL_StateGetPointer(state, itemName=aerosolNames(i), farrayPtr=ptr3d, _RC)
+            aeroSum = aeroSum + ptr3d
+         end if
+      end do
 
-!   Zero out previous aerosol sum value so it doesn't keep growing.
-    call ESMF_AttributeGet (state, name='sum_of_internalState_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-       call MAPL_GetPointer (state, aeroSum, trim(fld_name), __RC__)
-       aeroSum = 0.0
-    end if
+   end subroutine get_mixR
 
-    do i = 1, size(aerosolNames)
-       if ((aerosolNames(i) == 'DU') .or. (aerosolNames(i) == 'SS')) then
-          call MAPL_GetPointer (state, ptr4d, trim(aerosolNames(i)), __RC__)
-          aeroSum = sum(ptr4d, dim=4) !DU and SS only have 1 internal state variable so no need to =+
-       else
-          call MAPL_GetPointer (state, ptr3d, trim(aerosolNames(i)), __RC__)
-          aeroSum = aeroSum + ptr3d
-       end if
-    end do
-
- end subroutine get_mixR
-
-
-end module  Chem_AeroGeneric
+end module Chem_AeroGeneric
 
 
