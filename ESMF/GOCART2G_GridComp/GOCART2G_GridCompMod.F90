@@ -11,7 +11,7 @@ module GOCART2G_GridCompMod
    use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
 
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
-   use mapl3g_generic, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildrenNames, MAPL_GridCompRunChild
+   use mapl3g_generic, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
    use mapl3g_generic, only: MAPL_GridCompAddConnectivity
    use mapl3g_generic, only: MAPL_GridCompGetResource, MAPL_GridCompReexport
    use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
@@ -470,17 +470,15 @@ contains
       !DESCRIPTION: Run method
       !EOP
       class(logger_t), pointer :: logger
-      type(StringVector) :: children
       character(len=:), allocatable :: child_name
-      integer :: iter, status
+      integer :: num_children, iter, status
 
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call MAPL_GridCompGet(gc, logger=logger, num_children=num_children, _RC)
       call logger%info("Run1: starting...")
-      children = MAPL_GridCompGetChildrenNames(gc, _RC)
-      do iter = 1, children%size()
-         child_name = children%of(iter)
+      do iter = 1, num_children
+         child_name = MAPL_GridCompGetChildName(gc, iter, _RC)
          if ((index(child_name, "data")) /= 0) cycle
-         call MAPL_GridCompRunChild(gc, child_name, phase_name="Run0", _RC)
+         call MAPL_GridCompRunChild(gc, child_name, phase_name="Run1", _RC)
       end do
       call logger%info("Run1: ...complete")
 
@@ -570,19 +568,17 @@ contains
       integer :: ind550, ind532
       integer :: i1, i2, j1, j2, km, k,kk
       class(logger_t), pointer :: logger
-      type(StringVector) :: children
       character(len=:), allocatable :: child_name
-      integer :: n, w, iter, status
+      integer :: n, w, num_children, iter, status
 
 #include "GOCART2G_DeclarePointer___.h"
 
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call MAPL_GridCompGet(gc, logger=logger, num_children=num_children, _RC)
       call logger%info("Run2: starting...")
-      children = MAPL_GridCompGetChildrenNames(gc, _RC)
 
       ! Run zero Klid for children
-      do iter = 1, children%size()
-         child_name = children%of(iter)
+      do iter = 1, num_children
+         child_name = MAPL_GridCompGetChildName(gc, iter, _RC)
          if ((index(child_name, "data")) /= 0) cycle
          call MAPL_GridCompRunChild(gc, child_name, phase_name="Run0", _RC)
       end do
@@ -617,8 +613,8 @@ contains
       if(associated(pso4tot)) pso4tot(:,:,:) = 0.
 
       ! Run the children
-      do iter = 1, children%size()
-         child_name = children%of(iter)
+      do iter = 1, num_children
+         child_name = MAPL_GridCompGetChildName(gc, iter, _RC)
          if ((index(child_name, "data")) /= 0) cycle
          call MAPL_GridCompRunChild(gc, child_name, phase_name="Run2", _RC)
       end do
