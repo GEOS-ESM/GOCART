@@ -1,4 +1,4 @@
-#include "MAPL_Generic.h"
+#include "MAPL.h"
 
 !BOP
 !MODULE: GOCART2G_GridCompMod - The GOCART 2nd Generation Aerosol Grid Component
@@ -11,10 +11,11 @@ module GOCART2G_GridCompMod
    use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
 
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
-   use mapl3g_generic, only: MAPL_GridCompAddChild, MAPL_GridCompAddConnectivity, MAPL_GridCompRunChildren
+   use mapl3g_generic, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildrenNames, MAPL_GridCompRunChild
+   use mapl3g_generic, only: MAPL_GridCompAddConnectivity
    use mapl3g_generic, only: MAPL_GridCompGetResource, MAPL_GridCompReexport
-   ! use mapl3g_generic, only: OuterMetaComponent, MAPL_GridCompGetOuterMeta
    use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
+   use mapl3g_generic, only: MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_FieldBundle_API, only: MAPL_FieldBundleAdd, MAPL_FieldBundleGet
@@ -22,6 +23,7 @@ module GOCART2G_GridCompMod
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_UngriddedDim, only: UngriddedDim
    use pflogger, only: logger_t => logger
+   use gftl2_StringVector, only: StringVector
 
    use Chem_AeroGeneric
 
@@ -61,9 +63,7 @@ module GOCART2G_GridCompMod
       real, allocatable :: wavelengths_vertint(:) ! wavelengths for vertically integrated aop [nm]
    end type GOCART_State
 
-   type wrap_
-      type (GOCART_State), pointer :: ptr => null()
-   end type wrap_
+   character(*), parameter :: PRIVATE_STATE = "GOCART_STATE"
 
    !DESCRIPTION:
    !
@@ -100,7 +100,6 @@ contains
       !EOP
       type(ESMF_HConfig) :: hconfig
       type(GOCART_State), pointer :: self
-      type(wrap_) :: wrap
       integer, allocatable :: wavelengths_diagmie(:)
       ! logical :: use_threads
       class(logger_t), pointer :: logger
@@ -112,17 +111,16 @@ contains
       call MAPL_GridCompGet(gc, logger=logger, _RC)
       call logger%info("SetServices:: starting...")
 
-      ! Wrap internal state for storing in gc
-      allocate(self, _STAT)
-      wrap%ptr => self
+      ! Wrap gridcomp's private state and store in gc
+      _SET_NAMED_PRIVATE_STATE(gc, GOCART_state, PRIVATE_STATE)
 
       ! Set the Initialize, Run, Finalize entry points
       call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Initialize, Initialize,  _RC)
       call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run1, phase_name="Run1", _RC)
       call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run2, phase_name="Run2", _RC)
 
-      ! Store internal state in gc
-      call ESMF_UserCompSetInternalState(gc, "GOCART_State", wrap, _RC)
+      ! Retrieve the private state
+      _GET_NAMED_PRIVATE_STATE(gc, GOCART_State, PRIVATE_STATE, self)
 
       call MAPL_GridCompGetResource(gc, "wavelengths_for_profile_aop_in_nm", self%wavelengths_profile, _RC)
       call MAPL_GridCompGetResource(gc, "wavelengths_for_vertically_integrated_aop_in_nm", self%wavelengths_vertint, _RC)
@@ -314,13 +312,10 @@ contains
       type(ESMF_FieldBundle) :: aero_dp
       type(ESMF_Info) :: info
       type(GOCART_State), pointer :: self
-      type(wrap_) :: wrap
-      ! integer :: n_modes
       character(len=ESMF_MAXSTR), allocatable :: aero_aci_modes(:)
       real :: maxclean, ccntuning
-      integer :: im, jm, km
+      integer :: im, jm, km, status
       class(logger_t), pointer :: logger
-      integer :: status
 
       ! Get the target components name and set-up traceback handle.
       call MAPL_GridCompGet(gc, logger=logger, _RC)
@@ -330,15 +325,8 @@ contains
       call MAPL_GridCompGet(gc, geom=geom, grid=grid, num_levels=km, _RC)
       call MAPL_GridGet(grid, im=im, jm=jm, _RC)
 
-      ! Get my internal state
-      call ESMF_UserCompGetInternalState(gc, "GOCART_State", wrap, _RC)
-      self => wrap%ptr
-
-      ! CF = ESMF_ConfigCreate (_RC)
-      ! call ESMF_ConfigLoadFile (CF, "AGCM.rc", _RC) ! should the rc file be changed?
-
-      ! ! Get children and their export states from my generic state
-      ! call MAPL_Get (MAPL, gcs=gcs, gex=gex, _RC )
+      ! Get my private state
+      _GET_NAMED_PRIVATE_STATE(gc, GOCART_State, PRIVATE_STATE, self)
 
       ! Fill AERO_RAD, AERO_ACI, and AERO_DP with the children's states
       call ESMF_StateGet(export, "AERO", aero, _RC)
@@ -405,9 +393,7 @@ contains
            "ss001    ", "ss002    ", "ss003    ", &
            "sulforg01", "sulforg02", "sulforg03", &
            "bcphilic ", "ocphilic ", "brcphilic"]
-      ! n_modes = size(aero_aci_modes)
 
-      ! call ESMF_InfoSet(info, key="number_of_aerosol_modes", value=n_modes, _RC)
       call ESMF_InfoSet(info, key="aerosol_modes", values=aero_aci_modes, _RC)
 
       ! max mixing ratio before switching to "polluted" size distributions
@@ -484,11 +470,18 @@ contains
       !DESCRIPTION: Run method
       !EOP
       class(logger_t), pointer :: logger
-      integer :: status
+      type(StringVector) :: children
+      character(len=:), allocatable :: child_name
+      integer :: iter, status
 
       call MAPL_GridCompGet(gc, logger=logger, _RC)
       call logger%info("Run1: starting...")
-      call MAPL_GridCompRunChildren(gc, phase_name="Run1", _RC)
+      children = MAPL_GridCompGetChildrenNames(gc, _RC)
+      do iter = 1, children%size()
+         child_name = children%of(iter)
+         if ((index(child_name, "data")) /= 0) cycle
+         call MAPL_GridCompRunChild(gc, child_name, phase_name="Run0", _RC)
+      end do
       call logger%info("Run1: ...complete")
 
       _RETURN(_SUCCESS)
@@ -515,7 +508,6 @@ contains
 
       type(ESMF_Grid) :: grid
       type (GOCART_State), pointer :: self
-      type (wrap_) :: wrap
       real, pointer, dimension(:,:) :: lats
 
       ! ! Dust - ACG will generate this once we add DU's export states as GOCART's import
@@ -578,26 +570,25 @@ contains
       integer :: ind550, ind532
       integer :: i1, i2, j1, j2, km, k,kk
       class(logger_t), pointer :: logger
-      integer :: n, w, status
+      type(StringVector) :: children
+      character(len=:), allocatable :: child_name
+      integer :: n, w, iter, status
 
 #include "GOCART2G_DeclarePointer___.h"
 
       call MAPL_GridCompGet(gc, logger=logger, _RC)
       call logger%info("Run2: starting...")
+      children = MAPL_GridCompGetChildrenNames(gc, _RC)
 
       ! Run zero Klid for children
-      ! pchakrab: TODO - how to exclude "data" versions of children??
-      ! do i = 1, size(gcs)
-      !    call ESMF_GridCompGet (gcs(i), NAME=child_name, _RC )
-      !    if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
-      !       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, _RC)
-      !    end if
-      ! end do
-      call MAPL_GridCompRunChildren(gc, phase_name="Run0", _RC)
+      do iter = 1, children%size()
+         child_name = children%of(iter)
+         if ((index(child_name, "data")) /= 0) cycle
+         call MAPL_GridCompRunChild(gc, child_name, phase_name="Run0", _RC)
+      end do
 
-      ! Get internal state
-      call ESMF_UserCompGetInternalState(gc, "GOCART_State", wrap, _RC)
-      self => wrap%ptr
+      ! Get private state
+      _GET_NAMED_PRIVATE_STATE(gc, GOCART_State, PRIVATE_STATE, self)
 
 #include "GOCART2G_GetPointer___.h"
       if(associated(totexttau)) totexttau = 0.
@@ -626,14 +617,11 @@ contains
       if(associated(pso4tot)) pso4tot(:,:,:) = 0.
 
       ! Run the children
-      ! do i = 1, size(gcs)
-      !    call ESMF_GridCompGet (gcs(i), NAME=child_name, _RC )
-      !    if ((index(child_name, 'data')) == 0) then ! only execute phase2 method if a computational instance
-      !       call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=2, clock=clock, _RC)
-      !    end if
-      ! end do
-      ! pchakrab: TODO - how to exclude "data" versions of children??
-      call MAPL_GridCompRunChildren(gc, phase_name="Run2", _RC)
+      do iter = 1, children%size()
+         child_name = children%of(iter)
+         if ((index(child_name, "data")) /= 0) cycle
+         call MAPL_GridCompRunChild(gc, child_name, phase_name="Run2", _RC)
+      end do
 
       ! Compute total aerosol diagnostic values for export
       call MAPL_GridCompGet(gc, grid=grid, _RC)
@@ -718,21 +706,21 @@ contains
       ! Sea Salt
       do n = 1, size(self%SS%instances)
          if ((self%SS%instances(n)%is_active) .and. (index(self%SS%instances(n)%name, "data") == 0 )) then
-            if(associated(totexttau)) totexttau(:,:,:) = totexttau(:,:,:) + ssexttau(:,:,:)
-            if(associated(totstexttau)) totstexttau(:,:,:) = totstexttau(:,:,:) + ssstexttau(:,:,:)
-            if(associated(totscatau)) totscatau(:,:,:) = totscatau(:,:,:) + ssscatau(:,:,:)
-            if(associated(totstscatau)) totstscatau(:,:,:) = totstscatau(:,:,:) + ssstscatau(:,:,:)
-            if(associated(totextt25)) totextt25(:,:,:) = totextt25(:,:,:) + ssextt25(:,:,:)
-            if(associated(totscat25)) totscat25(:,:,:) = totscat25(:,:,:) + ssscat25(:,:,:)
-            if(associated(totexttfm)) totexttfm(:,:,:) = totexttfm(:,:,:) + ssexttfm(:,:,:)
-            if(associated(totscatfm)) totscatfm(:,:,:) = totscatfm(:,:,:) + ssscatfm(:,:,:)
-            if(associated(totextcoef)) totextcoef(:,:,:,:) = totextcoef(:,:,:,:) + ssextcoef(:,:,:,:)
-            if(associated(totextcoefrh20)) totextcoefrh20(:,:,:,:) = totextcoefrh20(:,:,:,:) + ssextcoefrh20(:,:,:,:)
-            if(associated(totextcoefrh80)) totextcoefrh80(:,:,:,:) = totextcoefrh80(:,:,:,:) + ssextcoefrh80(:,:,:,:)
-            if(associated(totscacoef)) totscacoef(:,:,:,:) = totscacoef(:,:,:,:) + ssscacoef(:,:,:,:)
-            if(associated(totscacoefrh20)) totscacoefrh20(:,:,:,:) = totscacoefrh20(:,:,:,:) + ssscacoefrh20(:,:,:,:)
-            if(associated(totscacoefrh80)) totscacoefrh80(:,:,:,:) = totscacoefrh80(:,:,:,:) + ssscacoefrh80(:,:,:,:)
-            if(associated(totbckcoef)) totbckcoef(:,:,:,:) = totbckcoef(:,:,:,:) + ssbckcoef(:,:,:,:)
+            if(associated(totexttau)) totexttau = totexttau + ssexttau
+            if(associated(totstexttau)) totstexttau = totstexttau + ssstexttau
+            if(associated(totscatau)) totscatau = totscatau + ssscatau
+            if(associated(totstscatau)) totstscatau = totstscatau + ssstscatau
+            if(associated(totextt25)) totextt25 = totextt25 + ssextt25
+            if(associated(totscat25)) totscat25 = totscat25 + ssscat25
+            if(associated(totexttfm)) totexttfm = totexttfm + ssexttfm
+            if(associated(totscatfm)) totscatfm = totscatfm + ssscatfm
+            if(associated(totextcoef)) totextcoef = totextcoef + ssextcoef
+            if(associated(totextcoefrh20)) totextcoefrh20 = totextcoefrh20 + ssextcoefrh20
+            if(associated(totextcoefrh80)) totextcoefrh80 = totextcoefrh80 + ssextcoefrh80
+            if(associated(totscacoef)) totscacoef = totscacoef + ssscacoef
+            if(associated(totscacoefrh20)) totscacoefrh20 = totscacoefrh20 + ssscacoefrh20
+            if(associated(totscacoefrh80)) totscacoefrh80 = totscacoefrh80 + ssscacoefrh80
+            if(associated(totbckcoef)) totbckcoef = totbckcoef + ssbckcoef
 
             if(associated(pm)        .and. associated(sssmass))   pm        = pm        + sssmass
             if(associated(pm25)      .and. associated(sssmass25)) pm25      = pm25      + sssmass25
@@ -1212,7 +1200,6 @@ contains
       type(ESMF_HConfig) :: hconfig
 
       do iter = 1, size(species%instances)
-         ! species%instances(iter)%id = iter ! pchakrab: TODO - this needs to go
          child_name = species%instances(iter)%name
          config_file = species%name // "_instance_" // child_name // ".yaml"
          hconfig = ESMF_HConfigCreate(filename=config_file, _RC)
