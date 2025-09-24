@@ -26,6 +26,7 @@
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+   public DustEmissionKOK14SIMP
    public DustEmissionVegMaskGVF
    public DustEmissionSGINOUX
    public DustEmissionDEAD03
@@ -114,7 +115,7 @@
 !                              - Added modifications into FENGSHA scheme
 !                                 (implemented data, corrected variable-references/distribution, added soil-freezing)
 !                              - The number of working schemes is raised to five, from two.
-!
+!  12Sep2025 J.Joshi           - Implemented KOK14SIMP dust emission scheme
 !EOP
 !-------------------------------------------------------------------------
 CONTAINS
@@ -342,8 +343,8 @@ end subroutine DustEmissionSGINOUX
    real, allocatable   ::  emissions_tot(:,:)        ! total emission [kg/(m^2 sec)]
    real                ::  fd                        ! drag partitioning eff. factor
    real                ::  fd_ustar                  ! reduced-ustar due to roughness
-   real, parameter     ::  soil_dens  = 2650.        ! mean soil-grain density [kg m-3]
-                                                     ! although 2500 kg m-3 in Zender 2003]
+   real, parameter     ::  soil_dens  = 2500.        ! soil density [kg m-3] (less than 2650, following Zender 03)
+   real, parameter     ::  part_dens  = 2650.        ! mean soil-grain density [kg m-3]
    real, parameter     ::  water_dens = 1000.        ! liquid water dens [kg m-3]
    real                ::  fw                        ! water effect factor
    real                ::  wgt                       ! threshold wetness
@@ -393,17 +394,20 @@ end subroutine DustEmissionSGINOUX
     do i = i1, i2
 
      if ( oro(i,j) /= LAND ) cycle              ! only over LAND gridpoints
+       if ( (clayfrac(i,j) < 0.0 .or. clayfrac(i,j) > 1.0) .or. &
+            (sandfrac(i,j) < 0.0 .or. sandfrac(i,j) > 1.0) .or. &
+            (tsoil(i,j) < tsoilf) ) cycle
 
        ! Threshold fric vel (Marticorena and Bergametti 1995, MB95)
-     u_thresh0 = 0.129 * sqrt(soil_dens*grav*soil_diam/adens(i,j)) &
-                 * sqrt(1.+6.e-7/(soil_dens*grav*soil_diam**2.5)) &
+     u_thresh0 = 0.129 * sqrt(part_dens*grav*soil_diam/adens(i,j)) &
+                 * sqrt(1.+6.e-7/(part_dens*grav*soil_diam**2.5)) &
                  / sqrt(1.928*(1331.*(100.*soil_diam)**1.56+0.38)**0.092 - 1.)
      w10m      = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
 
          ! wetness correction Fecan et al., 1999 [Zender 2003 eq. 6]
          ! convert to gravimetric [Zender 2003]
      w_s       = 0.489 - 0.126*sandfrac(i,j)
-     gwettop   = vwettop(i,j) * water_dens /(soil_dens *(1.0 - w_s) )
+     gwettop   = 100. * vwettop(i,j) * water_dens /(soil_dens *(1.0 - w_s) )
          ! wt  = 0.17 * mclay + 0.14 * mclay**2, [originally] with mclay  = 0.2 (assuming a =1 in Zender but ...)
      wgt       = clayfrac(i,j) * (14.0 * clayfrac(i,j) + 17.0)
 
@@ -412,9 +416,8 @@ end subroutine DustEmissionSGINOUX
      else
        fw    = sqrt(1.0 + 1.21 * (gwettop-wgt)**0.68 )
      endif
-
      u_thresh_d_w = u_thresh0*fw/fd
- 
+
          ! Modify friction velocity for Owen Effect
          ! Assumption of stable atmospheric profile to go from saltation
          ! wind speed to equivalent threshold at z = 10m
@@ -432,7 +435,7 @@ end subroutine DustEmissionSGINOUX
          ! Note: differs from Zender et al. 2003 eq. 10
          ! use model-predicted adens; ref DOI: 10.1016/j.apr.2024.102230
      rat = u_thresh_d_w / ustars
-     if ( (rat < 1.0) .and. (tsoil(i,j) .gt. tsoilf) ) then
+     if ( rat < 1.0 ) then
       horiz_flux = cs * adens(i,j) * fd_ustar**3 /grav * &
                      (1 - rat**2) * (1+rat)
 
@@ -469,8 +472,196 @@ end subroutine DustEmissionSGINOUX
 
 
 !=======================================================================================================
+!BOP
+!  !IROUTINE: DustEmissionKOK14SIMP
 
+   subroutine DustEmissionKOK14SIMP(oro, fraclake, fracsnow, apply_source, source_opt, du_src, &
+                                 veg_mask, gvf, x0_gvf, k_gvf, gvf_max, gvf_min, &
+                                 sandfrac, clayfrac, vwettop, fvwet, u10m, v10m, ustar, owen_eff,    &
+                                 adens, tsoil, Ch_DU, z0ms, z0m,   &
+                                 tsoilf, grav, soil_diam, radius, emissions, rc)
+
+   !---------------------------------------------------------------------------------------------------x
+   ! !DESCRIPTION:                                                                                     !
+   !               Dust emission scheme based on Kok et al., 2014 ACP                                  !
+   !               (note: differs from DustEmissionKOK14 in several ways)                              !
+   !                                                                                                   !
+   ! !REVISION HISTORY:                                                                                !
+   !                                                                                                   !
+   !                                                                                                   !
+   !  12Sep2025 J.Joshi    Original implementation                                                     !
+   !                                                                                                   !
+   !---------------------------------------------------------------------------------------------------x
+
+   ! !USES:
+
+   implicit NONE
+
+        ! ! INPUT
+   real,    intent(in) :: oro(:,:)                   ! land-ocean-ice mask [1]
+   real,    intent(in) :: fraclake(:,:)              ! frac of lake [1]
+   real,    intent(in) :: fracsnow(:,:)              ! frac of snow [1]
+   integer, intent(in) :: apply_source               ! source func? 1 = Yes, 0 = No
+   integer, intent(in) :: source_opt                 ! source func option: 1 binary, 2 actual
+   real,    intent(in) :: du_src(:,:)                ! source func
+   integer, intent(in) :: veg_mask                   ! veg mask? 1 = Yes, 0 = No
+   real,    intent(in) :: gvf(:,:)                   ! vegetation fraction [1]
+   real,    intent(in) :: x0_gvf                     ! x0 sigmoid param [1]
+   real,    intent(in) :: k_gvf                      ! k sigmoid param [1]
+   real,    intent(in) :: gvf_max                    ! gvf max [1]
+   real,    intent(in) :: gvf_min                    ! gvf min [1]
+   real,    intent(in) :: sandfrac(:,:)              ! sandfrac [1]
+   real,    intent(in) :: clayfrac(:,:)              ! clayfrac [1]
+   real,    intent(in) :: vwettop(:,:)               ! surface soil wetness volumetric [1]
+   real,    intent(in) :: fvwet                      ! wetness scaling factor
+   real,    intent(in) :: u10m(:,:)                  ! 10 m eastward wind [m/s]
+   real,    intent(in) :: v10m(:,:)                  !      northward wind [m/s]
+   real,    intent(in) :: ustar(:,:)                 ! fric vel
+   integer, intent(in) :: owen_eff                   ! Owen effect? 1 = Yes, 0 = No
+   real,    intent(in) :: adens(:,:)                 ! sfc-air density
+   real,    intent(in) :: tsoil(:,:)                 ! soil temperature [K]
+   real,    intent(in) :: Ch_DU                      ! tuning constant
+   real,    intent(in) :: z0ms                       ! smooth roughness length [m]
+   real,    intent(in) :: z0m                        ! roughness length [m]
+   real,    intent(in) :: tsoilf                     ! soil freezing temperature [K]
+   real,    intent(in) :: grav                       ! gravity [m/s^2]
+   real,    intent(in) :: soil_diam                  ! soil_diameter, for monomodal saltatators [m]
+   real,    intent(in) :: radius(:)                  ! particle radii for nbins
+
+        ! ! OUTPUT
+   real, intent(inout)   :: emissions(:,:,:)         ! [kg/m^2/s]
+   integer, intent(out)  :: rc                       ! Error return code: 0 well, 1 -
+
+        ! ! LOCAL
+   integer             ::  i, j, n                   !
+   real                ::  ustar_t0                  ! dry bed, non-saltating saltation threshold  [m/s]
+   real                ::  w10m                      !
+   real                ::  landfrac                  !
+   real,allocatable    ::  clay_factor(:,:)          !
+   real                ::  fbare                     !
+   real, allocatable   ::  emissions_tot(:,:)        ! total emission [kg/m^2/s]
+   real, allocatable   ::  abinary_source(:,:)       ! binary (or actual) source func
+   real                ::  fd                        ! drag partitioning eff. factor
+   real                ::  fw                        ! soil wetness factor
+   real                ::  wgt                       ! threshold wetness
+   real                ::  w_s                       ! sat. wetness [1]
+   real                ::  gwettop                   ! gravimetric soil wetness [1]
+   real                ::  ustar_mod                 ! modified fric. vel [m/s]
+   real                ::  k_z                       ! log profile for nonsaltating case
+   real                ::  wt10m                     ! threshold 10m wind speed
+   real                ::  ustar_t                   ! threshold fric vel [m/s]
+   real                ::  ustar_st                  ! standardized threshold fric vel [m/s]
+   integer             ::  i1, i2, j1, j2, nbins
+   integer             ::  dims(2)
+   real                ::  r_exp
+   real                ::  Cd                        ! the Cd coefficient
+   real, parameter     ::  soil_dens  = 2500.        ! soil density [kg m-3]
+   real, parameter     ::  part_dens  = 2650.        ! mean soil-grain density [kg m-3]
+   real, parameter     ::  water_dens = 1000.        ! liquid water dens [kg m-3]
+   real, parameter     ::  Ca  = 2.7
+   real, parameter     ::  Ce  = 2.0
+   real, parameter     ::  Cd0 = 4.4e-5
+   real, parameter     ::  ustar_st0 = 0.16          ! ustart_st for optimally erodible soil [m/s]
+   real, parameter     ::  rho_a0    = 1.225         ! kg/m3 standard air density at sea level [kg/m^3]
+
+   nbins     = size(radius)
+
+   dims      = shape(u10m)
+   i1        = 1; j1 = 1
+   i2        = dims(1); j2 = dims(2)
+   allocate (emissions_tot(i2,j2), abinary_source(i2,j2),clay_factor(i2,j2))
+
+   fbare              = 1.0
+   emissions_tot(:,:) = 0.0
+
+       ! drag-partition MB95, King et al 2005
+   fd  = 1.0 - ( log(z0m/z0ms) / log( 0.7 * ((0.1/z0ms)**0.8) ) )
+
+   do j = j1, j2
+     do i = i1, i2
+       if ( oro(i,j) /= LAND ) cycle              ! only over LAND gridpoints
+       if ( (clayfrac(i,j) < 0.0 .or. clayfrac(i,j) > 1.0) .or. &
+            (sandfrac(i,j) < 0.0 .or. sandfrac(i,j) > 1.0) .or. &
+            (tsoil(i,j) < tsoilf) .or. (vwettop(i,j) > 0.5) ) cycle
+
+           ! Threshold fric vel using Marticorena and Bergametti 1995
+       ustar_t0 = 0.129 * sqrt(part_dens*grav*soil_diam/adens(i,j)) &
+                  * sqrt(1.+6.e-7/(part_dens*grav*soil_diam**2.5)) &
+                  / sqrt(1.928*(1331.*(100.*soil_diam)**1.56+0.38)**0.092 - 1.)
+
+           ! wetness correction Fecan et al., 1999; gravimetric using  Zender et al., 2003
+       w_s       = 0.489 - 0.126*sandfrac(i,j)
+       gwettop   = 100. * fvwet * vwettop(i,j) * water_dens /(soil_dens *(1.0 - w_s) )
+       wgt       = clayfrac(i,j) * (14.0 * clayfrac(i,j) + 17.0)
+       if (gwettop <= wgt) then
+         fw = 1.0
+       else
+         fw = sqrt(1.0 + 1.21 * (gwettop-wgt)**0.68 )
+       endif
+
+       ustar_t   = ustar_t0*fw
+       ustar_mod = ustar(i,j) * fd     ! at soil surface
+
+       if (owen_eff == 1) then
+             ! Owen effect following Gillette et al. [1998]
+         w10m   = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
+         k_z    = 0.4 / log(10./z0m)
+         wt10m  = (ustar_t/fd)/k_z
+         if (w10m   >= wt10m) then
+           ustar_mod = ustar_mod + 0.003*((w10m-wt10m)**2)
+         end if
+       end if
+
+       if (ustar_mod > ustar_t) then
+         ustar_st  = ustar_t * sqrt(adens(i,j) / rho_a0)
+         ustar_st  = max(ustar_st, ustar_st0)
+         r_exp     = (ustar_st - ustar_st0)/ustar_st0
+         Cd        = Cd0 * exp(-Ce * r_exp)
+
+             ! optionally apply vegetation mask
+         if (veg_mask == 1) then
+           fbare = DustEmissionVegMaskGVF(gvf(i,j), x0_gvf, k_gvf, gvf_max, gvf_min)
+         end if
+
+         landfrac       = max(0.0, 1.0 - fraclake(i,j) - fracsnow(i,j) )
+         emissions_tot(i,j) = landfrac * Cd * fbare * adens(i,j) * &
+                          (ustar_mod**2 - ustar_t**2)/ustar_st * &
+                          (ustar_mod/ustar_t)**(Ca * r_exp)
+       end if
+
+     end do
+   end do
+
+   clay_factor = max(0.05, min(0.30, clayfrac))
+   emissions_tot = clay_factor * emissions_tot
+
+       ! optionally apply source function
+   if (apply_source == 1) then
+     select case (source_opt)
+       case (1) ! binary
+         abinary_source = 1.0
+         where (du_src < 1.0e-9) abinary_source = 0.0
+       case (2) ! actual
+         abinary_source = du_src
+     end select
+
+     emissions_tot = abinary_source * emissions_tot
+   end if
+
+       ! distribute into bins
+   do n = 1, nbins
+     emissions(:,:,n) = Ch_DU*emissions_tot(:,:)
+   end do
+
+   deallocate(emissions_tot, abinary_source,clay_factor)
+
+   rc = __SUCCESS__
+
+   end subroutine DustEmissionKOK14SIMP
+
+!EOP
 !=====================================================================================
+
 !BOP
 !
 ! !IROUTINE:  DustAerosolDistributionKok - Compute Kok's dust size aerosol distribution

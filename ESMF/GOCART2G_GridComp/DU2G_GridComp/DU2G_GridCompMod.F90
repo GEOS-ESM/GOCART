@@ -75,6 +75,9 @@ module DU2G_GridCompMod
        real          :: f_scl          ! clay content scaling factor
        real          :: uts_gamma      ! threshold friction velocity parameter 'gamma'
        integer       :: vegMaskYN      ! apply veg mask [DEAD, sginoux, or ginoux01] 1 = Y, 0 = N
+       integer       :: owenYN         ! apply owen eff [kok14simp] 1 = Y, 0 = N
+       integer       :: sourceYN       ! apply source func [kok14simp] 1 = Y, 0 = N
+       integer       :: sourceOpt      ! source func option [kok14simp] 1 = binary, 2 = actual
        integer       :: isNoaaSys      ! model system noaa (1) or geos (0)
        real          :: tsoilf         ! for sginoux, dead03, ginoux, fengsha schemes
        real          :: x0gvf          ! for veg mask in sginoux, dead03, ginoux schemes
@@ -176,8 +179,8 @@ contains
     self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
 
     ! Test if our scheme is allowed, if so, print it out
-    _ASSERT(any(self%emission_scheme == [character(len=8) :: 'ginoux01', 'sginoux', 'kok14', 'fengsha', 'dead03']), &
-     "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux01, sginoux, kok14, fengsha, dead03")
+    _ASSERT(any(self%emission_scheme == [character(len=12) :: 'ginoux01', 'sginoux', 'kok14', 'fengsha', 'dead03', 'kok14simp']), &
+     "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux01, sginoux, kok14, fengsha, dead03, kok14simp")
     if (MAPL_AM_I_ROOT()) then
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
@@ -224,13 +227,23 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_sginoux:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_sginoux:', __RC__)
+   case ('kok14simp')
+       call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%z0ms,       label='znot_ms:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%z0m,        label='znot_m:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%soil_diam,  label='monomodal_soil_diameter:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_kok14simp:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_kok14simp:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%owenYN,     label='apply_owen_eff:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sourceYN,   label='apply_source_func:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sourceOpt,  label='source_func_opt:', __RC__)
     case default
        _ASSERT_RC(.false., "Unallowed emission scheme: "//trim(self%emission_scheme)//&
-                  ". Allowed: ginoux01, sginoux, kok14, fengsha, dead03", ESMF_RC_NOT_IMPL)
+                  ". Allowed: ginoux01, sginoux, kok14, fengsha, dead03, kok14simp", ESMF_RC_NOT_IMPL)
     end select
 
     if (self%emission_scheme == 'ginoux01' .OR. self%emission_scheme == 'dead03' .OR. &
-        self%emission_scheme == 'sginoux') then
+        self%emission_scheme == 'sginoux' .OR. self%emission_scheme == 'kok14simp')  then
        call ESMF_ConfigGetAttribute (cfg, self%vegMaskYN,  label='apply_veg_mask:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%gvfMax,     label='zero_beyond_this_gvf:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%gvfMin,     label='unaffect_below_this_gvf:', __RC__)
@@ -460,7 +473,7 @@ contains
 !   TO DO: find a more robust way to implement resolution dependent tuning
 !   ----------------------------------------------------------------------
     if (self%emission_scheme == 'ginoux01' .OR. self%emission_scheme == 'kok14' .OR. &
-        self%emission_scheme == 'sginoux') then
+        self%emission_scheme == 'sginoux' .OR. self%emission_scheme == 'kok14simp') then
       self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
       self%Ch_DU = self%Ch_DU * 1.0e-9
     end if
@@ -873,9 +886,17 @@ contains
                                 self%gvfMax, self%gvfMin, u10m, v10m, tsoil1,   &
                                 du_src, self%ut0, self%Ch_DU, MAPL_GRAV,        &
                                 self%tsoilf, emissions_surface, __RC__)
+    case ('kok14simp')
+       call DustEmissionKOK14SIMP(lwi, frlake, asnow, self%sourceYN, self%sourceOpt, &
+                               du_src, self%vegMaskYN, du_gvf, &
+                               self%x0gvf, self%kgvf, self%gvfMax, self%gvfMin,    &
+                               du_sand, du_clay, wet1, self%f_swc, u10m, v10m, ustar, self%owenYN, rhos,   &
+                               tsoil1, self%Ch_DU/1.e-9, self%z0ms, self%z0m,   &
+                               self%tsoilf, MAPL_GRAV, self%soil_diam,             &
+                               self%radius*1.e-6, emissions_surface, __RC__)
 
     case default
-       _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux01, sginoux, kok14, fengsha, dead03',ESMF_RC_NOT_IMPL)
+       _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux01, sginoux, kok14, fengsha, dead03, kok14simp',ESMF_RC_NOT_IMPL)
     end select
 
 !   Read point emissions file once per day

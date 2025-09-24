@@ -7,13 +7,13 @@ category: IMPORT
 #-------------------------------------------------------------------------------------------------------
      NAME   | UNITS    | DIMS | VLOC | RESTART | COND                                     | LONG NAME
 #-------------------------------------------------------------------------------------------------------
- DU_SRC     | 1        | xy   | N    | SKIP    | scheme == 'ginoux01' .OR. scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'sginoux' | erod - dust emissions
+ DU_SRC     | 1        | xy   | N    | SKIP    | scheme == 'ginoux01' .OR. scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'sginoux' .OR. scheme == 'kok14simp' | erod - dust emissions
  DU_Z0      | 1        | xy   | N    | SKIP    | scheme == 'kok14'                          | aerodynamic_surface_roughness_for_aeolian_processes
  DU_GVF     | 1        | xy   | N    | OPT     |                                            | GVF
- DU_SAND    | 1        | xy   | N    | SKIP    | scheme == 'kok14' .OR. scheme == 'dead03'| volume_fraction_of_sand_in_soil
+ DU_SAND    | 1        | xy   | N    | SKIP    | scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'kok14simp' | volume_fraction_of_sand_in_soil
  DU_SANDF   | 1        | xy   | N    | SKIP    | scheme == 'fengsha'                      | volume_fraction_of_sand_in_soil
  DU_SILT    | 1        | xy   | N    | SKIP    | scheme == 'kok14'                        | volume_fraction_of_silt_in_soil
- DU_CLAY    | 1        | xy   | N    | SKIP    | scheme == 'kok14' .OR. scheme == 'dead03'| volume_fraction_of_clay_in_soil
+ DU_CLAY    | 1        | xy   | N    | SKIP    | scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'kok14simp' | volume_fraction_of_clay_in_soil
  DU_CLAYF   | 1        | xy   | N    | SKIP    | scheme == 'fengsha'                      | volume_fraction_of_clay_in_soil
  DU_RDRAG   | m-1      | xy   | N    | OPT     | scheme == 'fengsha'                      | drag_partition
  DU_SSM     | 1        | xy   | N    | OPT     | scheme == 'fengsha'                      | sediment_supply_map
@@ -31,7 +31,7 @@ category: IMPORT
  U10N       | m s-1    | xy   | N    | OPT     | scheme == 'kok14'                        | equivalent_neutral_10-meter_eastward_wind
  V10N       | m s-1    | xy   | N    | OPT     | scheme == 'kok14'                        | equivalent_neutral_10-meter_northward_wind
  AREA       | m^2      | xy   | N    | OPT     |                                          | agrid_cell_area
- USTAR      | m s-1    | xy   | N    | OPT     |                                          | equivalent_neutral_10-meter_northward_wind
+ USTAR      | m s-1    | xy   | N    | OPT     |                                          | surface_velocity_scale
  CN_PRCP    | kg/m^2/s | xy   | N    | OPT     |                                          | surface_conv._rain_flux_needed_by_land
  NCN_PRCP   | kg/m^2/s | xy   | N    | OPT     |                                          | Non-convective precipitation
  ZPBL       | m        | xy   | N    | OPT     |                                          | planetary_boundary_layer_height
@@ -39,7 +39,7 @@ category: IMPORT
  Z0H        | m        | xy   | N    | OPT     |                                          | surface_roughness_for_heat
  WCSF       | m3 m-3   | xy   | N    | OPT     | scheme == 'kok14'                        | water_surface_layer
  TSOIL1     | K        | xy   | N    | OPT     |                                          | soil_temperatures_layer_1
- RHOS       | kg m-3   | xy   | N    | OPT     | scheme == 'kok14' .OR. scheme == 'dead03'  .OR. scheme == 'fengsha'    | air_density_at_surface
+ RHOS       | kg m-3   | xy   | N    | OPT     | scheme == 'kok14' .OR. scheme == 'dead03'  .OR. scheme == 'fengsha' .OR. scheme == 'kok14simp' | air_density_at_surface
 #........................................................................................
  AIRDENS    | kg/m^3   | xyz  | C    | OPT     |                                          | moist_air_density
  DELP       | Pa       | xyz  | C    | OPT     |                                          | pressure_thickness
