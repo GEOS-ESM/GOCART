@@ -43,6 +43,7 @@ integer, parameter     :: DP = kind(1.0d0)
 ! !DESCRIPTION: This module implements GOCART's Nitrate (NI) Gridded Component.
 
 ! !REVISION HISTORY:
+! 4January2024   Collow - Updated call for ChemSettling
 ! 01July2020  Sherman, da Silva, Darmenov, Clune -  First attempt at refactoring.
 
 !EOP
@@ -183,7 +184,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddInternalSpec(gc,&
@@ -193,7 +194,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddInternalSpec(gc,&
@@ -203,7 +204,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddImportSpec(gc,&
@@ -764,6 +765,7 @@ contains
     integer :: i, j
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread
+    integer :: settling_opt
 
 #include "NI2G_DeclarePointer___.h"
 
@@ -846,54 +848,38 @@ contains
 
 !   NI Settling
 !   -----------
-!   Because different bins having different swelling coefficients I need to
-!   handle the call to settling differently.
+    select case (self%settling_scheme)
+    case ('gocart')
+        settling_opt=1
+    case ('ufs')
+        settling_opt=2
+    case default
+        _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
-!   Ammonium - settles like ammonium sulfate (rhflag = 3)
-    rhflag = 3
-!    call Chem_SettlingSimpleOrig (self%km, self%klid, rhflag, MAPL_GRAV, self%cdt, &
-!                                  1.e-6*self%radius(nNH4a), self%rhop(nNH4a), &
-!                                  NH4a, t, airdens, rh2, delp, zle, NH4SD, __RC__)
-    call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
-                              self%radius(nNH4a)*1.e-6, self%rhop(nNH4a), NH4a, t, &
-                              airdens, rh2, zle, delp, NH4SD, __RC__)
-!   Save local copy of HNO3 for first pass through run method regardless
-
-!  Nitrate bin 1 - settles like ammonium sulfate (rhflag = 3)
-    rhflag = 3
+!   Ammonium - settles like bin 1 of nitrate
+    call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
+                              NH4a, t, airdens, rh2, zle, delp, NH4SD, settling_scheme=settling_opt, __RC__)
+!   Nitrate Bin 1
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,1)
-!    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
-!                                  1.e-6*self%radius(nNO3an1), self%rhop(nNO3an1), &
-!                                  NO3an1, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
-    call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
-                              self%radius(nNO3an1)*1.e-6, self%rhop(nNO3an1), NO3an1, &
-                              t, airdens, rh2, zle, delp, flux_ptr, __RC__)
-!   Save local copy of HNO3 for first pass through run method regardless
-
-!  Nitrate bin 2 - settles like sea salt (rhflag = 2)
-    rhflag = 2
+    call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
+                        NO3an1, t, airdens, &
+                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+!   Nitrate Bin 2
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,2)
-!    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
-!                                  1.e-6*self%radius(nNO3an2), self%rhop(nNO3an2), &
-!                                  NO3an2, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
-    call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
-                              self%radius(nNO3an2)*1.e-6, self%rhop(nNO3an2), NO3an2, &
-                              t, airdens, rh2, zle, delp, flux_ptr, __RC__)
-!   Save local copy of HNO3 for first pass through run method regardless
-
-!  Nitrate bin 1 - settles like dust (rhflag = 0)
-    rhflag = 0
+    call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 2, self%cdt, MAPL_GRAV, &
+                        NO3an2, t, airdens, &
+                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+!   Nitrate Bin 3
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,3)
-!    call Chem_SettlingSimpleOrig (self%km, self%klid, rhFlag, MAPL_GRAV, self%cdt, &
-!                                  1.e-6*self%radius(nNO3an3), self%rhop(nNO3an3), &
-!                                  NO3an3, t, airdens, rh2, delp, zle, flux_ptr, __RC__)
-    call Chem_SettlingSimple (self%km, self%klid, rhFlag, self%cdt, MAPL_GRAV, &
-                              self%radius(nNO3an3)*1.e-6, self%rhop(nNO3an3), NO3an3, &
-                              t, airdens, rh2, zle, delp, flux_ptr, __RC__)
-!   Save local copy of HNO3 for first pass through run method regardless
+    call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 3, self%cdt, MAPL_GRAV, &
+                        NO3an3, t, airdens, &
+                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+
+
 
 !  NI Deposition
 !  -----------

@@ -10,7 +10,7 @@ set (srcs
   Aerosol_Tracer_Mod.F90
   )
 
-set (dependencies Aerosol_GridComp MAPL esmf)
+set (dependencies Aerosol_GridComp MAPL ESMF::ESMF)
 esma_add_library (${this}
   SRCS ${srcs}
   DEPENDENCIES ${dependencies})
