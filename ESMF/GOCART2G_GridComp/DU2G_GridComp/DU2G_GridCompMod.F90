@@ -1406,7 +1406,6 @@ contains
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
         do m = 1, mie%nmom
            bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
-           if(MAPL_AM_I_ROOT()) print *, 'DUphot: ', wavelength, l, m,  pmom(1,1,1,m,1), bpmom_s(1,1,km,m)
         enddo
      end do
      

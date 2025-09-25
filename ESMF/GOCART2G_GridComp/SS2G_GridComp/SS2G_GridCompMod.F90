@@ -1234,7 +1234,6 @@ contains
         bext_s  = bext_s  +             bext     ! extinction
         bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
         do m = 1, mie%nmom
-           if(MAPL_AM_I_ROOT()) print *, 'SSphot: ', wavelength, l, m,  pmom(1,1,1,m,1)
            bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
         enddo
      end do

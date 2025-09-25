@@ -1558,7 +1558,7 @@ contains
     asy  = 0.0d0
     pmom = 0.0d0
 
-!  ! Get aerosol optic properties from children
+!  ! Get aerosol optical properties from children
    do i = 1, size(aeroList)
         call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
 
@@ -1583,7 +1583,7 @@ contains
 
 !       ! set if we are using photolysis table
         call ESMF_AttributeSet(child_state, name='use_photolysis_table', value=usePhotTable, __RC__)
-        if(MAPL_AM_I_ROOT()) print *, 'GOCART1:phot:', usePhotTable 
+
 !       ! execute the aerosol optics method
         call ESMF_MethodExecute(child_state, label="aerosol_optics", __RC__)
 
@@ -1593,7 +1593,7 @@ contains
             call MAPL_GetPointer(child_state, ext_, trim(fld_name), __RC__)
         end if
 
-!       ! Retrieve scattering extinction from each child
+!       ! Retrieve scattering from each child
         call ESMF_AttributeGet(child_state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
         if (fld_name /= '') then
             call MAPL_GetPointer(child_state, ssa_, trim(fld_name), __RC__)
@@ -1601,12 +1601,11 @@ contains
 
 !       ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
 !       ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
-        if(MAPL_AM_I_ROOT()) print *, 'GOCART2:phot:', usePhotTable
+
         if(usePhotTable) then
           call ESMF_AttributeGet(child_state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
           if (fld_name /= '') then
               call MAPL_GetPointer(child_state, pmom_, trim(fld_name), __RC__)
-if(MAPL_AM_I_ROOT()) print *, 'GOCART7:phot:', pmom_(1,1,72,1)
           end if
 
         else
@@ -1619,9 +1618,7 @@ if(MAPL_AM_I_ROOT()) print *, 'GOCART7:phot:', pmom_(1,1,72,1)
 !       ! Sum aerosol optical properties from each child
         ext = ext + ext_
         ssa = ssa + ssa_
-        if(MAPL_AM_I_ROOT()) print *, 'GOCART3:phot:', usePhotTable
         if(usePhotTable) then
-if(MAPL_AM_I_ROOT()) print *, 'GOCART6:phot:', pmom_(1,1,72,1)
            pmom = pmom + pmom_
         else
            asy = asy + asy_
@@ -1630,7 +1627,8 @@ if(MAPL_AM_I_ROOT()) print *, 'GOCART6:phot:', pmom_(1,1,72,1)
     end do
 
 
-!   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
+!   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children.
+    ! This is what is passed to radiation or photolysis.
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
         call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
@@ -1642,11 +1640,9 @@ if(MAPL_AM_I_ROOT()) print *, 'GOCART6:phot:', pmom_(1,1,72,1)
         call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
         var = ssa(:,:,:)
     end if
-        if(MAPL_AM_I_ROOT()) print *, 'GOCART4:phot:', usePhotTable
     if(usePhotTable) then
        call ESMF_AttributeGet(state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
        if (fld_name /= '') then
-if(MAPL_AM_I_ROOT()) print *, 'GOCART5:phot:', pmom(1,1,72,1)
            call MAPL_GetPointer(state, var4d, trim(fld_name), __RC__)
            var4d = pmom(:,:,:,:)
        end if
