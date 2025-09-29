@@ -191,6 +191,8 @@ contains
 !   -----------------------------------------------------------------
     call createInstances_(self, GC, __RC__)
 
+    call alarmResourcesToChildren(self, GC, _RC)
+
 !   Define EXPORT states
 
 !   This state is needed by radiation and moist. It contains
@@ -1380,6 +1382,80 @@ contains
      end subroutine addChildren__
 
   end subroutine createInstances_
+
+!==============================================================================
+  subroutine alarmResourcesToChildren(self, GC, rc)
+
+!   Description:
+    implicit none
+
+    type (GOCART_State), pointer,            intent(in   )     :: self
+    type (ESMF_GridComp),                    intent(inout)     :: GC
+    integer,                                 intent(  out)     :: rc
+
+    ! locals
+    integer :: i
+    integer :: status
+    logical :: lvalue
+    type (MAPL_MetaComp), pointer :: MAPL
+!    character(len=ESMF_MAXSTR) :: lbl
+    character(len=:), allocatable :: lbl, label
+
+!-----------------------------------------------------------------------------
+!   Begin...
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, _RC)
+    label = "RUN_AT_INTERVAL_START:"
+    call MAPL_GetResource(MAPL, lvalue, Label=label, default=.false., _RC)
+
+    lbl = 'p:'//label
+
+    call setChildResource (MAPL, self%DU, Label=lbl, value = lvalue, _RC)
+    call setChildResource (MAPL, self%SS, Label=lbl, value = lvalue, _RC)
+    call setChildResource (MAPL, self%CA, Label=lbl, value = lvalue, _RC)
+    call setChildResource (MAPL, self%SU, Label=lbl, value = lvalue, _RC)
+    call setChildResource (MAPL, self%NI, Label=lbl, value = lvalue, _RC)
+
+    deallocate(lbl, label)
+
+    _RETURN(ESMF_SUCCESS)
+
+  contains
+
+    subroutine setChildResource (MAPL, species, label, value, rc)
+
+      type (MAPL_MetaComp), intent(in) :: mapl
+      type(Constituent), intent(inout)     :: species
+      logical, intent(in) :: value
+      character(len=*), intent(in) :: label
+      integer, intent(  out)     :: rc
+      integer :: ivalue
+
+      ! local
+      integer  :: i, n, id
+      type (ESMF_GridComp), pointer :: cgc
+      type (MAPL_MetaComp), pointer :: cmapl
+      type (ESMF_Config) :: cf
+
+      ivalue = 0
+      if (lvalue) ivalue=1
+
+      n=size(species%instances)
+
+      do i = 1, n
+         id=species%instances(i)%id
+         cgc => MAPL%Get_Child_Gridcomp(id)
+         call MAPL_GetObjectFromGC (cgc, cmapl, _RC)
+         call ESMF_GridCompGet(cgc, config=cf, _RC)
+         call MAPL_ConfigSetAttribute(cf, value=ivalue, Label=label, _RC)
+      end do
+
+      _RETURN(ESMF_SUCCESS)
+
+    end subroutine setChildResource
+
+  end subroutine alarmResourcesToChildren
 
 !===================================================================================
   subroutine serialize_bundle (state, rc)
