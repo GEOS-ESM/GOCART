@@ -9818,6 +9818,9 @@ loop2: DO l = 1,nspecies_HL
                                              !   formula
       ! absolute value of charges of cation
       REAL*8             :: ZP(NCAT) = (/ 1.0d0, 1.0d0 /)
+      REAL*8, PARAMETER  :: TINY  = 1.0d-30
+      REAL*8, PARAMETER  :: EPS   = 1.0d-12
+      REAL*8             :: base, expo
 
       ! absolute value of charges of anion
       REAL*8             :: ZM(NAN)  = (/ 2.0d0, 1.0d0, 1.0d0 /)
@@ -9915,9 +9918,10 @@ loop2: DO l = 1,nspecies_HL
      &        * TEXPV
 
          ! Compute the molality of each electrolyte for given ionic strength
-         M( ICAT, IAN ) = ( CAT( ICAT )**V1( ICAT, IAN )  &
-     &                   *   AN( IAN )**V2( ICAT, IAN ) )**( 1.0d0  &
-     &                   / ( V1( ICAT, IAN ) + V2( ICAT, IAN ) ) )
+         base = MAX( CAT(ICAT), TINY )**V1(ICAT,IAN) *  &
+     &          MAX( AN(IAN),  TINY )**V2(ICAT,IAN)
+         expo = MAX( V1(ICAT,IAN) + V2(ICAT,IAN), EPS )
+         M(ICAT,IAN) = base**( 1.0d0 / expo )
 
          ! Calculate the binary activity coefficients
          LGAMA0( ICAT, IAN ) = ( ZP( ICAT ) * ZM( IAN ) * FGAMA  &
