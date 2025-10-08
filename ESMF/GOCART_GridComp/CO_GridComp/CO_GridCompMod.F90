@@ -18,6 +18,7 @@
 
    USE ESMF
    USE MAPL
+   USE mpi
 
    USE Chem_Mod                        ! Chemistry Base Class
    USE Chem_StateMod                   ! Chemistry State
@@ -36,7 +37,7 @@
 ! !PUBLIC TYPES:
 !
    PRIVATE
-   PUBLIC  CO_GridComp                 ! Multiple instance CO object 
+   PUBLIC  CO_GridComp                 ! Multiple instance CO object
    PUBLIC  CO_GridComp1                ! Single instance CO object
 
 !
@@ -51,7 +52,7 @@
 !
 ! !DESCRIPTION:
 !
-!  This module implements the (pre-ESMF) CO Grid Component. 
+!  This module implements the (pre-ESMF) CO Grid Component.
 !
 ! !REVISION HISTORY:
 !
@@ -59,21 +60,21 @@
 !  31May2005  Nielsen  Mods for 7 CO bins, 5 region masks
 !  31May2005 da Silva  Seperate file for biomass emissions; option for
 !                       daily templatable files
-!  31May2005 da Silva  Moved reading of region mask to init, specified 
+!  31May2005 da Silva  Moved reading of region mask to init, specified
 !                      fixed time.
-!  17Oct2005     Bian  add biogenic emission and CH4 oxidation, two options 
-!                      for updating emissions 
+!  17Oct2005     Bian  add biogenic emission and CH4 oxidation, two options
+!                      for updating emissions
 !  19dec2005 da Silva  Activated 3D diags for output
 !  14Apr2006     Bian  Add CO tagged to fossil fuel, biofuel, biomass burning
 !                      and biogenic
-!    Oct2006     Bian  Evaluate total and tagged CO performace in GEOS4 system 
-!                      with emissions and oxident fields described in 
+!    Oct2006     Bian  Evaluate total and tagged CO performace in GEOS4 system
+!                      with emissions and oxident fields described in
 !                      Bian et al., [2007]. The observations included GMD ground
-!                      surface and aircraft measurements, TRACE-P aircraft 
-!                      measurements, and satellite MOPITT and AIRS retrieves. 
+!                      surface and aircraft measurements, TRACE-P aircraft
+!                      measurements, and satellite MOPITT and AIRS retrieves.
 !  01Aug2006 da Silva  Extensions for GEOS-5.
 !  10Mar2008 da Silva  Multiple instances for ARCTAS.
-!  18Mar2011  Nielsen  Simplified PBL partitioning for biomass burning emissions  
+!  18Mar2011  Nielsen  Simplified PBL partitioning for biomass burning emissions
 !  12May2015 Thompson  Bring units into state (Fix for gfortran)
 !
 !EOP
@@ -104,7 +105,7 @@
 
         LOGICAL :: DBG                       ! Run-time debug switch
         LOGICAL :: doingBB = .true.          ! Switch to consider biomass burning
-        CHARACTER(LEN=ESMF_MAXSTR) :: units_oh ! Units for OH 
+        CHARACTER(LEN=ESMF_MAXSTR) :: units_oh ! Units for OH
 
 !       Photolysis tables (bweir: from StratChem)
 !       -----------------
@@ -126,7 +127,7 @@
   END TYPE CO_GridComp1
 
   TYPE CO_GridComp
-     INTEGER                     ::  n        ! number of instances 
+     INTEGER                     ::  n        ! number of instances
      TYPE(CO_GridComp1), POINTER ::  gcs(:)   ! instances
   END TYPE CO_GridComp
 
@@ -219,7 +220,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   TYPE(Chem_Bundle), intent(in) :: w_c          ! Chemical tracer fields      
+   TYPE(Chem_Bundle), intent(in) :: w_c          ! Chemical tracer fields
    INTEGER, INTENT(IN) :: nymd, nhms             ! time
    REAL,    INTENT(IN) :: cdt                    ! chemical timestep (secs)
 
@@ -231,7 +232,7 @@ CONTAINS
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem   ! Export State
    INTEGER, INTENT(OUT) ::  rc                   ! Error return code:
                                                  !  0 - all is well
-                                                 !  1 - 
+                                                 !  1 -
 
 ! !DESCRIPTION: Initializes the CO Grid Component. Multiple instance
 !               version.
@@ -246,7 +247,7 @@ CONTAINS
    CHARACTER(LEN=*), PARAMETER :: myname = 'CO_GridCompInitialize'
    CHARACTER(LEN=255) :: rcbasen = 'CO_GridComp'
    CHARACTER(LEN=255) :: name
-   
+
    integer :: i, ier, n
    real :: c1, c2, c3, c4
 
@@ -267,7 +268,7 @@ CONTAINS
    end if
 
 !  First determine how many instances we have
-!  ------------------------------------------   
+!  ------------------------------------------
    n = 0
    ier = 0
    do while ( ier == 0 )
@@ -296,7 +297,7 @@ CONTAINS
 
 !  Next allocate necessary memory
 !  ------------------------------
-   allocate ( gcCO%gcs(n), stat=ier )    
+   allocate ( gcCO%gcs(n), stat=ier )
    if ( ier .NE. 0 ) then
       rc = 40
       return
@@ -313,13 +314,13 @@ CONTAINS
       end if
                                             ! resource file name
       gcCO%gcs(i)%rcfilen = trim(rcbasen)//'---'//trim(name)//'.rc'
-      gcCO%gcs(i)%instance = i              ! instance number 
+      gcCO%gcs(i)%instance = i              ! instance number
       IF(TRIM(name) == "full" ) THEN
        gcCO%gcs(i)%iname = " "              ! blank instance name for full (1)
       ELSE
        gcCO%gcs(i)%iname = TRIM(name)       ! instance name for others
       END IF
-   end do    
+   end do
 
 !  Next initialize each instance
 !  -----------------------------
@@ -374,7 +375,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   TYPE(Chem_Bundle), intent(in) :: w_c          ! Chemical tracer fields      
+   TYPE(Chem_Bundle), intent(in) :: w_c          ! Chemical tracer fields
    INTEGER, INTENT(IN) :: nymd, nhms             ! time
    REAL,    INTENT(IN) :: cdt                    ! chemical timestep (secs)
 
@@ -386,7 +387,7 @@ CONTAINS
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem   ! Export State
    INTEGER, INTENT(OUT) ::  rc                   ! Error return code:
                                                  !  0 - all is well
-                                                 !  1 - 
+                                                 !  1 -
 
 ! !DESCRIPTION: Runs the CO Grid Component. Multiple instance
 !               version.
@@ -432,7 +433,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   TYPE(Chem_Bundle), intent(in) :: w_c          ! Chemical tracer fields      
+   TYPE(Chem_Bundle), intent(in) :: w_c          ! Chemical tracer fields
    INTEGER, INTENT(IN) :: nymd, nhms             ! time
    REAL,    INTENT(IN) :: cdt                    ! chemical timestep (secs)
 
@@ -444,7 +445,7 @@ CONTAINS
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem   ! Export State
    INTEGER, INTENT(OUT) ::  rc                   ! Error return code:
                                                  !  0 - all is well
-                                                 !  1 - 
+                                                 !  1 -
 
 ! !DESCRIPTION: Finalizes the CO Grid Component. Multiple instance
 !               version.
@@ -468,7 +469,7 @@ CONTAINS
       end if
    end do
 
-   deallocate ( gcCO%gcs, stat=ier )    
+   deallocate ( gcCO%gcs, stat=ier )
    gcCO%n = -1
 
  end subroutine CO_GridCompFinalize
@@ -575,7 +576,7 @@ CONTAINS
        RC         = STATUS)
   VERIFY_(STATUS)
 
-  RETURN_(ESMF_SUCCESS) 
+  RETURN_(ESMF_SUCCESS)
 
  end subroutine CO_GridCompSetServices1_
 
@@ -602,7 +603,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   TYPE(Chem_Bundle), intent(in) :: w_c          ! Chemical tracer fields      
+   TYPE(Chem_Bundle), intent(in) :: w_c          ! Chemical tracer fields
    INTEGER, INTENT(IN) :: nymd, nhms             ! time
    REAL,    INTENT(IN) :: cdt                    ! chemical timestep (secs)
 
@@ -614,7 +615,7 @@ CONTAINS
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem   ! Export State
    INTEGER, INTENT(OUT) ::  rc                   ! Error return code:
                                                  !  0 - all is well
-                                                 !  1 - 
+                                                 !  1 -
 
 ! !DESCRIPTION: Initializes the CO Grid Component. It primarily sets
 !               the import state for each active constituent package.
@@ -623,7 +624,7 @@ CONTAINS
 !
 !  18Sep2003 da Silva  First crack.
 !  31May2005  Nielsen  Mods for 7 CO bins, 5 region masks
-!  04Nov2005     Bian  CO tagged to 4 regions 
+!  04Nov2005     Bian  CO tagged to 4 regions
 !                      (global, North America, South America, and Africa)
 !                      for CR-AVE
 !
@@ -633,7 +634,7 @@ CONTAINS
    CHARACTER(LEN=*), PARAMETER :: myname = 'CO_GridCompInitialize1'
    CHARACTER(LEN=*), PARAMETER :: Iam = myname
 
-   CHARACTER(LEN=255) :: rcfilen 
+   CHARACTER(LEN=255) :: rcfilen
 
    INTEGER :: ios, j, n
    INTEGER, ALLOCATABLE :: ier(:)
@@ -671,7 +672,7 @@ CONTAINS
    if ( nbeg /= nend ) then
       IF(MAPL_AM_I_ROOT()) PRINT *,myname,": Must have only 1 bin at the single instance level"
       rc = 1
-      return 
+      return
    end if
 
 !  Allocate memory, etc
@@ -700,7 +701,7 @@ CONTAINS
 
 !  Possibly oxidants are in a different unit
 !  Allowable choices are: "mol/mol" or "mol mol-1"
-!  or else behavior is as though input in 
+!  or else behavior is as though input in
 !  "molecules cm-3"
 !  Should this checking be done now in ExtData?
 !  --------------------------------------------
@@ -744,8 +745,8 @@ CONTAINS
 
    INTEGER ios, nerr
    nerr = 128
-   ALLOCATE ( gcCO%eCO_bioburn(i1:i2,j1:j2),  & 
-              gcCO%eCO_bioburn_(i1:i2,j1:j2), & 
+   ALLOCATE ( gcCO%eCO_bioburn(i1:i2,j1:j2),  &
+              gcCO%eCO_bioburn_(i1:i2,j1:j2), &
               gcCO%eCO_biofuel(i1:i2,j1:j2),  &
               gcCO%eCO_fosfuel(i1:i2,j1:j2),  &
               gcCO%COsfcFlux(i1:i2,j1:j2),    &
@@ -763,12 +764,12 @@ CONTAINS
    SUBROUTINE final_(ierr)
    INTEGER :: ierr
    INTEGER ios
-   DEALLOCATE ( gcCO%eCO_bioburn, gcCO%eCO_biofuel, gcCO%eCO_fosfuel,  & 
+   DEALLOCATE ( gcCO%eCO_bioburn, gcCO%eCO_biofuel, gcCO%eCO_fosfuel,  &
                 gcCO%eCO_bioburn_, gcCO%COsfcFlux, gcCO%eCO_iso,       &
                 gcCO%eCO_mon, gcCO%eCO_mtn, gcCO%CH4, gcCO%OHnd,       &
                 gcCO%Clnd, gcCO%O1Dnd, ier, STAT=ios )
 !  Photolysis (bweir: from StratChem)
-   DEALLOCATE ( gcCO%sdat, gcCO%o2jdat, gcCO%o3_tab, gcCO%xtab,        & 
+   DEALLOCATE ( gcCO%sdat, gcCO%o2jdat, gcCO%o3_tab, gcCO%xtab,        &
                 gcCO%sza_tab, gcCO%CH2O_aq, gcCO%rlam, ier, STAT=ios )
    CALL I90_release()
    rc = ierr
@@ -823,25 +824,8 @@ CONTAINS
   CALL ESMF_VMGet(vm, MPICOMMUNICATOR=comm, rc=status)
   VERIFY_(status)
 
-#ifdef H5_HAVE_PARALLEL
-
-  CALL MPI_Info_create(info, status)
-  VERIFY_(status)
-  CALL MPI_Info_set(info, "romio_cb_read", "automatic", status)
-  VERIFY_(status)
-
-#ifdef NETCDF_NEED_NF_MPIIO
-  status = NF_OPEN_PAR(TRIM(fileName), IOR(NF_NOWRITE,NF_MPIIO), comm, info, unit)
-#else
-  status = NF_OPEN_PAR(TRIM(fileName), NF_NOWRITE, comm, info, unit)
-#endif
-
-#else
-
-  IF(MAPL_AM_I_ROOT(vm)) THEN 
+  IF(MAPL_AM_I_ROOT(vm)) THEN
    status = NF_OPEN(TRIM(fileName), NF_NOWRITE, unit)
-
-#endif
 
    IF(status /= NF_NOERR) THEN
     PRINT *,'Error opening file ',TRIM(fileName), status
@@ -884,8 +868,6 @@ CONTAINS
 
    END DO
 
-#ifndef H5_HAVE_PARALLEL
-
   END IF ! MAPL_AM_I_ROOT
 
   CALL MAPL_CommsBcast(vm, gcCO%nsza, 1, 0, RC=status)
@@ -900,8 +882,6 @@ CONTAINS
   VERIFY_(status)
   CALL MAPL_CommsBcast(vm, gcCO%aqSize, 1, 0, RC=status)
   VERIFY_(status)
-
-#endif
 
   ALLOCATE(gcCO%sdat(gcCO%nsza,gcCO%numo3,km,gcCO%nlam), STAT=status)
   VERIFY_(status)
@@ -918,11 +898,7 @@ CONTAINS
   ALLOCATE(gcCO%rlam(gcCO%nlam), STAT=status)
   VERIFY_(status)
 
-#ifndef H5_HAVE_PARALLEL
-
   IF(MAPL_AM_I_ROOT()) THEN
-
-#endif
 
    DO i = 1,nV
 
@@ -959,13 +935,6 @@ CONTAINS
 
    END DO
 
-#ifdef H5_HAVE_PARALLEL
-
-   CALL MPI_Info_free(info, status)
-   VERIFY_(status)
-
-#else
-
   END IF ! MAPL_AM_I_ROOT
 
   length = SIZE(gcCO%sza_tab)
@@ -995,10 +964,11 @@ CONTAINS
   CALL MAPL_CommsBcast(vm, gcCO%CH2O_aq, gcCO%aqsize, 0, RC=status)
   VERIFY_(status)
 
-#endif
-
-  status = NF_CLOSE(unit)
-  VERIFY_(status)
+! Probably could go in the MAPL_AM_I_ROOT block above
+  IF(MAPL_AM_I_ROOT()) THEN
+   status = NF_CLOSE(unit)
+   VERIFY_(status)
+  END IF ! MAPL_AM_I_ROOT
 
   RETURN
  END SUBROUTINE readPhotTables
@@ -1010,7 +980,7 @@ CONTAINS
 !-------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  CO_GridCompRun --- The Chem Driver 
+! !IROUTINE:  CO_GridCompRun --- The Chem Driver
 !
 ! !INTERFACE:
 !
@@ -1025,7 +995,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 
    TYPE(CO_GridComp1), INTENT(INOUT) :: gcCO     ! Grid Component
-   TYPE(Chem_Bundle), INTENT(INOUT) :: w_c       ! Chemical tracer fields   
+   TYPE(Chem_Bundle), INTENT(INOUT) :: w_c       ! Chemical tracer fields
 
 ! !INPUT PARAMETERS:
 
@@ -1040,8 +1010,8 @@ CONTAINS
    INTEGER, INTENT(OUT) ::  rc                   ! Error return code:
                                                  !  0 - all is well
                                                  !  1 -
- 
-! !DESCRIPTION: This routine implements the CO Driver for INTEX. That 
+
+! !DESCRIPTION: This routine implements the CO Driver for INTEX. That
 !               is, adds chemical tendencies to each of the constituents,
 !  Note: water wapor, the first constituent is not considered a chemical
 !  constituents.
@@ -1050,8 +1020,8 @@ CONTAINS
 !
 !  18Sep2003 da Silva  First crack.
 !  31May2005  Nielsen  Mods for 7 tags, 5 regions
-!  04Nov2005     Bian  CO tagged to 4 regions    
-!  13Apr2005     Bian  CO tagged to emissions    
+!  04Nov2005     Bian  CO tagged to 4 regions
+!  13Apr2005     Bian  CO tagged to emissions
 !
 !EOP
 !-------------------------------------------------------------------------
@@ -1129,7 +1099,7 @@ CONTAINS
    if (nbeg /= nend) then
       if (MAPL_AM_I_ROOT()) print *, myname, ": Must have only 1 bin at the single instance level"
       rc = 1
-      return 
+      return
    endif
 
 !  Biomass Burning
@@ -1210,7 +1180,7 @@ CONTAINS
 
       call Chem_BiomassDiurnal(gcCO%eCO_bioburn, gcCO%eCO_bioburn_,   &
                                w_c%grid%lon(:,:)*radToDeg,            &
-                               w_c%grid%lat(:,:)*radToDeg, nhms, cdt)      
+                               w_c%grid%lat(:,:)*radToDeg, nhms, cdt)
    endif
 
 !  Allocate temporary workspace
@@ -1236,14 +1206,14 @@ CONTAINS
    do k=1,km
       p(i1:i2,j1:j2,k) = (pe(i1:i2,j1:j2,k)+pe(i1:i2,j1:j2,k+1))*0.50
    enddo
- 
+
 !  Get imports
 !  -----------
-   call MAPL_GetPointer( impChem, pblh,   'ZPBL',    rc=ier(1) ) 
-   call MAPL_GetPointer( impChem, T,      'T',       rc=ier(2) ) 
-   call MAPL_GetPointer( impChem, rhowet, 'AIRDENS', rc=ier(3) ) 
-   call MAPL_GetPointer( impChem, zle,    'ZLE',     rc=ier(4) ) 
-   call MAPL_GetPointer( impChem, qtot,   'QTOT',    rc=ier(5) ) 
+   call MAPL_GetPointer( impChem, pblh,   'ZPBL',    rc=ier(1) )
+   call MAPL_GetPointer( impChem, T,      'T',       rc=ier(2) )
+   call MAPL_GetPointer( impChem, rhowet, 'AIRDENS', rc=ier(3) )
+   call MAPL_GetPointer( impChem, zle,    'ZLE',     rc=ier(4) )
+   call MAPL_GetPointer( impChem, qtot,   'QTOT',    rc=ier(5) )
 
    if (any(ier(1:5) /= 0)) then
       rc = 10
@@ -1313,7 +1283,7 @@ CONTAINS
 !  Calculate photolytic loss rates, J [s^-1] for
 !     CH4 + hv => 2H2O + CO
 !     CO2 + hv => CO + ???
-!  Notice that J and the losses are always computed. However, the setting 
+!  Notice that J and the losses are always computed. However, the setting
 !  of the feedback switch(es) determines if the increments are actually applied
 !  ----------------------------------------------------------------------------
    allocate(photJ(i1:i2,j1:j2,1:km), dCOPhot(i1:i2,j1:j2,1:km), STAT=status)
@@ -1359,7 +1329,7 @@ CONTAINS
       CO_phot(i1:i2,j1:j2,1:km) = dCOPhot(i1:i2,j1:j2,1:km)
    endif
 
-!  Decrement the CO mole fraction due to oxidation 
+!  Decrement the CO mole fraction due to oxidation
 !  -----------------------------------------------
    w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) = w_c%qa(nbeg)%data3d(i1:i2,j1:j2,1:km) &
          - cdt * rkoh(i1:i2,j1:j2,1:km)*gcCO%OHnd(i1:i2,j1:j2,1:km)              &
@@ -1463,7 +1433,7 @@ contains
 !             We have emissions from 4 sources, which are distributed
 !             differently in the vertical
 !             1) fossil fuel - emitted at surface
-!             2) biofuel sources - emitted at surface 
+!             2) biofuel sources - emitted at surface
 !             3) biomass burning - uniformly mixed in PBL
 !             4) biogenic - emitted at surface
 !                           include: isoprene, converting factor 0.15
@@ -1475,7 +1445,7 @@ contains
 !  14Apr2006, Bian: Add indirect NMHC from FF (0.20), BF (0.19), BB (0.11)
 !                   Add seasonality for FF
 !                   Modify FF & BF over Asia region (1.39) for Streets' data
-!  18Mar2011, Nielsen: Simplified PBL partitioning for biomass burning emissions   
+!  18Mar2011, Nielsen: Simplified PBL partitioning for biomass burning emissions
 !
 ! !INTERFACE:
 !
@@ -1764,7 +1734,7 @@ contains
 !   gcCO      The GOCART::CO grid component, which contains
 !     sza_tab Solar zenith angle table
 !     o3_tab  Overhead O3 values table
-!     sdat    Radiative source function 
+!     sdat    Radiative source function
 !     o2jdat  Table of J(O2) values
 !
 ! OUTPUTS:
@@ -1772,72 +1742,72 @@ contains
 !               the given o3column and sza
 !   jo2       J(O2) values interpolated as above
 !
-! 
+!
 ! PROCEDURE:
 !   Bi-linear interpolation, for sza > 94 s=0, for O3 out of range use min/max
 !
-! MODIFICATION HISTORY: 
+! MODIFICATION HISTORY:
 !   25 Aug 1993  Kawa
 !   10 Jul 1996  Kawa    For 28 levels and to handle J(O2) separately
 !   11 May 2012  Nielsen Accomodation for GEOS-5 FV cubed release
 !   30 Jan 2021  Weir    Copied from StratChem
 ! ----------------------------------------------------------------------------
-       
+
    IMPLICIT NONE
 
    TYPE(CO_GridComp1), INTENT(IN) :: gcCO   ! Grid Component
 
    INTEGER, INTENT(IN) :: k
-   REAL, INTENT(IN) :: sza, o3column 
+   REAL, INTENT(IN) :: sza, o3column
    REAL, INTENT(OUT) :: s(gcCO%nlam), jo2
 
    INTEGER :: ijj, ik, ikk, ikkm, il, is
    REAL :: omt, omu, t, u
    REAL, PARAMETER :: PI = 3.14159265
 
-! For each input solar zenith angle, find the first element of gcCO%sza_tab that 
+! For each input solar zenith angle, find the first element of gcCO%sza_tab that
 ! is greater.  Use this element and previous one to determine the interpolated value.
 ! -----------------------------------------------------------------------------------
    DO is = 1,gcCO%nsza
-      ijj = is 
-      IF(gcCO%sza_tab(is) > sza) EXIT 
+      ijj = is
+      IF(gcCO%sza_tab(is) > sza) EXIT
    ENDDO
-      
-! Zenith angle test       
+
+! Zenith angle test
 ! -----------------
    IF(sza > gcCO%sza_tab(gcCO%nsza)) THEN
-!     Cell is dark, set s and jo2=0        
+!     Cell is dark, set s and jo2=0
 !     -----------------------------
       s(1:gcCO%nlam) = 0.
       jo2 = 0.
-   ELSE  
-!     Cell is illuminated     
+   ELSE
+!     Cell is illuminated
 !     -------------------
       t = (sza-gcCO%sza_tab(ijj-1))/(gcCO%sza_tab(ijj)-gcCO%sza_tab(ijj-1))
       omt = 1.-t
-         
+
 ! For each overhead O3 column, find the first element in gcCO%o3_tab that is
 ! greater. Use this element and previous one to determine the interpolated value.
 ! -------------------------------------------------------------------------------
       DO is = 1,gcCO%numo3
-         ikk = is 
+         ikk = is
          IF(gcCO%o3_tab(is,k) > o3column) EXIT
       ENDDO
 
-      ikkm = ikk-1 
+      ikkm = ikk-1
       IF(ikk > 1 .AND. o3column <= gcCO%o3_tab(gcCO%numo3,k)) THEN
          u = (o3column-gcCO%o3_tab(ikkm,k))/(gcCO%o3_tab(ikk,k)-gcCO%o3_tab(ikkm,k))
          omu = 1.-u
 
 ! Do bilinear interpolation for each wavelength.
 ! ----------------------------------------------
-         DO il = 1,gcCO%nlam       
+         DO il = 1,gcCO%nlam
             s(il) = omt*omu*gcCO%sdat(ijj-1,ikkm,k,il)+t*omu*gcCO%sdat(ijj,ikkm,k,il)+ &
                     t*u*gcCO%sdat(ijj,ikk,k,il)+omt*u*gcCO%sdat(ijj-1,ikk,k,il)
          ENDDO
          jo2 = omt*omu*gcCO%o2jdat(ijj-1,ikkm,k)+t*omu*gcCO%o2jdat(ijj,ikkm,k)+ &
                t*u*gcCO%o2jdat(ijj,ikk,k)+omt*u*gcCO%o2jdat(ijj-1,ikk,k)
-    
+
 ! Extrapolate ahead of table
 ! --------------------------
       ELSE IF (ikk == 1) THEN
@@ -1851,11 +1821,11 @@ contains
       ELSE
          DO il = 1,gcCO%nlam
             s(il) = omt*gcCO%sdat(ijj-1,gcCO%numo3,k,il)+t*gcCO%sdat(ijj,gcCO%numo3,k,il)
-         END DO 
+         END DO
          jo2 = omt*gcCO%o2jdat(ijj-1,gcCO%numo3,k)+t*gcCO%o2jdat(ijj,gcCO%numo3,k)
-      ENDIF  
+      ENDIF
    ENDIF
-      
+
    RETURN
    END SUBROUTINE interp_s
 
@@ -1877,9 +1847,9 @@ contains
 !   Currently set up for 23-J set (see var gcCO%nxdo)
 ! REQUIRED ROUTINES:
 !   interp_s
-! MODIFICATION HISTORY: 
+! MODIFICATION HISTORY:
 !   26 Aug 1993 Kawa    Created
-!   23 Nov 1993 Kawa    Remade xtab to do multiplication by solar flux beforehand 
+!   23 Nov 1993 Kawa    Remade xtab to do multiplication by solar flux beforehand
 !                        and removed inputs.
 !   25 Feb 1994         Add 3 additional Js, incl N2O
 !   18 Sep 1995         Add 2 additional Js, up to 22, and do CH2O special
@@ -1931,7 +1901,7 @@ contains
       ZeroS: IF(s(ilam) == 0.) THEN
          sx(1,ilam) = 0.00
          sx(2,ilam) = 0.00
-      ELSE 
+      ELSE
 
          wvl = gcCO%rlam(ilam)*0.10
 
@@ -2007,9 +1977,9 @@ contains
          rjs(ix) = rjs(ix)+s(ilam)*gcCO%xtab(ilam,ix,indt)
       ENDDO
    ENDDO
-               
+
 ! ---------------------------------------------------------------
-! Order photolysis rates to match order in full chemistry model.  
+! Order photolysis rates to match order in full chemistry model.
 ! Sort rjs into CTM photolysis rate array, aj.  Order of rjs:
 !
 !  1-J(BrONO2)
@@ -2044,7 +2014,7 @@ contains
 ! 30-xCH3Cl
 ! 31-xCH3Br
 ! 32-xH1301
-! 33-xH1211 
+! 33-xH1211
 ! 34-xH1202
 ! 35-xH2402
 ! 36-xCHBr3
@@ -2054,7 +2024,7 @@ contains
 ! 40-xCHCl2Br
 ! 41-xHCFC-141b
 ! 42-xHCFC-142b
-! 43-xCFC-114 
+! 43-xCFC-114
 ! 44-xCFC-115
 ! 45-xOCS
 ! 46-
@@ -2063,7 +2033,7 @@ contains
 ! 49-
 ! 50-
 ! ---------------------------------------------------------------
-! Solar cycle goes here when ready  
+! Solar cycle goes here when ready
 !     aj( 1) = rjs(15)*gcCO%s_cycle(3,gcCO%iscyr)
 ! ----------------------------------------------------------------
    aj( 1) = rjs(15)
@@ -2116,8 +2086,8 @@ contains
 ! WARNING: Photolysis reaction rate
 ! numbers 38-42 are calculated in MESO_PHOT.
 ! ------------------------------------------
-! Add aj(43) which is J(Cl2O2) for partitioning but not Ox loss 
-! which is aj(36). In lookup table J(Cl2O2) is J*qy where qy is 0.8 
+! Add aj(43) which is J(Cl2O2) for partitioning but not Ox loss
+! which is aj(36). In lookup table J(Cl2O2) is J*qy where qy is 0.8
 ! so multiply by 1.25 to equal J and used in part.F and partest.F
 
    aj(43) = rjs(3)*1.25
@@ -2131,8 +2101,8 @@ contains
    aj(48) = rjs(40)
 
 ! QingLiang -- 06/03/2015
-! Add two new halons: H-1202 (49) H2402 (50) 
-! and two new HCFCs: HCFC-141b (51) HCFC-142b (52) 
+! Add two new halons: H-1202 (49) H2402 (50)
+! and two new HCFCs: HCFC-141b (51) HCFC-142b (52)
    aj(49) = rjs(34)
    aj(50) = rjs(35)
    aj(51) = rjs(41)
@@ -2158,7 +2128,7 @@ contains
 !-------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE:  CO_GridCompFinalize --- The Chem Driver 
+! !IROUTINE:  CO_GridCompFinalize --- The Chem Driver
 !
 ! !INTERFACE:
 !
@@ -2176,7 +2146,7 @@ contains
 
 ! !INPUT PARAMETERS:
 
-   TYPE(Chem_Bundle), INTENT(IN)  :: w_c         ! Chemical tracer fields   
+   TYPE(Chem_Bundle), INTENT(IN)  :: w_c         ! Chemical tracer fields
    INTEGER, INTENT(IN) :: nymd, nhms             ! time
    REAL,    INTENT(IN) :: cdt                    ! chemical timestep (secs)
 
@@ -2188,7 +2158,7 @@ contains
    INTEGER, INTENT(OUT) ::  rc                   ! Error return code:
                                                  !  0 - all is well
                                                  !  1 -
- 
+
 ! !DESCRIPTION: This routine finalizes this Grid Component.
 !
 ! !REVISION HISTORY:
@@ -2201,7 +2171,7 @@ contains
    CHARACTER(LEN=*), PARAMETER :: myname = 'CO_GridCompFinalize'
    INTEGER :: ios
 
-   DEALLOCATE ( gcCO%eCO_bioburn, gcCO%eCO_biofuel, gcCO%eCO_fosfuel, & 
+   DEALLOCATE ( gcCO%eCO_bioburn, gcCO%eCO_biofuel, gcCO%eCO_fosfuel, &
                 gcCO%COsfcFlux, gcCO%eCO_iso, gcCO%eCO_mon, &
                 gcCO%eCO_mtn, gcCO%CH4, gcCO%OHnd, STAT=ios )
    rc = 0
@@ -2235,7 +2205,7 @@ contains
   Use CO_GridCompMod
   Use ESMF
   Use MAPL
-  Use Chem_Mod 
+  Use Chem_Mod
 
   IMPLICIT NONE
 
@@ -2243,12 +2213,12 @@ contains
 
 !  Input "function pointer"
 !  -----------------------
-   interface 
+   interface
      subroutine Method_ (gc, w, imp, exp, ymd, hms, dt, rcode )
        Use CO_GridCompMod
        Use ESMF
        Use MAPL
-       Use Chem_Mod 
+       Use Chem_Mod
        type(CO_GridComp1),  intent(inout)  :: gc
        type(Chem_Bundle),   intent(in)     :: w
        type(ESMF_State),    intent(inout)  :: imp
@@ -2261,7 +2231,7 @@ contains
 
    integer, intent(in)           :: instance     ! instance number
 
-   TYPE(Chem_Bundle), intent(inout) :: w_c       ! Chemical tracer fields      
+   TYPE(Chem_Bundle), intent(inout) :: w_c       ! Chemical tracer fields
    INTEGER, INTENT(IN) :: nymd, nhms             ! time
    REAL,    INTENT(IN) :: cdt                    ! chemical timestep (secs)
 
@@ -2273,7 +2243,7 @@ contains
    TYPE(ESMF_State), INTENT(INOUT)  :: expChem   ! Export State
    INTEGER, INTENT(OUT) ::  rc                   ! Error return code:
                                                  !  0 - all is well
-                                                 !  1 - 
+                                                 !  1 -
 
 ! !DESCRIPTION: Finalizes the CO Grid Component. Multiple instance
 !               version.
@@ -2292,13 +2262,13 @@ contains
   n_CO = w_c%reg%n_CO
   i_CO = w_c%reg%i_CO
   j_CO = w_c%reg%j_CO
-  
+
 ! Customize indices for this particular instance
 ! ----------------------------------------------
   w_c%reg%n_CO = 1
   w_c%reg%i_CO = i_CO + instance - 1
   w_c%reg%j_CO = i_CO + instance - 1
-  
+
 ! Execute the instance method
 ! ---------------------------
   call Method_ ( gcCO, w_c, impChem, expChem, &
