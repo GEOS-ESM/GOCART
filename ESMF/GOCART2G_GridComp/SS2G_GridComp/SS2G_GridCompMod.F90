@@ -709,6 +709,21 @@ contains
 
 #include "SS2G_GetPointer___.h"
 
+    if (associated(SSDP)) SSDP = 0.
+    if (associated(SSSD)) SSSD = 0.
+    if (associated(SSWT)) SSWT = 0.
+    if (associated(SSEXTTAU)) SSEXTTAU = 0.
+    if (associated(SSSTEXTTAU)) SSSTEXTTAU = 0.
+    if (associated(SSSCATAU)) SSSCATAU = 0.
+    if (associated(SSSTSCATAU)) SSSTSCATAU = 0.
+    if (associated(SSEXTT25)) SSEXTT25 = 0.
+    if (associated(SSSCAT25)) SSSCAT25 = 0.
+    if (associated(SSEXTTFM)) SSEXTTFM = 0.
+    if (associated(SSSCATFM)) SSSCATFM = 0.
+    if (associated(SSANGSTR)) SSANGSTR = 0.
+    if (associated(SSSMASS)) SSSMASS = 0.
+    if (associated(SSSMASS25)) SSSMASS25 = 0.
+
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
@@ -832,6 +847,21 @@ contains
 
 #include "SS2G_GetPointer___.h"
 
+    if (associated(SSDP)) SSDP = 0.
+    if (associated(SSSD)) SSSD = 0.
+    if (associated(SSWT)) SSWT = 0.
+    if (associated(SSEXTTAU)) SSEXTTAU = 0.
+    if (associated(SSSTEXTTAU)) SSSTEXTTAU = 0.
+    if (associated(SSSCATAU)) SSSCATAU = 0.
+    if (associated(SSSTSCATAU)) SSSTSCATAU = 0.
+    if (associated(SSEXTT25)) SSEXTT25 = 0.
+    if (associated(SSSCAT25)) SSSCAT25 = 0.
+    if (associated(SSEXTTFM)) SSEXTTFM = 0.
+    if (associated(SSSCATFM)) SSSCATFM = 0.
+    if (associated(SSANGSTR)) SSANGSTR = 0.
+    if (associated(SSSMASS)) SSSMASS = 0.
+    if (associated(SSSMASS25)) SSSMASS25 = 0.
+
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SS2G_GridComp', wrap, STATUS)
@@ -913,6 +943,7 @@ contains
 !   Compute diagnostics
 !   -------------------
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
+    SSEXTTAU = 0.0
     call Aero_Compute_Diags (self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
                              self%rup, self%wavelengths_profile*1.0e-9, &
                              self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
