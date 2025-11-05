@@ -569,352 +569,315 @@ contains
 
    end subroutine Initialize
 
-!============================================================================
-!BOP
-! !IROUTINE: Run0
+   !BOP
+   !IROUTINE: Run0
+   !INTERFACE:
+   subroutine Run0 (gc, import, export, clock, RC)
 
-! !INTERFACE:
-  subroutine Run0 (gc, import, export, clock, RC)
+      !ARGUMENTS:
+      type (ESMF_GridComp), intent(inout) :: gc
+      type (ESMF_State),    intent(inout) :: import
+      type (ESMF_State),    intent(inout) :: export
+      type (ESMF_Clock),    intent(inout) :: clock
+      integer, optional,    intent(  out) :: rc
 
-!   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: gc     ! Gridded component
-    type (ESMF_State),    intent(inout) :: import ! Import state
-    type (ESMF_State),    intent(inout) :: export ! Export state
-    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
-    integer, optional,    intent(  out) :: RC     ! Error code:
+      !DESCRIPTION:  Clears klid to 0.0 for Dust
+      !EOP
 
-! !DESCRIPTION:  Clears klid to 0.0 for Dust
+      character (len=ESMF_MAXSTR)       :: COMP_NAME
+      type (MAPL_MetaComp), pointer     :: MAPL
+      type (ESMF_State)                 :: internal
+      type (wrap_)                      :: wrap
+      type (DU2G_GridComp), pointer     :: self
+      real, pointer, dimension(:,:,:)   :: ple
+      real, pointer, dimension(:,:,:,:) :: ptr4d_int
 
-!EOP
-!============================================================================
-! Locals
-    character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: MAPL
-    type (ESMF_State)                 :: internal
-    type (wrap_)                      :: wrap
-    type (DU2G_GridComp), pointer     :: self
-    real, pointer, dimension(:,:,:)   :: ple
-    real, pointer, dimension(:,:,:,:) :: ptr4d_int
+      __Iam__('Run0')
 
-    __Iam__('Run0')
+      ! Get my name and set-up traceback handle
+      call ESMF_GridCompGet (gc, NAME=COMP_NAME, __RC__)
+      Iam = trim(COMP_NAME) // '::' // Iam
 
-!*****************************************************************************
-!   Begin...
+      ! Get my internal MAPL_Generic state
+      call MAPL_GetObjectFromGC (gc, MAPL, __RC__)
 
-!   Get my name and set-up traceback handle
-!   ---------------------------------------
-    call ESMF_GridCompGet (gc, NAME=COMP_NAME, __RC__)
-    Iam = trim(COMP_NAME) // '::' // Iam
+      ! Get parameters from generic state.
+      call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
-!   Get my internal MAPL_Generic state
-!   -----------------------------------
-    call MAPL_GetObjectFromGC (gc, MAPL, __RC__)
+      ! Get my private internal state
+      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, STATUS)
+      VERIFY_(STATUS)
+      self => wrap%ptr
 
-!   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+      ! Set klid and Set internal values to 0 above klid
+      call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+      call findKlid (self%klid, self%plid, ple, __RC__)
+      call MAPL_GetPointer (internal, NAME='DU', ptr=ptr4d_int, __RC__)
+      call setZeroKlid4d (self%km, self%klid, ptr4d_int)
 
-!   Get my private internal state
-!   ------------------------------
-    call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
-    self => wrap%ptr
+      RETURN_(ESMF_SUCCESS)
 
-!   Set klid and Set internal values to 0 above klid
-!   ---------------------------------------------------
-    call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-    call findKlid (self%klid, self%plid, ple, __RC__)
-    call MAPL_GetPointer (internal, NAME='DU', ptr=ptr4d_int, __RC__)
-    call setZeroKlid4d (self%km, self%klid, ptr4d_int)
+   end subroutine Run0
 
-    RETURN_(ESMF_SUCCESS)
+   !BOP
+   !IROUTINE: Run
+   !INTERFACE:
+   subroutine Run (gc, import, export, clock, rc)
 
-  end subroutine Run0
+      !ARGUMENTS:
+      type (ESMF_GridComp), intent(inout) :: gc
+      type (ESMF_State),    intent(inout) :: import
+      type (ESMF_State),    intent(inout) :: export
+      type (ESMF_Clock),    intent(inout) :: clock
+      integer, optional,    intent(  out) :: rc
 
-!============================================================================
-!BOP
-! !IROUTINE: Run
+      !DESCRIPTION: Run method for the Dust Grid Component. Determines whether to
+      !                 run data or computational run method.
+      !EOP
 
-! !INTERFACE:
-  subroutine Run (gc, import, export, clock, rc)
+      character (len=ESMF_MAXSTR)       :: COMP_NAME
+      type (MAPL_MetaComp), pointer     :: MAPL
+      type (ESMF_State)                 :: internal
 
-!   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: gc     ! Gridded component
-    type (ESMF_State),    intent(inout) :: import ! Import state
-    type (ESMF_State),    intent(inout) :: export ! Export state
-    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
-    integer, optional,    intent(  out) :: rc     ! Error code:
+      logical                           :: data_driven
 
-!   !DESCRIPTION: Run method for the Dust Grid Component. Determines whether to
-!                 run data or computational run method.
+      __Iam__('Run')
 
-!EOP
-!============================================================================
-!   !Locals
-    character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: MAPL
-    type (ESMF_State)                 :: internal
+      ! Get my name and set-up traceback handle
+      call ESMF_GridCompGet (gc, NAME=COMP_NAME, __RC__)
+      Iam = trim(COMP_NAME) //'::'// Iam
 
-    logical                           :: data_driven
+      ! Get my internal MAPL_Generic state
+      call MAPL_GetObjectFromGC (gc, MAPL, __RC__)
 
-    __Iam__('Run')
+      ! Get parameters from generic state.
+      call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
 
-!*****************************************************************************
-!   Begin...
+      ! Is DU data driven?
+      call determine_data_driven (COMP_NAME, data_driven, __RC__)
 
-!   Get my name and set-up traceback handle
-!   ---------------------------------------
-    call ESMF_GridCompGet (gc, NAME=COMP_NAME, __RC__)
-    Iam = trim(COMP_NAME) //'::'// Iam
+      ! Update INTERNAL state variables with ExtData
+      if (data_driven) then
+         call Run_data (gc, import, export, internal, __RC__)
+      else
+         call Run1 (gc, import, export, clock, __RC__)
+      end if
 
-!   Get my internal MAPL_Generic state
-!   -----------------------------------
-    call MAPL_GetObjectFromGC (gc, MAPL, __RC__)
+      RETURN_(ESMF_SUCCESS)
 
-!   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+   end subroutine Run
 
-!   Is DU data driven?
-!   ------------------
-    call determine_data_driven (COMP_NAME, data_driven, __RC__)
+   !BOP
+   !IROUTINE: Run1
+   !INTERFACE:
+   subroutine Run1 (gc, import, export, clock, RC)
 
-!   Update INTERNAL state variables with ExtData
-!   ---------------------------------------------
-    if (data_driven) then
-       call Run_data (gc, import, export, internal, __RC__)
-    else
-       call Run1 (gc, import, export, clock, __RC__)
-    end if
+      !ARGUMENTS:
+      type (ESMF_GridComp), intent(inout) :: gc     ! Gridded component
+      type (ESMF_State),    intent(inout) :: import ! Import state
+      type (ESMF_State),    intent(inout) :: export ! Export state
+      type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+      integer, optional,    intent(  out) :: RC     ! Error code:
 
-    RETURN_(ESMF_SUCCESS)
+      !DESCRIPTION:  Computes emissions/sources for Dust
+      !EOP
 
-  end subroutine Run
+      character (len=ESMF_MAXSTR)       :: COMP_NAME
+      type (MAPL_MetaComp), pointer     :: mapl
+      type (ESMF_State)                 :: internal
+      type (ESMF_Grid)                  :: grid
+      type (wrap_)                      :: wrap
+      type (DU2G_GridComp), pointer     :: self
+      type(ESMF_Time)                   :: time
 
-!============================================================================
-!BOP
-! !IROUTINE: Run1
-
-! !INTERFACE:
-  subroutine Run1 (gc, import, export, clock, RC)
-
-!   !ARGUMENTS:
-    type (ESMF_GridComp), intent(inout) :: gc     ! Gridded component
-    type (ESMF_State),    intent(inout) :: import ! Import state
-    type (ESMF_State),    intent(inout) :: export ! Export state
-    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
-    integer, optional,    intent(  out) :: RC     ! Error code:
-
-! !DESCRIPTION:  Computes emissions/sources for Dust
-
-!EOP
-!============================================================================
-!   !Locals
-    character (len=ESMF_MAXSTR)       :: COMP_NAME
-    type (MAPL_MetaComp), pointer     :: mapl
-    type (ESMF_State)                 :: internal
-    type (ESMF_Grid)                  :: grid
-    type (wrap_)                      :: wrap
-    type (DU2G_GridComp), pointer     :: self
-    type(ESMF_Time)                   :: time
-
-    integer  :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
-    integer  :: import_shape(2), i2, j2
-!    real, dimension(:,:), pointer     :: emissions_surface
-    real, dimension(:,:,:), allocatable     :: emissions_surface
-    real, dimension(:,:,:,:), allocatable :: emissions
-    real, dimension(:,:,:), allocatable   :: emissions_point
-    character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
-    integer, pointer, dimension(:)  :: iPoint, jPoint
-    logical :: fileExists
-    real :: qmax, qmin
-    integer :: n, ijl
-    real, dimension(:,:), allocatable   :: z_
-    real, dimension(:,:), allocatable   :: ustar_
-    real, dimension(:,:), allocatable   :: ustar_t_
-    real, dimension(:,:), allocatable   :: ustar_ts_
-    real, dimension(:,:), allocatable   :: R_
-    real, dimension(:,:), allocatable   :: H_w_
-    real, dimension(:,:), allocatable   :: f_erod_
-    type(ThreadWorkspace), pointer :: workspace
-    integer :: thread, jstart, jend
+      integer  :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
+      integer  :: import_shape(2), i2, j2
+      ! real, dimension(:,:), pointer     :: emissions_surface
+      real, dimension(:,:,:), allocatable     :: emissions_surface
+      real, dimension(:,:,:,:), allocatable :: emissions
+      real, dimension(:,:,:), allocatable   :: emissions_point
+      character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
+      integer, pointer, dimension(:)  :: iPoint, jPoint
+      logical :: fileExists
+      real :: qmax, qmin
+      integer :: n, ijl
+      real, dimension(:,:), allocatable   :: z_
+      real, dimension(:,:), allocatable   :: ustar_
+      real, dimension(:,:), allocatable   :: ustar_t_
+      real, dimension(:,:), allocatable   :: ustar_ts_
+      real, dimension(:,:), allocatable   :: R_
+      real, dimension(:,:), allocatable   :: H_w_
+      real, dimension(:,:), allocatable   :: f_erod_
+      type(ThreadWorkspace), pointer :: workspace
+      integer :: thread, jstart, jend
 
 #include "DU2G_DeclarePointer___.h"
 
-   __Iam__('Run1')
+      __Iam__('Run1')
 
-!*****************************************************************************
-!   Begin...
+      ! Get my name and set-up traceback handle
+      call ESMF_GridCompGet (gc, NAME=COMP_NAME, __RC__)
+      Iam = trim(COMP_NAME) //'::'// Iam
 
-!   Get my name and set-up traceback handle
-!   ---------------------------------------
-    call ESMF_GridCompGet (gc, NAME=COMP_NAME, __RC__)
-    Iam = trim(COMP_NAME) //'::'// Iam
+      ! Get my internal MAPL_Generic state
+      call MAPL_GetObjectFromGC (gc, mapl, __RC__)
 
-!   Get my internal MAPL_Generic state
-!   -----------------------------------
-    call MAPL_GetObjectFromGC (gc, mapl, __RC__)
+      call MAPL_Get(mapl, grid=grid, __RC__)
 
-    call MAPL_Get(mapl, grid=grid, __RC__)
+      ! Get parameters from generic state.
+      call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
 
-!   Get parameters from generic state.
-!   -----------------------------------
-    call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
+      ! Get my private internal state
+      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, STATUS)
+      VERIFY_(STATUS)
+      self => wrap%ptr
 
-!   Get my private internal state
-!   ------------------------------
-    call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
-    self => wrap%ptr
+      ! Extract nymd(yyyymmdd) from clock
+      call ESMF_ClockGet (clock, currTime=time, __RC__)
+      call ESMF_TimeGet (time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, __RC__)
+      call MAPL_PackTime (nymd, iyr, imm , idd)
+      call MAPL_PackTime (nhms, ihr, imn, isc)
 
-!   Extract nymd(yyyymmdd) from clock
-!   ---------------------------------
-    call ESMF_ClockGet (clock, currTime=time, __RC__)
-    call ESMF_TimeGet (time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, __RC__)
-    call MAPL_PackTime (nymd, iyr, imm , idd)
-    call MAPL_PackTime (nhms, ihr, imn, isc)
-
-    associate (scheme => self%emission_scheme)
+      associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
-    end associate
+      end associate
 
-!   Set du_src to 0 where undefined
-!   --------------------------------
-    if (associated(du_src)) then
-       where (1.01*du_src > MAPL_UNDEF) du_src = 0.
-    endif
-!   Get dimensions
-!   ---------------
-    import_shape = shape(wet1)
-    i2 = import_shape(1)
-    j2 = import_shape(2)
-    ijl  = ( i2 - 1 + 1 ) * ( j2 - 1 + 1 )
+      ! Set du_src to 0 where undefined
+      if (associated(du_src)) then
+         where (1.01*du_src > MAPL_UNDEF) du_src = 0.
+      endif
+      ! Get dimensions
+      import_shape = shape(wet1)
+      i2 = import_shape(1)
+      j2 = import_shape(2)
+      ijl  = ( i2 - 1 + 1 ) * ( j2 - 1 + 1 )
 
-    allocate(emissions(i2,j2,self%km,self%nbins),  __STAT__)
-    emissions = 0.0
-    allocate(emissions_point, mold=delp,  __STAT__)
-    emissions_point = 0.0
-    allocate(emissions_surface(i2,j2,self%nbins), __STAT__)
-    emissions_surface = 0.0
+      allocate(emissions(i2,j2,self%km,self%nbins),  __STAT__)
+      emissions = 0.0
+      allocate(emissions_point, mold=delp,  __STAT__)
+      emissions_point = 0.0
+      allocate(emissions_surface(i2,j2,self%nbins), __STAT__)
+      emissions_surface = 0.0
 
-!   Get surface gridded emissions
-!   -----------------------------
-    select case (self%emission_scheme)
+      ! Get surface gridded emissions
+      select case (self%emission_scheme)
 
-    case ('k14')
-       allocate(ustar_, mold=U10M,    __STAT__)
-       allocate(ustar_t_, mold=U10M,  __STAT__)
-       allocate(ustar_ts_, mold=U10M, __STAT__)
-       allocate(R_, mold=U10M,        __STAT__)
-       allocate(H_w_, mold=U10M,      __STAT__)
-       allocate(f_erod_, mold=U10M,   __STAT__)
-       allocate(z_, mold=U10M,        __STAT__)
+      case ('k14')
+         allocate(ustar_, mold=U10M,    __STAT__)
+         allocate(ustar_t_, mold=U10M,  __STAT__)
+         allocate(ustar_ts_, mold=U10M, __STAT__)
+         allocate(R_, mold=U10M,        __STAT__)
+         allocate(H_w_, mold=U10M,      __STAT__)
+         allocate(f_erod_, mold=U10M,   __STAT__)
+         allocate(z_, mold=U10M,        __STAT__)
 
-       z_ = 10.0 ! wind is at 10m
+         z_ = 10.0 ! wind is at 10m
 
-       call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
-                             du_z0, z_, u10n, v10n, ustar,    &
-                             frland, asnow,               &
-                             du_src,                       &
-                             du_sand, du_silt, du_clay,             &
-                             du_texture, du_veg, du_gvf,     &
-                             self%f_swc, self%f_scl, self%uts_gamma, &
-                             MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN,   &
-                             self%clayFlag, self%Ch_DU/1.e-9,  &
-                             emissions_surface,            &
-                             ustar_,                       &
-                             ustar_t_,                     &
-                             ustar_ts_,                    &
-                             R_, H_w_, f_erod_,            &
-                             __RC__ )
+         call DustEmissionK14( &
+              self%km, tsoil1, wcsf, rhos, &
+              du_z0, z_, u10n, v10n, ustar, &
+              frland, asnow, &
+              du_src, &
+              du_sand, du_silt, du_clay, &
+              du_texture, du_veg, du_gvf, &
+              self%f_swc, self%f_scl, self%uts_gamma, &
+              MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN, &
+              self%clayFlag, self%Ch_DU/1.e-9, &
+              emissions_surface, &
+              ustar_, &
+              ustar_t_, &
+              ustar_ts_, &
+              R_, H_w_, f_erod_, __RC__ )
 
+         if (associated(DU_UST)) DU_UST = ustar_
+         if (associated(DU_UST_T)) DU_UST_T = ustar_t_
+         if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
+         if (associated(DU_DPC)) DU_DPC = R_
+         if (associated(DU_SMC)) DU_SMC = H_w_
+         if (associated(DU_EROD)) DU_EROD = f_erod_
 
-       if (associated(DU_UST)) DU_UST = ustar_
-       if (associated(DU_UST_T)) DU_UST_T = ustar_t_
-       if (associated(DU_UST_T)) DU_UST_T = ustar_ts_
-       if (associated(DU_DPC)) DU_DPC = R_
-       if (associated(DU_SMC)) DU_SMC = H_w_
-       if (associated(DU_EROD)) DU_EROD = f_erod_
+      case ('fengsha')
+         call DustEmissionFENGSHA( &
+              frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt, &
+              du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres, &
+              self%alpha, self%gamma, self%kvhmax, MAPL_GRAV, &
+              self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
 
-    case ('fengsha')
-        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
-                du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres,  &
-                self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
-                self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
+      case ('ginoux')
 
-    case ('ginoux')
+         call DustEmissionGOCART2G( &
+              self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
+              self%Ch_DU, du_src, MAPL_GRAV, &
+              emissions_surface, __RC__)
+      case default
+         _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)
+      end select
 
-       call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
-                                 self%Ch_DU, du_src, MAPL_GRAV, &
-                                 emissions_surface, __RC__)
-    case default
-       _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)
-    end select
-
-!   Read point emissions file once per day
-!   --------------------------------------
-    thread = MAPL_get_current_thread()
-    workspace => self%workspaces(thread)
-    if (self%doing_point_emissions) then
-       if (workspace%day_save /= idd) then
-          workspace%day_save = idd
-          call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
-                            nymd=nymd, nhms=120000 )
-          inquire( file=fname, exist=fileExists)
-          if (fileExists) then
-             call ReadPointEmissions (nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
-                                      workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
-                                      workspace%pEnd, label='source', __RC__)
-          else if (.not. fileExists) then
-             !$omp critical (DU2G_1)
-             if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
-             !$omp end critical (DU2G_1)
-             workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
-          end if
-       end if
-    end if
-
-!   Get indices for point emissions
-!   -------------------------------
-    if (workspace%nPts > 0) then
-        allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
-        call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
-                                 grid = grid,               &
-                                 lon  = workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                 lat  = workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
-                                 rc   = status)
-            if ( status /= 0 ) then
-                !$omp critical (DU2G_2)
-                if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
-                !$omp end critical (DU2G_2)
-                VERIFY_(status)
+      ! Read point emissions file once per day
+      thread = MAPL_get_current_thread()
+      workspace => self%workspaces(thread)
+      if (self%doing_point_emissions) then
+         if (workspace%day_save /= idd) then
+            workspace%day_save = idd
+            call StrTemplate( &
+                 fname, self%point_emissions_srcfilen, xid='unknown', &
+                 nymd=nymd, nhms=120000 )
+            inquire( file=fname, exist=fileExists)
+            if (fileExists) then
+               call ReadPointEmissions( &
+                    nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
+                    workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
+                    workspace%pEnd, label='source', __RC__)
+            else if (.not. fileExists) then
+               !$omp critical (DU2G_1)
+               if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
+               !$omp end critical (DU2G_1)
+               workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
             end if
+         end if
+      end if
 
-        call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
-                                       workspace%pStart, workspace%pEnd, zle, &
-                                       area, iPoint, jPoint, nhms, emissions_point, __RC__)
-    end if
+      ! Get indices for point emissions
+      if (workspace%nPts > 0) then
+         allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
+         call MAPL_GetHorzIJIndex( &
+              workspace%nPts, iPoint, jPoint, &
+              grid=grid, &
+              lon=workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
+              lat=workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
+              rc=status)
+         if (status /= 0) then
+            !$omp critical (DU2G_2)
+            if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
+            !$omp end critical (DU2G_2)
+            VERIFY_(status)
+         end if
 
-!   Update aerosol state
-!   --------------------
-    call UpdateAerosolState (emissions, emissions_surface, emissions_point, &
-                             self%sfrac, workspace%nPts, self%km, self%CDT, MAPL_GRAV, &
-                             self%nbins, delp, DU, __RC__)
+         call updatePointwiseEmissions( &
+              self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
+              workspace%pStart, workspace%pEnd, zle, &
+              area, iPoint, jPoint, nhms, emissions_point, __RC__)
+      end if
 
-    if (associated(DUEM)) then
-       DUEM = sum(emissions, dim=3)
-    end if
+      ! Update aerosol state
+      call UpdateAerosolState( &
+           emissions, emissions_surface, emissions_point, &
+           self%sfrac, workspace%nPts, self%km, self%CDT, MAPL_GRAV, &
+           self%nbins, delp, DU, __RC__)
 
-!   Clean up
-!   --------
-    deallocate(emissions, emissions_surface, emissions_point, __STAT__)
-    if (workspace%nPts > 0) then
-        deallocate(iPoint, jPoint, __STAT__)
-    end if
+      if (associated(DUEM)) then
+         DUEM = sum(emissions, dim=3)
+      end if
 
-    RETURN_(ESMF_SUCCESS)
+      ! Clean up
+      deallocate(emissions, emissions_surface, emissions_point, __STAT__)
+      if (workspace%nPts > 0) then
+         deallocate(iPoint, jPoint, __STAT__)
+      end if
 
-  end subroutine Run1
+      RETURN_(ESMF_SUCCESS)
+
+   end subroutine Run1
 
 !============================================================================
 !BOP
