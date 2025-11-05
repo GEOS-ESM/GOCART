@@ -155,7 +155,7 @@ contains
     end if
 
     ! process generic config items
-    call self%GA_Environment%load_from_config(cfg, universal_cfg, __RC__)
+    call self%GA_Environment%load_from_config(gc, _RC)
 
     allocate(self%sfrac(self%nbins), self%rlow(self%nbins), self%rup(self%nbins), __STAT__)
     ! process DU-specific items
@@ -391,6 +391,7 @@ contains
     character (len=ESMF_MAXSTR)          :: COMP_NAME
     type (MAPL_MetaComp),       pointer  :: MAPL
     type (ESMF_Grid)                     :: grid
+    type (ESMF_Geom)                     :: geom
     type (ESMF_State)                    :: internal
     type (ESMF_State)                    :: aero
     type (ESMF_State)                    :: providerState
@@ -572,19 +573,42 @@ contains
 
 !   Add variables to DU instance's aero state. This is used in aerosol optics calculations
 !   --------------------------------------------------------------------------------------
-    call add_aero (aero, label='air_pressure_for_aerosol_optics',      label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH',  grid=grid, typekind=MAPL_R4, __RC__)
-!   call ESMF_StateGet (import, 'PLE', field, __RC__)
-!   call MAPL_StateAdd (aero, field, __RC__)
-!   call ESMF_StateGet (import, 'RH2', field, __RC__)
-!   call MAPL_StateAdd (aero, field, __RC__)
+    ! call add_aero (aero, label='air_pressure_for_aerosol_optics',      label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
+    ! call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH',  grid=grid, typekind=MAPL_R4, __RC__)
+    ! ! call ESMF_StateGet (import, 'PLE', field, __RC__)
+    ! ! call MAPL_StateAdd (aero, field, __RC__)
+    ! ! call ESMF_StateGet (import, 'RH2', field, __RC__)
+    ! ! call MAPL_StateAdd (aero, field, __RC__)
+    ! call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8, __RC__)
+    ! call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8, __RC__)
+    ! call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8, __RC__)
+    ! call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
+    !                grid=grid, typekind=MAPL_R4, __RC__)
+    ! call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
 
-    call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8, __RC__)
-    call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8, __RC__)
-    call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8, __RC__)
-    call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
-                   grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
+    ! pchakrab: TODO - get geom from gridcomp
+    call add_aero(aero, label='air_pressure_for_aerosol_optics', label2='PLE', geom=geom, km=self%km, _RC)
+    call add_aero(aero, label='relative_humidity_for_aerosol_optics', label2='RH', geom=geom, km=self%km, _RC)
+    ! call ESMF_StateGet (import, 'PLE', field, _RC)
+    ! call MAPL2_StateAdd (aero, field, _RC)
+    ! call ESMF_StateGet (import, 'RH2', field, _RC)
+    ! call MAPL2_StateAdd (aero, field, _RC)
+    call add_aero( &
+         aero, &
+         label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
+         geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+    call add_aero( &
+         aero, &
+         label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
+         geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+    call add_aero(aero, &
+         label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
+         geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+    call add_aero( &
+         aero, &
+         label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
+         geom=geom, typekind=ESMF_TYPEKIND_R4,_RC)
+    call add_aero(aero, label='sum_of_internalState_aerosol', label2='aerosolSum', geom=geom, km=self%km, _RC)
 
     call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
     call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
