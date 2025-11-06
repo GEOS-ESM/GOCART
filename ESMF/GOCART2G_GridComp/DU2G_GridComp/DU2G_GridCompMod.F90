@@ -11,8 +11,10 @@ module DU2G_GridCompMod
    use pflogger, only: logger_t => logger
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    ! use MAPL
-   use MAPL, only: MAPL_get_num_threads, MAPL_MetaComp
+   use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
+   use MAPL, only: MAPL_MetaComp, MAPL_GetHorzIJIndex
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
+   use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use mapl3g_generic, only: MAPL_GridCompGet, MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
    use mapl3g_generic, only: MAPL_GridCompAddSpec
@@ -611,34 +613,30 @@ contains
    subroutine Run1 (gc, import, export, clock, RC)
 
       !ARGUMENTS:
-      type(ESMF_GridComp) :: gc
-      type(ESMF_State) :: import
-      type(ESMF_State) :: export
-      type(ESMF_Clock) :: clock
+      type(ESMF_GridComp), intent(inout) :: gc
+      type(ESMF_State), intent(inout) :: import
+      type(ESMF_State), intent(inout) :: export
+      type(ESMF_Clock), intent(inout) :: clock
       integer, intent(out) :: rc
 
       !DESCRIPTION:  Computes emissions/sources for Dust
       !EOP
 
-      character (len=ESMF_MAXSTR)       :: comp_name
-      type (MAPL_MetaComp), pointer     :: mapl
-      type (ESMF_State)                 :: internal
-      type (ESMF_Grid)                  :: grid
-      type (wrap_)                      :: wrap
-      type (DU2G_GridComp), pointer     :: self
-      type(ESMF_Time)                   :: time
-
-      integer  :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
-      integer  :: import_shape(2), i2, j2
-      ! real, dimension(:,:), pointer     :: emissions_surface
-      real, dimension(:,:,:), allocatable     :: emissions_surface
-      real, dimension(:,:,:,:), allocatable :: emissions
-      real, dimension(:,:,:), allocatable   :: emissions_point
-      character (len=ESMF_MAXSTR)  :: fname ! file name for point source emissions
-      integer, pointer, dimension(:)  :: iPoint, jPoint
-      logical :: fileExists
+      character(len=:), allocatable :: comp_name
+      type(ESMF_State) :: internal
+      type(ESMF_Grid) :: grid
+      type(wrap_) :: wrap
+      type(DU2G_GridComp), pointer :: self
+      type(ESMF_Time) :: time
       real :: qmax, qmin
       integer :: n, ijl
+      integer :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
+      integer :: import_shape(2), i2, j2
+      logical :: file_exists
+      integer :: thread, jstart, jend, status
+      real, dimension(:,:,:), allocatable :: emissions_surface
+      real, dimension(:,:,:,:), allocatable :: emissions
+      real, dimension(:,:,:), allocatable :: emissions_point
       real, dimension(:,:), allocatable   :: z_
       real, dimension(:,:), allocatable   :: ustar_
       real, dimension(:,:), allocatable   :: ustar_t_
@@ -646,35 +644,28 @@ contains
       real, dimension(:,:), allocatable   :: R_
       real, dimension(:,:), allocatable   :: H_w_
       real, dimension(:,:), allocatable   :: f_erod_
+      integer, pointer, dimension(:) :: iPoint, jPoint
+      character(len=ESMF_MAXSTR) :: fname ! file name for point source emissions
       type(ThreadWorkspace), pointer :: workspace
-      integer :: thread, jstart, jend
+      class(logger_t), pointer :: logger
 
 #include "DU2G_DeclarePointer___.h"
 
-      __Iam__('Run1')
-
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (gc, NAME=comp_name, __RC__)
-      Iam = trim(comp_name) //'::'// Iam
-
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC (gc, mapl, __RC__)
-
-      call MAPL_Get(mapl, grid=grid, __RC__)
+      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, grid=grid, _RC)
+      call logger%info("Run1: starting...")
 
       ! Get parameters from generic state.
-      call MAPL_Get (mapl, INTERNAL_ESMF_STATE=internal, __RC__)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, STATUS)
-      VERIFY_(STATUS)
+      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, _RC)
       self => wrap%ptr
 
       ! Extract nymd(yyyymmdd) from clock
-      call ESMF_ClockGet (clock, currTime=time, __RC__)
-      call ESMF_TimeGet (time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, __RC__)
-      call MAPL_PackTime (nymd, iyr, imm , idd)
-      call MAPL_PackTime (nhms, ihr, imn, isc)
+      call ESMF_ClockGet(clock, currTime=time, _RC)
+      call ESMF_TimeGet(time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, _RC)
+      call MAPL_PackTime(nymd, iyr, imm , idd)
+      call MAPL_PackTime(nhms, ihr, imn, isc)
 
       associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
@@ -682,7 +673,7 @@ contains
 
       ! Set du_src to 0 where undefined
       if (associated(du_src)) then
-         where (1.01*du_src > MAPL_UNDEF) du_src = 0.
+         where (1.01*du_src > MAPL_UNDEFINED_REAL) du_src = 0.
       endif
       ! Get dimensions
       import_shape = shape(wet1)
@@ -690,24 +681,24 @@ contains
       j2 = import_shape(2)
       ijl  = ( i2 - 1 + 1 ) * ( j2 - 1 + 1 )
 
-      allocate(emissions(i2,j2,self%km,self%nbins),  __STAT__)
+      allocate(emissions(i2,j2,self%km,self%nbins), _STAT)
       emissions = 0.0
-      allocate(emissions_point, mold=delp,  __STAT__)
+      allocate(emissions_point, mold=delp, _STAT)
       emissions_point = 0.0
-      allocate(emissions_surface(i2,j2,self%nbins), __STAT__)
+      allocate(emissions_surface(i2,j2,self%nbins), _STAT)
       emissions_surface = 0.0
 
       ! Get surface gridded emissions
       select case (self%emission_scheme)
 
       case ('k14')
-         allocate(ustar_, mold=U10M,    __STAT__)
-         allocate(ustar_t_, mold=U10M,  __STAT__)
-         allocate(ustar_ts_, mold=U10M, __STAT__)
-         allocate(R_, mold=U10M,        __STAT__)
-         allocate(H_w_, mold=U10M,      __STAT__)
-         allocate(f_erod_, mold=U10M,   __STAT__)
-         allocate(z_, mold=U10M,        __STAT__)
+         allocate(ustar_, mold=U10M, _STAT)
+         allocate(ustar_t_, mold=U10M, _STAT)
+         allocate(ustar_ts_, mold=U10M, _STAT)
+         allocate(R_, mold=U10M, _STAT)
+         allocate(H_w_, mold=U10M, _STAT)
+         allocate(f_erod_, mold=U10M, _STAT)
+         allocate(z_, mold=U10M, _STAT)
 
          z_ = 10.0 ! wind is at 10m
 
@@ -719,13 +710,13 @@ contains
               du_sand, du_silt, du_clay, &
               du_texture, du_veg, du_gvf, &
               self%f_swc, self%f_scl, self%uts_gamma, &
-              MAPL_UNDEF, MAPL_GRAV, MAPL_KARMAN, &
+              MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, &
               self%clayFlag, self%Ch_DU/1.e-9, &
               emissions_surface, &
               ustar_, &
               ustar_t_, &
               ustar_ts_, &
-              R_, H_w_, f_erod_, __RC__ )
+              R_, H_w_, f_erod_, _RC )
 
          if (associated(DU_UST)) DU_UST = ustar_
          if (associated(DU_UST_T)) DU_UST_T = ustar_t_
@@ -739,16 +730,17 @@ contains
               frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt, &
               du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres, &
               self%alpha, self%gamma, self%kvhmax, MAPL_GRAV, &
-              self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
+              self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  _RC)
 
       case ('ginoux')
-
          call DustEmissionGOCART2G( &
               self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
               self%Ch_DU, du_src, MAPL_GRAV, &
-              emissions_surface, __RC__)
+              emissions_surface, _RC)
+
       case default
-         _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)
+         _ASSERT_RC(.false., "missing dust emission scheme. Allowed: ginoux, fengsha, k14", ESMF_RC_NOT_IMPL)
+
       end select
 
       ! Read point emissions file once per day
@@ -760,15 +752,15 @@ contains
             call StrTemplate( &
                  fname, self%point_emissions_srcfilen, xid='unknown', &
                  nymd=nymd, nhms=120000 )
-            inquire( file=fname, exist=fileExists)
-            if (fileExists) then
+            inquire(file=fname, exist=file_exists)
+            if (file_exists) then
                call ReadPointEmissions( &
                     nymd, fname, workspace%nPts, workspace%pLat, workspace%pLon, &
                     workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pStart, &
-                    workspace%pEnd, label='source', __RC__)
-            else if (.not. fileExists) then
+                    workspace%pEnd, label='source', _RC)
+            else if (.not. file_exists) then
                !$omp critical (DU2G_1)
-               if(mapl_am_i_root()) print*,'GOCART2G ',trim(comp_name),': ',trim(fname),' not found; proceeding.'
+               call logger%info("["//trim(fname)//"] not found; proceeding...")
                !$omp end critical (DU2G_1)
                workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
             end if
@@ -777,43 +769,42 @@ contains
 
       ! Get indices for point emissions
       if (workspace%nPts > 0) then
-         allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  __STAT__)
+         allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  _STAT)
          call MAPL_GetHorzIJIndex( &
               workspace%nPts, iPoint, jPoint, &
               grid=grid, &
               lon=workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-              lat=workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
-              rc=status)
-         if (status /= 0) then
-            !$omp critical (DU2G_2)
-            if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
-            !$omp end critical (DU2G_2)
-            VERIFY_(status)
-         end if
-
+              lat=workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), _RC)
+         ! if (status /= 0) then
+         !    !$omp critical (DU2G_2)
+         !    if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
+         !    !$omp end critical (DU2G_2)
+         !    VERIFY_(status)
+         ! end if
          call updatePointwiseEmissions( &
               self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
               workspace%pStart, workspace%pEnd, zle, &
-              area, iPoint, jPoint, nhms, emissions_point, __RC__)
+              area, iPoint, jPoint, nhms, emissions_point, _RC)
       end if
 
       ! Update aerosol state
       call UpdateAerosolState( &
            emissions, emissions_surface, emissions_point, &
            self%sfrac, workspace%nPts, self%km, self%CDT, MAPL_GRAV, &
-           self%nbins, delp, DU, __RC__)
+           self%nbins, delp, DU, _RC)
 
       if (associated(DUEM)) then
          DUEM = sum(emissions, dim=3)
       end if
 
       ! Clean up
-      deallocate(emissions, emissions_surface, emissions_point, __STAT__)
+      deallocate(emissions, emissions_surface, emissions_point, _STAT)
       if (workspace%nPts > 0) then
-         deallocate(iPoint, jPoint, __STAT__)
+         deallocate(iPoint, jPoint, _STAT)
       end if
 
-      RETURN_(ESMF_SUCCESS)
+      call logger%info("Run1: ...complete")
+      _RETURN(_SUCCESS)
 
    end subroutine Run1
 
