@@ -567,8 +567,7 @@ contains
    !BOP
    !IROUTINE: Run
    !INTERFACE:
-   subroutine Run (gc, import, export, clock, rc)
-
+   subroutine Run(gc, import, export, clock, rc)
       !ARGUMENTS:
       type (ESMF_GridComp) :: gc
       type (ESMF_State) :: import
@@ -580,36 +579,30 @@ contains
       !                 run data or computational run method.
       !EOP
 
-      character (len=ESMF_MAXSTR)       :: comp_name
-      type (MAPL_MetaComp), pointer     :: MAPL
-      type (ESMF_State)                 :: internal
+      character(len=:), allocatable :: comp_name
+      type(ESMF_State) :: internal
+      logical :: data_driven
+      integer :: status
+      class(logger_t), pointer :: logger
 
-      logical                           :: data_driven
-
-      __Iam__('Run')
-
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (gc, NAME=comp_name, __RC__)
-      Iam = trim(comp_name) //'::'// Iam
-
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC (gc, MAPL, __RC__)
+      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, _RC)
+      call logger%info("Run0:: starting...")
 
       ! Get parameters from generic state.
-      call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Is DU data driven?
-      call determine_data_driven (comp_name, data_driven, __RC__)
+      call determine_data_driven(comp_name, data_driven, _RC)
 
       ! Update INTERNAL state variables with ExtData
       if (data_driven) then
-         call Run_data (gc, import, export, internal, __RC__)
+         call Run_data(gc, import, export, internal, _RC)
       else
-         call Run1 (gc, import, export, clock, __RC__)
+         call Run1(gc, import, export, clock, _RC)
       end if
 
-      RETURN_(ESMF_SUCCESS)
-
+      call logger%info("Run0:: ...complete")
+      _RETURN(_SUCCESS)
    end subroutine Run
 
    !BOP
