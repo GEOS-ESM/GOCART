@@ -823,52 +823,42 @@ contains
       !DESCRIPTION: Run2 method for the Dust Grid Component.
       !EOP
 
-      character (len=ESMF_MAXSTR)       :: comp_name
-      type (MAPL_MetaComp), pointer     :: MAPL
-      type (ESMF_State)                 :: internal
-      type (wrap_)                      :: wrap
-      type (DU2G_GridComp), pointer     :: self
+      type(ESMF_State) :: internal
+      type(wrap_) :: wrap
+      type(DU2G_GridComp), pointer :: self
 
-      integer                           :: n
+      integer :: n, i1, j1, i2, j2, km
+      integer :: settling_opt, status
+      logical :: KIN
+      real :: fwet, rainout_eff(3)
+      real, parameter :: cpd = 1004.16
       real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-      real                              :: fwet
-      logical                           :: KIN
-
-      integer                           :: i1, j1, i2, j2, km
-      real, dimension(3)                :: rainout_eff
-      real, parameter ::  cpd    = 1004.16
-      real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
-      real, pointer, dimension(:,:)     :: flux_ptr
-      integer                           :: settling_opt
+      real, target, allocatable, dimension(:,:,:) :: RH20,RH80
+      real, pointer, dimension(:,:) :: flux_ptr
+      class(logger_t), pointer :: logger
 #include "DU2G_DeclarePointer___.h"
 
-      __Iam__('Run2')
-
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (gc, NAME=comp_name, __RC__)
-      Iam = trim(comp_name) // '::' // Iam
-
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC (gc, MAPL, __RC__)
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("Run2: starting...")
 
       ! Get parameters from generic state.
-      call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, STATUS)
-      VERIFY_(STATUS)
+      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, _RC)
       self => wrap%ptr
 
       associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
       end associate
 
-      allocate(dqa, mold=wet1, __STAT__)
-      allocate(drydepositionfrequency, mold=wet1, __STAT__)
+      allocate(dqa, mold=wet1, _STAT)
+      allocate(drydepositionfrequency, mold=wet1, _STAT)
 
       ! Set klid and Set internal DU values to 0 above klid
-      call findKlid (self%klid, self%plid, ple, __RC__)
-      call setZeroKlid4d (self%km, self%klid, DU)
+      ! pchakrab: TODO - need ple0, zle0 etc here
+      call findKlid(self%klid, self%plid, ple, _RC)
+      call setZeroKlid4d(self%km, self%klid, DU)
 
       ! Dust Settling
       select case (self%settling_scheme)
@@ -877,7 +867,7 @@ contains
       case ('ufs')
          settling_opt = 2
       case default
-         _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+         _ASSERT_RC(.false., "Unsupported settling scheme: "//trim(self%settling_scheme), ESMF_RC_NOT_IMPL)
       end select
 
       do n = 1, self%nbins
@@ -887,7 +877,7 @@ contains
               self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
               DU(:,:,:,n), t, airdens, &
               rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, &
-              settling_scheme=settling_opt, __RC__)
+              settling_scheme=settling_opt, _RC)
       end do
 
       ! Dust Deposition
@@ -897,7 +887,7 @@ contains
               self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
               MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, status, &
               self%radius(n)*1.e-6, self%rhop(n), u10m, v10m, frlake, wet1)
-         VERIFY_(status)
+         _VERIFY(status)
 
          dqa = 0.
          dqa = max(0.0, DU(:,:,self%km,n)*(1.-exp(-drydepositionfrequency*self%cdt)))
@@ -918,7 +908,7 @@ contains
             call WetRemovalGOCART2G( &
                  self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
                  KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
-                 pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
+                 pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, _RC)
          end do
       case ('ufs')
          rainout_eff = 0.0
@@ -929,14 +919,14 @@ contains
             call WetRemovalUFS( &
                  self%km, self%klid, n, self%cdt, 'dust', KIN, MAPL_GRAV, &
                  self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
-                 DU(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, DUWT, __RC__)
+                 DU(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, DUWT, _RC)
          end do
       case default
-         _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+         _ASSERT_RC(.false., "Unsupported wet removal scheme: "//trim(self%wet_removal_scheme), ESMF_RC_NOT_IMPL)
       end select
 
       ! Compute diagnostics
-      !  Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
+      ! Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
       call Aero_Compute_Diags( &
            self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
            self%rup, self%wavelengths_profile*1.0e-9, &
@@ -945,14 +935,14 @@ contains
            DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
            DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
            DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
-           DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
+           DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., _RC )
 
       i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
       j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
       km = ubound(RH2, 3)
 
-      allocate(RH20(i1:i2,j1:j2,km), __STAT__)
-      allocate(RH80(i1:i2,j1:j2,km), __STAT__)
+      allocate(RH20(i1:i2,j1:j2,km), _STAT)
+      allocate(RH80(i1:i2,j1:j2,km), _STAT)
 
       RH20(:,:,:) = 0.20
       call Aero_Compute_Diags( &
@@ -962,7 +952,7 @@ contains
            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
            rh=rh20, u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-           extcoef = DUEXTCOEFRH20, scacoef = DUSCACOEFRH20, NO3nFlag=.False., __RC__)
+           extcoef = DUEXTCOEFRH20, scacoef = DUSCACOEFRH20, NO3nFlag=.False., _RC)
 
       RH80(:,:,:) = 0.80
 
@@ -973,10 +963,12 @@ contains
            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
            rh=rh80, u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
-           extcoef = DUEXTCOEFRH80, scacoef = DUSCACOEFRH80, NO3nFlag=.False., __RC__)
+           extcoef = DUEXTCOEFRH80, scacoef = DUSCACOEFRH80, NO3nFlag=.False., _RC)
 
       deallocate(RH20,RH80)
-      RETURN_(ESMF_SUCCESS)
+
+      call logger%info("Run2: ...complete")
+      _RETURN(_SUCCESS)
 
    end subroutine Run2
 
@@ -1090,14 +1082,14 @@ contains
            ext_s(i1:i2, j1:j2, km), &
            ssa_s(i1:i2, j1:j2, km), &
            asy_s(i1:i2, j1:j2, km), &
-           x(i1:i2, j1:j2, km), __STAT__)
+           x(i1:i2, j1:j2, km), _STAT)
 
       call ESMF_StateGet (state, 'DU', field=fld, __RC__)
       call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
 
       nbins = size(q,4)
 
-      allocate(q_4d(i1:i2, j1:j2, km, nbins), __STAT__)
+      allocate(q_4d(i1:i2, j1:j2, km, nbins), _STAT)
 
       do n = 1, nbins
          do k = 1, km
@@ -1107,7 +1099,7 @@ contains
       end do
 
       call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)
-      allocate (opaque_self(n), __STAT__)
+      allocate (opaque_self(n), _STAT)
       call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, __RC__)
 
       address = transfer(opaque_self, address)
@@ -1133,8 +1125,8 @@ contains
          var = asy_s(:,:,:)
       end if
 
-      deallocate(ext_s, ssa_s, asy_s, __STAT__)
-      deallocate(q_4d, __STAT__)
+      deallocate(ext_s, ssa_s, asy_s, _STAT)
+      deallocate(q_4d, _STAT)
 
       RETURN_(ESMF_SUCCESS)
 
@@ -1232,7 +1224,7 @@ contains
       allocate( &
            tau_s(i1:i2, j1:j2, km), &
            tau(i1:i2, j1:j2, km), &
-           x(i1:i2, j1:j2, km), __STAT__)
+           x(i1:i2, j1:j2, km), _STAT)
       tau_s = 0.
       tau   = 0.
 
@@ -1241,7 +1233,7 @@ contains
 
       nbins = size(q,4)
 
-      allocate(q_4d(i1:i2, j1:j2, km, nbins), __STAT__)
+      allocate(q_4d(i1:i2, j1:j2, km, nbins), _STAT)
       q_4d = 0.
 
       do n = 1, nbins
@@ -1252,7 +1244,7 @@ contains
       end do
 
       call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)
-      allocate (opaque_self(n), __STAT__)
+      allocate (opaque_self(n), _STAT)
       call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, __RC__)
 
       address = transfer(opaque_self, address)
@@ -1269,7 +1261,7 @@ contains
          var = sum(tau_s, dim=3)
       end if
 
-      deallocate(q_4d, __STAT__)
+      deallocate(q_4d, _STAT)
 
       RETURN_(ESMF_SUCCESS)
 
