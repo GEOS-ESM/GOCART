@@ -976,52 +976,38 @@ contains
    !IROUTINE: Run_data -- ExtData Dust Grid Component
 
    !INTERFACE:
-   subroutine Run_data (gc, import, export, internal, RC)
-
+   subroutine Run_data(gc, import, export, internal, rc)
       !ARGUMENTS:
-      type (ESMF_GridComp), intent(inout) :: gc       ! Gridded component
-      type (ESMF_State),    intent(inout) :: import   ! Import state
-      type (ESMF_State),    intent(inout) :: export   ! Export state
-      type (ESMF_State),    intent(inout) :: internal ! Interal state
-      integer, optional,    intent(  out) :: RC       ! Error code:
+      type(ESMF_GridComp), intent(inout) :: gc
+      type(ESMF_State), intent(inout) :: import
+      type(ESMF_State), intent(inout) :: export
+      type(ESMF_State), intent(inout) :: internal
+      integer, optional, intent(out) :: rc
+      !EOP
 
       !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
-      character (len=ESMF_MAXSTR)        :: comp_name
-      type (wrap_)                       :: wrap
-      type (DU2G_GridComp), pointer      :: self
-
-      integer                            :: i
-      character (len=ESMF_MAXSTR)        :: field_name
-
+      type(wrap_) :: wrap
+      type(DU2G_GridComp), pointer :: self
+      character(len=ESMF_MAXSTR) :: field_name
       real, pointer, dimension(:,:,:,:)  :: ptr4d_int
-      real, pointer, dimension(:,:,:)    :: ptr3d_imp
-
-      __Iam__('Run_data')
-
-      !EOP
-
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (gc, NAME=comp_name, __RC__)
-      Iam = trim(comp_name) //'::'//Iam
+      real, pointer, dimension(:,:,:) :: ptr3d_imp
+      integer :: bin, status
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, STATUS)
-      VERIFY_(STATUS)
+      call ESMF_UserCompGetInternalState(gc, "DU2G_GridComp", wrap, _RC)
       self => wrap%ptr
 
       ! Update interal data pointers with ExtData
-      call MAPL_GetPointer (internal, NAME='DU', ptr=ptr4d_int, __RC__)
+      call MAPL_StateGetPointer(internal, itemName="DU", farrayPtr=ptr4d_int, _RC)
 
-      do i = 1, self%nbins
-         write (field_name, '(A, I0.3)') 'du', i
-         call MAPL_GetPointer (import,  NAME='clim'//trim(field_name), ptr=ptr3d_imp, __RC__)
-
-         ptr4d_int(:,:,:,i) = ptr3d_imp
+      do bin = 1, self%nbins
+         write (field_name, "(A, I0.3)") "du", bin
+         call MAPL_StateGetPointer(import, itemName="clim"//trim(field_name), farrayPtr=ptr3d_imp, _RC)
+         ptr4d_int(:,:,:,bin) = ptr3d_imp
       end do
 
-      RETURN_(ESMF_SUCCESS)
-
+      _RETURN(_SUCCESS)
    end subroutine Run_data
 
    subroutine aerosol_optics(state, rc)
