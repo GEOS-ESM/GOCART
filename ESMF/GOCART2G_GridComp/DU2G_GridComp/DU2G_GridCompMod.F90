@@ -20,6 +20,7 @@ module DU2G_GridCompMod
    use mapl3g_generic, only: MAPL_GridCompAddSpec
    use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
    use mapl3g_generic, only: MAPL_ClockGet
+   use mapl3g_generic, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_UngriddedDim, only: UngriddedDim
@@ -86,9 +87,7 @@ module DU2G_GridCompMod
       type(ThreadWorkspace), allocatable :: workspaces(:)
    end type DU2G_GridComp
 
-   type wrap_
-      type (DU2G_GridComp), pointer :: PTR !=> null()
-   end type wrap_
+   character(*), parameter :: PRIVATE_STATE = "DU2G_GridComp"
 
 contains
 
@@ -111,10 +110,8 @@ contains
       !   16oct2019   E.Sherman, A.Da Silva, A.Darmenov, T.Clune  First attempt at refactoring
       !EOP
 
-      character(len=ESMF_MAXSTR) :: comp_name
-      type(wrap_) :: wrap
+      character(len=:), allocatable :: comp_name
       type(DU2G_GridComp), pointer :: self
-
       character(len=ESMF_MAXSTR) :: field_name
       character(len=:), allocatable :: emission_scheme
       real :: DEFVAL
@@ -126,26 +123,17 @@ contains
       type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: status
 
-      call ESMF_GridCompGet(gc, name=comp_name, _RC)
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, _RC)
       call logger%info("SetServices:: starting...")
 
-      ! Wrap internal state for storing in gc
-      allocate(self, _STAT)
-      wrap%ptr => self
+      ! Wrap gridcomp's private state and store it in gridcomp
+      _SET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE)
+
+      ! Retrieve the private state
+      _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
       num_threads = MAPL_get_num_threads()
       allocate(self%workspaces(0:num_threads-1), __STAT__)
-
-      ! ! Load resource file
-      ! cfg = ESMF_ConfigCreate (_RC)
-      ! inquire(file='DU2G_instance_'//trim(comp_name)//'.rc', exist=file_exists)
-      ! if (file_exists) then
-      !    call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_'//trim(comp_name)//'.rc', _RC)
-      ! else
-      !    if (mapl_am_i_root()) print*,'DU2G_instance_'//trim(comp_name)//'.rc does not exist! Loading DU2G_GridComp_DU.rc instead'
-      !    call ESMF_ConfigLoadFile (cfg, 'DU2G_instance_DU.rc', _RC)
-      ! end if
 
       ! process generic config items
       call self%GA_Environment%load_from_config(gc, _RC)
@@ -331,9 +319,6 @@ contains
            vstagger=VERTICAL_STAGGER_CENTER, &
            itemtype=MAPL_STATEITEM_FIELDBUNDLE, _RC)
 
-      ! Store internal state in gc
-      call ESMF_UserCompSetInternalState(gc, "DU2G_GridComp", wrap, _RC)
-
       call logger%info("SetServices:: ...complete")
       _RETURN(_SUCCESS)
 
@@ -364,7 +349,6 @@ contains
       type(ESMF_FieldBundle) :: bundle_dp
       type(ESMF_Field) :: field, fld
       type(ESMF_Info) :: field_info, aero_info
-      type(wrap_) :: wrap
       type(DU2G_GridComp), pointer :: self
       integer, allocatable :: mieTable_pointer(:), channels_(:)
       real :: CDT ! chemistry timestep (secs)
@@ -379,8 +363,7 @@ contains
       call logger%info("Initialize:: starting...")
 
       ! Get my internal private state
-      call ESMF_UserCompGetInternalState(gc, "DU2G_GridComp", wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
       ! Global dimensions are needed here for choosing tuning parameters
       call MAPL_GridCompGet(gc, grid=grid, num_levels=km, _RC)
@@ -535,7 +518,6 @@ contains
       !EOP
 
       type(ESMF_State) :: internal
-      type(wrap_) :: wrap
       type(DU2G_GridComp), pointer :: self
       real, pointer, dimension(:,:,:) :: ple
       real, allocatable, dimension(:,:,:) :: ple0
@@ -549,9 +531,8 @@ contains
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
-      ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, "DU2G_GridComp", wrap, _RC)
-      self => wrap%ptr
+      ! Get my internal private state
+      _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
       ! Set klid and Set internal values to 0 above klid
       km = self%km
@@ -625,7 +606,6 @@ contains
       character(len=:), allocatable :: comp_name
       type(ESMF_State) :: internal
       type(ESMF_Grid) :: grid
-      type(wrap_) :: wrap
       type(DU2G_GridComp), pointer :: self
       type(ESMF_Time) :: time
       real :: qmax, qmin
@@ -658,8 +638,7 @@ contains
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
       ! Extract nymd(yyyymmdd) from clock
       call ESMF_ClockGet(clock, currTime=time, _RC)
@@ -824,9 +803,7 @@ contains
       !EOP
 
       type(ESMF_State) :: internal
-      type(wrap_) :: wrap
       type(DU2G_GridComp), pointer :: self
-
       integer :: n, i1, j1, i2, j2, km
       integer :: settling_opt, status
       logical :: KIN
@@ -845,8 +822,7 @@ contains
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
       associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
@@ -987,7 +963,6 @@ contains
 
       !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
-      type(wrap_) :: wrap
       type(DU2G_GridComp), pointer :: self
       character(len=ESMF_MAXSTR) :: field_name
       real, pointer, dimension(:,:,:,:)  :: ptr4d_int
@@ -995,8 +970,7 @@ contains
       integer :: bin, status
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, "DU2G_GridComp", wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
       ! Update interal data pointers with ExtData
       call MAPL_StateGetPointer(internal, itemName="DU", farrayPtr=ptr4d_int, _RC)
