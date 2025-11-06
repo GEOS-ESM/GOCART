@@ -21,6 +21,7 @@ module DU2G_GridCompMod
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_UngriddedDim, only: UngriddedDim
+   use mapl3g_State_API, only: MAPL_StateGetPointer
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -520,8 +521,7 @@ contains
    !BOP
    !IROUTINE: Run0
    !INTERFACE:
-   subroutine Run0 (gc, import, export, clock, RC)
-
+   subroutine Run0(gc, import, export, clock, RC)
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
       type(ESMF_State) :: import
@@ -532,39 +532,36 @@ contains
       !DESCRIPTION:  Clears klid to 0.0 for Dust
       !EOP
 
-      character (len=ESMF_MAXSTR)       :: comp_name
-      type (MAPL_MetaComp), pointer     :: MAPL
-      type (ESMF_State)                 :: internal
-      type (wrap_)                      :: wrap
-      type (DU2G_GridComp), pointer     :: self
-      real, pointer, dimension(:,:,:)   :: ple
+      type(ESMF_State) :: internal
+      type(wrap_) :: wrap
+      type(DU2G_GridComp), pointer :: self
+      real, pointer, dimension(:,:,:) :: ple
+      real, allocatable, dimension(:,:,:) :: ple0
       real, pointer, dimension(:,:,:,:) :: ptr4d_int
+      integer :: i1, i2, j1, j2, km, status
+      class(logger_t), pointer :: logger
 
-      __Iam__('Run0')
-
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet (gc, NAME=comp_name, __RC__)
-      Iam = trim(comp_name) // '::' // Iam
-
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC (gc, MAPL, __RC__)
+      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call logger%info("Run0:: starting...")
 
       ! Get parameters from generic state.
-      call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'DU2G_GridComp', wrap, STATUS)
-      VERIFY_(STATUS)
+      call ESMF_UserCompGetInternalState(gc, "DU2G_GridComp", wrap, _RC)
       self => wrap%ptr
 
       ! Set klid and Set internal values to 0 above klid
-      call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-      call findKlid (self%klid, self%plid, ple, __RC__)
-      call MAPL_GetPointer (internal, NAME='DU', ptr=ptr4d_int, __RC__)
-      call setZeroKlid4d (self%km, self%klid, ptr4d_int)
+      km = self%km
+      call MAPL_StateGetPointer(import, ple, "PLE", _RC)
+      i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+      allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
+      call findKlid(self%klid, self%plid, ple0, _RC)
+      call MAPL_StateGetPointer(internal, ptr4d_int, "DU", _RC)
+      call setZeroKlid4d(self%km, self%klid, ptr4d_int)
 
-      RETURN_(ESMF_SUCCESS)
-
+      call logger%info("Run0:: ...complete")
+      _RETURN(_SUCCESS)
    end subroutine Run0
 
    !BOP
