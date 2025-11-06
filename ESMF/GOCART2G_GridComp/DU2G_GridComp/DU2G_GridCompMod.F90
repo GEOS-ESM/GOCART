@@ -1012,57 +1012,48 @@ contains
 
    subroutine aerosol_optics(state, rc)
 
-      implicit none
-
       !ARGUMENTS:
       type(ESMF_State) :: state
       integer, intent(out) :: rc
 
       !Local
-      integer, parameter                               :: DP=kind(1.0d0)
-      real, dimension(:,:,:), pointer                  :: ple, rh
-      real(kind=DP), dimension(:,:,:), pointer         :: var
-      real, dimension(:,:,:,:), pointer                :: q, q_4d
-      integer, allocatable                             :: opaque_self(:)
-      type(C_PTR)                                      :: address
-      type(DU2G_GridComp), pointer                     :: self
+      type(ESMF_Field) :: fld
+      type(ESMF_Info) :: info
+      integer, parameter :: DP=kind(1.0d0)
+      real, dimension(:,:,:), pointer :: ple, rh
+      real(kind=DP), dimension(:,:,:), pointer :: var
+      real, dimension(:,:,:,:), pointer :: q, q_4d
+      integer, allocatable :: opaque_self(:)
+      type(C_PTR) :: address
+      type(DU2G_GridComp), pointer :: self
+      character(len=ESMF_MAXSTR) :: fld_name
+      real(kind=DP), dimension(:,:,:), allocatable :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
+      real, dimension(:,:,:), allocatable :: x
+      integer :: instance, n, nbins, i1, j1, i2, j2, km, band, k, status
 
-      character (len=ESMF_MAXSTR)                      :: fld_name
-      type(ESMF_Field)                                 :: fld
-
-      real(kind=DP), dimension(:,:,:), allocatable     :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
-      real, dimension(:,:,:), allocatable              :: x
-      integer                                          :: instance
-      integer                                          :: n, nbins
-      integer                                          :: i1, j1, i2, j2, km
-      integer                                          :: band
-
-      integer :: k
-
-      __Iam__('DU2G::aerosol_optics')
+      call ESMF_InfoGetFromHost(state, info, _RC)
 
       ! Mie Table instance/index
-      call ESMF_AttributeGet (state, name='mie_table_instance', value=instance, __RC__)
+      call ESMF_InfoGet(info, key="mie_table_instance", value=instance, _RC)
 
       ! Radiation band
-      band = 0
-      call ESMF_AttributeGet (state, name='band_for_aerosol_optics', value=band, __RC__)
+      call ESMF_InfoGet(info, key="band_for_aerosol_optics", value=band, default=0, _RC)
 
       ! Pressure at layer edges
-      call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-      call MAPL_GetPointer (state, ple, trim(fld_name), __RC__)
+      call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
 
-      ! call MAPL_GetPointer (state, ple, 'PLE', __RC__)
+      ! call MAPL_GetPointer (state, ple, "PLE", _RC)
 
       i1 = lbound(ple, 1); i2 = ubound(ple, 1)
       j1 = lbound(ple, 2); j2 = ubound(ple, 2)
       km = ubound(ple, 3)
 
       ! Relative humidity
-      call ESMF_AttributeGet (state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-      call MAPL_GetPointer (state, rh, trim(fld_name), __RC__)
+      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
-      ! call MAPL_GetPointer (state, rh, 'RH2', __RC__)
+      ! call MAPL_GetPointer (state, rh, "RH2", _RC)
 
       allocate( &
            ext_s(i1:i2, j1:j2, km), &
@@ -1070,8 +1061,8 @@ contains
            asy_s(i1:i2, j1:j2, km), &
            x(i1:i2, j1:j2, km), _STAT)
 
-      call ESMF_StateGet (state, 'DU', field=fld, __RC__)
-      call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
+      call ESMF_StateGet(state, "DU", field=fld, _RC)
+      call ESMF_FieldGet(fld, farrayPtr=q, _RC)
 
       nbins = size(q,4)
 
@@ -1084,61 +1075,54 @@ contains
          end do
       end do
 
-      call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)
-      allocate (opaque_self(n), _STAT)
-      call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, __RC__)
+      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
 
-      call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+      call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, _RC)
 
-      call ESMF_AttributeGet (state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
-      if (fld_name /= '') then
-         call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+      call ESMF_InfoGet(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+      if (fld_name /= "") then
+         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = ext_s(:,:,:)
       end if
 
-      call ESMF_AttributeGet (state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
-      if (fld_name /= '') then
-         call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+      call ESMF_InfoGet(info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
+      if (fld_name /= "") then
+         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = ssa_s(:,:,:)
       end if
 
-      call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-      if (fld_name /= '') then
-         call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+      call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+      if (fld_name /= "") then
+         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = asy_s(:,:,:)
       end if
 
       deallocate(ext_s, ssa_s, asy_s, _STAT)
       deallocate(q_4d, _STAT)
 
-      RETURN_(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    contains
 
       subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
-
-         implicit none
-
-         type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
-         integer,                       intent(in   ) :: nbins            ! number of bins
-         integer,                       intent(in )   :: band             ! channel
-         real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
-         real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
-         real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         real(kind=DP), intent(  out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         integer,                       intent(  out) :: rc
+         type(GOCART2G_Mie), intent(inout) :: mie ! mie table
+         integer, intent(in) :: nbins   ! number of bins
+         integer, intent(in) :: band    ! channel
+         real, intent(in) :: q(:,:,:,:) ! aerosol mass mixing ratio, kg kg-1
+         real, intent(in) :: rh(:,:,:)  ! relative humidity
+         real(kind=DP), intent(out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+         real(kind=DP), intent(out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+         real(kind=DP), intent(out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
+         integer, intent(out) :: rc
 
          ! local
-         integer                           :: l
-         real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
-         real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-         real                              :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
-
-         __Iam__('DU2G::aerosol_optics::mie_')
+         integer :: l
+         real :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
+         real :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
+         real :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
 
          bext_s  = 0.0d0
          bssa_s  = 0.0d0
@@ -1146,13 +1130,13 @@ contains
 
          do l = 1, nbins
             ! tau is converted to bext
-            call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
+            call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, _RC)
             bext_s  = bext_s  +             bext     ! extinction
             bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
             basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
          end do
 
-         RETURN_(ESMF_SUCCESS)
+         _RETURN(_SUCCESS)
 
       end subroutine mie_
 
