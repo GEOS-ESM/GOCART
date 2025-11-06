@@ -12,7 +12,7 @@ module DU2G_GridCompMod
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    ! use MAPL
    use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
-   use MAPL, only: MAPL_MetaComp, MAPL_GetHorzIJIndex
+   use MAPL, only: MAPL_MetaComp, MAPL_GetHorzIJIndex, MAPL_PackTime
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use mapl3g_generic, only: MAPL_GridCompGet, MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
@@ -1143,53 +1143,46 @@ contains
    end subroutine aerosol_optics
 
    subroutine monochromatic_aerosol_optics(state, rc)
-
-      implicit none
-
       !ARGUMENTS:
-      type (ESMF_State)                                :: state
-      integer,            intent(out)                  :: rc
+      type(ESMF_State) :: state
+      integer, intent(out) :: rc
 
       !Local
-      real, dimension(:,:,:), pointer                  :: ple, rh
-      real, dimension(:,:), pointer                    :: var
-      real, dimension(:,:,:,:), pointer                :: q, q_4d
-      integer, allocatable                             :: opaque_self(:)
-      type(C_PTR)                                      :: address
-      type(DU2G_GridComp), pointer                     :: self
+      real, dimension(:,:,:), pointer :: ple, rh
+      real, dimension(:,:), pointer :: var
+      real, dimension(:,:,:,:), pointer :: q, q_4d
+      integer, allocatable :: opaque_self(:)
+      type(C_PTR) :: address
+      type(DU2G_GridComp), pointer :: self
+      character(len=ESMF_MAXSTR) :: fld_name
+      type(ESMF_Field) :: fld
+      type(ESMF_Info) :: info
+      real, dimension(:,:,:), allocatable :: tau_s, tau, x ! (lon:,lat:,lev:)
+      integer :: instance, n, nbins, k, i1, j1, i2, j2, km, i, j, status
+      real :: wavelength
 
-      character (len=ESMF_MAXSTR)                      :: fld_name
-      type(ESMF_Field)                                 :: fld
-
-      real, dimension(:,:,:), allocatable              :: tau_s, tau, x ! (lon:,lat:,lev:)
-      integer                                          :: instance
-      integer                                          :: n, nbins, k
-      integer                                          :: i1, j1, i2, j2, km, i, j
-      real                                             :: wavelength
-
-      __Iam__('DU2G::monochromatic_aerosol_optics')
+      call ESMF_InfoGetFromHost(state, info, _RC)
 
       ! Mie Table instance/index
-      call ESMF_AttributeGet (state, name='mie_table_instance', value=instance, __RC__)
+      call ESMF_InfoGet(info, key="mie_table_instance", value=instance, _RC)
 
       ! Radiation band
-      wavelength = 0.
-      call ESMF_AttributeGet (state, name='wavelength_for_aerosol_optics', value=wavelength, __RC__)
+      call ESMF_InfoGet(info, key="wavelength_for_aerosol_optics", value=wavelength, default=0., _RC)
 
       ! Pressure at layer edges
-      call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-      call MAPL_GetPointer (state, ple, trim(fld_name), __RC__)
+      call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
 
-      ! call MAPL_GetPointer (state, ple, 'PLE', __RC__)
+      ! call MAPL_GetPointer (state, ple, "PLE", _RC)
       i1 = lbound(ple, 1); i2 = ubound(ple, 1)
       j1 = lbound(ple, 2); j2 = ubound(ple, 2)
       km = ubound(ple, 3)
 
       ! Relative humidity
-      call ESMF_AttributeGet (state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-      call MAPL_GetPointer (state, rh, trim(fld_name), __RC__)
+      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
-      ! call MAPL_GetPointer (state, rh, 'RH2', __RC__)
+      ! call MAPL_GetPointer (state, rh, "RH2", _RC)
 
       allocate( &
            tau_s(i1:i2, j1:j2, km), &
@@ -1198,8 +1191,8 @@ contains
       tau_s = 0.
       tau   = 0.
 
-      call ESMF_StateGet (state, 'DU', field=fld, __RC__)
-      call ESMF_FieldGet (fld, farrayPtr=q, __RC__)
+      call ESMF_StateGet(state, "DU", field=fld, _RC)
+      call ESMF_FieldGet(fld, farrayPtr=q, _RC)
 
       nbins = size(q,4)
 
@@ -1213,29 +1206,34 @@ contains
          end do
       end do
 
-      call ESMF_AttributeGet(state, name='mieTable_pointer', itemCount=n, __RC__)
-      allocate (opaque_self(n), _STAT)
-      call ESMF_AttributeGet(state, name='mieTable_pointer', valueList=opaque_self, __RC__)
+      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
 
       do n = 1, nbins
-         call self%diag_Mie%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, __RC__)
+         call self%diag_Mie%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, _RC)
          tau_s = tau_s + tau
       end do
 
-      call ESMF_AttributeGet (state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
-      if (fld_name /= '') then
-         call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+      call ESMF_InfoGet(info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+      if (fld_name /= "") then
+         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = sum(tau_s, dim=3)
       end if
 
       deallocate(q_4d, _STAT)
 
-      RETURN_(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine monochromatic_aerosol_optics
 
 end module DU2G_GridCompMod
 
+subroutine SetServices(gc, rc)
+   use ESMF
+   use DU2G_GridCompMod, only : mySetservices=>SetServices
+   type(ESMF_GridComp) :: gc
+   integer, intent(out) :: rc
+   call mySetServices(gc, rc=rc)
+end subroutine SetServices
