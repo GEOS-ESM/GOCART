@@ -28,11 +28,11 @@ module GOCART2G_GridCompMod
    use Chem_AeroGeneric
 
    ! Establish the Childen's SetServices
-   ! use DU2G_GridCompMod,    only   : DU2G_SetServices  => SetServices
-   use SS2G_GridCompMod,    only   : SS2G_SetServices  => SetServices
-   ! use SU2G_GridCompMod,    only   : SU2G_SetServices  => SetServices
-   ! use CA2G_GridCompMod,    only   : CA2G_SetServices  => SetServices
-   ! use NI2G_GridCompMod,    only   : NI2G_SetServices  => SetServices
+   use DU2G_GridCompMod, only: DU2G_SetServices  => SetServices
+   use SS2G_GridCompMod, only: SS2G_SetServices  => SetServices
+   ! use SU2G_GridCompMod, only: SU2G_SetServices  => SetServices
+   ! use CA2G_GridCompMod, only: CA2G_SetServices  => SetServices
+   ! use NI2G_GridCompMod, only: NI2G_SetServices  => SetServices
 
    implicit none
    private
@@ -170,6 +170,19 @@ contains
               itemtype=MAPL_STATEITEM_STATE, &
               _RC)
       end do
+      do iter = 1, size(self%DU%instances)
+         child = self%DU%instances(iter)
+         call MAPL_GridCompAddSpec( &
+              gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name=child%name//"_AERO", &
+              standard_name="aerosol_mass_mixing_ratios_ng",  &
+              dims="xyz", &
+              vstagger=VERTICAL_STAGGER_CENTER, &
+              units="kg kg-1", &
+              itemtype=MAPL_STATEITEM_STATE, &
+              _RC)
+      end do
       call MAPL_GridCompAddSpec( &
            gc, &
            state_intent=ESMF_STATEINTENT_EXPORT, &
@@ -186,6 +199,19 @@ contains
       ! and then copy import bundle (SS_AERO_DP) to export bundle AERO_DP
       do iter = 1, size(self%SS%instances)
          child = self%SS%instances(iter)
+         call MAPL_GridCompAddSpec( &
+              gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name=child%name//"_AERO_DP", &
+              standard_name="aerosol_deposition_ng",  &
+              dims="xy", &
+              vstagger=VERTICAL_STAGGER_NONE, &
+              units="kg m-2 s-1", &
+              itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
+              _RC)
+      end do
+      do iter = 1, size(self%SS%instances)
+         child = self%DU%instances(iter)
          call MAPL_GridCompAddSpec( &
               gc, &
               state_intent=ESMF_STATEINTENT_IMPORT, &
@@ -252,7 +278,7 @@ contains
       ! end if
 
       ! Connections to Sea Salt's export items
-      child_items= &
+      child_items = &
            "SSEXTTAU, SSSTEXTTAU, SSSCATAU, SSSTSCATAU, " // &
            "SSEXTCOEF, SSEXTCOEFRH20, SSEXTCOEFRH80, " // &
            "SSSCACOEF, SSSCACOEFRH20, SSSCACOEFRH80, " // &
@@ -263,7 +289,39 @@ contains
          if ((child%is_active) .and. (index(child%name, "data") == 0 )) then
             call MAPL_GridCompAddConnectivity( &
                  gc, &
-                 src_comp=child%name, & !self%SS%instances(iter)%name, &
+                 src_comp=child%name, &
+                 src_names=child_items, &
+                 dst_comp="<self>", _RC)
+            ! AERO
+            call MAPL_GridCompAddConnectivity( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child%name//"_AERO", &
+                 dst_comp="<self>", &
+                 dst_names=child%name//"_AERO", _RC)
+            ! AERO_DP
+            call MAPL_GridCompAddConnectivity( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child%name//"_AERO_DP", &
+                 dst_comp="<self>", &
+                 dst_names=child%name//"_AERO_DP", _RC)
+         end if
+      end do
+
+      ! Connections to Dust's export items
+      child_items= &
+           "DUEXTTAU, DUSTEXTTAU, DUSCATAU, DUSTSCATAU, " // &
+           "DUEXTCOEF, DUEXTCOEFRH20, DUEXTCOEFRH80, " // &
+           "DUSCACOEF, DUSCACOEFRH20, DUSCACOEFRH80, " // &
+           "DUBCKCOEF, DUEXTT25, DUSCAT25, DUEXTTFM, DUSCATFM, " // &
+           "DUANGSTR, DUSMASS, DUSMASS25"
+      do iter = 1, size(self%DU%instances)
+         child = self%DU%instances(iter)
+         if ((child%is_active) .and. (index(child%name, "data") == 0 )) then
+            call MAPL_GridCompAddConnectivity( &
+                 gc, &
+                 src_comp=child%name, &
                  src_names=child_items, &
                  dst_comp="<self>", _RC)
             ! AERO
@@ -334,7 +392,7 @@ contains
 
       ! ! Add children's AERO states to GOCART2G's AERO states
       ! ! Only active instances are passed to radiation
-      ! call add_aero_states_(self%DU%instances(:))
+      call add_aero_states_(self%DU%instances(:))
       call add_aero_states_(self%SS%instances(:))
       ! call add_aero_states_(self%SU%instances(:))
       ! call add_aero_states_(self%CA%instances(:))
@@ -508,16 +566,6 @@ contains
       type (GOCART_State), pointer :: self
       real, pointer, dimension(:,:) :: lats
 
-      ! ! Dust - ACG will generate this once we add DU's export states as GOCART's import
-      ! real, pointer, dimension(:,:,:) :: duexttau, dustexttau
-      ! real, pointer, dimension(:,:,:) :: duscatau, dustscatau
-      ! real, pointer, dimension(:,:,:) :: duextt25, duscat25
-      ! real, pointer, dimension(:,:,:) :: duexttfm, duscatfm
-      ! real, pointer, dimension(:,:,:,:) :: duextcoef, duscacoef
-      ! real, pointer, dimension(:,:,:,:) :: duextcoefrh20, duextcoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: duscacoefrh20, duscacoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: dubckcoef
-      ! real, pointer, dimension(:,:)   :: duangstr, dusmass, dusmass25
       ! ! Nitrates - ACG will generate this once we add NI's export states as GOCART's import
       ! real, pointer, dimension(:,:,:) :: niexttau, nistexttau
       ! real, pointer, dimension(:,:,:) :: niscatau, nistscatau
@@ -529,6 +577,7 @@ contains
       ! real, pointer, dimension(:,:,:,:) :: nibckcoef
       ! real, pointer, dimension(:,:)   :: niangstr, nismass, nismass25
       ! real, pointer, dimension(:,:)   :: nh4smass
+
       ! ! Sulfates - ACG will generate this once we add NI's export states as GOCART's import
       ! real, pointer, dimension(:,:,:) :: suexttau, sustexttau
       ! real, pointer, dimension(:,:,:) :: suscatau, sustscatau
@@ -537,6 +586,7 @@ contains
       ! real, pointer, dimension(:,:,:,:) :: suscacoefrh20, suscacoefrh80
       ! real, pointer, dimension(:,:,:,:) :: subckcoef
       ! real, pointer, dimension(:,:)   :: suangstr, so4smass
+
       ! ! Carbonaceous - ACG will generate this once we add CA's export states as GOCART's import
       ! real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau
       ! real, pointer, dimension(:,:,:,:) :: bcextcoef, bcscacoef
@@ -641,63 +691,38 @@ contains
          c3 = -log(470./870.)
       end if
 
-      ! ! Dust
-      ! do n = 1, size(self%DU%instances)
-      !    if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name, 'data') == 0 )) then
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttau, 'DUEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustexttau, 'DUSTEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatau, 'DUSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dustscatau, 'DUSTSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoef, 'DUEXTCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh20, 'DUEXTCOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextcoefrh80, 'DUEXTCOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoef, 'DUSCACOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh20, 'DUSCACOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscacoefrh80, 'DUSCACOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dubckcoef, 'DUBCKCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duextt25, 'DUEXTT25', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscat25, 'DUSCAT25', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duexttfm, 'DUEXTTFM', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duscatfm, 'DUSCATFM', _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), duangstr, 'DUANGSTR', _RC)
+      ! Dust
+      do n = 1, size(self%DU%instances)
+         if ((self%DU%instances(n)%is_active) .and. (index(self%DU%instances(n)%name, 'data') == 0 )) then
+            if(associated(totexttau)) totexttau = totexttau + duexttau
+            if(associated(totstexttau)) totstexttau = totstexttau+dustexttau
+            if(associated(totscatau)) totscatau = totscatau+duscatau
+            if(associated(totstscatau)) totstscatau = totstscatau+dustscatau
+            if(associated(totextt25)) totextt25 = totextt25+duextt25
+            if(associated(totscat25)) totscat25 = totscat25+duscat25
+            if(associated(totexttfm)) totexttfm = totexttfm+duexttfm
+            if(associated(totscatfm)) totscatfm = totscatfm+duscatfm
+            if(associated(totextcoef)) totextcoef = totextcoef+duextcoef
+            if(associated(totextcoefrh20)) totextcoefrh20 = totextcoefrh20+duextcoefrh20
+            if(associated(totextcoefrh80)) totextcoefrh80 = totextcoefrh80+duextcoefrh80
+            if(associated(totscacoef)) totscacoef = totscacoef+duscacoef
+            if(associated(totscacoefrh20)) totscacoefrh20 = totscacoefrh20+duscacoefrh20
+            if(associated(totscacoefrh80)) totscacoefrh80 = totscacoefrh80+duscacoefrh80
+            if(associated(totbckcoef)) totbckcoef = totbckcoef+dubckcoef
 
-      !       ! Iterate over the wavelengths
-      !       do w = 1, size(self%wavelengths_vertint)
-      !          if(associated(totexttau) .and. associated(duexttau)) totexttau(:,:,w) = totexttau(:,:,w)+duexttau(:,:,w)
-      !          if(associated(totstexttau) .and. associated(dustexttau)) totstexttau(:,:,w) = totstexttau(:,:,w)+dustexttau(:,:,w)
-      !          if(associated(totscatau) .and. associated(duscatau)) totscatau(:,:,w) = totscatau(:,:,w)+duscatau(:,:,w)
-      !          if(associated(totstscatau) .and. associated(dustscatau)) totstscatau(:,:,w) = totstscatau(:,:,w)+dustscatau(:,:,w)
-      !          if(associated(totextt25) .and. associated(duextt25)) totextt25(:,:,w) = totextt25(:,:,w)+duextt25(:,:,w)
-      !          if(associated(totscat25) .and. associated(duscat25)) totscat25(:,:,w) = totscat25(:,:,w)+duscat25(:,:,w)
-      !          if(associated(totexttfm) .and. associated(duexttfm)) totexttfm(:,:,w) = totexttfm(:,:,w)+duexttfm(:,:,w)
-      !          if(associated(totscatfm) .and. associated(duscatfm)) totscatfm(:,:,w) = totscatfm(:,:,w)+duscatfm(:,:,w)
-      !       end do
+            if(associated(pm)        .and. associated(dusmass))  pm        = pm        + dusmass
+            if(associated(pm25)      .and. associated(dusmass25)) pm25      = pm25      + dusmass25
+            if(associated(pm_rh35)   .and. associated(dusmass))   pm_rh35   = pm_rh35   + dusmass
+            if(associated(pm25_rh35) .and. associated(dusmass25)) pm25_rh35 = pm25_rh35 + dusmass25
+            if(associated(pm_rh50)   .and. associated(dusmass))   pm_rh50   = pm_rh50   + dusmass
+            if(associated(pm25_rh50) .and. associated(dusmass25)) pm25_rh50 = pm25_rh50 + dusmass25
 
-      !       do w = 1, size(self%wavelengths_profile)
-      !          if(associated(totextcoef) .and. associated(duextcoef)) totextcoef(:,:,:,w) = totextcoef(:,:,:,w)+duextcoef(:,:,:,w)
-      !          if(associated(totextcoefrh20) .and. associated(duextcoefrh20)) totextcoefrh20(:,:,:,w) = totextcoefrh20(:,:,:,w)+duextcoefrh20(:,:,:,w)
-      !          if(associated(totextcoefrh80) .and. associated(duextcoefrh80)) totextcoefrh80(:,:,:,w) = totextcoefrh80(:,:,:,w)+duextcoefrh80(:,:,:,w)
-      !          if(associated(totscacoef) .and. associated(duscacoef)) totscacoef(:,:,:,w) = totscacoef(:,:,:,w)+duscacoef(:,:,:,w)
-      !          if(associated(totscacoefrh20) .and. associated(duscacoefrh20)) totscacoefrh20(:,:,:,w) = totscacoefrh20(:,:,:,w)+duscacoefrh20(:,:,:,w)
-      !          if(associated(totscacoefrh80) .and. associated(duscacoefrh80)) totscacoefrh80(:,:,:,w) = totscacoefrh80(:,:,:,w)+duscacoefrh80(:,:,:,w)
-      !          if(associated(totbckcoef) .and. associated(dubckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+dubckcoef(:,:,:,w)
-      !       end do
-
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   _RC)
-      !       call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25, 'DUSMASS25', _RC)
-      !       if(associated(pm)        .and. associated(dusmass))   pm        = pm        + dusmass
-      !       if(associated(pm25)      .and. associated(dusmass25)) pm25      = pm25      + dusmass25
-      !       if(associated(pm_rh35)   .and. associated(dusmass))   pm_rh35   = pm_rh35   + dusmass
-      !       if(associated(pm25_rh35) .and. associated(dusmass25)) pm25_rh35 = pm25_rh35 + dusmass25
-      !       if(associated(pm_rh50)   .and. associated(dusmass))   pm_rh50   = pm_rh50   + dusmass
-      !       if(associated(pm25_rh50) .and. associated(dusmass25)) pm25_rh50 = pm25_rh50 + dusmass25
-
-      !       if(associated(totangstr) .and. associated(duexttau) .and. associated(duangstr)) then
-      !          tau1 = tau1 + duexttau(:,:,ind550)*exp(c1*duangstr)
-      !          tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
-      !       end if
-      !    end if
-      ! end do
+            if(associated(totangstr) .and. associated(duexttau) .and. associated(duangstr)) then
+               tau1 = tau1 + duexttau(:,:,ind550)*exp(c1*duangstr)
+               tau2 = tau2 + duexttau(:,:,ind550)*exp(c2*duangstr)
+            end if
+         end if
+      end do
 
       ! Sea Salt
       do n = 1, size(self%SS%instances)
@@ -1175,11 +1200,11 @@ contains
 
       integer :: status
 
-      ! call add_children__ (gc, self%DU, DU2G_SetServices, _RC)
+      call add_children__(gc, self%DU, DU2G_SetServices, _RC)
       call add_children__(gc, self%SS, SS2G_SetServices, _RC)
-      ! call add_children__ (gc, self%SU, SU2G_SetServices, _RC)
-      ! call add_children__ (gc, self%CA, CA2G_SetServices, _RC)
-      ! call add_children__ (gc, self%NI, NI2G_SetServices, _RC)
+      ! call add_children__(gc, self%SU, SU2G_SetServices, _RC)
+      ! call add_children__(gc, self%CA, CA2G_SetServices, _RC)
+      ! call add_children__(gc, self%NI, NI2G_SetServices, _RC)
 
       _RETURN(_SUCCESS)
    end subroutine create_instances_
