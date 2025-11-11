@@ -39,6 +39,9 @@ nbins: 5
 
 pressure_lid_in_hPa: 40.0
 
+# SettlingSolver options (gocart or ufs)
+settling_scheme: gocart
+
 mapl:
   misc:
     activate_all_imports: true
