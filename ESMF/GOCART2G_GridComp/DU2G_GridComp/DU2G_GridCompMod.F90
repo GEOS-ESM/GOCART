@@ -75,7 +75,7 @@ module DU2G_GridCompMod
       real :: f_swc                     ! soil mosture scaling factor
       real :: f_scl                     ! clay content scaling factor
       real :: uts_gamma                 ! threshold friction velocity parameter 'gamma'
-      logical :: maringFlag=.false.     ! maring settling velocity correction
+      logical :: maringFlag             ! maring settling velocity correction
       integer :: drag_opt               ! FENGSHA drag option 1 - input only, 2 - Darmenova, 3 - Leung
       integer :: distribution_opt       ! FENGSHA distribution option 1 - Kok, 2 - Kok 2021, 3 - Meng 2022
       integer :: day_save = -1
@@ -151,7 +151,7 @@ contains
 
       ! allocate(self%sfrac(self%nbins), self%rlow(self%nbins), self%rup(self%nbins), __STAT__)
       ! process DU-specific items
-      call MAPL_GridCompGetResource(gc, "maringFlag", self%maringFlag, _RC)
+      call MAPL_GridCompGetResource(gc, "maringFlag", self%maringFlag, default=.false., _RC)
       call MAPL_GridCompGetResource(gc, "source_fraction", self%sfrac, _RC)
       call MAPL_GridCompGetResource(gc, "Ch_DU", self%Ch_DU_res, _RC)
       _ASSERT(size(self%Ch_DU_res)==NHRES, "incorrect size of Ch_DU")
@@ -314,9 +314,9 @@ contains
            state_intent=ESMF_STATEINTENT_EXPORT, &
            short_name=trim(comp_name)//"_AERO_DP", &
            standard_name="aerosol_deposition_from_"//trim(comp_name), &
-           units="kg m-2 s-1", &
            dims="xy", &
-           vstagger=VERTICAL_STAGGER_CENTER, &
+           vstagger=VERTICAL_STAGGER_NONE, &
+           units="kg m-2 s-1", &
            itemtype=MAPL_STATEITEM_FIELDBUNDLE, _RC)
 
       call logger%info("SetServices:: ...complete")
@@ -455,6 +455,7 @@ contains
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_file", file_, _RC )
       call MAPL_GridCompGetResource(gc, "n_moments", nmom_, default=0,  _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", channels_, _RC)
+      _ASSERT(allocated(channels_), "problem with reading wavelengths")
       self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, _RC)
 
       ! Mie Table instance/index
@@ -534,11 +535,13 @@ contains
       ! Get my internal private state
       _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
-      ! Set klid and Set internal values to 0 above klid
+      ! Edge variable PLE is expected to be 0-based
       km = self%km
       call MAPL_StateGetPointer(import, ple, "PLE", _RC)
       i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
       allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
+
+      ! Set klid and Set internal values to 0 above klid
       call findKlid(self%klid, self%plid, ple0, _RC)
       call MAPL_StateGetPointer(internal, ptr4d_int, "DU", _RC)
       call setZeroKlid4d(self%km, self%klid, ptr4d_int)
@@ -628,8 +631,8 @@ contains
       character(len=ESMF_MAXSTR) :: fname ! file name for point source emissions
       type(ThreadWorkspace), pointer :: workspace
       class(logger_t), pointer :: logger
-
 #include "DU2G_DeclarePointer___.h"
+      real, allocatable, dimension(:,:,:) :: zle0
 
       call MAPL_GridCompGet(gc, name=comp_name, logger=logger, grid=grid, _RC)
       call logger%info("Run1: starting...")
@@ -760,9 +763,16 @@ contains
          !    !$omp end critical (DU2G_2)
          !    VERIFY_(status)
          ! end if
+         ! zle is an edge variable and is expected to be 0-based
+         block
+            integer :: i1, i2, j1, j2, km
+            km = self%km
+            i1 = lbound(zle, 1); i2 = ubound(zle, 1); j1 = lbound(zle, 2); j2 = ubound(zle, 2)
+            allocate(zle0(i1:i2, j1:j2, 0:km), source=zle(i1:i2, j1:j2, 1:km+1))
+         end block
          call updatePointwiseEmissions( &
               self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
-              workspace%pStart, workspace%pEnd, zle, &
+              workspace%pStart, workspace%pEnd, zle0, &
               area, iPoint, jPoint, nhms, emissions_point, _RC)
       end if
 
@@ -814,6 +824,7 @@ contains
       real, pointer, dimension(:,:) :: flux_ptr
       class(logger_t), pointer :: logger
 #include "DU2G_DeclarePointer___.h"
+      real, allocatable, target, dimension(:,:,:) :: ple0, zle0, pfl_lsan0, pfi_lsan0
 
       call MAPL_GridCompGet(gc, logger=logger, _RC)
       call logger%info("Run2: starting...")
@@ -831,9 +842,23 @@ contains
       allocate(dqa, mold=wet1, _STAT)
       allocate(drydepositionfrequency, mold=wet1, _STAT)
 
+      ! Edge variables are expected to be 0-based
+      km = self%km
+      ! zle0
+      i1 = lbound(zle, 1); i2 = ubound(zle, 1); j1 = lbound(zle, 2); j2 = ubound(zle, 2)
+      allocate(zle0(i1:i2, j1:j2, 0:km), source=zle(i1:i2, j1:j2, 1:km+1))
+      ! ple0
+      i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+      allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
+      ! pfl_lsan0
+      i1 = lbound(pfl_lsan, 1); i2 = ubound(pfl_lsan, 1); j1 = lbound(pfl_lsan, 2); j2 = ubound(pfl_lsan, 2)
+      allocate(pfl_lsan0(i1:i2, j1:j2, 0:km), source=pfl_lsan(i1:i2, j1:j2, 1:km+1))
+      ! pfi_lsan0
+      i1 = lbound(pfi_lsan, 1); i2 = ubound(pfi_lsan, 1); j1 = lbound(pfi_lsan, 2); j2 = ubound(pfi_lsan, 2)
+      allocate(pfi_lsan0(i1:i2, j1:j2, 0:km), source=pfi_lsan(i1:i2, j1:j2, 1:km+1))
+
       ! Set klid and Set internal DU values to 0 above klid
-      ! pchakrab: TODO - need ple0, zle0 etc here
-      call findKlid(self%klid, self%plid, ple, _RC)
+      call findKlid(self%klid, self%plid, ple0, _RC)
       call setZeroKlid4d(self%km, self%klid, DU)
 
       ! Dust Settling
@@ -852,7 +877,7 @@ contains
          call Chem_SettlingSimple( &
               self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
               DU(:,:,:,n), t, airdens, &
-              rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, &
+              rh2, zle0, delp, flux_ptr, correctionMaring=self%maringFlag, &
               settling_scheme=settling_opt, _RC)
       end do
 
@@ -860,7 +885,7 @@ contains
       do n = 1, self%nbins
          drydepositionfrequency = 0.
          call DryDeposition( &
-              self%km, t, airdens, zle, lwi, ustar, zpbl, sh,&
+              self%km, t, airdens, zle0, lwi, ustar, zpbl, sh,&
               MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, status, &
               self%radius(n)*1.e-6, self%rhop(n), u10m, v10m, frlake, wet1)
          _VERIFY(status)
@@ -883,19 +908,19 @@ contains
             fwet = 1.0
             call WetRemovalGOCART2G( &
                  self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
-                 KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
-                 pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, _RC)
+                 KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple0, t, airdens, &
+                 pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, DUWT, _RC)
          end do
       case ('ufs')
          rainout_eff = 0.0
          do n = 1, self%nbins
-            rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
-            rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
-            rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+            rainout_eff(1) = self%fwet_ice(n)  ! remove with ice
+            rainout_eff(2) = self%fwet_snow(n) ! remove with snow
+            rainout_eff(3) = self%fwet_rain(n) ! remove with rain
             call WetRemovalUFS( &
                  self%km, self%klid, n, self%cdt, 'dust', KIN, MAPL_GRAV, &
                  self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
-                 DU(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, DUWT, _RC)
+                 DU(:,:,:,n), ple0, t, airdens, pfl_lsan0, pfi_lsan0, DUWT, _RC)
          end do
       case default
          _ASSERT_RC(.false., "Unsupported wet removal scheme: "//trim(self%wet_removal_scheme), ESMF_RC_NOT_IMPL)
@@ -907,7 +932,7 @@ contains
            self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
            self%rup, self%wavelengths_profile*1.0e-9, &
            self%wavelengths_vertint*1.0e-9, DU, MAPL_GRAV, t, airdens, &
-           rh2, u, v, delp, ple,tropp, &
+           rh2, u, v, delp, ple0,tropp, &
            DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
            DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
            DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
@@ -927,7 +952,7 @@ contains
            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-           rh=rh20, u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+           rh=rh20, u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
            extcoef = DUEXTCOEFRH20, scacoef = DUSCACOEFRH20, NO3nFlag=.False., _RC)
 
       RH80(:,:,:) = 0.80
@@ -938,7 +963,7 @@ contains
            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
            wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=DU, &
            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-           rh=rh80, u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
+           rh=rh80, u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
            extcoef = DUEXTCOEFRH80, scacoef = DUSCACOEFRH80, NO3nFlag=.False., _RC)
 
       deallocate(RH20,RH80)
