@@ -50,6 +50,7 @@ jobs:
       fixture-repo: GEOS-ESM/GEOSgcm
       fixture-ref: release/MAPL-v3
       run-mepo-develop: false
+      patch-esmf: true
 
   spack_build_gocart:
     uses: GEOS-ESM/CI-workflows/.github/workflows/spack_gcc_build.yml@project/geosgcm
@@ -59,4 +60,5 @@ jobs:
     with:
       run-mepo-develop: false
       build-target: '--target GOCART2G_GridComp'
+      patch-esmf: true
 
