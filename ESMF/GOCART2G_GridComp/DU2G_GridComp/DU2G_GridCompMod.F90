@@ -159,13 +159,6 @@ contains
       call MAPL_GridCompGetResource(gc, "radius_lower", self%rlow, _RC)
       call MAPL_GridCompGetResource(gc, "radius_upper", self%rup, _RC)
 
-      ! Choose Emission Scheme
-      call MAPL_GridCompGetResource(gc, "emission_scheme", emission_scheme, default="ginoux", _RC)
-      self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), _RC)
-
-      ! Test if our scheme is allowed, if so, print it out
-      _ASSERT(any(self%emission_scheme == [character(len=7) :: 'ginoux','k14','fengsha']), "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha")
-
       ! Point Sources
       call MAPL_GridCompGetResource(gc, "point_emissions_srcfilen", self%point_emissions_srcfilen, default='/dev/null', _RC)
       if ( (index(self%point_emissions_srcfilen,'/dev/null')>0) ) then
@@ -173,6 +166,13 @@ contains
       else
          self%doing_point_emissions = .true.  ! we are good to go
       end if
+
+      ! Choose Emission Scheme
+      call MAPL_GridCompGetResource(gc, "emission_scheme", emission_scheme, default="ginoux", _RC)
+      self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), _RC)
+
+      ! Test if our scheme is allowed, if so, print it out
+      _ASSERT(any(self%emission_scheme == [character(len=7) :: 'ginoux','k14','fengsha']), "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha")
 
       ! read scheme-specific parameters
       select case (self%emission_scheme)

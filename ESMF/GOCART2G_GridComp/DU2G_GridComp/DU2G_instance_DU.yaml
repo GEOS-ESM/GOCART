@@ -11,32 +11,37 @@ radius_lower: [0.1, 1.0, 1.8, 3.0, 6.0]
 radius_upper: [1.0, 1.8, 3.0, 6.0, 10.0]
 particle_density: [2500., 2650., 2650., 2650., 2650.]  # units [kg/m-3]
 
-# Ginoux emission scheme
-emission_scheme: ginoux
+# source_fraction: [0.0435465, 0.106903, 0.220117, 0.484606, 0.144828]
+source_fraction: [0.1, 0.25, 0.25, 0.25, 0.25]
+# source_fraction: [0.043, 0.106, 0.219, 0.485, 0.144]
+
+# resolution dependent tuning constant for emissions (a,b,c,d,e,f)
+# Ch_DU: [0.02, 0.02, 0.02, 0.0161, 0.015, 0.015]
 Ch_DU: [0.20, 0.15, 0.10, 0.09, 0.080, 0.070]  # L181 values for (a,b,c,d,e,f)
 # Ch_DU: [0.30, 0.30, 0.11, 0.11, 0.110, 0.088]  # L072 values for (a,b,c,d,e,f)
 
-# source_fraction: [0.0435465, 0.106903, 0.220117, 0.484606, 0.144828]
-source_fraction: [0.1, 0.25, 0.25, 0.25, 0.25]
+# Ginoux emission scheme
+emission_scheme: ginoux
 
-# K14 emission scheme
+# # K14 emission scheme settings
 # emission_scheme: k14
-# source_fraction: [0.043, 0.106, 0.219, 0.485, 0.144]
-# resolution dependent tuning constant for emissions (a,b,c,d,e,f)
-# Ch_DU: [0.02, 0.02, 0.02, 0.0161, 0.015, 0.015]
+# # Formulation of the clay and silt factor in K14
+# # that modulates the strength of the dust emissions
+# clayFlag: 1  # 0 - original K14, 1 - I&K2017, 2 - I&K2017
+# # soil mosture scaling factor
+# soil_moisture_factor: 0.8
+# # clay fraction scaling factor
+# soil_clay_factor: 1.0
+# # Threshold friction velocity parameter 'gamma'
+# uts_gamma: 1.65e-4
 
-# Threshold friction velocity parameter 'gamma'
-uts_gamma: 1.65e-4
-
-# Formulation of the clay and silt factor in K14
-# that modulates the strength of the dust emissions
-clayFlag: 1  # 0 - original K14, 1 - I&K2017, 2 - I&K2017
-
-# soil mosture scaling factor
-soil_moisture_factor: 0.8
-
-# clay fraction scaling factor
-soil_clay_factor: 1.0
+# # FENGSHA emission scheme settings
+# alpha: 0.16
+# gamma: 1
+# soil_moisture_factor: 1.0
+# soil_drylimit_factor: 1.0
+# vertical_to_horizontal_flux_ratio_limit: 2.e-04
+# drag_partition_option: 2
 
 # Wet Removal Scheme Option | gocart, ufs
 wet_removal_scheme: gocart  # default value
@@ -61,14 +66,6 @@ maringFlag: true
 nbins: 5
 
 pressure_lid_in_hPa: 40.0
-
-# FENGSHA settings
-alpha: 0.16
-gamma: 1
-soil_moisture_factor: 1.0
-soil_drylimit_factor: 1.0
-vertical_to_horizontal_flux_ratio_limit: 2.e-04
-drag_partition_option: 2
 
 # SettlingSolver options: gocart or ufs
 settling_scheme: gocart

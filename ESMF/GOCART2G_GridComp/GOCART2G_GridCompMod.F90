@@ -710,7 +710,7 @@ contains
             if(associated(totscacoefrh80)) totscacoefrh80 = totscacoefrh80+duscacoefrh80
             if(associated(totbckcoef)) totbckcoef = totbckcoef+dubckcoef
 
-            if(associated(pm)        .and. associated(dusmass))  pm        = pm        + dusmass
+            if(associated(pm)        .and. associated(dusmass))   pm        = pm        + dusmass
             if(associated(pm25)      .and. associated(dusmass25)) pm25      = pm25      + dusmass25
             if(associated(pm_rh35)   .and. associated(dusmass))   pm_rh35   = pm_rh35   + dusmass
             if(associated(pm25_rh35) .and. associated(dusmass25)) pm25_rh35 = pm25_rh35 + dusmass25
