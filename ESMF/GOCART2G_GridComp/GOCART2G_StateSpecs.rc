@@ -31,6 +31,26 @@ category: IMPORT
  SSANGSTR      | 1        | xy   | N    | SKIP    |                           | Sea Salt Angstrom parameter [470-870 nm]
  SSSMASS       | kg m-3   | xy   | N    | SKIP    |                           | Sea Salt Surface Mass Concentration
  SSSMASS25     | kg m-3   | xy   | N    | SKIP    |                           | Sea Salt Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
+#-imports-from-dust-
+ DUEXTTAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Dust Aerosol Optical Depth
+ DUSTEXTTAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Dust Stratospheric Aerosol Optical Thickness
+ DUSCATAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Dust Aerosol Optical Depth Due to Scattering
+ DUSTSCATAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Dust Stratospheric Aerosol Optical Thickness Due to Scattering
+ DUEXTCOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Dust Extinction Coefficient
+ DUEXTCOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Dust Extinction Coefficient - Fixed RH=20%
+ DUEXTCOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Dust Extinction Coefficient - Fixed RH=80%
+ DUSCACOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Dust Scattering Coefficient
+ DUSCACOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Dust Scattering Coefficient - Fixed RH=20%
+ DUSCACOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Dust Scattering Coefficient - Fixed RH=80%
+ DUBCKCOEF     | m-1 sr-1 | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Dust Backscatter Coefficient
+ DUEXTT25      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Dust Aerosol Optical Depth from Particulate Matter < 2.5 microns (PM2.5)
+ DUSCAT25      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Dust Aerosol Optical Depth Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)
+ DUEXTTFM      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Dust Aerosol Optical Depth from Particulate Matter < 1 micron (PM1.0)
+ DUSCATFM      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Dust Aerosol Optical Depth Due to Scattering from Particulate Matter < 1 micron (PM1.0)
+ DUANGSTR      | 1        | xy   | N    | SKIP    |                           | Dust Angstrom parameter [470-870 nm]
+ DUSMASS       | kg m-3   | xy   | N    | SKIP    |                           | Dust Surface Mass Concentration
+ DUSMASS25     | kg m-3   | xy   | N    | SKIP    |                           | Dust Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
+
 
 category: EXPORT
 #----------------------------------------------------------------------------------------

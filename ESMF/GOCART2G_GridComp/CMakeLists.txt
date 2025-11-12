@@ -2,7 +2,7 @@ esma_set_this ()
 
 set (alldirs
   GA_Environment
-  # DU2G_GridComp
+  DU2G_GridComp
   SS2G_GridComp
   # CA2G_GridComp
   # NI2G_GridComp
