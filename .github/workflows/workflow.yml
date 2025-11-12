@@ -25,56 +25,38 @@ jobs:
     with:
       compiler: ${{ matrix.compiler }}
       cmake-build-type: ${{ matrix.build-type }}
+      fixture-repo: GEOS-ESM/GEOSgcm
+      fixture-ref: release/MAPL-v3
+      run-mepo-develop: false
 
-  spack_build:
+  build_gocart:
+    strategy:
+      matrix:
+        compiler: [ifort]
+        build-type: [Debug]
+    uses: GEOS-ESM/CI-workflows/.github/workflows/geosgcm_build_tests.yml@project/geosgcm
+    with:
+      compiler: ${{ matrix.compiler }}
+      cmake-build-type: ${{ matrix.build-type }}
+      run-mepo-develop: false
+      build-target: '--target GOCART2G_GridComp'
+
+  spack_build_gcm:
     uses: GEOS-ESM/CI-workflows/.github/workflows/spack_gcc_build.yml@project/geosgcm
     secrets:
       BUILDCACHE_USERNAME: ${{ secrets.BUILDCACHE_USERNAME }}
       BUILDCACHE_TOKEN: ${{ secrets.BUILDCACHE_TOKEN }}
+    with:
+      fixture-repo: GEOS-ESM/GEOSgcm
+      fixture-ref: release/MAPL-v3
+      run-mepo-develop: false
 
-  build_gocart:
-    name: Build GOCART
-    if: "!contains(github.event.pull_request.labels.*.name, '0 diff trivial')"
-    runs-on: ubuntu-24.04
-    container:
-      image: gmao/ubuntu24-geos-env:v8.20.0-intelmpi_2021.13-ifort_2021.13
+  spack_build_gocart:
+    uses: GEOS-ESM/CI-workflows/.github/workflows/spack_gcc_build.yml@project/geosgcm
+    secrets:
+      BUILDCACHE_USERNAME: ${{ secrets.BUILDCACHE_USERNAME }}
+      BUILDCACHE_TOKEN: ${{ secrets.BUILDCACHE_TOKEN }}
+    with:
+      run-mepo-develop: false
+      build-target: '--target GOCART2G_GridComp'
 
-    steps:
-      # https://github.com/orgs/community/discussions/25678#discussioncomment-5242449
-      - name: Delete huge unnecessary tools folder
-        run: rm -rf /opt/hostedtoolcache
-
-      - name: Checkout GOCART
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          filter: blob:none
-
-      - name: Set all directories as git safe
-        run: |
-          git config --global --add safe.directory '*'
-
-      - name: Versions etc.
-        run: |
-          ifort --version
-          mpirun --version
-          echo $BASEDIR
-
-      - name: Mepo clone external repos
-        run: |
-          mepo clone --partial blobless
-          mepo status
-
-      - name: Update other branches
-        if: ${{ github.event.pull_request.head.ref != 'main' && github.event.pull_request.head.ref != 'develop' }}
-        run: |
-          mepo checkout-if-exists ${GITHUB_HEAD_REF}
-          mepo status
-
-      - name: CMake
-        run: |
-          cmake -B build -S . --install-prefix=${pwd}/install -DCMAKE_Fortran_COMPILER=ifort -DCMAKE_BUILD_TYPE=Debug -DMPIEXEC_PREFLAGS='--oversubscribe' -DUSE_F2PY=OFF
-
-      - name: Build
-        run: |
-          cmake --build build --target GOCART2G_GridComp --parallel 4
