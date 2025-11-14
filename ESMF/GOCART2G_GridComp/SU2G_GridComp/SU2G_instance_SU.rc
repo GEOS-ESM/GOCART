@@ -47,3 +47,7 @@ sigma: -1  -1  2.03  -1
 # -------------------------------------------------------------------------------------
 using_GMI: .false.
 disable_emissions: .false.
+
+# SettlingSolver options
+# Options: 'gocart' or 'ufs'
+settling_scheme: 'gocart'
