@@ -36,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added effective radius and surface area density to aerosol states for use in chemistry
 - Added logic in SU2G_GridCompMod.F90 through SU2G_instance_SU.rc to allow one-way
   coupling of GMI OH, NO3, H2O2 to sulfur chemistry mechanism
+- Added a callback to allow a chemistry module to call for optical properties needed
+  for photolysis calculation; currently used for GMI with CloudJ
 
 ## [v2.4.3] - 2025-07-21
 
