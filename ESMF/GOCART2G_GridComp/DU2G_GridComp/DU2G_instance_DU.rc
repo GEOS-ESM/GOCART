@@ -14,21 +14,6 @@ radius_upper: 1.0 1.8 3.0 6.0 10.0
 # units [kg/m-3]
 particle_density: 2500. 2650. 2650. 2650. 2650.
 
-# Ginoux emission scheme
-# -----------------------
-emission_scheme: ginoux
-Ch_DU:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
-#Ch_DU: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)
-
-# source_fraction: 0.0435465   0.106903   0.220117   0.484606   0.144828
-source_fraction: 0.1 0.25 0.25 0.25 0.25
-
-# K14 emission scheme
-# -------------------
-#emission_scheme: k14
-#source_fraction:  0.043 0.106 0.219 0.485 0.144
-#Ch_DU: 0.02 0.02 0.02 0.0161 0.015 0.015 # resolution dependent tuning constant for emissions (a,b,c,d,e,f)
-
 # Threshold friction velocity parameter 'gamma'
 uts_gamma: 1.65e-4
 
@@ -65,6 +50,74 @@ nbins: 5
 
 pressure_lid_in_hPa: 40.0
 
+## <<--- Select the Emission scheme -->>
+
+emission_scheme: ginoux01
+#emission_scheme: sginoux
+#emission_scheme: dead03
+#emission_scheme: kok14
+#emission_scheme: fengsha
+#emission_scheme: kok14simp
+
+# apply veg mask or not. 0 = N, 1 = Y [for 'ginoux01','dead03','sginoux','kok14simp']
+apply_veg_mask: 1
+zero_beyond_this_gvf: 0.9
+unaffect_below_this_gvf: 0.005
+x0_sigmoid_gvf: 0.461
+k_sigmoid_gvf: 10.792
+
+# soil freezing condition ['ginoux01', 'sginoux', 'dead03', 'fengsha', 'kok14simp']
+soil_freezing_temp: 273.0
+
+## ginoux01 scheme
+# resolution dependent tuning constant for emissions (a,b,c,d,e,f)
+Ch_DU_ginoux01:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
+#Ch_DU_ginoux01: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)
+source_fraction_ginoux01: 0.1 0.25 0.25 0.25 0.25
+
+
+## sginoux scheme
+Ch_DU_sginoux:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
+#Ch_DU_sginoux: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)Ch_DU_sginoux: 0.3 0.3 0.11 0.11 0.11 0.088
+source_fraction_sginoux: 0.1 0.25 0.25 0.25 0.25
+dry_threshold_ut: 6.5
+
+
+## dead03 scheme
+cs: 2.61
+monomodal_soil_diameter: 75.e-06
+znot_ms: 33.e-06
+znot_m: 100.e-06
+uniform_clay_fraction: 0.2
+source_fraction_dead03: 0.044 0.106 0.219 0.486 0.145
+
+## kok14simp scheme
+# apply owen effect? source func? 0 - No, 1 - Yes
+apply_owen_eff: 0
+apply_source_func: 0
+## [source_func_opt] matters only when apply_source_func = 1 (how? 1 - binary, 2 - actual)
+source_func_opt: 1
+Ch_DU_kok14simp: 0.00442 0.00442 0.00442 0.00356 0.00332 0.00332
+source_fraction_kok14simp: 0.044 0.106 0.219 0.486 0.145
+# znot_ms, znot_m, and monomodal_soil_diameter from above
+# soil_moisture_factor from kok14 below.
+
+## kok14 scheme
+Ch_DU_kok14: 0.02 0.02 0.02 0.0161 0.015 0.015
+source_fraction_kok14: 0.043 0.106 0.219 0.485 0.144
+
+
+# Threshold friction velocity parameter 'gamma'
+
+uts_gamma: 0.000165
+
+# Formulation of the clay and silt factor in K14 that modulates the strength of the dust emissions
+clayFlag: 1  # 0 - original K14, 1 - I&K2017, 2 - I&K2017
+# soil moisture scaling factor
+soil_moisture_factor: 0.8
+
+# clay fraction scaling factor
+soil_clay_factor: 1.0
 # FENGSHA settings
 alpha: 0.16
 gamma: 1

@@ -7,30 +7,30 @@ category: IMPORT
 #-------------------------------------------------------------------------------------------------------
      NAME   | UNITS    | DIMS | VLOC | RESTART | COND                                     | LONG NAME
 #-------------------------------------------------------------------------------------------------------
- DU_SRC     | 1        | xy   | N    | SKIP    | scheme == 'ginoux' .OR. scheme == 'k14'  | erod - dust emissions
- DU_Z0      | 1        | xy   | N    | SKIP    | scheme == 'k14'                          | aerodynamic_surface_roughness_for_aeolian_processes
- DU_GVF     | 1        | xy   | N    | OPT     | scheme == 'fengsha' .OR. scheme == 'k14' | GVF
+ DU_SRC     | 1        | xy   | N    | SKIP    | scheme == 'ginoux01' .OR. scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'sginoux' .OR. scheme == 'kok14simp' | erod - dust emissions
+ DU_Z0      | 1        | xy   | N    | SKIP    | scheme == 'kok14'                          | aerodynamic_surface_roughness_for_aeolian_processes
+ DU_GVF     | 1        | xy   | N    | OPT     |                                            | GVF
  DU_LAI     | 1        | xy   | N    | OPT     | scheme == 'fengsha'                      | LAI
- DU_SAND    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_sand_in_soil
- DU_SILT    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_silt_in_soil
- DU_CLAY    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'k14' | volume_fraction_of_clay_in_soil
+ DU_SAND    | 1        | xy   | N    | SKIP    | scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'kok14simp' | volume_fraction_of_sand_in_soil
+ DU_SILT    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'kok14' | volume_fraction_of_silt_in_soil
+ DU_CLAY    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'kok14' .OR. scheme == 'dead03' | volume_fraction_of_clay_in_soil
  DU_RDRAG   | m-1      | xy   | N    | OPT     | scheme == 'fengsha'                      | drag_partition
  DU_SSM     | 1        | xy   | N    | OPT     | scheme == 'fengsha'                      | sediment_supply_map
  DU_UTHRES  | m s-1    | xy   | N    | OPT     | scheme == 'fengsha'                      | surface_dry_threshold_velocity
  FRSNOW     | 1        | xy   | N    | OPT     | scheme == 'fengsha'                      | surface_snow_area_fraction
  SLC        | 1        | xy   | N    | OPT     | scheme == 'fengsha'                      | liquid_water_content_of_soil_layer
- DU_TEXTURE | 1        | xy   | N    | SKIP    | scheme == 'k14'                          | soil_texture
- DU_VEG     | 1        | xy   | N    | SKIP    | scheme == 'k14'                          | vegetation_type
+ DU_TEXTURE | 1        | xy   | N    | SKIP    | scheme == 'kok14'                        | soil_texture
+ DU_VEG     | 1        | xy   | N    | SKIP    | scheme == 'kok14'                        | vegetation_type
  FRLAKE     | 1        | xy   | N    | OPT     |                                          | fraction_of_lake
- FRLAND     | 1        | xy   | N    | OPT     | scheme == 'k14'                          | fraction_of_land
- ASNOW      | 1        | xy   | N    | OPT     | scheme == 'k14'                          | snow_covered_fraction_of_land
+ FRLAND     | 1        | xy   | N    | OPT     | scheme == 'kok14'                        | fraction_of_land
+ ASNOW      | 1        | xy   | N    | OPT     |                                          | snow_covered_fraction_of_land
  WET1       | 1        | xy   | N    | OPT     |                                          | surface_soil_wetness
  LWI        | 1        | xy   | N    | OPT     |                                          | land-ocean-ice_mask
  TROPP      | Pa       | xy   | N    | OPT     |                                          | tropopause_pressure_based_on_blended_estimate
  U10M       | m s-1    | xy   | N    | OPT     |                                          | 10-meter_eastward_wind
  V10M       | m s-1    | xy   | N    | OPT     |                                          | 10-meter_northward_wind
- U10N       | m s-1    | xy   | N    | OPT     | scheme == 'k14'                          | equivalent_neutral_10-meter_eastward_wind
- V10N       | m s-1    | xy   | N    | OPT     | scheme == 'k14'                          | equivalent_neutral_10-meter_northward_wind
+ U10N       | m s-1    | xy   | N    | OPT     | scheme == 'kok14'                        | equivalent_neutral_10-meter_eastward_wind
+ V10N       | m s-1    | xy   | N    | OPT     | scheme == 'kok14'                        | equivalent_neutral_10-meter_northward_wind
  AREA       | m^2      | xy   | N    | OPT     |                                          | agrid_cell_area
  USTAR      | m s-1    | xy   | N    | OPT     |                                          | equivalent_neutral_10-meter_northward_wind
  CN_PRCP    | kg/m^2/s | xy   | N    | OPT     |                                          | surface_conv._rain_flux_needed_by_land
@@ -38,9 +38,9 @@ category: IMPORT
  ZPBL       | m        | xy   | N    | OPT     |                                          | planetary_boundary_layer_height
  SH         | w m-2    | xy   | N    | OPT     |                                          | sensible_heat_flux_from_turbulence
  Z0H        | m        | xy   | N    | OPT     |                                          | surface_roughness_for_heat
- WCSF       | m3 m-3   | xy   | N    | OPT     | scheme == 'k14'                          | water_surface_layer
- TSOIL1     | K        | xy   | N    | OPT     | scheme == 'k14'                          | soil_temperatures_layer_1
- RHOS       | kg m-3   | xy   | N    | OPT     | scheme == 'k14'                          | air_density_at_surface
+ WCSF       | m3 m-3   | xy   | N    | OPT     | scheme == 'kok14'                        | water_surface_layer
+ TSOIL1     | K        | xy   | N    | OPT     |                                          | soil_temperatures_layer_1
+ RHOS       | kg m-3   | xy   | N    | OPT     | scheme == 'kok14' .OR. scheme == 'dead03'  .OR. scheme == 'fengsha' .OR. scheme == 'kok14simp' | air_density_at_surface
 #........................................................................................
  AIRDENS    | kg/m^3   | xyz  | C    | OPT     |                                          | moist_air_density
  DELP       | Pa       | xyz  | C    | OPT     |                                          | pressure_thickness

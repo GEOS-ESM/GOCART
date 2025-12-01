@@ -67,11 +67,27 @@ module DU2G_GridCompMod
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
        integer                :: day_save = -1
+       real                   :: cs             ! DEAD cs
+       real                   :: z0ms           ! DEAD z0ms
+       real                   :: z0m            ! DEAD z0m
+       real                   :: mclay          ! DEAD mclay
+       real                   :: soil_diam      ! DEAD soil_diam
        character(len=:), allocatable :: emission_scheme     ! emission scheme selector
        integer       :: clayFlag       ! clay and silt term in K14
        real          :: f_swc          ! soil mosture scaling factor
        real          :: f_scl          ! clay content scaling factor
        real          :: uts_gamma      ! threshold friction velocity parameter 'gamma'
+       integer       :: vegMaskYN      ! apply veg mask [DEAD, sginoux, or ginoux01] 1 = Y, 0 = N
+       integer       :: owenYN         ! apply owen eff [kok14simp] 1 = Y, 0 = N
+       integer       :: sourceYN       ! apply source func [kok14simp] 1 = Y, 0 = N
+       integer       :: sourceOpt      ! source func option [kok14simp] 1 = binary, 2 = actual
+       integer       :: isNoaaSys      ! model system noaa (1) or geos (0)
+       real          :: tsoilf         ! for sginoux, dead03, ginoux, fengsha schemes
+       real          :: x0gvf          ! for veg mask in sginoux, dead03, ginoux schemes
+       real          :: kgvf           ! for   "                 "             "
+       real          :: gvfMax         ! for   "                 "             "
+       real          :: gvfMin         ! for   "                 "             "
+       real          :: ut0            ! for sginoux scheme
 !      !Workspae for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
@@ -167,11 +183,12 @@ contains
 
     ! Choose Emission Scheme
     !-----------------------
-    call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux01', __RC__)
     self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
 
     ! Test if our scheme is allowed, if so, print it out
-    _ASSERT(any(self%emission_scheme == [character(len=7) :: 'ginoux','k14','fengsha']), "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha")
+    _ASSERT(any(self%emission_scheme == [character(len=12) :: 'ginoux01', 'sginoux', 'kok14', 'fengsha', 'dead03', 'kok14simp']), &
+     "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux01, sginoux, kok14, fengsha, dead03, kok14simp")
     if (MAPL_AM_I_ROOT()) then
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
@@ -188,6 +205,14 @@ contains
 !   read scheme-specific parameters
 !   --------------------------------
     select case (self%emission_scheme)
+    case ('dead03')
+       call ESMF_ConfigGetAttribute (cfg, self%cs,         label='cs:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%z0ms,       label='znot_ms:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%z0m,        label='znot_m:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%soil_diam,  label='monomodal_soil_diameter:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%mclay,      label='uniform_clay_fraction:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_dead03:', __RC__)
     case ('fengsha')
        call ESMF_ConfigGetAttribute (cfg, self%alpha,    label='alpha:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%gamma,    label='gamma:', __RC__)
@@ -205,16 +230,45 @@ contains
          write (*,*) "FENGSHA: config: drag_partition_option: " , self%drag_opt
        end if
 
-    case ('k14')
+    case ('kok14')
        call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_scl,      label='soil_clay_factor:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%uts_gamma,  label='uts_gamma:', __RC__)
-    case ('ginoux')
-       ! nothing to do
+       call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_kok14:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_kok14:', __RC__)
+    case ('ginoux01')
+       call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_ginoux01:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_ginoux01:', __RC__)
+    case ('sginoux')
+       call ESMF_ConfigGetAttribute (cfg, self%ut0,        label='dry_threshold_ut:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_sginoux:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_sginoux:', __RC__)
+   case ('kok14simp')
+       call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%z0ms,       label='znot_ms:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%z0m,        label='znot_m:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%soil_diam,  label='monomodal_soil_diameter:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU_kok14simp:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_kok14simp:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%owenYN,     label='apply_owen_eff:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sourceYN,   label='apply_source_func:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%sourceOpt,  label='source_func_opt:', __RC__)
     case default
-       _ASSERT_RC(.false., "Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha", ESMF_RC_NOT_IMPL)
+       _ASSERT_RC(.false., "Unallowed emission scheme: "//trim(self%emission_scheme)//&
+                  ". Allowed: ginoux01, sginoux, kok14, fengsha, dead03, kok14simp", ESMF_RC_NOT_IMPL)
     end select
+
+    if (self%emission_scheme == 'ginoux01' .OR. self%emission_scheme == 'dead03' .OR. &
+        self%emission_scheme == 'sginoux' .OR. self%emission_scheme == 'kok14simp')  then
+       call ESMF_ConfigGetAttribute (cfg, self%vegMaskYN,  label='apply_veg_mask:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gvfMax,     label='zero_beyond_this_gvf:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gvfMin,     label='unaffect_below_this_gvf:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%x0gvf,      label='x0_sigmoid_gvf:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%kgvf,       label='k_sigmoid_gvf:', __RC__)
+    end if
 
 !   Is DU data driven?
 !   ------------------
@@ -441,8 +495,11 @@ contains
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   TO DO: find a more robust way to implement resolution dependent tuning
 !   ----------------------------------------------------------------------
-    self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
-    self%Ch_DU = self%Ch_DU * 1.0e-9
+    if (self%emission_scheme == 'ginoux01' .OR. self%emission_scheme == 'kok14' .OR. &
+        self%emission_scheme == 'sginoux' .OR. self%emission_scheme == 'kok14simp') then
+      self%Ch_DU = Chem_UtilResVal(dims(1), dims(2), self%Ch_DU_res(:), __RC__)
+      self%Ch_DU = self%Ch_DU * 1.0e-9
+    end if
 
 !   Dust emission size distribution for FENGSHA
 !   ---------------------------------------------------------------
@@ -835,7 +892,7 @@ contains
 !   -----------------------------
     select case (self%emission_scheme)
 
-    case ('k14')
+    case ('kok14')
        allocate(ustar_, mold=U10M,    __STAT__)
        allocate(ustar_t_, mold=U10M,  __STAT__)
        allocate(ustar_ts_, mold=U10M, __STAT__)
@@ -846,7 +903,7 @@ contains
 
        z_ = 10.0 ! wind is at 10m
 
-       call DustEmissionK14( self%km, tsoil1, wcsf, rhos,        &
+       call DustEmissionKOK14( self%km, tsoil1, wcsf, rhos,        &
                              du_z0, z_, u10n, v10n, ustar,    &
                              frland, asnow,               &
                              du_src,                       &
@@ -876,13 +933,38 @@ contains
                 self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
                 self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
 
-    case ('ginoux')
+    case ('dead03')
+       call DustEmissionDEAD03(lwi, frlake, asnow, du_src, self%vegMaskYN, du_gvf, &
+                               self%x0gvf, self%kgvf, self%gvfMax, self%gvfMin,    &
+                               du_sand, du_clay,  wet1, u10m, v10m, ustar, rhos,   &
+                               tsoil1, self%mclay, self%cs, self%z0ms, self%z0m,   &
+                               self%tsoilf, MAPL_GRAV, self%soil_diam,             &
+                               self%radius*1.e-6, emissions_surface, __RC__)
 
-       call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
-                                 self%Ch_DU, du_src, MAPL_GRAV, &
+    case ('ginoux01')
+       call DustEmissionGINOUX01(self%radius*1.e-6, frlake, asnow, wet1, lwi,     &
+                                 self%vegMaskYN, du_gvf, self%x0gvf, self%kgvf,   &
+                                 self%gvfMax, self%gvfMin, u10m, v10m, tsoil1,    &
+                                 self%Ch_DU,  du_src, MAPL_GRAV, self%tsoilf,     &
                                  emissions_surface, __RC__)
+
+    case ('sginoux')
+       call DustEmissionSGINOUX(self%radius*1.e-6, frlake, asnow, wet1, lwi,    &
+                                self%vegMaskYN, du_gvf, self%x0gvf, self%kgvf,  &
+                                self%gvfMax, self%gvfMin, u10m, v10m, tsoil1,   &
+                                du_src, self%ut0, self%Ch_DU, MAPL_GRAV,        &
+                                self%tsoilf, emissions_surface, __RC__)
+    case ('kok14simp')
+       call DustEmissionKOK14SIMP(lwi, frlake, asnow, self%sourceYN, self%sourceOpt, &
+                               du_src, self%vegMaskYN, du_gvf, &
+                               self%x0gvf, self%kgvf, self%gvfMax, self%gvfMin,    &
+                               du_sand, du_clay, wet1, self%f_swc, u10m, v10m, ustar, self%owenYN, rhos,   &
+                               tsoil1, self%Ch_DU/1.e-9, self%z0ms, self%z0m,   &
+                               self%tsoilf, MAPL_GRAV, self%soil_diam,             &
+                               self%radius*1.e-6, emissions_surface, __RC__)
+
     case default
-       _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux, fengsha, k14',ESMF_RC_NOT_IMPL)
+       _ASSERT_RC(.false.,'missing dust emission scheme. Allowed: ginoux01, sginoux, kok14, fengsha, dead03, kok14simp',ESMF_RC_NOT_IMPL)
     end select
 
 !   Read point emissions file once per day
