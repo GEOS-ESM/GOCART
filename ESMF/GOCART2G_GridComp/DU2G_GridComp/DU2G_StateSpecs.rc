@@ -8,8 +8,8 @@ category: IMPORT
      NAME   | UNITS    | DIMS | VLOC | RESTART | COND                                     | LONG NAME
 #-------------------------------------------------------------------------------------------------------
  DU_SRC     | 1        | xy   | N    | SKIP    | scheme == 'ginoux01' .OR. scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'sginoux' .OR. scheme == 'kok14simp' | erod - dust emissions
- DU_Z0      | 1        | xy   | N    | SKIP    | scheme == 'kok14'                          | aerodynamic_surface_roughness_for_aeolian_processes
- DU_GVF     | 1        | xy   | N    | OPT     |                                            | GVF
+ DU_Z0      | 1        | xy   | N    | SKIP    | scheme == 'kok14'                        | aerodynamic_surface_roughness_for_aeolian_processes
+ DU_GVF     | 1        | xy   | N    | OPT     |                                          | GVF
  DU_LAI     | 1        | xy   | N    | OPT     | scheme == 'fengsha'                      | LAI
  DU_SAND    | 1        | xy   | N    | SKIP    | scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'kok14simp' | volume_fraction_of_sand_in_soil
  DU_SILT    | 1        | xy   | N    | SKIP    | scheme == 'fengsha' .OR. scheme == 'kok14' | volume_fraction_of_silt_in_soil
@@ -23,7 +23,7 @@ category: IMPORT
  DU_VEG     | 1        | xy   | N    | SKIP    | scheme == 'kok14'                        | vegetation_type
  FRLAKE     | 1        | xy   | N    | OPT     |                                          | fraction_of_lake
  FRLAND     | 1        | xy   | N    | OPT     | scheme == 'kok14'                        | fraction_of_land
- ASNOW      | 1        | xy   | N    | OPT     |                                          | snow_covered_fraction_of_land
+ ASNOW      | 1        | xy   | N    | OPT     | scheme == 'ginoux01' .OR. scheme == 'kok14' .OR. scheme == 'dead03' .OR. scheme == 'sginoux' .OR. scheme == 'kok14simp' | snow_covered_fraction_of_land
  WET1       | 1        | xy   | N    | OPT     |                                          | surface_soil_wetness
  LWI        | 1        | xy   | N    | OPT     |                                          | land-ocean-ice_mask
  TROPP      | Pa       | xy   | N    | OPT     |                                          | tropopause_pressure_based_on_blended_estimate
