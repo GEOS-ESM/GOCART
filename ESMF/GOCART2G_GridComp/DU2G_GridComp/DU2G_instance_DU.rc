@@ -18,7 +18,7 @@ particle_density: 2500. 2650. 2650. 2650. 2650.
 # -----------------------
 emission_scheme: ginoux
 Ch_DU:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
-#Ch_DU: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f) 
+#Ch_DU: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)
 
 # source_fraction: 0.0435465   0.106903   0.220117   0.484606   0.144828
 source_fraction: 0.1 0.25 0.25 0.25 0.25
@@ -47,6 +47,9 @@ wet_removal_scheme: gocart ! default value
 # Scavenging efficiency per bin [km-1]
 fscav: 0.2  0.2  0.2  0.2  0.2
 
+# Large scale rainout efficiency per bin for wet_removal_scheme == gocart
+fwet: 1.0 1.0 1.0 1.0 1.0
+
 # Rainout efficiency per bin for wet_removal_scheme == ufs
 fwet_ice: 0.8 0.8 0.8 1.0 1.0
 fwet_snow: 0.8 0.8 0.8 1.0 1.0
@@ -72,3 +75,7 @@ soil_moisture_factor: 1.0
 soil_drylimit_factor: 1.0
 vertical_to_horizontal_flux_ratio_limit: 2.e-04
 drag_partition_option: 2
+
+# SettlingSolver options
+# Options: 'gocart' or 'ufs'
+settling_scheme: 'gocart'

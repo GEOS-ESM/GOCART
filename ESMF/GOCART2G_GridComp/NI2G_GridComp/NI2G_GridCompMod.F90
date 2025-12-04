@@ -13,6 +13,7 @@ module NI2G_GridCompMod
    use MAPL
    use GOCART2G_MieMod
    use Chem_AeroGeneric
+   use ReplenishAlarm
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
@@ -59,6 +60,7 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: rmedDU(:), rmedSS(:) ! DU and SS radius
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
+       type(ESMF_Alarm) :: alarm
    end type NI2G_GridComp
 
    type wrap_
@@ -182,7 +184,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddInternalSpec(gc,&
@@ -192,7 +194,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddInternalSpec(gc,&
@@ -202,7 +204,7 @@ contains
           & dims=MAPL_DimsHorzVert, &
           & vlocation=MAPL_VlocationCenter, &
           & restart=MAPL_RestartOptional, &
-          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          & friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           & add2export=.true., __RC__)
 
        call MAPL_AddImportSpec(gc,&
@@ -500,7 +502,10 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+! Deal with replenishment alarm (formerly the daily_alarm subroutine)
+! ===================================================================
+    self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Initialize
 
@@ -746,7 +751,7 @@ contains
     type (NI2G_GridComp), pointer     :: self
 
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real, pointer, dimension(:,:,:)   :: nisd_vel
     logical                           :: KIN
     real, allocatable, target, dimension(:,:,:) :: fluxoutWT
     real, allocatable, dimension(:,:,:,:) :: aerosol
@@ -760,6 +765,7 @@ contains
     integer :: i, j
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread
+    integer :: settling_opt
 
 #include "NI2G_DeclarePointer___.h"
 
@@ -799,7 +805,14 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-    alarm_is_ringing = daily_alarm(clock,30000,_RC)
+    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
+#ifdef DEBUG
+    if (alarm_is_ringing) then
+          if (MAPL_Am_I_Root()) then
+             print *,'DEBUG:: NI replenish alarm is ringing'
+          end if
+    end if
+#endif
 
 !   Save local copy of HNO3 for first pass through run method regardless
     thread = MAPL_get_current_thread()
@@ -835,27 +848,45 @@ contains
 
 !   NI Settling
 !   -----------
+    select case (self%settling_scheme)
+    case ('gocart')
+        settling_opt=1
+    case ('ufs')
+        settling_opt=2
+    case default
+        _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
 !   Ammonium - settles like bin 1 of nitrate
+    nullify(nisd_vel)
+    if (associated(NH4SD_V)) nisd_vel => NH4SD_V
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
-                              NH4a, t, airdens, rh2, zle, delp, NH4SD, __RC__)
+                              NH4a, t, airdens, rh2, zle, delp, NH4SD, nisd_vel, &
+                              settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 1
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,1)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,1)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                         NO3an1, t, airdens, &
-                        rh2, zle, delp, flux_ptr, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 2
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,2)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,2)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 2, self%cdt, MAPL_GRAV, &
                         NO3an2, t, airdens, &
-                        rh2, zle, delp, flux_ptr, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 3
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,3)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,3)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 3, self%cdt, MAPL_GRAV, &
                         NO3an3, t, airdens, &
-                        rh2, zle, delp, flux_ptr, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 
 
 
@@ -911,22 +942,20 @@ contains
    end if
 !  NH3
    KIN = .false.
-   fwet = 1.
    nullify(fluxWT_ptr)
    if (associated(NH3WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
-                            KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
+                            KIN, MAPL_GRAV, self%fwet(1), NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
 !   Save local copy of HNO3 for first pass through run method regardless
    if (associated(NH3WT)) NH3WT = fluxWT_ptr(:,:,1)
 
 !  NH4a
    KIN = .true.
-   fwet = 1.
    nullify(fluxWT_ptr)
    if (associated(NH4WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH4a', &
-                           KIN, MAPL_GRAV, fwet, NH4a, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(2), NH4a, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
    if (associated(NH4WT)) NH4WT = fluxWT_ptr(:,:,1)
 
@@ -935,21 +964,18 @@ contains
    end if
 
    KIN = .true.
-   fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an1, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(3), NO3an1, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
    KIN = .true.
-   fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an2, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(4), NO3an2, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
    KIN = .true.
-   fwet = 0.3
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 3, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an3, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(5), NO3an3, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
 !   Save local copy of HNO3 for first pass through run method regardless
@@ -1374,39 +1400,5 @@ contains
     RETURN_(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
-
-  function daily_alarm(clock,freq,rc) result(is_ringing)
-     logical :: is_ringing
-     type(ESMF_Clock), intent(in) :: clock
-     integer, intent(in) :: freq
-     integer, optional, intent(out) :: rc
-
-     type(ESMF_Time) :: current_time
-     integer :: status,year,month,day,hour,minute,second,initial_time,int_seconds
-     integer :: nhh,nmm,nss,freq_sec
-
-     type(ESMF_TimeInterval) :: new_diff,esmf_freq
-     type(ESMF_Time) :: reff_time,new_esmf_time
-
-     call ESMF_ClockGet(clock,currTIme=current_time,_RC)
-     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
-
-     int_seconds = 0
-     call MAPL_UnpackTIme(freq,nhh,nmm,nss) 
-     is_ringing = .false.
-     call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
-     new_esmf_time = reff_time
-     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
-     do while (int_seconds < 86400)      
-        if ( new_esmf_time == current_time) then
-           is_ringing = .true.
-           exit
-        end if
-        new_esmf_time = new_esmf_time + esmf_freq
-        new_diff = new_esmf_time - reff_time
-        call ESMF_TimeIntervalGet(new_diff,s=int_seconds,_RC)
-     enddo
-     _RETURN(_SUCCESS)
-  end function
 
 end module NI2G_GridCompMod

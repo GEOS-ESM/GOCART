@@ -19,6 +19,9 @@ wet_removal_scheme: gocart ! default value
 # Scavenging efficiency per bin [km-1]
 fscav: 0.4  0.4  0.4  0.4  0.4
 
+# Rainout efficiency per bin for wet_removal_scheme == gocart
+fwet: 1.0 1.0 1.0 1.0 1.0
+
 # Rainout efficiency per bin for wet_removal_scheme == ufs
 fwet_ice: 1.0 1.0 1.0 1.0 1.0
 fwet_snow: 1.0 1.0 1.0 1.0 1.0
@@ -26,7 +29,7 @@ fwet_rain: 1.0 1.0 1.0 1.0 1.0
 
 # Emissions methods and scaling
 emission_scheme: 3                                     # 1 for Gong 2003, 2 for ...
-emission_scale:  0.600 0.525 0.475 0.450 0.425 0.415   # L181 global scaling factor 
+emission_scale:  0.600 0.525 0.475 0.450 0.425 0.415   # L181 global scaling factor
 #emission_scale: 0.613 0.613 0.613 0.429 0.429 0.429   # L072 global scaling factor
 sstEmisFlag:     2                                     # Apply a correction to emissions based on SST (see code)
 hoppelFlag:      .false.              # Apply Hoppel correction (set non-zero, see Fan and Toon 2011)
@@ -45,4 +48,6 @@ nbins: 5
 
 pressure_lid_in_hPa: 40.0
 
-
+# SettlingSolver options
+# Options: 'gocart' or 'ufs'
+settling_scheme: 'gocart'
