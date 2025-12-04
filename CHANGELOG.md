@@ -20,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 - Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
 - Update CI to use reusable workflows
+- Update `components.yaml` to match that of GEOSgcm main as of 2025-12-04
+  - ESMA_env v4.35.0
+  - ESMA_cmake v3.68.0
+  - GMAO_Shared v2.1.4
+  - MAPL v2.63.0
 
 ### Fixed
 
