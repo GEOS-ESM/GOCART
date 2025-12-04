@@ -457,7 +457,7 @@ contains
 !   Trigger for photolysis calculations
 !   -----------------------------------
     call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
-    
+
 !   Create Photolysis Mie Table
 !   ---------------------------
 !   Get file names for the optical tables
@@ -470,7 +470,7 @@ contains
                                   label= "aerosol_photolysis_wavelength_in_nm_from_LUT:", __RC__)
     self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
     deallocate(channels_)
-    
+
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
@@ -1201,7 +1201,7 @@ contains
 !   --------------------------------------
     usePhotTable = 0
     call ESMF_AttributeGet (state, name='use_photolysis_table', value=usePhotTable, __RC__)
-    
+
 !   Pressure at layer edges
 !   ------------------------
     call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
@@ -1247,7 +1247,7 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    if (usePhotTable) then
+    if (usePhotTable /= 0) then
        wavelength = band*1.e-9
        allocate(pmom_s(i1:i2, j1:j2, km, self%phot_Mie%nmom), __STAT__)
        call miephot_ (self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, pmom_s, __RC__)
@@ -1267,7 +1267,7 @@ contains
         var = ssa_s(:,:,:)
     end if
 
-    if (usePhotTable) then
+    if (usePhotTable /= 0) then
        call ESMF_AttributeGet (state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
        if (fld_name /= '') then
            call MAPL_GetPointer (state, var4d, trim(fld_name), __RC__)
@@ -1282,7 +1282,7 @@ contains
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
-    if (usePhotTable) deallocate(pmom_s, __STAT__)
+    if (usePhotTable /= 0) deallocate(pmom_s, __STAT__)
     deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
@@ -1363,7 +1363,7 @@ contains
            bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
         enddo
      end do
-     
+
 
      RETURN_(ESMF_SUCCESS)
 

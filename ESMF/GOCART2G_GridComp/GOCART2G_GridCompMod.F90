@@ -691,14 +691,14 @@ contains
     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
                     LONS=LONS, LATS=LATS, __RC__ )
 
-!   Run zero Klid for children    
-!   --------------------------   
-    do i = 1, size(gcs) 
+!   Run zero Klid for children
+!   --------------------------
+    do i = 1, size(gcs)
       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
       if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
          call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, __RC__)
       end if
-    end do         
+    end do
 
 ! Check run_dt alarm. Bail out if not ringing.
 ! --------------------------------------------
@@ -707,7 +707,7 @@ contains
     if (.not. timeToDoWork) then
        _RETURN(ESMF_SUCCESS)
     end if
-    
+
 !   Get my internal state
 !   ---------------------
     call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
@@ -1554,7 +1554,7 @@ contains
     real(kind=8), dimension(:,:,:,:),pointer         :: pmom_                 ! (lon:,lat:,lev:,nmom:)
     real(kind=8), dimension(:,:,:), allocatable      :: ext,  ssa,  asy       ! (lon:,lat:,lev:)
     real(kind=8), dimension(:,:,:,:), allocatable    :: pmom                  ! (lon:,lat:,lev:,nmom:)
-    
+
     integer                                          :: i, n, b, j
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band
@@ -1581,11 +1581,11 @@ contains
 !   Are we using a photolysis table?
 !   --------------------------------
     call ESMF_AttributeGet(state, name='use_photolysis_table', value=usePhotTable, __RC__)
-    if(usePhotTable) then
+    if(usePhotTable /= 0) then
        call ESMF_AttributeGet(state, name='n_phase_function_moments', value=nmom, __RC__)
     end if
-    
-    
+
+
 !   Relative humidity
 !   -----------------
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
@@ -1678,7 +1678,7 @@ contains
 !       ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
 !       ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
 
-        if(usePhotTable) then
+        if(usePhotTable /= 0) then
           call ESMF_AttributeGet(child_state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
           if (fld_name /= '') then
               call MAPL_GetPointer(child_state, pmom_, trim(fld_name), __RC__)
@@ -1690,11 +1690,11 @@ contains
               call MAPL_GetPointer(child_state, asy_, trim(fld_name), __RC__)
           end if
        end if
-       
+
 !       ! Sum aerosol optical properties from each child
         ext = ext + ext_
         ssa = ssa + ssa_
-        if(usePhotTable) then
+        if(usePhotTable /= 0) then
            pmom = pmom + pmom_
         else
            asy = asy + asy_
@@ -1716,7 +1716,7 @@ contains
         call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
         var = ssa(:,:,:)
     end if
-    if(usePhotTable) then
+    if(usePhotTable /= 0) then
        call ESMF_AttributeGet(state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
        if (fld_name /= '') then
            call MAPL_GetPointer(state, var4d, trim(fld_name), __RC__)
