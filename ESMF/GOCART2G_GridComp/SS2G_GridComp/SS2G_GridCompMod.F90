@@ -803,7 +803,6 @@ contains
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
     real, pointer, dimension(:,:,:)   :: sssd_vel
-    real                              :: fwet
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
@@ -894,9 +893,8 @@ contains
     select case (self%wet_removal_scheme)
     case ('gocart')
        do n = 1, self%nbins
-          fwet = 1.
           call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                                  KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
+                                  KIN, MAPL_GRAV, self%fwet(n), SS(:,:,:,n), ple, t, airdens, &
                                   pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
        end do
     case ('ufs')

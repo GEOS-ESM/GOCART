@@ -752,7 +752,6 @@ contains
 
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
     real, pointer, dimension(:,:,:)   :: nisd_vel
-    real                              :: fwet
     logical                           :: KIN
     real, allocatable, target, dimension(:,:,:) :: fluxoutWT
     real, allocatable, dimension(:,:,:,:) :: aerosol
@@ -943,22 +942,20 @@ contains
    end if
 !  NH3
    KIN = .false.
-   fwet = 1.
    nullify(fluxWT_ptr)
    if (associated(NH3WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
-                            KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
+                            KIN, MAPL_GRAV, self%fwet(1), NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
 !   Save local copy of HNO3 for first pass through run method regardless
    if (associated(NH3WT)) NH3WT = fluxWT_ptr(:,:,1)
 
 !  NH4a
    KIN = .true.
-   fwet = 1.
    nullify(fluxWT_ptr)
    if (associated(NH4WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH4a', &
-                           KIN, MAPL_GRAV, fwet, NH4a, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(2), NH4a, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
    if (associated(NH4WT)) NH4WT = fluxWT_ptr(:,:,1)
 
@@ -967,21 +964,18 @@ contains
    end if
 
    KIN = .true.
-   fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an1, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(3), NO3an1, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
    KIN = .true.
-   fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an2, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(4), NO3an2, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
    KIN = .true.
-   fwet = 0.3
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 3, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an3, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(5), NO3an3, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
 !   Save local copy of HNO3 for first pass through run method regardless
