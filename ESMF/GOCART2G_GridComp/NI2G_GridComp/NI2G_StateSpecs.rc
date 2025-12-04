@@ -48,6 +48,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
   NH3MASS       | kg/kg        | xyz   | C     |                                | Ammonia Mass Mixing Ratio
   NH4MASS       | kg/kg        | xyz   | C     |                                | Ammonium Aerosol Mass Mixing Ratio
+  NH4SD_V       | m s-1        | xyz   | C     |                                | Ammonium Settling Velocity
   NIMASS        | kg/kg        | xyz   | C     |                                | Nitrate Mass Mixing Ratio
   NIMASS25      | kg/kg        | xyz   | C     |                                | Nitrate Mass Mixing Ratio of Particulate Matter < 2.5 microns (PM2.5)
   HNO3CONC      | kg m-3       | xyz   | C     |                                | Nitric Acid Mass Concentration
@@ -55,6 +56,7 @@ category: EXPORT
   NH4CONC       | kg m-3       | xyz   | C     |                                | Ammonium Mass Concentration
   NICONC        | kg m-3       | xyz   | C     |                                | Nitrate Mass Concentration
   NICONC25      | kg m-3       | xyz   | C     |                                | Nitrate Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
+  NISD_V        | m s-1        | xyz   | C     | 3                              | Nitrate Settling Velocity (Bin %d)
   NIEXTCOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient
   NIEXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient - fixed RH=20%
   NIEXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient - fixed RH=80%

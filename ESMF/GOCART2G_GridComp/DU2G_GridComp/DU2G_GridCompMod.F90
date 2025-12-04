@@ -175,7 +175,6 @@ contains
     if (MAPL_AM_I_ROOT()) then
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
-
     ! Point Sources
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
@@ -978,6 +977,7 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
+    real, pointer, dimension(:,:,:)   :: dusd_vel
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
@@ -1038,9 +1038,11 @@ contains
     do n = 1, self%nbins
        nullify(flux_ptr)
        if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
+       nullify(dusd_vel)
+       if (associated(DUSD_V)) dusd_vel => DUSD_V(:,:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            DU(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, &
+                           rh2, zle, delp, flux_ptr, dusd_vel, correctionMaring=self%maringFlag, &
                            settling_scheme=settling_opt, __RC__)
     end do
 

@@ -751,6 +751,7 @@ contains
     type (NI2G_GridComp), pointer     :: self
 
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
+    real, pointer, dimension(:,:,:)   :: nisd_vel
     logical                           :: KIN
     real, allocatable, target, dimension(:,:,:) :: fluxoutWT
     real, allocatable, dimension(:,:,:,:) :: aerosol
@@ -857,26 +858,35 @@ contains
     end select
 
 !   Ammonium - settles like bin 1 of nitrate
+    nullify(nisd_vel)
+    if (associated(NH4SD_V)) nisd_vel => NH4SD_V
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
-                              NH4a, t, airdens, rh2, zle, delp, NH4SD, settling_scheme=settling_opt, __RC__)
+                              NH4a, t, airdens, rh2, zle, delp, NH4SD, nisd_vel, &
+                              settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 1
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,1)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,1)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                         NO3an1, t, airdens, &
-                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 2
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,2)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,2)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 2, self%cdt, MAPL_GRAV, &
                         NO3an2, t, airdens, &
-                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 3
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,3)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,3)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 3, self%cdt, MAPL_GRAV, &
                         NO3an3, t, airdens, &
-                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 
 
 
