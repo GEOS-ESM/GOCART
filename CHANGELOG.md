@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
 - Fwet value in dust modified from 0.8 to 1.0
 - Dust and Sea salt Emission scale factors updated for L181
@@ -19,7 +20,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Heartbeat time step removed and `timeToWork` logical added
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 - Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
-- Added new SettlingSolver scheme `SettlingSolverUFS` and rolled back the previous `SettlingSolver`
 - Updated settling routine and calls to allow settling velocity diagnostics in output field
 
 ### Fixed
@@ -28,7 +28,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
-- fix settling solver for numerical instability under certain convective conditions
+
+### Added
+
+## [v2.4.3] - 2025-07-21
+
+### Changed
+
+- Added new SettlingSolver scheme `SettlingSolverUFS` and rolled back the previous `SettlingSolver`
+
+### Fixed
+
+- fix UFS settling solver for numerical instability under certain convective conditions
 
 ### Added
 
