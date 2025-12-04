@@ -802,6 +802,7 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
+    real, pointer, dimension(:,:,:)   :: sssd_vel
     real                              :: fwet
     logical                           :: KIN
 
@@ -860,9 +861,11 @@ contains
     do n = 1, self%nbins
        nullify(flux_ptr)
        if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
+       nullify(sssd_vel)
+       if (associated(SSSD_V)) sssd_vel => SSSD_V(:,:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            SS(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
+                           rh2, zle, delp, flux_ptr, sssd_vel, settling_scheme=settling_opt, __RC__)
     end do
 
 !   Deposition

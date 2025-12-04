@@ -988,6 +988,7 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
+    real, pointer, dimension(:,:,:)   :: casd_vel
     real                              :: fwet
     real, dimension(3)                :: rainout_eff
     logical                           :: KIN
@@ -1097,13 +1098,15 @@ contains
     end select
 
     do n = 1, self%nbins
-       call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
-       call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-       nullify(flux_ptr)
-       flux_ptr => SD(:,:,n)
-       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+        nullify(flux_ptr)
+        flux_ptr => SD(:,:,n)
+        nullify(casd_vel)
+        if (associated(SD_V)) casd_vel => SD_V(:,:,:,n)
+        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                         int_ptr, t, airdens, &
-                        rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, casd_vel, settling_scheme=settling_opt, __RC__)
     end do
 
 
