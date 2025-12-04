@@ -23,6 +23,11 @@ aircraft_fuel_emission_factor: 1.0000
 # Scavenging efficiency per bin [km-1] (NOT USED UNLESS RAS IS CALLED)
 fscav: 0.0  0.0  0.4  0.4
 
+# Rainout efficiency for sulfate wet_removal_scheme == ufs
+fwet_ice: 1.0                                                                                                                            
+fwet_snow: 1.0 
+fwet_rain: 1.0 
+
 # Dry particle radius [um], used for settling
 particle_radius_microns: 0.0 0.0 0.35 0.0
 

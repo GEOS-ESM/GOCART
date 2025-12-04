@@ -341,6 +341,7 @@ contains
 #include "SU2G_Import___.h"
 #include "SU2G_Internal___.h"
         if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
             write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
         end if
     end if
@@ -1044,6 +1045,7 @@ contains
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
     integer :: settling_opt
@@ -1160,11 +1162,38 @@ contains
                             __RC__)
 
     KIN = .true.
+    select case (self%wet_removal_scheme)
+    case ('gocart')
     call SU_Wet_Removal ( self%km, self%nbins, self%klid, self%cdt, kin, MAPL_GRAV, MAPL_AIRMW, &
                           delp, fMassSO4, fMassSO2, &
                           h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
                           nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
                           SUWT, SUPSO4, SUPSO4WT, PSO4, PSO4WET, __RC__ )
+
+   case ('ufs')
+
+    do n = 1, self%nbins
+       rainout_eff = 0.0
+       rainout_eff(1) = self%fwet_ice(n)
+       rainout_eff(2) = self%fwet_snow(n)
+       rainout_eff(3) = self%fwet_rain(n)
+
+          call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+          call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+          call WetRemovalUFS  (self%km, self%klid, n, self%cdt, 'sulfate', &
+                      KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, & 
+                      self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, SUWT, __RC__)
+          !call WetRemovalUFS( km=self%km, klid=self%klid, bin_ind=nSO4, cdt=self%cdt, &
+          !            aero_type='sulfate', kin=KIN, grav=MAPL_GRAV, radius=self%radius(n),&
+          !            rainout_eff=rainout_eff, wtune=self%washout_tuning, &
+          !            radius_thr=self%wet_radius_thr, aerosol=int_ptr, &
+          !            ple=ple, tmpu=t, rhoa=airdens, pfllsan=pfl_lsan, pfilsan=pfi_lsan, &
+          !            fluxout=SUWT, wetloss_profile=PSO4WET, wetloss_column=SUPSO4WT, __RC__ )
+    enddo
+
+    case default
+     _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
     call SU_Compute_Diags ( self%km, self%klid, self%rmed(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
