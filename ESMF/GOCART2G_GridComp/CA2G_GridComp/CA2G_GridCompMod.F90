@@ -988,7 +988,7 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real, pointer, dimension(:,:,:)   :: casd_vel
     real, dimension(3)                :: rainout_eff
     logical                           :: KIN
     real, allocatable, dimension(:,:,:)   :: pSOA_VOC
@@ -1097,13 +1097,15 @@ contains
     end select
 
     do n = 1, self%nbins
-       call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
-       call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-       nullify(flux_ptr)
-       flux_ptr => SD(:,:,n)
-       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+        call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+        nullify(flux_ptr)
+        flux_ptr => SD(:,:,n)
+        nullify(casd_vel)
+        if (associated(SD_V)) casd_vel => SD_V(:,:,:,n)
+        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                         int_ptr, t, airdens, &
-                        rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, casd_vel, settling_scheme=settling_opt, __RC__)
     end do
 
 
@@ -1138,9 +1140,8 @@ contains
        if (associated(WT)) WT(:,:,1)=0.0
 
 !      Hydrophilic mode (second tracer) is removed
-       fwet = 1.
        call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, GCsuffix, &
-                                KIN, MAPL_GRAV, fwet, philic, ple, t, airdens, &
+                                KIN, MAPL_GRAV, self%fwet(2), philic, ple, t, airdens, &
                                 pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, WT, __RC__)
     case ('ufs')
 !      Both hydrophobic and hydrophilic modes can be removed
