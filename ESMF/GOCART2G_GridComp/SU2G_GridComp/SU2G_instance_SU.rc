@@ -2,8 +2,8 @@
 # Resource file for Sulfer parameters.
 #
 
-aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_SU.v1_3.RRTMG.nc
-aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/AeroCom/x/optics_SU.v1_6.nc
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_SU.v1_6.RRTMG.nc
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_SU.v1_6.nc
 
 nbins: 4
 
@@ -20,8 +20,11 @@ so4_anthropogenic_fraction: 0.03
 # Aircraft emission factor: convert input unit to kg SO2
 aircraft_fuel_emission_factor: 1.0000
 
-# Scavenging efficiency per bin [km-1] (NOT USED UNLESS RAS IS CALLED)
+# Scavenging efficiency per bin [km-1] 
 fscav: 0.0  0.0  0.4  0.4
+
+#Dummy wet removal efficiency for the GOCART scheme. This is not used for sulfate as of GOCART v2.5 and should be revisited.
+fwet: 1.0 1.0 1.0 1.0
 
 # Dry particle radius [um], used for settling
 particle_radius_microns: 0.0 0.0 0.35 0.0
@@ -29,7 +32,7 @@ particle_radius_microns: 0.0 0.0 0.35 0.0
 # Dry particle density [kg m-3]
 particle_density: -1  -1  1700  -1
 
-pressure_lid_in_hPa: 0.01
+pressure_lid_in_hPa: 7.0
 
 # Molecular weight of species [kg mole-1]
 molecular_weight: -1  -1  0.132  -1
@@ -53,3 +56,6 @@ using_GMI_OH: .false.
 using_GMI_NO3: .false.
 using_GMI_H2O2: .false.
 
+# SettlingSolver options
+# Options: 'gocart' or 'ufs'
+settling_scheme: 'gocart'

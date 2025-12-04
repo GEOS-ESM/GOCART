@@ -175,7 +175,6 @@ contains
     if (MAPL_AM_I_ROOT()) then
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
-
     ! Point Sources
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
@@ -226,6 +225,7 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run, __RC__)
     if (data_driven .neqv. .true.) then
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run0, __RC__)
     end if
 
     DEFVAL = 0.0
@@ -243,7 +243,7 @@ contains
           vlocation=MAPL_VlocationCenter, &
           restart=MAPL_RestartOptional, &
           ungridded_dims=[self%nbins], &
-          friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           add2export=.true., __RC__)
 
 !      Pressure at layer edges
@@ -324,7 +324,9 @@ contains
 #include "DU2G_Internal___.h"
       if (MAPL_AM_I_ROOT()) then
          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+         write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
       end if
+
     end if
 
 !   This state holds fields needed by radiation
@@ -404,8 +406,6 @@ contains
     character (len=ESMF_MAXSTR)          :: bin_index, prefix
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:,:)    :: int_ptr
-    real, pointer, dimension(:,:,:)      :: ple
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
@@ -458,7 +458,7 @@ contains
 !   Get DTs
 !   -------
     call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)
-    call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
+    call MAPL_GetResource(mapl, CDT, Label='GOCART2G_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
 !   Load resource file
@@ -510,15 +510,6 @@ contains
     call ESMF_StateGet (internal, 'DU', field, __RC__)
     fld = MAPL_FieldCreate (field, 'DU', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-       call findKlid (self%klid, self%plid, ple, __RC__)
-!      Set internal DU values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'DU', __RC__)
-       call setZeroKlid4d (self%km, self%klid, int_ptr)
-    end if
 
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', value=self%fscav(1), __RC__)
 
@@ -611,6 +602,67 @@ contains
 
   end subroutine Initialize
 
+!============================================================================
+!BOP
+! !IROUTINE: Run0
+
+! !INTERFACE:
+  subroutine Run0 (GC, import, export, clock, RC)
+
+!   !ARGUMENTS:
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+    type (ESMF_State),    intent(inout) :: import ! Import state
+    type (ESMF_State),    intent(inout) :: export ! Export state
+    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+    integer, optional,    intent(  out) :: RC     ! Error code:
+
+! !DESCRIPTION:  Clears klid to 0.0 for Dust
+
+!EOP
+!============================================================================
+! Locals
+    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    type (MAPL_MetaComp), pointer     :: MAPL
+    type (ESMF_State)                 :: internal
+    type (wrap_)                      :: wrap
+    type (DU2G_GridComp), pointer     :: self
+    real, pointer, dimension(:,:,:)   :: ple
+    real, pointer, dimension(:,:,:,:) :: ptr4d_int
+
+    __Iam__('Run0')
+
+!*****************************************************************************
+!   Begin...
+
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    Iam = trim(COMP_NAME) // '::' // Iam
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+
+!   Get my private internal state
+!   ------------------------------
+    call ESMF_UserCompGetInternalState(GC, 'DU2G_GridComp', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call MAPL_GetPointer (internal, NAME='DU', ptr=ptr4d_int, __RC__)
+    call setZeroKlid4d (self%km, self%klid, ptr4d_int)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine Run0
 
 !============================================================================
 !BOP
@@ -924,7 +976,7 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real, pointer, dimension(:,:,:)   :: dusd_vel
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
@@ -932,6 +984,7 @@ contains
     real, parameter ::  cpd    = 1004.16
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
+    integer                           :: settling_opt
 #include "DU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -965,14 +1018,31 @@ contains
     allocate(dqa, mold=wet1, __STAT__)
     allocate(drydepositionfrequency, mold=wet1, __STAT__)
 
+!   Set klid and Set internal DU values to 0 above klid
+!   ---------------------------------------------------
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid4d (self%km, self%klid, DU)
+
 !   Dust Settling
 !   -------------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        nullify(flux_ptr)
        if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
+       nullify(dusd_vel)
+       if (associated(DUSD_V)) dusd_vel => DUSD_V(:,:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            DU(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, __RC__)
+                           rh2, zle, delp, flux_ptr, dusd_vel, correctionMaring=self%maringFlag, &
+                           settling_scheme=settling_opt, __RC__)
     end do
 
 !   Dust Deposition
@@ -1000,9 +1070,8 @@ contains
    select case (self%wet_removal_scheme)
    case ('gocart')
       do n = 1, self%nbins
-         fwet = 0.8
          call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
-                                 KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
+                                 KIN, MAPL_GRAV, self%fwet(n), DU(:,:,:,n), ple, t, airdens, &
                                  pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
       end do
    case ('ufs')

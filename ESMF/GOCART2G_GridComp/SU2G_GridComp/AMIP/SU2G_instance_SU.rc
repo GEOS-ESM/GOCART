@@ -32,7 +32,7 @@ rhFlag: 4
 # Dry particle density [kg m-3]
 particle_density: -1  -1  1700  -1
 
-pressure_lid_in_hPa: 0.01
+pressure_lid_in_hPa: 7.0
 
 # Molecular weight of species [kg mole-1]
 molecular_weight: -1  -1  0.132  -1
@@ -56,3 +56,6 @@ using_GMI_OH: .false.
 using_GMI_NO3: .false.
 using_GMI_H2O2: .false.
 
+# SettlingSolver options
+# Options: 'gocart' or 'ufs'
+settling_scheme: 'gocart'

@@ -13,6 +13,7 @@ module SU2G_GridCompMod
    use MAPL
    use GOCART2G_MieMod
    use Chem_AeroGeneric
+   use ReplenishAlarm
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
@@ -96,7 +97,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
       real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
       !logical :: firstRun = .true.
-      real, allocatable  :: rmed(:)  ! Median radius of lognormal number distribution
+      real, allocatable  :: rmed(:)  ! Median radius [um] of lognormal number distribution
       real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
 
@@ -108,6 +109,7 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       logical                :: doing_point_emissions = .false.
       character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
+      type(ESMF_Alarm) :: alarm
    end type SU2G_GridComp
 
    type wrap_
@@ -221,6 +223,7 @@ contains
     call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run, __RC__)
     if (data_driven .neqv. .true.) then
        call MAPL_GridCompSetEntryPoint (GC, ESMF_Method_Run, Run2, __RC__)
+       call MAPL_GridCompSetEntryPoint (GC, ESMF_METHOD_RUN, Run0, __RC__)
     end if
 
     DEFVAL = 0.0
@@ -340,6 +343,9 @@ contains
 #include "SU2G_Export___.h"
 #include "SU2G_Import___.h"
 #include "SU2G_Internal___.h"
+        if (MAPL_AM_I_ROOT()) then
+            write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
+        end if
     end if
 
 !   This state holds fields needed by radiation
@@ -419,11 +425,9 @@ contains
     real, pointer, dimension(:,:)        :: lons
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:)      :: int_ptr
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
-    real, pointer, dimension(:,:,:)      :: ple
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
@@ -465,7 +469,7 @@ contains
 !   Get DTs
 !   -------
     call MAPL_GetResource(mapl, HDT, Label='RUN_DT:', __RC__)
-    call MAPL_GetResource(mapl, CDT, Label='GOCART_DT:', default=real(HDT), __RC__)
+    call MAPL_GetResource(mapl, CDT, Label='GOCART2G_DT:', default=real(HDT), __RC__)
     self%CDT = CDT
 
 !   Check whether to de-activate diurnal biomass burning (default is *on*)
@@ -546,15 +550,6 @@ contains
     call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(3), __RC__)
     fld = MAPL_FieldCreate (field, 'SO4', __RC__)
     call MAPL_StateAdd (aero, fld, __RC__)
-
-    if (.not. data_driven) then
-!      Set klid
-       call MAPL_GetPointer(import, ple, 'PLE', __RC__)
-       call findKlid (self%klid, self%plid, ple, __RC__)
-!      Set internal SO4 values to 0 where above klid
-       call MAPL_GetPointer (internal, int_ptr, 'SO4', __RC__)
-       call setZeroKlid (self%km, self%klid, int_ptr)
-    end if
 
     if (data_driven) then
        instance = instanceData
@@ -637,12 +632,76 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+! Deal with replenishment alarm (formerly the daily_alarm subroutine)
+! ===================================================================
+    self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Initialize
 
 !============================================================================
+!BOP
+! !IROUTINE: Run0
 
+! !INTERFACE:
+  subroutine Run0 (GC, import, export, clock, RC)
+
+!   !ARGUMENTS:
+    type (ESMF_GridComp), intent(inout) :: GC     ! Gridded component
+    type (ESMF_State),    intent(inout) :: import ! Import state
+    type (ESMF_State),    intent(inout) :: export ! Export state
+    type (ESMF_Clock),    intent(inout) :: clock  ! The clock
+    integer, optional,    intent(  out) :: RC     ! Error code:
+
+! !DESCRIPTION:  Clears klid to 0.0 for Sulfates
+
+!EOP
+!============================================================================
+! Locals
+    character (len=ESMF_MAXSTR)       :: COMP_NAME
+    type (MAPL_MetaComp), pointer     :: MAPL
+    type (ESMF_State)                 :: internal
+    type (wrap_)                      :: wrap
+    type (SU2G_GridComp), pointer     :: self
+    real, pointer, dimension(:,:,:)   :: ple
+    real, pointer, dimension(:,:,:)   :: ptr3d_int
+
+    __Iam__('Run0')
+
+!*****************************************************************************
+!   Begin...
+
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet (GC, NAME=COMP_NAME, __RC__)
+    Iam = trim(COMP_NAME) // '::' // Iam
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get (MAPL, INTERNAL_ESMF_STATE=internal, __RC__)
+
+!   Get my private internal state
+!   ------------------------------
+    call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
+
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call MAPL_GetPointer(import, ple, 'PLE', __RC__)
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call MAPL_GetPointer (internal, NAME='SO4', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine Run0
+
+!============================================================================
 !BOP
 ! !IROUTINE: Run
 
@@ -833,7 +892,7 @@ contains
     where(1.01*aviation_crs_src > MAPL_UNDEF ) aviation_crs_src = 0.
 
 !   Start with a clean emission diagnostic
-    if(associated(SUEM)) SUEM = 0.0    
+    if(associated(SUEM)) SUEM = 0.0
 
 
 !   Update emissions/production if necessary (daily)
@@ -1035,6 +1094,7 @@ contains
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
 
     real, dimension(:,:), allocatable   :: drydepositionf
+    real, pointer, dimension(:,:,:)     :: susd_vel
 
     real, pointer, dimension(:,:,:)     :: dummyMSA !=> null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing
@@ -1043,6 +1103,7 @@ contains
     integer                           :: i1, j1, i2, j2, km
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
+    integer :: settling_opt
 #include "SU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -1083,13 +1144,23 @@ contains
     VERIFY_(STATUS)
     self => wrap%ptr
 
+!   Set klid and Set internal values to 0 above klid
+!   ---------------------------------------------------
+    call findKlid (self%klid, self%plid, ple, __RC__)
+    call setZeroKlid (self%km, self%klid, SO4)
+
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
 
-    alarm_is_ringing = daily_alarm(clock,30000,_RC)
+    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
 !   recycle H2O2 every 3 hours
     if (alarm_is_ringing) then
        workspace%recycle_h2o2 = .true.
+#ifdef DEBUG
+       if (MAPL_Am_I_Root()) then
+          print *,'DEBUG:: SU replenish alarm is ringing'
+       end if
+#endif
     end if
 
     allocate(xoh, mold=airdens, __STAT__)
@@ -1114,10 +1185,20 @@ contains
 
 !   SU Settling
 !   -----------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
        ! if radius == 0 then we're dealing with a gas which has no settling losses
        if (self%radius(n) == 0.0) then
           if (associated(SUSD)) SUSD(:,:,n) = 0.0
+          if (associated(SUSD_V)) SUSD_V(:,:,:,n) = 0.0
           cycle
        end if
 
@@ -1125,9 +1206,13 @@ contains
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
        nullify(flux_ptr)
        if (associated(SUSD)) flux_ptr => SUSD(:,:,n)
+       nullify(susd_vel)
+       if (associated(SUSD_V)) susd_vel => SUSD_V(:,:,:,n)
+
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                            int_ptr, t, airdens, &
-                           rh2, zle, delp, flux_ptr, __RC__)
+                           rh2, zle, delp, flux_ptr, susd_vel, settling_scheme=settling_opt, __RC__)
+
     end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
@@ -1172,7 +1257,7 @@ contains
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
     RH20(:,:,:) = 0.20
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1182,7 +1267,7 @@ contains
                             scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),& 
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1524,39 +1609,5 @@ contains
     RETURN_(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
-
-  function daily_alarm(clock,freq,rc) result(is_ringing)
-     logical :: is_ringing
-     type(ESMF_Clock), intent(in) :: clock
-     integer, intent(in) :: freq
-     integer, optional, intent(out) :: rc
-
-     type(ESMF_Time) :: current_time
-     integer :: status,year,month,day,hour,minute,second,initial_time,int_seconds
-     integer :: nhh,nmm,nss,freq_sec
-
-     type(ESMF_TimeInterval) :: new_diff,esmf_freq
-     type(ESMF_Time) :: reff_time,new_esmf_time
-
-     call ESMF_ClockGet(clock,currTIme=current_time,_RC)
-     call ESMF_TimeGet(current_time,yy=year,mm=month,dd=day,h=hour,m=minute,s=second,_RC)
-
-     int_seconds = 0
-     call MAPL_UnpackTIme(freq,nhh,nmm,nss)
-     is_ringing = .false.
-     call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
-     new_esmf_time = reff_time
-     call ESMF_TimeIntervalSet(esmf_freq,h=nhh,m=nmm,s=nss ,_RC)
-     do while (int_seconds < 86400)
-        if ( new_esmf_time == current_time) then
-           is_ringing = .true.
-           exit
-        end if
-        new_esmf_time = new_esmf_time + esmf_freq
-        new_diff = new_esmf_time - reff_time
-        call ESMF_TimeIntervalGet(new_diff,s=int_seconds,_RC)
-     enddo
-     _RETURN(_SUCCESS)
-  end function
 
 end module SU2G_GridCompMod

@@ -1436,7 +1436,8 @@ end function DarmenovaDragPartition
    subroutine Chem_SettlingSimple ( km, klid, mie, bin, cdt, grav, &
                                     int_qa, tmpu, rhoa, rh, hghte, &
                                     delp, fluxout,  &
-                                    vsettleOut, correctionMaring, rc)
+                                    vsettleOut, correctionMaring, &
+                                    settling_scheme, rc)
 
 ! !USES:
 
@@ -1464,19 +1465,22 @@ end function DarmenovaDragPartition
                                                   !  0 - all is well
                                                   !  1 -
 !  Optionally output the settling velocity calculated
-   real, pointer, optional, dimension(:,:,:)  :: vsettleOut
+   real, pointer, optional, intent (inout)  :: vsettleOut (:,:,:)
 
 !  Optionally correct the settling velocity following Maring et al, 2003
    logical, optional, intent(in)    :: correctionMaring
+
+!  Optionally choose the default gocart settling scheme or the one used in the UFS
+   integer, intent(in) :: settling_scheme ! 1 - use SettlingSolver, 2 - use SettlingSolverUFS
 
    character(len=*), parameter :: myname = 'SettlingSimple'
 
 ! !DESCRIPTION: Gravitational settling of aerosol between vertical
 !               layers.  Assumes input radius in [m] and density (rhop)
-!               in [kg m-3]arrays from the optics files. 
+!               in [kg m-3]arrays from the optics files.
 !
 ! !REVISION HISTORY:
-!  02Jan2024  Collow    Removed calls to particle swelling and added 
+!  02Jan2024  Collow    Removed calls to particle swelling and added
 !                       interpolation based on RH
 !  17Sep2004  Colarco   Strengthen sedimentation flux out at surface
 !                       by setting removal to be valid from middle of
@@ -1555,7 +1559,7 @@ end function DarmenovaDragPartition
 ! Find radius and density of the wet particle
     call mie%Query(550e-9,bin,   &
                          qa*delp/grav, &
-                         rh, reff=radius, rhop=rhop, __RC__)  
+                         rh, reff=radius, rhop=rhop, __RC__)
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
@@ -1565,19 +1569,26 @@ end function DarmenovaDragPartition
           end do
        end do
     end do
- 
+
     if(present(correctionMaring)) then
        if (correctionMaring) then
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
 
-    if(present(vsettleOut)) then
-       vsettleOut = vsettle
-    endif
+    if (present(vsettleOut)) then
+       if (associated(vsettleOut)) then
+          vsettleOut = vsettle
+       end if
+    end if
 
 !   Time integration
-    call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+    select case (settling_scheme)
+      case (1)  ! Use the default gocart SettlingSolver
+         call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+      case (2)  ! Use the new SettlingSolverUFS
+         call SettlingSolverUFS(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+    end select
 
 !   Find the column dry mass after sedimentation and thus the loss flux
     do k = klid, km
@@ -1604,7 +1615,8 @@ end function DarmenovaDragPartition
    subroutine Chem_Settling ( km, klid, bin, flag, cdt, grav, &
                               radiusInp, rhopInp, int_qa, tmpu, &
                               rhoa, rh, hghte, delp, fluxout,  &
-                              vsettleOut, correctionMaring, rc)
+                              vsettleOut, correctionMaring, &
+                              settling_scheme, rc)
 
 ! !USES:
 
@@ -1638,6 +1650,9 @@ end function DarmenovaDragPartition
 
 !  Optionally correct the settling velocity following Maring et al, 2003
    logical, optional, intent(in)    :: correctionMaring
+
+!  Optionally choose the default gocart settling scheme or the one used in the UFS
+   integer, optional, intent(in)    :: settling_scheme ! 1 - use SettlingSolver, 2 - use SettlingSolverUFS
 
    character(len=*), parameter :: myname = 'Settling'
 
@@ -1750,7 +1765,13 @@ end function DarmenovaDragPartition
     endif
 
 !   Time integration
-    call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+    select case (settling_scheme)
+      case (1)  ! Use the default gocart SettlingSolver
+         call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+      case (2)  ! Use the new SettlingSolverUFS
+         call SettlingSolverUFS(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
+    end select
+
 
 !   Find the column dry mass after sedimentation and thus the loss flux
     do k = klid, km
@@ -1939,6 +1960,109 @@ end function DarmenovaDragPartition
     enddo
 
    end subroutine SettlingSolver
+
+
+!==================================================================================
+!BOP
+! !IROUTINE: SettlingSolverUFS
+
+   subroutine SettlingSolverUFS(i1, i2, j1, j2, km, cdt, delp, dz, vs, qa)
+! !USES:
+    implicit none
+
+! !INPUT PARAMETERS:
+    integer, intent(in) :: i1, i2
+    integer, intent(in) :: j1, j2
+    integer, intent(in) :: km
+
+    real,    intent(in) :: cdt
+
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: delp
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: dz
+    real, dimension(i1:i2,j1:j2,km), intent(in) :: vs
+
+! !OUTPUT PARAMETERS:
+    real, dimension(i1:i2,j1:j2,km), intent(inout) :: qa
+
+! !LOCAL VARIABLES:
+    integer :: i, j, k, iit
+    integer :: nSubSteps
+
+    real, dimension(i1:i2, j1:j2, km) :: tau
+
+    real, dimension(km) :: dp_
+    real, dimension(km) :: tau_
+    real, dimension(km) :: qa_old
+
+    real :: dt, dt_cfl, max_tau
+    real :: transfer_factor, loss_factor
+    real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
+    real, parameter :: cfl_factor = 0.1  ! CFL stability factor
+
+! !DESCRIPTION: This subroutine solves the settling of particles
+!               in the vertical layers of the atmosphere.
+!               It uses a time-splitting method to ensure stability
+!               and mass conservation. The settling velocity is
+!               calculated based on the input parameters and
+!               the particle properties.
+!
+! !REVISION HISTORY:
+!  14Jul2025: B. Baker refactored to improve performance and readability
+!
+!EOP
+!-------------------------------------------------------------------------
+
+    tau = vs / dz
+
+    ! loop over grid points
+    jloop : do j = j1, j2
+      iloop : do i = i1, i2
+
+         dp_  = delp(i,j,:)
+         tau_ = tau(i,j,:)
+
+          ! Find maximum tau with numerical safety
+         max_tau = maxval(tau_)
+
+         dt_cfl = cfl_factor / max_tau
+
+
+
+         if (dt_cfl >= cdt) then
+            ! no need for time sub-splitting
+            nSubSteps = 0
+            dt = cdt
+         else
+            nSubSteps = max(1, ceiling(cdt / dt_cfl))
+            dt = cdt / real(nSubSteps)
+         end if
+
+         ! Time integration with numerical safeguards
+         iitloop : do iit = 1, nSubSteps
+             ! Store old values for mass conservation check
+             qa_old = qa(i,j,:)
+
+             ! Update top layer (only loss)
+            loss_factor = max(0.0,min(1.0, dt * tau_(1)))
+            qa(i,j,1) = max(0.0, qa(i,j,1) * (1.0 - min(loss_factor, 1.0)))
+
+            ! Update interior and bottom layers
+            kloop: do k = 2, km
+               loss_factor = max(0.0,min(1.0, dt * tau_(k)))
+
+               ! Check if pressure layers are valid
+               if (dp_(k-1) > eps .and. dp_(k) > eps) then
+                  transfer_factor = (dp_(k-1) / dp_(k)) * dt * tau_(k-1)
+                  qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0))) + &
+                                 transfer_factor * qa_old(k-1)
+               else
+                  qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)))
+               end if
+            end do kloop
+         end do iitloop
+      end do iloop
+     end do jloop
+   end subroutine SettlingSolverUFS
 
 !==================================================================================
 !BOP
@@ -3291,7 +3415,6 @@ end function DarmenovaDragPartition
         if (tmpu(i,j,k) < 258d0 .and. .not.snow_scavenging) then
             F = 0.d0
         endif
-
         effRemoval = fwet
         DC(n) = aerosol(i,j,k) * F * effRemoval *(1.-exp(-BT))
         if (DC(n).lt.0.) DC(n) = 0.
@@ -7162,7 +7285,7 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)    :: airMolWght ! air molecular weight [kg]
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]
    real, intent(in) :: fMassSO4, fMassSO2
-   real, dimension(:,:,:) :: h2o2_int
+   real, dimension(:,:,:) :: h2o2_int   
    real, pointer, dimension(:,:,:), intent(in) :: ple     ! level edge air pressure
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density, [kg m-3]
    real, pointer, dimension(:,:), intent(in)   :: precc   ! total convective precip, [mm day-1]
@@ -8028,10 +8151,10 @@ K_LOOP: do k = km, 1, -1
           do i = i1, i2
            rh_ = min(0.95,rh(i,j,k))
            gf = (1. + 1.19*rh_/(1.-rh_) )                   ! ratio of wet/dry volume, eq. 5
-           rwet = rmed * gf**(1./3.)                      ! wet effective radius, m
+           rwet = rmed * gf**(1./3.)*1.e-6                  ! wet effective radius, m (note unit change)
 !          Wet particle volume m3 m-3
            svol = SO4(i,j,k) * rhoa(i,j,k) / rhop * gf
-!          Integral of lognormal surface area m2 m-3
+!          Integral of lognormal surface area m2 m-3 (From Zender Table 1)
            if(present(sarea)) sarea(i,j,k) = 3./rwet*svol*exp(-5./2.*alog(sigma)**2.)
 !          Integral of lognormal number density # m-3
            if(present(snum)) snum(i,j,k) = svol / (rwet**3) * exp(-9/2.*alog(sigma)**2.) * 3./4./pi
