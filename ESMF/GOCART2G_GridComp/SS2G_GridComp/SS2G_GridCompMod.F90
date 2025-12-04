@@ -824,7 +824,7 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real, pointer, dimension(:,:,:)   :: sssd_vel
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
@@ -882,9 +882,11 @@ contains
     do n = 1, self%nbins
        nullify(flux_ptr)
        if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
+       nullify(sssd_vel)
+       if (associated(SSSD_V)) sssd_vel => SSSD_V(:,:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            SS(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
+                           rh2, zle, delp, flux_ptr, sssd_vel, settling_scheme=settling_opt, __RC__)
     end do
 
 !   Deposition
@@ -913,9 +915,8 @@ contains
     select case (self%wet_removal_scheme)
     case ('gocart')
        do n = 1, self%nbins
-          fwet = 1.
           call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                                  KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
+                                  KIN, MAPL_GRAV, self%fwet(n), SS(:,:,:,n), ple, t, airdens, &
                                   pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
        end do
     case ('ufs')

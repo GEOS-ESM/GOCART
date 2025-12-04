@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed effective radius in MieQuery.H to remove in place units scaling; made 
   corresponding change in Chem_SettlingSimple
 - Updated optics lookup tables to accommodate area and effective radius calculation
+- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
 - Fwet value in dust modified from 0.8 to 1.0
 - Dust and Sea salt Emission scale factors updated for L181
@@ -24,15 +25,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Heartbeat time step removed and `timeToWork` logical added
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 - Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
+- fwet removed from children GridCompMod and placed in respective instance RC files
+- Updated settling routine and calls to allow settling velocity diagnostics in output field
 
 ### Fixed
 
+- In DU2G_GridCompMod.F90 remove unnecessary "if(associated())" check for DU_SRC
+  to future proof for application of new MAPL filtering
 - Units error in sulfate surface area density calculation in Process Library corrected
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
 
 ### Added
+
 - Added effective radius and surface area density to aerosol states for use in chemistry
 - Added logic in SU2G_GridCompMod.F90 through SU2G_instance_SU.rc to allow one-way
   coupling of GMI OH, NO3, H2O2 to sulfur chemistry mechanism

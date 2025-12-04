@@ -1465,7 +1465,7 @@ end function DarmenovaDragPartition
                                                   !  0 - all is well
                                                   !  1 -
 !  Optionally output the settling velocity calculated
-   real, pointer, optional, dimension(:,:,:)  :: vsettleOut
+   real, pointer, optional, intent (inout)  :: vsettleOut (:,:,:)
 
 !  Optionally correct the settling velocity following Maring et al, 2003
    logical, optional, intent(in)    :: correctionMaring
@@ -1576,9 +1576,11 @@ end function DarmenovaDragPartition
        endif
     endif
 
-    if(present(vsettleOut)) then
-       vsettleOut = vsettle
-    endif
+    if (present(vsettleOut)) then
+       if (associated(vsettleOut)) then
+          vsettleOut = vsettle
+       end if
+    end if
 
 !   Time integration
     select case (settling_scheme)
@@ -3413,7 +3415,6 @@ end function DarmenovaDragPartition
         if (tmpu(i,j,k) < 258d0 .and. .not.snow_scavenging) then
             F = 0.d0
         endif
-
         effRemoval = fwet
         DC(n) = aerosol(i,j,k) * F * effRemoval *(1.-exp(-BT))
         if (DC(n).lt.0.) DC(n) = 0.
@@ -7327,7 +7328,7 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)    :: airMolWght ! air molecular weight [kg]
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]
    real, intent(in) :: fMassSO4, fMassSO2
-   real, dimension(:,:,:) :: h2o2_int
+   real, dimension(:,:,:) :: h2o2_int   
    real, pointer, dimension(:,:,:), intent(in) :: ple     ! level edge air pressure
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density, [kg m-3]
    real, pointer, dimension(:,:), intent(in)   :: precc   ! total convective precip, [mm day-1]

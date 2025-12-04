@@ -175,7 +175,6 @@ contains
     if (MAPL_AM_I_ROOT()) then
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
-
     ! Point Sources
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
@@ -832,9 +831,8 @@ contains
 
 !   Set du_src to 0 where undefined
 !   --------------------------------
-    if (associated(du_src)) then
-       where (1.01*du_src > MAPL_UNDEF) du_src = 0.
-    endif
+    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
+
 !   Get dimensions
 !   ---------------
     import_shape = shape(wet1)
@@ -996,7 +994,7 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real, pointer, dimension(:,:,:)   :: dusd_vel
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
@@ -1057,9 +1055,11 @@ contains
     do n = 1, self%nbins
        nullify(flux_ptr)
        if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
+       nullify(dusd_vel)
+       if (associated(DUSD_V)) dusd_vel => DUSD_V(:,:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            DU(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, &
+                           rh2, zle, delp, flux_ptr, dusd_vel, correctionMaring=self%maringFlag, &
                            settling_scheme=settling_opt, __RC__)
     end do
 
@@ -1088,9 +1088,8 @@ contains
    select case (self%wet_removal_scheme)
    case ('gocart')
       do n = 1, self%nbins
-         fwet = 1.0
          call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
-                                 KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
+                                 KIN, MAPL_GRAV, self%fwet(n), DU(:,:,:,n), ple, t, airdens, &
                                  pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
       end do
    case ('ufs')

@@ -1165,6 +1165,7 @@ contains
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
 
     real, dimension(:,:), allocatable   :: drydepositionf
+    real, pointer, dimension(:,:,:)     :: susd_vel
 
     real, pointer, dimension(:,:,:)     :: dummyMSA !=> null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing
@@ -1282,14 +1283,17 @@ contains
 
 !   Set default export value to 0.0 for all tracers
     if (associated(SUSD)) SUSD(:,:,:) = 0.0
+    if (associated(SUSD_V)) SUSD_V(:,:,:,:) = 0.0
 !   Do settling only for sulfate aerosol tracer NSO4
     call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=short_name, __RC__)
     call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
     nullify(flux_ptr)
     if (associated(SUSD)) flux_ptr => SUSD(:,:,nSO4)
+    nullify(susd_vel)
+    if (associated(SUSD_V)) susd_vel => SUSD_V(:,:,:,nSO4)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                         int_ptr, t, airdens, &
-                        rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, susd_vel, settling_scheme=settling_opt, __RC__)
 
     allocate(drydepositionf, mold=lwi, __STAT__)
     call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &

@@ -10,6 +10,9 @@ aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opti
 # Scavenging efficiency per bin [km-1]
 fscav: 0.0   0.4    0.4    0.4    0.4
 
+#Large scale rainout efficiency per bin for gocart
+fwet: 1.0 1.0 1.0 1.0 0.3
+
 # Dry particle radius [um], used for settling
 particle_radius_microns:  0.0    0.2695 0.2695 2.1    7.57
 

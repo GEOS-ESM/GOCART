@@ -87,6 +87,7 @@ category: EXPORT
  MSASMASS      | kg m-3     | xy   | N    |                                | MSA Surface Mass Concentration
  MSACMASS      | kg m-2     | xy   | N    |                                | MSA Column Mass Density
  SUCONC        | kg m-3     | xyz  | C    |                                | SO4 Aerosol Mass Concentration
+ SUSD_V        | m s-1      | xyz  | C    | self%nbins                     | SO4 Settling Velocity (Bin %d)
  SUEXTCOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient
  SUEXTCOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient - Fixed RH=20%
  SUEXTCOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | SO4 Extinction Coefficient - Fixed RH=80%

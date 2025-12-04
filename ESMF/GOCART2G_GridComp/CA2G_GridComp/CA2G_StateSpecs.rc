@@ -78,6 +78,7 @@ category: EXPORT
  *CONC        | kg m-3       | xyz   | C     |                                | * Aerosol Mass Concentration
  *SAREA       | m2 m-3       | xyz   | C     |                                | * Aerosol Surface Area Density
  *REFF        | m            | xyz   | C     |                                | * Aerosol Effective Radius
+ *SD_V        | m s-1        | xyz   | C     | self%nbins                     | * Aerosol Settling Velocity (Bin %d)
  *EXTCOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient
  *EXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient - Fixed RH=20%
  *EXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient - Fixed RH=80%
