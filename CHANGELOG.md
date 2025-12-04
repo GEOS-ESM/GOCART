@@ -24,6 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated settling routine and calls to allow settling velocity diagnostics in output field
 
 ### Fixed
+- In DU2G_GridCompMod.F90 remove unnecessary "if(associated())" check for DU_SRC
+  to future proof for application of new MAPL filtering
 
 - Units error in sulfate surface area density calculation in Process Library corrected
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
