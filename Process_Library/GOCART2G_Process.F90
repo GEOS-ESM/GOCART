@@ -423,7 +423,7 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
    real, parameter :: CLAY_THRESHOLD = 0.2  ! clay fraction above which the maximum flux ratio is returned
 
 ! !DESCRIPTION: Computes the vertical-to-horizontal dust flux ratio according to
-!               B.Marticorena, G.Bergametti, J.Geophys.Res., 100(D8), 16415â€“16430, 1995
+!               B.Marticorena, G.Bergametti, J.Geophys.Res., 100(D8), 16415?16430, 1995
 !               doi:10.1029/95JD00690
 !
 ! !REVISION HISTORY:
@@ -557,9 +557,9 @@ end function DarmenovaDragPartition
 
 ! !INPUT PARAMETERS:
    real, intent(in) :: Lc     ! Canopy length scale [m]
-   real, intent(in) :: lai    ! Leaf Area Index [mÂ²/mÂ²]
+   real, intent(in) :: lai    ! Leaf Area Index [m²/m²]
    real, intent(in) :: gvf    ! Green Vegetation Fraction [0-1]
-   real, intent(in) :: thresh ! LAI threshold value [mÂ²/mÂ²]
+   real, intent(in) :: thresh ! LAI threshold value [m²/m²]
 
 ! !LOCAL VARIABLES:
    real :: frac_bare ! Fraction of bare surface [0-1]
@@ -655,20 +655,20 @@ end function DarmenovaDragPartition
    real, dimension(:,:), intent(in) :: airdens         ! air density [kg/m^3]
    real, dimension(:,:), intent(in) :: ustar           ! friction velocity [m/s]
    real, dimension(:,:), intent(in) :: vegfrac         ! vegetation fraction [0-1]
-   real, dimension(:,:), intent(in) :: lai             ! leaf area index [mÂ²/mÂ²]
+   real, dimension(:,:), intent(in) :: lai             ! leaf area index [m²/m²]
    real, dimension(:,:), intent(in) :: uthrs           ! threshold velocity [m/s]
    real,               intent(in)   :: alpha           ! scaling factor [1]
    real,               intent(in)   :: gamma           ! scaling factor [1]
    real,               intent(in)   :: kvhmax          ! max vertical/horizontal flux ratio [1]
-   real,               intent(in)   :: grav            ! gravity [m/sÂ²]
-   real, dimension(:), intent(in)   :: rhop            ! soil class density [kg/mÂ³]
+   real,               intent(in)   :: grav            ! gravity [m/s²]
+   real, dimension(:), intent(in)   :: rhop            ! soil class density [kg/m³]
    real, dimension(:), intent(in)   :: distribution    ! dust bin distribution [0-1]
    real,               intent(in)   :: drylimit_factor ! dry limit tuning factor [1]
    real,               intent(in)   :: moist_correct   ! moisture correction [1]
    integer,            intent(in)   :: drag_opt        ! drag partition option [1-3]
 
 ! !OUTPUT PARAMETERS:
-   real,    intent(out) :: emissions(:,:,:)  ! binned surface emissions [kg/(mÂ² s)]
+   real,    intent(out) :: emissions(:,:,:)  ! binned surface emissions [kg/(m² s)]
    integer, intent(out) :: rc                ! Error return code
 
 ! !LOCAL VARIABLES:
@@ -3673,7 +3673,6 @@ end function DarmenovaDragPartition
      real, pointer, dimension(:,:,:), intent(in)    :: pfllsan      ! 3D flux of liquid nonconvective precipitation [kg/(m^2 sec)]
      real, pointer, dimension(:,:,:), intent(in)    :: pfilsan      ! 3D flux of ice nonconvective precipitation [kg/(m^2 sec)]
      real, pointer, dimension(:,:,:)                :: fluxout      ! tracer loss flux [kg m-2 s-1]
-
 ! !OUTPUT PARAMETERS:
      integer,                         intent(out)   :: rc           ! Error return code:
 
@@ -3782,11 +3781,34 @@ end function DarmenovaDragPartition
      do j = jl, ju
        do i = il, iu
          ! -- compute column quantities
-         do k = ktop, kbot
+         ! ---- TOP LAYER (k = 1) ----
+         k = ktop
+         km1 = k   ! prevents k=0 indexing
+
+         ! layer pressure thickness (use k and k+1)
+         delp       = ple(i,j,k+1) - ple(i,j,k)
+         dpog(k)    = delp / grav
+         delz       = dpog(k) / rhoa(i,j,k)
+         delz_cm(k) = delz * m_to_cm
+
+         ! no precipitation entering from above
+         qq(k)   = 0.0
+         pdwn(k) = 0.0
+
+         ! initialize aerosol column mass and wet-deposition accumulator
+         conc(k)  = aerosol(i,j,k) * dpog(k)
+         dconc(k) = 0.0
+! ---- REMAINING LAYERS (k = 2 .. km) ----
+         do k = ktop+1, kbot
            km1 = k - 1
 
            ! -- initialize auxiliary arrays
-           delp = ple(i,j,k) - ple(i,j,km1)
+           if (k < kbot) then
+             delp = ple(i,j,k+1) - ple(i,j,k)
+           else
+             delp = ple(i,j,k) - ple(i,j,k-1)   ! bottom-most layer
+           end if
+
            dpog(k) = delp / grav
            delz = dpog(k) / rhoa(i,j,k) ! thickness of layer [m]
            delz_cm(k) = delz * m_to_cm  ! thickness of layer [cm]
@@ -3815,7 +3837,13 @@ end function DarmenovaDragPartition
            dconc(k) = zero
 
            ! -- compute mixing ratio of saturated water vapour over ice
-           pres     = 0.5 * ( ple(i,j,km1) + ple(i,j,k) )
+           if (k < kbot) then
+             pres = 0.5 * ( ple(i,j,k) + ple(i,j,k+1) )
+           else
+             pres = 0.5 * ( ple(i,j,k-1) + ple(i,j,k) )
+           end if
+           c_h2o(k) = 10._dp ** (-2663.5_dp / tmpu(i,j,k) + 12.537_dp ) / pres
+           
            c_h2o(k) = 10._dp ** (-2663.5_dp / tmpu(i,j,k) + 12.537_dp ) / pres
 
            ! -- estimate cloud ice and liquid water content
@@ -3835,18 +3863,25 @@ end function DarmenovaDragPartition
          if (qq(k) > qq_thr) then
            ! -- compute rainout rate
            k_rain = k_min + qq(k) / cwc
-           f = qq(k) / ( k_rain * cwc )
+           ! f = qq(k) / ( k_rain * cwc )
+
+           ! -- Safety check: ensure denominator is positive
+           if (k_rain * cwc > 1.0e-12) then
+             f = qq(k) / ( k_rain * cwc )
+             f = min(one, max(zero, f))  ! Bound f between 0 and 1
+           else
+             f = zero
+           end if
 
            call rainout( kin, rainout_eff, f, k_rain, dt, tmpu(i,j,k), delz_cm(k), &
                          pdwn(k), c_h2o(k), cldice(k), cldliq(k), spc, lossfrac )
 
            ! -- compute and apply effective loss fraction
            wetloss = lossfrac * conc(k)
+           wetloss  = max(zero, min(wetloss, conc(k)))
            conc(k) = conc(k) - wetloss
            dconc(k) = wetloss
 
-           ! -- add to total column deposition flux
-           dconc(k) = wetloss
          end if
 
          ! -- middle layers
@@ -3859,6 +3894,7 @@ end function DarmenovaDragPartition
            if (qq(k) > qq_thr) then
              k_rain = k_min + qq(k) / cwc
              f_prime = qq(k) / ( k_rain * cwc )
+             f_prime = min(one, max(zero, f_prime))
            end if
 
            ! -- account for precipitation flux
@@ -3881,6 +3917,13 @@ end function DarmenovaDragPartition
                wetloss = lossfrac * conc(k)
                conc(k) = conc(k) - wetloss
                dconc(k) = dconc(km1) + wetloss
+               ! If precipitation evaporates significantly before reaching next level
+               if (k < kbot .and. pdwn(k+1) < 0.5 * pdwn(k) .and. pdwn(k) > pdwn_thr) then
+               ! Partial re-evaporation anticipated
+               alpha = (pdwn(k) - pdwn(k+1)) / pdwn(k)
+               alpha = min(one, max(zero, alpha))
+               ! This will be handled in next level, just note it here if needed
+               end if
              end if
              if ( f_washout > zero ) then
                if ( f_rainout > zero ) then
@@ -3897,10 +3940,25 @@ end function DarmenovaDragPartition
                  ! -- adjust loss fraction for aerosols
                  lossfrac = lossfrac * f_washout / f
 
-                 alpha = abs( qq(k) ) * delz_cm(k) / pdwn(km1)
-                 alpha = min( one, alpha )
-                 gain  = 0.5 * alpha * dconc(km1)
-                 wetloss  = conc(k) * lossfrac - gain
+                 !alpha = abs( qq(k) ) * delz_cm(k) / pdwn(km1), bug:pdwn(km1) could be zero
+                 !alpha = min( one, alpha )
+                 !gain  = 0.5 * alpha * dconc(km1)
+
+                 gain = zero
+                 if ( f_rainout > zero ) then
+                     ! Washout from precipitation entering from top
+                     if (pdwn(km1) > pdwn_thr) then
+                     alpha = abs( qq(k) ) * delz_cm(k) / pdwn(km1)
+                     alpha = min( one, alpha )
+                     gain  = 0.5 * alpha * dconc(km1)
+                     end if
+                  else
+                  ! Washout from precipitation leaving through bottom
+                  ! No re-evaporation gain in this case (precipitation already present)
+                  gain = zero
+                  end if
+                  wetloss  = conc(k) * lossfrac - gain
+                  wetloss  = max(zero, wetloss)  ! Prevent negative loss
                  ! -- skip sulfate
                else
                  washed  = f_washout * conc(k) + dconc(km1)
@@ -3914,16 +3972,28 @@ end function DarmenovaDragPartition
                end if
              end if
            else
-             ! -- complete resuspension of rainout + washout from level above
-             conc(k) = conc(k) + dconc(km1)
-           end if
-
+             !-- complete resuspension of rainout + washout from level above
+             ! conc(k) = conc(k) + dconc(km1)
+             ! Check for actual evaporation: negative formation rate OR decreasing flux
+             ! Re-evaporation only if precip enters the layer and flux decreases
+              if ( (pdwn(km1) > 1.0e-20) .and. (pdwn(k) < pdwn(km1)) ) then
+                alpha = max(zero, min(one, (pdwn(km1) - pdwn(k)) / pdwn(km1)))
+                conc(k)  = conc(k) + alpha * dconc(km1)
+                dconc(k) = (one - alpha) * dconc(km1)
+              else
+                ! No evaporation here: just carry scavenged mass downward
+                dconc(k) = dconc(km1)
+                ! conc(k) unchanged
+              end if
+            end if
+ 
            ftop = f
 
          end do
 
          ! -- surface level
          k = kbot
+         km1=k-1
          if (pdwn(km1) > pdwn_thr) then
            f = ftop
            if ( f > zero ) then
@@ -3947,7 +4017,7 @@ end function DarmenovaDragPartition
            aerosol(i,j,k) = conc(k) / dpog(k)
          end do
 
-         if (associated(fluxout)) fluxout(i,j,bin_ind) = sum(dconc) / dt
+         if (associated(fluxout)) fluxout(i,j,bin_ind) = dconc(kbot) / dt
 
        end do
      end do
@@ -9117,7 +9187,7 @@ K_LOOP: do k = km, 1, -1
 !     of Potential Importance in
 !     Environmental Chemistry (Version 3)
 !     http://www.henrys-law.org
-!     * indica artigos nao encontrados nesse endereÃ§o eletronico
+!     * indica artigos nao encontrados nesse endereço eletronico
   REAL,PARAMETER,DIMENSION(nspecies_HL) :: hstar=(/&
     1.10E-2              ,   & ! O3 - 001
     8.30E+4              ,   & ! H2O2 - 002
