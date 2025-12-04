@@ -1094,6 +1094,7 @@ contains
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
 
     real, dimension(:,:), allocatable   :: drydepositionf
+    real, pointer, dimension(:,:,:)     :: susd_vel
 
     real, pointer, dimension(:,:,:)     :: dummyMSA !=> null() ! this is so the model can run without MSA enabled
     logical :: alarm_is_ringing
@@ -1197,6 +1198,7 @@ contains
        ! if radius == 0 then we're dealing with a gas which has no settling losses
        if (self%radius(n) == 0.0) then
           if (associated(SUSD)) SUSD(:,:,n) = 0.0
+          if (associated(SUSD_V)) SUSD_V(:,:,:,n) = 0.0
           cycle
        end if
 
@@ -1204,11 +1206,12 @@ contains
        call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
        nullify(flux_ptr)
        if (associated(SUSD)) flux_ptr => SUSD(:,:,n)
-
+       nullify(susd_vel)
+       if (associated(SUSD_V)) susd_vel => SUSD_V(:,:,:,n)
 
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                            int_ptr, t, airdens, &
-                           rh2, zle, delp, flux_ptr, settling_scheme=settling_opt, __RC__)
+                           rh2, zle, delp, flux_ptr, susd_vel, settling_scheme=settling_opt, __RC__)
 
     end do
 

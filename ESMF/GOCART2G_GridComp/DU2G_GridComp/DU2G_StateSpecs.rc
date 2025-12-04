@@ -62,6 +62,7 @@ category: EXPORT
  DUMASS        | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUMASS25      | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUCONC        | kg m-3     | xyz  | C    |                                | Dust Mass Concentration
+ DUSD_V        | m s-1      | xyz  | C    | self%nbins                     | Dust Settling Velocity (Bin %d)
  DUEXTCOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient
  DUEXTCOEFRH20 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient - Fixed RH=20%
  DUEXTCOEFRH80 | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient - Fixed RH=80%
