@@ -51,6 +51,8 @@ jobs:
       fixture-ref: release/MAPL-v3
       run-mepo-develop: false
       patch-esmf: true
+      # For some reason, Spack builds have weird install issues. For now, skip install.
+      run-install: false
 
   spack_build_gocart:
     uses: GEOS-ESM/CI-workflows/.github/workflows/spack_gcc_build.yml@project/geosgcm
@@ -61,4 +63,6 @@ jobs:
       run-mepo-develop: false
       build-target: '--target GOCART2G_GridComp'
       patch-esmf: true
+      # Note: you cannot build the install target with plain GOCART
+      run-install: false
 
