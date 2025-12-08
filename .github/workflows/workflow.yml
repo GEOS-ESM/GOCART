@@ -63,6 +63,6 @@ jobs:
       run-mepo-develop: false
       build-target: '--target GOCART2G_GridComp'
       patch-esmf: true
-      # Note: you cannot build the install target with plain gocart
+      # Note: you cannot build the install target with plain GOCART2G_GridComp target
       run-install: false
 
