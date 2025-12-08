@@ -128,7 +128,7 @@ contains
       !Local
       type(ESMF_Field) :: field, field2d
       type(ESMF_Info) :: info
-      type(ESMF_Geom) :: geom
+      type(ESMF_Geom), allocatable :: geom
       real, pointer :: orig_ptr(:,:,:)
       real, pointer :: ptr2d(:,:)
       character(len=ESMF_MAXSTR) :: bin_index
