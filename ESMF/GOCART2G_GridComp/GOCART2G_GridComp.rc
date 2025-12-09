@@ -36,8 +36,8 @@ PASSIVE_INSTANCES_NI:
 
 # Set optics parameters
 # ---------------------
-aerosol_monochromatic_optics_wavelength_in_nm_from_LUT: 470 550 670 870
+aerosol_monochromatic_optics_wavelength_in_nm_from_LUT: 470 532 550 670 870
 
-wavelengths_for_profile_aop_in_nm: 550               # must be included in LUT
+wavelengths_for_profile_aop_in_nm: 532               # must be included in LUT
 wavelengths_for_vertically_integrated_aop_in_nm: 550 # must be included in LUT
 
