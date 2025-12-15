@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Calculation of surface area density and effective radius for connection to chemistry
+  now comes from optics tables
+- Changed effective radius in MieQuery.H to remove in place units scaling; made 
+  corresponding change in Chem_SettlingSimple
+- Updated optics lookup tables to accommodate area and effective radius calculation
 - Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
 - Fwet value in dust modified from 0.8 to 1.0
@@ -24,17 +29,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated settling routine and calls to allow settling velocity diagnostics in output field
 
 ### Fixed
+
 - In SU an incorrect (older) optics table was specified in AMIP/AMIP.20C sub-directories.
   This is corrected from v1_3 to v1_6
 - In DU2G_GridCompMod.F90 remove unnecessary "if(associated())" check for DU_SRC
   to future proof for application of new MAPL filtering
-
 - Units error in sulfate surface area density calculation in Process Library corrected
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
 
 ### Added
+
+- Added effective radius and surface area density to aerosol states for use in chemistry
+- Added logic in SU2G_GridCompMod.F90 through SU2G_instance_SU.rc to allow one-way
+  coupling of GMI OH, NO3, H2O2 to sulfur chemistry mechanism
+- Added a callback to allow a chemistry module to call for optical properties needed
+  for photolysis calculation; currently used for GMI with CloudJ
 
 ## [v2.4.3] - 2025-07-21
 
