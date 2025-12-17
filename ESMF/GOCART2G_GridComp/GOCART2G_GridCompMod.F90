@@ -564,7 +564,6 @@ contains
 
       type(ESMF_Grid) :: grid
       type (GOCART_State), pointer :: self
-      real, pointer, dimension(:,:) :: lats
 
       ! ! Nitrates - ACG will generate this once we add NI's export states as GOCART's import
       ! real, pointer, dimension(:,:,:) :: niexttau, nistexttau
@@ -616,7 +615,7 @@ contains
       real :: c1, c2, c3, nifactor
       real, parameter :: pi = 3.141529265 ! pchakrab: TODO - use MAPL_PI instead??
       integer :: ind550, ind532
-      integer :: i1, i2, j1, j2, km, k,kk
+      integer :: i1, i2, j1, j2, im, jm, km, k, kk
       class(logger_t), pointer :: logger
       character(len=:), allocatable :: child_name
       integer :: n, w, num_children, iter, status
@@ -671,7 +670,7 @@ contains
 
       ! Compute total aerosol diagnostic values for export
       call MAPL_GridCompGet(gc, grid=grid, _RC)
-      call MAPL_GridGet(grid, latitudes=lats, _RC)
+      call MAPL_GridGet(grid, im=im, jm=jm, _RC)
       if(associated(totangstr)) then
          ind550 = 0
          do w = 1, size(self%wavelengths_vertint) ! find index for 550nm to compute total angstrom
@@ -683,7 +682,7 @@ contains
          end do
          _ASSERT(ind550 /= 0, "Cannot produce TOTANGSTR variable without 550nm wavelength")
          totangstr = 0.0
-         allocate(tau1(SIZE(LATS,1), SIZE(LATS,2)), tau2(SIZE(LATS,1), SIZE(LATS,2)), _STAT)
+         allocate(tau1(im, jm), tau2(im, jm), _STAT)
          tau1(:,:) = tiny(1.0)
          tau2(:,:) = tiny(1.0)
          c1 = -log(470./550.)

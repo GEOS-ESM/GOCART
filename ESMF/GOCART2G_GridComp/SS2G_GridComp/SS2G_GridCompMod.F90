@@ -22,7 +22,7 @@ module SS2G_GridCompMod
    use mapl3g_generic, only: MAPL_ClockGet
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
-   use mapl3g_Geom_API, only: MAPL_GridGet
+   use mapl3g_Geom_API, only: MAPL_GridGet, MAPL_GridGetCoordinates
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_UngriddedDim, only: UngriddedDim
    use GOCART2G_MieMod
@@ -336,7 +336,9 @@ contains
 
       real, pointer, dimension(:,:,:,:) :: int_ptr
       real, pointer, dimension(:,:,:) :: ple
-      real, pointer, dimension(:,:) :: deep_lakes_mask, lats, lons
+      real, pointer, dimension(:,:) :: deep_lakes_mask
+      real, allocatable, dimension(:,:), target :: lats, lons
+      real, pointer, dimension(:,:) :: plats => null(), plons => null()
       real :: CDT ! chemistry timestep (secs)
       real(ESMF_KIND_R4) :: HDT ! model timestep (secs)
 
@@ -480,8 +482,10 @@ contains
       !allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
       !call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, _RC)
       call MAPL_StateGetPointer(internal, itemName="DEEP_LAKES_MASK", farrayPtr=deep_lakes_mask, _RC)
-      call MAPL_GridGet(grid, latitudes=lats, longitudes=lons, _RC)
-      call deepLakesMask(lons, lats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, _RC)
+      call MAPL_GridGetCoordinates(grid, latitudes=lats, longitudes=lons, _RC)
+      plats => lats
+      plons => lons
+      call deepLakesMask(plons, plats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, _RC)
 
       call logger%info("Initialize:: ...complete")
       _RETURN(_SUCCESS)
