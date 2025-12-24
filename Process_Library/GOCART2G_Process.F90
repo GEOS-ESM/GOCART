@@ -5945,8 +5945,8 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), intent(in)  :: delp           ! pressure thickness [Pa]
    real, pointer, dimension(:,:,:,:), intent(in) :: DU   ! dust aerosol [kg/kg]
    real, pointer, dimension(:,:,:,:), intent(in) :: SS   ! sea salt aerosol [kg/kg]
-   real, dimension(:) ,intent(in)      :: rmedDU         ! dust aerosol radius [um]
-   real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [um]
+   real, dimension(:) ,intent(in)      :: rmedDU         ! dust aerosol radius [m]
+   real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [m]
    real, dimension(:) ,intent(in)      :: fnumDU         ! number of dust particles per kg mass
    real, dimension(:) ,intent(in)      :: fnumSS         ! number of sea salt particles per kg mass
    integer, intent(in)                 :: km             ! number of model levels
@@ -5958,7 +5958,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !INOUTPUT PARAMETERS:
    real, pointer, dimension(:,:,:), intent(inout)  :: NI_phet   ! Nitrate Production from Het Chem [kg/(m^2 sec)]
-   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
+   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:,:), intent(inout)  :: HNO3_conc ! Nitric Acid Mass Concentration [kg/m^3]
    real, pointer, dimension(:,:), intent(inout)    :: HNO3_sfcmass ! Nitric Acid Surface Mass Concentration [kg/m^3]
    real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^3]
@@ -6080,9 +6080,9 @@ K_LOOP: do k = km, 1, -1
    nNO3an3 = nNO3an3 + kan3 * deltahno3 * fMassNO3 / fMassHNO3
 
    if(associated(NI_phet)) then
-      NI_phet(:,:,1) = (1.0 / (grav*cdt)) * sum(kan1*deltahno3*delp, dim=3)
-      NI_phet(:,:,2) = (1.0 / (grav*cdt)) * sum(kan2*deltahno3*delp, dim=3)
-      NI_phet(:,:,3) = (1.0 / (grav*cdt)) * sum(kan3*deltahno3*delp, dim=3)
+      NI_phet(:,:,1) = (1.0 / (grav*cdt)) * sum(kan1*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
+      NI_phet(:,:,2) = (1.0 / (grav*cdt)) * sum(kan2*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
+      NI_phet(:,:,3) = (1.0 / (grav*cdt)) * sum(kan3*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
    end if
 
 !  Output diagnostic HNO3
@@ -6347,7 +6347,12 @@ K_LOOP: do k = km, 1, -1
    p_dfkg   = sqrt(3.472e-2 + 1.0/fmassHNO3)
    p_avgvel = sqrt(8.0 * rgas_dp * 1000.0 / (pi_dp * fmassHNO3))
 
-      ! RH factor - Figure 1 in Duncan et al. (2010)
+      ! RH factor: rh dependent gamma for dust - references:
+      ! Table 1 in Liu et al. J. Phys. Chem. A 2008
+      ! doi:10.1021/jp076169h 
+      ! Figure 1 in Fairlie et al. ACP 2010 
+      ! doi:10.5194/acp-10-3999-2010
+
       f_rh = 0.03
 
       if (rh >= 0.1 .and. rh < 0.3)       then
@@ -6364,7 +6369,6 @@ K_LOOP: do k = km, 1, -1
          f_rh = 2.0
       end if
 
-!     Following uptake coefficients of Liu et al.(2007)
       gamma = gamma_hno3 * f_rh
 
       sqrt_tk = sqrt(tk)
@@ -9505,7 +9509,7 @@ loop2: DO l = 1,nspecies_HL
    real, dimension(:,:,:), intent(inout)  :: NH3    ! Ammonia (NH3, gas phase) [kg kg-1]
    real, dimension(:,:,:), intent(inout)  :: NO3an1 ! Nitrate size bin 001 [kg kg-1]
    real, dimension(:,:,:), intent(inout)  :: NH4a   ! Ammonium ion (NH4+, aerosol phase) [kg kg-1]
-   real, dimension(:,:,:), intent(inout)  :: xhno3  ! buffer for NITRATE_HNO3 [kg m-2 sec-1]
+   real, dimension(:,:,:), intent(inout)  :: xhno3  ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pno3aq ! Nitrate Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh4aq ! Ammonium Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh3aq ! Ammonia Change from Aqueous Chemistry [kg m-2 s-1]

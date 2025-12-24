@@ -38,6 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
+- Units error for dust and sea salt radius in NIheterogenousChem in Process Library corrected.
+- stochiometric coefficent correction for heterogenous production diagnostic NI_phet
+  in NIheterogenousChem in Process Library.
+- corrected references for RH factor for hno3 uptake on dust in NIheterogenousChem in Process Library.
+- units error for external data hno3 corrected  in NI instance file and in Process Library.
+
+
+
 
 ### Added
 
