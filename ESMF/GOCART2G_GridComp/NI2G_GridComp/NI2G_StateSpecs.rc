@@ -64,10 +64,16 @@ category: EXPORT
   NISCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient - fixed RH=20%
   NISCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient - fixed RH=80%
   NIBCKCOEF     | m-1 sr-1     | xyz   | C     | size(self%wavelengths_profile) | Nitrate Backscatter Coefficient
+  NIPNO3AQV     | kg m-2 s-1   | xyz   | C     |                                | 3D Nitrate Production from Aqueous Chemistry
+  NIPNH4AQV     | kg m-2 s-1   | xyz   | C     |                                | 3D Ammonium production from Aqueous Chemistry
+  NIPNH3AQV     | kg m-2 s-1   | xyz   | C     |                                | 3D Ammonia Change from Aqueous Chemistry
+  NIPHNO3AQV    | kg m-2 s-1   | xyz   | C     |                                | 3D Nitric acid  Change from Aqueous Chemistry
+  NIHTV         | kg m-2 s-1   | xyz   | C     | 3                              | 3D Nitrate Production from Het Chem (Bin %d)
 # ............. | ............ | ..... | ..... | ...........                    | ..................................
   NIPNO3AQ      | kg m-2 s-1   | xy    | N     |                                | Nitrate Production from Aqueous Chemistry
   NIPNH4AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonium Production from Aqueous Chemistry
   NIPNH3AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonia Change from Aqueous Chemistry
+  NIPHNO3AQ      | kg m-2 s-1   | xy    | N     |                                | Nitric Acid Change from Aqueous Chemistry
   NIHT          | kg m-2 s-1   | xy    | N     | 3                              | Nitrate Production from Het Chem (Bin %d)
   NISD          | kg m-2 s-1   | xy    | N     | 3                              | Nitrate Sedimentation (Bin %d)
   NIDP          | kg m-2 s-1   | xy    | N     | 3                              | Nitrate Dry Deposition (Bin %d)

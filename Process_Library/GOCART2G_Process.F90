@@ -5922,7 +5922,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: NIheterogenousChemOpt
 !
 ! !INTERFACE:
-   subroutine NIheterogenousChem (NI_phet, xhno3, UNDEF, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
+   subroutine NIheterogenousChem (NI_phet, NI_phetv, xhno3, UNDEF, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
                                   DU, SS, rmedDU, rmedSS, fnumDU, fnumSS,                                    &
                                   km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2,                &
                                   nNO3an3, HNO3_conc, HNO3_sfcmass, HNO3_colmass, rc)
@@ -5958,6 +5958,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !INOUTPUT PARAMETERS:
    real, pointer, dimension(:,:,:), intent(inout)  :: NI_phet   ! Nitrate Production from Het Chem [kg/(m^2 sec)]
+   real, pointer, dimension(:,:,:,:), intent(inout) :: NI_phetv   ! 3D Nitrate Production from Het Chem [kg/(m^2 sec)]
    real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:,:), intent(inout)  :: HNO3_conc ! Nitric Acid Mass Concentration [kg/m^3]
    real, pointer, dimension(:,:), intent(inout)    :: HNO3_sfcmass ! Nitric Acid Surface Mass Concentration [kg/m^3]
@@ -6084,6 +6085,13 @@ K_LOOP: do k = km, 1, -1
       NI_phet(:,:,2) = (1.0 / (grav*cdt)) * sum(kan2*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
       NI_phet(:,:,3) = (1.0 / (grav*cdt)) * sum(kan3*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
    end if
+
+   if(associated(NI_phetv)) then
+     NI_phetv(:,:,:,1) = (1.0 / (grav*cdt)) * kan1*deltahno3*(fMassNO3/fMassHNO3)*delp
+     NI_phetv(:,:,:,2) = (1.0 / (grav*cdt)) * kan2*deltahno3*(fMassNO3/fMassHNO3)*delp
+     NI_phetv(:,:,:,3) = (1.0 / (grav*cdt)) * kan3*deltahno3*(fMassNO3/fMassHNO3)*delp
+   end if
+
 
 !  Output diagnostic HNO3
 !  ----------------------
@@ -9486,7 +9494,8 @@ loop2: DO l = 1,nspecies_HL
 
    subroutine NIthermo (km, klid, cdt, grav, delp, rhoa, tmpu, rh, fMassHNO3, fMassAir, &
                         SO4, NH3, NO3an1, NH4a, xhno3, &
-                        NI_pno3aq, NI_pnh4aq, NI_pnh3aq, rc)
+                        NI_pno3aq, NI_pnh4aq, NI_pnh3aq, NI_phno3aq, & 
+                        NI_pno3aqv,NI_pnh4aqv, NI_pnh3aqv, NI_phno3aqv, rc)
 
 
 ! !USES:
@@ -9513,6 +9522,11 @@ loop2: DO l = 1,nspecies_HL
    real, pointer, dimension(:,:), intent(inout) :: NI_pno3aq ! Nitrate Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh4aq ! Ammonium Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh3aq ! Ammonia Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:), intent(inout) :: NI_phno3aq ! Nitric Acid Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pno3aqv ! 3D Nitrate Production from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pnh4aqv ! 3D Ammonium Production from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pnh3aqv ! 3D Ammonia Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_phno3aqv ! 3D Nitric Acid Change from Aqueous Chemistry [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
    integer, optional, intent(out) :: rc                   ! Error return code:
@@ -9578,6 +9592,29 @@ loop2: DO l = 1,nspecies_HL
        NI_pnh3aq(i,j) = NI_pnh3aq(i,j) &
         + (GNH3 / fmmr_to_conc - NH3(i,j,k)) &
           * delp(i,j,k)/grav/cdt
+      if(associated(NI_phno3aq)) &
+       NI_phno3aq(i,j) = NI_phno3aq(i,j) &
+       + (GNO3 / fmmr_to_conc - (xhno3(i,j,k)*fMassHNO3/fMassAir)) &
+          * delp(i,j,k)/grav/cdt
+
+      if(associated(NI_pno3aqv)) &
+        NI_pno3aqv(i,j,k) = NI_pno3aqv(i,j,k) &
+         + (ANO3 / fmmr_to_conc - NO3an1(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_pnh4aqv)) &
+        NI_pnh4aqv(i,j,k) = NI_pnh4aqv(i,j,k) &
+         + (ANH4 / fmmr_to_conc - NH4a(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_pnh3aqv)) &
+         NI_pnh3aqv(i,j,k) = NI_pnh3aqv(i,j,k) &
+         + (GNH3 / fmmr_to_conc - NH3(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_phno3aqv)) &
+         NI_phno3aqv(i,j,k) = NI_phno3aqv(i,j,k) &
+         + (GNO3 / fmmr_to_conc - (xhno3(i,j,k)*fMassHNO3/fMassAir)) &
+          * delp(i,j,k)/grav/cdt
+
+
 
 !     Unit conversion back on return from thermodynamic module
       NH3(i,j,k)    = GNH3 / fmmr_to_conc

@@ -853,13 +853,20 @@ contains
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
     if (associated(NIPNH3AQ)) NIPNH3AQ(:,:) = 0.
+    if (associated(NIPHNO3AQ)) NIPHNO3AQ(:,:) = 0.
+    # 3D diag
+    if (associated(NIPNO3AQV)) NIPNO3AQV(:,:,:) = 0.
+    if (associated(NIPNH4AQV)) NIPNH4AQV(:,:,:) = 0.
+    if (associated(NIPNH3AQV)) NIPNH3AQV(:,:,:) = 0.
+    if (associated(NIPHNO3AQV)) NIPHNO3AQV(:,:,:) = 0.
 
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, &
                    t, rh2, fMassHNO3, MAPL_AIRMW, SO4, NH3, NO3an1, NH4a, &
-                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
+                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, NIPHNO3AQ, &
+                   NIPNO3AQV, NIPNO3AQV, NIPNH4AQV, NIPHNO3AQV, __RC__)
 
 
-    call NIheterogenousChem (NIHT, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
+    call NIheterogenousChem (NIHT, NIHTV, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
                              self%fnumDU, self%fnumSS, self%km, self%klid, &
