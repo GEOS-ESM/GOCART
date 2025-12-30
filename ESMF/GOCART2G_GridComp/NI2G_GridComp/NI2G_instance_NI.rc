@@ -33,6 +33,10 @@ sigma: 2.0  2.0  2.0  2.0  2.0
 
 pressure_lid_in_hPa: 40.0
 
+# HNO3 from GMI
+using_GMI: .false.
+
+
 # SettlingSolver options
 # Options: 'gocart' or 'ufs'
 settling_scheme: 'gocart'

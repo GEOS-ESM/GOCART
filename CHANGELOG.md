@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   coupling of GMI OH, NO3, H2O2 to sulfur chemistry mechanism
 - Added a callback to allow a chemistry module to call for optical properties needed
   for photolysis calculation; currently used for GMI with CloudJ
+- Added 3d diagnostics for nitrate production.
+- Added logic in NI2G_GridCompMod.F90 through NI2G_instance_NI.rc to allow two-way
+  coupling of GMI HNO3 to nitrate chemistry mechanism.
 
 ## [v2.4.3] - 2025-07-21
 

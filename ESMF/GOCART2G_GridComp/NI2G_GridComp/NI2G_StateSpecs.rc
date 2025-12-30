@@ -36,6 +36,7 @@ category: IMPORT
  EMI_NH3_RE   | kg m-2 s-1 | xy   | N    |           | SKIP    | resedential emissions
  EMI_NH3_TR   | kg m-2 s-1 | xy   | N    |           | SKIP    | transport emissions
  NITRATE_HNO3 | mol mol-1  | xyz  | C    |           | SKIP    | nitrate hno3 offline field
+ GMI_HNO3     | mol mol-1  | xyz  | C    |           | SKIP    | nitrate GMI HNO3 source
  DU           | kg kg-1    | xyz  | C    | 5         | OPT     | Dust Mixing Ratio all bins
  SS           | kg kg-1    | xyz  | C    | 5         | OPT     | Sea Salt Mixing Ratio all bins
  SO4          | kg kg-1    | xyz  | C    |           | OPT     | Sulfate Mixing Ratio
@@ -120,7 +121,7 @@ category: INTERNAL
  NO3an1 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 001
  NO3an2 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 002
  NO3an3 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 003
- XHNO3  |kg m-2 s-1| xyz  | C    |                      | F |                           | buffer for NITRATE_HNO3
+ XHNO3  |mol mol-1 | xyz  | C    |                      | F |                           | buffer for NITRATE_HNO3
 
 #********************************************************
 #
