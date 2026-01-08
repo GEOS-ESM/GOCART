@@ -20,8 +20,11 @@ so4_anthropogenic_fraction: 0.03
 # Aircraft emission factor: convert input unit to kg SO2
 aircraft_fuel_emission_factor: 1.0000
 
-# Scavenging efficiency per bin [km-1] (NOT USED UNLESS RAS IS CALLED)
+# Scavenging efficiency per bin [km-1]
 fscav: 0.0  0.0  0.4  0.4
+
+#Dummy wet removal efficiency for the GOCART scheme. This is not used for sulfate as of GOCART v2.5 and should be revisited.
+fwet: 1.0 1.0 1.0 1.0
 
 # Dry particle radius [um], used for settling
 particle_radius_microns: 0.0 0.0 0.35 0.0
