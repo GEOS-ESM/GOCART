@@ -3843,8 +3843,6 @@ end function DarmenovaDragPartition
              pres = 0.5 * ( ple(i,j,k-1) + ple(i,j,k) )
            end if
            c_h2o(k) = 10._dp ** (-2663.5_dp / tmpu(i,j,k) + 12.537_dp ) / pres
-           
-           c_h2o(k) = 10._dp ** (-2663.5_dp / tmpu(i,j,k) + 12.537_dp ) / pres
 
            ! -- estimate cloud ice and liquid water content
            if ( tmpu(i,j,k) >= 268. ) then
@@ -3939,11 +3937,6 @@ end function DarmenovaDragPartition
                if ( kin ) then
                  ! -- adjust loss fraction for aerosols
                  lossfrac = lossfrac * f_washout / f
-
-                 !alpha = abs( qq(k) ) * delz_cm(k) / pdwn(km1), bug:pdwn(km1) could be zero
-                 !alpha = min( one, alpha )
-                 !gain  = 0.5 * alpha * dconc(km1)
-
                  gain = zero
                  if ( f_rainout > zero ) then
                      ! Washout from precipitation entering from top

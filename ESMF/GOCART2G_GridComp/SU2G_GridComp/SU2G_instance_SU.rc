@@ -23,6 +23,9 @@ aircraft_fuel_emission_factor: 1.0000
 # Scavenging efficiency per bin [km-1] (NOT USED UNLESS RAS IS CALLED)
 fscav: 0.0  0.0  0.4  0.4
 
+# Wet Removal Scheme Option | gocart, ufs
+wet_removal_scheme: ufs
+
 # Rainout efficiency for sulfate wet_removal_scheme == ufs
 fwet_ice: 1.0                                                                                                                            
 fwet_snow: 1.0 

@@ -1183,12 +1183,6 @@ contains
           call WetRemovalUFS  (self%km, self%klid, n, self%cdt, 'sulfate', &
                       KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, & 
                       self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, SUWT, __RC__)
-          !call WetRemovalUFS( km=self%km, klid=self%klid, bin_ind=nSO4, cdt=self%cdt, &
-          !            aero_type='sulfate', kin=KIN, grav=MAPL_GRAV, radius=self%radius(n),&
-          !            rainout_eff=rainout_eff, wtune=self%washout_tuning, &
-          !            radius_thr=self%wet_radius_thr, aerosol=int_ptr, &
-          !            ple=ple, tmpu=t, rhoa=airdens, pfllsan=pfl_lsan, pfilsan=pfi_lsan, &
-          !            fluxout=SUWT, wetloss_profile=PSO4WET, wetloss_column=SUPSO4WT, __RC__ )
     enddo
 
     case default
