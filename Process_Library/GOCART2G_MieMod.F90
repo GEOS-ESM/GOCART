@@ -1,3 +1,4 @@
+#include "Process.H"
 !BOP
 !
 ! !MODULE:  GOCART2G_MieMod --- Reader for aerosol mie tables
@@ -64,7 +65,7 @@ module GOCART2G_MieMod
       real, pointer  :: pmom(:,:,:,:,:) => Null() ! (r,c,b,m,p) moments of phase function
       real, pointer  :: gf(:,:) => Null()         ! (r,b) hygroscopic growth factor
       real, pointer  :: rhop(:,:) => Null()       ! (r,b) wet particle density [kg m-3]
-      real, pointer  :: rhod(:,:) => Null()       ! (r,b) wet particle density [kg m-3]
+      real, pointer  :: rhod(:,:) => Null()       ! (r,b) dry particle density [kg m-3]
       real, pointer  :: vol(:,:) => Null()        ! (r,b) wet particle volume [m3 kg-1]
       real, pointer  :: area(:,:) => Null()       ! (r,b) wet particle cross section [m2 kg-1]
       real, pointer  :: refr(:,:,:) => Null()     ! (r,c,b) real part of refractive index
@@ -318,13 +319,21 @@ CONTAINS
         refi_table = abs(refi_table)
       endif
 
-!     Wet particle volume [m3 kg-1]
-!     Ratio of wet to dry volume is gf^3, hence the following
-      vol_table = gf_table**3 / rhod_table
+!     Wet particle volume [m3 kg-1 dry mass]
+      rc = nf90_inq_varid(ncid,'volume',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
+        vol_table = gf_table**3 / rhod_table
+      else
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,vol_table))
+      endif
 
-!     Wet particle cross sectional area [m2 kg-1]
-!     Assume area is volume divided by (4./3.*reff)
-      area_table = vol_table / (4./3.*reff_table)
+!     Wet particle cross sectional area [m2 kg-1 dry mass]
+      rc = nf90_inq_varid(ncid,'area',ivarid)
+      if(rc .ne. NF90_NOERR) then   ! not in table, fill in dummy variable
+         area_table = vol_table / (4./3.*reff_table)
+      else
+        NF_VERIFY_(nf90_get_var(ncid,ivarid,area_table))
+      endif
 
 !     Close the table file
 !     -------------------------------------
@@ -540,13 +549,15 @@ CONTAINS
        endif
     enddo
 
-    if (present(rc)) rc = 0
-
-    if (ch < 0) then
-       !$omp critical (GetCha)
-       print*, "wavelength of ",wavelength, " is an invalid value."
-       !$omp end critical (GetCha)
-       if (present(rc)) rc = -1
+    if (present(rc)) then
+       if (ch > 0) then
+          rc = __SUCCESS__
+       else
+          rc = __FAIL__
+          !$omp critical (GetCha)
+          print*, "wavelength of ",wavelength, " is an invalid value."
+          !$omp end critical (GetCha)
+       endif
     endif
 
   end function getChannel
@@ -558,18 +569,22 @@ CONTAINS
      real, parameter :: w_tol = 1.e-9
      integer :: i
 
-     if (present(rc)) rc = 0
-
      if (ith_channel <=0 .or. ith_channel > this%nch ) then
-       !$omp critical (GetWav)
-       print*, "The channel of ",ith_channel, " is an invalid channel number."
-       !$omp end critical (GetWav)
-       if (present(rc)) rc = -1
-       wavelength = -1. ! meanlingless nagative
-       return
+        wavelength = -1. ! meaningless negative
+     else
+        wavelength = this%wavelengths(ith_channel)
      endif
-     
-     wavelength = this%wavelengths(ith_channel)
+
+    if (present(rc)) then
+       if (wavelength > 0) then
+          rc = __SUCCESS__
+       else
+          rc = __FAIL__
+          !$omp critical (GetWav)
+          print*, "The channel of ",ith_channel, " is an invalid channel number."
+          !$omp end critical (GetWav)
+       endif
+    endif
 
   end function getWavelength
 

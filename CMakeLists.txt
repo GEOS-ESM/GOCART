@@ -29,7 +29,7 @@ endif()
 if (GOCART_STANDALONE)
   project (
           GOCART
-          VERSION 2.3.0
+          VERSION 2.4.3
           LANGUAGES Fortran CXX C)  # Note - CXX is required for ESMF
 
   if ("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
@@ -57,6 +57,7 @@ if (UFS_GOCART)
   message ("Force 32-bit build for GOCART")
   if (CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
     string (REPLACE "-real-size 64" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
+    set(CMAKE_Fortran_FLAGS_DEBUG "${CMAKE_Fortran_FLAGS_DEBUG} -check -check noarg_temp_created -ftrapuv")
   elseif (CMAKE_Fortran_COMPILER_ID MATCHES "GNU")
     string (REPLACE "-fdefault-real-8" "" CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
   endif()

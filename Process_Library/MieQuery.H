@@ -48,7 +48,7 @@
      real,    optional,      intent(out) :: bext   (__DIMS__)      ! mass extinction efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: bsca   (__DIMS__)      ! mass scattering efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: bbck   (__DIMS__)      ! mass backscatter efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (micron)
+     real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (m)
      real,    optional,      intent(out) :: pmom   (__DIMS__,:,:)  ! moments of phase function 
      real,    optional,      intent(out) :: p11    (__DIMS__)      ! P11 phase function at backscatter
      real,    optional,      intent(out) :: p22    (__DIMS__)      ! P22 phase function at backscatter
@@ -115,7 +115,11 @@
      endif
 
      if(present(rEff)) then
-       rEff = 1.E6* __RHINTERP2__(this%rEff, irh, arh, bin, rEff)
+       rEff = __RHINTERP2__(this%rEff, irh, arh, bin, rEff)
+     endif
+
+     if(present(rhop)) then
+       rhop = __RHINTERP2__(this%rhop, irh, arh, bin, rhop)
      endif
 
      if(present(p11)) then
@@ -128,6 +132,10 @@
 
      if(present(gf)) then
        gf =  __RHINTERP2__(this%gf, irh, arh, bin, gf)
+     endif
+
+     if(present(rhop)) then
+       rhop =  __RHINTERP2__(this%rhop, irh, arh, bin, rhop)
      endif
 
      if(present(rhod)) then
@@ -196,7 +204,7 @@
      real,    optional,      intent(out) :: bext   (__DIMS__)      ! mass extinction efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: bsca   (__DIMS__)      ! mass scattering efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: bbck   (__DIMS__)      ! mass backscatter efficiency [m2 (kg dry mass)-1]
-     real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (micron)
+     real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (m)
      real,    optional,      intent(out) :: pmom   (__DIMS__,:,:)  ! moments of phase function
      real,    optional,      intent(out) :: p11    (__DIMS__)      ! P11 phase function at backscatter
      real,    optional,      intent(out) :: p22    (__DIMS__)      ! P22 phase function at backscatter

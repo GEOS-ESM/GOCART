@@ -76,6 +76,9 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  *MASS        | kg kg-1      | xyz   | C     |                                | * Aerosol Mass Mixing Ratio
  *CONC        | kg m-3       | xyz   | C     |                                | * Aerosol Mass Concentration
+ *SAREA       | m2 m-3       | xyz   | C     |                                | * Aerosol Surface Area Density
+ *REFF        | m            | xyz   | C     |                                | * Aerosol Effective Radius
+ *SD_V        | m s-1        | xyz   | C     | self%nbins                     | * Aerosol Settling Velocity (Bin %d)
  *EXTCOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient
  *EXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient - Fixed RH=20%
  *EXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | * Aerosol Extinction Coefficient - Fixed RH=80%
@@ -89,6 +92,7 @@ category: EXPORT
  *DP          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Dry Deposition (Bin %d)
  *WT          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Wet Deposition (Bin %d)
  *SV          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Convective Scavenging (Bin %d)
+ *CH          | kg m-2 s-1   | xy    | N     | nbins                          | * Aerosol Parameterized Chemical Loss (Bin %d)
  *EMAN        | kg m-2 s-1   | xy    | N     |                                | * Aerosol Anthropogenic Emissions
  *EMBB        | kg m-2 s-1   | xy    | N     |                                | * Aerosol Biomass Burning Emissions
  *EMBF        | kg m-2 s-1   | xy    | N     |                                | * Aerosol Biofuel Emissions

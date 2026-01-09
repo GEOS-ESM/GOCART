@@ -147,11 +147,6 @@ contains
 
     nbins = 1
     select case (trim(name))
-      case ('CAphilicCA.bc', &
-            'CAphilicCA.oc', &
-            'CAphobicCA.bc', &
-            'CAphobicCA.oc')
-       ! -- set to 1 by default
       case ('DU')
         select case (trim(pm))
           case ('PM10')
@@ -183,7 +178,8 @@ contains
             w(3) = w25_ss3
         end select
       case default
-        nbins = 0
+        ! -- carbonaceous emissions have weights equal to 1 (default)
+        if (name(1:2) /= 'CA') nbins = 0
     end select
 
   end function PMGetTracerWeight

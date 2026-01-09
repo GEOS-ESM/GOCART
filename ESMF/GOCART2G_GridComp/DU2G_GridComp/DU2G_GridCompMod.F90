@@ -32,6 +32,7 @@ module DU2G_GridCompMod
 ! !DESCRIPTION: This module implements GOCART's Dust (DU) Gridded Component.
 
 ! !REVISION HISTORY:
+! 4January2024   Collow - Updated call for ChemSettling
 ! 16Oct2019  Sherman, da Silva, Darmenov, Clune -  First attempt at refactoring
 
 !EOP
@@ -58,7 +59,10 @@ module DU2G_GridCompMod
        real, allocatable      :: sdist(:)       ! FENGSHA aerosol fractional size distribution [1]
        real                   :: alpha          ! FENGSHA scaling factor
        real                   :: gamma          ! FENGSHA tuning exponent
+       integer                :: drag_opt       ! FENGSHA drag option 1 - input only, 2 - Darmenova, 3 - Leung
        real                   :: kvhmax         ! FENGSHA max. vertical/horizontal mass flux ratio [1]
+       real                   :: f_sdl          ! FENGSHA drylimit tuning factor
+       integer                :: distribution_opt ! FENGSHA distribution option 1 - Kok, 2 - Kok 2021, 3 - Meng 2022
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
@@ -119,6 +123,7 @@ contains
     logical                            :: data_driven = .true.
     logical                            :: file_exists
     integer :: num_threads
+    character(len=255) :: msg
 
     __Iam__('SetServices')
 
@@ -160,6 +165,8 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
 
+    ! Choose Emission Scheme
+    !-----------------------
     call ESMF_ConfigGetAttribute (cfg, emission_scheme, label='emission_scheme:', default='ginoux', __RC__)
     self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), __RC__)
 
@@ -168,7 +175,7 @@ contains
     if (MAPL_AM_I_ROOT()) then
        write (*,*) trim(Iam)//": Dust emission scheme is "//trim(self%emission_scheme)
     end if
-
+    ! Point Sources
     call ESMF_ConfigGetAttribute (cfg, self%point_emissions_srcfilen, &
                                   label='point_emissions_srcfilen:', default='/dev/null', __RC__)
     if ( (index(self%point_emissions_srcfilen,'/dev/null')>0) ) then
@@ -181,9 +188,22 @@ contains
 !   --------------------------------
     select case (self%emission_scheme)
     case ('fengsha')
-       call ESMF_ConfigGetAttribute (cfg, self%alpha,      label='alpha:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%gamma,      label='gamma:', __RC__)
-       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,     label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%alpha,    label='alpha:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%gamma,    label='gamma:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_swc,    label='soil_moisture_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%f_sdl,    label='soil_drylimit_factor:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%kvhmax,   label='vertical_to_horizontal_flux_ratio_limit:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%drag_opt, label='drag_partition_option:', __RC__)
+
+       if (MAPL_AM_I_ROOT()) then
+         write (*,*) "FENGSHA: config: alpha: " , self%alpha
+         write (*,*) "FENGSHA: config: gamma: " , self%gamma
+         write (*,*) "FENGSHA: config: soil_moisture_factor: " , self%f_swc
+         write (*,*) "FENGSHA: config: soil_drylimit_factor: " , self%f_sdl
+         write (*,*) "FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: " , self%kvhmax
+         write (*,*) "FENGSHA: config: drag_partition_option: " , self%drag_opt
+       end if
+
     case ('k14')
        call ESMF_ConfigGetAttribute (cfg, self%clayFlag,   label='clayFlag:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%f_swc,      label='soil_moisture_factor:', __RC__)
@@ -223,7 +243,7 @@ contains
           vlocation=MAPL_VlocationCenter, &
           restart=MAPL_RestartOptional, &
           ungridded_dims=[self%nbins], &
-          friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+!          friendlyto='DYNAMICS:TURBULENCE:MOIST', &
           add2export=.true., __RC__)
 
 !      Pressure at layer edges
@@ -302,6 +322,11 @@ contains
 #include "DU2G_Import___.h"
       end associate
 #include "DU2G_Internal___.h"
+      if (MAPL_AM_I_ROOT()) then
+         write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+         write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
+      end if
+
     end if
 
 !   This state holds fields needed by radiation
@@ -409,8 +434,8 @@ contains
     self => wrap%ptr
 
 !   Global dimensions are needed here for choosing tuning parameters
-!   ----------------------------------------------------------------    
-    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ ) 
+!   ----------------------------------------------------------------
+    call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
 
 !   Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
 !   TO DO: find a more robust way to implement resolution dependent tuning
@@ -528,6 +553,23 @@ contains
     call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
     self%rad_Mie = GOCART2G_Mie(trim(file_), __RC__)
 
+!   Trigger for photolysis calculations
+!   -----------------------------------
+    call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
+
+!   Create Photolysis Mie Table
+!   ---------------------------
+!   Get file names for the optical tables
+    call ESMF_ConfigGetAttribute (cfg, file_, &
+                                  label="aerosol_monochromatic_optics_file:", __RC__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label="n_phase_function_moments_photolysis:", default=0,  __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
+    allocate (channels_(i), __STAT__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
+                                  label= "aerosol_photolysis_wavelength_in_nm_from_LUT:", __RC__)
+    self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    deallocate(channels_)
+
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
@@ -548,14 +590,15 @@ contains
 !   --------------------------------------------------------------------------------------
     call add_aero (aero, label='air_pressure_for_aerosol_optics',      label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH',  grid=grid, typekind=MAPL_R4, __RC__)
-!   call ESMF_StateGet (import, 'PLE', field, __RC__)
-!   call MAPL_StateAdd (aero, field, __RC__)
-!   call ESMF_StateGet (import, 'RH2', field, __RC__)
-!   call MAPL_StateAdd (aero, field, __RC__)
 
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8, __RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8, __RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8, __RC__)
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
+    if(nmom_ > 0) then
+       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
+                      grid=grid, typekind=MAPL_R8, ungrid=nmom_, __RC__)
+    endif
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
                    grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
@@ -788,9 +831,8 @@ contains
 
 !   Set du_src to 0 where undefined
 !   --------------------------------
-    if (associated(du_src)) then
-       where (1.01*du_src > MAPL_UNDEF) du_src = 0.
-    endif
+    where (1.01*du_src > MAPL_UNDEF) du_src = 0.
+
 !   Get dimensions
 !   ---------------
     import_shape = shape(wet1)
@@ -845,10 +887,11 @@ contains
        if (associated(DU_EROD)) DU_EROD = f_erod_
 
     case ('fengsha')
-       call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
-                                 du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_uthres,  &
-                                 self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
-                                 self%rhop, self%sdist, emissions_surface, __RC__)
+        call DustEmissionFENGSHA (frlake, frsnow, lwi, slc, du_clay, du_sand, du_silt,       &
+                du_ssm, du_rdrag, airdens(:,:,self%km), ustar, du_gvf, du_lai, du_uthres,  &
+                self%alpha, self%gamma, self%kvhmax, MAPL_GRAV,   &
+                self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
+
     case ('ginoux')
 
        call DustEmissionGOCART2G(self%radius*1.e-6, frlake, wet1, lwi, u10m, v10m, &
@@ -951,12 +994,15 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real, pointer, dimension(:,:,:)   :: dusd_vel
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, parameter ::  cpd    = 1004.16
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, pointer, dimension(:,:)     :: flux_ptr
+    integer                           :: settling_opt
 #include "DU2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -997,12 +1043,24 @@ contains
 
 !   Dust Settling
 !   -------------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), DU(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, DUSD, correctionMaring=self%maringFlag, __RC__)
-
-
+       nullify(flux_ptr)
+       if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
+       nullify(dusd_vel)
+       if (associated(DUSD_V)) dusd_vel => DUSD_V(:,:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           DU(:,:,:,n), t, airdens, &
+                           rh2, zle, delp, flux_ptr, dusd_vel, correctionMaring=self%maringFlag, &
+                           settling_scheme=settling_opt, __RC__)
     end do
 
 !   Dust Deposition
@@ -1027,12 +1085,26 @@ contains
 !  Dust Large-scale Wet Removal
 !  ----------------------------
    KIN = .TRUE.
-   do n = 1, self%nbins
-      fwet = 1.0
-      call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
-                              KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple, t, airdens, &
-                              pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
-   end do
+   select case (self%wet_removal_scheme)
+   case ('gocart')
+      do n = 1, self%nbins
+         call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
+                                 KIN, MAPL_GRAV, self%fwet(n), DU(:,:,:,n), ple, t, airdens, &
+                                 pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, DUWT, __RC__)
+      end do
+   case ('ufs')
+      rainout_eff = 0.0
+      do n = 1, self%nbins
+        rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+        rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+        rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+        call WetRemovalUFS     (self%km, self%klid, n, self%cdt, 'dust', KIN, MAPL_GRAV, &
+                                 self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
+                                 DU(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, DUWT, __RC__)
+      end do
+   case default
+      _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+   end select
 
 !  Compute diagnostics
 !  -------------------
@@ -1150,6 +1222,7 @@ contains
     integer, parameter                               :: DP=kind(1.0d0)
     real, dimension(:,:,:), pointer                  :: ple, rh
     real(kind=DP), dimension(:,:,:), pointer         :: var
+    real(kind=DP), dimension(:,:,:,:), pointer       :: var4d
     real, dimension(:,:,:,:), pointer                :: q, q_4d
     integer, allocatable                             :: opaque_self(:)
     type(C_PTR)                                      :: address
@@ -1159,11 +1232,14 @@ contains
     type(ESMF_Field)                                 :: fld
 
     real(kind=DP), dimension(:,:,:), allocatable     :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
+    real(kind=DP), dimension(:,:,:,:), allocatable   :: pmom_s               ! (lon:,lat:,lev:,nmom:)
     real, dimension(:,:,:), allocatable              :: x
     integer                                          :: instance
     integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band
+    integer                                          :: usePhotTable
+    real                                             :: wavelength
 
     integer :: k
 
@@ -1179,6 +1255,11 @@ contains
 !   --------------
     band = 0
     call ESMF_AttributeGet (state, name='band_for_aerosol_optics', value=band, __RC__)
+
+!   Are we doing a photolysis calculation?
+!   --------------------------------------
+    usePhotTable = 0
+    call ESMF_AttributeGet (state, name='use_photolysis_table', value=usePhotTable, __RC__)
 
 !   Pressure at layer edges
 !   ------------------------
@@ -1224,7 +1305,13 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    if (usePhotTable /= 0) then
+       wavelength = band*1.e-9
+       allocate(pmom_s(i1:i2, j1:j2, km, self%phot_Mie%nmom), __STAT__)
+       call miephot_ (self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, pmom_s, __RC__)
+    else
+       call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    endif
 
     call ESMF_AttributeGet (state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1238,13 +1325,22 @@ contains
         var = ssa_s(:,:,:)
     end if
 
-    call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
-        var = asy_s(:,:,:)
+    if (usePhotTable /= 0) then
+       call ESMF_AttributeGet (state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var4d, trim(fld_name), __RC__)
+           var4d = pmom_s(:,:,:,:)
+     end if
+    else
+       call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+           var = asy_s(:,:,:)
+     end if
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    if (usePhotTable /= 0) deallocate(pmom_s, __STAT__)
     deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
@@ -1281,13 +1377,54 @@ contains
         ! tau is converted to bext
         call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
         bext_s  = bext_s  +             bext     ! extinction
-        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-        basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
+        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+        basym_s = basym_s + gasym*(bssa*bext)    ! asymmetry parameter multiplied by scattering
      end do
 
      RETURN_(ESMF_SUCCESS)
 
     end subroutine mie_
+
+    subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, bpmom_s, rc)
+
+    implicit none
+
+    type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
+    integer,                       intent(in   ) :: nbins            ! number of bins
+    real,                          intent(in )   :: wavelength       ! wavelength in nm
+    real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
+    real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
+    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bpmom_s(size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4))
+    integer,                       intent(  out) :: rc
+
+    ! local
+    integer                           :: l, m
+    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
+    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
+    real                              :: pmom (size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4),6)
+
+    __Iam__('DU2G::aerosol_optics::miephot_')
+
+     bext_s  = 0.0d0
+     bssa_s  = 0.0d0
+     bpmom_s = 0.0d0
+
+     do l = 1, nbins
+        ! tau is converted to bext
+        call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, pmom=pmom, ssa=bssa, __RC__)
+        bext_s  = bext_s  +             bext     ! extinction
+        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+        do m = 1, mie%nmom
+           bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
+        enddo
+     end do
+
+
+     RETURN_(ESMF_SUCCESS)
+
+    end subroutine miephot_
 
   end subroutine aerosol_optics
 

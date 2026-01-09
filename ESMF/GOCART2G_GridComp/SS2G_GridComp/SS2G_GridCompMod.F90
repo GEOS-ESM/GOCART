@@ -256,6 +256,10 @@ contains
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
 #include "SS2G_Internal___.h"
+       if (MAPL_AM_I_ROOT()) then
+          write (*,*) trim(Iam)//": Wet removal scheme is "//trim(self%wet_removal_scheme)
+          write (*,*) trim(Iam)//": Settling scheme is "//trim(self%settling_scheme)
+       end if
     end if
 
 !   This state holds fields needed by radiation
@@ -367,7 +371,7 @@ contains
     self => wrap%ptr
 
 !   Global dimensions are needed here for choosing tuning parameters
-!   ----------------------------------------------------------------    
+!   ----------------------------------------------------------------
     call MAPL_GridGet (grid, globalCellCountPerDim=dims, __RC__ )
     km = dims(3)
     self%km = km
@@ -476,6 +480,23 @@ contains
     call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
     self%rad_Mie = GOCART2G_Mie(trim(file_), __RC__)
 
+!   Trigger for photolysis calculations
+!   -----------------------------------
+    call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
+
+!   Create Photolysis Mie Table
+!   ---------------------------
+!   Get file names for the optical tables
+    call ESMF_ConfigGetAttribute (cfg, file_, &
+                                  label="aerosol_monochromatic_optics_file:", __RC__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label="n_phase_function_moments_photolysis:", default=0,  __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
+    allocate (channels_(i), __STAT__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
+                                  label= "aerosol_photolysis_wavelength_in_nm_from_LUT:", __RC__)
+    self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    deallocate(channels_)
+
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
@@ -501,6 +522,11 @@ contains
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
+    if(nmom_ > 0) then
+       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
+                      grid=grid, typekind=MAPL_R8, ungrid=nmom_, __RC__)
+    endif
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
@@ -747,11 +773,12 @@ contains
 
 !      For the Hoppel correction need to compute the wet radius and settling velocity
 !      in the surface
-       if (self%hoppelFlag) then
-          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
-                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
-                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
-       end if
+!     Collow: commented out 9 Jan 2024 as this is not consistent with the updated settling based on the optics files. The flag to call this is set to false in the instance RC file. This should be revistited in the future.
+!       if (self%hoppelFlag) then
+!          call hoppelCorrection (self%radius(n)*1.e-6, self%rhop(n), rh2(:,:,self%km), &
+!                                 dz, ustar, self%rhFlag, airdens(:,:,self%km), t(:,:,self%km), &
+!                                 MAPL_GRAV, MAPL_KARMAN, fhoppel, __RC__)
+!       end if
 
        memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
        dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
@@ -797,11 +824,14 @@ contains
 
     integer                           :: n
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real, pointer, dimension(:,:,:)   :: sssd_vel
     logical                           :: KIN
 
     integer                           :: i1, j1, i2, j2, km
+    real, dimension(3)                :: rainout_eff
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
+    real, pointer, dimension(:,:)     :: flux_ptr
+    integer :: settling_opt
 #include "SS2G_DeclarePointer___.h"
 
     __Iam__('Run2')
@@ -840,10 +870,23 @@ contains
 
 !   Sea Salt Settling
 !   -----------------
+    select case (self%settling_scheme)
+    case ('gocart')
+       settling_opt = 1
+    case ('ufs')
+       settling_opt = 2
+    case default
+       _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
+    end select
+
     do n = 1, self%nbins
-       call Chem_Settling (self%km, self%klid, n, self%rhFlag, self%cdt, MAPL_GRAV, &
-                           self%radius(n)*1.e-6, self%rhop(n), SS(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, SSSD, __RC__)
+       nullify(flux_ptr)
+       if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
+       nullify(sssd_vel)
+       if (associated(SSSD_V)) sssd_vel => SSSD_V(:,:,:,n)
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
+                           SS(:,:,:,n), t, airdens, &
+                           rh2, zle, delp, flux_ptr, sssd_vel, settling_scheme=settling_opt, __RC__)
     end do
 
 !   Deposition
@@ -869,12 +912,26 @@ contains
 !   Large-scale Wet Removal
 !   ------------------------
     KIN = .TRUE.
-    do n = 1, self%nbins
-       fwet = 1.
-       call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-                               KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple, t, airdens, &
-                               pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
-    end do
+    select case (self%wet_removal_scheme)
+    case ('gocart')
+       do n = 1, self%nbins
+          call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
+                                  KIN, MAPL_GRAV, self%fwet(n), SS(:,:,:,n), ple, t, airdens, &
+                                  pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, SSWT, __RC__)
+       end do
+    case ('ufs')
+       rainout_eff = 0.0
+       do n = 1, self%nbins
+          rainout_eff(1)   = self%fwet_ice(n)  ! remove with ice
+          rainout_eff(2)   = self%fwet_snow(n) ! remove with snow
+          rainout_eff(3)   = self%fwet_rain(n) ! remove with rain
+          call WetRemovalUFS(self%km, self%klid, n, self%cdt, 'sea_salt', KIN, MAPL_GRAV, &
+                             self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
+                             SS(:,:,:,n), ple, t, airdens, pfl_lsan, pfi_lsan, SSWT, __RC__)
+       end do
+    case default
+       _ASSERT_RC(.false.,'Unsupported wet removal scheme: '//trim(self%wet_removal_scheme),ESMF_RC_NOT_IMPL)
+    end select
 
 !   Compute diagnostics
 !   -------------------
@@ -896,8 +953,8 @@ contains
 
     RH20(:,:,:) = 0.20
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            nbins=self%nbins, rlow=self%rlow, rup=self%rup, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh20,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
@@ -905,8 +962,8 @@ contains
 
     RH80(:,:,:) = 0.80
     call Aero_Compute_Diags (mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
-                            nbins=self%nbins, rlow=self%rlow, &
-                            rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
+                            nbins=self%nbins, rlow=self%rlow, rup=self%rup, &
+                            wavelengths_profile=self%wavelengths_profile*1.0e-9, &
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
                             grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
                             rh=rh80,u=u, v=v, delp=delp, ple=ple,tropp=tropp, &
@@ -993,6 +1050,7 @@ contains
     integer, parameter                               :: DP=kind(1.0d0)
     real, dimension(:,:,:), pointer                  :: ple, rh
     real(kind=DP), dimension(:,:,:), pointer         :: var
+    real(kind=DP), dimension(:,:,:,:), pointer       :: var4d
     real, dimension(:,:,:,:), pointer                :: q, q_4d
     integer, allocatable                             :: opaque_self(:)
     type(C_PTR)                                      :: address
@@ -1002,11 +1060,14 @@ contains
     type(ESMF_Field)                                 :: fld
 
     real(kind=DP), dimension(:,:,:), allocatable     :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
+    real(kind=DP), dimension(:,:,:,:), allocatable   :: pmom_s               ! (lon:,lat:,lev:,nmom:)
     real, dimension(:,:,:), allocatable              :: x
     integer                                          :: instance
     integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band
+    integer                                          :: usePhotTable
+    real                                             :: wavelength
     integer ::  k
 
     __Iam__('SS2G::aerosol_optics')
@@ -1021,6 +1082,11 @@ contains
 !   --------------
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
+
+!   Are we doing a photolysis calculation?
+!   --------------------------------------
+    usePhotTable = 0
+    call ESMF_AttributeGet (state, name='use_photolysis_table', value=usePhotTable, __RC__)
 
 !   Pressure at layer edges
 !   ------------------------
@@ -1067,7 +1133,13 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    if (usePhotTable /= 0) then
+       wavelength = band*1.e-9
+       allocate(pmom_s(i1:i2, j1:j2, km, self%phot_Mie%nmom), __STAT__)
+       call miephot_ (self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, pmom_s, __RC__)
+    else
+       call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    endif
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1081,13 +1153,22 @@ contains
         var = ssa_s(:,:,:)
     end if
 
-   call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
-        var = asy_s(:,:,:)
+    if (usePhotTable /= 0) then
+       call ESMF_AttributeGet (state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var4d, trim(fld_name), __RC__)
+           var4d = pmom_s(:,:,:,:)
+     end if
+    else
+       call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+           var = asy_s(:,:,:)
+     end if
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    if (usePhotTable /= 0) deallocate(pmom_s, __STAT__)
     deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
@@ -1125,13 +1206,54 @@ contains
        call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
 
        bext_s  = bext_s  +             bext     ! extinction
-       bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
+       bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymmetry parameter multiplied by scattering
     end do
 
     RETURN_(ESMF_SUCCESS)
 
     end subroutine mie_
+
+    subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, bpmom_s, rc)
+
+    implicit none
+
+    type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
+    integer,                       intent(in   ) :: nbins            ! number of bins
+    real,                          intent(in )   :: wavelength       ! wavelength in nm
+    real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
+    real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
+    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bpmom_s(size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4))
+    integer,                       intent(  out) :: rc
+
+    ! local
+    integer                           :: l, m
+    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
+    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
+    real                              :: pmom (size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4),6)
+
+    __Iam__('SS2G::aerosol_optics::miephot_')
+
+     bext_s  = 0.0d0
+     bssa_s  = 0.0d0
+     bpmom_s = 0.0d0
+
+     do l = 1, nbins
+        ! tau is converted to bext
+        call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, pmom=pmom, ssa=bssa, __RC__)
+        bext_s  = bext_s  +             bext     ! extinction
+        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+        do m = 1, mie%nmom
+           bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
+        enddo
+     end do
+
+
+     RETURN_(ESMF_SUCCESS)
+
+    end subroutine miephot_
 
   end subroutine aerosol_optics
 

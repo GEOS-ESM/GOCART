@@ -7,8 +7,8 @@
 !BOP
 !
 
-! !MODULE: Chem_AeroGeneric - Utilitarian subroutines used by GOCART2G children. 
-!                             
+! !MODULE: Chem_AeroGeneric - Utilitarian subroutines used by GOCART2G children.
+!
 !
 ! !INTERFACE:
 !
@@ -17,7 +17,7 @@ module  Chem_AeroGeneric
 ! !USES:
    use ESMF
    use MAPL
-!   USE Chem_MieMod2G
+!   USE GOCART2G_MieMod
 
    implicit none
    private
@@ -31,6 +31,7 @@ module  Chem_AeroGeneric
    public setZeroKlid4d
    public findKlid
    public get_mixR
+   
 !
 ! !DESCRIPTION:
 !
@@ -46,9 +47,9 @@ contains
 
 
 !====================================================================================
-  subroutine add_aero (state, label, label2, grid, typekind, ptr, rc)
+  subroutine add_aero (state, label, label2, grid, typekind, ptr, ungrid, rc)
 
-!   Description: Adds fields to aero state for aerosol optics calcualtions. 
+!   Description: Adds fields to aero state for aerosol optics calcualtions.
 
     implicit none
 
@@ -58,8 +59,9 @@ contains
     type (ESMF_Grid),                           intent(inout)     :: grid
     integer,                                    intent(in   )     :: typekind
     real, pointer, dimension(:,:,:), optional,  intent(in   )     :: ptr
+    integer, optional,                          intent(in   )     :: ungrid
     integer,                                    intent(  out)     :: rc
-
+    
     ! locals
     type (ESMF_Field)                                             :: field
     character (len=ESMF_MAXSTR)                                   :: field_name
@@ -79,7 +81,11 @@ contains
        else if ((trim(field_name) == 'FRLAND') .or. (trim(field_name) == 'monochromatic_EXT')) then
           call MAPL_FieldAllocCommit(field, dims=MAPL_DimsHorzOnly, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
        else
-          call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
+          if(present(ungrid)) then
+             call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, ungrid=[ungrid], hw=0, __RC__)
+          else        
+             call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
+          end if
        end if
        call MAPL_StateAdd (state, field, __RC__)
     end if
@@ -109,7 +115,7 @@ contains
 
      __Iam__('determine_data_driven')
 
-!   Begin... 
+!   Begin...
 
 !   Is DU data driven?
 !   ------------------
@@ -142,7 +148,7 @@ contains
     integer               :: dimCount, i
     real, pointer         :: orig_ptr(:,:,:)
     real, pointer         :: ptr2d(:,:)
-    character(len=ESMF_MAXSTR)  :: bin_index, varNameNew
+    character(len=ESMF_MAXSTR)  :: bin_index, varNameNew, units, longname
 
 !   Description: Adds deposition variables to deposition bundle
 
@@ -155,18 +161,25 @@ contains
     call ESMF_FieldGet (field, dimCount=dimCount, __RC__)
 
     if (dimCount == 2) then ! this handles data instances
-       call MAPL_FieldBundleAdd (bundle, field, __RC__) 
+       call MAPL_FieldBundleAdd (bundle, field, __RC__)
 
     else if (dimCount == 3) then ! this handles computational instances
        call ESMF_FieldGet (field, grid=grid, __RC__)
        call MAPL_GetPointer (providerState, orig_ptr, trim(prefix)//trim(varName), __RC__)
+       call ESMF_AttributeGet(field, name='UNITS',     value=units, __RC__)
+       call ESMF_AttributeGet(field, name='LONG_NAME', value=longname, __RC__)
+       longname=longname(1:index(trim(longname), '(Bin')-1)
 
        if ((index(trim(varname), 'DU') > 0) .or. (index(trim(varname), 'SS') > 0)) then
           do i = 1, size(orig_ptr, 3)
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varName)//trim(bin_index) , __RC__)
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        name=trim(varName)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS',     value=trim(units), _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value=trim(longname)//' Bin '//trim(bin_index), _RC)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
@@ -174,8 +187,12 @@ contains
 
        if (index(trim(varname), 'SU') > 0) then ! only use SO4, which is the 3rd index
           ptr2d => orig_ptr(:,:,3)
-          field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                     name=trim(varName)//'003' , __RC__)
+          field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                     name=trim(varName)//'003' , indexflag=ESMF_INDEX_DELOCAL, __RC__)
+          call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
+          call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+          call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
+          call ESMF_AttributeSet(field2d, name='LONG_NAME', value=trim(longname)//' Bin 003', _RC)
           call MAPL_AllocateCoupling (field2D, __RC__)
           call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
        end if
@@ -185,8 +202,12 @@ contains
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
              varNameNew = 'OC'//varName(6:7)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varNameNew)//trim(bin_index) , __RC__)
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        name=trim(varNameNew)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value=trim(longname)//' Bin '//trim(bin_index), _RC)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
@@ -197,8 +218,12 @@ contains
              write (bin_index,'(A, I0.3)') '', i
              ptr2d => orig_ptr(:,:,i)
              varNameNew = 'BC'//varName(6:7)
-             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farrayPtr=ptr2d,&
-                                        name=trim(varNameNew)//trim(bin_index) , __RC__)
+             field2D = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
+                                        name=trim(varNameNew)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, __RC__)
+             call ESMF_AttributeSet(field2d, name='DIMS',      value=MAPL_DimsHorzOnly, _RC)
+             call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
+             call ESMF_AttributeSet(field2d, name='UNITS',     value=units, _RC)
+             call ESMF_AttributeSet(field2d, name='LONG_NAME', value=trim(longname)//' Bin '//trim(bin_index), _RC)
              call MAPL_AllocateCoupling (field2D, __RC__)
              call MAPL_FieldBundleAdd (bundle, field2D, __RC__)
           end do
@@ -206,7 +231,7 @@ contains
 
     else if (dimCount > 3) then
        if(mapl_am_i_root()) print*,'Chem_AeroGenric::append_to_bundle does not currently support fields greater than 3 dimensions'
-       VERIFY_(824)       
+       VERIFY_(824)
     end if
 
     RETURN_(ESMF_SUCCESS)
@@ -232,7 +257,7 @@ contains
 !
 ! !REVISION HISTORY:
 !
-! 25Aug2020 E.Sherman - Written 
+! 25Aug2020 E.Sherman - Written
 !
 ! !Local Variables
    integer :: k
@@ -269,7 +294,7 @@ contains
 !
 ! !REVISION HISTORY:
 !
-! 25Aug2020 E.Sherman - Written 
+! 25Aug2020 E.Sherman - Written
 !
 ! !Local Variables
    integer :: k, n
@@ -312,7 +337,7 @@ contains
 !
 ! !REVISION HISTORY:
 !
-! 25Aug2020 E.Sherman - Written 
+! 25Aug2020 E.Sherman - Written
 !
 ! !Local Variables
    integer :: k, j, i
@@ -402,7 +427,6 @@ contains
     end do
 
  end subroutine get_mixR
-
 
 end module  Chem_AeroGeneric
 
