@@ -269,7 +269,10 @@ end subroutine DustEmissionSGINOUX
 
    !---------------------------------------------------------------------------------------------------x
    ! !DESCRIPTION: Computes the dust emissions for one time step                                       !
-   !               DEAD-based dust emission scheme (Zender et al., JGR, 2003)                          !
+   !               DEAD-based dust emission scheme (Zender et al., JGR, 2003, doi:10.1029/2002JD002775 !
+   !               See also: King et al., JGR, 2005, doi: 10.1029/2004JF000281                         !
+   !                         Marticorena et al., JGR, 102, D4, 1997                                    !
+   !                         Gillette et al., JGR, 103, D6, 1998                                       !  
    !                                                                                                   !
    ! !REVISION HISTORY:                                                                                !
    !                                                                                                   !
@@ -293,11 +296,11 @@ end subroutine DustEmissionSGINOUX
    !                                                                                                   !
    !---------------------------------------------------------------------------------------------------x
 
-   ! !USES:
+!  USES:
 
    implicit NONE
 
-         ! ! INPUT
+!  INPUT
    real,    intent(in) :: oro(:,:)                   ! land-ocean-ice mask [1]
    real,    intent(in) :: fraclake(:,:)              ! fraction of lake [1]
    real,    intent(in) :: fracsnow(:,:)              ! fraction of snow [1]
@@ -326,11 +329,11 @@ end subroutine DustEmissionSGINOUX
    real,    intent(in) :: soil_diam                  ! soil_diameter, for monomodal saltatators [m]
    real,    intent(in) :: radius(:)                  ! particle radius for nbins
 
-        ! ! OUTPUT
+!  OUTPUT
    real, intent(inout)   :: emissions(:,:,:)         ! Local emission [kg/(m^2 sec)]
    integer, intent(out)  :: rc                       ! Error return code: 0 well, 1 -
 
-        ! ! LOCAL
+!  LOCAL
    integer             ::  i, j, n                   !
    real                ::  u_thresh0                 ! dry bed, non-saltating saltation threshold  [m s-1]
    real                ::  w10m                      !
@@ -359,8 +362,8 @@ end subroutine DustEmissionSGINOUX
    !EOP
    !-------------------------------------------------------------------------                                                                                                !
 
-       !  Initialize local variables
-       !  --------------------------
+   !  Initialize local variables
+   !  --------------------------
    nbins     = size(radius)
    if (nbins /= size(emissions, dim=3)) then
     write (*,*) "Dims must equal in DustEmissionDEAD03"
@@ -372,89 +375,91 @@ end subroutine DustEmissionSGINOUX
    allocate (emissions_tot(i2,j2))
 
 
-       ! Drag (King et al 05)
-   fd            = 1.0 - ( log(z0m/z0ms) / log( 0.7 * ((0.1/z0ms)**0.8) ) )
+   ! Drag partion factor (King et al. eq. 11, similar to Marticorena eq. 3)
+   ! (note units of z0m/z0ms in GEOS are m)
+   fd     = 1.0 - ( log(z0m/z0ms) / log( 0.7 * ((0.1/z0ms)**0.8) ) )
 
-       ! Alpha
-       ! alpha   = 100. * exp( (13.4*mclay - 6.)*log(10.) ) ! simplify as below --JJ
-   alpha         = 100. * 10.0**(13.4*mclay - 6.)
+   ! Alpha (Zender 2003, eqn. 11, note reformed to base-10)
+   alpha  = 100. * 10.0**(13.4*mclay - 6.)
 
    emissions_tot(:,:) = 0.
 
-       ! Nonsaltatin log profile, Gillette et al. [1998] eq. 3
-   k_z                = 0.4 / log(10./z0m)
+   ! Nonsaltating log profile, Gillette et al. [1998] eq. 3
+   k_z    = 0.4 / log(10./z0m)
 
-       ! Spatially dependent part
+   ! Spatially dependent part
    do j = j1, j2
     do i = i1, i2
 
-     if ( oro(i,j) /= LAND ) cycle              ! only over LAND gridpoints
+       ! Filtering for land and valid soil composition information
+       if ( oro(i,j) /= LAND ) cycle              ! only over LAND gridpoints
        if ( (clayfrac(i,j) < 0.0 .or. clayfrac(i,j) > 1.0) .or. &
             (sandfrac(i,j) < 0.0 .or. sandfrac(i,j) > 1.0) .or. &
             (tsoil(i,j) < tsoilf) ) cycle
 
-       ! Threshold fric vel (Marticorena and Bergametti 1995, MB95)
-     u_thresh0 = 0.129 * sqrt(part_dens*grav*soil_diam/adens(i,j)) &
+       ! Threshold friction velocity (Marticorena et al. eq. 1)
+       u_thresh0 = 0.129 * sqrt(part_dens*grav*soil_diam/adens(i,j)) &
                  * sqrt(1.+6.e-7/(part_dens*grav*soil_diam**2.5)) &
                  / sqrt(1.928*(1331.*(100.*soil_diam)**1.56+0.38)**0.092 - 1.)
-     w10m      = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
 
-         ! wetness correction Fecan et al., 1999 [Zender 2003 eq. 6]
-         ! convert to gravimetric [Zender 2003]
-     w_s       = 0.489 - 0.126*sandfrac(i,j)
-     gwettop   = 100. * vwettop(i,j) * water_dens /(soil_dens *(1.0 - w_s) )
-         ! wt  = 0.17 * mclay + 0.14 * mclay**2, [originally] with mclay  = 0.2 (assuming a =1 in Zender but ...)
-     wgt       = clayfrac(i,j) * (14.0 * clayfrac(i,j) + 17.0)
+       w10m      = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
 
-     if (gwettop <= wgt) then
-       fw    = 1.0
-     else
-       fw    = sqrt(1.0 + 1.21 * (gwettop-wgt)**0.68 )
-     endif
-     u_thresh_d_w = u_thresh0*fw/fd
+       ! wetness correction Fecan et al., 1999 [Zender 2003 eq. 6]
+       ! convert to gravimetric [Zender 2003]
+       w_s       = 0.489 - 0.126*sandfrac(i,j)
+       gwettop   = vwettop(i,j) * water_dens /(soil_dens *(1.0 - w_s) )
+       wgt       = 5. * clayfrac(i,j) * (14.0 * clayfrac(i,j) + 17.0)
 
-         ! Modify friction velocity for Owen Effect
-         ! Assumption of stable atmospheric profile to go from saltation
-         ! wind speed to equivalent threshold at z = 10m
-         ! Gillette et al. [1998] eq. 3
-     wt10m       = u_thresh_d_w/k_z
-     if (w10m   >= wt10m) then
-       ustars    = ustar(i,j) + 0.003*((w10m-wt10m)**2)
-     else
-       ustars    = ustar(i,j)
-     endif
-     ! increased the threshold, also reduce the ustar.
-     fd_ustar    = fd*ustars
-         ! Calculate the horizontal mass flux of dust [kg m-1 s-1]
-         ! Marticorena et al. 1997 eq. 5
-         ! Note: differs from Zender et al. 2003 eq. 10
-         ! use model-predicted adens; ref DOI: 10.1016/j.apr.2024.102230
-     rat = u_thresh_d_w / ustars
-     if ( rat < 1.0 ) then
-      horiz_flux = cs * adens(i,j) * fd_ustar**3 /grav * &
-                     (1 - rat**2) * (1+rat)
+       ! Zender 2003 eq. 6
+       if (gwettop <= wgt) then
+         fw    = 1.0
+       else
+         fw    = sqrt(1.0 + 1.21 * (100.*(gwettop-wgt))**0.68 )
+       endif
+       u_thresh_d_w = u_thresh0*fw/fd
 
-         ! optionally apply vegetation mask
-      if (veg_mask == 1) then
-       horiz_flux = horiz_flux * DustEmissionVegMaskGVF(gvf(i,j), x0_gvf, k_gvf, gvf_max, gvf_min)
-      end if
+       ! Modify friction velocity for Owen Effect
+       ! Assumption of stable atmospheric profile to go from saltation
+       ! wind speed to equivalent threshold at z = 10m
+       ! Gillette et al. [1998] eq. 3 (note we are in mks)
+       wt10m       = u_thresh_d_w/k_z
+       if (w10m   >= wt10m) then
+         ustars    = ustar(i,j) + 0.003*((w10m-wt10m)**2)
+       else
+         ustars    = ustar(i,j)
+       endif
+       ! increased the threshold, also reduce the ustar (see MB97 eq. 3)
+       fd_ustar    = fd*ustars
+       ! Calculate the horizontal mass flux of dust [kg m-1 s-1]
+       ! Marticorena et al. 1997 eq. 5
+       ! Note: differs from Zender et al. 2003 eq. 10
+       ! use model-predicted adens; ref DOI: 10.1016/j.apr.2024.102230
+       rat = u_thresh_d_w / ustars
+       if ( rat < 1.0 ) then
+        horiz_flux = cs * adens(i,j) * fd_ustar**3 /grav * &
+                       (1 - rat**2) * (1+rat)
 
-     else
-      horiz_flux = 0.0
-     endif
+        ! optionally apply vegetation mask
+        if (veg_mask == 1) then
+         horiz_flux = horiz_flux * DustEmissionVegMaskGVF(gvf(i,j), x0_gvf, k_gvf, gvf_max, gvf_min)
+        end if
 
-         ! Vertical mass flux of dust  [kg m-2 s-1]
-     vert_flux = alpha * horiz_flux
-     landfrac  = max(0.0, 1.0 - fraclake(i,j) - fracsnow(i,j) )
-     emissions_tot(i,j) = vert_flux * landfrac
+       else
+        horiz_flux = 0.0
+       endif
+
+       ! Vertical mass flux of dust  [kg m-2 s-1]
+       vert_flux = alpha * horiz_flux
+       landfrac  = max(0.0, 1.0 - fraclake(i,j) - fracsnow(i,j) )
+       emissions_tot(i,j) = vert_flux * landfrac
 
     end do
    end do
 
-       ! Scale by source function
+   ! Scale by source function
    emissions_tot = du_src * emissions_tot
 
-       ! Make 3D (i,j,bin)
+   ! Make 3D (i,j,bin)
    do n = 1, nbins
      emissions(:,:,n) = emissions_tot(:,:)
    end do
