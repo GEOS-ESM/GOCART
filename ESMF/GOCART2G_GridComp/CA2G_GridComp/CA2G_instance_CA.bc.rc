@@ -34,7 +34,7 @@ rhFlag: 0
 # Sigma of lognormal number distribution
 sigma: 2.0  2.0
 
-pressure_lid_in_hPa: 40.0
+pressure_lid_in_hPa: 1.0
 
 nbins: 2
 

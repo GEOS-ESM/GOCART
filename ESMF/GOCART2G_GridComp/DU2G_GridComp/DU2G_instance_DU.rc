@@ -57,7 +57,7 @@ maringFlag: .true.
 
 nbins: 5
 
-pressure_lid_in_hPa: 40.0
+pressure_lid_in_hPa: 1.0
 
 # FENGSHA settings
 alpha: 0.3
