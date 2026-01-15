@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - fwet removed from children GridCompMod and placed in respective instance RC files
 - Updated settling routine and calls to allow settling velocity diagnostics in output field
 - Updated pressure lids in instance.rc files for use in GCMv12
+
 ### Fixed
 
 - In SU an incorrect (older) optics table was specified in AMIP/AMIP.20C sub-directories.
@@ -44,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
+- Bug fix for "WetRemovalUFS"
 
 ### Added
 
@@ -52,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   coupling of GMI OH, NO3, H2O2 to sulfur chemistry mechanism
 - Added a callback to allow a chemistry module to call for optical properties needed
   for photolysis calculation; currently used for GMI with CloudJ
+- Implementation of the "WetRemovalUFS" option for sulfate
 
 ## [v2.4.3] - 2025-07-21
 
@@ -66,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
  - Added option for choosing SettlingSolver
-   - `gocart' - Default GOCART Settling scheme | 'ufs' - New Settling scheme
+   - 'gocart' - Default GOCART Settling scheme | 'ufs' - New Settling scheme
 
 ## [v2.4.2] - 2025-06-12
 
