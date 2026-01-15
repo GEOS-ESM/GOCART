@@ -40,7 +40,7 @@ particle_radius_microns: 0.0 0.0 0.35 0.0
 # Dry particle density [kg m-3]
 particle_density: -1  -1  1700  -1
 
-pressure_lid_in_hPa: 0.01
+pressure_lid_in_hPa: 1.0
 
 # Molecular weight of species [kg mole-1]
 molecular_weight: -1  -1  0.132  -1

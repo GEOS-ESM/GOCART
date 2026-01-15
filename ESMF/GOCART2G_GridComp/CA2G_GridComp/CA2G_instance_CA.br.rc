@@ -52,7 +52,7 @@ fnum: 9.76e17  9.76e17
 # Sigma of lognormal number distribution
 sigma: 2.20  2.20
 
-pressure_lid_in_hPa: 0.01
+pressure_lid_in_hPa: 10.0
 
 nbins: 2
 
