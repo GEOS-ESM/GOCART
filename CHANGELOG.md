@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Calculation of surface area density and effective radius for connection to chemistry
   now comes from optics tables
-- Changed effective radius in MieQuery.H to remove in place units scaling; made 
+- Changed effective radius in MieQuery.H to remove in place units scaling; made
   corresponding change in Chem_SettlingSimple
 - Updated optics lookup tables to accommodate area and effective radius calculation
 - Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
@@ -26,11 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 - Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
 - Update CI to use reusable workflows
-- Update `components.yaml` to match that of GEOSgcm main as of 2025-12-04
-  - ESMA_env v4.35.0
-  - ESMA_cmake v3.68.0
-  - GMAO_Shared v2.1.4
-  - MAPL v2.63.0
+- Update `components.yaml` to match that of GEOSgcm main as of 2026-01-15
+  - ESMA_env v5.17.0
+  - ESMA_cmake v3.69.0
+  - GMAO_Shared v2.1.6
+  - MAPL v2.64.1
 - fwet removed from children GridCompMod and placed in respective instance RC files
 - Updated settling routine and calls to allow settling velocity diagnostics in output field
 
