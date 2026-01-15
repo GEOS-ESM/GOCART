@@ -31,7 +31,7 @@ particle_radius_number: 0.0118  0.0118  0.0118  0.0118  0.0118
 # Sigma of lognormal number distribution
 sigma: 2.0  2.0  2.0  2.0  2.0
 
-pressure_lid_in_hPa: 10.0
+pressure_lid_in_hPa: 0.01
 
 # SettlingSolver options
 # Options: 'gocart' or 'ufs'
