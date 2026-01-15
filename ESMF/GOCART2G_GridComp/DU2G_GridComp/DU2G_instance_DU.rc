@@ -61,7 +61,7 @@ source_fraction_ginoux01: 0.1 0.25 0.25 0.25 0.25
 
 ## sginoux scheme
 Ch_DU_sginoux:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
-#Ch_DU_sginoux: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)Ch_DU_sginoux: 0.3 0.3 0.11 0.11 0.11 0.088
+#Ch_DU_sginoux: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)
 source_fraction_sginoux: 0.1 0.25 0.25 0.25 0.25
 dry_threshold_ut: 6.5
 

@@ -356,6 +356,7 @@ end subroutine DustEmissionSGINOUX
    real                ::  alpha                     ! horiz to vert. flux factor [m-1]
    real                ::  w_s                       ! sat. wetness [1]
    real                ::  gwettop                   ! gravimetric soil wetness [1]
+   real                ::  awet = 1.0                ! "ad hoc" tuning term, see Zender eq. 5 (they use 5)
    integer             ::  i1, i2, j1, j2, nbins     !
    integer             ::  dims(2)                   !
 
@@ -405,16 +406,16 @@ end subroutine DustEmissionSGINOUX
        w10m      = sqrt(u10m(i,j)**2.+v10m(i,j)**2.)
 
        ! wetness correction Fecan et al., 1999 [Zender 2003 eq. 6]
-       ! convert to gravimetric [Zender 2003]
+       ! convert to gravimetric (percentage) after [Zender 2003]
        w_s       = 0.489 - 0.126*sandfrac(i,j)
-       gwettop   = vwettop(i,j) * water_dens /(soil_dens *(1.0 - w_s) )
-       wgt       = 5. * clayfrac(i,j) * (14.0 * clayfrac(i,j) + 17.0)
+       gwettop   = 100.*vwettop(i,j) * water_dens /(soil_dens *(1.0 - w_s) )
+       wgt       = awet * clayfrac(i,j) * (14.0 * clayfrac(i,j) + 17.0)
 
        ! Zender 2003 eq. 6
        if (gwettop <= wgt) then
          fw    = 1.0
        else
-         fw    = sqrt(1.0 + 1.21 * (100.*(gwettop-wgt))**0.68 )
+         fw    = sqrt(1.0 + 1.21 * (gwettop-wgt)**0.68 )
        endif
        u_thresh_d_w = u_thresh0*fw/fd
 
