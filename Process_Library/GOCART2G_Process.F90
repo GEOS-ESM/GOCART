@@ -423,7 +423,7 @@ subroutine DustAerosolDistributionMeng2022 ( radius, rLow, rUp, distribution )
    real, parameter :: CLAY_THRESHOLD = 0.2  ! clay fraction above which the maximum flux ratio is returned
 
 ! !DESCRIPTION: Computes the vertical-to-horizontal dust flux ratio according to
-!               B.Marticorena, G.Bergametti, J.Geophys.Res., 100(D8), 16415?16430, 1995
+!               B.Marticorena, G.Bergametti, J.Geophys.Res., 100(D8), 16415â€“16430, 1995
 !               doi:10.1029/95JD00690
 !
 ! !REVISION HISTORY:
@@ -557,9 +557,9 @@ end function DarmenovaDragPartition
 
 ! !INPUT PARAMETERS:
    real, intent(in) :: Lc     ! Canopy length scale [m]
-   real, intent(in) :: lai    ! Leaf Area Index [m²/m²]
+   real, intent(in) :: lai    ! Leaf Area Index [mÂ²/mÂ²]
    real, intent(in) :: gvf    ! Green Vegetation Fraction [0-1]
-   real, intent(in) :: thresh ! LAI threshold value [m²/m²]
+   real, intent(in) :: thresh ! LAI threshold value [mÂ²/mÂ²]
 
 ! !LOCAL VARIABLES:
    real :: frac_bare ! Fraction of bare surface [0-1]
@@ -655,20 +655,20 @@ end function DarmenovaDragPartition
    real, dimension(:,:), intent(in) :: airdens         ! air density [kg/m^3]
    real, dimension(:,:), intent(in) :: ustar           ! friction velocity [m/s]
    real, dimension(:,:), intent(in) :: vegfrac         ! vegetation fraction [0-1]
-   real, dimension(:,:), intent(in) :: lai             ! leaf area index [m²/m²]
+   real, dimension(:,:), intent(in) :: lai             ! leaf area index [mÂ²/mÂ²]
    real, dimension(:,:), intent(in) :: uthrs           ! threshold velocity [m/s]
    real,               intent(in)   :: alpha           ! scaling factor [1]
    real,               intent(in)   :: gamma           ! scaling factor [1]
    real,               intent(in)   :: kvhmax          ! max vertical/horizontal flux ratio [1]
-   real,               intent(in)   :: grav            ! gravity [m/s²]
-   real, dimension(:), intent(in)   :: rhop            ! soil class density [kg/m³]
+   real,               intent(in)   :: grav            ! gravity [m/sÂ²]
+   real, dimension(:), intent(in)   :: rhop            ! soil class density [kg/mÂ³]
    real, dimension(:), intent(in)   :: distribution    ! dust bin distribution [0-1]
    real,               intent(in)   :: drylimit_factor ! dry limit tuning factor [1]
    real,               intent(in)   :: moist_correct   ! moisture correction [1]
    integer,            intent(in)   :: drag_opt        ! drag partition option [1-3]
 
 ! !OUTPUT PARAMETERS:
-   real,    intent(out) :: emissions(:,:,:)  ! binned surface emissions [kg/(m² s)]
+   real,    intent(out) :: emissions(:,:,:)  ! binned surface emissions [kg/(mÂ² s)]
    integer, intent(out) :: rc                ! Error return code
 
 ! !LOCAL VARIABLES:
@@ -3674,6 +3674,7 @@ end function DarmenovaDragPartition
      real, pointer, dimension(:,:,:), intent(in)    :: pfllsan      ! 3D flux of liquid nonconvective precipitation [kg/(m^2 sec)]
      real, pointer, dimension(:,:,:), intent(in)    :: pfilsan      ! 3D flux of ice nonconvective precipitation [kg/(m^2 sec)]
      real, pointer, dimension(:,:,:)                :: fluxout      ! tracer loss flux [kg m-2 s-1]
+
 ! !OUTPUT PARAMETERS:
      integer,                         intent(out)   :: rc           ! Error return code:
 
@@ -9223,7 +9224,7 @@ K_LOOP: do k = km, 1, -1
 !     of Potential Importance in
 !     Environmental Chemistry (Version 3)
 !     http://www.henrys-law.org
-!     * indica artigos nao encontrados nesse endereço eletronico
+!     * indica artigos nao encontrados nesse endereÃ§o eletronico
   REAL,PARAMETER,DIMENSION(nspecies_HL) :: hstar=(/&
     1.10E-2              ,   & ! O3 - 001
     8.30E+4              ,   & ! H2O2 - 002
