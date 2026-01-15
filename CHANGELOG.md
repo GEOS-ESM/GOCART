@@ -33,7 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - MAPL v2.64.1
 - fwet removed from children GridCompMod and placed in respective instance RC files
 - Updated settling routine and calls to allow settling velocity diagnostics in output field
-
+- Updated pressure lids in instance.rc files for use in GCMv12
 ### Fixed
 
 - In SU an incorrect (older) optics table was specified in AMIP/AMIP.20C sub-directories.
