@@ -1465,7 +1465,7 @@ end function DarmenovaDragPartition
                                                   !  0 - all is well
                                                   !  1 -
 !  Optionally output the settling velocity calculated
-   real, pointer, optional, dimension(:,:,:)  :: vsettleOut
+   real, pointer, optional, intent (inout)  :: vsettleOut (:,:,:)
 
 !  Optionally correct the settling velocity following Maring et al, 2003
    logical, optional, intent(in)    :: correctionMaring
@@ -1564,7 +1564,7 @@ end function DarmenovaDragPartition
     do k = klid, km
        do j = j1, j2
           do i = i1, i2
-            call Chem_CalcVsettle(radius(i,j,k)*1.e-6, rhop(i,j,k), rhoa(i,j,k), &
+            call Chem_CalcVsettle(radius(i,j,k), rhop(i,j,k), rhoa(i,j,k), &
                                    tmpu(i,j,k), vsettle(i,j,k), grav)
           end do
        end do
@@ -1576,9 +1576,11 @@ end function DarmenovaDragPartition
        endif
     endif
 
-    if(present(vsettleOut)) then
-       vsettleOut = vsettle
-    endif
+    if (present(vsettleOut)) then
+       if (associated(vsettleOut)) then
+          vsettleOut = vsettle
+       end if
+    end if
 
 !   Time integration
     select case (settling_scheme)
@@ -1994,7 +1996,7 @@ end function DarmenovaDragPartition
 
     real :: dt, dt_cfl, max_tau
     real :: transfer_factor, loss_factor
-   real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
+    real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
     real, parameter :: cfl_factor = 0.1  ! CFL stability factor
 
 ! !DESCRIPTION: This subroutine solves the settling of particles
@@ -2010,14 +2012,14 @@ end function DarmenovaDragPartition
 !EOP
 !-------------------------------------------------------------------------
 
-      tau = vs / dz
+    tau = vs / dz
 
     ! loop over grid points
     jloop : do j = j1, j2
       iloop : do i = i1, i2
 
-          dp_  = delp(i,j,:)
-          tau_ = tau(i,j,:)
+         dp_  = delp(i,j,:)
+         tau_ = tau(i,j,:)
 
           ! Find maximum tau with numerical safety
          max_tau = maxval(tau_)
@@ -2026,14 +2028,14 @@ end function DarmenovaDragPartition
 
 
 
-          if (dt_cfl >= cdt) then
-             ! no need for time sub-splitting
+         if (dt_cfl >= cdt) then
+            ! no need for time sub-splitting
             nSubSteps = 0
-             dt = cdt
-          else
-             nSubSteps = max(1, ceiling(cdt / dt_cfl))
-             dt = cdt / real(nSubSteps)
-          end if
+            dt = cdt
+         else
+            nSubSteps = max(1, ceiling(cdt / dt_cfl))
+            dt = cdt / real(nSubSteps)
+         end if
 
          ! Time integration with numerical safeguards
          iitloop : do iit = 1, nSubSteps
@@ -2047,15 +2049,15 @@ end function DarmenovaDragPartition
             ! Update interior and bottom layers
             kloop: do k = 2, km
                loss_factor = max(0.0,min(1.0, dt * tau_(k)))
-               
+
                ! Check if pressure layers are valid
                if (dp_(k-1) > eps .and. dp_(k) > eps) then
                   transfer_factor = (dp_(k-1) / dp_(k)) * dt * tau_(k-1)
                   qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0))) + &
                                  transfer_factor * qa_old(k-1)
-                   else
+               else
                   qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)))
-                endif
+               end if
             end do kloop
          end do iitloop
       end do iloop
@@ -3413,7 +3415,6 @@ end function DarmenovaDragPartition
         if (tmpu(i,j,k) < 258d0 .and. .not.snow_scavenging) then
             F = 0.d0
         endif
-
         effRemoval = fwet
         DC(n) = aerosol(i,j,k) * F * effRemoval *(1.-exp(-BT))
         if (DC(n).lt.0.) DC(n) = 0.
@@ -4372,7 +4373,8 @@ end function DarmenovaDragPartition
                                   sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
                                   sfcmass25, colmass25, mass25, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, bckcoef,&
-                                  exttaufm, scataufm, angstrom, aerindx, NO3nFlag, rc )
+                                  exttaufm, scataufm, angstrom, aerindx, NO3nFlag, &
+                                  sarea, reff, rc )
 
 ! !USES:
 
@@ -4422,7 +4424,9 @@ end function DarmenovaDragPartition
    real, optional, dimension(:,:,:,:), intent(inout) :: bckcoef   ! 3d backscatter coefficient, m-1 sr-1
    real, optional, dimension(:,:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
    real, optional, dimension(:,:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
-   real, optional, dimension(:,:), intent(inout)   :: angstrom  ! 470-870 nm Angstrom parameter
+   real, optional, dimension(:,:), intent(inout)   :: angstrom    ! 470-870 nm Angstrom parameter
+   real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Aerosol surface area density [m2 m-3]
+   real, optional, dimension(:,:,:), intent(inout)  :: reff       ! Aerosol effective radius [m]
    integer, optional, intent(out)   :: rc        ! Error return code:
                                                  !  0 - all is well
                                                  !  1 -
@@ -4440,7 +4444,7 @@ end function DarmenovaDragPartition
    integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
    integer :: ilam470, ilam870
-   real, allocatable, dimension(:,:,:) :: tau, ssa, bck
+   real, allocatable, dimension(:,:,:) :: tau, ssa, bck, area, tarea, pref, pref0
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
@@ -4739,6 +4743,46 @@ end function DarmenovaDragPartition
          log(470./870.)
    endif
    deallocate(tau,ssa)
+
+!  Calculate the sulfate area density [m2 m-3], possibly for use in
+!  StratChem or other component.  Optics tables provide cross-sectional area
+!  for hydrated particle per kg dry mass but we want total surface area,
+!  which is 4 x cross section.
+   if(present(sarea)) then
+    sarea = 0.0
+    allocate(area(i1:i2,j1:j2,km), __STAT__)
+    do n = nbegin, nbins
+     call mie%Query(550e-9,n,   &
+                    aerosol(:,:,:,n)*delp/grav, rh, &
+                    area=area, __RC__)
+     sarea = sarea + 4.*area*aerosol(:,:,:,n)*rhoa
+    enddo
+    deallocate(area)
+   endif
+
+!  Also if present compute the species integrated effective radius by
+!  area weighting individual components
+   if(present(reff)) then
+    reff  = 0.0
+    allocate(tarea(i1:i2,j1:j2,km), area(i1:i2,j1:j2,km), &
+             pref0(i1:i2,j1:j2,km), pref(i1:i2,j1:j2,km), __STAT__)
+    tarea = 0.0
+    do n = nbegin, nbins
+     call mie%Query(550e-9,n,   &
+                    aerosol(:,:,:,n)*delp/grav, rh, &
+                    area=area, reff=pref, __RC__)
+     if(n .eq. nbegin) pref0 = pref
+     area  = 4.*area*aerosol(:,:,:,n)*rhoa
+     tarea = tarea + area
+     reff  = reff  + area*pref
+    enddo
+    reff = reff/tarea
+!   Trap zero reff for low concentrations
+    where(reff < 1.e-12) reff =  pref0
+    
+    deallocate(tarea, area, pref, pref0)
+   endif
+
    __RETURN__(__SUCCESS__)
    end subroutine Aero_Compute_Diags
 !====================================================================
@@ -7347,7 +7391,7 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)    :: airMolWght ! air molecular weight [kg]
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]
    real, intent(in) :: fMassSO4, fMassSO2
-   real, dimension(:,:,:) :: h2o2_int
+   real, dimension(:,:,:) :: h2o2_int   
    real, pointer, dimension(:,:,:), intent(in) :: ple     ! level edge air pressure
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density, [kg m-3]
    real, pointer, dimension(:,:), intent(in)   :: precc   ! total convective precip, [mm day-1]
@@ -7891,7 +7935,7 @@ K_LOOP: do k = km, 1, -1
 !BOP
 ! !IROUTINE: SU_Compute_Diags
 
-   subroutine SU_Compute_Diags ( km, klid, rmed, sigma, rhop, grav, pi, nSO4, mie, &
+   subroutine SU_Compute_Diags ( km, klid, rhop, grav, pi, nSO4, mie, &
                                  wavelengths_profile, wavelengths_vertint, &
                                  tmpu, rhoa, delp, ple, tropp,rh, u, v, &
                                  DMS, SO2, SO4, MSA, &
@@ -7900,7 +7944,7 @@ K_LOOP: do k = km, 1, -1
                                  so2sfcmass, so2colmass, &
                                  so4sfcmass, so4colmass, &
                                  exttau, stexttau,scatau, stscatau,so4mass, so4conc, extcoef, &
-                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, rc )
+                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, reff, rc )
 
 ! !USES:
    implicit NONE
@@ -7908,8 +7952,6 @@ K_LOOP: do k = km, 1, -1
 ! !INPUT PARAMETERS:
    integer, intent(in) :: km    ! number of model levels
    integer,    intent(in)    :: klid   ! index for pressure lid
-   real, intent(in)    :: rmed  ! mean radius [um]
-   real, intent(in)    :: sigma ! Sigma of lognormal number distribution
    real, intent(in)    :: rhop  ! dry particle density [kg m-3]
    real, intent(in)    :: grav  ! gravity [m/sec]
    real, intent(in)    :: pi    ! pi constant
@@ -7953,6 +7995,7 @@ K_LOOP: do k = km, 1, -1
    real, optional, dimension(:,:),   intent(inout)  :: fluxv      ! Column mass flux in y direction
    real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
    real, optional, dimension(:,:,:), intent(inout)  :: snum       ! Sulfate number density [# m-2]
+   real, optional, dimension(:,:,:), intent(inout)  :: reff       ! Sulfate effective radius [m]
    integer, optional, intent(out)   :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 -
@@ -7967,7 +8010,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !Local Variables
    integer :: i, j, k, w, i1=1, j1=1, i2, j2, status
-   real, dimension(:,:,:), allocatable :: tau, ssa, bck
+   real, dimension(:,:,:), allocatable :: tau, ssa, bck, area
    real, dimension(:,:), allocatable :: tau470, tau870
    integer    :: ilam470, ilam870
    logical :: do_angstrom
@@ -8200,30 +8243,30 @@ K_LOOP: do k = km, 1, -1
    endif
 
 !  Calculate the sulfate surface area density [m2 m-3], possibly for use in
-!  StratChem or other component.  Assumption here is a specified effective
-!  radius (gcSU%radius for sulfate) and standard deviation of lognormal
-!  distribution.  Hydration is by grid box provided RH and is follows Petters
-!  and Kreeidenweis (ACP2007)
-   if(present(sarea) .or. present(snum)) then
-!        rmed   = w_c%reg%rmed(n1+nSO4-1)                    ! median radius, m
-        if(rmed > 0.) then
-!         sigma  = w_c%reg%sigma(n1+nSO4-1)                  ! width of lognormal distribution
-         do k = klid, km
-         do j = j1, j2
-          do i = i1, i2
-           rh_ = min(0.95,rh(i,j,k))
-           gf = (1. + 1.19*rh_/(1.-rh_) )                   ! ratio of wet/dry volume, eq. 5
-           rwet = rmed * gf**(1./3.)                      ! wet effective radius, m
-!          Wet particle volume m3 m-3
-           svol = SO4(i,j,k) * rhoa(i,j,k) / rhop * gf
-!          Integral of lognormal surface area m2 m-3
-           if(present(sarea)) sarea(i,j,k) = 3./rwet*svol*exp(-5./2.*alog(sigma)**2.)
-!          Integral of lognormal number density # m-3
-           if(present(snum)) snum(i,j,k) = svol / (rwet**3) * exp(-9/2.*alog(sigma)**2.) * 3./4./pi
-          enddo
-         enddo
-        enddo
-       endif
+!  StratChem or other component.  Optics tables provide cross-sectional area
+!  for hydrated particle per kg dry mass but we want total surface area,
+!  which is 4 x cross section.
+   if(present(sarea)) then
+     sarea = 0.
+     allocate(area(i1:i2,j1:j2,km), __STAT__)
+     call mie%Query(550e-9,1,   &
+                         SO4*delp/grav, rh, &
+                         area=area, __RC__)
+     sarea = 4.*area*SO4*rhoa
+     deallocate(area)
+   endif
+
+!  Get the sulfate particle effective radius [m] possibly for use in chemistry
+   if(present(reff)) then
+     reff = 0.
+     call mie%Query(550e-9,1,   &
+                         SO4*delp/grav, rh, &
+                         reff=reff, __RC__)
+   endif
+   
+   
+!  To implement if desired:
+   if(present(snum)) then   
    endif
    deallocate(tau,ssa)
    __RETURN__(__SUCCESS__)

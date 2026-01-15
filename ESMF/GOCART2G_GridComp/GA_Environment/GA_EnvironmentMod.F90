@@ -12,16 +12,17 @@ module GA_EnvironmentMod
    public :: GA_Environment
 
    type :: GA_Environment
-       type(GOCART2G_Mie)     :: rad_Mie, diag_Mie
+       type(GOCART2G_Mie)     :: rad_Mie, diag_Mie, phot_Mie
        real, allocatable      :: radius(:)      ! particle effective radius [um]
        real, allocatable      :: rhop(:)        ! soil class density [kg m-3]
        real, allocatable      :: fscav(:)       ! scavenging efficiency
+       real, allocatable      :: fwet(:)        ! large scale wet removal efficiency (GOCART)     
 !      logical                :: scav_byColdCloud ! new flag example
-       real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES, 
+       real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES,
        real, allocatable      :: fnum(:)        ! number of particles per kg mass
-       real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice
-       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow 
-       real, allocatable      :: fwet_rain(:)   ! large scale wet removal scaling factor for rain
+       real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice (UFS)
+       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow (UFS)
+       real, allocatable      :: fwet_rain(:)   ! large scale wet removal scaling factor for rain (UFS)
        real                   :: washout_tuning ! tuning factor for washout process (1 by default)
        real                   :: wet_radius_thr ! wet radius threshold [um]
        integer                :: rhFlag
@@ -67,15 +68,16 @@ module GA_EnvironmentMod
 
        !   Parse config file into private internal state
        !   ----------------------------------------------
-       allocate(self%radius(nbins), self%rhop(nbins), self%fscav(nbins), self%molwght(nbins), &
+       allocate(self%radius(nbins), self%rhop(nbins), self%fscav(nbins), self%fwet(nbins), self%molwght(nbins), &
                 self%fnum(nbins), self%fwet_ice(nbins), self%fwet_snow(nbins), self%fwet_rain(nbins), &
                 self%wavelengths_profile(n_wavelengths_profile), &
                 self%wavelengths_vertint(n_wavelengths_vertint), &
                 __STAT__)
-       
+
        call ESMF_ConfigGetAttribute (cfg, self%radius,     label='particle_radius_microns:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%rhop,       label='particle_density:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fscav,      label='fscav:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%fwet,       label='fwet:', default=1.0, __RC__)       
        call ESMF_ConfigGetAttribute (cfg, self%molwght,    label='molecular_weight:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%fnum,       label='fnum:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%plid,       label='pressure_lid_in_hPa:', __RC__)
