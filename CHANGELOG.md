@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed effective radius in MieQuery.H to remove in place units scaling; made 
   corresponding change in Chem_SettlingSimple
 - Updated optics lookup tables to accommodate area and effective radius calculation
-- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
+I- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
 - Fwet value in dust modified from 0.8 to 1.0
 - Dust and Sea salt Emission scale factors updated for L181
@@ -42,8 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - stochiometric coefficent correction for heterogenous production diagnostic NI_phet
   in NIheterogenousChem in Process Library.
 - corrected references for RH factor for hno3 uptake on dust in NIheterogenousChem in Process Library.
-- units error for external data hno3 corrected  in NI instance file and in Process Library.
-
+- units error for external data hno3 corrected in NI instance file and in Process Library.
+- corrected units error for hno3 column diagnostic in Process Library.
 
 
 
