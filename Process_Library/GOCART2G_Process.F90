@@ -5962,7 +5962,7 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:,:), intent(inout)  :: HNO3_conc ! Nitric Acid Mass Concentration [kg/m^3]
    real, pointer, dimension(:,:), intent(inout)    :: HNO3_sfcmass ! Nitric Acid Surface Mass Concentration [kg/m^3]
-   real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^3]
+   real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^2]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an1 ! Nitrate bin 1 [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an2 ! Nitrate bin 2 [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an3 ! Nitrate bin 3 [kg/kg]
@@ -6108,7 +6108,7 @@ K_LOOP: do k = km, 1, -1
       HNO3_colmass(i1:i2,j1:j2) = 0.
       do k = klid, km
         HNO3_colmass(i1:i2,j1:j2) &
-         =   HNO3_colmass(i1:i2,j1:j2) + xhno3(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
+         =   HNO3_colmass(i1:i2,j1:j2) + xhno3(i1:i2,j1:j2,k) * fMassHNO3 / AIRMW * delp(i1:i2,j1:j2,k)/grav
       end do
    endif
 
