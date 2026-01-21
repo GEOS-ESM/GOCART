@@ -49,7 +49,7 @@ particle_radius_microns: 0.35 0.35
 # Sigma of lognormal number distribution
 sigma: 2.0  2.0
 
-pressure_lid_in_hPa: 0.01
+pressure_lid_in_hPa: 10
 
 nbins: 2
 
