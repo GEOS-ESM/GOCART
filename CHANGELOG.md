@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Cleaned up SU AMIP instance RC files; fixed path for degassing volcanic emissions
+  in AMIP.20C and removed unneccessary rhFlag from both AMIP dirs
 - Calculation of surface area density and effective radius for connection to chemistry
   now comes from optics tables
 - Changed effective radius in MieQuery.H to remove in place units scaling; made

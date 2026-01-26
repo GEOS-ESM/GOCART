@@ -37,9 +37,6 @@ fwet: 1.0 1.0 1.0 1.0
 # Dry particle radius [um], used for settling
 particle_radius_microns: 0.0 0.0 0.35 0.0
 
-# Type of settling to use (see Chem_SettlingMod)
-rhFlag: 4
-
 # Dry particle density [kg m-3]
 particle_density: -1  -1  1700  -1
 
