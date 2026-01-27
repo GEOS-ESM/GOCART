@@ -245,7 +245,7 @@ contains
           DIMS       = MAPL_DimsHorzVert,                    &
           VLOCATION  = MAPL_VLocationCenter,                 &
           RESTART    = MAPL_RestartSkip,     __RC__)
-    endif 
+    endif
 
 !   Import, Export, Internal states for computational instance
 !   ----------------------------------------------------------
@@ -845,16 +845,16 @@ contains
     if(self%using_GMI) then
       xhno3 = GMI_HNO3
       call MAPL_MaxMin ( 'GMI:HNO3  ', xhno3)
-    
+
     else
       alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
-    #ifdef DEBUG
+#ifdef DEBUG
       if (alarm_is_ringing) then
           if (MAPL_Am_I_Root()) then
              print *,'DEBUG:: NI replenish alarm is ringing'
           end if
       end if
-    #endif
+#endif
 
       !Save local copy of HNO3 for first pass through run method regardless
       thread = MAPL_get_current_thread()
