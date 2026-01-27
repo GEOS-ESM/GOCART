@@ -61,6 +61,7 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
        type(ESMF_Alarm) :: alarm
+       logical :: using_GMI !CM: logic for hno3 GMI coupling
    end type NI2G_GridComp
 
    type wrap_
@@ -137,6 +138,9 @@ contains
 
     ! process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
+
+    ! process NI specific items
+    call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', __RC__)
 
 !   Is NI data driven?
 !   ------------------
@@ -232,6 +236,16 @@ contains
           restart=MAPL_RestartOptional, __RC__)
     end if ! (data_driven)
 
+    if(self%using_GMI) then
+
+       call MAPL_AddImportSpec(GC,                           &
+          SHORT_NAME = 'GMI_HNO3',                             &
+          LONG_NAME  = 'nitric_acid',                   &
+          UNITS      = 'mol/mol',                            &
+          DIMS       = MAPL_DimsHorzVert,                    &
+          VLOCATION  = MAPL_VLocationCenter,                 &
+          RESTART    = MAPL_RestartSkip,     __RC__)
+    endif
 
 !   Import, Export, Internal states for computational instance
 !   ----------------------------------------------------------
@@ -827,45 +841,64 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
+
+    if(self%using_GMI) then
+      xhno3 = GMI_HNO3
+      call MAPL_MaxMin ( 'GMI:HNO3  ', xhno3)
+
+    else
+      alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
 #ifdef DEBUG
-    if (alarm_is_ringing) then
+      if (alarm_is_ringing) then
           if (MAPL_Am_I_Root()) then
              print *,'DEBUG:: NI replenish alarm is ringing'
           end if
-    end if
+      end if
 #endif
 
-!   Save local copy of HNO3 for first pass through run method regardless
-    thread = MAPL_get_current_thread()
-    workspace => self%workspaces(thread)
+      !Save local copy of HNO3 for first pass through run method regardless
+      thread = MAPL_get_current_thread()
+      workspace => self%workspaces(thread)
 
-    !if (workspace%first) then
-       !xhno3 = MAPL_UNDEF
-       !workspace%first = .false.
-    !end if
+      !if (workspace%first) then
+         !xhno3 = MAPL_UNDEF
+         !workspace%first = .false.
+      !end if
 
-!   Recycle HNO3 every 3 hours
-    if (alarm_is_ringing) then
-       xhno3 = NITRATE_HNO3
-    end if
+      ! Recycle HNO3 every 3 hours
+      if (alarm_is_ringing) then
+         xhno3 = NITRATE_HNO3
+      end if
+    endif
+
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
     if (associated(NIPNH3AQ)) NIPNH3AQ(:,:) = 0.
+    if (associated(NIPHNO3AQ)) NIPHNO3AQ(:,:) = 0.
+    ! 3D diag
+    if (associated(NIPNO3AQV)) NIPNO3AQV(:,:,:) = 0.
+    if (associated(NIPNH4AQV)) NIPNH4AQV(:,:,:) = 0.
+    if (associated(NIPNH3AQV)) NIPNH3AQV(:,:,:) = 0.
+    if (associated(NIPHNO3AQV)) NIPHNO3AQV(:,:,:) = 0.
 
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, &
                    t, rh2, fMassHNO3, MAPL_AIRMW, SO4, NH3, NO3an1, NH4a, &
-                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
+                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, NIPHNO3AQ, &
+                   NIPNO3AQV, NIPNH4AQV, NIPNH3AQV, NIPHNO3AQV, __RC__)
 
 
-    call NIheterogenousChem (NIHT, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
+    call NIheterogenousChem (NIHT, NIHTV, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
                              self%fnumDU, self%fnumSS, self%km, self%klid, &
                              self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, &
                              NO3an3, HNO3CONC, HNO3SMASS,  HNO3CMASS, __RC__)
-!   Save local copy of HNO3 for first pass through run method regardless
+
+    ! CM: update GMI_HNO3 after nitrate processes for 2way coupling.
+    if(self%using_GMI) then
+      GMI_HNO3 = xhno3
+    endif
 
 
 !   NI Settling

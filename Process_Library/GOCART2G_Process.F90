@@ -5986,7 +5986,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: NIheterogenousChemOpt
 !
 ! !INTERFACE:
-   subroutine NIheterogenousChem (NI_phet, xhno3, UNDEF, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
+   subroutine NIheterogenousChem (NI_phet, NI_phetv, xhno3, UNDEF, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
                                   DU, SS, rmedDU, rmedSS, fnumDU, fnumSS,                                    &
                                   km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2,                &
                                   nNO3an3, HNO3_conc, HNO3_sfcmass, HNO3_colmass, rc)
@@ -6009,8 +6009,8 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), intent(in)  :: delp           ! pressure thickness [Pa]
    real, pointer, dimension(:,:,:,:), intent(in) :: DU   ! dust aerosol [kg/kg]
    real, pointer, dimension(:,:,:,:), intent(in) :: SS   ! sea salt aerosol [kg/kg]
-   real, dimension(:) ,intent(in)      :: rmedDU         ! dust aerosol radius [um]
-   real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [um]
+   real, dimension(:) ,intent(in)      :: rmedDU         ! dust aerosol radius [m]
+   real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [m]
    real, dimension(:) ,intent(in)      :: fnumDU         ! number of dust particles per kg mass
    real, dimension(:) ,intent(in)      :: fnumSS         ! number of sea salt particles per kg mass
    integer, intent(in)                 :: km             ! number of model levels
@@ -6022,10 +6022,11 @@ K_LOOP: do k = km, 1, -1
 
 ! !INOUTPUT PARAMETERS:
    real, pointer, dimension(:,:,:), intent(inout)  :: NI_phet   ! Nitrate Production from Het Chem [kg/(m^2 sec)]
-   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
+   real, pointer, dimension(:,:,:,:), intent(inout) :: NI_phetv   ! 3D Nitrate Production from Het Chem [kg/(m^2 sec)]
+   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:,:), intent(inout)  :: HNO3_conc ! Nitric Acid Mass Concentration [kg/m^3]
    real, pointer, dimension(:,:), intent(inout)    :: HNO3_sfcmass ! Nitric Acid Surface Mass Concentration [kg/m^3]
-   real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^3]
+   real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^2]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an1 ! Nitrate bin 1 [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an2 ! Nitrate bin 2 [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an3 ! Nitrate bin 3 [kg/kg]
@@ -6144,10 +6145,17 @@ K_LOOP: do k = km, 1, -1
    nNO3an3 = nNO3an3 + kan3 * deltahno3 * fMassNO3 / fMassHNO3
 
    if(associated(NI_phet)) then
-      NI_phet(:,:,1) = (1.0 / (grav*cdt)) * sum(kan1*deltahno3*delp, dim=3)
-      NI_phet(:,:,2) = (1.0 / (grav*cdt)) * sum(kan2*deltahno3*delp, dim=3)
-      NI_phet(:,:,3) = (1.0 / (grav*cdt)) * sum(kan3*deltahno3*delp, dim=3)
+      NI_phet(:,:,1) = (1.0 / (grav*cdt)) * sum(kan1*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
+      NI_phet(:,:,2) = (1.0 / (grav*cdt)) * sum(kan2*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
+      NI_phet(:,:,3) = (1.0 / (grav*cdt)) * sum(kan3*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
    end if
+
+   if(associated(NI_phetv)) then
+     NI_phetv(:,:,:,1) = (1.0 / (grav*cdt)) * kan1*deltahno3*(fMassNO3/fMassHNO3)*delp
+     NI_phetv(:,:,:,2) = (1.0 / (grav*cdt)) * kan2*deltahno3*(fMassNO3/fMassHNO3)*delp
+     NI_phetv(:,:,:,3) = (1.0 / (grav*cdt)) * kan3*deltahno3*(fMassNO3/fMassHNO3)*delp
+   end if
+
 
 !  Output diagnostic HNO3
 !  ----------------------
@@ -6164,7 +6172,7 @@ K_LOOP: do k = km, 1, -1
       HNO3_colmass(i1:i2,j1:j2) = 0.
       do k = klid, km
         HNO3_colmass(i1:i2,j1:j2) &
-         =   HNO3_colmass(i1:i2,j1:j2) + xhno3(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
+         =   HNO3_colmass(i1:i2,j1:j2) + xhno3(i1:i2,j1:j2,k) * fMassHNO3 / AIRMW * delp(i1:i2,j1:j2,k)/grav
       end do
    endif
 
@@ -6411,7 +6419,12 @@ K_LOOP: do k = km, 1, -1
    p_dfkg   = sqrt(3.472e-2 + 1.0/fmassHNO3)
    p_avgvel = sqrt(8.0 * rgas_dp * 1000.0 / (pi_dp * fmassHNO3))
 
-      ! RH factor - Figure 1 in Duncan et al. (2010)
+      ! RH factor: rh dependent gamma for dust - references:
+      ! Table 1 in Liu et al. J. Phys. Chem. A 2008
+      ! doi:10.1021/jp076169h 
+      ! Figure 1 in Fairlie et al. ACP 2010 
+      ! doi:10.5194/acp-10-3999-2010
+
       f_rh = 0.03
 
       if (rh >= 0.1 .and. rh < 0.3)       then
@@ -6428,7 +6441,6 @@ K_LOOP: do k = km, 1, -1
          f_rh = 2.0
       end if
 
-!     Following uptake coefficients of Liu et al.(2007)
       gamma = gamma_hno3 * f_rh
 
       sqrt_tk = sqrt(tk)
@@ -9546,7 +9558,8 @@ loop2: DO l = 1,nspecies_HL
 
    subroutine NIthermo (km, klid, cdt, grav, delp, rhoa, tmpu, rh, fMassHNO3, fMassAir, &
                         SO4, NH3, NO3an1, NH4a, xhno3, &
-                        NI_pno3aq, NI_pnh4aq, NI_pnh3aq, rc)
+                        NI_pno3aq, NI_pnh4aq, NI_pnh3aq, NI_phno3aq, & 
+                        NI_pno3aqv,NI_pnh4aqv, NI_pnh3aqv, NI_phno3aqv, rc)
 
 
 ! !USES:
@@ -9569,10 +9582,15 @@ loop2: DO l = 1,nspecies_HL
    real, dimension(:,:,:), intent(inout)  :: NH3    ! Ammonia (NH3, gas phase) [kg kg-1]
    real, dimension(:,:,:), intent(inout)  :: NO3an1 ! Nitrate size bin 001 [kg kg-1]
    real, dimension(:,:,:), intent(inout)  :: NH4a   ! Ammonium ion (NH4+, aerosol phase) [kg kg-1]
-   real, dimension(:,:,:), intent(inout)  :: xhno3  ! buffer for NITRATE_HNO3 [kg m-2 sec-1]
+   real, dimension(:,:,:), intent(inout)  :: xhno3  ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pno3aq ! Nitrate Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh4aq ! Ammonium Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh3aq ! Ammonia Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:), intent(inout) :: NI_phno3aq ! Nitric Acid Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pno3aqv ! 3D Nitrate Production from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pnh4aqv ! 3D Ammonium Production from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pnh3aqv ! 3D Ammonia Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_phno3aqv ! 3D Nitric Acid Change from Aqueous Chemistry [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
    integer, optional, intent(out) :: rc                   ! Error return code:
@@ -9638,6 +9656,29 @@ loop2: DO l = 1,nspecies_HL
        NI_pnh3aq(i,j) = NI_pnh3aq(i,j) &
         + (GNH3 / fmmr_to_conc - NH3(i,j,k)) &
           * delp(i,j,k)/grav/cdt
+      if(associated(NI_phno3aq)) &
+       NI_phno3aq(i,j) = NI_phno3aq(i,j) &
+       + (GNO3 / fmmr_to_conc - (xhno3(i,j,k)*fMassHNO3/fMassAir)) &
+          * delp(i,j,k)/grav/cdt
+
+      if(associated(NI_pno3aqv)) &
+        NI_pno3aqv(i,j,k) = NI_pno3aqv(i,j,k) &
+         + (ANO3 / fmmr_to_conc - NO3an1(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_pnh4aqv)) &
+        NI_pnh4aqv(i,j,k) = NI_pnh4aqv(i,j,k) &
+         + (ANH4 / fmmr_to_conc - NH4a(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_pnh3aqv)) &
+         NI_pnh3aqv(i,j,k) = NI_pnh3aqv(i,j,k) &
+         + (GNH3 / fmmr_to_conc - NH3(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_phno3aqv)) &
+         NI_phno3aqv(i,j,k) = NI_phno3aqv(i,j,k) &
+         + (GNO3 / fmmr_to_conc - (xhno3(i,j,k)*fMassHNO3/fMassAir)) &
+          * delp(i,j,k)/grav/cdt
+
+
 
 !     Unit conversion back on return from thermodynamic module
       NH3(i,j,k)    = GNH3 / fmmr_to_conc
