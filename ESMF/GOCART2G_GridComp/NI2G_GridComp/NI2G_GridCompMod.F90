@@ -876,7 +876,7 @@ contains
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
     if (associated(NIPNH3AQ)) NIPNH3AQ(:,:) = 0.
     if (associated(NIPHNO3AQ)) NIPHNO3AQ(:,:) = 0.
-    # 3D diag
+    ! 3D diag
     if (associated(NIPNO3AQV)) NIPNO3AQV(:,:,:) = 0.
     if (associated(NIPNH4AQV)) NIPNH4AQV(:,:,:) = 0.
     if (associated(NIPNH3AQV)) NIPNH3AQV(:,:,:) = 0.
