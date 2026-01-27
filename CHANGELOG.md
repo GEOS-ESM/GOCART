@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Cleaned up SU AMIP instance RC files; fixed path for degassing volcanic emissions
+  in AMIP.20C and removed unneccessary rhFlag from both AMIP dirs
 - Calculation of surface area density and effective radius for connection to chemistry
   now comes from optics tables
-- Changed effective radius in MieQuery.H to remove in place units scaling; made 
+- Changed effective radius in MieQuery.H to remove in place units scaling; made
   corresponding change in Chem_SettlingSimple
 - Updated optics lookup tables to accommodate area and effective radius calculation
 I- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
@@ -25,8 +27,15 @@ I- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
   - Heartbeat time step removed and `timeToWork` logical added
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 - Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
+- Update CI to use reusable workflows
+- Update `components.yaml` to match that of GEOSgcm main as of 2026-01-15
+  - ESMA_env v5.17.0
+  - ESMA_cmake v3.69.0
+  - GMAO_Shared v2.1.6
+  - MAPL v2.64.1
 - fwet removed from children GridCompMod and placed in respective instance RC files
 - Updated settling routine and calls to allow settling velocity diagnostics in output field
+- Updated pressure lids in instance.rc files for use in GCMv12
 
 ### Fixed
 
@@ -46,6 +55,7 @@ I- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - corrected units error for hno3 column diagnostic in Process Library.
 
 
+- Bug fix for "WetRemovalUFS"
 
 ### Added
 
@@ -57,6 +67,7 @@ I- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - Added 3d diagnostics for nitrate production.
 - Added logic in NI2G_GridCompMod.F90 through NI2G_instance_NI.rc to allow two-way
   coupling of GMI HNO3 to nitrate chemistry mechanism.
+- Implementation of the "WetRemovalUFS" option for sulfate
 
 ## [v2.4.3] - 2025-07-21
 
@@ -71,7 +82,7 @@ I- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 ### Added
 
  - Added option for choosing SettlingSolver
-   - `gocart' - Default GOCART Settling scheme | 'ufs' - New Settling scheme
+   - 'gocart' - Default GOCART Settling scheme | 'ufs' - New Settling scheme
 
 ## [v2.4.2] - 2025-06-12
 
