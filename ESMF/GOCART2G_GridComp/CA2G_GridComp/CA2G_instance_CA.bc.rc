@@ -1,5 +1,5 @@
 #
-# Resource file for Black Carbon parameters. 
+# Resource file for Black Carbon parameters.
 #
 
 aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BC.v1_3.RRTMG.nc
@@ -34,7 +34,7 @@ rhFlag: 0
 # Sigma of lognormal number distribution
 sigma: 2.0  2.0
 
-pressure_lid_in_hPa: 1.0
+pressure_lid_in_hPa: 10.0
 
 nbins: 2
 
