@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+### Added
+
+## [v2.5.0] - 2026-02-05
+
+### Changed
+
 - Cleaned up SU AMIP instance RC files; fixed path for degassing volcanic emissions
   in AMIP.20C and removed unneccessary rhFlag from both AMIP dirs
 - Calculation of surface area density and effective radius for connection to chemistry
@@ -18,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Changed effective radius in MieQuery.H to remove in place units scaling; made
   corresponding change in Chem_SettlingSimple
 - Updated optics lookup tables to accommodate area and effective radius calculation
-I- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
+- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
 - Fwet value in dust modified from 0.8 to 1.0
 - Dust and Sea salt Emission scale factors updated for L181
@@ -53,8 +61,6 @@ I- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - corrected references for RH factor for hno3 uptake on dust in NIheterogenousChem in Process Library.
 - units error for external data hno3 corrected in NI instance file and in Process Library.
 - corrected units error for hno3 column diagnostic in Process Library.
-
-
 - Bug fix for "WetRemovalUFS"
 
 ### Added
