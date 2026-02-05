@@ -15,6 +15,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [v2.6.0] - 2026-02-05
+
+### Changed
+
+- Updated RC configuration settings for GEOSgcm v12:
+  - Adjusted pressure_lid_in_hPa values for various components (CA2G: 0.01→10 hPa for bc/br/oc, NI2G: 0.01→10 hPa, DU2G: 0.01→10 hPa, SS2G: 0.01→40 hPa, SU2G: 0.01→1 hPa)
+  - Switched dust (DU2G) emission coefficients (Ch_DU) from L072 to L181 values
+  - Updated dust (DU2G) fwet parameter from 0.8 to 1.0 for all bins
+  - Switched sea salt (SS2G) emission_scale from L072 to L181 values
+
 ## [v2.5.0] - 2026-02-05
 
 ### Changed
