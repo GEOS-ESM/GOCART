@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+### Fixed
+
+### Added
+
+## [v2.5.0] - 2026-02-05
+
+### Changed
+
 - Cleaned up SU AMIP instance RC files; fixed path for degassing volcanic emissions
   in AMIP.20C and removed unneccessary rhFlag from both AMIP dirs
 - Calculation of surface area density and effective radius for connection to chemistry
@@ -47,6 +55,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
+- Units error for dust and sea salt radius in NIheterogenousChem in Process Library corrected.
+- stochiometric coefficent correction for heterogenous production diagnostic NI_phet
+  in NIheterogenousChem in Process Library.
+- corrected references for RH factor for hno3 uptake on dust in NIheterogenousChem in Process Library.
+- units error for external data hno3 corrected in NI instance file and in Process Library.
+- corrected units error for hno3 column diagnostic in Process Library.
 - Bug fix for "WetRemovalUFS"
 
 ### Added
@@ -56,6 +70,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   coupling of GMI OH, NO3, H2O2 to sulfur chemistry mechanism
 - Added a callback to allow a chemistry module to call for optical properties needed
   for photolysis calculation; currently used for GMI with CloudJ
+- Added 3d diagnostics for nitrate production.
+- Added logic in NI2G_GridCompMod.F90 through NI2G_instance_NI.rc to allow two-way
+  coupling of GMI HNO3 to nitrate chemistry mechanism.
 - Implementation of the "WetRemovalUFS" option for sulfate
 
 ## [v2.4.3] - 2025-07-21
