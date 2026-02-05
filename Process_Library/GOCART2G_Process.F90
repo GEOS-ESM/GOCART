@@ -1465,7 +1465,7 @@ end function DarmenovaDragPartition
                                                   !  0 - all is well
                                                   !  1 -
 !  Optionally output the settling velocity calculated
-   real, pointer, optional, dimension(:,:,:)  :: vsettleOut
+   real, pointer, optional, intent (inout)  :: vsettleOut (:,:,:)
 
 !  Optionally correct the settling velocity following Maring et al, 2003
    logical, optional, intent(in)    :: correctionMaring
@@ -1564,7 +1564,7 @@ end function DarmenovaDragPartition
     do k = klid, km
        do j = j1, j2
           do i = i1, i2
-            call Chem_CalcVsettle(radius(i,j,k)*1.e-6, rhop(i,j,k), rhoa(i,j,k), &
+            call Chem_CalcVsettle(radius(i,j,k), rhop(i,j,k), rhoa(i,j,k), &
                                    tmpu(i,j,k), vsettle(i,j,k), grav)
           end do
        end do
@@ -1576,9 +1576,11 @@ end function DarmenovaDragPartition
        endif
     endif
 
-    if(present(vsettleOut)) then
-       vsettleOut = vsettle
-    endif
+    if (present(vsettleOut)) then
+       if (associated(vsettleOut)) then
+          vsettleOut = vsettle
+       end if
+    end if
 
 !   Time integration
     select case (settling_scheme)
@@ -1994,7 +1996,7 @@ end function DarmenovaDragPartition
 
     real :: dt, dt_cfl, max_tau
     real :: transfer_factor, loss_factor
-   real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
+    real, parameter :: eps = 1.0e-30  ! Small number to prevent division by zero
     real, parameter :: cfl_factor = 0.1  ! CFL stability factor
 
 ! !DESCRIPTION: This subroutine solves the settling of particles
@@ -2010,14 +2012,14 @@ end function DarmenovaDragPartition
 !EOP
 !-------------------------------------------------------------------------
 
-      tau = vs / dz
+    tau = vs / dz
 
     ! loop over grid points
     jloop : do j = j1, j2
       iloop : do i = i1, i2
 
-          dp_  = delp(i,j,:)
-          tau_ = tau(i,j,:)
+         dp_  = delp(i,j,:)
+         tau_ = tau(i,j,:)
 
           ! Find maximum tau with numerical safety
          max_tau = maxval(tau_)
@@ -2026,14 +2028,14 @@ end function DarmenovaDragPartition
 
 
 
-          if (dt_cfl >= cdt) then
-             ! no need for time sub-splitting
+         if (dt_cfl >= cdt) then
+            ! no need for time sub-splitting
             nSubSteps = 0
-             dt = cdt
-          else
-             nSubSteps = max(1, ceiling(cdt / dt_cfl))
-             dt = cdt / real(nSubSteps)
-          end if
+            dt = cdt
+         else
+            nSubSteps = max(1, ceiling(cdt / dt_cfl))
+            dt = cdt / real(nSubSteps)
+         end if
 
          ! Time integration with numerical safeguards
          iitloop : do iit = 1, nSubSteps
@@ -2047,15 +2049,15 @@ end function DarmenovaDragPartition
             ! Update interior and bottom layers
             kloop: do k = 2, km
                loss_factor = max(0.0,min(1.0, dt * tau_(k)))
-               
+
                ! Check if pressure layers are valid
                if (dp_(k-1) > eps .and. dp_(k) > eps) then
                   transfer_factor = (dp_(k-1) / dp_(k)) * dt * tau_(k-1)
                   qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0))) + &
                                  transfer_factor * qa_old(k-1)
-                   else
+               else
                   qa(i,j,k) = max(0.0, qa(i,j,k) * (1.0 - min(loss_factor, 1.0)))
-                endif
+               end if
             end do kloop
          end do iitloop
       end do iloop
@@ -3413,7 +3415,6 @@ end function DarmenovaDragPartition
         if (tmpu(i,j,k) < 258d0 .and. .not.snow_scavenging) then
             F = 0.d0
         endif
-
         effRemoval = fwet
         DC(n) = aerosol(i,j,k) * F * effRemoval *(1.-exp(-BT))
         if (DC(n).lt.0.) DC(n) = 0.
@@ -3782,11 +3783,34 @@ end function DarmenovaDragPartition
      do j = jl, ju
        do i = il, iu
          ! -- compute column quantities
-         do k = ktop, kbot
+         ! ---- TOP LAYER (k = 1) ----
+         k = ktop
+         km1 = k   ! prevents k=0 indexing
+
+         ! layer pressure thickness (use k and k+1)
+         delp       = ple(i,j,k+1) - ple(i,j,k)
+         dpog(k)    = delp / grav
+         delz       = dpog(k) / rhoa(i,j,k)
+         delz_cm(k) = delz * m_to_cm
+
+         ! no precipitation entering from above
+         qq(k)   = 0.0
+         pdwn(k) = 0.0
+
+         ! initialize aerosol column mass and wet-deposition accumulator
+         conc(k)  = aerosol(i,j,k) * dpog(k)
+         dconc(k) = 0.0
+! ---- REMAINING LAYERS (k = 2 .. km) ----
+         do k = ktop+1, kbot
            km1 = k - 1
 
            ! -- initialize auxiliary arrays
-           delp = ple(i,j,k) - ple(i,j,km1)
+           if (k < kbot) then
+             delp = ple(i,j,k+1) - ple(i,j,k)
+           else
+             delp = ple(i,j,k) - ple(i,j,k-1)   ! bottom-most layer
+           end if
+
            dpog(k) = delp / grav
            delz = dpog(k) / rhoa(i,j,k) ! thickness of layer [m]
            delz_cm(k) = delz * m_to_cm  ! thickness of layer [cm]
@@ -3815,7 +3839,11 @@ end function DarmenovaDragPartition
            dconc(k) = zero
 
            ! -- compute mixing ratio of saturated water vapour over ice
-           pres     = 0.5 * ( ple(i,j,km1) + ple(i,j,k) )
+           if (k < kbot) then
+             pres = 0.5 * ( ple(i,j,k) + ple(i,j,k+1) )
+           else
+             pres = 0.5 * ( ple(i,j,k-1) + ple(i,j,k) )
+           end if
            c_h2o(k) = 10._dp ** (-2663.5_dp / tmpu(i,j,k) + 12.537_dp ) / pres
 
            ! -- estimate cloud ice and liquid water content
@@ -3835,18 +3863,25 @@ end function DarmenovaDragPartition
          if (qq(k) > qq_thr) then
            ! -- compute rainout rate
            k_rain = k_min + qq(k) / cwc
-           f = qq(k) / ( k_rain * cwc )
+           ! f = qq(k) / ( k_rain * cwc )
+
+           ! -- Safety check: ensure denominator is positive
+           if (k_rain * cwc > 1.0e-12) then
+             f = qq(k) / ( k_rain * cwc )
+             f = min(one, max(zero, f))  ! Bound f between 0 and 1
+           else
+             f = zero
+           end if
 
            call rainout( kin, rainout_eff, f, k_rain, dt, tmpu(i,j,k), delz_cm(k), &
                          pdwn(k), c_h2o(k), cldice(k), cldliq(k), spc, lossfrac )
 
            ! -- compute and apply effective loss fraction
            wetloss = lossfrac * conc(k)
+           wetloss  = max(zero, min(wetloss, conc(k)))
            conc(k) = conc(k) - wetloss
            dconc(k) = wetloss
 
-           ! -- add to total column deposition flux
-           dconc(k) = wetloss
          end if
 
          ! -- middle layers
@@ -3859,6 +3894,7 @@ end function DarmenovaDragPartition
            if (qq(k) > qq_thr) then
              k_rain = k_min + qq(k) / cwc
              f_prime = qq(k) / ( k_rain * cwc )
+             f_prime = min(one, max(zero, f_prime))
            end if
 
            ! -- account for precipitation flux
@@ -3881,6 +3917,13 @@ end function DarmenovaDragPartition
                wetloss = lossfrac * conc(k)
                conc(k) = conc(k) - wetloss
                dconc(k) = dconc(km1) + wetloss
+               ! If precipitation evaporates significantly before reaching next level
+               if (k < kbot .and. pdwn(k+1) < 0.5 * pdwn(k) .and. pdwn(k) > pdwn_thr) then
+               ! Partial re-evaporation anticipated
+               alpha = (pdwn(k) - pdwn(k+1)) / pdwn(k)
+               alpha = min(one, max(zero, alpha))
+               ! This will be handled in next level, just note it here if needed
+               end if
              end if
              if ( f_washout > zero ) then
                if ( f_rainout > zero ) then
@@ -3896,11 +3939,21 @@ end function DarmenovaDragPartition
                if ( kin ) then
                  ! -- adjust loss fraction for aerosols
                  lossfrac = lossfrac * f_washout / f
-
-                 alpha = abs( qq(k) ) * delz_cm(k) / pdwn(km1)
-                 alpha = min( one, alpha )
-                 gain  = 0.5 * alpha * dconc(km1)
-                 wetloss  = conc(k) * lossfrac - gain
+                 gain = zero
+                 if ( f_rainout > zero ) then
+                     ! Washout from precipitation entering from top
+                     if (pdwn(km1) > pdwn_thr) then
+                     alpha = abs( qq(k) ) * delz_cm(k) / pdwn(km1)
+                     alpha = min( one, alpha )
+                     gain  = 0.5 * alpha * dconc(km1)
+                     end if
+                  else
+                  ! Washout from precipitation leaving through bottom
+                  ! No re-evaporation gain in this case (precipitation already present)
+                  gain = zero
+                  end if
+                  wetloss  = conc(k) * lossfrac - gain
+                  wetloss  = max(zero, wetloss)  ! Prevent negative loss
                  ! -- skip sulfate
                else
                  washed  = f_washout * conc(k) + dconc(km1)
@@ -3914,16 +3967,28 @@ end function DarmenovaDragPartition
                end if
              end if
            else
-             ! -- complete resuspension of rainout + washout from level above
-             conc(k) = conc(k) + dconc(km1)
-           end if
-
+             !-- complete resuspension of rainout + washout from level above
+             ! conc(k) = conc(k) + dconc(km1)
+             ! Check for actual evaporation: negative formation rate OR decreasing flux
+             ! Re-evaporation only if precip enters the layer and flux decreases
+              if ( (pdwn(km1) > 1.0e-20) .and. (pdwn(k) < pdwn(km1)) ) then
+                alpha = max(zero, min(one, (pdwn(km1) - pdwn(k)) / pdwn(km1)))
+                conc(k)  = conc(k) + alpha * dconc(km1)
+                dconc(k) = (one - alpha) * dconc(km1)
+              else
+                ! No evaporation here: just carry scavenged mass downward
+                dconc(k) = dconc(km1)
+                ! conc(k) unchanged
+              end if
+            end if
+ 
            ftop = f
 
          end do
 
          ! -- surface level
          k = kbot
+         km1=k-1
          if (pdwn(km1) > pdwn_thr) then
            f = ftop
            if ( f > zero ) then
@@ -3947,7 +4012,7 @@ end function DarmenovaDragPartition
            aerosol(i,j,k) = conc(k) / dpog(k)
          end do
 
-         if (associated(fluxout)) fluxout(i,j,bin_ind) = sum(dconc) / dt
+         if (associated(fluxout)) fluxout(i,j,bin_ind) = dconc(kbot) / dt
 
        end do
      end do
@@ -4309,7 +4374,8 @@ end function DarmenovaDragPartition
                                   sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
                                   sfcmass25, colmass25, mass25, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, bckcoef,&
-                                  exttaufm, scataufm, angstrom, aerindx, NO3nFlag, rc )
+                                  exttaufm, scataufm, angstrom, aerindx, NO3nFlag, &
+                                  sarea, reff, rc )
 
 ! !USES:
 
@@ -4359,7 +4425,9 @@ end function DarmenovaDragPartition
    real, optional, dimension(:,:,:,:), intent(inout) :: bckcoef   ! 3d backscatter coefficient, m-1 sr-1
    real, optional, dimension(:,:,:), intent(inout)   :: exttaufm  ! fine mode (sub-micron) ext. AOT at 550 nm
    real, optional, dimension(:,:,:), intent(inout)   :: scataufm  ! fine mode (sub-micron) sct. AOT at 550 nm
-   real, optional, dimension(:,:), intent(inout)   :: angstrom  ! 470-870 nm Angstrom parameter
+   real, optional, dimension(:,:), intent(inout)   :: angstrom    ! 470-870 nm Angstrom parameter
+   real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Aerosol surface area density [m2 m-3]
+   real, optional, dimension(:,:,:), intent(inout)  :: reff       ! Aerosol effective radius [m]
    integer, optional, intent(out)   :: rc        ! Error return code:
                                                  !  0 - all is well
                                                  !  1 -
@@ -4377,7 +4445,7 @@ end function DarmenovaDragPartition
    integer :: i, j, k, n, w, ios, status
    integer :: i1 =1, i2, j1=1, j2
    integer :: ilam470, ilam870
-   real, allocatable, dimension(:,:,:) :: tau, ssa, bck
+   real, allocatable, dimension(:,:,:) :: tau, ssa, bck, area, tarea, pref, pref0
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
@@ -4676,6 +4744,46 @@ end function DarmenovaDragPartition
          log(470./870.)
    endif
    deallocate(tau,ssa)
+
+!  Calculate the sulfate area density [m2 m-3], possibly for use in
+!  StratChem or other component.  Optics tables provide cross-sectional area
+!  for hydrated particle per kg dry mass but we want total surface area,
+!  which is 4 x cross section.
+   if(present(sarea)) then
+    sarea = 0.0
+    allocate(area(i1:i2,j1:j2,km), __STAT__)
+    do n = nbegin, nbins
+     call mie%Query(550e-9,n,   &
+                    aerosol(:,:,:,n)*delp/grav, rh, &
+                    area=area, __RC__)
+     sarea = sarea + 4.*area*aerosol(:,:,:,n)*rhoa
+    enddo
+    deallocate(area)
+   endif
+
+!  Also if present compute the species integrated effective radius by
+!  area weighting individual components
+   if(present(reff)) then
+    reff  = 0.0
+    allocate(tarea(i1:i2,j1:j2,km), area(i1:i2,j1:j2,km), &
+             pref0(i1:i2,j1:j2,km), pref(i1:i2,j1:j2,km), __STAT__)
+    tarea = 0.0
+    do n = nbegin, nbins
+     call mie%Query(550e-9,n,   &
+                    aerosol(:,:,:,n)*delp/grav, rh, &
+                    area=area, reff=pref, __RC__)
+     if(n .eq. nbegin) pref0 = pref
+     area  = 4.*area*aerosol(:,:,:,n)*rhoa
+     tarea = tarea + area
+     reff  = reff  + area*pref
+    enddo
+    reff = reff/tarea
+!   Trap zero reff for low concentrations
+    where(reff < 1.e-12) reff =  pref0
+    
+    deallocate(tarea, area, pref, pref0)
+   endif
+
    __RETURN__(__SUCCESS__)
    end subroutine Aero_Compute_Diags
 !====================================================================
@@ -5878,7 +5986,7 @@ K_LOOP: do k = km, 1, -1
 ! !IROUTINE: NIheterogenousChemOpt
 !
 ! !INTERFACE:
-   subroutine NIheterogenousChem (NI_phet, xhno3, UNDEF, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
+   subroutine NIheterogenousChem (NI_phet, NI_phetv, xhno3, UNDEF, AVOGAD, AIRMW, PI, RUNIV, rhoa, tmpu, relhum, delp, &
                                   DU, SS, rmedDU, rmedSS, fnumDU, fnumSS,                                    &
                                   km, klid, cdt, grav, fMassHNO3, fMassNO3, nNO3an1, nNO3an2,                &
                                   nNO3an3, HNO3_conc, HNO3_sfcmass, HNO3_colmass, rc)
@@ -5901,8 +6009,8 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:,:), intent(in)  :: delp           ! pressure thickness [Pa]
    real, pointer, dimension(:,:,:,:), intent(in) :: DU   ! dust aerosol [kg/kg]
    real, pointer, dimension(:,:,:,:), intent(in) :: SS   ! sea salt aerosol [kg/kg]
-   real, dimension(:) ,intent(in)      :: rmedDU         ! dust aerosol radius [um]
-   real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [um]
+   real, dimension(:) ,intent(in)      :: rmedDU         ! dust aerosol radius [m]
+   real, dimension(:) ,intent(in)      :: rmedSS         ! sea salt aerosol radius [m]
    real, dimension(:) ,intent(in)      :: fnumDU         ! number of dust particles per kg mass
    real, dimension(:) ,intent(in)      :: fnumSS         ! number of sea salt particles per kg mass
    integer, intent(in)                 :: km             ! number of model levels
@@ -5914,10 +6022,11 @@ K_LOOP: do k = km, 1, -1
 
 ! !INOUTPUT PARAMETERS:
    real, pointer, dimension(:,:,:), intent(inout)  :: NI_phet   ! Nitrate Production from Het Chem [kg/(m^2 sec)]
-   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [kg/(m^2 sec)]
+   real, pointer, dimension(:,:,:,:), intent(inout) :: NI_phetv   ! 3D Nitrate Production from Het Chem [kg/(m^2 sec)]
+   real, dimension(:,:,:), intent(inout)  :: xhno3     ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:,:), intent(inout)  :: HNO3_conc ! Nitric Acid Mass Concentration [kg/m^3]
    real, pointer, dimension(:,:), intent(inout)    :: HNO3_sfcmass ! Nitric Acid Surface Mass Concentration [kg/m^3]
-   real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^3]
+   real, pointer, dimension(:,:), intent(inout)    :: HNO3_colmass ! Nitric Acid Column Mass Density [kg/m^2]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an1 ! Nitrate bin 1 [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an2 ! Nitrate bin 2 [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout)  :: nNO3an3 ! Nitrate bin 3 [kg/kg]
@@ -6036,10 +6145,17 @@ K_LOOP: do k = km, 1, -1
    nNO3an3 = nNO3an3 + kan3 * deltahno3 * fMassNO3 / fMassHNO3
 
    if(associated(NI_phet)) then
-      NI_phet(:,:,1) = (1.0 / (grav*cdt)) * sum(kan1*deltahno3*delp, dim=3)
-      NI_phet(:,:,2) = (1.0 / (grav*cdt)) * sum(kan2*deltahno3*delp, dim=3)
-      NI_phet(:,:,3) = (1.0 / (grav*cdt)) * sum(kan3*deltahno3*delp, dim=3)
+      NI_phet(:,:,1) = (1.0 / (grav*cdt)) * sum(kan1*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
+      NI_phet(:,:,2) = (1.0 / (grav*cdt)) * sum(kan2*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
+      NI_phet(:,:,3) = (1.0 / (grav*cdt)) * sum(kan3*deltahno3*(fMassNO3/fMassHNO3)*delp, dim=3)
    end if
+
+   if(associated(NI_phetv)) then
+     NI_phetv(:,:,:,1) = (1.0 / (grav*cdt)) * kan1*deltahno3*(fMassNO3/fMassHNO3)*delp
+     NI_phetv(:,:,:,2) = (1.0 / (grav*cdt)) * kan2*deltahno3*(fMassNO3/fMassHNO3)*delp
+     NI_phetv(:,:,:,3) = (1.0 / (grav*cdt)) * kan3*deltahno3*(fMassNO3/fMassHNO3)*delp
+   end if
+
 
 !  Output diagnostic HNO3
 !  ----------------------
@@ -6056,7 +6172,7 @@ K_LOOP: do k = km, 1, -1
       HNO3_colmass(i1:i2,j1:j2) = 0.
       do k = klid, km
         HNO3_colmass(i1:i2,j1:j2) &
-         =   HNO3_colmass(i1:i2,j1:j2) + xhno3(i1:i2,j1:j2,k)*delp(i1:i2,j1:j2,k)/grav
+         =   HNO3_colmass(i1:i2,j1:j2) + xhno3(i1:i2,j1:j2,k) * fMassHNO3 / AIRMW * delp(i1:i2,j1:j2,k)/grav
       end do
    endif
 
@@ -6303,7 +6419,12 @@ K_LOOP: do k = km, 1, -1
    p_dfkg   = sqrt(3.472e-2 + 1.0/fmassHNO3)
    p_avgvel = sqrt(8.0 * rgas_dp * 1000.0 / (pi_dp * fmassHNO3))
 
-      ! RH factor - Figure 1 in Duncan et al. (2010)
+      ! RH factor: rh dependent gamma for dust - references:
+      ! Table 1 in Liu et al. J. Phys. Chem. A 2008
+      ! doi:10.1021/jp076169h 
+      ! Figure 1 in Fairlie et al. ACP 2010 
+      ! doi:10.5194/acp-10-3999-2010
+
       f_rh = 0.03
 
       if (rh >= 0.1 .and. rh < 0.3)       then
@@ -6320,7 +6441,6 @@ K_LOOP: do k = km, 1, -1
          f_rh = 2.0
       end if
 
-!     Following uptake coefficients of Liu et al.(2007)
       gamma = gamma_hno3 * f_rh
 
       sqrt_tk = sqrt(tk)
@@ -7284,7 +7404,7 @@ K_LOOP: do k = km, 1, -1
    real, intent(in)    :: airMolWght ! air molecular weight [kg]
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]
    real, intent(in) :: fMassSO4, fMassSO2
-   real, dimension(:,:,:) :: h2o2_int
+   real, dimension(:,:,:) :: h2o2_int   
    real, pointer, dimension(:,:,:), intent(in) :: ple     ! level edge air pressure
    real, pointer, dimension(:,:,:), intent(in) :: rhoa    ! air density, [kg m-3]
    real, pointer, dimension(:,:), intent(in)   :: precc   ! total convective precip, [mm day-1]
@@ -7828,7 +7948,7 @@ K_LOOP: do k = km, 1, -1
 !BOP
 ! !IROUTINE: SU_Compute_Diags
 
-   subroutine SU_Compute_Diags ( km, klid, rmed, sigma, rhop, grav, pi, nSO4, mie, &
+   subroutine SU_Compute_Diags ( km, klid, rhop, grav, pi, nSO4, mie, &
                                  wavelengths_profile, wavelengths_vertint, &
                                  tmpu, rhoa, delp, ple, tropp,rh, u, v, &
                                  DMS, SO2, SO4, MSA, &
@@ -7837,7 +7957,7 @@ K_LOOP: do k = km, 1, -1
                                  so2sfcmass, so2colmass, &
                                  so4sfcmass, so4colmass, &
                                  exttau, stexttau,scatau, stscatau,so4mass, so4conc, extcoef, &
-                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, rc )
+                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, reff, rc )
 
 ! !USES:
    implicit NONE
@@ -7845,8 +7965,6 @@ K_LOOP: do k = km, 1, -1
 ! !INPUT PARAMETERS:
    integer, intent(in) :: km    ! number of model levels
    integer,    intent(in)    :: klid   ! index for pressure lid
-   real, intent(in)    :: rmed  ! mean radius [um]
-   real, intent(in)    :: sigma ! Sigma of lognormal number distribution
    real, intent(in)    :: rhop  ! dry particle density [kg m-3]
    real, intent(in)    :: grav  ! gravity [m/sec]
    real, intent(in)    :: pi    ! pi constant
@@ -7890,6 +8008,7 @@ K_LOOP: do k = km, 1, -1
    real, optional, dimension(:,:),   intent(inout)  :: fluxv      ! Column mass flux in y direction
    real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
    real, optional, dimension(:,:,:), intent(inout)  :: snum       ! Sulfate number density [# m-2]
+   real, optional, dimension(:,:,:), intent(inout)  :: reff       ! Sulfate effective radius [m]
    integer, optional, intent(out)   :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 -
@@ -7904,7 +8023,7 @@ K_LOOP: do k = km, 1, -1
 
 ! !Local Variables
    integer :: i, j, k, w, i1=1, j1=1, i2, j2, status
-   real, dimension(:,:,:), allocatable :: tau, ssa, bck
+   real, dimension(:,:,:), allocatable :: tau, ssa, bck, area
    real, dimension(:,:), allocatable :: tau470, tau870
    integer    :: ilam470, ilam870
    logical :: do_angstrom
@@ -8137,30 +8256,30 @@ K_LOOP: do k = km, 1, -1
    endif
 
 !  Calculate the sulfate surface area density [m2 m-3], possibly for use in
-!  StratChem or other component.  Assumption here is a specified effective
-!  radius (gcSU%radius for sulfate) and standard deviation of lognormal
-!  distribution.  Hydration is by grid box provided RH and is follows Petters
-!  and Kreeidenweis (ACP2007)
-   if(present(sarea) .or. present(snum)) then
-!        rmed   = w_c%reg%rmed(n1+nSO4-1)                    ! median radius, m
-        if(rmed > 0.) then
-!         sigma  = w_c%reg%sigma(n1+nSO4-1)                  ! width of lognormal distribution
-         do k = klid, km
-         do j = j1, j2
-          do i = i1, i2
-           rh_ = min(0.95,rh(i,j,k))
-           gf = (1. + 1.19*rh_/(1.-rh_) )                   ! ratio of wet/dry volume, eq. 5
-           rwet = rmed * gf**(1./3.)                      ! wet effective radius, m
-!          Wet particle volume m3 m-3
-           svol = SO4(i,j,k) * rhoa(i,j,k) / rhop * gf
-!          Integral of lognormal surface area m2 m-3
-           if(present(sarea)) sarea(i,j,k) = 3./rwet*svol*exp(-5./2.*alog(sigma)**2.)
-!          Integral of lognormal number density # m-3
-           if(present(snum)) snum(i,j,k) = svol / (rwet**3) * exp(-9/2.*alog(sigma)**2.) * 3./4./pi
-          enddo
-         enddo
-        enddo
-       endif
+!  StratChem or other component.  Optics tables provide cross-sectional area
+!  for hydrated particle per kg dry mass but we want total surface area,
+!  which is 4 x cross section.
+   if(present(sarea)) then
+     sarea = 0.
+     allocate(area(i1:i2,j1:j2,km), __STAT__)
+     call mie%Query(550e-9,1,   &
+                         SO4*delp/grav, rh, &
+                         area=area, __RC__)
+     sarea = 4.*area*SO4*rhoa
+     deallocate(area)
+   endif
+
+!  Get the sulfate particle effective radius [m] possibly for use in chemistry
+   if(present(reff)) then
+     reff = 0.
+     call mie%Query(550e-9,1,   &
+                         SO4*delp/grav, rh, &
+                         reff=reff, __RC__)
+   endif
+   
+   
+!  To implement if desired:
+   if(present(snum)) then   
    endif
    deallocate(tau,ssa)
    __RETURN__(__SUCCESS__)
@@ -9439,7 +9558,8 @@ loop2: DO l = 1,nspecies_HL
 
    subroutine NIthermo (km, klid, cdt, grav, delp, rhoa, tmpu, rh, fMassHNO3, fMassAir, &
                         SO4, NH3, NO3an1, NH4a, xhno3, &
-                        NI_pno3aq, NI_pnh4aq, NI_pnh3aq, rc)
+                        NI_pno3aq, NI_pnh4aq, NI_pnh3aq, NI_phno3aq, & 
+                        NI_pno3aqv,NI_pnh4aqv, NI_pnh3aqv, NI_phno3aqv, rc)
 
 
 ! !USES:
@@ -9462,10 +9582,15 @@ loop2: DO l = 1,nspecies_HL
    real, dimension(:,:,:), intent(inout)  :: NH3    ! Ammonia (NH3, gas phase) [kg kg-1]
    real, dimension(:,:,:), intent(inout)  :: NO3an1 ! Nitrate size bin 001 [kg kg-1]
    real, dimension(:,:,:), intent(inout)  :: NH4a   ! Ammonium ion (NH4+, aerosol phase) [kg kg-1]
-   real, dimension(:,:,:), intent(inout)  :: xhno3  ! buffer for NITRATE_HNO3 [kg m-2 sec-1]
+   real, dimension(:,:,:), intent(inout)  :: xhno3  ! buffer for NITRATE_HNO3 [mol mol-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pno3aq ! Nitrate Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh4aq ! Ammonium Production from Aqueous Chemistry [kg m-2 s-1]
    real, pointer, dimension(:,:), intent(inout) :: NI_pnh3aq ! Ammonia Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:), intent(inout) :: NI_phno3aq ! Nitric Acid Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pno3aqv ! 3D Nitrate Production from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pnh4aqv ! 3D Ammonium Production from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_pnh3aqv ! 3D Ammonia Change from Aqueous Chemistry [kg m-2 s-1]
+   real, pointer, dimension(:,:,:), intent(inout) :: NI_phno3aqv ! 3D Nitric Acid Change from Aqueous Chemistry [kg m-2 s-1]
 
 ! !OUTPUT PARAMETERS:
    integer, optional, intent(out) :: rc                   ! Error return code:
@@ -9531,6 +9656,29 @@ loop2: DO l = 1,nspecies_HL
        NI_pnh3aq(i,j) = NI_pnh3aq(i,j) &
         + (GNH3 / fmmr_to_conc - NH3(i,j,k)) &
           * delp(i,j,k)/grav/cdt
+      if(associated(NI_phno3aq)) &
+       NI_phno3aq(i,j) = NI_phno3aq(i,j) &
+       + (GNO3 / fmmr_to_conc - (xhno3(i,j,k)*fMassHNO3/fMassAir)) &
+          * delp(i,j,k)/grav/cdt
+
+      if(associated(NI_pno3aqv)) &
+        NI_pno3aqv(i,j,k) = NI_pno3aqv(i,j,k) &
+         + (ANO3 / fmmr_to_conc - NO3an1(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_pnh4aqv)) &
+        NI_pnh4aqv(i,j,k) = NI_pnh4aqv(i,j,k) &
+         + (ANH4 / fmmr_to_conc - NH4a(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_pnh3aqv)) &
+         NI_pnh3aqv(i,j,k) = NI_pnh3aqv(i,j,k) &
+         + (GNH3 / fmmr_to_conc - NH3(i,j,k)) &
+          * delp(i,j,k)/grav/cdt
+      if(associated(NI_phno3aqv)) &
+         NI_phno3aqv(i,j,k) = NI_phno3aqv(i,j,k) &
+         + (GNO3 / fmmr_to_conc - (xhno3(i,j,k)*fMassHNO3/fMassAir)) &
+          * delp(i,j,k)/grav/cdt
+
+
 
 !     Unit conversion back on return from thermodynamic module
       NH3(i,j,k)    = GNH3 / fmmr_to_conc

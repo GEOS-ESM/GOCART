@@ -35,7 +35,8 @@ category: IMPORT
  EMI_NH3_OC   | kg m-2 s-1 | xy   | N    |           | SKIP    | ocean emissions
  EMI_NH3_RE   | kg m-2 s-1 | xy   | N    |           | SKIP    | resedential emissions
  EMI_NH3_TR   | kg m-2 s-1 | xy   | N    |           | SKIP    | transport emissions
- NITRATE_HNO3 | kg m-2 s-1 | xyz  | C    |           | SKIP    | nitrate hno3 emissions
+ NITRATE_HNO3 | mol mol-1  | xyz  | C    |           | SKIP    | nitrate hno3 offline field
+ GMI_HNO3     | mol mol-1  | xyz  | C    |           | SKIP    | nitrate GMI HNO3 source
  DU           | kg kg-1    | xyz  | C    | 5         | OPT     | Dust Mixing Ratio all bins
  SS           | kg kg-1    | xyz  | C    | 5         | OPT     | Sea Salt Mixing Ratio all bins
  SO4          | kg kg-1    | xyz  | C    |           | OPT     | Sulfate Mixing Ratio
@@ -48,6 +49,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
   NH3MASS       | kg/kg        | xyz   | C     |                                | Ammonia Mass Mixing Ratio
   NH4MASS       | kg/kg        | xyz   | C     |                                | Ammonium Aerosol Mass Mixing Ratio
+  NH4SD_V       | m s-1        | xyz   | C     |                                | Ammonium Settling Velocity
   NIMASS        | kg/kg        | xyz   | C     |                                | Nitrate Mass Mixing Ratio
   NIMASS25      | kg/kg        | xyz   | C     |                                | Nitrate Mass Mixing Ratio of Particulate Matter < 2.5 microns (PM2.5)
   HNO3CONC      | kg m-3       | xyz   | C     |                                | Nitric Acid Mass Concentration
@@ -55,6 +57,7 @@ category: EXPORT
   NH4CONC       | kg m-3       | xyz   | C     |                                | Ammonium Mass Concentration
   NICONC        | kg m-3       | xyz   | C     |                                | Nitrate Mass Concentration
   NICONC25      | kg m-3       | xyz   | C     |                                | Nitrate Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
+  NISD_V        | m s-1        | xyz   | C     | 3                              | Nitrate Settling Velocity (Bin %d)
   NIEXTCOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient
   NIEXTCOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient - fixed RH=20%
   NIEXTCOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Extinction Coefficient - fixed RH=80%
@@ -62,10 +65,16 @@ category: EXPORT
   NISCACOEFRH20 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient - fixed RH=20%
   NISCACOEFRH80 | m-1          | xyz   | C     | size(self%wavelengths_profile) | Nitrate Scattering Coefficient - fixed RH=80%
   NIBCKCOEF     | m-1 sr-1     | xyz   | C     | size(self%wavelengths_profile) | Nitrate Backscatter Coefficient
+  NIPNO3AQV     | kg m-2 s-1   | xyz   | C     |                                | 3D Nitrate Production from Aqueous Chemistry
+  NIPNH4AQV     | kg m-2 s-1   | xyz   | C     |                                | 3D Ammonium production from Aqueous Chemistry
+  NIPNH3AQV     | kg m-2 s-1   | xyz   | C     |                                | 3D Ammonia Change from Aqueous Chemistry
+  NIPHNO3AQV    | kg m-2 s-1   | xyz   | C     |                                | 3D Nitric acid  Change from Aqueous Chemistry
+  NIHTV         | kg m-2 s-1   | xyz   | C     | 3                              | 3D Nitrate Production from Het Chem (Bin %d)
 # ............. | ............ | ..... | ..... | ...........                    | ..................................
   NIPNO3AQ      | kg m-2 s-1   | xy    | N     |                                | Nitrate Production from Aqueous Chemistry
   NIPNH4AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonium Production from Aqueous Chemistry
   NIPNH3AQ      | kg m-2 s-1   | xy    | N     |                                | Ammonia Change from Aqueous Chemistry
+  NIPHNO3AQ      | kg m-2 s-1   | xy    | N     |                                | Nitric Acid Change from Aqueous Chemistry
   NIHT          | kg m-2 s-1   | xy    | N     | 3                              | Nitrate Production from Het Chem (Bin %d)
   NISD          | kg m-2 s-1   | xy    | N     | 3                              | Nitrate Sedimentation (Bin %d)
   NIDP          | kg m-2 s-1   | xy    | N     | 3                              | Nitrate Dry Deposition (Bin %d)
@@ -112,7 +121,7 @@ category: INTERNAL
  NO3an1 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 001
  NO3an2 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 002
  NO3an3 |kg kg-1   | xyz  | C    | MAPL_RestartOptional | T | DYNAMICS:TURBULENCE:MOIST | Nitrate size bin 003
- XHNO3  |kg m-2 s-1| xyz  | C    |                      | F |                           | buffer for NITRATE_HNO3
+ XHNO3  |mol mol-1 | xyz  | C    |                      | F |                           | buffer for NITRATE_HNO3
 
 #********************************************************
 #
