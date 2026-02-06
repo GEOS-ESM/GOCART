@@ -1,6 +1,6 @@
 # Contributing to GOCART
 
-Contributing code to GOCART should be done via a Pull Request (PR) to this repository. Prior to submitting a for zero-diff change, testing following guidelines at https://github.com/GEOS-ESM/GEOSgcm_GridComp/wiki/Zero-diff-changes must be completed.
+Contributing code to GOCART should be done via a Pull Request (PR) to this repository. Prior to submitting a PR for a zero-diff change, testing following guidelines at https://github.com/GEOS-ESM/GEOSgcm_GridComp/wiki/Zero-diff-changes must be completed.
 
 ## Contributor License Agreement (CLA)
 
