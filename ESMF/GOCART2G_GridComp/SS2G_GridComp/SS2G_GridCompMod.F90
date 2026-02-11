@@ -1,4 +1,4 @@
-#include "MAPL_Generic.h"
+#include "MAPL.h"
 
 !BOP
 
@@ -20,6 +20,7 @@ module SS2G_GridCompMod
    use mapl3g_generic, only: MAPL_GridCompGetInternalState
    use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
    use mapl3g_generic, only: MAPL_ClockGet
+   use mapl3g_generic, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_Geom_API, only: MAPL_GridGet, MAPL_GridGetCoordinates
@@ -67,9 +68,7 @@ module SS2G_GridCompMod
       real :: emission_scale_res(NHRES) ! global scaling factor
    end type SS2G_GridComp
 
-   type wrap_
-      type (SS2G_GridComp), pointer     :: PTR !=> null()
-   end type wrap_
+   character(*), parameter :: PRIVATE_STATE = "SS2G_GridComp"
 
 contains
 
@@ -79,8 +78,8 @@ contains
    subroutine SetServices(gc, rc)
 
       !ARGUMENTS:
-      type (ESMF_GridComp), intent(INOUT)   :: gc  ! gridded component
-      integer,              intent(  OUT)   :: rc  ! return code
+      type (ESMF_GridComp), intent(inout) :: gc
+      integer, intent(out) :: rc
 
       ! DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
       !  the Initialize and Finalize services to generic versions. It also
@@ -93,27 +92,25 @@ contains
       !EOP
 
       !Locals
-      character (len=ESMF_MAXSTR)                 :: comp_name
-      type (wrap_)                                :: wrap
-      type (SS2G_GridComp), pointer               :: self
-      character (len=ESMF_MAXSTR)                 :: field_name
-      integer                                     :: i
-      real                                        :: DEFVAL
-      logical                                     :: data_driven=.true.
-      logical                                     :: file_exists
-      real, allocatable                           :: emission_scale_res(:)
+      character(len=ESMF_MAXSTR) :: comp_name
+      type(SS2G_GridComp), pointer :: self
+      character(len=ESMF_MAXSTR) :: field_name
+      real :: DEFVAL
+      logical :: data_driven=.true.
+      real, allocatable :: emission_scale_res(:)
       class(Logger_t), pointer :: logger
       type(UngriddedDim) :: ungrd_nbins
       type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
-      integer :: status
+      integer :: i, status
 
       call ESMF_GridCompGet(gc, name=comp_name, _RC)
       call MAPL_GridCompGet(gc, logger=logger, _RC)
-      call logger%info("SetServices:: starting...")
 
-      ! Wrap internal state for storing in gc
-      allocate (self, __STAT__)
-      wrap%ptr => self
+      ! Wrap gridcomp's private state and store it in gridcomp
+      _SET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE)
+
+      ! Retrieve the private state
+      _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
 
       ! Process generic config items
       call self%GA_Environment%load_from_config(gc, _RC)
@@ -292,10 +289,6 @@ contains
            ITEMTYPE=MAPL_STATEITEM_FIELDBUNDLE, &
            _RC)
 
-      ! Store internal state in gc
-      call ESMF_UserCompSetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
-
-      call logger%info("SetServices:: ...complete")
       _RETURN(_SUCCESS)
 
    end subroutine SetServices
@@ -303,14 +296,14 @@ contains
    !BOP
    !IROUTINE: Initialize
    !INTERFACE:
-   subroutine Initialize (gc, import, export, clock, RC)
+   subroutine Initialize(gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type (ESMF_GridComp) :: gc  ! Gridded component
-      type (ESMF_State) :: import ! Import state
-      type (ESMF_State) :: export ! Export state
-      type (ESMF_Clock) :: clock  ! The clock
-      integer, intent(out) :: RC  ! Error code
+      type (ESMF_GridComp) :: gc
+      type (ESMF_State) :: import
+      type (ESMF_State) :: export
+      type (ESMF_Clock) :: clock
+      integer, intent(out) :: rc
 
       !DESCRIPTION: This initializes SS' Grid Component. It primaryily fills
       !               GOCART's AERO states with its sea salt fields.
@@ -324,39 +317,26 @@ contains
       type(ESMF_State) :: internal, aero, provider_state
       type(ESMF_Field) :: field
       type(ESMF_FieldBundle) :: bundle_dp
-      type(ESMF_TimeInterval) :: time_step
       type(ESMF_Info) :: field_info, aero_info
-
-      type(wrap_) :: wrap
       type(SS2G_GridComp), pointer :: self
-
       character(len=:), allocatable :: comp_name
       character(len=ESMF_MAXSTR) :: prefix, bin_index
       character(:), allocatable :: file_
-
-      real, pointer, dimension(:,:,:,:) :: int_ptr
-      real, pointer, dimension(:,:,:) :: ple
       real, pointer, dimension(:,:) :: deep_lakes_mask
       real, allocatable, dimension(:,:), target :: lats, lons
       real, pointer, dimension(:,:) :: plats => null(), plons => null()
       real :: CDT ! chemistry timestep (secs)
       real(ESMF_KIND_R4) :: HDT ! model timestep (secs)
-
-      logical :: data_driven, bands_are_present, file_exists
-
+      logical :: data_driven
       integer, allocatable, dimension(:) :: mieTable_pointer, channels_
       integer :: instance, nmom_
       integer :: i, dims(3), km
-      integer :: i1, i2, j1, j2, status
+      integer :: status
 
-      class(logger_t), pointer :: logger
-
-      call MAPL_GridCompGet(gc, name=comp_name,logger=logger, _RC)
-      call logger%info("Initialize:: starting...")
+      call MAPL_GridCompGet(gc, name=comp_name, _RC)
 
       ! Get my internal private state
-      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
 
       ! Global dimensions are needed here for choosing tuning parameters
       call MAPL_GridCompGet(gc, geom=geom, grid=grid, num_levels=km, _RC)
@@ -397,7 +377,7 @@ contains
       ! Fill AERO State with sea salt fields
       call ESMF_StateGet(export, trim(comp_name)//'_AERO', aero, _RC)
       call ESMF_StateGet(export, trim(comp_name)//'_AERO_DP', bundle_dp, _RC)
-       
+
       call ESMF_StateGet(internal, 'SS', field, _RC)
       ! call ESMF_AttributeSet(field, NAME='klid', value=self%klid, _RC)
       ! pchakrab: I'm confused here. Why are we renaming SS as SS?
@@ -487,7 +467,6 @@ contains
       plons => lons
       call deepLakesMask(plons, plats, real(MAPL_RADIANS_TO_DEGREES), deep_lakes_mask, _RC)
 
-      call logger%info("Initialize:: ...complete")
       _RETURN(_SUCCESS)
 
    end subroutine Initialize
@@ -496,55 +475,49 @@ contains
    !IROUTINE: Run0
 
    !INTERFACE:
-   subroutine Run0 (gc, import, export, clock, RC)
+   subroutine Run0(gc, import, export, clock, rc)
       !ARGUMENTS:
-      type (ESMF_GridComp) :: gc  ! Gridded component
-      type (ESMF_State) :: IMPORT ! Import state
-      type (ESMF_State) :: EXPORT ! Export state
-      type (ESMF_Clock) :: CLOCK  ! The clock
-      integer, intent(out) :: RC  ! Error code
+      type (ESMF_GridComp) :: gc
+      type (ESMF_State) :: import
+      type (ESMF_State) :: export
+      type (ESMF_Clock) :: clock
+      integer, intent(out) :: rc
 
       !DESCRIPTION:  Clears klid to 0.0 for Seasalt
       !EOP
 
       ! Locals
-      type (ESMF_State)                 :: internal
-      type (wrap_)                      :: wrap
-      type (SS2G_GridComp), pointer     :: self
-      real, pointer, dimension(:,:,:)   :: ple, ple0
+      type(ESMF_State) :: internal
+      type(SS2G_GridComp), pointer :: self
+      real, pointer, dimension(:,:,:) :: ple, ple0
       real, pointer, dimension(:,:,:,:) :: ptr4d_int
-      integer                           :: i1, j1, i2, j2, km, status
-      class(logger_t), pointer :: logger
-
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
-      call logger%info("Run0:: starting...")
+      integer :: i1, j1, i2, j2, km, status
 
       ! Get internal state
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
 
       ! Set klid and set internal values to 0 above klid
       km = self%km
       call MAPL_StateGetPointer(import, ple, "PLE", _RC)
       i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
       allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
-      call findKlid (self%klid, self%plid, ple0, _RC)
+      call findKlid(self%klid, self%plid, ple0, _RC)
       deallocate(ple0)
       call MAPL_StateGetPointer(internal, ptr4d_int, "SS", _RC)
-      call setZeroKlid4d (self%km, self%klid, ptr4d_int)
+      call setZeroKlid4d(self%km, self%klid, ptr4d_int)
 
-      call logger%info("Run0:: ...complete")
       _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(export)
+      _UNUSED_DUMMY(clock)
    end subroutine Run0
 
    !BOP
    !IROUTINE: Run
    !INTERFACE:
    subroutine Run(gc, import, export, clock, rc)
-
       !ARGUMENTS:
       type (ESMF_GridComp) :: gc  ! Gridded component
       type (ESMF_State) :: import ! Import state
@@ -580,43 +553,27 @@ contains
    !BOP
    !IROUTINE: Run1
    !INTERFACE:
-   subroutine Run1 (gc, import, export, clock, RC)
-
+   subroutine Run1(gc, import, export, clock, rc)
       !ARGUMENTS:
-      type (ESMF_GridComp), intent(inout) :: gc     ! Gridded component
-      type (ESMF_State),    intent(inout) :: import ! Import state
-      type (ESMF_State),    intent(inout) :: export ! Export state
-      type (ESMF_Clock),    intent(inout) :: clock  ! The clock
-      integer, optional,    intent(  out) :: RC     ! Error code:
+      type(ESMF_GridComp), intent(inout) :: gc
+      type(ESMF_State), intent(inout) :: import
+      type(ESMF_State), intent(inout) :: export
+      type(ESMF_Clock), intent(inout) :: clock
+      integer, optional, intent(out) :: rc
 
       !DESCRIPTION:  Computes emissions/sources for Sea Salt
       !EOP
 
       !Locals
-      type (ESMF_State)                 :: internal
-      type (ESMF_Grid)                  :: grid
-      type (wrap_)                      :: wrap
-      type (SS2G_GridComp), pointer     :: self
-
+      type(ESMF_State) :: internal
+      type(SS2G_GridComp), pointer :: self
       real, allocatable, dimension(:,:) :: fgridefficiency
       real, allocatable, dimension(:,:) :: fsstemis
       real, allocatable, dimension(:,:) :: fhoppel
       real, allocatable, dimension(:,:) :: memissions, nemissions, dqa
-
       real(kind=DP), allocatable, dimension(:,:) :: gweibull
-
       integer :: n, status
-      class(logger_t), pointer :: logger
-
 #include "SS2G_DeclarePointer___.h"
-
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
-      call logger%info("Run1: starting...")
-
-      ! Get my internal MAPL_Generic state
-      ! call MAPL_GetObjectFromGC (gc, mapl, _RC)
-
-      ! call MAPL_Get(mapl, grid=grid, _RC)
 
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 #include "SS2G_GetPointer___.h"
@@ -624,8 +581,7 @@ contains
       if (associated(SSSMASS)) SSSMASS = 0.
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
 
       ! Sea Salt Source (and modifications)
       ! Grid box efficiency to emission (fraction of sea water)
@@ -680,55 +636,45 @@ contains
       deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
            fsstemis, fgridefficiency, __STAT__)
 
-      call logger%info("Run1: ...complete")
       _RETURN(_SUCCESS)
-
+      _UNUSED_DUMMY(clock)
    end subroutine Run1
 
    !BOP
    !IROUTINE: Run2
    !INTERFACE:
 
-   subroutine Run2 (gc, import, export, clock, RC)
+   subroutine Run2(gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type (ESMF_GridComp) :: gc  ! Gridded component
-      type (ESMF_State) :: import ! Import state
-      type (ESMF_State) :: export ! Export state
-      type (ESMF_Clock) :: clock  ! The clock
-      integer, intent(out) :: RC  ! Error code:
+      type(ESMF_GridComp) :: gc
+      type(ESMF_State) :: import
+      type(ESMF_State) :: export
+      type(ESMF_Clock) :: clock
+      integer, intent(out) :: rc
 
       !DESCRIPTION: Run2 method for the Sea Salt Grid Component.
       !EOP
 
       ! Locals
-      type (ESMF_State)                 :: internal
-      type (wrap_)                      :: wrap
-      type (SS2G_GridComp), pointer     :: self
-
-      integer                           :: n
+      type(ESMF_State) :: internal
+      type(SS2G_GridComp), pointer :: self
+      real :: fwet
+      logical :: KIN
       real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-      real                              :: fwet
-      logical                           :: KIN
-
-      integer                           :: i1, j1, i2, j2, km
-      real, dimension(3)                :: rainout_eff
-      real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
-      real, pointer :: ple0(:, :, :), zle0(:, :, :), pfl_lsan0(:, :, :), pfi_lsan0(:, :, :)
-      real, pointer, dimension(:,:)     :: flux_ptr
-      class(logger_t), pointer :: logger
+      real, target, allocatable, dimension(:,:,:) :: RH20,RH80
+      real, pointer, dimension(:,:,:) :: ple0, zle0, pfl_lsan0, pfi_lsan0
+      real, pointer, dimension(:,:) :: flux_ptr
+      integer :: n, i1, j1, i2, j2, km
       integer :: settling_opt, status
 #include "SS2G_DeclarePointer___.h"
 
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
-      call logger%info("Run2: starting...")
 
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 #include "SS2G_GetPointer___.h"
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
 
       ! Edge variables are expected to be 0-based
       km = self%km
@@ -838,9 +784,9 @@ contains
 
       deallocate(RH20, RH80)
       deallocate(ple0, zle0, pfl_lsan0, pfi_lsan0)
-      call logger%info("Run2: ...complete")
 
       _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(clock)
 
    end subroutine Run2
 
@@ -848,31 +794,26 @@ contains
    !IROUTINE: Run_data -- ExtData Sea Salt Grid Component
    !INTERFACE:
 
-   subroutine Run_data(gc, import, export, internal, RC)
+   subroutine Run_data(gc, import, export, internal, rc)
       !ARGUMENTS:
-      type (ESMF_GridComp), intent(inout) :: gc       ! Gridded component
-      type (ESMF_State),    intent(inout) :: import   ! Import state
-      type (ESMF_State),    intent(inout) :: export   ! Export state
-      type (ESMF_State),    intent(inout) :: internal ! Interal state
-      integer, optional,    intent(  out) :: rc       ! Error code:
+      type(ESMF_GridComp), intent(inout) :: gc
+      type(ESMF_State), intent(inout) :: import
+      type(ESMF_State), intent(inout) :: export
+      type(ESMF_State), intent(inout) :: internal
+      integer, optional, intent(out) :: rc
 
       !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
       !EOP
 
       ! Locals
-      type (wrap_)                       :: wrap
-      type (SS2G_GridComp), pointer      :: self
-
-      integer                            :: i
-      character (len=ESMF_MAXSTR)        :: field_name
-
-      real, pointer, dimension(:,:,:,:)  :: ptr4d_int
-      real, pointer, dimension(:,:,:)    :: ptr3d_imp
-      integer :: status
+      type(SS2G_GridComp), pointer :: self
+      character(len=ESMF_MAXSTR) :: field_name
+      real, pointer, dimension(:,:,:,:) :: ptr4d_int
+      real, pointer, dimension(:,:,:) :: ptr3d_imp
+      integer :: i, status
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'SS2G_GridComp', wrap, _RC)
-      self => wrap%ptr
+      _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
 
       ! Update interal data pointers with ExtData
       call MAPL_StateGetPointer(internal, itemName='SS', farrayPtr=ptr4d_int, _RC)
@@ -884,6 +825,7 @@ contains
       end do
 
       _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(export)
    end subroutine Run_data
 
    subroutine aerosol_optics(state, rc)
@@ -893,18 +835,15 @@ contains
       integer, intent(out) :: rc
 
       !Local
-      integer, parameter :: DP=kind(1.0d0)
       real, dimension(:,:,:), pointer :: ple, rh
       real(kind=DP), dimension(:,:,:), pointer :: var
       real, dimension(:,:,:,:), pointer :: q, q_4d
       integer, allocatable :: opaque_self(:)
       type(C_PTR) :: address
       type(SS2G_GridComp), pointer :: self
-
       character(len=ESMF_MAXSTR) :: fld_name, int_fld_name
       type(ESMF_Field) :: fld
       type(ESMF_Info) :: info
-
       real(kind=DP), dimension(:,:,:), allocatable :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
       real, dimension(:,:,:), allocatable :: x
       integer :: instance
@@ -1047,7 +986,7 @@ contains
       real, dimension(:,:,:), allocatable :: tau_s, tau, x ! (lon:,lat:,lev:)
       integer :: instance
       integer :: n, nbins, k
-      integer :: i1, j1, i2, j2, km, i, j
+      integer :: i1, j1, i2, j2, km
       real :: wavelength
       integer :: status
 
