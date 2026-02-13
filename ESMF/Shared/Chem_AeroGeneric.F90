@@ -1,4 +1,4 @@
-#include "MAPL_Generic.h"
+#include "MAPL.h"
 
 !-------------------------------------------------------------------------
 !      NASA/GSFC, Global Modeling & Assimilation Office, Code 610.1      !
@@ -7,7 +7,7 @@
 ! !MODULE: Chem_AeroGeneric - Utilitarian subroutines used by GOCART2G children.
 
 ! !INTERFACE:
-module  Chem_AeroGeneric
+module Chem_AeroGeneric
 
    !USES:
    use ESMF
@@ -93,6 +93,7 @@ contains
       !     field = ptr
       !     call ESMF_StateAdd(state, [field], _RC)
       ! end if
+      _UNUSED_DUMMY(ptr)
 
       _RETURN(_SUCCESS)
 
@@ -129,10 +130,11 @@ contains
       type(ESMF_Field) :: field, field2d
       type(ESMF_Info) :: info
       type(ESMF_Geom), allocatable :: geom
+      type(ESMF_TypeKind_Flag) :: typekind
       real, pointer :: orig_ptr(:,:,:)
       real, pointer :: ptr2d(:,:)
       character(len=ESMF_MAXSTR) :: bin_index
-      character(:), allocatable :: varname_new, units, stdname
+      character(:), allocatable :: units, stdname
       type(VerticalStaggerLoc) :: vert_stagger
       integer :: dim_count, iter, status
 
@@ -149,7 +151,12 @@ contains
          call MAPL_FieldBundleAdd(bundle, [field], _RC)
 
       case(3) ! this handles computational instances
-         call MAPL_FieldGet(field, geom=geom, units=units, standard_name=stdname, vert_staggerloc=vert_stagger, _RC)
+         call MAPL_FieldGet(field, &
+              geom=geom, &
+              typekind=typekind, &
+              units=units, &
+              standard_name=stdname, &
+              vert_staggerloc=vert_stagger, _RC)
          stdname = stdname(1:index(stdname, "(Bin")-1)
          call MAPL_StateGetPointer(provider_state, itemName=trim(prefix)//trim(varname), farrayPtr=orig_ptr, _RC)
 
@@ -166,6 +173,7 @@ contains
                call ESMF_InfoGetFromHost(field2d, info, _RC)
                call FieldInfoSetInternal( &
                     info, &
+                    typekind=typekind, &
                     vert_staggerloc=vert_stagger, &
                     ungridded_dims=UngriddedDims(), &
                     units=units, &
@@ -174,7 +182,7 @@ contains
                call MAPL_FieldBundleAdd(bundle, [field2d], _RC)
             end do
          end if
-         
+
          ! if (index(trim(varname), 'SU') > 0) then ! only use SO4, which is the 3rd index
          !    ptr2d => orig_ptr(:,:,3)
          !    field2d = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&

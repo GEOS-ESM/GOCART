@@ -1,4 +1,4 @@
-#include "MAPL_Generic.h"
+#include "MAPL.h"
 
 !BOP
 !MODULE: DU2G_GridCompMod - GOCART refactoring of the DU gridded component
@@ -12,7 +12,7 @@ module DU2G_GridCompMod
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    ! use MAPL
    use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
-   use MAPL, only: MAPL_MetaComp, MAPL_GetHorzIJIndex, MAPL_PackTime
+   use MAPL, only: MAPL_GetHorzIJIndex
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use mapl3g_generic, only: MAPL_GridCompGet, MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
@@ -25,6 +25,7 @@ module DU2G_GridCompMod
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_UngriddedDim, only: UngriddedDim
    use mapl3g_State_API, only: MAPL_StateGetPointer
+   use mapl3g_Utilities, only: MAPL_PackTime
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -41,7 +42,7 @@ module DU2G_GridCompMod
    integer, parameter :: instanceData = 2
 
    !PUBLIC MEMBER FUNCTIONS:
-   public  SetServices
+   public SetServices
 
    !DESCRIPTION: This module implements GOCART's Dust (DU) Gridded Component.
 
@@ -112,19 +113,15 @@ contains
 
       character(len=:), allocatable :: comp_name
       type(DU2G_GridComp), pointer :: self
-      character(len=ESMF_MAXSTR) :: field_name
       character(len=:), allocatable :: emission_scheme
       real :: DEFVAL
-      logical :: data_driven = .true., file_exists
-      integer :: i, num_threads
-      character(len=255) :: msg
-      class(logger_t), pointer :: logger
+      logical :: data_driven = .true.
+      integer :: num_threads
       type(UngriddedDim) :: ungrd_nbins
       type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: status
 
-      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, _RC)
-      call logger%info("SetServices:: starting...")
+      call MAPL_GridCompGet(gc, name=comp_name, _RC)
 
       ! Wrap gridcomp's private state and store it in gridcomp
       _SET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE)
@@ -319,7 +316,6 @@ contains
            units="kg m-2 s-1", &
            itemtype=MAPL_STATEITEM_FIELDBUNDLE, _RC)
 
-      call logger%info("SetServices:: ...complete")
       _RETURN(_SUCCESS)
 
    end subroutine SetServices
@@ -347,20 +343,18 @@ contains
       type(ESMF_Geom) :: geom
       type(ESMF_State) :: internal, aero, provider_state
       type(ESMF_FieldBundle) :: bundle_dp
-      type(ESMF_Field) :: field, fld
+      type(ESMF_Field) :: field
       type(ESMF_Info) :: field_info, aero_info
       type(DU2G_GridComp), pointer :: self
       integer, allocatable :: mieTable_pointer(:), channels_(:)
       real :: CDT ! chemistry timestep (secs)
       real :: HDT ! model timestep (secs)
       integer :: ibin, dims(3), km, instance, nmom_, status
-      logical :: data_driven, file_exists
+      logical :: data_driven
       character(len=ESMF_MAXSTR) :: bin_index, prefix
       character(len=:), allocatable :: comp_name, file_
-      class(logger_t), pointer :: logger
 
-      call MAPL_GridCompGet (gc, name=comp_name, logger=logger, _RC)
-      call logger%info("Initialize:: starting...")
+      call MAPL_GridCompGet (gc, name=comp_name, _RC)
 
       ! Get my internal private state
       _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
@@ -418,7 +412,7 @@ contains
       call ESMF_StateAdd(aero, [field], _RC)
       ! call ESMF_AttributeSet(field, NAME="ScavengingFractionPerKm", value=self%fscav(1), _RC)
       call ESMF_InfoGetFromHost(field, field_info, _RC)
-      call ESMF_InfoSet(field_info, key="ScavengingFractionPerKm", value=self%fscav(1), _RC)      
+      call ESMF_InfoSet(field_info, key="ScavengingFractionPerKm", value=self%fscav(1), _RC)
 
       if (data_driven) then
          instance = instanceData
@@ -461,7 +455,7 @@ contains
       ! Mie Table instance/index
       ! call ESMF_AttributeSet (aero, name="mie_table_instance", value=instance, _RC)
       call ESMF_InfoGetFromHost(aero, aero_info, _RC)
-      call ESMF_InfoSet(aero_info, key="mie_table_instance", value=instance, _RC)      
+      call ESMF_InfoSet(aero_info, key="mie_table_instance", value=instance, _RC)
 
       ! Add variables to DU instance's aero state. This is used in aerosol optics calculations
       call MAPL_GridCompGet(gc, geom=geom, _RC)
@@ -499,7 +493,6 @@ contains
       call ESMF_MethodAdd(aero, label="monochromatic_aerosol_optics", userRoutine=monochromatic_aerosol_optics, _RC)
       call ESMF_MethodAdd(aero, label="get_mixR", userRoutine=get_mixR, _RC)
 
-      call logger%info("Initialize:: ...complete")
       _RETURN(_SUCCESS)
 
    end subroutine Initialize
@@ -524,10 +517,6 @@ contains
       real, allocatable, dimension(:,:,:) :: ple0
       real, pointer, dimension(:,:,:,:) :: ptr4d_int
       integer :: i1, i2, j1, j2, km, status
-      class(logger_t), pointer :: logger
-
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
-      call logger%info("Run0:: starting...")
 
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
@@ -546,8 +535,9 @@ contains
       call MAPL_StateGetPointer(internal, ptr4d_int, "DU", _RC)
       call setZeroKlid4d(self%km, self%klid, ptr4d_int)
 
-      call logger%info("Run0:: ...complete")
       _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(export)
+      _UNUSED_DUMMY(clock)
    end subroutine Run0
 
    !BOP
@@ -569,10 +559,8 @@ contains
       type(ESMF_State) :: internal
       logical :: data_driven
       integer :: status
-      class(logger_t), pointer :: logger
 
-      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, _RC)
-      call logger%info("Run0:: starting...")
+      call MAPL_GridCompGet(gc, name=comp_name, _RC)
 
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
@@ -587,14 +575,13 @@ contains
          call Run1(gc, import, export, clock, _RC)
       end if
 
-      call logger%info("Run0:: ...complete")
       _RETURN(_SUCCESS)
    end subroutine Run
 
    !BOP
    !IROUTINE: Run1
    !INTERFACE:
-   subroutine Run1 (gc, import, export, clock, RC)
+   subroutine Run1(gc, import, export, clock, RC)
 
       !ARGUMENTS:
       type(ESMF_GridComp), intent(inout) :: gc
@@ -611,22 +598,15 @@ contains
       type(ESMF_Grid) :: grid
       type(DU2G_GridComp), pointer :: self
       type(ESMF_Time) :: time
-      real :: qmax, qmin
-      integer :: n, ijl
+      integer :: ijl
       integer :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
       integer :: import_shape(2), i2, j2
       logical :: file_exists
-      integer :: thread, jstart, jend, status
-      real, dimension(:,:,:), allocatable :: emissions_surface
+      integer :: thread, status
+      real, dimension(:,:,:), allocatable :: emissions_surface, emissions_point
       real, dimension(:,:,:,:), allocatable :: emissions
-      real, dimension(:,:,:), allocatable :: emissions_point
-      real, dimension(:,:), allocatable   :: z_
-      real, dimension(:,:), allocatable   :: ustar_
-      real, dimension(:,:), allocatable   :: ustar_t_
-      real, dimension(:,:), allocatable   :: ustar_ts_
-      real, dimension(:,:), allocatable   :: R_
-      real, dimension(:,:), allocatable   :: H_w_
-      real, dimension(:,:), allocatable   :: f_erod_
+      real, dimension(:,:), allocatable :: z_, R_, H_w_, f_erod_
+      real, dimension(:,:), allocatable :: ustar_, ustar_t_, ustar_ts_
       integer, pointer, dimension(:) :: iPoint, jPoint
       character(len=ESMF_MAXSTR) :: fname ! file name for point source emissions
       type(ThreadWorkspace), pointer :: workspace
@@ -635,7 +615,6 @@ contains
       real, allocatable, dimension(:,:,:) :: zle0
 
       call MAPL_GridCompGet(gc, name=comp_name, logger=logger, grid=grid, _RC)
-      call logger%info("Run1: starting...")
 
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
@@ -792,7 +771,6 @@ contains
          deallocate(iPoint, jPoint, _STAT)
       end if
 
-      call logger%info("Run1: ...complete")
       _RETURN(_SUCCESS)
 
    end subroutine Run1
@@ -800,7 +778,7 @@ contains
    !BOP
    !IROUTINE: Run2
    !INTERFACE:
-   subroutine Run2 (gc, import, export, clock, RC)
+   subroutine Run2(gc, import, export, clock, RC)
 
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
@@ -822,12 +800,8 @@ contains
       real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
       real, target, allocatable, dimension(:,:,:) :: RH20,RH80
       real, pointer, dimension(:,:) :: flux_ptr
-      class(logger_t), pointer :: logger
 #include "DU2G_DeclarePointer___.h"
       real, allocatable, target, dimension(:,:,:) :: ple0, zle0, pfl_lsan0, pfi_lsan0
-
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
-      call logger%info("Run2: starting...")
 
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
@@ -968,8 +942,9 @@ contains
 
       deallocate(RH20,RH80)
 
-      call logger%info("Run2: ...complete")
       _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(export)
+      _UNUSED_DUMMY(clock)
 
    end subroutine Run2
 
@@ -1007,6 +982,7 @@ contains
       end do
 
       _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(export)
    end subroutine Run_data
 
    subroutine aerosol_optics(state, rc)
@@ -1157,7 +1133,7 @@ contains
       type(ESMF_Field) :: fld
       type(ESMF_Info) :: info
       real, dimension(:,:,:), allocatable :: tau_s, tau, x ! (lon:,lat:,lev:)
-      integer :: instance, n, nbins, k, i1, j1, i2, j2, km, i, j, status
+      integer :: instance, n, nbins, k, i1, j1, i2, j2, km, status
       real :: wavelength
 
       call ESMF_InfoGetFromHost(state, info, _RC)

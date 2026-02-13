@@ -22,7 +22,6 @@ module GOCART2G_GridCompMod
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_UngriddedDim, only: UngriddedDim
-   use pflogger, only: logger_t => logger
    use gftl2_StringVector, only: StringVector
 
    use Chem_AeroGeneric
@@ -102,14 +101,10 @@ contains
       type(GOCART_State), pointer :: self
       integer, allocatable :: wavelengths_diagmie(:)
       ! logical :: use_threads
-      class(logger_t), pointer :: logger
       type(Instance), allocatable :: child
       character(len=:), allocatable :: child_items
       type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: iter, status
-
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
-      call logger%info("SetServices:: starting...")
 
       ! Wrap gridcomp's private state and store in gc
       _SET_NAMED_PRIVATE_STATE(gc, GOCART_state, PRIVATE_STATE)
@@ -341,7 +336,6 @@ contains
          end if
       end do
 
-      call logger%info("SetServices:: ...complete")
       _RETURN(_SUCCESS)
 
    end subroutine SetServices
@@ -349,7 +343,7 @@ contains
    !BOP
    !IROUTINE: Initialize -- Initialize method for the composite Gridded Component
    !INTERFACE:
-   subroutine Initialize (gc, import, export, clock, rc)
+   subroutine Initialize(gc, import, export, clock, rc)
 
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc  ! Gridded component
@@ -373,12 +367,6 @@ contains
       character(len=ESMF_MAXSTR), allocatable :: aero_aci_modes(:)
       real :: maxclean, ccntuning
       integer :: im, jm, km, status
-      class(logger_t), pointer :: logger
-
-      ! Get the target components name and set-up traceback handle.
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
-
-      call logger%info("Initialize:: starting...")
 
       call MAPL_GridCompGet(gc, geom=geom, grid=grid, num_levels=km, _RC)
       call MAPL_GridGet(grid, im=im, jm=jm, _RC)
@@ -478,8 +466,8 @@ contains
       call ESMF_MethodAdd(aero, label="aerosol_activation_properties", userRoutine=aerosol_activation_properties, _RC)
 
       ! call ESMF_StatePrint(aero, _RC)
-      call logger%info("Initialize:: ...complete")
       _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(clock)
 
    contains
 
@@ -527,18 +515,15 @@ contains
 
       !DESCRIPTION: Run method
       !EOP
-      class(logger_t), pointer :: logger
       character(len=:), allocatable :: child_name
       integer :: num_children, iter, status
 
-      call MAPL_GridCompGet(gc, logger=logger, num_children=num_children, _RC)
-      call logger%info("Run1: starting...")
+      call MAPL_GridCompGet(gc, num_children=num_children, _RC)
       do iter = 1, num_children
          child_name = MAPL_GridCompGetChildName(gc, iter, _RC)
          if ((index(child_name, "data")) /= 0) cycle
          call MAPL_GridCompRunChild(gc, child_name, phase_name="Run1", _RC)
       end do
-      call logger%info("Run1: ...complete")
 
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(import)
@@ -549,7 +534,7 @@ contains
    !BOP
    !IROUTINE: RUN2 -- Run2 method for GOCART2G component
    !INTERFACE:
-   subroutine Run2 (gc, import, export, clock, rc)
+   subroutine Run2(gc, import, export, clock, rc)
 
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc  ! Gridded component
@@ -608,22 +593,16 @@ contains
 
       ! real, pointer, dimension(:,:,:) :: pso4
       real, allocatable :: tau1(:,:), tau2(:,:)
-      real, allocatable :: backscat_mol(:,:,:)
-      real, allocatable :: P(:,:,:), delz(:,:,:)
-      real, allocatable :: tau_mol_layer(:,:,:), tau_aer_layer(:,:,:)
-      real, allocatable :: tau_mol(:,:), tau_aer(:,:)
-      real :: c1, c2, c3, nifactor
+      real :: c1, c2, c3
       real, parameter :: pi = 3.141529265 ! pchakrab: TODO - use MAPL_PI instead??
-      integer :: ind550, ind532
-      integer :: i1, i2, j1, j2, im, jm, km, k, kk
-      class(logger_t), pointer :: logger
+      integer :: ind550
+      integer :: im, jm
       character(len=:), allocatable :: child_name
       integer :: n, w, num_children, iter, status
 
 #include "GOCART2G_DeclarePointer___.h"
 
-      call MAPL_GridCompGet(gc, logger=logger, num_children=num_children, _RC)
-      call logger%info("Run2: starting...")
+      call MAPL_GridCompGet(gc, num_children=num_children, _RC)
 
       ! Run zero Klid for children
       do iter = 1, num_children
@@ -1116,8 +1095,8 @@ contains
 
       ! endif ! end of total attenuated backscatter coef calculation
 
-      call logger%info("Run2: ...complete")
       _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(clock)
 
    end subroutine Run2
 
@@ -1250,7 +1229,7 @@ contains
       real, pointer, dimension(:,:,:,:) :: orig_ptr
       real, pointer, dimension(:,:,:) :: ptr3d
 
-      integer :: b, i, j, n, rank, nbins, status
+      integer :: b, i, j, n, rank, status
 
       !Description: Callback for AERO_RAD state used in GAAS module to provide a
       !                 serialized ESMF_Bundle of aerosol fields.
@@ -1478,8 +1457,6 @@ contains
       real, dimension(:,:,:), pointer :: ple            ! pressure at the edges of model layers
       real, dimension(:,:,:), pointer :: temperature    ! air temperature
       real, dimension(:,:), pointer :: f_land           ! fraction of land type in a grid cell
-
-      real, dimension(:,:,:), pointer :: f              ! correction factor for sea salt
 
       real, dimension(:,:,:), allocatable :: q          ! aerosol mass mixing ratio
       real, dimension(:,:,:,:), pointer :: ptr_4d       ! aerosol mass mixing ratio (temporary)
