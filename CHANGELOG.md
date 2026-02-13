@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 ### Changed
-
+- OPS ExtData yaml files fo CA, NI, SU, and CO to look for science quality QFED3 files beginning 11/27/25 specifically for xrun testing
 ## [v2.3.0] - 2025-01-16
 
 ### Changed
