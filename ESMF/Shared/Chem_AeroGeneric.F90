@@ -130,6 +130,7 @@ contains
       type(ESMF_Field) :: field, field2d
       type(ESMF_Info) :: info
       type(ESMF_Geom), allocatable :: geom
+      type(ESMF_TypeKind_Flag) :: typekind
       real, pointer :: orig_ptr(:,:,:)
       real, pointer :: ptr2d(:,:)
       character(len=ESMF_MAXSTR) :: bin_index
@@ -150,7 +151,12 @@ contains
          call MAPL_FieldBundleAdd(bundle, [field], _RC)
 
       case(3) ! this handles computational instances
-         call MAPL_FieldGet(field, geom=geom, units=units, standard_name=stdname, vert_staggerloc=vert_stagger, _RC)
+         call MAPL_FieldGet(field, &
+              geom=geom, &
+              typekind=typekind, &
+              units=units, &
+              standard_name=stdname, &
+              vert_staggerloc=vert_stagger, _RC)
          stdname = stdname(1:index(stdname, "(Bin")-1)
          call MAPL_StateGetPointer(provider_state, itemName=trim(prefix)//trim(varname), farrayPtr=orig_ptr, _RC)
 
@@ -167,6 +173,7 @@ contains
                call ESMF_InfoGetFromHost(field2d, info, _RC)
                call FieldInfoSetInternal( &
                     info, &
+                    typekind=typekind, &
                     vert_staggerloc=vert_stagger, &
                     ungridded_dims=UngriddedDims(), &
                     units=units, &
