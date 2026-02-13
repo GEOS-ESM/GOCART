@@ -85,5 +85,8 @@ Exports:
     collection: /dev/null
   climNO3an3:
     collection: /dev/null
-
-
+  GMI_HNO3:
+    collection: /dev/null
+    regrid: CONSERVE
+    sample: NI2G_sample_2
+    variable: GMI_HNO3
