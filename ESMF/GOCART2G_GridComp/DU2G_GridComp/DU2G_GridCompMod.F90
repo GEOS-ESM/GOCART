@@ -12,7 +12,7 @@ module DU2G_GridCompMod
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    ! use MAPL
    use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
-   use MAPL, only: MAPL_GetHorzIJIndex, MAPL_PackTime
+   use MAPL, only: MAPL_GetHorzIJIndex
    use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use mapl3g_generic, only: MAPL_GridCompGet, MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
@@ -25,6 +25,7 @@ module DU2G_GridCompMod
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_UngriddedDim, only: UngriddedDim
    use mapl3g_State_API, only: MAPL_StateGetPointer
+   use mapl3g_Utilities, only: MAPL_PackTime
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
