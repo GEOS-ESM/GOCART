@@ -860,11 +860,6 @@ contains
       thread = MAPL_get_current_thread()
       workspace => self%workspaces(thread)
 
-      !if (workspace%first) then
-         !xhno3 = MAPL_UNDEF
-         !workspace%first = .false.
-      !end if
-
       ! Recycle HNO3 every 3 hours
       if (alarm_is_ringing) then
          xhno3 = NITRATE_HNO3
