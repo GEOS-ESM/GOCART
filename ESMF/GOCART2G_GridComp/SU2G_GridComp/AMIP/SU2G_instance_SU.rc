@@ -59,8 +59,13 @@ sigma: -1  -1  2.03  -1
 
 # OH H2O2 NO3 from GMI Combined Stratosphere Troposphere (Lower case yes to enable)
 # -------------------------------------------------------------------------------------
-using_GMI: .false.
-disable_emissions: .false.
+#using_GMI_OH: no
+#using_GMI_NO3: no
+#using_GMI_H2O2: no
+export_H2O2: no
+using_GMI_OH: .false.
+using_GMI_NO3: .false.
+using_GMI_H2O2: .false.
 
 # SettlingSolver options
 # Options: 'gocart' or 'ufs'

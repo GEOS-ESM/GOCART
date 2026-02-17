@@ -36,9 +36,6 @@ category: IMPORT
  SU_NO3          | 1        | xyz  | C    | SKIP    | climatological NO3 source
  SU_OH           | 1        | xyz  | C    | SKIP    | climatological OH source
  SU_H2O2         | 1        | xyz  | C    | SKIP    | climatological H2O2 source
- GMI_NO3         | 1        | xyz  | C    | SKIP    | GMI NO3 source
- GMI_OH          | 1        | xyz  | C    | SKIP    | GMI OH source
- GMI_H2O2        | 1        | xyz  | C    | SKIP    | GMI H2O2 source
 #........................................................................................
  SU_BIOMASS      | 1        | xy   | N    | SKIP    | biomass burning emissions
  SU_ANTHROL1     | 1        | xy   | N    | SKIP    | anthropogenic BF emissions
@@ -104,7 +101,6 @@ category: EXPORT
  SUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Aerosol Optical Depth Due to Scattering
  SUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | SO4 Stratospheric Aerosol Optical Depth Due to Scattering
  SO4SAREA      | m2 m-3     | xyz  | C    |                                | SO4 Surface Area Density
- SO4REFF       | m          | xyz  | C    |                                | SO4 Effective Radius
  SO4SNUM       | m-3        | xyz  | C    |                                | SO4 Number Density
 
 category: INTERNAL

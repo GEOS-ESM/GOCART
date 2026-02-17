@@ -142,19 +142,4 @@ Exports:
     regrid: CONSERVE
     sample: SU2G_sample_2
     variable: biofuel
-  GMI_H2O2:
-    collection: /dev/null
-    regrid: CONSERVE
-    sample: SU2G_sample_2
-    variable: GMI_H2O2
-  GMI_OH:
-    collection: /dev/null
-    regrid: CONSERVE
-    sample: SU2G_sample_2
-    variable: GMI_OH
-  GMI_NO3:
-    collection: /dev/null
-    regrid: CONSERVE
-    sample: SU2G_sample_2
-    variable: GMI_NO3
 

@@ -109,8 +109,7 @@ contains
     type (wrap_)                                  :: wrap
 
     integer :: n_wavelengths_profile, n_wavelengths_vertint, n_wavelengths_diagmie
-    integer :: n_wavelengths_photmie, n_moments_photmie
-    integer, allocatable, dimension(:) :: wavelengths_diagmie, wavelengths_photmie
+    integer, allocatable, dimension(:) :: wavelengths_diagmie
     type (MAPL_MetaComp),       pointer    :: MAPL
     logical :: use_threads
 
@@ -147,22 +146,19 @@ contains
     n_wavelengths_profile = ESMF_ConfigGetLen (myCF, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     n_wavelengths_vertint = ESMF_ConfigGetLen (myCF, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     n_wavelengths_diagmie = ESMF_ConfigGetLen (myCF, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
-    n_wavelengths_photmie = ESMF_ConfigGetLen (myCF, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
+
     allocate(self%wavelengths_profile(n_wavelengths_profile), self%wavelengths_vertint(n_wavelengths_vertint), &
-             wavelengths_diagmie(n_wavelengths_diagmie), wavelengths_photmie(n_wavelengths_photmie), __STAT__)
+             wavelengths_diagmie(n_wavelengths_diagmie), __STAT__)
 
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
-    call ESMF_ConfigGetAttribute (myCF, wavelengths_photmie, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
-    call ESMF_ConfigGetAttribute (myCF, n_moments_photmie, label='n_phase_function_moments_photolysis:', default=0, __RC__)
 
 !   Set wavelengths in universal config
+
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_profile, label='wavelengths_for_profile_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, self%wavelengths_vertint, label='wavelengths_for_vertically_integrated_aop_in_nm:', __RC__)
     call MAPL_ConfigSetAttribute (cf, wavelengths_diagmie, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, wavelengths_photmie, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
-    call MAPL_ConfigSetAttribute (cf, n_moments_photmie, label='n_phase_function_moments_photolysis:', __RC__)
     call ESMF_ConfigGetAttribute (myCF, use_threads, label='use_threads:', default=.FALSE., __RC__)
 
 !   Get my internal MAPL_Generic state
@@ -286,7 +282,7 @@ contains
     type (ESMF_GridComp),       pointer    :: gcs(:)
     type (ESMF_State),          pointer    :: gex(:)
     type (ESMF_Grid)                       :: grid
-    type (ESMF_Config)                     :: CF, universal_cfg
+    type (ESMF_Config)                     :: CF
 
     type (ESMF_State)                      :: aero
     type (ESMF_FieldBundle)                :: aero_dp
@@ -297,7 +293,6 @@ contains
     integer                                :: n_modes
     integer, parameter                     :: n_gocart_modes = 14
     integer                                :: dims(3)
-    integer                                :: nmom_ = 0
 
     character(len=ESMF_MAXSTR)             :: aero_aci_modes(n_gocart_modes)
     real                                   :: f_aci_seasalt, maxclean, ccntuning
@@ -309,7 +304,7 @@ contains
 
 !   Get the target components name and set-up traceback handle.
 !   -----------------------------------------------------------
-    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, config=universal_cfg, __RC__)
+    call ESMF_GridCompGet (GC, grid=grid, name=COMP_NAME, __RC__)
     Iam = trim(COMP_NAME)//'::'//'Initialize'
 
     if (mapl_am_i_root()) then
@@ -369,11 +364,6 @@ contains
                    grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
-    if(nmom_ > 0) then
-       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
-                      grid=grid, typekind=MAPL_R4, ungrid=nmom_, __RC__)
-    endif
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
 
@@ -394,9 +384,7 @@ contains
                    grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
-    call ESMF_AttributeSet(aero, name='use_photolysis_table', value=0, __RC__)
     call ESMF_AttributeSet(aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
-    call ESMF_AttributeSet(aero, name='n_phase_function_moments', value=0, __RC__)
     call ESMF_AttributeSet(aero, name='aerosolName', value='', __RC__)
     call ESMF_AttributeSet(aero, name='im', value=dims(1), __RC__)
     call ESMF_AttributeSet(aero, name='jm', value=dims(2), __RC__)
@@ -693,16 +681,16 @@ contains
     call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
                     LONS=LONS, LATS=LATS, __RC__ )
 
-!   Run zero Klid for children
-!   --------------------------
-    do i = 1, size(gcs)
+!   Run zero Klid for children    
+!   --------------------------   
+    do i = 1, size(gcs) 
       call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
       if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
          call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, userRC=user_status, rc=status)
          _VERIFY(status)
          _VERIFY(user_status)
       end if
-    end do
+    end do         
 
 ! Check run_dt alarm. Bail out if not ringing.
 ! --------------------------------------------
@@ -711,7 +699,7 @@ contains
     if (.not. timeToDoWork) then
        _RETURN(ESMF_SUCCESS)
     end if
-
+    
 !   Get my internal state
 !   ---------------------
     call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
@@ -1552,20 +1540,15 @@ contains
     real, dimension(:,:,:), pointer                  :: ple
     real, dimension(:,:,:), pointer                  :: rh
     real, dimension(:,:,:), pointer                  :: var
-    real, dimension(:,:,:,:), pointer                :: var4d
 
     character (len=ESMF_MAXSTR)                      :: fld_name
 
     real(kind=8), dimension(:,:,:),pointer           :: ext_, ssa_, asy_      ! (lon:,lat:,lev:)
-    real(kind=8), dimension(:,:,:,:),pointer         :: pmom_                 ! (lon:,lat:,lev:,nmom:)
     real(kind=8), dimension(:,:,:), allocatable      :: ext,  ssa,  asy       ! (lon:,lat:,lev:)
-    real(kind=8), dimension(:,:,:,:), allocatable    :: pmom                  ! (lon:,lat:,lev:,nmom:)
 
     integer                                          :: i, n, b, j
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band
-    integer                                          :: usePhotTable = 0
-    integer                                          :: nmom = 0
     integer, parameter                               :: n_bands = 1
 
     character (len=ESMF_MAXSTR), allocatable         :: itemList(:), aeroList(:)
@@ -1584,14 +1567,6 @@ contains
 !   --------------
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!   Are we using a photolysis table?
-!   --------------------------------
-    call ESMF_AttributeGet(state, name='use_photolysis_table', value=usePhotTable, __RC__)
-    if(usePhotTable /= 0) then
-       call ESMF_AttributeGet(state, name='n_phase_function_moments', value=nmom, __RC__)
-    end if
-
-
 !   Relative humidity
 !   -----------------
     call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
@@ -1609,7 +1584,6 @@ contains
     allocate(ext(i1:i2,j1:j2,km),  &
              ssa(i1:i2,j1:j2,km),  &
              asy(i1:i2,j1:j2,km), __STAT__)
-    allocate(pmom(i1:i2,j1:j2,km,8), __STAT__)
 
 !   Get list of child states within state and add to aeroList
 !   ---------------------------------------------------------
@@ -1635,12 +1609,11 @@ contains
         end if
     end do
 
-    ext  = 0.0d0
-    ssa  = 0.0d0
-    asy  = 0.0d0
-    pmom = 0.0d0
+    ext = 0.0d0
+    ssa = 0.0d0
+    asy = 0.0d0
 
-!  ! Get aerosol optical properties from children
+!  ! Get aerosol optic properties from children
    do i = 1, size(aeroList)
         call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
 
@@ -1663,9 +1636,6 @@ contains
 !       ! set band in child's aero state
         call ESMF_AttributeSet(child_state, name='band_for_aerosol_optics', value=band, __RC__)
 
-!       ! set if we are using photolysis table
-        call ESMF_AttributeSet(child_state, name='use_photolysis_table', value=usePhotTable, __RC__)
-
 !       ! execute the aerosol optics method
         call ESMF_MethodExecute(child_state, label="aerosol_optics", __RC__)
 
@@ -1675,42 +1645,27 @@ contains
             call MAPL_GetPointer(child_state, ext_, trim(fld_name), __RC__)
         end if
 
-!       ! Retrieve scattering from each child
+!       ! Retrieve scattering extinction from each child
         call ESMF_AttributeGet(child_state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
         if (fld_name /= '') then
             call MAPL_GetPointer(child_state, ssa_, trim(fld_name), __RC__)
         end if
 
-!       ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
-!       ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
+!       ! Retrieve asymetry parameter multiplied by scatering extiction from each child
+        call ESMF_AttributeGet(child_state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+        if (fld_name /= '') then
+            call MAPL_GetPointer(child_state, asy_, trim(fld_name), __RC__)
+        end if
 
-        if(usePhotTable /= 0) then
-          call ESMF_AttributeGet(child_state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
-          if (fld_name /= '') then
-              call MAPL_GetPointer(child_state, pmom_, trim(fld_name), __RC__)
-          end if
-
-        else
-          call ESMF_AttributeGet(child_state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-          if (fld_name /= '') then
-              call MAPL_GetPointer(child_state, asy_, trim(fld_name), __RC__)
-          end if
-       end if
-
-!       ! Sum aerosol optical properties from each child
+!       ! Sum aerosol optic properties from each child
         ext = ext + ext_
         ssa = ssa + ssa_
-        if(usePhotTable /= 0) then
-           pmom = pmom + pmom_
-        else
-           asy = asy + asy_
-        end if
+        asy = asy + asy_
 
     end do
 
 
-!   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children.
-    ! This is what is passed to radiation or photolysis.
+!   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
         call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
@@ -1722,22 +1677,14 @@ contains
         call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
         var = ssa(:,:,:)
     end if
-    if(usePhotTable /= 0) then
-       call ESMF_AttributeGet(state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
-       if (fld_name /= '') then
-           call MAPL_GetPointer(state, var4d, trim(fld_name), __RC__)
-           var4d = pmom(:,:,:,:)
-       end if
-    else
-       call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-       if (fld_name /= '') then
-           call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
-           var = asy(:,:,:)
-       end if
+
+    call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        var = asy(:,:,:)
     end if
 
     deallocate(ext, ssa, asy, __STAT__)
-    deallocate(pmom, __STAT__)
 
 
 

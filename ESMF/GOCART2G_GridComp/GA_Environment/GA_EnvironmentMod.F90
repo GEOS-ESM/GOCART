@@ -12,7 +12,7 @@ module GA_EnvironmentMod
    public :: GA_Environment
 
    type :: GA_Environment
-       type(GOCART2G_Mie)     :: rad_Mie, diag_Mie, phot_Mie
+       type(GOCART2G_Mie)     :: rad_Mie, diag_Mie
        real, allocatable      :: radius(:)      ! particle effective radius [um]
        real, allocatable      :: rhop(:)        ! soil class density [kg m-3]
        real, allocatable      :: fscav(:)       ! scavenging efficiency

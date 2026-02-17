@@ -97,11 +97,9 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
       real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
       !logical :: firstRun = .true.
+      real, allocatable  :: rmed(:)  ! Median radius [um] of lognormal number distribution
+      real, allocatable  :: sigma(:) ! Sigma of lognormal number distribution
       !real, pointer :: h2o2_init(:,:,:)
-
-!     PRC: logic for GMI coupling
-      logical :: using_GMI
-      logical :: disable_emissions
 
 !     Special handling for volcanic emissions
       character(len=255) :: volcano_srcfilen_degassing
@@ -192,13 +190,16 @@ contains
 !   process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
 
+    allocate(self%rmed(self%nbins), __STAT__)
+    allocate(self%sigma(self%nbins), __STAT__)
+
 !   process SU-specific items
-    call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', __RC__)
-    call ESMF_ConfigGetAttribute(cfg, self%disable_emissions, label='disable_emissions:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_degassing, label='volcano_srcfilen_degassing:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_explosive, label='volcano_srcfilen_explosive:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', __RC__)
     call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%rmed, label='particle_radius_number:', __RC__)
+    call ESMF_ConfigGetAttribute(cfg, self%sigma, label='sigma:', __RC__)
     call ESMF_ConfigFindLabel (cfg, 'aviation_vertical_layers:', __RC__)
     do i=1,size(self%aviation_layers)
        call ESMF_ConfigGetAttribute (cfg, self%aviation_layers(i), __RC__)
@@ -336,33 +337,6 @@ contains
           RESTART    = MAPL_RestartSkip, __RC__)
     end if
 
-    if(self%using_GMI) then
-
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'GMI_OH',                             &
-        LONG_NAME  = 'Hydroxyl_radical',                   &
-        UNITS      = 'mol/mol',                            &
-        DIMS       = MAPL_DimsHorzVert,                    &
-        VLOCATION  = MAPL_VLocationCenter,                 &
-        RESTART    = MAPL_RestartSkip,     __RC__)
-
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'GMI_H2O2',                           &
-        LONG_NAME  = 'Hydrogen_peroxide',                  &
-        UNITS      = 'mol/mol',                            &
-        DIMS       = MAPL_DimsHorzVert,                    &
-        VLOCATION  = MAPL_VLocationCenter,                 &
-        RESTART    = MAPL_RestartSkip,     __RC__)
-
-     call MAPL_AddImportSpec(GC,                           &
-        SHORT_NAME = 'GMI_NO3',                            &
-        LONG_NAME  = 'Nitrogen_trioxide',                  &
-        UNITS      = 'mol/mol',                            &
-        DIMS       = MAPL_DimsHorzVert,                    &
-        VLOCATION  = MAPL_VLocationCenter,                 &
-        RESTART    = MAPL_RestartSkip,     __RC__)
-    endif
-
 !   Import, Export, Internal states for computational instance
 !   ----------------------------------------------------------
     if (.not. data_driven) then
@@ -452,11 +426,9 @@ contains
     real, pointer, dimension(:,:)        :: lons
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:)      :: int_ptr
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
-    real, pointer, dimension(:,:,:)      :: ple
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
@@ -618,23 +590,6 @@ contains
     call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
     self%rad_Mie = GOCART2G_Mie(trim(file_), __RC__)
 
-!   Trigger for photolysis calculations
-!   -----------------------------------
-    call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
-
-!   Create Photolysis Mie Table
-!   ---------------------------
-!   Get file names for the optical tables
-    call ESMF_ConfigGetAttribute (cfg, file_, &
-                                  label="aerosol_monochromatic_optics_file:", __RC__ )
-    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label="n_phase_function_moments_photolysis:", default=0,  __RC__)
-    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
-    allocate (channels_(i), __STAT__ )
-    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
-                                  label= "aerosol_photolysis_wavelength_in_nm_from_LUT:", __RC__)
-    self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
-    deallocate(channels_)
-
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
@@ -659,18 +614,9 @@ contains
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 
-    ! Add variables to SU instance aero state for chemistry
-    call add_aero (aero, label='surface_area_density', label2='SAREA', grid=grid, typekind=MAPL_R4,__RC__)
-    call add_aero (aero, label='effective_radius_in_microns', label2='REFF', grid=grid, typekind=MAPL_R4,__RC__)
-
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
-    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
-    if(nmom_ > 0) then
-       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
-                      grid=grid, typekind=MAPL_R8, ungrid=nmom_, __RC__)
-    endif
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
@@ -848,7 +794,7 @@ contains
     integer          :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
     real, pointer, dimension(:,:)        :: lats
     real, pointer, dimension(:,:)        :: lons
-    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src, so2_ocs_src
+    real, dimension(:,:,:), allocatable  :: aircraft_fuel_src
     real, dimension(:,:), allocatable :: so2biomass_src, so2biomass_src_, so2anthro_l1_src, &
                                          so2anthro_l2_src, so2ship_src, so4ship_src, dmso_conc, &
                                          aviation_lto_src, aviation_cds_src, aviation_crs_src
@@ -932,27 +878,11 @@ contains
     where(1.01*so4ship_src > MAPL_UNDEF)       so4ship_src = 0.
 
     aircraft_fuel_src = SU_AIRCRAFT
-    so2biomass_src    = SU_BIOMASS
-    dmso_conc         = SU_DMSO
-    aviation_lto_src  = SU_AVIATION_LTO
-    aviation_cds_src  = SU_AVIATION_CDS
-    aviation_crs_src  = SU_AVIATION_CRS
-    so2_ocs_src       = pSO2_OCS
-
-!   PRC: turn off emissions
-    if(self%disable_emissions) then
-     so2anthro_l1_src  = 0.
-     so2anthro_l2_src  = 0.
-     so2ship_src       = 0.
-     so4ship_src       = 0.
-     aircraft_fuel_src = 0.
-     so2biomass_src    = 0.
-     dmso_conc         = 0.
-     aviation_lto_src  = 0.
-     aviation_cds_src  = 0.
-     aviation_crs_src  = 0.
-     so2_ocs_src       = 0.
-    endif
+    so2biomass_src = SU_BIOMASS
+    dmso_conc = SU_DMSO
+    aviation_lto_src = SU_AVIATION_LTO
+    aviation_cds_src = SU_AVIATION_CDS
+    aviation_crs_src = SU_AVIATION_CRS
 
 !   As a safety check, where value is undefined set to 0
     where(1.01*so2biomass_src > MAPL_UNDEF)    so2biomass_src = 0.
@@ -1080,7 +1010,7 @@ contains
 
 !   Add source of OCS-produced SO2
 !   ------------------------------
-    SO2 = SO2 + so2_ocs_src*self%cdt
+    SO2 = SO2 + pSO2_OCS*self%cdt
 
 !   Read any pointwise emissions, if requested
 !   ------------------------------------------
@@ -1149,7 +1079,6 @@ contains
     character (len=ESMF_MAXSTR)       :: COMP_NAME
     type (MAPL_MetaComp), pointer     :: MAPL
     type (ESMF_State)                 :: internal
-    type (ESMF_State)                 :: aero
     type (wrap_)                      :: wrap
     type (SU2G_GridComp), pointer     :: self
     type (ESMF_Time)                  :: time
@@ -1160,7 +1089,7 @@ contains
     logical                           :: KIN
     real, pointer, dimension(:,:)     :: lats
     real, pointer, dimension(:,:)     :: lons
-    character(len=ESMF_MAXSTR)        :: short_name, fld_name
+    character(len=ESMF_MAXSTR)        :: short_name
     real, pointer, dimension(:,:,:)   :: int_ptr
 
     real, dimension(:,:,:), allocatable :: xoh, xno3, xh2o2
@@ -1199,9 +1128,6 @@ contains
                          INTERNALSPEC = InternalSpec, &
                          LONS = LONS, &
                          LATS = LATS, __RC__ )
-
-!   Get the aero state
-    call ESMF_StateGet (export, trim(COMP_NAME)//'_AERO'    , aero    , __RC__)
 
 #include "SU2G_GetPointer___.h"
 
@@ -1242,35 +1168,22 @@ contains
     allocate(xoh, mold=airdens, __STAT__)
     allocate(xno3, mold=airdens, __STAT__)
     allocate(xh2o2, mold=airdens, __STAT__)
+    xoh = 0.0
+    xno3 = 0.0
 
-    if(self%using_GMI) then
-     xoh = GMI_OH
-     xh2o2 = GMI_H2O2
-     xno3 = GMI_NO3
-     xoh =  xoh * (MAPL_AVOGAD/1000.) / MAPL_AIRMW * 1000. * airdens*1.00E-06
-     call MAPL_MaxMin ( 'GMI:OH   ', xoh)
-     call MAPL_MaxMin ( 'GMI:H2O2 ', xh2o2)
-     call MAPL_MaxMin ( 'GMI:NO3  ', xno3)
-     call MAPL_MaxMin ( 'GMI:rhoa ', airdens)
-    else
+    !if (workspace%firstRun) then
+       !xh2o2          = MAPL_UNDEF
+       !h2o2_init = MAPL_UNDEF
+       !workspace%firstRun  = .false.
+    !end if
 
-     xoh = 0.0
-     xno3 = 0.0
+    xh2o2 = h2o2_init
 
-     if (workspace%firstRun) then
-        xh2o2          = MAPL_UNDEF
-        h2o2_init = MAPL_UNDEF
-        workspace%firstRun  = .false.
-     end if
-
-     xh2o2 = h2o2_init
-
-     call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
-                                 workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
-                                 MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
-                                 SU_OH, SU_NO3, SU_H2O2, &
-                                 xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
-    endif
+    call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
+                                workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
+                                MAPL_AVOGAD/1000., MAPL_PI, MAPL_AIRMW, &
+                                SU_OH, SU_NO3, SU_H2O2, &
+                                xoh, xno3, xh2o2, workspace%recycle_h2o2, __RC__)
 
 !   SU Settling
 !   -----------
@@ -1283,19 +1196,26 @@ contains
        _ASSERT_RC(.false.,'Unsupported settling scheme: '//trim(self%settling_scheme),ESMF_RC_NOT_IMPL)
     end select
 
-!   Set default export value to 0.0 for all tracers
-    if (associated(SUSD)) SUSD(:,:,:) = 0.0
-    if (associated(SUSD_V)) SUSD_V(:,:,:,:) = 0.0
-!   Do settling only for sulfate aerosol tracer NSO4
-    call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=short_name, __RC__)
-    call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
-    nullify(flux_ptr)
-    if (associated(SUSD)) flux_ptr => SUSD(:,:,nSO4)
-    nullify(susd_vel)
-    if (associated(SUSD_V)) susd_vel => SUSD_V(:,:,:,nSO4)
-    call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
-                        int_ptr, t, airdens, &
-                        rh2, zle, delp, flux_ptr, susd_vel, settling_scheme=settling_opt, __RC__)
+    do n = 1, self%nbins
+       ! if radius == 0 then we're dealing with a gas which has no settling losses
+       if (self%radius(n) == 0.0) then
+          if (associated(SUSD)) SUSD(:,:,n) = 0.0
+          if (associated(SUSD_V)) SUSD_V(:,:,:,n) = 0.0
+          cycle
+       end if
+
+       call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
+       call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
+       nullify(flux_ptr)
+       if (associated(SUSD)) flux_ptr => SUSD(:,:,n)
+       nullify(susd_vel)
+       if (associated(SUSD_V)) susd_vel => SUSD_V(:,:,:,n)
+
+       call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
+                           int_ptr, t, airdens, &
+                           rh2, zle, delp, flux_ptr, susd_vel, settling_scheme=settling_opt, __RC__)
+
+    end do
 
     allocate(drydepositionf, mold=lwi, __STAT__)
     call SulfateChemDriver (self%km, self%klid, self%cdt, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
@@ -1341,7 +1261,7 @@ contains
     end select
 
 !   Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
-    call SU_Compute_Diags ( self%km, self%klid, self%rhop(nSO4), &
+    call SU_Compute_Diags ( self%km, self%klid, self%rmed(nSO4), self%sigma(nSO4), self%rhop(nSO4), &
                             MAPL_GRAV, MAPL_PI, nSO4, self%diag_Mie, &
                             self%wavelengths_profile*1.0e-9, self%wavelengths_vertint*1.0e-9, &
                             t, airdens, delp, ple,tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
@@ -1350,25 +1270,7 @@ contains
                             SO2SMASS, SO2CMASS, &
                             SO4SMASS, SO4CMASS, &
                             SUEXTTAU, SUSTEXTTAU,SUSCATAU,SUSTSCATAU, SO4MASS, SUCONC, SUEXTCOEF, &
-                            SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, SO4REFF, __RC__)
-
-    if(associated(SO4SAREA)) then
-      nullify(int_ptr)
-      call ESMF_AttributeGet(aero, name='surface_area_density', value=fld_name, __RC__)
-      if (fld_name /= '') then
-          call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
-          int_ptr = SO4SAREA
-      endif
-    endif
-
-    if(associated(SO4REFF)) then ! Note unit conversion below to microns
-      nullify(int_ptr)
-      call ESMF_AttributeGet(aero, name='effective_radius_in_microns', value=fld_name, __RC__)
-      if (fld_name /= '') then
-          call MAPL_GetPointer(aero, int_ptr, trim(fld_name), __RC__)
-          int_ptr = SO4REFF*1.e6
-      endif
-    endif
+                            SUSCACOEF, SUBCKCOEF,SUANGSTR, SUFLUXU, SUFLUXV, SO4SAREA, SO4SNUM, __RC__)
 
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
     j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
@@ -1378,7 +1280,7 @@ contains
     allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
     RH20(:,:,:) = 0.20
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, &
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1388,7 +1290,7 @@ contains
                             scacoef = SUSCACOEFRH20, __RC__)
 
     RH80(:,:,:) = 0.80
-    call SU_Compute_Diags ( km=self%km, klid=self%klid, &
+    call SU_Compute_Diags ( km=self%km, klid=self%klid, rmed=self%rmed(nSO4), sigma=self%sigma(nSO4),&
                             rhop=self%rhop(nSO4), &
                             grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
                             wavelengths_profile=self%wavelengths_profile*1.0e-9, &
@@ -1396,8 +1298,6 @@ contains
                             tmpu=t, rhoa=airdens, delp=delp, ple=ple,tropp=tropp, rh=rh80, u=u, v=v, &
                             DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH80,&
                             scacoef = SUSCACOEFRH80, __RC__)
-
-    deallocate(xoh, xh2o2, xno3, stat=STATUS)
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1471,7 +1371,6 @@ contains
     integer, parameter                               :: DP=kind(1.0d0)
     real, dimension(:,:,:), pointer                  :: ple, rh
     real(kind=DP), dimension(:,:,:), pointer         :: var
-    real(kind=DP), dimension(:,:,:,:), pointer       :: var4d
     real, dimension(:,:,:), pointer                  :: q
     real, dimension(:,:,:,:), pointer                :: q_4d
     integer, allocatable                             :: opaque_self(:)
@@ -1483,14 +1382,11 @@ contains
     character (len=ESMF_MAXSTR),allocatable          :: aerosol_names(:)
 
     real(kind=DP), dimension(:,:,:), allocatable     :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
-    real(kind=DP), dimension(:,:,:,:), allocatable   :: pmom_s               ! (lon:,lat:,lev:,nmom:)
     real                                             :: x
     integer                                          :: instance
     integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band
-    integer                                          :: usePhotTable
-    real                                             :: wavelength
 
     integer :: i, j, k
 
@@ -1512,11 +1408,6 @@ contains
 !   --------------
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
-
-!   Are we doing a photolysis calculation?
-!   --------------------------------------
-    usePhotTable = 0
-    call ESMF_AttributeGet (state, name='use_photolysis_table', value=usePhotTable, __RC__)
 
 !   Pressure at layer edges
 !   ------------------------
@@ -1563,13 +1454,7 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    if (usePhotTable /= 0) then
-       wavelength = band*1.e-9
-       allocate(pmom_s(i1:i2, j1:j2, km, self%phot_Mie%nmom), __STAT__)
-       call miephot_ (self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, pmom_s, __RC__)
-    else
-       call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
-    endif
+    call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1583,28 +1468,20 @@ contains
         var = ssa_s(:,:,:)
     end if
 
-    if (usePhotTable /= 0) then
-       call ESMF_AttributeGet (state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
-       if (fld_name /= '') then
-           call MAPL_GetPointer (state, var4d, trim(fld_name), __RC__)
-           var4d = pmom_s(:,:,:,:)
-     end if
-    else
-       call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-       if (fld_name /= '') then
-           call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
-           var = asy_s(:,:,:)
-     end if
+   call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+    if (fld_name /= '') then
+        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        var = asy_s(:,:,:)
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
-    if (usePhotTable /= 0) deallocate(pmom_s, __STAT__)
     deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
 
   contains
 
+!    subroutine mie_(mie_table, aerosol_names, nb, offset, q, rh, bext_s, bssa_s, basym_s, rc)
     subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
 
     implicit none
@@ -1635,55 +1512,14 @@ contains
        call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
 
        bext_s  = bext_s  +             bext     ! extinction
-       bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymmetry parameter multiplied by scattering
+       bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
 
     end do
 
     RETURN_(ESMF_SUCCESS)
 
     end subroutine mie_
-
-    subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, bpmom_s, rc)
-
-    implicit none
-
-    type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
-    integer,                       intent(in   ) :: nbins            ! number of bins
-    real,                          intent(in )   :: wavelength       ! wavelength in nm
-    real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
-    real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
-    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bpmom_s(size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4))
-    integer,                       intent(  out) :: rc
-
-    ! local
-    integer                           :: l, m
-    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
-    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-    real                              :: pmom (size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4),6)
-
-    __Iam__('SU2G::aerosol_optics::miephot_')
-
-     bext_s  = 0.0d0
-     bssa_s  = 0.0d0
-     bpmom_s = 0.0d0
-
-     do l = 1, nbins
-        ! tau is converted to bext
-        call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, pmom=pmom, ssa=bssa, __RC__)
-        bext_s  = bext_s  +             bext     ! extinction
-        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
-        do m = 1, mie%nmom
-           bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
-        enddo
-     end do
-
-
-     RETURN_(ESMF_SUCCESS)
-
-    end subroutine miephot_
 
   end subroutine aerosol_optics
 
