@@ -80,6 +80,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - corrected units error for hno3 column diagnostic in Process Library.
 - Bug fix for "WetRemovalUFS"
 
+- set hsurf to be the last indexed layer when index domains are different
+
 ### Added
 
 - Added effective radius and surface area density to aerosol states for use in chemistry
