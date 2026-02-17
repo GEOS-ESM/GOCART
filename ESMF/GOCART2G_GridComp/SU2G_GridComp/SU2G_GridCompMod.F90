@@ -97,7 +97,6 @@ real, parameter :: OCEAN=0.0, LAND = 1.0, SEA_ICE = 2.0
       real    :: aviation_layers(4)  ! heights of the LTO, CDS and CRS layers
       real    :: fSO4anth  ! Fraction of anthropogenic emissions that are SO4
       !logical :: firstRun = .true.
-      !real, pointer :: h2o2_init(:,:,:)
 
 !     PRC: logic for GMI coupling
       logical :: using_GMI
@@ -532,8 +531,6 @@ contains
     call MAPL_Get ( mapl, INTERNAL_ESMF_STATE = internal, &
                          LONS = LONS, &
                          LATS = LATS, __RC__ )
-
-    !allocate(self%h2o2_init(size(lats,1),size(lats,2),self%km), __STAT__)
 
 !   Is SU data driven?
 !   ------------------
@@ -1256,13 +1253,6 @@ contains
 
      xoh = 0.0
      xno3 = 0.0
-
-     if (workspace%firstRun) then
-        xh2o2          = MAPL_UNDEF
-        h2o2_init = MAPL_UNDEF
-        workspace%firstRun  = .false.
-     end if
-
      xh2o2 = h2o2_init
 
      call SulfateUpdateOxidants (nymd, nhms, LONS, LATS, airdens, self%km, self%cdt, &
@@ -1332,7 +1322,7 @@ contains
           call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=short_name, __RC__)
           call MAPL_GetPointer(internal, NAME=short_name, ptr=int_ptr, __RC__)
           call WetRemovalUFS  (self%km, self%klid, n, self%cdt, 'sulfate', &
-                      KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, & 
+                      KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, &
                       self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, SUWT, __RC__)
     enddo
 

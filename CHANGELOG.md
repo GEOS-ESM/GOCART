@@ -15,11 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-## [v2.5.1] - 2026-02-13
+## [v2.5.1] - 2026-02-17
 
 ### Fixed
 
 - Fix missing `GMI_HNO3` entry in `AMIP/NI2G_GridComp_ExtData.yaml` file
+- Fix start-stop regression failure in SU GridComp
 
 ## [v2.5.0] - 2026-02-05
 
