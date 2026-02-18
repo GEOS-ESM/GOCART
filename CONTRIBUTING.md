@@ -1,6 +1,13 @@
 # Contributing to GOCART
 
-Contributing code to GOCART should be done via a Pull Request to this repository.
+Contributing code to GOCART should be done via a Pull Request (PR) to this repository. 
+
+Prior to submitting a PR, testing must be performed for start-stop and layout regression. Regression testing can be accomplished by running gcm_regress.j in the regress subdirectory of an experiment setup. Regression testing will take about thirty minutes to complete, and text files will be generated that indicate either PASS or FAIL for each regression test.
+
+For zero-diff PRs, it must be documented that the change is zero-diff by running three sets of one day simulations using the executable before and after the changes were made: 1) an AMIP, 2) a replay, and 3) a zero-increment replay. The zero-increment replay should also be identical to the AMIP simulation. More information on how to run these types of simulations can be found at https://github.com/GEOS-ESM/GEOSgcm_GridComp/wiki/How-to-Run-GEOS-Zero-Diff-Tests.
+
+The impacts of non zero-diff PRs must be clearly documented for consideration.
+
 
 ## Contributor License Agreement (CLA)
 
