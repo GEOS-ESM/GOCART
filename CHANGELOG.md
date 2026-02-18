@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Guidance for submitting PRs on contributing guidelines
+
 ## [v2.6.0] - 2026-02-05
 
 ### Changed
