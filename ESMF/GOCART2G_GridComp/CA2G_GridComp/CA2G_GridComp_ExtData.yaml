@@ -31,10 +31,10 @@ Collections:
     template: ExtData/chemistry/QFED/v2.5r1-nrt/sfc/0.1/Y%y4/M%m2/qfed2.emis_oc.061.%y4%m2%d2.nc4
     valid_range: "2021-11-01T12:00/2025-01-01"
   CA2G_qfed_emis_x3600y1800_oc.v3_2_0.%y4%m2%d2.nc4:
-    template: ExtData/chemistry/QFED/v3.2-sci/sfc/0.1/QFED/Y%y4/M%m2/qfed_emis_x3600y1800_oc.v3_2_0.%y4%m2%d2.nc4
+    template: ExtData/chemistry/QFED/v3.2r1/sfc/0.1/QFED/Y%y4/M%m2/qfed_emis_x3600y1800_oc.v3_2_0.%y4%m2%d2.nc4
     valid_range: "2025-11-27T12:00/2028-01-01"
   CA2G_qfed_emis_x3600y1800_bc.v3_2_0.%y4%m2%d2.nc4:
-    template: ExtData/chemistry/QFED/v3.2-sci/sfc/0.1/QFED/Y%y4/M%m2/qfed_emis_x3600y1800_bc.v3_2_0.%y4%m2%d2.nc4
+    template: ExtData/chemistry/QFED/v3.2r1/sfc/0.1/QFED/Y%y4/M%m2/qfed_emis_x3600y1800_bc.v3_2_0.%y4%m2%d2.nc4
     valid_range: "2025-11-27T12:00/2028-01-01"
 
 Samplings:
