@@ -14,7 +14,6 @@ module Chem_AeroGeneric
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_Field_API, only: MAPL_FieldGet, MAPL_FieldCreate
-   use mapl3g_FieldInfo, only: FieldInfoSetInternal
    use mapl3g_FieldBundle_API, only: MAPL_FieldBundleAdd
    use mapl3g_VerticalStaggerLoc, only: VerticalStaggerLoc, VERTICAL_STAGGER_EDGE, VERTICAL_STAGGER_CENTER
    use mapl3g_UngriddedDims, only: UngriddedDims
@@ -164,21 +163,20 @@ contains
             do iter = 1, size(orig_ptr, 3)
                write (bin_index, "(A, I0.3)") "", iter
                ptr2d => orig_ptr(:,:,iter)
-               field2d = ESMF_FieldCreate( &
-                    geom, &
-                    farray=ptr2d, &
-                    indexflag=ESMF_INDEX_DELOCAL, &
-                    datacopyflag=ESMF_DATACOPY_REFERENCE, &
-                    name=trim(varname)//trim(bin_index), _RC)
-               call ESMF_InfoGetFromHost(field2d, info, _RC)
-               call FieldInfoSetInternal( &
-                    info, &
-                    typekind=typekind, &
-                    vert_staggerloc=vert_stagger, &
+               field2d = MAPL_FieldCreate( &
+                    geom, typekind, &
+                    name=trim(varname)//trim(bin_index), &
                     ungridded_dims=UngriddedDims(), &
+                    vert_staggerloc=vert_stagger, &
                     units=units, &
                     standard_name=stdname//' Bin '//trim(bin_index), &
                     long_name="unknown", _RC)
+               call ESMF_FieldEmptyReset(field2d, status=ESMF_FIELDSTATUS_GEOMSET, _RC)
+               call ESMF_FieldEmptyComplete( &
+                    field2d, &
+                    farray=ptr2d, &
+                    indexflag=ESMF_INDEX_DELOCAL, &
+                    datacopyflag=ESMF_DATACOPY_REFERENCE, _RC)
                call MAPL_FieldBundleAdd(bundle, [field2d], _RC)
             end do
          end if

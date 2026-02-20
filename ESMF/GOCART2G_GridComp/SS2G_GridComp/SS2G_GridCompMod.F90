@@ -92,7 +92,7 @@ contains
       !EOP
 
       !Locals
-      character(len=ESMF_MAXSTR) :: comp_name
+      character(len=:), allocatable :: comp_name
       type(SS2G_GridComp), pointer :: self
       character(len=ESMF_MAXSTR) :: field_name
       real :: DEFVAL
@@ -103,8 +103,7 @@ contains
       type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: i, status
 
-      call ESMF_GridCompGet(gc, name=comp_name, _RC)
-      call MAPL_GridCompGet(gc, logger=logger, _RC)
+      call MAPL_GridCompGet(gc, logger=logger, name=comp_name, _RC)
 
       ! Wrap gridcomp's private state and store it in gridcomp
       _SET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE)
@@ -333,13 +332,12 @@ contains
       integer :: i, dims(3), km
       integer :: status
 
-      call MAPL_GridCompGet(gc, name=comp_name, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, geom=geom, grid=grid, num_levels=km, _RC)
 
       ! Get my internal private state
       _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
 
       ! Global dimensions are needed here for choosing tuning parameters
-      call MAPL_GridCompGet(gc, geom=geom, grid=grid, num_levels=km, _RC)
       call MAPL2_GridGet(grid, globalCellCountPerDim=dims, _RC)
       self%km = km
 
