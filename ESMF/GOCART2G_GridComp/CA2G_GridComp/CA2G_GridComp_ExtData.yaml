@@ -88,7 +88,7 @@ Exports:
     variable: biofuel
   BC_BIOMASS:
     - {starting: "2014-12-01T12:00", collection: CA2G_qfed2.emis_bc.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
-    - {starting: "2021-11-01T12:00", collection: CA2G_qfed_emis_x3600y1800_oc.v3_2_0.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
+    - {starting: "2021-11-01T12:00", collection: CA2G_qfed2.emis_bc.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
     - {starting: "2025-11-27T12:00", collection: CA2G_qfed_emis_x3600y1800_bc.v3_2_0.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
   BC_SHIP:
     collection: CA2G_BC-em-anthro_CMIP_CEDS_gn_shipping.x2304_y1441_t12.%y4.nc4
@@ -133,7 +133,7 @@ Exports:
   BRC_BIOMASS:
     - {starting: "2014-12-01T12:00", collection: CA2G_qfed2.emis_oc.006.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
     - {starting: "2021-11-01T12:00", collection: CA2G_qfed2.emis_oc.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
-    - {starting: "2025-11-27T12:00", collection: CA2G_qfed2.emis_oc.061.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
+    - {starting: "2025-11-27T12:00", collection: CA2G_qfed_emis_x3600y1800_oc.v3_2_0.%y4%m2%d2.nc4, linear_transformation: [0.0, 0.778], regrid: CONSERVE, sample: CA2G_sample_1, variable: biomass}
   BRC_SHIP:
     collection: /dev/null
     regrid: CONSERVE
