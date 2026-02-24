@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v2.6.0] - 2026-02-05
 
 ### Changed
+-Filepath for CEDS has been updated in the ExtData yaml and rc files. Note the old version had an incorrect seasonal cycle.
 
 - Updated RC configuration settings for GEOSgcm v12
   - Adjusted pressure_lid_in_hPa values for various components (CA2G: 0.01→10 hPa for bc/br/oc, NI2G: 0.01→10 hPa, DU2G: 0.01→10 hPa, SS2G: 0.01→40 hPa, SU2G: 0.01→1 hPa)

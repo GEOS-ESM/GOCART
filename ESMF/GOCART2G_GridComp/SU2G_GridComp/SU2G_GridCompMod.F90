@@ -451,11 +451,9 @@ contains
     real, pointer, dimension(:,:)        :: lons
     real                                 :: CDT         ! chemistry timestep (secs)
     integer                              :: HDT         ! model     timestep (secs)
-    real, pointer, dimension(:,:,:)      :: int_ptr
     logical                              :: data_driven
     integer                              :: NUM_BANDS
     logical                              :: bands_are_present
-    real, pointer, dimension(:,:,:)      :: ple
 
     type(ESMF_Calendar)     :: calendar
     type(ESMF_Time)         :: currentTime
