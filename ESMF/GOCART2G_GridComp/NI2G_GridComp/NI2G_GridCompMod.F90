@@ -841,7 +841,6 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-
     if(self%using_GMI) then
       xhno3 = GMI_HNO3
       call MAPL_MaxMin ( 'GMI:HNO3  ', xhno3)
