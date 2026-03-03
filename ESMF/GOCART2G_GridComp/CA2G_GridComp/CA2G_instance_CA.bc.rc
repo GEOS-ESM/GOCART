@@ -2,7 +2,7 @@
 # Resource file for Black Carbon parameters.
 #
 
-aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BC.v1_6.RRTMG.nc
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_BC.v1_6.RRTMGP.nc
 aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_BC.v1_6.nc
 
 # Aircraft emission factor: convert input unit to kg C
