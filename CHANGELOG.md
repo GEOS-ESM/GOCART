@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [v2.6.2] - 2026-03-09
+
+### Changed
+
+- Corrected `pressure_lid_in_hPa` values from integers to floats in CA2G (bc, br, oc), DU2G, NI2G, SU2G (default, AMIP, AMIP.20C), and SS2G instance RC files
+- Updated SS2G `emission_scale` values (still not finalized)
+- Removed unused pointer variables (`int_ptr`, `ple`) from `SU2G_GridCompMod.F90`
+
+### Fixed
+
+- Added floating-point protection (TINY/EPS guards) in molality calculation in `GOCART2G_Process.F90` to avoid potential division-by-zero or zero-power operations
+
 ## [v2.6.1] - 2026-02-17
 
 ### Fixed
