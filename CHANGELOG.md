@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- ExtData yaml files for CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
+
 ### Fixed
 
 ### Added
@@ -214,6 +216,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
 - Add `soil_drylimit_factor` to the DU2G_instance_DU.rc and DU2G_GridCompMod.F90 files for FENGSHA
 - Moved process library macros to header file.
+
+## [v2.3.1] - 2026-03-10
+
+### Changed
+
+- ExtData yaml files for CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
 
 ## [v2.3.0] - 2025-01-16
 
