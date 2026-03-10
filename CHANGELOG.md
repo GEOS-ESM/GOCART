@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [v2.3.1] - 2026-03-10
+
+### Changed
+
+- ExtData yaml files fo CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
+
 ## [v2.3.0] - 2025-01-16
 
 ### Changed
