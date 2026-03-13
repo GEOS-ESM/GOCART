@@ -22,7 +22,6 @@ module GOCART2G_GridCompMod
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_Geom_API, only: MAPL_GridGet
    use mapl3g_UngriddedDim, only: UngriddedDim
-   use gftl2_StringVector, only: StringVector
 
    use Chem_AeroGeneric
 
@@ -378,8 +377,8 @@ contains
       call ESMF_StateGet(export, "AERO", aero, _RC)
       call ESMF_StateGet(export, "AERO_DP", aero_dp, _RC)
 
-      ! ! Add children's AERO states to GOCART2G's AERO states
-      ! ! Only active instances are passed to radiation
+      ! Add children's AERO states to GOCART2G's AERO states
+      ! Only active instances are passed to radiation
       call add_aero_states_(self%DU%instances(:))
       call add_aero_states_(self%SS%instances(:))
       ! call add_aero_states_(self%SU%instances(:))
