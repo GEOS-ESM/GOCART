@@ -25,7 +25,7 @@ module DU2G_GridCompMod
    use mapl3g_UngriddedDim, only: UngriddedDim
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_Utilities, only: MAPL_PackTime
-   use mapl3g_Geom_API, only: MAPL_GridGetHorzIJIndex
+   use mapl3g_Geom_API, only: MAPL_GeomGetHorzIJIndex
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -595,7 +595,7 @@ contains
 
       character(len=:), allocatable :: comp_name
       type(ESMF_State) :: internal
-      type(ESMF_Grid) :: grid
+      type(ESMF_Geom) :: geom
       type(DU2G_GridComp), pointer :: self
       type(ESMF_Time) :: time
       integer :: ijl
@@ -607,14 +607,14 @@ contains
       real, dimension(:,:,:,:), allocatable :: emissions
       real, dimension(:,:), allocatable :: z_, R_, H_w_, f_erod_
       real, dimension(:,:), allocatable :: ustar_, ustar_t_, ustar_ts_
-      integer, pointer, dimension(:) :: iPoint, jPoint
+      integer, allocatable, dimension(:) :: iPoint, jPoint
       character(len=ESMF_MAXSTR) :: fname ! file name for point source emissions
       type(ThreadWorkspace), pointer :: workspace
       class(logger_t), pointer :: logger
 #include "DU2G_DeclarePointer___.h"
       real, allocatable, dimension(:,:,:) :: zle0
 
-      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, grid=grid, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, geom=geom, _RC)
 
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
@@ -730,10 +730,7 @@ contains
 
       ! Get indices for point emissions
       if (workspace%nPts > 0) then
-         allocate(iPoint(workspace%nPts), jPoint(workspace%nPts),  _STAT)
-         call MAPL_GridGetHorzIJIndex( &
-              workspace%nPts, iPoint, jPoint, &
-              grid=grid, &
+         call MAPL_GeomGetHorzIJIndex(geom, iPoint, jPoint, &
               lon=workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
               lat=workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), _RC)
          ! if (status /= 0) then
