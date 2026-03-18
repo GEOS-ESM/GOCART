@@ -730,9 +730,10 @@ contains
 
       ! Get indices for point emissions
       if (workspace%nPts > 0) then
-         call MAPL_GeomGetHorzIJIndex(geom, iPoint, jPoint, &
-              lon=workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
-              lat=workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), _RC)
+         call MAPL_GeomGetHorzIJIndex(geom, &
+              workspace%pLon/real(MAPL_RADIANS_TO_DEGREES), &
+              workspace%pLat/real(MAPL_RADIANS_TO_DEGREES), &
+              iPoint, jPoint, _RC)
          ! if (status /= 0) then
          !    !$omp critical (DU2G_2)
          !    if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
