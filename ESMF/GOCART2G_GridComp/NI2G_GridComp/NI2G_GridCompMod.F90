@@ -1,4 +1,4 @@
-#include "MAPL_Generic.h"
+#include "MAPL.h"
 
 !BOP
 !MODULE: NI2G_GridCompMod - GOCART Nitrate gridded component
@@ -8,7 +8,16 @@ module NI2G_GridCompMod
 
    !USES:
    use ESMF
-   use MAPL
+   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
+   use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
+   use MAPL_Constants, only: MAPL_GRAV, MAPL_KARMAN
+   use mapl3g_generic, only: MAPL_GridCompGet, MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
+   use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
+   use mapl3g_generic, only: MAPL_GridCompAddSpec
+   use mapl3g_generic, only: MAPL_STATEITEM_STATE
+   use mapl3g_generic, only: MAPL_ClockGet
+   use mapl3g_generic, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
+   use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_CENTER
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use ReplenishAlarm
@@ -24,8 +33,8 @@ module NI2G_GridCompMod
    real, parameter :: fMassHNO3 = 63., fMassNO3 = 62.
    real, parameter :: cpd = 1004.16
 
-   integer, parameter :: instanceComputational = 1
-   integer, parameter :: instanceData = 2
+   integer, parameter :: instance_computational = 1
+   integer, parameter :: instance_data = 2
 
    integer, parameter :: nNH3 = 1
    integer, parameter :: nNH4a = 2
@@ -59,9 +68,7 @@ module NI2G_GridCompMod
       type(ESMF_Alarm) :: alarm
    end type NI2G_GridComp
 
-   type wrap_
-      type(NI2G_GridComp), pointer :: PTR !=> null()
-   end type wrap_
+   character(*), parameter :: PRIVATE_STATE = "NI2G_GridComp"
 
 contains
 
@@ -85,168 +92,137 @@ contains
 
       !EOP
 
-      character(len=ESMF_MAXSTR) :: comp_name
-      type(ESMF_Config) :: cfg
-      type(ESMF_Config) :: universal_cfg
-      type(wrap_) :: wrap
+      character(len=:), allocatable :: comp_name
       type(NI2G_GridComp), pointer :: self
 
       real :: defval
       logical :: data_driven = .true.
-      logical :: file_exists
       integer :: num_threads
 
-      __Iam__('SetServices')
+      call MAPL_GridCompGet(gc, name=comp_name, _RC)
 
-      !   Get my name and set-up traceback handle
-      !   ---------------------------------------
-      call ESMF_GridCompGet(gc, NAME=comp_name, config=universal_cfg, _RC)
-      Iam = trim(comp_name) // '::' // Iam
+      ! Wrap gridcomp's private state and store it in gridcomp
+      _SET_NAMED_PRIVATE_STATE(gc, NI2G_GridComp, PRIVATE_STATE)
 
-      !   Wrap internal state for storing in GC
-      !   -------------------------------------
-      allocate(self, _STAT)
-      wrap%PTR => self
+      ! Retrieve the private state
+      _GET_NAMED_PRIVATE_STATE(gc, NI2G_GridComp, PRIVATE_STATE, self)
 
       num_threads = MAPL_get_num_threads()
       allocate(self%workspaces(0:num_threads - 1), _STAT)
 
-      !   Load resource file
-      !   -------------------
-      cfg = ESMF_ConfigCreate(_RC)
-      inquire(file='NI2G_instance_' // trim(comp_name) // '.rc', exist=file_exists)
-      if (file_exists) then
-         call ESMF_ConfigLoadFile(cfg, 'NI2G_instance_' // trim(comp_name) // '.rc', _RC)
-      else
-         if (mapl_am_i_root()) print*, 'NI2G_instance_' // trim(comp_name) // '.rc does not exist! Loading' // &
-              ' NI2G_instance_NI.rc instead'
-         call ESMF_ConfigLoadFile(cfg, 'NI2G_instance_NI.rc', _RC)
-      end if
-
       ! process generic config items
-      call self%GA_Environment%load_from_config(cfg, universal_cfg, _RC)
+      call self%GA_Environment%load_from_config(gc, _RC)
 
-      !   Is NI data driven?
-      !   ------------------
+      ! Is NI data driven?
       call determine_data_driven(comp_name, data_driven, _RC)
 
-      !   Set entry points
-      !   ------------------------
+      ! Set entry points
       call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_INITIALIZE, Initialize, _RC)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, phase_name="Run1", _RC)
       if (data_driven .neqv. .true.) then
-         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run2, _RC)
-         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run0, _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
       end if
 
       defval = 0.0
 
-      !   Import and Internal states if data instance
-      !   -------------------------------------------
+      ! Import and Internal states if data instance
       if (data_driven) then
+         _FAIL("data driver section has not been activated yet")
 
          !      Pressure at layer edges
          !      -----------------------
-         call MAPL_AddImportSpec(gc, &
-              short_name='PLE', &
-              long_name='air_pressure', &
-              units='Pa', &
-              dims=MAPL_DimsHorzVert, &
-              vlocation=MAPL_VLocationEdge, &
-              restart=MAPL_RestartSkip, _RC)
+         ! call MAPL_AddImportSpec(gc, &
+         !      short_name='PLE', &
+         !      long_name='air_pressure', &
+         !      units='Pa', &
+         !      dims=MAPL_DimsHorzVert, &
+         !      vlocation=MAPL_VLocationEdge, &
+         !      restart=MAPL_RestartSkip, _RC)
 
          !      RH: is between 0 and 1
          !      ----------------------
-         call MAPL_AddImportSpec(gc, &
-              short_name='RH2', &
-              long_name='Rel_Hum_after_moist', &
-              units='1', &
-              dims=MAPL_DimsHorzVert, &
-              vlocation=MAPL_VLocationCenter, &
-              restart=MAPL_RestartSkip, _RC)
+         ! call MAPL_AddImportSpec(gc, &
+         !      short_name='RH2', &
+         !      long_name='Rel_Hum_after_moist', &
+         !      units='1', &
+         !      dims=MAPL_DimsHorzVert, &
+         !      vlocation=MAPL_VLocationCenter, &
+         !      restart=MAPL_RestartSkip, _RC)
 
-         call MAPL_AddInternalSpec(gc,&
-              short_name='NO3an1', &
-              long_name='Nitrate size bin 001', &
-              units='kg kg-1', &
-              dims=MAPL_DimsHorzVert, &
-              vlocation=MAPL_VLocationCenter, &
-              restart=MAPL_RestartOptional, &
-              ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-              & add2export=.true., _RC)
+         ! call MAPL_AddInternalSpec(gc,&
+         !      short_name='NO3an1', &
+         !      long_name='Nitrate size bin 001', &
+         !      units='kg kg-1', &
+         !      dims=MAPL_DimsHorzVert, &
+         !      vlocation=MAPL_VLocationCenter, &
+         !      restart=MAPL_RestartOptional, &
+         !      ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+         !      add2export=.true., _RC)
 
-         call MAPL_AddInternalSpec(gc,&
-              short_name='NO3an2', &
-              long_name='Nitrate size bin 002', &
-              units='kg kg-1', &
-              dims=MAPL_DimsHorzVert, &
-              vlocation=MAPL_VLocationCenter, &
-              restart=MAPL_RestartOptional, &
-              ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-              add2export=.true., _RC)
+         ! call MAPL_AddInternalSpec(gc,&
+         !      short_name='NO3an2', &
+         !      long_name='Nitrate size bin 002', &
+         !      units='kg kg-1', &
+         !      dims=MAPL_DimsHorzVert, &
+         !      vlocation=MAPL_VLocationCenter, &
+         !      restart=MAPL_RestartOptional, &
+         !      ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+         !      add2export=.true., _RC)
 
-         call MAPL_AddInternalSpec(gc,&
-              short_name='NO3an3', &
-              long_name='Nitrate size bin 003', &
-              units='kg kg-1', &
-              dims=MAPL_DimsHorzVert, &
-              vlocation=MAPL_VLocationCenter, &
-              restart=MAPL_RestartOptional, &
-              ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-              add2export=.true., _RC)
+         ! call MAPL_AddInternalSpec(gc,&
+         !      short_name='NO3an3', &
+         !      long_name='Nitrate size bin 003', &
+         !      units='kg kg-1', &
+         !      dims=MAPL_DimsHorzVert, &
+         !      vlocation=MAPL_VLocationCenter, &
+         !      restart=MAPL_RestartOptional, &
+         !      ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
+         !      add2export=.true., _RC)
 
-         call MAPL_AddImportSpec(gc,&
-              short_name='climNO3an1', &
-              long_name='Nitrate size bin 001', &
-              units='kg kg-1', &
-              dims=MAPL_DimsHorzVert, &
-              vlocation=MAPL_VLocationCenter, &
-              restart=MAPL_RestartOptional, _RC)
+         ! call MAPL_AddImportSpec(gc,&
+         !      short_name='climNO3an1', &
+         !      long_name='Nitrate size bin 001', &
+         !      units='kg kg-1', &
+         !      dims=MAPL_DimsHorzVert, &
+         !      vlocation=MAPL_VLocationCenter, &
+         !      restart=MAPL_RestartOptional, _RC)
 
-         call MAPL_AddImportSpec(gc,&
-              short_name='climNO3an2', &
-              long_name='Nitrate size bin 002', &
-              units='kg kg-1', &
-              dims=MAPL_DimsHorzVert, &
-              vlocation=MAPL_VLocationCenter, &
-              restart=MAPL_RestartOptional, _RC)
+         ! call MAPL_AddImportSpec(gc,&
+         !      short_name='climNO3an2', &
+         !      long_name='Nitrate size bin 002', &
+         !      units='kg kg-1', &
+         !      dims=MAPL_DimsHorzVert, &
+         !      vlocation=MAPL_VLocationCenter, &
+         !      restart=MAPL_RestartOptional, _RC)
 
-         call MAPL_AddImportSpec(gc,&
-              short_name='climNO3an3', &
-              long_name='Nitrate size bin 003', &
-              units='kg kg-1', &
-              dims=MAPL_DimsHorzVert, &
-              vlocation=MAPL_VLocationCenter, &
-              restart=MAPL_RestartOptional, _RC)
+         ! call MAPL_AddImportSpec(gc,&
+         !      short_name='climNO3an3', &
+         !      long_name='Nitrate size bin 003', &
+         !      units='kg kg-1', &
+         !      dims=MAPL_DimsHorzVert, &
+         !      vlocation=MAPL_VLocationCenter, &
+         !      restart=MAPL_RestartOptional, _RC)
       end if ! (data_driven)
 
-      !   Import, Export, Internal states for computational instance
-      !   ----------------------------------------------------------
+      ! Import, Export, Internal states for computational instance
       if (.not.data_driven) then
 #include "NI2G_Export___.h"
 #include "NI2G_Import___.h"
 #include "NI2G_Internal___.h"
       end if
 
-      !   This state holds fields needed by radiation
-      !   ---------------------------------------------
-      call MAPL_AddExportSpec(gc, &
-           short_name=trim(comp_name) // '_AERO', &
-           long_name='aerosols_from_' // trim(comp_name), &
-           units='kg kg-1', &
-           dims=MAPL_DimsHorzVert, &
-           vlocation=MAPL_VLocationCenter, &
-           DATATYPE=MAPL_StateItem, _RC)
+      ! This state holds fields needed by radiation
+      call MAPL_GridCompAddSpec(gc, &
+           state_intent=ESMF_STATEINTENT_EXPORT, &
+           short_name=trim(comp_name)//"_AERO", &
+           standard_name="aerosols_from_"//trim(comp_name), &
+           units="kg kg-1", &
+           dims="xyz", &
+           vstagger=VERTICAL_STAGGER_CENTER, &
+           itemtype=MAPL_STATEITEM_STATE, _RC)
 
-      !   Store internal state in GC
-      !   --------------------------
-      call ESMF_UserCompSetInternalState(gc, 'NI2G_GridComp', wrap, _RC)
-
-      !   Set generic services
-      !   ----------------------------------
-      call MAPL_GenericSetServices(gc, _RC)
-
-      RETURN_(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine SetServices
 
@@ -262,7 +238,7 @@ contains
       type(ESMF_Clock), intent(inout) :: clock
       integer, optional, intent(out) :: rc
 
-      !DESCRIPTION: This initializes the Nitrate gridded component. It primaryily
+      !DESCRIPTION: This initializes the Nitrate gridded component. It primarily
       !               fills GOCART's AERO states with its nitrate fields.
 
       !REVISION HISTORY:
@@ -270,226 +246,162 @@ contains
 
       !EOP
 
-      character(len=ESMF_MAXSTR) :: comp_name
-      type(MAPL_MetaComp), pointer :: MAPL
-      type(ESMF_Config) :: universal_cfg
-      type(ESMF_Grid) :: grid
+      character(len=:), allocatable :: comp_name
+      type(ESMF_Geom) :: geom
       type(ESMF_State) :: internal
       type(ESMF_State) :: aero
-      type(ESMF_State) :: providerState
-      type(ESMF_Config) :: cfg
-      type(ESMF_FieldBundle) :: bundle_dp
-      type(wrap_) :: wrap
       type(NI2G_GridComp), pointer :: self
 
       integer, allocatable :: mieTable_pointer(:)
-      integer :: i, dims(3), km
+      integer, allocatable :: channels_(:)
+      integer :: km
       integer :: instance
-      type(ESMF_Field) :: field, fld
-      character(len=ESMF_MAXSTR) :: prefix
+      type(ESMF_Field) :: field
       real :: CDT ! chemistry timestep (secs)
-      integer :: HDT ! model     timestep (secs)
+      real :: HDT ! model     timestep (secs)
       logical :: data_driven
-      logical :: bands_are_present
-      integer :: NUM_BANDS
       character(len=ESMF_MAXSTR), allocatable :: aerosol_names(:)
-
-      type(ESMF_Calendar) :: calendar
-      type(ESMF_Time) :: currentTime
-      type(ESMF_Time) :: ringTime
-      type(ESMF_TimeInterval) :: ringInterval
-      integer :: year, month, day, hh, mm, ss
+      character(len=:), allocatable :: file_
 
       real, dimension(4) :: Vect_Hcts
-      !    real, allocatable, dimension(:) :: rmedDU, rmedSS, fnumDU, fnumSS
-      integer :: itemCount
-      integer, allocatable, dimension(:) :: channels_
+      ! real, allocatable, dimension(:) :: rmedDU, rmedSS, fnumDU, fnumSS
+      integer :: item_count
       integer :: nmom_
-      character(len=ESMF_MAXSTR) :: file_
-      logical :: file_exists
+      type(ESMF_Info) :: field_info, aero_info
 
-      __Iam__('Initialize')
+      call MAPL_GridCompGet(gc, geom=geom, name=comp_name, num_levels=km, _RC)
 
-      !   Get the target components name and set-up traceback handle.
-      !   -----------------------------------------------------------
-      call ESMF_GridCompGet(gc, grid=grid, NAME=comp_name, config=universal_cfg, _RC)
-      Iam = trim(comp_name) // '::' // trim(Iam)
+      ! Get internal private state
+      _GET_NAMED_PRIVATE_STATE(gc, NI2G_GridComp, PRIVATE_STATE, self)
 
-      !   Get my internal MAPL_Generic state
-      !   -----------------------------------
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
-
-      !   Get my internal private state
-      !   -----------------------------
-      call ESMF_UserCompGetInternalState(gc, 'NI2G_GridComp', wrap, _RC)
-      self => wrap%PTR
-
-      !   Get dimensions
-      !   ---------------
-      call MAPL_GridGet(grid, localCellCountPerDim=dims, _RC)
-      km = dims(3)
+      ! Get dimensions
       self%km = km
 
-      !   Get DTs
-      !   -------
-      call MAPL_GetResource(MAPL, HDT, Label='RUN_DT:', _RC)
-      call MAPL_GetResource(MAPL, CDT, Label='GOCART2G_DT:', default=real(HDT), _RC)
+      ! Get DTs
+      call MAPL_ClockGet(clock, dt=HDT, _RC)
+      call MAPL_GridCompGetResource(gc, 'GOCART2G_DT', CDT, default=real(HDT), _RC)
       self%CDT = CDT
 
-      !  Load resource file and get number of bins
-      !  -------------------------------------------
-      cfg = ESMF_ConfigCreate(_RC)
-      inquire(file='NI2G_instance_' // trim(comp_name) // '.rc', exist=file_exists)
-      if (file_exists) then
-         call ESMF_ConfigLoadFile(cfg, 'NI2G_instance_' // trim(comp_name) // '.rc', _RC)
-      else
-         if (mapl_am_i_root()) print*, 'NI2G_instance_' // trim(comp_name) // '.rc does not exist! Loading' // &
-              ' NI2G_instance_NI.rc instead'
-         call ESMF_ConfigLoadFile(cfg, 'NI2G_instance_NI.rc', _RC)
-      end if
+      ! Get parameters from generic state.
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
-      !self%first = .true.
-
-      !   Call Generic Initialize
-      !   ----------------------------------------
-      call MAPL_GenericInitialize(gc, import, export, clock, _RC)
-
-      !   Get parameters from generic state.
-      !   -----------------------------------
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, _RC)
-
-      !   Is NI data driven?
-      !   ------------------
+      ! Is NI data driven?
       call determine_data_driven(comp_name, data_driven, _RC)
 
-      !   Get DU and SS attribute information for use in heterogenous chemistry
+      ! Get DU and SS attribute information for use in heterogenous chemistry
       if (.not.data_driven) then
          call ESMF_StateGet(import, 'DU', field, _RC)
-         call ESMF_AttributeGet(field, NAME='radius', itemCount=itemCount, _RC)
-         allocate(self%rmedDU(itemCount), _STAT)
-         allocate(self%fnumDU(itemCount), _STAT)
+         call ESMF_AttributeGet(field, NAME='radius', itemCount=item_count, _RC)
+         allocate(self%rmedDU(item_count), _STAT)
+         allocate(self%fnumDU(item_count), _STAT)
          call ESMF_AttributeGet(field, NAME='radius', valueList=self%rmedDU, _RC)
          call ESMF_AttributeGet(field, NAME='fnum', valueList=self%fnumDU, _RC)
 
          call ESMF_StateGet(import, 'SS', field, _RC)
-         call ESMF_AttributeGet(field, NAME='radius', itemCount=itemCount, _RC)
-         allocate(self%rmedSS(itemCount), _STAT)
-         allocate(self%fnumSS(itemCount), _STAT)
+         call ESMF_AttributeGet(field, NAME='radius', itemCount=item_count, _RC)
+         allocate(self%rmedSS(item_count), _STAT)
+         allocate(self%fnumSS(item_count), _STAT)
          call ESMF_AttributeGet(field, NAME='radius', valueList=self%rmedSS, _RC)
          call ESMF_AttributeGet(field, NAME='fnum', valueList=self%fnumSS, _RC)
       end if
 
-      !   If this is a data component, the data is provided in the import
-      !   state via ExtData instead of the actual GOCART children
-      !   ----------------------------------------------------------------
-      if (data_driven) then
-         providerState = import
-         prefix = 'clim'
-      else
-         providerState = export
-         prefix = ''
-      end if
-
       if (.not.data_driven) then
          call ESMF_StateGet(internal, 'NH3', field, _RC)
-         call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), _RC)
+         call ESMF_InfoGetFromHost(field, field_info, _RC)
+         call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(1), _RC)
          call get_HenrysLawCts('NH3', Vect_Hcts(1), Vect_Hcts(2), Vect_Hcts(3), Vect_Hcts(4), _RC)
-         call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, _RC)
+         call ESMF_InfoSet(field_info, key='SetofHenryLawCts', values=Vect_Hcts, _RC)
 
          call ESMF_StateGet(internal, 'NH4a', field, _RC)
-         call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), _RC)
+         call ESMF_InfoGetFromHost(field, field_info, _RC)
+         call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(2), _RC)
       end if
 
-      !   Fill AERO State with N03an(1,2,3) fields
-      !   ----------------------------------------
+      ! Fill AERO State with N03an(1,2,3) fields
       call ESMF_StateGet(export, trim(comp_name) // '_AERO', aero, _RC)
 
       call ESMF_StateGet(internal, 'NO3an1', field, _RC)
-      call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(3), _RC)
-      fld = MAPL_FieldCreate(field, 'NO3an1', _RC)
-      call MAPL_StateAdd(aero, fld, _RC)
+      call ESMF_InfoGetFromHost(field, field_info, _RC)
+      call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(3), _RC)
+      call ESMF_StateAdd(aero, [field], _RC)
 
       call ESMF_StateGet(internal, 'NO3an2', field, _RC)
-      call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(4), _RC)
-      fld = MAPL_FieldCreate(field, 'NO3an2', _RC)
-      call MAPL_StateAdd(aero, fld, _RC)
+      call ESMF_InfoGetFromHost(field, field_info, _RC)
+      call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(4), _RC)
+      call ESMF_StateAdd(aero, [field], _RC)
 
       call ESMF_StateGet(internal, 'NO3an3', field, _RC)
-      call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(5), _RC)
-      fld = MAPL_FieldCreate(field, 'NO3an3', _RC)
-      call MAPL_StateAdd(aero, fld, _RC)
+      call ESMF_InfoGetFromHost(field, field_info, _RC)
+      call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(5), _RC)
+      call ESMF_StateAdd(aero, [field], _RC)
 
+      instance = instance_computational
       if (data_driven) then
-         instance = instanceData
-      else
-         instance = instanceComputational
+         instance = instance_data
       end if
-
       self%instance = instance
 
-      !   Create Radiation Mie Table
-      !   --------------------------
-      call ESMF_ConfigGetAttribute(cfg, file_, Label="aerosol_radBands_optics_file:", _RC)
+      ! Create Radiation Mie Table
+      call MAPL_GridCompGetResource(gc, 'aerosol_radBands_optics_file', file_, _RC)
       self%rad_Mie = GOCART2G_Mie(trim(file_), _RC)
 
-      !   Create Diagnostics Mie Table
-      !   -----------------------------
-      !   Get file names for the optical tables
-      call ESMF_ConfigGetAttribute(cfg, file_, &
-           Label="aerosol_monochromatic_optics_file:", _RC)
-      call ESMF_ConfigGetAttribute(cfg, nmom_, Label="n_moments:", default=0, _RC)
-      i = ESMF_ConfigGetLen(universal_cfg, Label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', _RC)
-      allocate(channels_(i), _STAT)
-      call ESMF_ConfigGetAttribute(universal_cfg, channels_, &
-           Label="aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", _RC)
+      ! Create Diagnostics Mie Table
+      ! Get file names for the optical tables
+      call MAPL_GridCompGetResource(gc, 'aerosol_monochromatic_optics_file', file_, _RC)
+      call MAPL_GridCompGetResource(gc, 'n_moments', nmom_, default=0, _RC)
+      call MAPL_GridCompGetResource(gc, 'aerosol_monochromatic_optics_wavelength_in_nm_from_LUT', channels_, _RC)
       self%diag_Mie = GOCART2G_Mie(trim(file_), channels_ * 1.e-9, nmom=nmom_, _RC)
-      deallocate(channels_)
 
       ! Mie Table instance/index
-      call ESMF_AttributeSet(aero, NAME='mie_table_instance', VALUE=instance, _RC)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
+      call ESMF_InfoSet(aero_info, key='mie_table_instance', value=instance, _RC)
 
       ! Add variables to NI instance's aero state. This is used in aerosol optics calculations
-      call add_aero(aero, Label='air_pressure_for_aerosol_optics', label2='PLE', grid=grid, typekind=MAPL_R4, _RC)
-      call add_aero(aero, Label='relative_humidity_for_aerosol_optics', label2='RH', grid=grid, typekind=MAPL_R4, &
-           _RC)
-      !   call ESMF_StateGet (import, 'PLE', field, _RC)
-      !   call MAPL_StateAdd (aero, field, _RC)
-      !   call ESMF_StateGet (import, 'RH2', field, _RC)
-      !   call MAPL_StateAdd (aero, field, _RC)
+      call add_aero(aero, label='air_pressure_for_aerosol_optics', label2='PLE', geom=geom, km=self%km, _RC)
+      call add_aero(aero, label='relative_humidity_for_aerosol_optics', label2='RH', geom=geom, km=self%km, _RC)
+      ! call ESMF_StateGet (import, 'PLE', field, _RC)
+      ! call MAPL_StateAdd (aero, field, _RC)
+      ! call ESMF_StateGet (import, 'RH2', field, _RC)
+      ! call MAPL_StateAdd (aero, field, _RC)
+      call add_aero( &
+           aero, &
+           label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call add_aero( &
+           aero, &
+           label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call add_aero(aero, &
+           label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call add_aero( &
+           aero, &
+           label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
+           geom=geom, typekind=ESMF_TYPEKIND_R4, _RC)
+      call add_aero(aero, label='sum_of_internalState_aerosol', label2='aerosolSum', geom=geom, km=self%km, _RC)
 
-      call add_aero(aero, Label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', grid=grid, typekind=MAPL_R8, &
-           _RC)
-      call add_aero(aero, Label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=&
-           MAPL_R8, _RC)
-      call add_aero(aero, Label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', grid=grid, typekind=MAPL_R8, &
-           _RC)
-      call add_aero(aero, Label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
-           label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, _RC)
-      call add_aero(aero, Label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, &
-           _RC)
-
-      call ESMF_AttributeSet(aero, NAME='band_for_aerosol_optics', VALUE=0, _RC)
-      call ESMF_AttributeSet(aero, NAME='wavelength_for_aerosol_optics', VALUE=0., _RC)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
+      call ESMF_InfoSet(aero_info, key='band_for_aerosol_optics', value=0, _RC)
+      call ESMF_InfoSet(aero_info, key='wavelength_for_aerosol_optics', value=0., _RC)
 
       mieTable_pointer = transfer(c_loc(self), [1])
-      call ESMF_AttributeSet(aero, NAME='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer&
-           ), _RC)
+      call ESMF_InfoSet(aero_info, key='mieTable_pointer', values=mieTable_pointer, _RC)
 
       allocate(aerosol_names(3), _STAT)
       aerosol_names(1) = 'NO3an1'
       aerosol_names(2) = 'NO3an2'
       aerosol_names(3) = 'NO3an3'
-      call ESMF_AttributeSet(aero, NAME='internal_variable_name', valueList=aerosol_names, &
-           itemCount=size(aerosol_names), _RC)
+      call ESMF_InfoSet(aero_info, key='internal_variable_name', values=aerosol_names, _RC)
 
       call ESMF_MethodAdd(aero, Label='aerosol_optics', userRoutine=aerosol_optics, _RC)
       call ESMF_MethodAdd(aero, Label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, _RC)
       call ESMF_MethodAdd(aero, Label='get_mixR', userRoutine=get_mixR, _RC)
 
-      ! Deal with replenishment alarm (formerly the daily_alarm subroutine)
-      ! ===================================================================
-      self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
-      _RETURN(ESMF_SUCCESS)
+      ! pchakrab - What to do with alarm?
+      ! ! Deal with replenishment alarm (formerly the daily_alarm subroutine)
+      ! self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
+
+      _RETURN(_SUCCESS)
 
    end subroutine Initialize
 
@@ -508,47 +420,38 @@ contains
       !DESCRIPTION:  Clears klid to 0.0 for Nitrate
       !EOP
 
-      character(len=ESMF_MAXSTR) :: comp_name
-      type(MAPL_MetaComp), pointer :: MAPL
       type(ESMF_State) :: internal
-      type(wrap_) :: wrap
       type(NI2G_GridComp), pointer :: self
       real, pointer, dimension(:, :, :) :: ple
+      real, allocatable, dimension(:, :, :) :: ple0
       real, pointer, dimension(:, :, :) :: ptr3d_int
+      integer :: i1, i2, j1, j2, km
 
-      __Iam__('Run0')
+      ! Get parameters from generic state.
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
-      !   Get my name and set-up traceback handle
-      !   ---------------------------------------
-      call ESMF_GridCompGet(gc, NAME=comp_name, _RC)
-      Iam = trim(comp_name) // '::' // Iam
+      ! Get my private internal state
+      _GET_NAMED_PRIVATE_STATE(gc, NI2G_GridComp, PRIVATE_STATE, self)
 
-      !   Get my internal MAPL_Generic state
-      !   -----------------------------------
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
+      ! Edge variable PLE is expected to be 0-based
+      ! pchakrab: TODO - use pointer bounds remapping instead of allocating new array
+      km = self%km
+      call MAPL_StateGetPointer(import, ple, 'PLE', _RC)
+      i1 = lbound(ple, 1); i2 = ubound(ple, 1); j1 = lbound(ple, 2); j2 = ubound(ple, 2)
+      allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
 
-      !   Get parameters from generic state.
-      !   -----------------------------------
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, _RC)
-
-      !   Get my private internal state
-      !   ------------------------------
-      call ESMF_UserCompGetInternalState(gc, 'NI2G_GridComp', wrap, _RC)
-      self => wrap%PTR
-
-      !   Set klid and Set internal values to 0 above klid
-      !   ---------------------------------------------------
-      call MAPL_GetPointer(import, ple, 'PLE', _RC)
-      call findKlid(self%klid, self%plid, ple, _RC)
-      call MAPL_GetPointer(internal, NAME='NO3an1', PTR=ptr3d_int, _RC)
+      ! Set klid and set internal values to 0 above klid
+      call findKlid(self%klid, self%plid, ple0, _RC)
+      call MAPL_StateGetPointer(internal, ptr3d_int, 'NO3an1', _RC)
       call setZeroKlid(self%km, self%klid, ptr3d_int)
-      call MAPL_GetPointer(internal, NAME='NO3an2', PTR=ptr3d_int, _RC)
+      call MAPL_StateGetPointer(internal, ptr3d_int, 'NO3an2', _RC)
       call setZeroKlid(self%km, self%klid, ptr3d_int)
-      call MAPL_GetPointer(internal, NAME='NO3an3', PTR=ptr3d_int, _RC)
+      call MAPL_StateGetPointer(internal, ptr3d_int, 'NO3an3', _RC)
       call setZeroKlid(self%km, self%klid, ptr3d_int)
 
-      RETURN_(ESMF_SUCCESS)
-
+      _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(export)
+      _UNUSED_DUMMY(clock)
    end subroutine Run0
 
    !BOP
@@ -567,39 +470,26 @@ contains
       !               data or computational run method.
       !EOP
 
-      character(len=ESMF_MAXSTR) :: comp_name
-      type(MAPL_MetaComp), pointer :: MAPL
+      character(len=:), allocatable :: comp_name
       type(ESMF_State) :: internal
       logical :: data_driven
 
-      __Iam__('Run')
+      call MAPL_GridCompGet(gc, name=comp_name, _RC)
 
-      !   Get my name and set-up traceback handle
-      !   ---------------------------------------
-      call ESMF_GridCompGet(gc, NAME=comp_name, _RC)
-      Iam = trim(comp_name) // '::' // Iam
+      ! Get parameters from generic state.
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
-      !   Get my internal MAPL_Generic state
-      !   -----------------------------------
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
-
-      !   Get parameters from generic state.
-      !   -----------------------------------
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, _RC)
-
-      !   Is NI data driven?
-      !   ------------------
+      ! Is NI data driven?
       call determine_data_driven(comp_name, data_driven, _RC)
 
-      !   Update INTERNAL state variables with ExtData
-      !   ---------------------------------------------
+      ! Update INTERNAL state variables with ExtData
       if (data_driven) then
          call Run_data(gc, import, export, internal, _RC)
       else
          call Run1(gc, import, export, clock, _RC)
       end if
 
-      RETURN_(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine Run
 
@@ -618,41 +508,21 @@ contains
       !DESCRIPTION:  Computes emissions/sources for Nitrate
       !EOP
 
-      character(len=ESMF_MAXSTR) :: comp_name
-      type(MAPL_MetaComp), pointer :: MAPL
       type(ESMF_State) :: internal
-      type(ESMF_Grid) :: grid
-      type(wrap_) :: wrap
       type(NI2G_GridComp), pointer :: self
+      real, pointer, dimension(:, :) :: delp_km, nh3_km
 
 #include "NI2G_DeclarePointer___.h"
 
-      __Iam__('Run1')
-
-      !   Get my name and set-up traceback handle
-      !   ---------------------------------------
-      call ESMF_GridCompGet(gc, NAME=comp_name, _RC)
-      Iam = trim(comp_name) // '::' // Iam
-
-      !   Get my internal MAPL_Generic state
-      !   -----------------------------------
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
-
-      call MAPL_Get(MAPL, grid=grid, _RC)
-
-      !   Get parameters from generic state.
-      !   -----------------------------------
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, _RC)
+      ! Get parameters from generic state.
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
 #include "NI2G_GetPointer___.h"
 
-      !   Get my private internal state
-      !   ------------------------------
-      call ESMF_UserCompGetInternalState(gc, 'NI2G_GridComp', wrap, _RC)
-      self => wrap%PTR
+      ! Get my private internal state
+      _GET_NAMED_PRIVATE_STATE(gc, NI2G_GridComp, PRIVATE_STATE, self)
 
-      !   NH3 Emissions
-      !   -------------
+      ! NH3 Emissions
       if (associated(NH3EM)) then
          NH3EM = 0.
          if (associated(EMI_NH3_BB)) NH3EM = NH3EM + EMI_NH3_BB
@@ -664,22 +534,17 @@ contains
          if (associated(EMI_NH3_OC)) NH3EM = NH3EM + EMI_NH3_OC
       end if
 
-      if (associated(EMI_NH3_BB)) &
-           NH3(:, :, self%km) = NH3(:, :, self%km) + self%CDT * MAPL_GRAV / delp(:, :, self%km) * EMI_NH3_BB
-      if (associated(EMI_NH3_AG)) &
-           NH3(:, :, self%km) = NH3(:, :, self%km) + self%CDT * MAPL_GRAV / delp(:, :, self%km) * EMI_NH3_AG
-      if (associated(EMI_NH3_EN)) &
-           NH3(:, :, self%km) = NH3(:, :, self%km) + self%CDT * MAPL_GRAV / delp(:, :, self%km) * EMI_NH3_EN
-      if (associated(EMI_NH3_IN)) &
-           NH3(:, :, self%km) = NH3(:, :, self%km) + self%CDT * MAPL_GRAV / delp(:, :, self%km) * EMI_NH3_IN
-      if (associated(EMI_NH3_RE)) &
-           NH3(:, :, self%km) = NH3(:, :, self%km) + self%CDT * MAPL_GRAV / delp(:, :, self%km) * EMI_NH3_RE
-      if (associated(EMI_NH3_TR)) &
-           NH3(:, :, self%km) = NH3(:, :, self%km) + self%CDT * MAPL_GRAV / delp(:, :, self%km) * EMI_NH3_TR
-      if (associated(EMI_NH3_OC)) &
-           NH3(:, :, self%km) = NH3(:, :, self%km) + self%CDT * MAPL_GRAV / delp(:, :, self%km) * EMI_NH3_OC
+      delp_km => delp(:, :, self%km)
+      nh3_km => NH3(:, :, self%km)
+      if (associated(EMI_NH3_BB)) nh3_km = nh3_km + self%CDT * MAPL_GRAV / delp_km * EMI_NH3_BB
+      if (associated(EMI_NH3_AG)) nh3_km = nh3_km + self%CDT * MAPL_GRAV / delp_km * EMI_NH3_AG
+      if (associated(EMI_NH3_EN)) nh3_km = nh3_km + self%CDT * MAPL_GRAV / delp_km * EMI_NH3_EN
+      if (associated(EMI_NH3_IN)) nh3_km = nh3_km + self%CDT * MAPL_GRAV / delp_km * EMI_NH3_IN
+      if (associated(EMI_NH3_RE)) nh3_km = nh3_km + self%CDT * MAPL_GRAV / delp_km * EMI_NH3_RE
+      if (associated(EMI_NH3_TR)) nh3_km = nh3_km + self%CDT * MAPL_GRAV / delp_km * EMI_NH3_TR
+      if (associated(EMI_NH3_OC)) nh3_km = nh3_km + self%CDT * MAPL_GRAV / delp_km * EMI_NH3_OC
 
-      RETURN_(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine Run1
 
@@ -701,7 +566,6 @@ contains
       character(len=ESMF_MAXSTR) :: comp_name
       type(MAPL_MetaComp), pointer :: MAPL
       type(ESMF_State) :: internal
-      type(wrap_) :: wrap
       type(NI2G_GridComp), pointer :: self
       real, allocatable, dimension(:, :) :: drydepositionfrequency, dqa
       real :: fwet
@@ -740,8 +604,7 @@ contains
 
       !   Get my private internal state
       !   ------------------------------
-      call ESMF_UserCompGetInternalState(gc, 'NI2G_GridComp', wrap, _RC)
-      self => wrap%PTR
+      _GET_NAMED_PRIVATE_STATE(gc, NI2G_GridComp, PRIVATE_STATE, self)
 
       !   Set klid and Set internal values to 0 above klid
       !   ---------------------------------------------------
@@ -1022,7 +885,6 @@ contains
       !EOP
 
       character(len=ESMF_MAXSTR) :: comp_name
-      type(wrap_) :: wrap
       type(NI2G_GridComp), pointer :: self
       real, pointer, dimension(:, :, :) :: ptr3d_int, ptr3d_imp
 
@@ -1035,8 +897,7 @@ contains
 
       !   Get my private internal state
       !   ------------------------------
-      call ESMF_UserCompGetInternalState(gc, 'NI2G_GridComp', wrap, _RC)
-      self => wrap%PTR
+      _GET_NAMED_PRIVATE_STATE(gc, NI2G_GridComp, PRIVATE_STATE, self)
 
       !   Update interal data pointers with ExtData
       !   -----------------------------------------
