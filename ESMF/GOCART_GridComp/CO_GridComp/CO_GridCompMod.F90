@@ -225,7 +225,7 @@ CONTAINS
    CHARACTER(LEN=255) :: rcbasen = 'CO_GridComp'
    CHARACTER(LEN=255) :: name
    
-   integer i, ier, ios, n
+   integer i, ier, n
    REAL :: c1,c2,c3,c4
 
 !  Load resource file
@@ -249,7 +249,7 @@ CONTAINS
    n = 0
    do while ( ier .EQ. 0 )
       CALL I90_gtoken( name, ier )
-      if ( ier .EQ. 0 ) n = n + 1
+      n = n + 1
    end do
    if ( n .EQ. 0 ) then
       rc = 30
@@ -273,8 +273,8 @@ CONTAINS
 
 !  Next allocate necessary memory
 !  ------------------------------
-   allocate ( gcCO%gcs(n), stat=ios )    
-   if ( ios .NE. 0 ) then
+   allocate ( gcCO%gcs(n), stat=ier )    
+   if ( ier .NE. 0 ) then
       rc = 40
       return
    end if
@@ -325,9 +325,9 @@ CONTAINS
 
 !  All done
 !  --------
-   CALL I90_release( ier )
+   CALL I90_FullRelease( ier )
    IF( ier /= 0 ) THEN
-    PRINT *,myname,": I90_release not successful."
+    PRINT *,myname,": I90_FullRelease not successful."
     rc = 40
    END IF
 
