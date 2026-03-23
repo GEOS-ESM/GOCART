@@ -702,6 +702,7 @@ CONTAINS
               ier(nerr),STAT=ios )
    ier = 0
    IF ( ios /= 0 ) rc = 100
+   gcCO%eCO_bioburn_ = 0.0   ! initialize to prevent use of uninitialized data if diurnal_bb is false
    END SUBROUTINE init_
 
    SUBROUTINE final_(ierr)
@@ -711,7 +712,8 @@ CONTAINS
                 gcCO%eCO_bioburn_, &
                 gcCO%COsfcFlux, gcCO%eCO_iso, gcCO%eCO_mon, &
                 gcCO%eCO_mtn, gcCO%CH4, gcCO%OHnd, &
-                ier, STAT=ios )
+                STAT=ios )
+   IF ( ALLOCATED(ier) ) DEALLOCATE( ier, STAT=ios )
    CALL I90_release()
    rc = ierr
    END SUBROUTINE final_
@@ -1149,6 +1151,7 @@ CONTAINS
    CHARACTER(LEN=*), PARAMETER :: myname = 'CO_Emission'
 
    INTEGER :: i, j, k, kt, minkPBL
+   INTEGER :: ios                        ! local ios - prevent host association aliasing under optimization
    INTEGER, ALLOCATABLE :: index(:)
 
    REAL, PARAMETER :: mwtAir=28.97
