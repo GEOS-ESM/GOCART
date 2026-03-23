@@ -325,9 +325,9 @@ CONTAINS
 
 !  All done
 !  --------
-   CALL I90_FullRelease( ier )
+   CALL I90_release( ier )
    IF( ier /= 0 ) THEN
-    PRINT *,myname,": I90_FullRelease not successful."
+    PRINT *,myname,": I90_release not successful."
     rc = 40
    END IF
 
