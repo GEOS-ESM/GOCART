@@ -2,14 +2,14 @@
 # Resource file for Sulfur parameters.
 #
 
-aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/opticsBands_SU.v1_6.RRTMG.nc
-aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v0.0.0/x/optics_SU.v1_6.nc
+aerosol_radBands_optics_file: /discover/nobackup/pcolarco/fvInput/chemistry/AerosolOptics/v1.0.0/x/opticsBands_SU.v1_6.RRTMG.nc4
+aerosol_monochromatic_optics_file: /discover/nobackup/pcolarco/fvInput/chemistry/AerosolOptics/v1.0.0/x/optics_SU.v1_6.nc4
 
 nbins: 4
 
 # Volcanic pointwise sources
 volcano_srcfilen_explosive: /dev/null
-volcano_srcfilen_degassing: ExtData/chemistry/CARN/v202401/sfc/so2_volcanic_emissions_CARN_v202401.degassing_only.rc
+volcano_srcfilen_degassing: /discover/nobackup/pcolarco/fvInput/chemistry/CARN/v202401/sfc/so2_volcanic_emissions_CARN_v202401.degassing_only.rc
 
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: 0.0 100.0 9.0e3 10.0e3
@@ -20,18 +20,18 @@ so4_anthropogenic_fraction: 0.03
 # Aircraft emission factor: convert input unit to kg SO2
 aircraft_fuel_emission_factor: 1.0000
 
-# Scavenging efficiency per bin [km-1]
+# Scavenging effici.nc4y per bin [km-1]
 fscav: 0.0  0.0  0.4  0.4
 
 # Wet Removal Scheme Option | gocart, ufs
 wet_removal_scheme: gocart
 
-# Rainout efficiency for sulfate wet_removal_scheme == ufs
+# Rainout effici.nc4y for sulfate wet_removal_scheme == ufs
 fwet_ice: 1.0
 fwet_snow: 1.0
 fwet_rain: 1.0
 
-#Dummy wet removal efficiency for wet_removal_scheme == gocart. This is not used for sulfate as of GOCART v2.5 and should be revisited.
+#Dummy wet removal effici.nc4y for wet_removal_scheme == gocart. This is not used for sulfate as of GOCART v2.5 and should be revisited.
 fwet: 1.0 1.0 1.0 1.0
 
 # Dry particle radius [um], used for settling
