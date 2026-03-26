@@ -228,7 +228,6 @@ contains
            itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
            _RC)
 
-
 #include "GOCART2G_Export___.h"
 #include "GOCART2G_Import___.h"
 

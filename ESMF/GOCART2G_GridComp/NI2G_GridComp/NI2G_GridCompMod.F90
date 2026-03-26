@@ -61,7 +61,7 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
        type(ESMF_Alarm) :: alarm
-   end type NI2G_GridComp
+    end type NI2G_GridComp
 
    type wrap_
       type (NI2G_GridComp), pointer     :: PTR !=> null()

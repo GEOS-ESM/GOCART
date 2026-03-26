@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [v2.4.3] - 2025-07-21
 
 ### Changed
+-Filepath for CEDS has been updated in the ExtData yaml and rc files. Note the old version had an incorrect seasonal cycle.
 
 - Added new SettlingSolver scheme `SettlingSolverUFS` and rolled back the previous `SettlingSolver`
 
