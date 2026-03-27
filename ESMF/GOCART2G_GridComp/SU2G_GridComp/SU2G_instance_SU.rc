@@ -20,18 +20,18 @@ so4_anthropogenic_fraction: 0.03
 # Aircraft emission factor: convert input unit to kg SO2
 aircraft_fuel_emission_factor: 1.0000
 
-# Scavenging efficency per bin [km-1]
+# Scavenging efficiency per bin [km-1]
 fscav: 0.0  0.0  0.4  0.4
 
 # Wet Removal Scheme Option | gocart, ufs
 wet_removal_scheme: gocart
 
-# Rainout efficency for sulfate wet_removal_scheme == ufs
+# Rainout efficiency for sulfate wet_removal_scheme == ufs
 fwet_ice: 1.0
 fwet_snow: 1.0
 fwet_rain: 1.0
 
-#Dummy wet removal efficency for wet_removal_scheme == gocart. This is not used for sulfate as of GOCART v2.5 and should be revisited.
+#Dummy wet removal efficiency for wet_removal_scheme == gocart. This is not used for sulfate as of GOCART v2.5 and should be revisited.
 fwet: 1.0 1.0 1.0 1.0
 
 # Dry particle radius [um], used for settling
