@@ -2,7 +2,7 @@
 
 module ReplenishAlarm
    use ESMF
-   use MAPL
+   use MAPL2
 
    implicit none
    private
