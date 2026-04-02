@@ -11,7 +11,7 @@ module DU2G_GridCompMod
    use pflogger, only: logger_t => logger
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    ! use MAPL
-   use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
+   use MAPL2, only: MAPL_get_num_threads, MAPL_get_current_thread
    use MAPL_BaseMod, only: MAPL2_GridGet => MAPL_GridGet
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use mapl3g_generic, only: MAPL_GridCompGet, MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
