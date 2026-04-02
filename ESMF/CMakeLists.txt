@@ -12,10 +12,9 @@ if (UFS_GOCART)
 else ()
   esma_add_subdirectories(
     Shared
-    Apps
+    # Apps              # not yet ported to MAPL3 - restore when ported
     Aerosol_GridComp
-    GOCART_GridComp
+    # GOCART_GridComp   # not yet ported to MAPL3 - restore when ported
     GOCART2G_GridComp
-    HEMCO_GridComp
   )
 endif ()
