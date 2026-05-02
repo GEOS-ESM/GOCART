@@ -20,14 +20,13 @@ module ReplenishAlarm
 
       type(ESMF_Alarm) :: alarm
 
-      integer :: status, ival
+      integer :: status
       logical :: run_at_interval_start
       integer :: nhh, nmm, nss
       integer :: year, month, day
       integer :: hh, mm, ss, yyyymmdd, hhmmss
       integer :: reference_date, reference_time
       character(len=ESMF_MAXSTR) :: comp_name
-      type(ESMF_Config) :: cf
       type(ESMF_Time) :: RingTime, currTime
       type(ESMF_TimeInterval) :: timeint, tstep
 
@@ -35,15 +34,12 @@ module ReplenishAlarm
       ! the goal is to have a consistent way of setting the proper
       ! offset, so that the alarm would run when the parent calls the children
 
-      call MAPL_GridCompGetResource(gc, run_at_interval_start, &
-           Label="RUN_AT_INTERVAL_START:", default=.false., _RC)
-      call ESMF_GridCompGet(gc, name=comp_name, Config=cf, _RC)
-      call ESMF_ConfigGetAttribute(cf, ival, &
-           label="p:RUN_AT_INTERVAL_START:", _RC)
-      _ASSERT(run_at_interval_start .neqv. ival==0, "Inconsistent run alarm")
+      call MAPL_GridCompGetResource(gc, "RUN_AT_INTERVAL_START", run_at_interval_start, &
+           default=.false., _RC)
+      call ESMF_GridCompGet(gc, name=comp_name, _RC)
 
       call ESMF_ClockGet(clock, currTime=currTime, timestep=tstep, _RC)
-      call MAPL_UnpackTIme(freq,nhh,nmm,nss)
+      call MAPL_UnpackTime(freq,nhh,nmm,nss)
 
       !?call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
       call ESMF_TimeIntervalSet(timeint,h=nhh,m=nmm,s=nss,_RC)
@@ -55,12 +51,12 @@ module ReplenishAlarm
       yyyymmdd = year*10000 + month*100 + day
       hhmmss   = HH*10000 + MM*100 + SS
 
-      !  Get Alarm reference date and time from resouce, it defaults to midnight of the current day
-      call MAPL_GridCompGetResource(gc, reference_date, label='REFERENCE_DATE:', &
-           default=yyyymmdd, _RC )
+      !  Get Alarm reference date and time from resource, it defaults to midnight of the current day
+      call MAPL_GridCompGetResource(gc, "REFERENCE_DATE", reference_date, &
+           default=yyyymmdd, _RC)
 
-      call MAPL_GridCompGetResource(gc, reference_time, label='REFERENCE_TIME:', &
-           default=0, _RC )
+      call MAPL_GridCompGetResource(gc, "REFERENCE_TIME", reference_time, &
+           default=0, _RC)
 
       YEAR = reference_date/10000
       MONTH = mod(reference_date,10000)/100
@@ -91,7 +87,7 @@ module ReplenishAlarm
            RingInterval = timeint  ,  &
            RingTime     = ringTime,  &
            sticky       = .false.  ,  &
-           _RC )
+           _RC)
       if(ringTime == currTime) then
          call ESMF_AlarmRingerOn(alarm, _RC)
       end if
