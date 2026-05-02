@@ -3,7 +3,7 @@
 module ReplenishAlarm
    use ESMF
    use MAPL
-   use MAPL2, only: MAPL_MetaComp, MAPL_GetObjectFromGC, MAPL_GetResource, MAPL_UnpackTime
+   use MAPL2, only: MAPL_UnpackTime
 
    implicit none
    private
@@ -30,17 +30,12 @@ module ReplenishAlarm
       type(ESMF_Config) :: cf
       type(ESMF_Time) :: RingTime, currTime
       type(ESMF_TimeInterval) :: timeint, tstep
-      type(MAPL_MetaComp), pointer :: MAPL
 
       ! this section mimics MAPL2 way to create the run alarm
       ! the goal is to have a consistent way of setting the proper
       ! offset, so that the alarm would run when the parent calls the children
 
-      ! Get my internal MAPL_Generic state
-      ! -----------------------------------
-      call MAPL_GetObjectFromGC (gc, MAPL, _RC)
-
-      call MAPL_GetResource(MAPL, run_at_interval_start, &
+      call MAPL_GridCompGetResource(gc, run_at_interval_start, &
            Label="RUN_AT_INTERVAL_START:", default=.false., _RC)
       call ESMF_GridCompGet(gc, name=comp_name, Config=cf, _RC)
       call ESMF_ConfigGetAttribute(cf, ival, &
@@ -61,10 +56,10 @@ module ReplenishAlarm
       hhmmss   = HH*10000 + MM*100 + SS
 
       !  Get Alarm reference date and time from resouce, it defaults to midnight of the current day
-      call MAPL_GetResource (MAPL, reference_date, label='REFERENCE_DATE:', &
+      call MAPL_GridCompGetResource(gc, reference_date, label='REFERENCE_DATE:', &
            default=yyyymmdd, _RC )
 
-      call MAPL_GetResource (MAPL, reference_time, label='REFERENCE_TIME:', &
+      call MAPL_GridCompGetResource(gc, reference_time, label='REFERENCE_TIME:', &
            default=0, _RC )
 
       YEAR = reference_date/10000
