@@ -2,7 +2,8 @@
 
 module ReplenishAlarm
    use ESMF
-   use MAPL2
+   use MAPL
+   use MAPL2, only: MAPL_MetaComp, MAPL_GetObjectFromGC, MAPL_GetResource, MAPL_UnpackTime
 
    implicit none
    private
