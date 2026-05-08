@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 ### Fixed
+- There was a bug where the degassing lat/lon were used to assign emission points for
+  explosive volcanic emissions; this has been corrected.
 
 ### Added
 
