@@ -993,7 +993,7 @@ contains
              call ReadPointEmissions (nymd, fname, workspace%nVolcE, workspace%vLatE, workspace%vLonE, &
                                    workspace%vElevE, workspace%vCloudE, workspace%vSO2E, workspace%vStartE, &
                                    workspace%vEndE, label='volcano', __RC__)
-             workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
+             workspace%vSO2E = workspace%vSO2E * fMassSO2 / fMassSulfur
           end if
        end if
 
