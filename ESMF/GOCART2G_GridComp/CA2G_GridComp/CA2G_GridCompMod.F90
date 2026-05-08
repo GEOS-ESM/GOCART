@@ -18,6 +18,8 @@ module CA2G_GridCompMod
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
    use MAPL_StringTemplate, only: StrTemplate
+   use MAPL_PackedTimeMod, only: MAPL_PackedDateCreate => PackedDateCreate, &
+                                  MAPL_PackedTimeCreate => PackedTimeCreate
    !$ use omp_lib
 
    implicit none
@@ -816,8 +818,8 @@ contains
 !   ---------------------------------
     call ESMF_ClockGet (clock, currTime=time, __RC__)
     call ESMF_TimeGet (time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, __RC__)
-    call MAPL_PackTime (nymd, iyr, imm , idd)
-    call MAPL_PackTime (nhms, ihr, imn, isc)
+    nymd = MAPL_PackedDateCreate(iyr, imm, idd)
+    nhms = MAPL_PackedTimeCreate(ihr, imn, isc)
 
 !   Reset tracer to zero at 0Z on specific day of week
 !   --------------------------------------------------
