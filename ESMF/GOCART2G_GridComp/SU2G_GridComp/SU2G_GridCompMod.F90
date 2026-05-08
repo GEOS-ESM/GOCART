@@ -1027,8 +1027,8 @@ contains
        allocate(iPoint(workspace%nVolcE), jPoint(workspace%nVolcE),  __STAT__)
        call MAPL_GetHorzIJIndex(workspace%nVolcE, iPoint, jPoint, &
                                 grid = grid,               &
-                                lon  = workspace%vLon/real(MAPL_RADIANS_TO_DEGREES), &
-                                lat  = workspace%vLat/real(MAPL_RADIANS_TO_DEGREES), &
+                                lon  = workspace%vLonE/real(MAPL_RADIANS_TO_DEGREES), &
+                                lat  = workspace%vLatE/real(MAPL_RADIANS_TO_DEGREES), &
                                 rc   = status)
            if ( status /= 0 ) then
               if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
