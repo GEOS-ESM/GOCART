@@ -3,7 +3,7 @@
 module ReplenishAlarm
    use ESMF
    use MAPL
-   use MAPL2, only: MAPL_UnpackTime
+
 
    implicit none
    private
@@ -22,7 +22,6 @@ module ReplenishAlarm
 
       integer :: status
       logical :: run_at_interval_start
-      integer :: nhh, nmm, nss
       integer :: year, month, day
       integer :: hh, mm, ss, yyyymmdd, hhmmss
       integer :: reference_date, reference_time
@@ -39,10 +38,7 @@ module ReplenishAlarm
       call ESMF_GridCompGet(gc, name=comp_name, _RC)
 
       call ESMF_ClockGet(clock, currTime=currTime, timestep=tstep, _RC)
-      call MAPL_UnpackTime(freq,nhh,nmm,nss)
-
-      !?call ESMF_TimeSet(reff_time,yy=year,mm=month,dd=day,h=0,m=0,s=0,_RC)
-      call ESMF_TimeIntervalSet(timeint,h=nhh,m=nmm,s=nss,_RC)
+      call ESMF_TimeIntervalSet(timeint, h=freq/10000, m=mod(freq,10000)/100, s=mod(freq,100), _RC)
 
       ! get current time from clock and create a referenace time with optonal override
       call ESMF_TimeGet(currTime, YY=YEAR, MM=MONTH, DD=DAY, &

@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Migrate `DU2G_GridCompMod.F90`, `SU2G_GridCompMod.F90`, `CA2G_GridCompMod.F90` from `MAPL_PackTime` to `MAPL_PackedDateCreate`/`MAPL_PackedTimeCreate` from `MAPL_PackedTimeMod`
+- Migrate `ReplenishAlarm.F90`: remove `MAPL_UnpackTime`; inline HHMMSS arithmetic directly into `ESMF_TimeIntervalSet`
 - Migrate `ReplenishAlarm.F90` from bare `use MAPL2` to `use MAPL` + `use MAPL2, only: MAPL_UnpackTime`; replace `MAPL_GetObjectFromGC`/`MAPL_GetResource` with `MAPL_GridCompGetResource`
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
 - Fwet value in dust modified from 0.8 to 1.0

@@ -24,7 +24,8 @@ module DU2G_GridCompMod
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
    use mapl3g_UngriddedDim, only: UngriddedDim
    use mapl3g_State_API, only: MAPL_StateGetPointer
-   use mapl3g_Utilities, only: MAPL_PackTime
+   use MAPL_PackedTimeMod, only: MAPL_PackedDateCreate => PackedDateCreate, &
+                                  MAPL_PackedTimeCreate => PackedTimeCreate
    use mapl3g_Geom_API, only: MAPL_GeomGetHorzIJIndex
    use GOCART2G_MieMod
    use Chem_AeroGeneric
@@ -625,8 +626,8 @@ contains
       ! Extract nymd(yyyymmdd) from clock
       call ESMF_ClockGet(clock, currTime=time, _RC)
       call ESMF_TimeGet(time ,YY=iyr, MM=imm, DD=idd, H=ihr, M=imn, S=isc, _RC)
-      call MAPL_PackTime(nymd, iyr, imm , idd)
-      call MAPL_PackTime(nhms, ihr, imn, isc)
+      nymd = MAPL_PackedDateCreate(iyr, imm, idd)
+      nhms = MAPL_PackedTimeCreate(ihr, imn, isc)
 
       associate (scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
