@@ -195,7 +195,7 @@ contains
                  call ESMF_StateGet(state, trim(itemNameList(i)), field, __RC__)
                  call ESMF_FieldGet(field, status=fieldStatus, __RC__)
                  if (fieldStatus == ESMF_FIELDSTATUS_GRIDSET) then
-                    call MAPL_AllocateCoupling(field, __RC__)
+                    call MAPL_FieldEmptyComplete(field, __RC__)
                  end if
               end if
            end do

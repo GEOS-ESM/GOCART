@@ -1036,7 +1036,7 @@ CONTAINS
          type(ESMF_Field) :: FIELD
                    __Iam__('AddFromExportToBundle_')
          call ESMF_StateGet( STATE, NAME, FIELD, __RC__ )
-         call MAPL_AllocateCoupling( FIELD, __RC__ )
+         call MAPL_FieldEmptyComplete( FIELD, __RC__ )
          call MAPL_FieldBundleAdd ( BUNDLE, FIELD, __RC__ )
          RETURN_(ESMF_SUCCESS)
        end subroutine AddFromExportToBundle_
