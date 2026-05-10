@@ -736,22 +736,22 @@ contains
       ! ! Nitrates - NOTE! Nitrates currently only support one active instance
       ! do n = 1, size(self%NI%instances)
       !    if ((self%NI%instances(n)%is_active) .and. (index(self%NI%instances(n)%name, 'data') == 0 )) then
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoef, 'NIEXTCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nibckcoef, 'NIBCKCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niscatfm, 'NISCATFM', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), niangstr, 'NIANGSTR', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niextcoef, 'NIEXTCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nibckcoef, 'NIBCKCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscatfm, 'NISCATFM', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niangstr, 'NIANGSTR', _RC)
 
       !       ! Iterate over the wavelengths
       !       do w = 1, size(self%wavelengths_vertint)
@@ -775,9 +775,9 @@ contains
       !          if(associated(totbckcoef) .and. associated(nibckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+nibckcoef(:,:,:,w)
       !       end do
 
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', _RC)
-      !       call MAPL_GetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', _RC)
+      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   _RC)
       !       if(associated(pm)        .and. associated(nismass)   .and. associated(nh4smass)) pm        = pm   + nismass   + nh4smass
       !       if(associated(pm25)      .and. associated(nismass25) .and. associated(nh4smass)) pm25      = pm25 + nismass25 + nh4smass
       !       if(associated(pm_rh35)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh35   = pm_rh35   + 1.33*(nismass   + nh4smass)
@@ -800,18 +800,18 @@ contains
 
       ! do n = 1, size(self%SU%instances)
       !    if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoef, 'SUEXTCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), subckcoef, 'SUBCKCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suextcoef, 'SUEXTCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), subckcoef, 'SUBCKCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', _RC)
 
       !     !   Iterate over the wavelengths
       !       do w = 1, size(self%wavelengths_vertint)
@@ -835,10 +835,10 @@ contains
       !          if(associated(totbckcoef) .and. associated(subckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+subckcoef(:,:,:,w)
       !       end do
 
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', _RC)
       !       if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
-      !       call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', _RC)
+      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', _RC)
       !       if(associated(so4smass)) then
       !          if(associated(pm)       ) pm        = pm        + nifactor*so4smass
       !          if(associated(pm25)     ) pm25      = pm25      + nifactor*so4smass
@@ -861,18 +861,18 @@ contains
       !    if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
       !         .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
 
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', _RC)
 
       !       ! Iterate over the wavelengths
       !       do w = 1, size(self%wavelengths_vertint)
@@ -896,7 +896,7 @@ contains
       !          if(associated(totbckcoef) .and. associated(bcbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+bcbckcoef(:,:,:,w)
       !       end do
 
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', _RC)
       !       if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
       !       if(associated(pm25)      .and. associated(bcsmass)) pm25      = pm25      + bcsmass
       !       if(associated(pm_rh35)   .and. associated(bcsmass)) pm_rh35   = pm_rh35   + bcsmass
@@ -911,18 +911,18 @@ contains
 
       !    else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
       !         .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', _RC)
 
       !       ! Iterate over the wavelengths
       !       do w = 1, size(self%wavelengths_vertint)
@@ -946,7 +946,7 @@ contains
       !          if(associated(totbckcoef) .and. associated(ocbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+ocbckcoef(:,:,:,w)
       !       end do
 
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', _RC)
       !       if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
       !       if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
       !       if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
@@ -961,18 +961,18 @@ contains
 
       !    else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
       !         .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', _RC)
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', _RC)
 
       !       ! Iterate over the wavelengths
       !       do w = 1, size(self%wavelengths_vertint)
@@ -996,7 +996,7 @@ contains
       !          if(associated(totbckcoef) .and. associated(brbckcoef)) totbckcoef(:,:,:,w) = totbckcoef(:,:,:,w)+brbckcoef(:,:,:,w)
       !       end do
 
-      !       call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', _RC)
+      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', _RC)
       !       if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
       !       if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
       !       if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
