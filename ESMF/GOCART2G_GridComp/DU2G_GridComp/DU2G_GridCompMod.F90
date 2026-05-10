@@ -1017,7 +1017,7 @@ contains
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
 
-      ! call MAPL_GetPointer (state, ple, "PLE", _RC)
+      ! call MAPL_StateGetPointer (state, ple, "PLE", _RC)
 
       i1 = lbound(ple, 1); i2 = ubound(ple, 1)
       j1 = lbound(ple, 2); j2 = ubound(ple, 2)
@@ -1027,7 +1027,7 @@ contains
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
-      ! call MAPL_GetPointer (state, rh, "RH2", _RC)
+      ! call MAPL_StateGetPointer (state, rh, "RH2", _RC)
 
       allocate( &
            ext_s(i1:i2, j1:j2, km), &
@@ -1147,7 +1147,7 @@ contains
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
 
-      ! call MAPL_GetPointer (state, ple, "PLE", _RC)
+      ! call MAPL_StateGetPointer (state, ple, "PLE", _RC)
       i1 = lbound(ple, 1); i2 = ubound(ple, 1)
       j1 = lbound(ple, 2); j2 = ubound(ple, 2)
       km = ubound(ple, 3)
@@ -1156,7 +1156,7 @@ contains
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
-      ! call MAPL_GetPointer (state, rh, "RH2", _RC)
+      ! call MAPL_StateGetPointer (state, rh, "RH2", _RC)
 
       allocate( &
            tau_s(i1:i2, j1:j2, km), &
