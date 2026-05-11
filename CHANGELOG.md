@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Migrate `DU2G_GridCompMod.F90` from `use MAPL_BaseMod` to `use mapl_MaplGrid` for `MAPL_GridGet` (MAPL#4857)
 - Migrate `GOCART2G_GridCompMod.F90`, `DU2G_GridCompMod.F90`, `SS2G_GridCompMod.F90` from `MAPL_GetPointer` to `MAPL_StateGetPointer` (calls remain commented out pending full diagnostic port)
 - Migrate `GOCART_GridCompMod.F90` and `Aerosol_GridComp.F90` from `MAPL_AllocateCoupling` to `MAPL_FieldEmptyComplete` (MAPL3 replacement)
 - Migrate `DU2G_GridCompMod.F90`, `SU2G_GridCompMod.F90`, `CA2G_GridCompMod.F90` from `MAPL_PackTime` to `MAPL_PackedDateCreate`/`MAPL_PackedTimeCreate` from `MAPL_PackedTimeMod`
