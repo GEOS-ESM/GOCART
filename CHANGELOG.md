@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [v2.6.3] - 2026-05-11
+
+### Fixed
+
+- There was a bug where the degassing lat/lon were used to assign emission points for
+  explosive volcanic SO2 emissions; this has been corrected.
+- There was a bug where the scaling of explosive volcanic SO2 emissions was mistakenely
+  being applied to the degassing (effectively further doubling the degassing and not
+  correctly scaling the explosive; this has been corrected.
+
 ## [v2.6.2] - 2026-03-09
 
 ### Changed
