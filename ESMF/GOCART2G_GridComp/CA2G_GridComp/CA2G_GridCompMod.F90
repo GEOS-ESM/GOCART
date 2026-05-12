@@ -114,6 +114,7 @@ contains
     logical                                  :: data_driven = .true.
     logical                                  :: file_exists
     integer :: num_threads
+    type (MAPL_MetaComp), pointer        :: MAPL
 
     __Iam__('SetServices')
 
@@ -133,11 +134,13 @@ contains
        GCsuffix = 'BR'
     end if
 
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+
 !   Wrap internal state for storing in GC
 !   -------------------------------------
     allocate (self, __STAT__)
     wrap%ptr => self
-    num_threads = MAPL_get_num_threads()
+    num_threads = MAPL%get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file

@@ -103,6 +103,7 @@ contains
     real                                        :: DEFVAL
     logical                                     :: data_driven=.true.
     logical                                     :: file_exists
+    type (MAPL_MetaComp),      pointer   :: MAPL
     integer :: num_threads
 
     __Iam__('SetServices')
@@ -115,12 +116,14 @@ contains
     call ESMF_GridCompGet (GC, NAME=COMP_NAME, config=universal_cfg, __RC__)
     Iam = trim(COMP_NAME) // '::' // Iam
 
+    call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
+
 !   Wrap internal state for storing in GC
 !   -------------------------------------
     allocate (self, __STAT__)
     wrap%ptr => self
 
-    num_threads = MAPL_get_num_threads()
+    num_threads = MAPL%get_num_threads()
     allocate(self%workspaces(0:num_threads-1), __STAT__)
 
 !   Load resource file

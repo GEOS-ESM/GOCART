@@ -14,6 +14,7 @@ module GOCART2G_GridCompMod
    use ESMF
    use MAPL
    use Chem_AeroGeneric
+   !$ use omp_lib
 
 ! !Establish the Childen's SetServices
  !-----------------------------------
@@ -112,6 +113,7 @@ contains
     integer, allocatable, dimension(:) :: wavelengths_diagmie
     type (MAPL_MetaComp),       pointer    :: MAPL
     logical :: use_threads
+    integer :: num_threads
 
     __Iam__('SetServices')
 
@@ -166,6 +168,10 @@ contains
     call MAPL_GetObjectFromGC (GC, MAPL, __RC__)
 !   set use_threads
     call MAPL%set_use_threads(use_threads)
+!   set num_threads
+    num_threads = 1
+    if (use_threads) num_threads = omp_get_max_threads()
+    call MAPL%set_num_threads(num_threads)
 
 !   Get instances to determine what children will be born
 !   -----------------------------------------------------
