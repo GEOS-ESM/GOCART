@@ -12,7 +12,7 @@ module DU2G_GridCompMod
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    ! use MAPL
    use MAPL, only: MAPL_get_num_threads => get_num_threads, MAPL_get_current_thread => get_current_thread
-   use MAPL_BaseMod, only: MAPL2_GridGet => MAPL_GridGet
+   use MAPL, only: mapl_GridGetGlobalCellCountPerDim
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use mapl3g_generic, only: MAPL_GridCompGet, MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
@@ -350,7 +350,8 @@ contains
       integer, allocatable :: mieTable_pointer(:), channels_(:)
       real :: CDT ! chemistry timestep (secs)
       real :: HDT ! model timestep (secs)
-      integer :: ibin, dims(3), km, instance, nmom_, status
+      integer :: ibin, km, instance, nmom_, status
+      integer, allocatable :: dims(:)
       logical :: data_driven
       character(len=ESMF_MAXSTR) :: bin_index, prefix
       character(len=:), allocatable :: comp_name, file_
@@ -362,7 +363,7 @@ contains
 
       ! Global dimensions are needed here for choosing tuning parameters
       call MAPL_GridCompGet(gc, grid=grid, num_levels=km, _RC)
-      call MAPL2_GridGet(grid, globalCellCountPerDim=dims, _RC)
+      call mapl_GridGetGlobalCellCountPerDim(grid, globalCellCountPerDim=dims, _RC)
       self%km = km
 
       ! Dust emission tuning coefficient [kg s2 m-5]. NOT bin specific.
