@@ -11,11 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- ExtData yaml files for CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
-
 ### Fixed
 
 ### Added
+
+## [v2.5.3] - 2026-05-12
+
+### Changed
+
+- ExtData yaml files for CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
+- Updated `GOCART2G_GridComp.rc` to output AOD profile at 470 nm and 870 nm
+  for JEDI (in addition to the existing 550 nm vertically integrated AOD),
+  without changing behavior for the PSAS AOD analysis
 
 ## [v2.5.2] - 2026-05-11
 
