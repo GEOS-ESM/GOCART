@@ -12,7 +12,6 @@ module SS2G_GridCompMod
    use pflogger, only: logger_t => logger
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
-   use MAPL_MaplGrid, only: MAPL2_GridGet => MAPL_GridGet
    use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
    use mapl3g_generic, only: MAPL_GridCompAddSpec
    use mapl3g_generic, only: MAPL_GridCompGet
@@ -23,7 +22,7 @@ module SS2G_GridCompMod
    use mapl3g_generic, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
    use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
    use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
-   use mapl3g_Geom_API, only: MAPL_GridGet, MAPL_GridGetCoordinates
+   use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, mapl_GridGetGlobalCellCountPerDim
    use mapl3g_State_API, only: MAPL_StateGetPointer
    use mapl3g_UngriddedDim, only: UngriddedDim
    use GOCART2G_MieMod
@@ -329,7 +328,8 @@ contains
       logical :: data_driven
       integer, allocatable, dimension(:) :: mieTable_pointer, channels_
       integer :: instance, nmom_
-      integer :: i, dims(3), km
+      integer :: i, km
+      integer, allocatable :: dims(:)
       integer :: status
 
       call MAPL_GridCompGet(gc, name=comp_name, geom=geom, grid=grid, num_levels=km, _RC)
@@ -338,7 +338,7 @@ contains
       _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
 
       ! Global dimensions are needed here for choosing tuning parameters
-      call MAPL2_GridGet(grid, globalCellCountPerDim=dims, _RC)
+      call mapl_GridGetGlobalCellCountPerDim(grid, globalCellCountPerDim=dims, _RC)
       self%km = km
 
       ! Scaling factor to multiply calculated emissions by.  Applies to all size bins.
