@@ -7,7 +7,7 @@ set (srcs
 
 esma_add_library(${this}
   SRCS ${srcs}
-  DEPENDENCIES MAPL2 MAPL.field_bundle ESMF::ESMF
+  DEPENDENCIES MAPL MAPL.field_bundle ESMF::ESMF
 )
 
 if( EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/@GSW )
