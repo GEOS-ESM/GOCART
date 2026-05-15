@@ -15,6 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [v2.5.4] - 2026-05-15
+
+### Fixed
+
+- Fixed an issue with data-driven SU and `PSO4`
+  - `PSO4` is only an export of computational SU but an Export was being added in the data-driven SU instance.
+
 ## [v2.5.3] - 2026-05-12
 
 ### Changed

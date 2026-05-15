@@ -221,7 +221,9 @@ contains
 #include "GOCART2G_Import___.h"
 
 !   Allow children of Chemistry to connect to these fields
-    if ((self%SU%instances(1)%is_active)) call MAPL_AddExportSpec (GC, SHORT_NAME='PSO4', CHILD_ID=self%SU%instances(1)%id, __RC__)
+    if ((self%SU%instances(1)%is_active) .and. (index(self%SU%instances(1)%name, 'data') == 0 )) then
+       call MAPL_AddExportSpec (GC, SHORT_NAME='PSO4', CHILD_ID=self%SU%instances(1)%id, __RC__)
+    end if
 
 !   Add connectivities for Nitrate component
 !   Nitrate currently only supports one Nitrate component. Nitrate only
