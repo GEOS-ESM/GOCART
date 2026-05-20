@@ -10,17 +10,13 @@ module GOCART2G_GridCompMod
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Return, MAPL_Assert
    use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
 
-   use mapl3g_generic, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
-   use mapl3g_generic, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
-   use mapl3g_generic, only: MAPL_GridCompAddConnectivity
-   use mapl3g_generic, only: MAPL_GridCompGetResource, MAPL_GridCompReexport
-   use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
-   use mapl3g_generic, only: MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState
-   use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
-   use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
-   use mapl3g_FieldBundle_API, only: MAPL_FieldBundleAdd, MAPL_FieldBundleGet
-   use mapl3g_State_API, only: MAPL_StateGetPointer
-   use mapl3g_Geom_API, only: MAPL_GridGet
+   use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec, &
+                   MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild, &
+                   MAPL_GridCompAddConnectivity, MAPL_GridCompGetResource, MAPL_GridCompReexport, &
+                   MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, &
+                   MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState, &
+                   MAPL_RESTART_SKIP, VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
+                   MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet
    use mapl3g_UngriddedDim, only: UngriddedDim
 
    use Chem_AeroGeneric

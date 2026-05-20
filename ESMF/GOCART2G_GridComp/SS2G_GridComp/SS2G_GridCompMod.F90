@@ -12,18 +12,13 @@ module SS2G_GridCompMod
    use pflogger, only: logger_t => logger
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
-   use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
-   use mapl3g_generic, only: MAPL_GridCompAddSpec
-   use mapl3g_generic, only: MAPL_GridCompGet
-   use mapl3g_generic, only: MAPL_GridCompGetResource
-   use mapl3g_generic, only: MAPL_GridCompGetInternalState
-   use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
-   use mapl3g_generic, only: MAPL_ClockGet
-   use mapl3g_generic, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
-   use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
-   use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
-   use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, mapl_GridGetGlobalCellCountPerDim
-   use mapl3g_State_API, only: MAPL_StateGetPointer
+   use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, mapl_GridGetGlobalCellCountPerDim, &
+                   MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, MAPL_GridCompGet, &
+                   MAPL_GridCompGetResource, MAPL_GridCompGetInternalState, &
+                   MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
+                   MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
+                   VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
+                   MAPL_RESTART_SKIP, MAPL_StateGetPointer
    use mapl3g_UngriddedDim, only: UngriddedDim
    use GOCART2G_MieMod
    use Chem_AeroGeneric
