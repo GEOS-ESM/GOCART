@@ -11,22 +11,17 @@ module DU2G_GridCompMod
    use pflogger, only: logger_t => logger
    use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    ! use MAPL
-   use MAPL, only: MAPL_get_num_threads => get_num_threads, MAPL_get_current_thread => get_current_thread
-   use MAPL, only: mapl_GridGetGlobalCellCountPerDim
+   use MAPL, only: MAPL_get_num_threads => get_num_threads, MAPL_get_current_thread => get_current_thread, &
+                   mapl_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource, &
+                   MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, &
+                   MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
+                   MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
+                   VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
+                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex
+   use mapl_UngriddedDim, only: UngriddedDim
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
-   use mapl3g_generic, only: MAPL_GridCompGet, MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
-   use mapl3g_generic, only: MAPL_GridCompSetEntryPoint
-   use mapl3g_generic, only: MAPL_GridCompAddSpec
-   use mapl3g_generic, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
-   use mapl3g_generic, only: MAPL_ClockGet
-   use mapl3g_generic, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
-   use mapl3g_VerticalStaggerLoc, only: VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
-   use mapl3g_RestartModes, only: MAPL_RESTART_SKIP
-   use mapl3g_UngriddedDim, only: UngriddedDim
-   use mapl3g_State_API, only: MAPL_StateGetPointer
    use MAPL_PackedTimeMod, only: MAPL_PackedDateCreate => PackedDateCreate, &
                                   MAPL_PackedTimeCreate => PackedTimeCreate
-   use mapl3g_Geom_API, only: MAPL_GeomGetHorzIJIndex
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr

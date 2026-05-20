@@ -5,7 +5,6 @@ module GA_EnvironmentMod
    use ESMF
    use MAPL
    use GOCART2G_MieMod
-   use mapl3g_generic, only: MAPL_GridCompGetResource
 
    implicit none
    private

@@ -11,6 +11,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replace all `use mapl3g_*` statements with `use MAPL` (umbrella) or
+  `use mapl_*` (for symbols not yet re-exported by the umbrella) following
+  the MAPL Phase 9 `mapl3g_` → `mapl_` module rename. `UngriddedDim` is
+  accessed directly via `use mapl_UngriddedDim` since it is not re-exported
+  by the MAPL umbrella. Affected files: `DU2G_GridCompMod.F90`,
+  `SS2G_GridCompMod.F90`, `GOCART2G_GridCompMod.F90`,
+  `Chem_AeroGeneric.F90`, `GA_EnvironmentMod.F90`
 - Remove `MAPL2` from `Chem_Shared2G` and `DU2G_GridComp` CMake dependencies; replace with `MAPL` (#437)
 - Migrate `SS2G_GridCompMod.F90` from `use MAPL_MaplGrid` to `use MAPL` for `mapl_GridGetGlobalCellCountPerDim`; `dims` made allocatable (MAPL#4875)
 - Migrate `DU2G_GridCompMod.F90` from `use MAPL_BaseMod`/`use mapl_MaplGrid` to `use MAPL` for `mapl_GridGetGlobalCellCountPerDim` (MAPL#4857)
