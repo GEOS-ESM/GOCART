@@ -18,7 +18,7 @@ module DU2G_GridCompMod
                    MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
                    VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
                    MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex
-   use mapl_UngriddedDim, only: UngriddedDim
+   use mapl3g_UngriddedDim, only: UngriddedDim
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use MAPL_PackedTimeMod, only: MAPL_PackedDateCreate => PackedDateCreate, &
                                   MAPL_PackedTimeCreate => PackedTimeCreate

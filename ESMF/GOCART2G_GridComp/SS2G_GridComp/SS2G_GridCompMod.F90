@@ -19,7 +19,7 @@ module SS2G_GridCompMod
                    MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
                    VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
                    MAPL_RESTART_SKIP, MAPL_StateGetPointer
-   use mapl_UngriddedDim, only: UngriddedDim
+   use mapl3g_UngriddedDim, only: UngriddedDim
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr

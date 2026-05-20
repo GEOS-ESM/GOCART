@@ -17,7 +17,7 @@ module GOCART2G_GridCompMod
                    MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState, &
                    MAPL_RESTART_SKIP, VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
                    MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet
-   use mapl_UngriddedDim, only: UngriddedDim
+   use mapl3g_UngriddedDim, only: UngriddedDim
 
    use Chem_AeroGeneric
 
