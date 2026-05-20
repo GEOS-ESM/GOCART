@@ -1182,7 +1182,7 @@ contains
    end subroutine create_instances_
 
    subroutine add_children__(gc, species, setservices, rc)
-      use mapl_UserSetServices, only: user_setservices
+      use mapl3g_UserSetServices, only: user_setservices
       type (ESMF_GridComp), intent(inout) :: gc
       type(Constituent), intent(inout) :: species
       external :: setservices
