@@ -5,35 +5,37 @@ GOCART:
 env:
   local: ./env@
   remote: ../ESMA_env.git
-  tag: v5.16.0
+  tag: v5.21.0
   develop: main
 
 cmake:
   local: ./cmake@
   remote: ../ESMA_cmake.git
-  tag: v3.68.0
+  tag: v4.36.0
   develop: develop
 
 ecbuild:
   local: ./cmake@/ecbuild@
   remote: ../ecbuild.git
-  tag: geos/v1.4.0
+  tag: geos/v3.13.1
 
 HEMCO:
   local: ./ESMF/HEMCO_GridComp@
   remote: ../HEMCO.git
-  tag: geos/v2.3.0
+  # NOTE: The MAPL3 branch in HEMCO is *NOT* based off of geos/develop as that is far ahead of current where GEOSgcm
+  #       is. This is based on release/geos/2.3.0 which was off of geos/v2.3.0
+  branch: geos/release/MAPL-v3
   develop: geos/develop
 
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
-  tag: v2.1.4
+  branch: release/MAPL-v3
   sparse: ./config/GMAO_Shared.sparse
   develop: main
 
 MAPL:
   local: ./ESMF/Shared/MAPL@
   remote: ../MAPL.git
-  tag: release/MAPL-v3
+  branch: develop
   develop: develop
