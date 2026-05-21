@@ -11,8 +11,8 @@ module Chem_AeroGeneric
 
    !USES:
    use ESMF
-   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
-   use MAPL, only: MAPL_StateGetPointer, MAPL_FieldGet, MAPL_FieldCreate, MAPL_FieldBundleAdd, &
+   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return, &
+                   MAPL_StateGetPointer, MAPL_FieldGet, MAPL_FieldCreate, MAPL_FieldBundleAdd, &
                    VerticalStaggerLoc, VERTICAL_STAGGER_EDGE, VERTICAL_STAGGER_CENTER, UngriddedDims
    ! USE Chem_MieMod2G
 

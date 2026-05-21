@@ -10,16 +10,15 @@ module SS2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
-   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
-   use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
-   use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, mapl_GridGetGlobalCellCountPerDim, &
+   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return, &
+                   MAPL_GridGet, MAPL_GridGetCoordinates, mapl_GridGetGlobalCellCountPerDim, &
                    MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, MAPL_GridCompGet, &
                    MAPL_GridCompGetResource, MAPL_GridCompGetInternalState, &
                    MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
                    MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
                    VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
-                   MAPL_RESTART_SKIP, MAPL_StateGetPointer
-   use mapl3g_UngriddedDim, only: UngriddedDim
+                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, UngriddedDim
+   use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr

@@ -9,16 +9,14 @@ module DU2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
-   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Assert, MAPL_Return
-   ! use MAPL
-   use MAPL, only: MAPL_get_num_threads => get_num_threads, MAPL_get_current_thread => get_current_thread, &
+   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return, &
+                   MAPL_get_num_threads => get_num_threads, MAPL_get_current_thread => get_current_thread, &
                    mapl_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource, &
                    MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, &
                    MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
                    MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
                    VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
-                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex
-   use mapl3g_UngriddedDim, only: UngriddedDim
+                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, UngriddedDim
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use MAPL_PackedTimeMod, only: MAPL_PackedDateCreate => PackedDateCreate, &
                                   MAPL_PackedTimeCreate => PackedTimeCreate
