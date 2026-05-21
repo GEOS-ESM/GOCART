@@ -7,17 +7,15 @@ module GOCART2G_GridCompMod
 
    !USES:
    use ESMF
-   use mapl_ErrorHandling, only: MAPL_Verify, MAPL_Return, MAPL_Assert
-   use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
-
-   use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec, &
+   use MAPL, only: MAPL_Verify, MAPL_Return, MAPL_Assert, &
+                   MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec, &
                    MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild, &
                    MAPL_GridCompAddConnectivity, MAPL_GridCompGetResource, MAPL_GridCompReexport, &
                    MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, &
                    MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState, &
                    MAPL_RESTART_SKIP, VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
-                   MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet
-   use mapl3g_UngriddedDim, only: UngriddedDim
+                   MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet, UngriddedDim
+   use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
 
    use Chem_AeroGeneric
 
@@ -1182,7 +1180,7 @@ contains
    end subroutine create_instances_
 
    subroutine add_children__(gc, species, setservices, rc)
-      use mapl3g_UserSetServices, only: user_setservices
+      use MAPL, only: user_setservices
       type (ESMF_GridComp), intent(inout) :: gc
       type(Constituent), intent(inout) :: species
       external :: setservices

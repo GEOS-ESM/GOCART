@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   by the MAPL umbrella. Affected files: `DU2G_GridCompMod.F90`,
   `SS2G_GridCompMod.F90`, `GOCART2G_GridCompMod.F90`,
   `Chem_AeroGeneric.F90`, `GA_EnvironmentMod.F90`
+- Replace remaining `use mapl3g_UngriddedDim` and `use mapl3g_UserSetServices`
+  with `use MAPL` now that `UngriddedDim` and `user_setservices` are
+  re-exported by the MAPL umbrella (closes #447). Affected files:
+  `DU2G_GridCompMod.F90`, `SS2G_GridCompMod.F90`, `GOCART2G_GridCompMod.F90`,
+  `Chem_AeroGeneric.F90`
 - Remove `MAPL2` from `Chem_Shared2G` and `DU2G_GridComp` CMake dependencies; replace with `MAPL` (#437)
 - Migrate `SS2G_GridCompMod.F90` from `use MAPL_MaplGrid` to `use MAPL` for `mapl_GridGetGlobalCellCountPerDim`; `dims` made allocatable (MAPL#4875)
 - Migrate `DU2G_GridCompMod.F90` from `use MAPL_BaseMod`/`use mapl_MaplGrid` to `use MAPL` for `mapl_GridGetGlobalCellCountPerDim` (MAPL#4857)
