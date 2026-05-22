@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Changed
+- Updated version of volcanic sulfur emissions for AMIP configuration to v202601
 
 ### Fixed
 
