@@ -16,17 +16,17 @@ module DU2G_GridCompMod
                    MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
                    MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
                    VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
-                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, UngriddedDim
+                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, UngriddedDim, &
+                   StrTemplate
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
-   use MAPL_PackedTimeMod, only: MAPL_PackedDateCreate => PackedDateCreate, &
-                                  MAPL_PackedTimeCreate => PackedTimeCreate
+   use MAPL, only: MAPL_PackedDateCreate => PackedDateCreate, &
+                   MAPL_PackedTimeCreate => PackedTimeCreate
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
-   use MAPL_StringTemplate, only: StrTemplate
    !$ use omp_lib
 
    implicit none

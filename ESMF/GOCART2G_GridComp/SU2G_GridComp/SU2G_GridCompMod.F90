@@ -18,9 +18,6 @@ module SU2G_GridCompMod
 
    use GOCART2G_Process       ! GOCART2G process library
    use GA_EnvironmentMod
-   use MAPL_StringTemplate, only: StrTemplate
-   use MAPL_PackedTimeMod, only: MAPL_PackedDateCreate => PackedDateCreate, &
-                                  MAPL_PackedTimeCreate => PackedTimeCreate
    !$ use omp_lib
 
    implicit none

@@ -17,7 +17,6 @@
 !
       use  ESMF
       use  MAPL
-      use  MAPL_LatLonGridFactoryMod 
       use  GOCART2G_SimpleBundleMod
       use  GOCART2G_MieMod
       use  GOCART2G_AopMod
