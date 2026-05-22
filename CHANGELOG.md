@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Changed
+- Updated version of volcanic sulfur emissions for AMIP configuration to v202601
 
 - Update aerosol optics bands files to default to RRTMGP bands, rather than RRTMG (as GEOSgcm v12 has switched to RRTMGP)
   - NOTE: This means users needing RRTMG bands will need to update at run time
@@ -17,6 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Added
+
+## [v2.6.5] - 2026-05-15
+
+### Fixed
+
+- Fixed an issue with data-driven SU and `PSO4`
+  - `PSO4` is only an export of computational SU but an Export was being added in the data-driven SU instance.
+
+## [v2.6.4] - 2026-05-12
+
+### Changed
+
+- ExtData yaml files for CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
+- Updated `GOCART2G_GridComp.rc` to output AOD profile at 470 nm and 870 nm
+  for JEDI (in addition to the existing 550 nm vertically integrated AOD),
+  without changing behavior for the PSAS AOD analysis
 
 ## [v2.6.3] - 2026-05-11
 
@@ -227,6 +244,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
 - Add `soil_drylimit_factor` to the DU2G_instance_DU.rc and DU2G_GridCompMod.F90 files for FENGSHA
 - Moved process library macros to header file.
+
+## [v2.3.1] - 2026-03-10
+
+### Changed
+
+- ExtData yaml files for CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
 
 ## [v2.3.0] - 2025-01-16
 
