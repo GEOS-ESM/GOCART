@@ -11,6 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Replace internal MAPL module references with `USE MAPL` in `aop_calculator.F90`
+  (`MAPL_LatLonGridFactoryMod`), `CA2G_GridCompMod.F90`, `DU2G_GridCompMod.F90`,
+  and `SU2G_GridCompMod.F90` (`MAPL_StringTemplate`, `MAPL_PackedTimeMod`). All
+  MAPL symbols now accessed via the public `MAPL` or `MAPL_Constants` wrapper
+  modules (closes #449).
 - Replace all `use mapl3g_*` statements with `use MAPL` (umbrella) or
   `use mapl_*` (for symbols not yet re-exported by the umbrella) following
   the MAPL Phase 9 `mapl3g_` → `mapl_` module rename. `UngriddedDim` is
