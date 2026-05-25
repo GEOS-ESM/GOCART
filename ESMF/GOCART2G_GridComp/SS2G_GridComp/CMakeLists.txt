@@ -2,7 +2,7 @@ esma_set_this ()
 
 esma_add_library (${this}
   SRCS ${this}Mod.F90
-  DEPENDENCIES MAPL MAPL.generic3g MAPL.field GA_Environment Chem_Shared2G Process_Library esmf NetCDF::NetCDF_Fortran
+  DEPENDENCIES MAPL MAPL.field GA_Environment Chem_Shared2G Process_Library esmf NetCDF::NetCDF_Fortran
   TYPE SHARED)
 
 mapl_acg (
