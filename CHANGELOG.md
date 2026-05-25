@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Remove direct `MAPL.generic3g` CMake link dependency from GA_Environment,
+  SS2G_GridComp, and DU2G_GridComp (closes #451). The target has been renamed
+  to `MAPL.generic` in MAPL and all symbols remain accessible transitively
+  via `MAPL`. Zero-diff structural change.
 - Replace internal MAPL module references with `USE MAPL` in `aop_calculator.F90`
   (`MAPL_LatLonGridFactoryMod`), `CA2G_GridCompMod.F90`, `DU2G_GridCompMod.F90`,
   and `SU2G_GridCompMod.F90` (`MAPL_StringTemplate`, `MAPL_PackedTimeMod`). All
