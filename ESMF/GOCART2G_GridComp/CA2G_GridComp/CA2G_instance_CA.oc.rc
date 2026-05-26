@@ -2,7 +2,7 @@
 # Resource file for Organic Carbon parameters.
 #
 
-aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v2.x.x/x/opticsBands_OC.v2.1.0.RRTMG.nc4
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v2.x.x/x/opticsBands_OC.v2.1.0.RRTMGP.nc4
 aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v2.x.x/x/optics_OC.v2.1.0.nc4
 
 # Aircraft emission factor: convert input unit to kg C
