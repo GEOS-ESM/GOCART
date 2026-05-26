@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Changed
+
+- Changed the Process_Library GOCART_MieMod and MieQuery files to handle dimension
+  reordered aerosol optical property LUTs.
+- Changed pointer in XX2G_instance rc files to v2.x.x aerosol optical property
+  LUTs now based on GEOSmie and with dimensions renamed and reordered as above
 - Updated version of volcanic sulfur emissions for AMIP configuration to v202601
 
 ### Fixed
