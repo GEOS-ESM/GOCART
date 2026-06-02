@@ -10,7 +10,7 @@ module DU2G_GridCompMod
    use ESMF
    use pflogger, only: logger_t => logger
    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return, &
-                   MAPL_get_num_threads => get_num_threads, MAPL_get_current_thread => get_current_thread, &
+                   MAPL_get_num_threads, MAPL_get_current_thread, &
                    mapl_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource, &
                    MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, &
                    MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
@@ -19,8 +19,8 @@ module DU2G_GridCompMod
                    MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, UngriddedDim, &
                    StrTemplate
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
-   use MAPL, only: MAPL_PackedDateCreate => PackedDateCreate, &
-                   MAPL_PackedTimeCreate => PackedTimeCreate
+   use MAPL, only: MAPL_PackedDateCreate, &
+                   MAPL_PackedTimeCreate
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
