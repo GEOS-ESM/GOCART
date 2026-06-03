@@ -8,7 +8,6 @@ esma_add_library (${this}
 mapl_acg (
   ${this} SS2G_StateSpecs.rc
   IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS GET_POINTERS DECLARE_POINTERS
-  3g
 )
 
 file (GLOB_RECURSE rc_files CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.rc *.yaml)
