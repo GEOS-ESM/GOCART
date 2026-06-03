@@ -32,7 +32,6 @@ esma_add_library (${this}
 mapl_acg (
   ${this} GOCART2G_StateSpecs.rc
   IMPORT_SPECS EXPORT_SPECS INTERNAL_SPECS GET_POINTERS DECLARE_POINTERS
-  3g
 )
 
 # CMake has an OpenMP issue with NAG Fortran: https://gitlab.kitware.com/cmake/cmake/-/issues/21280
