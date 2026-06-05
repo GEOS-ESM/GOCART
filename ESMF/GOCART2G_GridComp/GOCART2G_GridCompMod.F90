@@ -7,14 +7,14 @@ module GOCART2G_GridCompMod
 
    !USES:
    use ESMF
-   use MAPL, only: MAPL_Verify, MAPL_Return, MAPL_Assert, &
-                   MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec, &
-                   MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild, &
-                   MAPL_GridCompAddConnectivity, MAPL_GridCompGetResource, MAPL_GridCompReexport, &
-                   MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, &
-                   MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState, &
-                   MAPL_RESTART_SKIP, VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
-                   MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet, UngriddedDim
+   use MAPL, only: MAPL_Verify, MAPL_Return, MAPL_Assert
+   use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
+   use MAPL, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
+   use MAPL, only: MAPL_GridCompAddConnection, MAPL_GridCompGetResource, MAPL_GridCompReexport
+   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
+   use MAPL, only: MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState
+   use MAPL, only: MAPL_RESTART_SKIP, VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
+   use MAPL, only: MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet, UngriddedDim
    use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
 
    use Chem_AeroGeneric
@@ -274,20 +274,20 @@ contains
       do iter = 1, size(self%SS%instances)
          child = self%SS%instances(iter)
          if ((child%is_active) .and. (index(child%name, "data") == 0 )) then
-            call MAPL_GridCompAddConnectivity( &
+            call MAPL_GridCompAddConnection( &
                  gc, &
                  src_comp=child%name, &
                  src_names=child_items, &
                  dst_comp="<self>", _RC)
             ! AERO
-            call MAPL_GridCompAddConnectivity( &
+            call MAPL_GridCompAddConnection( &
                  gc, &
                  src_comp=child%name, &
                  src_names=child%name//"_AERO", &
                  dst_comp="<self>", &
                  dst_names=child%name//"_AERO", _RC)
             ! AERO_DP
-            call MAPL_GridCompAddConnectivity( &
+            call MAPL_GridCompAddConnection( &
                  gc, &
                  src_comp=child%name, &
                  src_names=child%name//"_AERO_DP", &
@@ -306,20 +306,20 @@ contains
       do iter = 1, size(self%DU%instances)
          child = self%DU%instances(iter)
          if ((child%is_active) .and. (index(child%name, "data") == 0 )) then
-            call MAPL_GridCompAddConnectivity( &
+            call MAPL_GridCompAddConnection( &
                  gc, &
                  src_comp=child%name, &
                  src_names=child_items, &
                  dst_comp="<self>", _RC)
             ! AERO
-            call MAPL_GridCompAddConnectivity( &
+            call MAPL_GridCompAddConnection( &
                  gc, &
                  src_comp=child%name, &
                  src_names=child%name//"_AERO", &
                  dst_comp="<self>", &
                  dst_names=child%name//"_AERO", _RC)
             ! AERO_DP
-            call MAPL_GridCompAddConnectivity( &
+            call MAPL_GridCompAddConnection( &
                  gc, &
                  src_comp=child%name, &
                  src_names=child%name//"_AERO_DP", &
