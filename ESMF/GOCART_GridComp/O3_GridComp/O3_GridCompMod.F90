@@ -146,7 +146,7 @@ CONTAINS
         VLOCATION  = MAPL_VLocationNone, &
         RESTART    = MAPL_RestartSkip,   &
         RC         = STATUS)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    do ic = 1, gcO3%NTYPE
 
       WRITE(vegID,'(I3.3)') ic
@@ -160,7 +160,7 @@ CONTAINS
           VLOCATION  = MAPL_VLocationNone, &
           RESTART    = MAPL_RestartSkip,   &
           RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       vegName = 'O3_ilandVegID'//vegID
       call MAPL_AddImportSpec(GC,          &
           SHORT_NAME = trim(vegName),      &
@@ -170,7 +170,7 @@ CONTAINS
           VLOCATION  = MAPL_VLocationNone, &
           RESTART    = MAPL_RestartSkip,   &
           RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       vegName = 'O3_laiVegID'//vegID
       call MAPL_AddImportSpec(GC,          &
           SHORT_NAME = trim(vegName),      &
@@ -180,10 +180,10 @@ CONTAINS
           VLOCATION  = MAPL_VLocationNone, &
           RESTART    = MAPL_RestartSkip,   &
           RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
    enddo
 
-   RETURN_(ESMF_SUCCESS)
+   _RETURN(ESMF_SUCCESS)
 
    end subroutine O3_GridCompSetServices
 
@@ -248,7 +248,7 @@ CONTAINS
 ! Grab the virtual machine
 ! ------------------------
    CALL ESMF_VMGetCurrent(vm, RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! Initialize local variables
 ! --------------------------
@@ -267,14 +267,14 @@ CONTAINS
 ! Load resource file
 ! ------------------
    CALL I90_loadf(TRIM(rcFileName), status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! Parse resource file
 ! -------------------   
    CALL I90_label("DEBUG:", status)
-   VERIFY_(status)
+   _VERIFY(status)
    i = I90_gint(status)
-   VERIFY_(status)
+   _VERIFY(status)
    IF(i == 0) THEN
     gcO3%DebugIsOn = .FALSE.
    ELSE
@@ -282,41 +282,41 @@ CONTAINS
    END IF
 
    CALL I90_label("PCHEMs_file_name:", status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL I90_Gtoken(gcO3%PCHEMfileName, status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    CALL I90_label("pchem_clim_years:", status)
-   VERIFY_(status)
+   _VERIFY(status)
    gcO3%climYears = I90_gint(status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! PCHEM: Perform the initialization for
 ! establishing the production rates and loss frequencies
 ! ------------------------------------------------------
    CALL setUpPandL(RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    _ASSERT(gcO3%nlevsPCHEM == km,'needs informative message')
 
 ! GMIchem: Obtain static vegetation properties for dry deposition
 ! ---------------------------------------------------------------
    CALL I90_label("veg_file_name:", status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL I90_Gtoken(gcO3%GMIvegFileName, status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL I90_label("lai_file_name:", status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL I90_Gtoken(gcO3%GMIlaiFileName, status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    ALLOCATE(gcO3%ireg (i1:i2, j1:j2), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(gcO3%iland(i1:i2, j1:j2, gcO3%NTYPE), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(gcO3%iuse (i1:i2, j1:j2, gcO3%NTYPE), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(gcO3%xlai (i1:i2, j1:j2, gcO3%NTYPE), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    gcO3%ireg  = 0
    gcO3%iland = 0
    gcO3%iuse  = 0
@@ -371,15 +371,15 @@ CONTAINS
 ! Get the communicator from the virtual machine and open the PCHEM file
 ! ---------------------------------------------------------------------
     CALL ESMF_VMGet(vm, MPICOMMUNICATOR=comm, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #undef H5_HAVE_PARALLEL
 #ifdef H5_HAVE_PARALLEL
 
     CALL MPI_Info_create(info, status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MPI_Info_set(info, "romio_cb_read", "automatic", status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #ifdef NETCDF_NEED_NF_MPIIO
     status = NF_OPEN_PAR(TRIM(gcO3%PCHEMfileName), IOR(NF_NOWRITE,NF_MPIIO), comm, info, unit)
@@ -398,7 +398,7 @@ CONTAINS
        PRINT *,"Error opening file ",TRIM(gcO3%PCHEMfileName), status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
 
 ! Obtain dimensions of the latitudes, layers, and species in the PCHEM file
@@ -408,35 +408,35 @@ CONTAINS
        PRINT *,"Error getting dimid for lat", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     status = NF_INQ_DIMLEN(unit, dimid, gcO3%nlatsPCHEM)
     IF(status /= nf_noerr) then
        PRINT *,"Error getting dimlen for lat", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     status = NF_INQ_DIMID(unit, 'lev', dimid)
     IF(status /= nf_noerr) THEN
        PRINT *,"Error getting dimid for lev", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     status = NF_INQ_DIMLEN(unit, dimid, gcO3%nlevsPCHEM)
     IF(status /= nf_noerr) THEN
        PRINT *,"Error getting dimlen for lev", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     status = NF_GET_ATT_INT(unit, NF_GLOBAL, 'NSPECIES', nspecies)
     IF(status /= nf_noerr) THEN
        PRINT *,"Error getting nspecies", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     _ASSERT(gcO3%NSPECIES == nspecies,'needs informative message')
 
@@ -449,22 +449,22 @@ CONTAINS
     END IF ! MAPL_am_I_root
 
     CALL MAPL_CommsBcast(vm, gcO3%nlatsPCHEM, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, gcO3%nlevsPCHEM, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, gcO3%begClimYear, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, gcO3%endClimYear, 1, 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #endif
 
 ! Allocate and broadcast the latitudes and layers
 ! -----------------------------------------------
     ALLOCATE(gcO3%lats(gcO3%nlatsPCHEM), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     ALLOCATE(gcO3%levs(gcO3%nlevsPCHEM), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #ifndef H5_HAVE_PARALLEL
     IF ( MAPL_AM_I_ROOT(vm) ) THEN
@@ -475,46 +475,46 @@ CONTAINS
        PRINT *,"Error getting varid for lat", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     status = NF_GET_VAR_REAL(unit, varid, gcO3%lats)
     IF(status /= NF_NOERR) THEN
        PRINT *,'Error getting values for lat', status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     status = NF_INQ_VARID(unit, 'lev', varid)
     IF(status /= NF_NOERR) THEN
        PRINT *,"Error getting varid for lev", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     status = NF_GET_VAR_REAL(unit, varid, gcO3%levs)
     IF(status /= NF_NOERR) THEN
        PRINT *,"Error getting values for lev", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
 
 #ifdef H5_HAVE_PARALLEL
 
     CALL MPI_Info_free(info, status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #else
 
     status = NF_CLOSE(unit)
-    VERIFY_(status)
+    _VERIFY(status)
 
     END IF ! MAPL_am_I_root
 
     CALL MAPL_CommsBcast(vm, gcO3%lats, SIZE(gcO3%lats), 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MAPL_CommsBcast(vm, gcO3%levs, SIZE(gcO3%levs), 0, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #endif
 
@@ -522,11 +522,11 @@ CONTAINS
 ! loss frequencies. Note that we will be working with ozone only.
 !----------------------------------------------------------------
     ALLOCATE(gcO3%mncv(gcO3%nlatsPCHEM, gcO3%nlevsPCHEM, 2), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     gcO3%mncv = Z'7FA00000'
 
     ALLOCATE(gcO3%mnpl(gcO3%nlatsPCHEM, gcO3%nlevsPCHEM, 2, 2), STAT=status)
-    VERIFY_(status)
+    _VERIFY(status)
     gcO3%mnpl = Z'7FA00000'
 
     rc = 0 
@@ -741,7 +741,7 @@ CONTAINS
 ! Grab the virtual machine
 ! ------------------------
    CALL ESMF_VMGetCurrent(vm, RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  Grid specs from Chem_Bundle%grid
 !  --------------------------------
@@ -761,31 +761,31 @@ CONTAINS
 !  Get pointers to imports
 !  -----------------------
    CALL MAPL_GetPointer(impChem, cldtt,   'CLDTT',   RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, lwi,     'LWI',     RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, pblh,    'ZPBL',    RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, shFlux,  'SH',      RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, swndsrf, 'SWNDSRF', RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, srfAirT, 'TA',      RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, tropp,   'TROPP',   RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, ustar,   'USTAR',   RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, z0h,     'Z0H',     RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, ple,     'PLE',     RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, T,       'T',       RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, rhoa,    'AIRDENS', RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(impChem, zle,     'ZLE',     RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    IF(gcO3%DebugIsOn) THEN
     CALL pmaxmin('O3: cldtt',   cldtt,   qmin, qmax, ixj, 1,    1.)
@@ -806,28 +806,28 @@ CONTAINS
 !  Get pointers to exports
 !  -----------------------
    CALL MAPL_GetPointer(expChem, o3,     'O3',      RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(expChem, ox,     'OX',      RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(expChem, o3tot,  'O3TOT',   RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(expChem, o3ddp,  'O3DDP',   RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(expChem, o3ddv,  'O3DDV',   RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(expChem, o3ppmv, 'O3PPMV',  RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(expChem, o3tend, 'DO3DT' ,  RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer(expChem, oxtend, 'OX_TEND', RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    if (gcO3%firstRun) then
       gcO3%firstRun = .false.
 
       vegName = 'O3_ireg'
       call MAPL_GetPointer(impChem,ptr2d,vegName,rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
 
       gcO3%ireg(:,:) = INT(ptr2D(:,:))
 
@@ -837,12 +837,12 @@ CONTAINS
 
        vegName = 'O3_iuseVegID'//vegID
        call MAPL_GetPointer(impChem,ptr2d,vegName,rc=status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
        gcO3%iuse(:,:,ic) = INT(ptr2D(:,:))
 
        vegName = 'O3_ilandVegID'//vegID
        call MAPL_GetPointer(impChem,ptr2d,vegName,rc=status)
-       VERIFY_(STATUS)
+       _VERIFY(STATUS)
        gcO3%iland(:,:,ic) = INT(ptr2D(:,:))
 
       END DO
@@ -867,7 +867,7 @@ CONTAINS
       WRITE(laiID,'(I3.3)') ic
       laiName = 'O3_laiVegID'//laiID
       call MAPL_GetPointer(impChem,ptr2d,laiName,rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       gcO3%xlai(:,:,ic) = INT(ptr2D(:,:))
 
    END DO
@@ -875,14 +875,14 @@ CONTAINS
 ! Save current O3
 ! ---------------
    ALLOCATE(initialO3(i1:i2,j1:j2,km),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    n = w_c%reg%i_O3
    initialO3(:,:,:) = w_c%qa(n)%data3d(:,:,:)
 
 ! Middle-layer pressures
 ! ----------------------
    ALLOCATE(plPa(i1:i2,j1:j2,km),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    plPa = 0.50*(ple(:,:,0:km-1)+ple(:,:,1:km))
    IF(gcO3%DebugIsOn) THEN
     CALL pmaxmin('O3: plPa', plPa, qmin, qmax, ixj, km, 1.)
@@ -892,27 +892,27 @@ CONTAINS
 ! ---------------------------------------------
    ALLOCATE(tropPa(i1:i2,j1:j2), _STAT)
    CALL Chem_UtilTroppFixer(i2, j2, tropp, VERBOSE=.TRUE., NEWTROPP=tropPa, RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! Perform parameterized production and loss chemistry
 ! ---------------------------------------------------
    CALL doProdLoss(status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! Grab some memory
 ! ----------------
    ALLOCATE(cellDepth(i1:i2,j1:j2), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(obk(i1:i2,j1:j2), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(oro(i1:i2,j1:j2), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(dvel(i1:i2,j1:j2), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(dryDepFreq(i1:i2,j1:j2), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(dO3(i1:i2,j1:j2), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! Thickness of the surface layer
 ! ------------------------------
@@ -946,7 +946,7 @@ CONTAINS
     IF(rc /= 0) THEN
      PRINT *,TRIM(Iam)//": ERROR in GOCART::O3 DeposVelo"
      status = rc
-     VERIFY_(status)
+     _VERIFY(status)
     END IF
 
    END DO
@@ -1033,21 +1033,21 @@ CONTAINS
 ! Clean up
 ! --------
    DEALLOCATE(plPa, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(obk, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(dvel, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(oro, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(dryDepFreq, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(dO3, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(cellDepth, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(initialO3, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    rc = 0
 
@@ -1155,15 +1155,15 @@ CONTAINS
     gcO3%PCnymd = nymd
 
     CALL ESMF_VMGet(vm, MPICOMMUNICATOR=comm, RC=status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #undef H5_HAVE_PARALLEL
 #ifdef H5_HAVE_PARALLEL
 
     CALL MPI_Info_create(info, status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MPI_Info_set(info, "romio_cb_read", "automatic", status)
-    VERIFY_(status)
+    _VERIFY(status)
 
 #ifdef NETCDF_NEED_NF_MPIIO
     status = NF_OPEN_PAR(TRIM(gcO3%PCHEMfileName), IOR(NF_NOWRITE,NF_MPIIO), comm, info, unit)
@@ -1179,7 +1179,7 @@ CONTAINS
        PRINT *,"Error opening file ",TRIM(gcO3%PCHEMfileName), status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
 
     start(1) = 1
@@ -1193,7 +1193,7 @@ CONTAINS
        PRINT *,"Error getting varid for variable OX_PROD", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     start(3) = indx1
     status = NF_GET_VARA_REAL(unit, varid, start, cnt, gcO3%mnpl(:,:,1,1))
@@ -1201,7 +1201,7 @@ CONTAINS
        PRINT *,"Error reading lower bracket month for production ",status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     start(3) = indx2
     status = NF_GET_VARA_REAL(unit, varid, start, cnt, gcO3%mnpl(:,:,1,2))
@@ -1209,7 +1209,7 @@ CONTAINS
        PRINT *,"Error reading upper bracket month for production ",status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
 
     status = NF_INQ_VARID(unit, "OX_LOSS", varid)
@@ -1217,7 +1217,7 @@ CONTAINS
        PRINT *,"Error getting varid for variable OX_LOSS", status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     start(3) = indx1
     status = NF_GET_VARA_REAL(unit, varid, start, cnt, gcO3%mnpl(:,:,2,1))
@@ -1225,7 +1225,7 @@ CONTAINS
        PRINT *,"Error reading lower bracket month for loss ",status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
     start(3) = indx2
     status = NF_GET_VARA_REAL(unit, varid, start, cnt, gcO3%mnpl(:,:,2,2))
@@ -1233,40 +1233,40 @@ CONTAINS
        PRINT *,"Error reading upper bracket month for loss ",status
        PRINT *, NF_STRERROR(status)
        status = 1
-       VERIFY_(status)
+       _VERIFY(status)
     END IF
 
 #ifdef H5_HAVE_PARALLEL
     CALL MPI_Info_free(info, status)
-    VERIFY_(status)
+    _VERIFY(status)
 #else
     status = NF_CLOSE(unit)
-    VERIFY_(status)
+    _VERIFY(status)
 
     END IF ! MAPL_am_I_root
 
     CALL MPI_Bcast(gcO3%mncv, SIZE(gcO3%mncv), MPI_REAL, 0, comm, status)
-    VERIFY_(status)
+    _VERIFY(status)
     CALL MPI_Bcast(gcO3%mnpl, SIZE(gcO3%mnpl), MPI_REAL, 0, comm, status)
-    VERIFY_(status)
+    _VERIFY(status)
 #endif
 
    END IF ChangeOfDay
    
    ALLOCATE(Pclim(gcO3%nlatsPCHEM,gcO3%nlevsPCHEM),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(Lclim(gcO3%nlatsPCHEM,gcO3%nlevsPCHEM),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    ALLOCATE(P1(i1:i2,gcO3%nlevsPCHEM),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(L1(i1:i2,gcO3%nlevsPCHEM),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    
    ALLOCATE(Pi(i1:i2,j1:j2,km),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    ALLOCATE(Li(i1:i2,j1:j2,km),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    Pclim(:,:) = gcO3%mnpl(:,:,1,1)*fac + gcO3%mnpl(:,:,1,2)*(1.00-fac)
    Lclim(:,:) = gcO3%mnpl(:,:,2,1)*fac + gcO3%mnpl(:,:,2,2)*(1.00-fac)
@@ -1285,7 +1285,7 @@ CONTAINS
 ! Turn off in the troposphere
 ! ---------------------------
    ALLOCATE(mask(i1:i2,j1:j2,1:km),STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    
    mask = 0
 
@@ -1299,19 +1299,19 @@ CONTAINS
    
    DEALLOCATE(tropPa, _STAT)
    DEALLOCATE(mask, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(Pclim, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(Lclim, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(Pi, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(Li, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(P1, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(L1, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
   RETURN
   END SUBROUTINE doProdLoss
@@ -2490,21 +2490,21 @@ CONTAINS
    rc = 0
 
    DEALLOCATE(gcO3%ireg, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(gcO3%iland, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(gcO3%iuse, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(gcO3%xlai, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(gcO3%lats, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(gcO3%levs, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(gcO3%mncv, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
    DEALLOCATE(gcO3%mnpl, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    RETURN
 

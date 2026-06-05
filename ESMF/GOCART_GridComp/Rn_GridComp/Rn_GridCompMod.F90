@@ -108,21 +108,21 @@ CONTAINS
 !  Load resource file
 !  ------------------
    cfg = ESMF_ConfigCreate(rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    call ESMF_ConfigLoadFile(cfg,TRIM(rcbasen)//'.rc',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
 !  Parse resource file
 !  -------------------
    n = ESMF_ConfigGetLen(cfg,label='Rn_instances:',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
 !  We cannot have fewer instances than the number of
 !  Rn bins in the registry (it is OK to have less, though)
 !  --------------------------------------------------------
    IF( n < chemReg%n_Rn ) THEN
     status = 1
-    VERIFY_(status)
+    _VERIFY(status)
    ELSE IF ( n >= chemReg%n_Rn ) THEN
     IF(MAPL_AM_I_ROOT()) THEN
      sOrP = " "
@@ -136,10 +136,10 @@ CONTAINS
 !  Record name of each instance
 !  ----------------------------
    call ESMF_ConfigFindLabel(cfg,'Rn_instances:',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    do i = 1, n
       call ESMF_ConfigGetAttribute(cfg,name,rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
                                             ! resource file name
       IF(TRIM(name) == "full" ) THEN
        name = " "              ! blank instance name for full (1)
@@ -147,7 +147,7 @@ CONTAINS
        name = TRIM(name)       ! instance name for others
       END IF
       call RN_GridCompSetServices1_(gc,chemReg,name,rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
    end do
 
    call MAPL_AddImportSpec(GC,           &
@@ -158,9 +158,9 @@ CONTAINS
         VLOCATION  = MAPL_VLocationNone, &
         RESTART    = MAPL_RestartSkip,   &
         RC         = STATUS)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
-   RETURN_(ESMF_SUCCESS)
+   _RETURN(ESMF_SUCCESS)
 
    end subroutine RN_GridCompSetServices
 
@@ -218,12 +218,12 @@ CONTAINS
 !  Load resource file
 !  ------------------
    CALL I90_loadf ( TRIM(rcbasen)//'.rc', status )
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  Parse resource file
 !  -------------------
    CALL I90_label ( 'Rn_instances:', status )
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  First determine how many instances we have
 !  ------------------------------------------   
@@ -235,7 +235,7 @@ CONTAINS
    END DO
    IF( n == 0 ) THEN
     status = 1
-    VERIFY_(status)
+    _VERIFY(status)
    END IF
    
 !  We cannot have fewer instances than the number of
@@ -243,7 +243,7 @@ CONTAINS
 !  --------------------------------------------------------
    IF( n < w_c%reg%n_Rn ) THEN
     status = 1
-    VERIFY_(status)
+    _VERIFY(status)
    ELSE IF ( n >= w_c%reg%n_Rn ) THEN
     IF(MAPL_AM_I_ROOT()) THEN
      sOrP = " "
@@ -258,15 +258,15 @@ CONTAINS
 !  Next allocate necessary memory
 !  ------------------------------
    ALLOCATE ( gcRn%gcs(n), STAT=status )    
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  Record name of each instance
 !  ----------------------------
    CALL I90_label ( 'Rn_instances:', status )
-   VERIFY_(status)
+   _VERIFY(status)
    DO i = 1, n
     CALL I90_gtoken( name, status )
-    VERIFY_(status)
+    _VERIFY(status)
                                             ! resource file name
       gcRn%gcs(i)%rcfilen = TRIM(rcbasen)//'---'//TRIM(name)//'.rc'
       gcRn%gcs(i)%instance = i              ! instance number 
@@ -287,13 +287,13 @@ CONTAINS
     CALL Rn_SingleInstance_ ( Rn_GridCompInitialize1_, i, &
                               gcRn%gcs(i), w_c, impChem, expChem,  &
                               nymd, nhms, cdt, status )
-    VERIFY_(status)
+    _VERIFY(status)
    END DO
 
 !  All done
 !  --------
    CALL I90_FullRelease( status )
-   VERIFY_(status)
+   _VERIFY(status)
 
  END SUBROUTINE Rn_GridCompInitialize
 
@@ -348,7 +348,7 @@ CONTAINS
     CALL Rn_SingleInstance_ ( Rn_GridCompRun1_, i, &
                               gcRn%gcs(i), w_c, impChem, expChem, &
                               nymd, nhms, cdt, status )
-    VERIFY_(status)
+    _VERIFY(status)
    END DO
 
  END SUBROUTINE Rn_GridCompRun
@@ -405,7 +405,7 @@ CONTAINS
     CALL Rn_SingleInstance_ ( Rn_GridCompFinalize1_, i, &
                               gcRn%gcs(i), w_c, impChem, expChem, &
                               nymd, nhms, cdt, status )
-    VERIFY_(status)
+    _VERIFY(status)
    END DO
 
    DEALLOCATE( gcRn%gcs, STAT=status )    
@@ -432,9 +432,9 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
        VLOCATION  = MAPL_VLocationNone,   &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
 
- RETURN_(ESMF_SUCCESS)
+ _RETURN(ESMF_SUCCESS)
 
  end subroutine RN_GridCompSetServices1_
 
@@ -530,20 +530,20 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
    IF( nbeg /= nend ) THEN
     IF(MAPL_AM_I_ROOT()) PRINT *, TRIM(Iam)//": Must have only 1 bin at the single instance level"
     status = 1
-    VERIFY_(status)
+    _VERIFY(status)
    END IF
 
 !  Load resource file
 !  ------------------
    CALL I90_loadf ( TRIM(rcfilen), status )
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! Run-time debug switch
 ! ---------------------
    CALL I90_label ( 'DEBUG:', status )
-   VERIFY_(status)
+   _VERIFY(status)
    n = I90_gint ( status )
-   VERIFY_(status)
+   _VERIFY(status)
    IF(n /= 0) THEN
     gcRn%DebugIsOn = .TRUE.
    ELSE
@@ -554,18 +554,18 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
 !  --------
    ALLOCATE( gcRn%RnsfcFlux(i1:i2,j1:j2), gcRn%regionMask(i1:i2,j1:j2), &
 	     gcRn%ScheryEmission(i1:i2,j1:j2), STAT=status )
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  Obtain half life.  Unit must be "years", "days", or "seconds".
 !  --------------------------------------------------------------
    CALL I90_label ( 'HalfLife:', status )
-   VERIFY_(status)
+   _VERIFY(status)
    gcRn%halfLife = I90_gfloat ( status )
-   VERIFY_(status)
+   _VERIFY(status)
    CALL I90_label ( 'HalfLifeUnit:', status )
-   VERIFY_(status)
+   _VERIFY(status)
    CALL I90_gtoken( gcRn%halfLifeUnit, status )
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  Validate the specified half-life and units, and find
 !  the constant needed to convert half-life to seconds.
@@ -586,11 +586,11 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
    IF( .NOT. unitOK ) THEN
     IF(MAPL_AM_I_ROOT()) PRINT *, TRIM(Iam)//": Invalid unit specified for radon half-life."
     status = 1
-    VERIFY_(status)
+    _VERIFY(status)
    END IF
    IF(gcRn%halfLife <= 0.00) THEN
     IF(MAPL_AM_I_ROOT()) PRINT *, TRIM(Iam)//": Radon half-life must be greater than zero."
-    VERIFY_(status)
+    _VERIFY(status)
    END IF
 
 !  Compute the decay constant (inverse seconds) from the half-life:
@@ -601,9 +601,9 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
 !  Grab the region string.
 !  -----------------------
    CALL I90_label ( 'Rn_regions_indices:', status )
-   VERIFY_(status)
+   _VERIFY(status)
    CALL I90_gtoken( gcRn%regionsString, status )
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  Is this instantiation a global case?
 !  -----------------------------------
@@ -741,7 +741,7 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
 !  Get the region mask
 !  -------------------
    call MAPL_GetPointer(impChem,ptr2d,'Rn_regionMask',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    gcRn%regionMask=ptr2d
 
 !  It requires 1 bin
@@ -749,11 +749,11 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
    IF ( nbeg /= nend ) THEN
     IF(MAPL_AM_I_ROOT()) PRINT *, TRIM(Iam)//": Must have only 1 bin at the single instance level"
     status = 1
-    VERIFY_(status)
+    _VERIFY(status)
    END IF
 
    call MAPL_GetPointer(impChem, ptr2d, 'Rn_EMISSION'//iNAME,rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    gcRn%ScheryEmission = ptr2d
 
 !  Conversion factor: mBq m^{-2} to atoms m^{-2} s^{-1}
@@ -764,18 +764,18 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
 !  ----------------------------
    ALLOCATE(pe(i1:i2,j1:j2,km+1), p(i1:i2,j1:j2,km), nd(i1:i2,j1:j2,km), &
             dZ(i1:i2,j1:j2,km), F(i1:i2,j1:j2), mask(i1:i2,j1:j2), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  Get imports
 !  -----------
    CALL MAPL_GetPointer( impChem,	T,	'T', RC=status ) 
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer( impChem,     zle,    'ZLE', RC=status ) 
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer( impChem,   soilT, 'TSOIL1', RC=status ) 
-   VERIFY_(status)
+   _VERIFY(status)
    CALL MAPL_GetPointer( impChem, fracIce,  'FRACI', RC=status ) 
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  Layer thicknesses.  ZLE(:,:,0:km).
 !  ----------------------------------
@@ -830,7 +830,7 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
 !  Find land boxes from regional mask file.
 !  ----------------------------------------
    CALL setLandMask(status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 !  For the global intantiation, include ocean emissions.
 !  -----------------------------------------------------
@@ -915,7 +915,7 @@ subroutine RN_GridCompSetServices1_(  gc, chemReg, iname, rc)
 !  Housekeeping
 !  ------------
    DEALLOCATE(F, mask, dZ, nd, p, pe, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
    RETURN
 
@@ -931,13 +931,13 @@ CONTAINS
    rc = 0
    k = 32
    ALLOCATE(regionNumbers(k), flag(k), STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! Obtain region numbers from delimited list of integers
 ! -----------------------------------------------------
    regionNumbers(:) = 0
    CALL Chem_UtilExtractIntegers(gcRn%regionsString, k, regionNumbers, RC=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! How many integers were found?
 ! -----------------------------
@@ -945,7 +945,7 @@ CONTAINS
    WHERE(regionNumbers(:) == 0) flag(:) = 0
    k = SUM(flag)
    DEALLOCATE(flag, STAT=status)
-   VERIFY_(status)
+   _VERIFY(status)
 
 ! Set local mask to 1 where gridMask matches each integer (within precision!).
 ! ----------------------------------------------------------------------------
@@ -1014,7 +1014,7 @@ CONTAINS
    rc = 0
 
    DEALLOCATE ( gcRn%RnsfcFlux,  gcRn%regionMask, gcRn%ScheryEmission, STAT=status )
-   VERIFY_(status)
+   _VERIFY(status)
 
    RETURN
 

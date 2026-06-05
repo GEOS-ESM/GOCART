@@ -733,7 +733,7 @@ contains
          !    !$omp critical (DU2G_2)
          !    if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
          !    !$omp end critical (DU2G_2)
-         !    VERIFY_(status)
+         !    _VERIFY(status)
          ! end if
          ! zle is an edge variable and is expected to be 0-based
          block

@@ -45,7 +45,7 @@ contains
         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, __RC__)
 
         call ESMF_UserCompSetInternalState(gc, internal_name, wrap, status)
-        VERIFY_(status)
+        _VERIFY(status)
 
         ! add children
         gocart = MAPL_AddChild(gc, name='GOCART2G', ss=GOCART2G_SetServices, __RC__)
@@ -85,7 +85,7 @@ contains
         call get_NumBands(gc, __RC__)
 
         call ESMF_UserCompGetInternalState(gc, internal_name, wrap, status)
-        VERIFY_(status)
+        _VERIFY(status)
         self => wrap%ptr
 
         call ESMF_GridCompGet(gc, gridIsPresent=gridIsPresent, __RC__)
@@ -185,7 +185,7 @@ contains
 
         if (itemCount > 0) then
            allocate(itemNameList(itemCount), itemTypeList(itemCount), stat=status)
-           VERIFY_(status)
+           _VERIFY(status)
 
            call ESMF_StateGet(state, itemNameList=itemNameList, &
                 itemTypeList=itemTypeList, __RC__)
@@ -201,7 +201,7 @@ contains
            end do
 
            deallocate(itemNameList, itemTypeList, stat=status)
-           VERIFY_(status)
+           _VERIFY(status)
         end if
 
         _RETURN(_SUCCESS)

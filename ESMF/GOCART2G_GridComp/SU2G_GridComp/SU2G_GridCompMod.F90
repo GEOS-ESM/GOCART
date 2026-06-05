@@ -377,7 +377,7 @@ contains
 !   ----------------------------------
     call MAPL_GenericSetServices (GC, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine SetServices
 
@@ -456,7 +456,7 @@ contains
 !   Get my internal private state
 !   -----------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Get dimensions
@@ -686,7 +686,7 @@ contains
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Set klid and Set internal values to 0 above klid
@@ -696,7 +696,7 @@ contains
     call MAPL_GetPointer (internal, NAME='SO4', ptr=ptr3d_int, __RC__)
     call setZeroKlid (self%km, self%klid, ptr3d_int)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run0
 
@@ -756,7 +756,7 @@ contains
        call Run1 (GC, import, export, clock, __RC__)
     end if
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run
 
@@ -839,7 +839,7 @@ contains
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Extract nymd(yyyymmdd) from clock
@@ -944,7 +944,7 @@ contains
                                 rc   = status)
            if ( status /= 0 ) then
               if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
-              VERIFY_(status)
+              _VERIFY(status)
            end if
 
        call SUvolcanicEmissions (workspace%nVolc, workspace%vStart, workspace%vEnd, workspace%vSO2, workspace%vElev, &
@@ -965,7 +965,7 @@ contains
                                 rc   = status)
            if ( status /= 0 ) then
               if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
-              VERIFY_(status)
+              _VERIFY(status)
            end if
 
        call SUvolcanicEmissions (workspace%nVolcE, workspace%vStartE, workspace%vEndE, workspace%vSO2E, workspace%vElevE, &
@@ -1039,7 +1039,7 @@ contains
                                 rc   = status)
           if ( status /= 0 ) then
              if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
-             VERIFY_(status)
+             _VERIFY(status)
           end if
 
         call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
@@ -1050,7 +1050,7 @@ contains
         SO4 = SO4 + self%cdt * MAPL_GRAV / delp * emissions_point
      end if
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run1
 
@@ -1139,7 +1139,7 @@ contains
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Set klid and Set internal values to 0 above klid
@@ -1272,7 +1272,7 @@ contains
                             DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA,extcoef=SUEXTCOEFRH80,&
                             scacoef = SUSCACOEFRH80, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
 
   end subroutine Run2
@@ -1317,7 +1317,7 @@ contains
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'SU2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Update interal data pointers with ExtData
@@ -1326,7 +1326,7 @@ contains
     call MAPL_GetPointer (import, NAME='climSO4', ptr=ptr3d_imp, __RC__)
     ptr3d_int = ptr3d_imp
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run_data
 
@@ -1450,7 +1450,7 @@ contains
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
     deallocate(q_4d, __STAT__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   contains
 
@@ -1490,7 +1490,7 @@ contains
 
     end do
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
     end subroutine mie_
 
@@ -1602,7 +1602,7 @@ contains
 
     deallocate(q_4d, __STAT__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
 

@@ -334,13 +334,13 @@ contains
 !   Store internal state in GC
 !   --------------------------
     call ESMF_UserCompSetInternalState ( GC, 'CA2G_GridComp', wrap, STATUS )
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
 
 !   Set generic services
 !   ----------------------------------
     call MAPL_GenericSetServices (GC, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine SetServices
 
@@ -419,7 +419,7 @@ contains
 !   Get my internal private state
 !   -----------------------------
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Get dimensions
@@ -590,7 +590,7 @@ contains
     call ESMF_MethodAdd (aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, __RC__)
     call ESMF_MethodAdd (aero, label='get_mixR', userRoutine=get_mixR, __RC__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Initialize
 
@@ -645,7 +645,7 @@ contains
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Set klid and Set internal values to 0 above klid
@@ -655,7 +655,7 @@ contains
     call setZeroKlid (self%km, self%klid, intPtr_phobic)
     call setZeroKlid (self%km, self%klid, intPtr_philic)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run0
 
@@ -714,7 +714,7 @@ contains
        call Run1 (GC, import, export, clock, __RC__)
     end if
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run
 
@@ -805,7 +805,7 @@ contains
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
     allocate(emissions_point, mold=delp,  __STAT__)
@@ -943,7 +943,7 @@ contains
                 !$omp critical (CA_3)
                 if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
                 !$omp end critical (CA_3)
-                VERIFY_(status)
+                _VERIFY(status)
             end if
 
         call updatePointwiseEmissions (self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
@@ -954,7 +954,7 @@ contains
        intPtr_philic = intPtr_philic + (1-self%fHydrophobic) * self%cdt * MAPL_GRAV / delp * emissions_point
     end if
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run1
 
@@ -1039,7 +1039,7 @@ contains
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Set klid and Set internal values to 0 above klid
@@ -1199,7 +1199,7 @@ contains
                              extcoef=EXTCOEFRH80, scacoef=SCACOEFRH80, NO3nFlag=.false., __RC__)
 
     deallocate(RH20,RH80)
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run2
 
@@ -1254,7 +1254,7 @@ contains
 !   Get my private internal state
 !   ------------------------------
     call ESMF_UserCompGetInternalState(GC, 'CA2G_GridComp', wrap, STATUS)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     self => wrap%ptr
 
 !   Update internal data pointers with ExtData
@@ -1268,7 +1268,7 @@ contains
     call MAPL_GetPointer (import, NAME='clim'//trim(GCsuffix)//'philic', ptr=ptr3d_imp, __RC__)
     ptr3d_int_philic = ptr3d_imp
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine Run_data
 
@@ -1391,7 +1391,7 @@ contains
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
     deallocate(q_4d, __STAT__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   contains
 
@@ -1430,7 +1430,7 @@ contains
 
     end do
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
     end subroutine mie_
 
@@ -1541,7 +1541,7 @@ contains
 
     deallocate(q_4d, __STAT__)
 
-    RETURN_(ESMF_SUCCESS)
+    _RETURN(ESMF_SUCCESS)
 
   end subroutine monochromatic_aerosol_optics
 

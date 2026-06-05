@@ -124,7 +124,7 @@ CONTAINS
     etaGrid = grid_manager%make_grid(                                                 &
                    LatLonGridFactory(im_world=IM_World, jm_world=JM_World, lm=LM_World, &
                    nx=NX, ny=NY, pole='PC', dateline= 'DC', rc = status))
-    VERIFY_(status)
+    _VERIFY(status)
 
 
 !   Validate grid

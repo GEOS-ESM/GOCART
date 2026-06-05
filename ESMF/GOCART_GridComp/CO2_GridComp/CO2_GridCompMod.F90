@@ -105,14 +105,14 @@ CONTAINS
 !  Load resource file
 !  ------------------
    cfg = ESMF_ConfigCreate(rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    call ESMF_ConfigLoadFile(cfg,TRIM(rcbasen)//'.rc',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
    call ESMF_ConfigGetAttribute(cfg, value=doingCMS, label='CMS_EMIS:', rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    call ESMF_ConfigGetAttribute(cfg, value=ocnFlux, label='OCN_FLUX_CALC:', default= 0, rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
    call MAPL_AddImportSpec(GC,           &
         SHORT_NAME = 'CO2_regionMask',   &
@@ -122,7 +122,7 @@ CONTAINS
         VLOCATION  = MAPL_VLocationNone, &
         RESTART    = MAPL_RestartSkip,   &
         RC         = STATUS)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
    if (doingCMS == 0) then 
       call MAPL_AddImportSpec(GC,           &
@@ -133,7 +133,7 @@ CONTAINS
            VLOCATION  = MAPL_VLocationNone, &
            RESTART    = MAPL_RestartSkip,   &
            RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       call MAPL_AddImportSpec(GC,           &
            SHORT_NAME = 'CO2_FF',           &
            LONG_NAME  = 'source species'  , &
@@ -142,7 +142,7 @@ CONTAINS
            VLOCATION  = MAPL_VLocationNone, &
            RESTART    = MAPL_RestartSkip,   &
            RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       call MAPL_AddImportSpec(GC,           &
            SHORT_NAME = 'CO2_NEP',          &
            LONG_NAME  = 'source species'  , &
@@ -151,7 +151,7 @@ CONTAINS
            VLOCATION  = MAPL_VLocationNone, &
            RESTART    = MAPL_RestartSkip,   &
            RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       call MAPL_AddImportSpec(GC,           &
            SHORT_NAME = 'CO2_OCN',          &
            LONG_NAME  = 'source species'  , &
@@ -160,7 +160,7 @@ CONTAINS
            VLOCATION  = MAPL_VLocationNone, &
            RESTART    = MAPL_RestartSkip,   &
            RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
 
    else
       call MAPL_AddImportSpec(GC,           &
@@ -171,7 +171,7 @@ CONTAINS
            VLOCATION  = MAPL_VLocationNone, &
            RESTART    = MAPL_RestartSkip,   &
            RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       call MAPL_AddImportSpec(GC,           &
            SHORT_NAME = 'CO2_CMS_FF',       &
            LONG_NAME  = 'source species'  , &
@@ -180,7 +180,7 @@ CONTAINS
            VLOCATION  = MAPL_VLocationNone, &
            RESTART    = MAPL_RestartSkip,   &
            RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       call MAPL_AddImportSpec(GC,           &
            SHORT_NAME = 'CO2_CMS_NEP',      &
            LONG_NAME  = 'source species'  , &
@@ -189,7 +189,7 @@ CONTAINS
            VLOCATION  = MAPL_VLocationNone, &
            RESTART    = MAPL_RestartSkip,   &
            RC         = STATUS)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
 
       if (ocnFlux /=0) then
          call MAPL_AddImportSpec(GC,           &
@@ -200,7 +200,7 @@ CONTAINS
               VLOCATION  = MAPL_VLocationNone, &
               RESTART    = MAPL_RestartSkip,   &
               RC         = STATUS)
-              VERIFY_(STATUS)
+              _VERIFY(STATUS)
          call MAPL_AddImportSpec(GC,           &
               SHORT_NAME = 'CO2_CMS_S',        &
               LONG_NAME  = 'source species'  , &
@@ -209,7 +209,7 @@ CONTAINS
               VLOCATION  = MAPL_VLocationNone, &
               RESTART    = MAPL_RestartSkip,   &
               RC         = STATUS)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
          call MAPL_AddImportSpec(GC,           &
               SHORT_NAME = 'CO2_CMS_PICE',     &
               LONG_NAME  = 'source species'  , &
@@ -218,7 +218,7 @@ CONTAINS
               VLOCATION  = MAPL_VLocationNone, &
               RESTART    = MAPL_RestartSkip,   &
               RC         = STATUS)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
          call MAPL_AddImportSpec(GC,           &
               SHORT_NAME = 'CO2_CMS_PCO2',     &
               LONG_NAME  = 'source species'  , &
@@ -227,7 +227,7 @@ CONTAINS
               VLOCATION  = MAPL_VLocationNone, &
               RESTART    = MAPL_RestartSkip,   &
               RC         = STATUS)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
  
       else
          call MAPL_AddImportSpec(GC,           &
@@ -238,11 +238,11 @@ CONTAINS
               VLOCATION  = MAPL_VLocationNone, &
               RESTART    = MAPL_RestartSkip,   &
               RC         = STATUS)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
       end if
    end if
 
-   RETURN_(ESMF_SUCCESS)
+   _RETURN(ESMF_SUCCESS)
 
    end subroutine CO2_GridCompSetServices
 
@@ -584,7 +584,7 @@ CONTAINS
 !  Retreive mask
 !  -------------
    call MAPL_GetPointer(impChem,ptr2d,'CO2_regionMask',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    gcCO2%regionMask=ptr2d
 
    nbins = w_c%reg%n_CO2;  nbeg  = w_c%reg%i_CO2; nend  = w_c%reg%j_CO2
@@ -605,25 +605,25 @@ CONTAINS
 !     Biomass burning
 !     ---------------
       call MAPL_GetPointer(impChem, ptr2d, 'CO2_BIOMASS',rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       gcCO2%eCO2_BB = ptr2d
 
 !     Fossil fuel emissions
 !     ---------------------
       call MAPL_GetPointer(impChem, ptr2d, 'CO2_FF',rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       gcCO2%eCO2_FF = ptr2d
 
 !     Biosphere flux
 !     --------------
       call MAPL_GetPointer(impChem, ptr2d, 'CO2_NEP',rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       gcCO2%eCO2_NEP = ptr2d
 
 !     Ocean flux
 !     ----------
       call MAPL_GetPointer(impChem, ptr2d, 'CO2_OCN',rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       gcCO2%eCO2_OCN = ptr2d
 
 !     Bian says that we need to adjust the uptake flux of CO2 in the
@@ -638,33 +638,33 @@ CONTAINS
     ELSE ! TYPE OF EMISS IS CMS			     
 
       call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_BIOMASS',rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       gcCO2%eCO2_BB = ptr2d
       
       call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_FF',rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       gcCO2%eCO2_FF = ptr2d
 
       call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_NEP',rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
       gcCO2%eCO2_NEP = ptr2d
 
       IF( gcCO2%OCN_FLUX_CALC )  THEN
          call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_T',rc=status)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
          gcCO2%sst = ptr2d
          call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_S',rc=status)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
          gcCO2%sss = ptr2d
          call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_PICE',rc=status)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
          gcCO2%pice = ptr2d
          call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_PCO2',rc=status)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
          gcCO2%pco2 = ptr2d
       else
          call MAPL_GetPointer(impChem, ptr2d, 'CO2_CMS_OCN',rc=status)
-         VERIFY_(STATUS)
+         _VERIFY(STATUS)
          gcCO2%eCO2_OCN = ptr2d
       end if
 

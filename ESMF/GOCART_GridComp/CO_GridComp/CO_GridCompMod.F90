@@ -134,14 +134,14 @@ CONTAINS
 !  Load resource file
 !  ------------------
    cfg = ESMF_ConfigCreate(rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    call ESMF_ConfigLoadFile(cfg,TRIM(rcbasen)//'.rc',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
 !  Parse resource file
 !  -------------------
    n = ESMF_ConfigGetLen(cfg,label='CO_instances:',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
 
 !  We cannot have fewer instances than the number of
 !   CO bins in the registry (it is OK to have less, though)
@@ -160,10 +160,10 @@ CONTAINS
 !  Record name of each instance
 !  ----------------------------
    call ESMF_ConfigFindLabel(cfg,'CO_instances:',rc=status)
-   VERIFY_(STATUS)
+   _VERIFY(STATUS)
    do i = 1, n
       call ESMF_ConfigGetAttribute(cfg,name,rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
                                             ! resource file name
       IF(TRIM(name) == "full" ) THEN
        name = " "              ! blank instance name for full (1)
@@ -171,10 +171,10 @@ CONTAINS
        name = TRIM(name)       ! instance name for others
       END IF
       call CO_GridCompSetServices1_(gc,chemReg,name,rc=status)
-      VERIFY_(STATUS)
+      _VERIFY(STATUS)
    end do
 
-   RETURN_(ESMF_SUCCESS)
+   _RETURN(ESMF_SUCCESS)
 
    end subroutine CO_GridCompSetServices
 
@@ -471,7 +471,7 @@ CONTAINS
        VLOCATION  = MAPL_VLocationCenter, &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
   call MAPL_AddImportSpec(GC,             &
        SHORT_NAME = 'CO_CH4'//iname,      &
        LONG_NAME  = 'source species'  ,   &
@@ -480,7 +480,7 @@ CONTAINS
        VLOCATION  = MAPL_VLocationCenter, &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_BF'//iname,     &
        LONG_NAME  = 'source species'  , &
@@ -489,7 +489,7 @@ CONTAINS
        VLOCATION  = MAPL_VLocationNone, &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_FS'//iname,     &
        LONG_NAME  = 'source species'  , &
@@ -498,7 +498,7 @@ CONTAINS
        VLOCATION  = MAPL_VLocationNone, &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_ISOP'//iname,   &
        LONG_NAME  = 'source species'  , &
@@ -507,7 +507,7 @@ CONTAINS
        VLOCATION  = MAPL_VLocationNone, &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_NVOC'//iname,   &
        LONG_NAME  = 'source species'  , &
@@ -516,7 +516,7 @@ CONTAINS
        VLOCATION  = MAPL_VLocationNone, &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
   call MAPL_AddImportSpec(GC, &
        SHORT_NAME = 'CO_TERP'//iname,   &
        LONG_NAME  = 'source species'  , &
@@ -525,7 +525,7 @@ CONTAINS
        VLOCATION  = MAPL_VLocationNone, &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
   call MAPL_AddImportSpec(GC,           &
        SHORT_NAME = 'CO_BIOMASS'//iname,&
        LONG_NAME  = 'source species'  , &
@@ -534,9 +534,9 @@ CONTAINS
        VLOCATION  = MAPL_VLocationNone, &
        RESTART    = MAPL_RestartSkip,     &
        RC         = STATUS)
-  VERIFY_(STATUS)
+  _VERIFY(STATUS)
 
-  RETURN_(ESMF_SUCCESS) 
+  _RETURN(ESMF_SUCCESS) 
 
  end subroutine CO_GridCompSetServices1_
 
@@ -863,50 +863,50 @@ CONTAINS
 !   Harvard biomass burning climatology, is in molecules cm^-2 s^-1
 !   ---------------------------------------------------------------
     call MAPL_GetPointer(impChem, ptr2d, 'CO_BIOMASS'//iNAME,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     gcCO%eCO_bioburn = ptr2d
 
 ! Background OH, for loss term
 ! ----------------------------
     call MAPL_GetPointer(impChem, ptr3d, 'CO_OH'//iNAME,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     gcCO%OHnd = ptr3d
 
 ! Background CH4, for source term.
 ! NOTE: Return zeroes in all but the global instantiation.
 ! --------------------------------------------------------
     call MAPL_GetPointer(impChem, ptr3d, 'CO_CH4'//iNAME,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     gcCO%CH4 = ptr3d
 
 ! Biofuel source
 ! --------------
     call MAPL_GetPointer(impChem, ptr2d, 'CO_BF'//iNAME,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     gcCO%eCO_biofuel = ptr2d
 
 ! Fossil fuel source
 ! ------------------
     call MAPL_GetPointer(impChem, ptr2d, 'CO_FS'//iNAME,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     gcCO%eCO_fosfuel = ptr2d
 
 ! Isoprene source
 ! ---------------
     call MAPL_GetPointer(impChem, ptr2d, 'CO_ISOP'//iNAME,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     gcCO%eCO_iso = ptr2d
 
 ! VOC source
 ! ----------
     call MAPL_GetPointer(impChem, ptr2d, 'CO_NVOC'//iNAME,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     gcCO%eCO_mon = ptr2d
 
 ! Monoterpene source
 ! ------------------
     call MAPL_GetPointer(impChem, ptr2d, 'CO_TERP'//iNAME,rc=status)
-    VERIFY_(STATUS)
+    _VERIFY(STATUS)
     gcCO%eCO_mtn = ptr2d
 
    IF(gcCO%DBG) THEN
