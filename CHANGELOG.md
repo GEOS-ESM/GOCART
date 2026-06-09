@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Changed
+- Updated MAPL\_GridCompAddSpec calls to new interface
 - Pushed rename of MAPL entities down into MAPL.
 - Remove direct `MAPL.generic3g` CMake link dependency from GA_Environment,
   SS2G_GridComp, and DU2G_GridComp (closes #451). The target has been renamed

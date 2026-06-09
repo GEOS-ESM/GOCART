@@ -295,7 +295,7 @@ contains
            standard_name="aerosols_from_"//trim(comp_name), &
            units="kg kg-1", &
            dims="xyz", &
-           vstagger=VERTICAL_STAGGER_CENTER, &
+           vertical_stagger=VERTICAL_STAGGER_CENTER, &
            itemtype=MAPL_STATEITEM_STATE, _RC)
 
       ! This bundle is needed by surface for snow albedo modification
@@ -306,7 +306,7 @@ contains
            short_name=trim(comp_name)//"_AERO_DP", &
            standard_name="aerosol_deposition_from_"//trim(comp_name), &
            dims="xy", &
-           vstagger=VERTICAL_STAGGER_NONE, &
+           vertical_stagger=VERTICAL_STAGGER_NONE, &
            units="kg m-2 s-1", &
            itemtype=MAPL_STATEITEM_FIELDBUNDLE, _RC)
 
