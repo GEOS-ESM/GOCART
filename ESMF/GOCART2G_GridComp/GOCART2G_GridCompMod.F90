@@ -153,7 +153,7 @@ contains
               short_name=child%name//"_AERO", &
               standard_name="aerosol_mass_mixing_ratios_ng",  &
               dims="xyz", &
-              vstagger=VERTICAL_STAGGER_CENTER, &
+              vertical_stagger=VERTICAL_STAGGER_CENTER, &
               units="kg kg-1", &
               itemtype=MAPL_STATEITEM_STATE, &
               _RC)
@@ -166,7 +166,7 @@ contains
               short_name=child%name//"_AERO", &
               standard_name="aerosol_mass_mixing_ratios_ng",  &
               dims="xyz", &
-              vstagger=VERTICAL_STAGGER_CENTER, &
+              vertical_stagger=VERTICAL_STAGGER_CENTER, &
               units="kg kg-1", &
               itemtype=MAPL_STATEITEM_STATE, &
               _RC)
@@ -177,7 +177,7 @@ contains
            short_name="AERO", &
            standard_name="aerosol_mass_mixing_ratios_ng",  &
            dims="xyz", &
-           vstagger=VERTICAL_STAGGER_CENTER, &
+           vertical_stagger=VERTICAL_STAGGER_CENTER, &
            units="kg kg-1", &
            itemtype=MAPL_STATEITEM_STATE, &
            _RC)
@@ -193,7 +193,7 @@ contains
               short_name=child%name//"_AERO_DP", &
               standard_name="aerosol_deposition_ng",  &
               dims="xy", &
-              vstagger=VERTICAL_STAGGER_NONE, &
+              vertical_stagger=VERTICAL_STAGGER_NONE, &
               units="kg m-2 s-1", &
               itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
               _RC)
@@ -206,7 +206,7 @@ contains
               short_name=child%name//"_AERO_DP", &
               standard_name="aerosol_deposition_ng",  &
               dims="xy", &
-              vstagger=VERTICAL_STAGGER_NONE, &
+              vertical_stagger=VERTICAL_STAGGER_NONE, &
               units="kg m-2 s-1", &
               itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
               _RC)
@@ -217,7 +217,7 @@ contains
            short_name="AERO_DP", &
            standard_name="aerosol_deposition_ng",  &
            dims="xy", &
-           vstagger=VERTICAL_STAGGER_NONE, &
+           vertical_stagger=VERTICAL_STAGGER_NONE, &
            units="kg m-2 s-1", &
            itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
            _RC)

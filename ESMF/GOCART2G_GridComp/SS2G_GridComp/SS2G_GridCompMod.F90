@@ -154,9 +154,9 @@ contains
               standard_name='Sea Salt Mixing Ratio all bins', &
               units='kg kg-1', &
               dims='xyz', &
-              vstagger=VERTICAL_STAGGER_CENTER, &
-              ! restart=MAPL_RestartOptional, &
-              ungridded_dims=[ungrd_nbins], &
+              vertical_stagger=VERTICAL_STAGGER_CENTER, &
+              ! restart_mode=MAPL_RestartOptional, &
+              ungridded_dim_array=[ungrd_nbins], &
               ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
               add_to_export=.true., _RC)
 
@@ -165,7 +165,7 @@ contains
               short_name='DEEP_LAKES_MASK', &
               units='1', &
               dims='xy', &
-              vstagger=VERTICAL_STAGGER_NONE, &
+              vertical_stagger=VERTICAL_STAGGER_NONE, &
               add_to_export=.false., &
               standard_name='Deep Lakes Mask', &
               _RC)
@@ -177,8 +177,8 @@ contains
               STANDARD_NAME='air_pressure', &
               UNITS='Pa', &
               DIMS='xyz', &
-              vstagger=VERTICAL_STAGGER_EDGE, &
-              RESTART=MAPL_RESTART_SKIP, &
+              vertical_stagger=VERTICAL_STAGGER_EDGE, &
+              restart_mode=MAPL_RESTART_SKIP, &
               _RC)
 
          ! RH: is between 0 and 1
@@ -188,8 +188,8 @@ contains
               STANDARD_NAME='Rel_Hum_after_moist', &
               UNITS='1', &
               DIMS = 'xyz', &
-              VSTAGGER=VERTICAL_STAGGER_CENTER, &
-              RESTART=MAPL_RESTART_SKIP, &
+              vertical_stagger=VERTICAL_STAGGER_CENTER, &
+              restart_mode=MAPL_RESTART_SKIP, &
               _RC)
 
          do i = 1, self%nbins
@@ -199,9 +199,9 @@ contains
                  SHORT_NAME='climss'//trim(field_name), &
                  STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
-                 RESTART=MAPL_RESTART_SKIP, &
+                 restart_mode=MAPL_RESTART_SKIP, &
                  DIMS='xyz', &
-                 VSTAGGER=VERTICAL_STAGGER_CENTER, _RC)
+                 vertical_stagger=VERTICAL_STAGGER_CENTER, _RC)
 
             ! dry deposition
             call MAPL_GridCompAddSpec(gc, &
@@ -210,8 +210,8 @@ contains
                  STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
-                 VSTAGGER=VERTICAL_STAGGER_CENTER, &
-                 RESTART=MAPL_RESTART_SKIP, &
+                 vertical_stagger=VERTICAL_STAGGER_CENTER, &
+                 restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! wet deposition
@@ -221,8 +221,8 @@ contains
                  STANDARD_NAME='Sea Salt wet removal (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
-                 VSTAGGER=VERTICAL_STAGGER_CENTER, &
-                 RESTART=MAPL_RESTART_SKIP, &
+                 vertical_stagger=VERTICAL_STAGGER_CENTER, &
+                 restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! gravitational settling
@@ -232,8 +232,8 @@ contains
                  STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
-                 VSTAGGER=VERTICAL_STAGGER_CENTER, &
-                 RESTART=MAPL_RESTART_SKIP, &
+                 vertical_stagger=VERTICAL_STAGGER_CENTER, &
+                 restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! convective scavenging
@@ -243,8 +243,8 @@ contains
                  STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
-                 VSTAGGER=VERTICAL_STAGGER_CENTER, &
-                 RESTART=MAPL_RESTART_SKIP, &
+                 vertical_stagger=VERTICAL_STAGGER_CENTER, &
+                 restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
          end do
       end if ! (data_driven)
@@ -263,7 +263,7 @@ contains
            SHORT_NAME=trim(comp_name)//"_AERO", &
            STANDARD_NAME="aerosols_from_"//trim(comp_name), &
            DIMS="xyz", &
-           VSTAGGER=VERTICAL_STAGGER_CENTER, &
+           vertical_stagger=VERTICAL_STAGGER_CENTER, &
            UNITS="kg kg-1", &
            ITEMTYPE=MAPL_STATEITEM_STATE, &
            _RC)
@@ -276,7 +276,7 @@ contains
            SHORT_NAME=trim(comp_name)//"_AERO_DP", &
            STANDARD_NAME="aerosol_deposition_from_"//trim(comp_name), &
            DIMS="xy", &
-           VSTAGGER=VERTICAL_STAGGER_NONE, &
+           vertical_stagger=VERTICAL_STAGGER_NONE, &
            UNITS="kg m-2 s-1", &
            ITEMTYPE=MAPL_STATEITEM_FIELDBUNDLE, &
            _RC)
