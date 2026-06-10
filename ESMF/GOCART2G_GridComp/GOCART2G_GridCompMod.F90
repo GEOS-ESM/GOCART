@@ -1180,7 +1180,6 @@ contains
    end subroutine create_instances_
 
    subroutine add_children__(gc, species, setservices, rc)
-      use MAPL, only: user_setservices
       type (ESMF_GridComp), intent(inout) :: gc
       type(Constituent), intent(inout) :: species
       external :: setservices
@@ -1194,7 +1193,7 @@ contains
          child_name = species%instances(iter)%name
          config_file = species%name // "_instance_" // child_name // ".yaml"
          hconfig = ESMF_HConfigCreate(filename=config_file, _RC)
-         call MAPL_GridCompAddChild(gc, child_name, user_setservices(setservices), hconfig, _RC)
+         call MAPL_GridCompAddChild(gc, child_name, setservices, hconfig, _RC)
          call ESMF_HConfigDestroy(hconfig, _RC)
       end do
 
