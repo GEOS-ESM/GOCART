@@ -15,9 +15,9 @@ module DU2G_GridCompMod
                    MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, &
                    MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
                    MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
-                   VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
-                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, UngriddedDim, &
-                   StrTemplate
+                   MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE, &
+                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, mapl_UngriddedDim, &
+                   mapl_StrTemplate
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use MAPL, only: MAPL_PackedDateCreate, &
                    MAPL_PackedTimeCreate
@@ -111,8 +111,8 @@ contains
       real :: DEFVAL
       logical :: data_driven = .true.
       integer :: num_threads
-      type(UngriddedDim) :: ungrd_nbins
-      type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      type(mapl_UngriddedDim) :: ungrd_nbins
+      type(mapl_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: status
 
       call MAPL_GridCompGet(gc, name=comp_name, _RC)
@@ -130,12 +130,12 @@ contains
       call self%GA_Environment%load_from_config(gc, _RC)
 
       ! Defined UngriddedDim items
-      ungrd_nbins = UngriddedDim(self%nbins, name="nbins", units="1")
-      ungrd_wavelengths_profile = UngriddedDim( &
+      ungrd_nbins = mapl_UngriddedDim(self%nbins, name="nbins", units="1")
+      ungrd_wavelengths_profile = mapl_UngriddedDim( &
            size(self%wavelengths_profile), &
            name="wavelengths_profile", &
            units="nm")
-      ungrd_wavelengths_vertint = UngriddedDim( &
+      ungrd_wavelengths_vertint = mapl_UngriddedDim( &
            size(self%wavelengths_vertint), &
            name="wavelengths_vertint", &
            units="nm")
@@ -295,7 +295,7 @@ contains
            standard_name="aerosols_from_"//trim(comp_name), &
            units="kg kg-1", &
            dims="xyz", &
-           vertical_stagger=VERTICAL_STAGGER_CENTER, &
+           vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
            itemtype=MAPL_STATEITEM_STATE, _RC)
 
       ! This bundle is needed by surface for snow albedo modification
@@ -306,7 +306,7 @@ contains
            short_name=trim(comp_name)//"_AERO_DP", &
            standard_name="aerosol_deposition_from_"//trim(comp_name), &
            dims="xy", &
-           vertical_stagger=VERTICAL_STAGGER_NONE, &
+           vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
            units="kg m-2 s-1", &
            itemtype=MAPL_STATEITEM_FIELDBUNDLE, _RC)
 
@@ -705,7 +705,7 @@ contains
       if (self%doing_point_emissions) then
          if (workspace%day_save /= idd) then
             workspace%day_save = idd
-            call StrTemplate( &
+            call mapl_StrTemplate( &
                  fname, self%point_emissions_srcfilen, xid='unknown', &
                  nymd=nymd, nhms=120000 )
             inquire(file=fname, exist=file_exists)
