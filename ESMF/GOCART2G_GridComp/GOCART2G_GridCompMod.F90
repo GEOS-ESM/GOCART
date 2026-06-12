@@ -13,8 +13,8 @@ module GOCART2G_GridCompMod
    use MAPL, only: MAPL_GridCompAddConnection, MAPL_GridCompGetResource, MAPL_GridCompReexport
    use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
    use MAPL, only: MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState
-   use MAPL, only: MAPL_RESTART_SKIP, VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE
-   use MAPL, only: MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet, UngriddedDim
+   use MAPL, only: MAPL_RESTART_SKIP, MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+   use MAPL, only: MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet, mapl_UngriddedDim
    use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
 
    use Chem_AeroGeneric
@@ -96,7 +96,7 @@ contains
       ! logical :: use_threads
       type(Instance), allocatable :: child
       character(len=:), allocatable :: child_items
-      type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      type(mapl_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: iter, status
 
       ! Wrap gridcomp's private state and store in gc
@@ -117,11 +117,11 @@ contains
       ! call MAPL_GridCompGetResource(gc, "use_threads", use_threads, default=.false., _RC)
 
       ! Defined UngriddedDim items
-      ungrd_wavelengths_profile = UngriddedDim( &
+      ungrd_wavelengths_profile = mapl_UngriddedDim( &
            size(self%wavelengths_profile), &
            name="wavelengths_profile", &
            units="nm")
-      ungrd_wavelengths_vertint = UngriddedDim( &
+      ungrd_wavelengths_vertint = mapl_UngriddedDim( &
            size(self%wavelengths_vertint), &
            name="wavelengths_vertint", &
            units="nm")
@@ -153,7 +153,7 @@ contains
               short_name=child%name//"_AERO", &
               standard_name="aerosol_mass_mixing_ratios_ng",  &
               dims="xyz", &
-              vertical_stagger=VERTICAL_STAGGER_CENTER, &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
               units="kg kg-1", &
               itemtype=MAPL_STATEITEM_STATE, &
               _RC)
@@ -166,7 +166,7 @@ contains
               short_name=child%name//"_AERO", &
               standard_name="aerosol_mass_mixing_ratios_ng",  &
               dims="xyz", &
-              vertical_stagger=VERTICAL_STAGGER_CENTER, &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
               units="kg kg-1", &
               itemtype=MAPL_STATEITEM_STATE, &
               _RC)
@@ -177,7 +177,7 @@ contains
            short_name="AERO", &
            standard_name="aerosol_mass_mixing_ratios_ng",  &
            dims="xyz", &
-           vertical_stagger=VERTICAL_STAGGER_CENTER, &
+           vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
            units="kg kg-1", &
            itemtype=MAPL_STATEITEM_STATE, &
            _RC)
@@ -193,7 +193,7 @@ contains
               short_name=child%name//"_AERO_DP", &
               standard_name="aerosol_deposition_ng",  &
               dims="xy", &
-              vertical_stagger=VERTICAL_STAGGER_NONE, &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
               units="kg m-2 s-1", &
               itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
               _RC)
@@ -206,7 +206,7 @@ contains
               short_name=child%name//"_AERO_DP", &
               standard_name="aerosol_deposition_ng",  &
               dims="xy", &
-              vertical_stagger=VERTICAL_STAGGER_NONE, &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
               units="kg m-2 s-1", &
               itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
               _RC)
@@ -217,7 +217,7 @@ contains
            short_name="AERO_DP", &
            standard_name="aerosol_deposition_ng",  &
            dims="xy", &
-           vertical_stagger=VERTICAL_STAGGER_NONE, &
+           vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
            units="kg m-2 s-1", &
            itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
            _RC)

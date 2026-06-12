@@ -16,8 +16,8 @@ module SS2G_GridCompMod
                    MAPL_GridCompGetResource, MAPL_GridCompGetInternalState, &
                    MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
                    MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
-                   VERTICAL_STAGGER_NONE, VERTICAL_STAGGER_CENTER, VERTICAL_STAGGER_EDGE, &
-                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, UngriddedDim
+                   MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE, &
+                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, mapl_UngriddedDim
    use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
    use GOCART2G_MieMod
    use Chem_AeroGeneric
@@ -92,8 +92,8 @@ contains
       logical :: data_driven=.true.
       real, allocatable :: emission_scale_res(:)
       class(Logger_t), pointer :: logger
-      type(UngriddedDim) :: ungrd_nbins
-      type(UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      type(mapl_UngriddedDim) :: ungrd_nbins
+      type(mapl_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: i, status
 
       call MAPL_GridCompGet(gc, logger=logger, name=comp_name, _RC)
@@ -108,12 +108,12 @@ contains
       call self%GA_Environment%load_from_config(gc, _RC)
 
       ! Defined UngriddedDim items
-      ungrd_nbins = UngriddedDim(self%nbins, name="nbins", units="1")
-      ungrd_wavelengths_profile = UngriddedDim( &
+      ungrd_nbins = mapl_UngriddedDim(self%nbins, name="nbins", units="1")
+      ungrd_wavelengths_profile = mapl_UngriddedDim( &
            size(self%wavelengths_profile), &
            name="wavelengths_profile", &
            units="nm")
-      ungrd_wavelengths_vertint = UngriddedDim( &
+      ungrd_wavelengths_vertint = mapl_UngriddedDim( &
            size(self%wavelengths_vertint), &
            name="wavelengths_vertint", &
            units="nm")
@@ -154,7 +154,7 @@ contains
               standard_name='Sea Salt Mixing Ratio all bins', &
               units='kg kg-1', &
               dims='xyz', &
-              vertical_stagger=VERTICAL_STAGGER_CENTER, &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
               ! restart_mode=MAPL_RestartOptional, &
               ungridded_dim_array=[ungrd_nbins], &
               ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
@@ -165,7 +165,7 @@ contains
               short_name='DEEP_LAKES_MASK', &
               units='1', &
               dims='xy', &
-              vertical_stagger=VERTICAL_STAGGER_NONE, &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
               add_to_export=.false., &
               standard_name='Deep Lakes Mask', &
               _RC)
@@ -177,7 +177,7 @@ contains
               STANDARD_NAME='air_pressure', &
               UNITS='Pa', &
               DIMS='xyz', &
-              vertical_stagger=VERTICAL_STAGGER_EDGE, &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_EDGE, &
               restart_mode=MAPL_RESTART_SKIP, &
               _RC)
 
@@ -188,7 +188,7 @@ contains
               STANDARD_NAME='Rel_Hum_after_moist', &
               UNITS='1', &
               DIMS = 'xyz', &
-              vertical_stagger=VERTICAL_STAGGER_CENTER, &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
               restart_mode=MAPL_RESTART_SKIP, &
               _RC)
 
@@ -201,7 +201,7 @@ contains
                  UNITS='kg kg-1 s-1', &
                  restart_mode=MAPL_RESTART_SKIP, &
                  DIMS='xyz', &
-                 vertical_stagger=VERTICAL_STAGGER_CENTER, _RC)
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, _RC)
 
             ! dry deposition
             call MAPL_GridCompAddSpec(gc, &
@@ -210,7 +210,7 @@ contains
                  STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
-                 vertical_stagger=VERTICAL_STAGGER_CENTER, &
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
                  restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
@@ -221,7 +221,7 @@ contains
                  STANDARD_NAME='Sea Salt wet removal (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
-                 vertical_stagger=VERTICAL_STAGGER_CENTER, &
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
                  restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
@@ -232,7 +232,7 @@ contains
                  STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
-                 vertical_stagger=VERTICAL_STAGGER_CENTER, &
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
                  restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
@@ -243,7 +243,7 @@ contains
                  STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
                  UNITS='kg kg-1 s-1', &
                  DIMS='xy', &
-                 vertical_stagger=VERTICAL_STAGGER_CENTER, &
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
                  restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
          end do
@@ -263,7 +263,7 @@ contains
            SHORT_NAME=trim(comp_name)//"_AERO", &
            STANDARD_NAME="aerosols_from_"//trim(comp_name), &
            DIMS="xyz", &
-           vertical_stagger=VERTICAL_STAGGER_CENTER, &
+           vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
            UNITS="kg kg-1", &
            ITEMTYPE=MAPL_STATEITEM_STATE, &
            _RC)
@@ -276,7 +276,7 @@ contains
            SHORT_NAME=trim(comp_name)//"_AERO_DP", &
            STANDARD_NAME="aerosol_deposition_from_"//trim(comp_name), &
            DIMS="xy", &
-           vertical_stagger=VERTICAL_STAGGER_NONE, &
+           vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
            UNITS="kg m-2 s-1", &
            ITEMTYPE=MAPL_STATEITEM_FIELDBUNDLE, &
            _RC)

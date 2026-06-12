@@ -13,7 +13,8 @@ module Chem_AeroGeneric
    use ESMF
    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return, &
                    MAPL_StateGetPointer, MAPL_FieldGet, MAPL_FieldCreate, MAPL_FieldBundleAdd, &
-                   VerticalStaggerLoc, VERTICAL_STAGGER_EDGE, VERTICAL_STAGGER_CENTER, UngriddedDims
+                   MAPL_VerticalStaggerLoc, MAPL_VERTICAL_STAGGER_EDGE, MAPL_VERTICAL_STAGGER_CENTER, &
+                   mapl_UngriddedDims
    ! USE Chem_MieMod2G
 
    implicit none
@@ -71,7 +72,7 @@ contains
                  geom, typekind_, &
                  name=field_name, &
                  num_levels=km+1, &
-                 vert_staggerloc=VERTICAL_STAGGER_EDGE, _RC)
+                 vert_staggerloc=MAPL_VERTICAL_STAGGER_EDGE, _RC)
          else if ((trim(field_name) == "FRLAND") .or. (trim(field_name) == "monochromatic_EXT")) then
             field = MAPL_FieldCreate(geom, typekind_, name=field_name, _RC)
          else
@@ -80,7 +81,7 @@ contains
                  geom, typekind_, &
                  name=field_name, &
                  num_levels=km, &
-                 vert_staggerloc=VERTICAL_STAGGER_CENTER, _RC)
+                 vert_staggerloc=MAPL_VERTICAL_STAGGER_CENTER, _RC)
          end if
          call ESMF_StateAdd(state, [field], _RC)
       end if
@@ -131,7 +132,7 @@ contains
       real, pointer :: ptr2d(:,:)
       character(len=ESMF_MAXSTR) :: bin_index
       character(:), allocatable :: units, stdname
-      type(VerticalStaggerLoc) :: vert_stagger
+      type(mapl_VerticalStaggerLoc) :: vert_stagger
       integer :: dim_count, iter, status
 
       ! Description: Adds deposition variables to deposition bundle
@@ -163,7 +164,7 @@ contains
                field2d = MAPL_FieldCreate( &
                     geom, typekind, &
                     name=trim(varname)//trim(bin_index), &
-                    ungridded_dims=UngriddedDims(), &
+                    ungridded_dims=mapl_UngriddedDims(), &
                     vert_staggerloc=vert_stagger, &
                     units=units, &
                     standard_name=stdname//' Bin '//trim(bin_index), &
