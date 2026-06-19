@@ -355,7 +355,7 @@ contains
       type(ESMF_Grid) :: grid
       type(ESMF_State) :: aero
       type(ESMF_FieldBundle) :: aero_dp
-      type(ESMF_Info) :: info
+      type(ESMF_Info) :: aero_info
       type(GOCART_State), pointer :: self
       character(len=ESMF_MAXSTR), allocatable :: aero_aci_modes(:)
       real :: maxclean, ccntuning
@@ -369,6 +369,7 @@ contains
 
       ! Fill AERO_RAD, AERO_ACI, and AERO_DP with the children's states
       call ESMF_StateGet(export, "AERO", aero, _RC)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
       call ESMF_StateGet(export, "AERO_DP", aero_dp, _RC)
 
       ! Add children's AERO states to GOCART2G's AERO states
@@ -386,6 +387,7 @@ contains
       call add_aero(aero, label="extinction_in_air_due_to_ambient_aerosol", label2="EXT", geom=geom, km=km, _RC)
       call add_aero(aero, label="single_scattering_albedo_of_ambient_aerosol", label2="SSA", geom=geom, km=km, _RC)
       call add_aero(aero, label="asymmetry_parameter_of_ambient_aerosol", label2="ASY", geom=geom, km=km, _RC)
+      ! TODO: pchakrab - this is suspect - are we retrieving info before setting it?
       call ESMF_InfoGet(aero_info, key="n_phase_function_moments_photolysis", value=nmom_, default=0, _RC)
       if (nmom_ > 0) then
          call add_aero(aero, &
@@ -405,15 +407,14 @@ contains
       call add_aero(aero, label="sum_of_internalState_aerosol_CA.br", label2="aerosolSumCA.br", geom=geom, km=km, _RC)
       call add_aero(aero, label="sum_of_internalState_aerosol_SU", label2="aerosolSumSU", geom=geom, km=km, _RC)
 
-      call ESMF_InfoGetFromHost(aero, info, _RC)
-      call ESMF_InfoSet(info, key="band_for_aerosol_optics", value=0, _RC)
-      call ESMF_InfoSet(info, key="use_photolysis_table", value=0, _RC)
-      call ESMF_InfoSet(info, key="wavelength_for_aerosol_optics", value=0., _RC)
-      call ESMF_InfoSet(info, key="n_phase_function_moments", value=0, _RC)
-      call ESMF_InfoSet(info, key="aerosolName", value="", _RC)
-      call ESMF_InfoSet(info, key="im", value=im, _RC)
-      call ESMF_InfoSet(info, key="jm", value=jm, _RC)
-      call ESMF_InfoSet(info, key="km", value=km, _RC)
+      call ESMF_InfoSet(aero_info, key="band_for_aerosol_optics", value=0, _RC)
+      call ESMF_InfoSet(aero_info, key="use_photolysis_table", value=0, _RC)
+      call ESMF_InfoSet(aero_info, key="wavelength_for_aerosol_optics", value=0., _RC)
+      call ESMF_InfoSet(aero_info, key="n_phase_function_moments", value=0, _RC)
+      call ESMF_InfoSet(aero_info, key="aerosolName", value="", _RC)
+      call ESMF_InfoSet(aero_info, key="im", value=im, _RC)
+      call ESMF_InfoSet(aero_info, key="jm", value=jm, _RC)
+      call ESMF_InfoSet(aero_info, key="km", value=km, _RC)
 
       ! Attach method to return sum of aerosols. Used in GAAS.
       call ESMF_MethodAdd(aero, label="get_mixRatioSum", userRoutine=get_mixRatioSum, _RC)
@@ -430,7 +431,7 @@ contains
       ! This attribute indicates if the aerosol optics method is implemented or not.
       ! Radiation will not call the aerosol optics method unless this attribute is
       ! explicitly set to true.
-      call ESMF_InfoSet(info, key="implements_aerosol_optics_method", value=.true., _RC)
+      call ESMF_InfoSet(aero_info, key="implements_aerosol_optics_method", value=.true., _RC)
 
       ! Begin adding necessary aerosol cloud interaction information
       aero_aci_modes =  [ &
@@ -440,15 +441,15 @@ contains
            "sulforg01", "sulforg02", "sulforg03", &
            "bcphilic ", "ocphilic ", "brcphilic"]
 
-      call ESMF_InfoSet(info, key="aerosol_modes", values=aero_aci_modes, _RC)
+      call ESMF_InfoSet(aero_info, key="aerosol_modes", values=aero_aci_modes, _RC)
 
       ! max mixing ratio before switching to "polluted" size distributions
       call MAPL_GridCompGetResource(gc, "MAXCLEAN", maxclean, default=1.0e-9, _RC)
-      call ESMF_InfoSet(info, key="max_q_clean", value=maxclean, _RC)
+      call ESMF_InfoSet(aero_info, key="max_q_clean", value=maxclean, _RC)
 
       ! call ESMF_ConfigGetAttribute(CF, CCNtuning, default=1.8, label="CCNTUNING:", _RC)
       call MAPL_GridCompGetResource(gc, "CCNTUNING", ccntuning, default=1.8, _RC)
-      call ESMF_InfoSet(info, key="ccn_tuning", value=ccntuning, _RC)
+      call ESMF_InfoSet(aero_info, key="ccn_tuning", value=ccntuning, _RC)
 
       ! Add variables to AERO state
       call add_aero(aero, label="air_temperature", label2="T", geom=geom, km=km, _RC)
