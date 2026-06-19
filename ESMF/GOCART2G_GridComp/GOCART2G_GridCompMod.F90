@@ -360,6 +360,7 @@ contains
       type(GOCART_State), pointer :: self
       character(len=ESMF_MAXSTR), allocatable :: aero_aci_modes(:)
       real :: maxclean, ccntuning
+      integer :: nmom_ = 0
       integer :: im, jm, km, status
 
       call MAPL_GridCompGet(gc, geom=geom, grid=grid, num_levels=km, _RC)
@@ -393,7 +394,7 @@ contains
       if (nmom_ > 0) then
          call add_aero(aero, &
               label="phase_function_moments_for_photolysis", label2="PFMOM", &
-              geom=geom, km=km, ungrd=nmom_, _RC)
+              geom=geom, km=km, ungrid=nmom_, _RC)
       end if
       call add_aero(aero, &
            label="monochromatic_extinction_in_air_due_to_ambient_aerosol", label2="monochromatic_EXT", &
@@ -1414,7 +1415,7 @@ contains
 
       ! Are we using a photolysis table?
       call ESMF_InfoGet(info, key="use_photolysis_table", value=use_phot_table, _RC)
-      if (usePhotTable /= 0) then
+      if (use_phot_table /= 0) then
          call ESMF_InfoGet(info, key="n_phase_function_moments", value=nmom, _RC)
       end if
 
@@ -1511,7 +1512,7 @@ contains
          ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
          ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
          if (use_phot_table /= 0) then
-            call ESMF_InfoGet(child_state, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+            call ESMF_InfoGet(child_info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
             if (fld_name /= '') then
                call MAPL_StateGetPointer(child_state, itemName=trim(fld_name), farrayPtr=pmom_, _RC)
             end if
