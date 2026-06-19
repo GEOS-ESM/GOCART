@@ -13,8 +13,8 @@ module Chem_AeroGeneric
    use ESMF
    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use MAPL, only: MAPL_StateGetPointer, MAPL_FieldGet, MAPL_FieldCreate, MAPL_FieldBundleAdd
-   use MAPL, only: MAPL_VerticalStaggerLoc, MAPL_VERTICAL_STAGGER_EDGE, MAPL_VERTICAL_STAGGER_CENTER
-   use MAPL, only: MAPL_UngriddedDims
+   use MAPL, only: MAPL_VerticalStaggerLoc, MAPL_UngriddedDims
+   use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_EDGE, MAPL_VERTICAL_STAGGER_CENTER
    ! USE GOCART_MieMod2G
 
    implicit none
@@ -134,7 +134,6 @@ contains
 
       !Local
       type(ESMF_Field) :: field, field2d
-      type(ESMF_Info) :: info
       type(ESMF_Geom), allocatable :: geom
       type(ESMF_TypeKind_Flag) :: typekind
       real, pointer :: orig_ptr(:,:,:)
