@@ -92,7 +92,7 @@ contains
       !EOP
       type(ESMF_HConfig) :: hconfig
       type(GOCART_State), pointer :: self
-      integer, allocatable :: wavelengths_diagmie(:)
+      integer, allocatable :: wavelengths_diagmie(:), wavelengths_photmie(:)
       ! logical :: use_threads
       type(Instance), allocatable :: child
       character(len=:), allocatable :: child_items
@@ -113,6 +113,7 @@ contains
       call MAPL_GridCompGetResource(gc, "wavelengths_for_profile_aop_in_nm", self%wavelengths_profile, _RC)
       call MAPL_GridCompGetResource(gc, "wavelengths_for_vertically_integrated_aop_in_nm", self%wavelengths_vertint, _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", wavelengths_diagmie, _RC)
+      call MAPL_GridCompGetResource(gc, "aerosol_photolysis_wavelengths_in_nm_from_LUT", wavelengths_photmie, _RC)
       ! pchakrab: TODO - Do we re-implement threading?
       ! call MAPL_GridCompGetResource(gc, "use_threads", use_threads, default=.false., _RC)
 
@@ -227,7 +228,7 @@ contains
 
       ! pchakrab: TODO - NEEDS PORTING - ACTIVATE ONCE SU HAS BEEN PORTED
       ! ! Allow children of Chemistry to connect to these fields
-      ! if ((self%SU%instances(1)%is_active)) then
+      ! if ((self%SU%instances(1)%is_active) .and. (index(self%SU%instances(1)%name, 'data') == 0 )) then
       !    call MAPL_AddExportSpec (GC, SHORT_NAME='PSO4', CHILD_ID=self%SU%instances(1)%id, _RC)
       ! end if
 
@@ -385,8 +386,13 @@ contains
       call add_aero(aero, label="extinction_in_air_due_to_ambient_aerosol", label2="EXT", geom=geom, km=km, _RC)
       call add_aero(aero, label="single_scattering_albedo_of_ambient_aerosol", label2="SSA", geom=geom, km=km, _RC)
       call add_aero(aero, label="asymmetry_parameter_of_ambient_aerosol", label2="ASY", geom=geom, km=km, _RC)
-      call add_aero( &
-           aero, &
+      call ESMF_InfoGet(aero_info, key="n_phase_function_moments_photolysis", value=nmom_, default=0, _RC)
+      if (nmom_ > 0) then
+         call add_aero(aero, &
+              label="phase_function_moments_for_photolysis", label2="PFMOM", &
+              geom=geom, km=km, ungrd=nmom_, _RC)
+      end if
+      call add_aero(aero, &
            label="monochromatic_extinction_in_air_due_to_ambient_aerosol", label2="monochromatic_EXT", &
            geom=geom, _RC)
 
@@ -401,7 +407,9 @@ contains
 
       call ESMF_InfoGetFromHost(aero, info, _RC)
       call ESMF_InfoSet(info, key="band_for_aerosol_optics", value=0, _RC)
+      call ESMF_InfoSet(info, key="use_photolysis_table", value=0, _RC)
       call ESMF_InfoSet(info, key="wavelength_for_aerosol_optics", value=0., _RC)
+      call ESMF_InfoSet(info, key="n_phase_function_moments", value=0, _RC)
       call ESMF_InfoSet(info, key="aerosolName", value="", _RC)
       call ESMF_InfoSet(info, key="im", value=im, _RC)
       call ESMF_InfoSet(info, key="jm", value=jm, _RC)
@@ -594,15 +602,48 @@ contains
 
 #include "GOCART2G_DeclarePointer___.h"
 
-      call MAPL_GridCompGet(gc, num_children=num_children, _RC)
+    __Iam__('Run2')
 
-      ! Run zero Klid for children
-      do iter = 1, num_children
-         child_name = MAPL_GridCompGetChildName(gc, iter, _RC)
-         if ((index(child_name, "data")) /= 0) cycle
-         call MAPL_GridCompRunChild(gc, child_name, phase_name="Run0", _RC)
-      end do
+!****************************************************************************
+! Begin...
 
+!   Get my name and set-up traceback handle
+!   ---------------------------------------
+    call ESMF_GridCompGet( GC, NAME=COMP_NAME, __RC__ )
+    Iam = trim(COMP_NAME)//'::'//Iam
+
+!   Get my internal MAPL_Generic state
+!   -----------------------------------
+    call MAPL_GetObjectFromGC ( GC, MAPL, RC=STATUS )
+    VERIFY_(STATUS)
+
+!   Get parameters from generic state.
+!   -----------------------------------
+    call MAPL_Get ( MAPL, gcs=gcs, gim=gim, gex=gex, INTERNAL_ESMF_STATE=internal, &
+                    LONS=LONS, LATS=LATS, __RC__ )
+
+!   Run zero Klid for children
+!   --------------------------
+    do i = 1, size(gcs)
+      call ESMF_GridCompGet (gcs(i), NAME=child_name, __RC__ )
+      if ((index(child_name, 'data')) == 0) then ! only execute phase3 method if a computational instance
+         call ESMF_GridCompRun (gcs(i), importState=gim(i), exportState=gex(i), phase=3, clock=clock, __RC__)
+      end if
+    end do
+
+! Check run_dt alarm. Bail out if not ringing.
+! --------------------------------------------
+    call MAPL_Get ( MAPL, RunAlarm = alarm, _RC)
+    timeToDoWork = ESMF_AlarmIsRinging (ALARM, _RC)
+    if (.not. timeToDoWork) then
+       _RETURN(ESMF_SUCCESS)
+    end if
+
+!   Get my internal state
+!   ---------------------
+    call ESMF_UserCompGetInternalState (GC, 'GOCART_State', wrap, STATUS)
+    VERIFY_(STATUS)
+    self => wrap%ptr
       ! Get private state
       _GET_NAMED_PRIVATE_STATE(gc, GOCART_State, PRIVATE_STATE, self)
 
@@ -1282,15 +1323,19 @@ contains
       real, dimension(:,:,:), pointer :: ple
       real, dimension(:,:,:), pointer :: rh
       real, dimension(:,:,:), pointer  :: var
+      real, dimension(:,:,:,:), pointer  :: var4d
 
       character(len=:), allocatable :: fld_name
 
       real(kind=8), dimension(:,:,:), pointer :: ext_, ssa_, asy_    ! (lon:,lat:,lev:)
+      real(kind=8), dimension(:,:,:,:),pointer         :: pmom_                 ! (lon:,lat:,lev:,nmom:)
       real(kind=8), dimension(:,:,:), allocatable :: ext,  ssa,  asy ! (lon:,lat:,lev:)
+      real(kind=8), dimension(:,:,:,:), allocatable    :: pmom                  ! (lon:,lat:,lev:,nmom:)
 
       integer :: i, n, b, j
       integer :: i1, j1, i2, j2, km
       integer :: band
+      integer :: use_phot_table = 0, nmom = 0
       integer, parameter :: n_bands = 1
 
       character(len=ESMF_MAXSTR), allocatable :: itemList(:), aeroList(:)
@@ -1312,6 +1357,16 @@ contains
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
+      ! Are we using a photolysis table?
+      call ESMF_InfoGet(info, key="use_photolysis_table", value=use_phot_table, _RC)
+      if(usePhotTable /= 0) then
+         call ESMF_InfoGet(info, key="n_phase_function_moments", value=nmom, _RC)
+      end if
+
+      ! Relative humidity
+      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
+
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
@@ -1322,9 +1377,10 @@ contains
       km = ubound(ple, 3)
 
       allocate( &
-           ext(i1:i2,j1:j2,km),  &
-           ssa(i1:i2,j1:j2,km),  &
-           asy(i1:i2,j1:j2,km), _STAT)
+           ext(i1:i2,j1:j2,km), &
+           ssa(i1:i2,j1:j2,km), &
+           asy(i1:i2,j1:j2,km), &
+           pmom(i1:i2,j1:j2,km,8), _STAT)
 
       ! Get list of child states within state and add to aeroList
       call ESMF_StateGet(state, itemCount=n, _RC)
@@ -1352,8 +1408,9 @@ contains
       ext = 0.0d0
       ssa = 0.0d0
       asy = 0.0d0
+      pmom = 0.0d0
 
-      ! Get aerosol optic properties from children
+      ! Get aerosol optical properties from children
       do i = 1, size(aeroList)
          call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
 
@@ -1378,7 +1435,10 @@ contains
          ! set band in child's aero state
          call ESMF_InfoSet(child_info, key="band_for_aerosol_optics", value=band, _RC)
 
-         ! execute the aerosol optics method
+         ! set if we are using photolysis table
+         call ESMF_InfoSet(child_info, key='use_photolysis_table', value=use_phot_table, _RC)
+
+        ! execute the aerosol optics method
          call ESMF_MethodExecute(child_state, label="aerosol_optics", _RC)
 
          ! Retrieve extinction from each child
@@ -1393,21 +1453,34 @@ contains
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ssa_, _RC)
          end if
 
-         ! Retrieve asymetry parameter multiplied by scatering extiction from each child
-         call ESMF_InfoGet(child_info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
-         if (fld_name /= "") then
-            call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=asy_, _RC)
-         end if
+         ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
+         ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
+         if (use_phot_table /= 0) then
+            call ESMF_InfoGet(child_state, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+            if (fld_name /= '') then
+               call MAPL_StateGetPointer(child_state, itemName=trim(fld_name), farrayPtr=pmom_, _RC)
+            end if
+        else
+           call ESMF_InfoGet(child_info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+           if (fld_name /= "") then
+              call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=asy_, _RC)
+          end if
+        end if
 
          ! Sum aerosol optic properties from each child
          ext = ext + ext_
          ssa = ssa + ssa_
-         asy = asy + asy_
+         if (use_phot_table /= 0) then
+            pmom = pmom + pmom_
+         else
+            asy = asy + asy_
+         end if
       end do
 
       call ESMF_InfoGetFromHost(state, info, _RC)
 
-      ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
+      ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children
+      ! This is what is passed to radiation or photolysis
       call ESMF_InfoGet(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= "") then
          call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
@@ -1420,13 +1493,21 @@ contains
          var = ssa(:,:,:)
       end if
 
-      call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
-      if (fld_name /= "") then
-         call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
-         var = asy(:,:,:)
+      if (use_phot_table /= 0) then
+         call ESMF_InfoGet(info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, itemName=trim(fld_name), farrayPtr=var4d, _RC)
+            var4d = pmom(:,:,:,:)
+         end if
+      else
+         call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+         if (fld_name /= "") then
+            call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
+            var = asy(:,:,:)
+         end if
       end if
 
-      deallocate(ext, ssa, asy, __STAT__)
+      deallocate(ext, ssa, asy, pmom, __STAT__)
 
       _RETURN(_SUCCESS)
 

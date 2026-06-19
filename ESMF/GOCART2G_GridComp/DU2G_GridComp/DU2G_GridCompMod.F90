@@ -9,18 +9,17 @@ module DU2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
-   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return, &
-                   MAPL_get_num_threads, MAPL_get_current_thread, &
-                   mapl_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource, &
-                   MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, &
-                   MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
-                   MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
-                   MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE, &
-                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, mapl_UngriddedDim, &
-                   mapl_StrTemplate
+   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
+   use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
+   use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
+   use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
+   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+   use MAPL, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
+   use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+   use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
+   use MAPL, only: MAPL_StrTemplate
+   use MAPL, only: MAPL_PackedDateCreate, MAPL_PackedTimeCreate
    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
-   use MAPL, only: MAPL_PackedDateCreate, &
-                   MAPL_PackedTimeCreate
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -76,7 +75,7 @@ module DU2G_GridCompMod
       integer :: day_save = -1
       integer :: clayFlag               ! clay and silt term in K14
       character(len=:), allocatable :: emission_scheme ! emission scheme selector
-      ! Workspae for point emissions
+      ! Workspace for point emissions
       logical :: doing_point_emissions = .false.
       character(len=:), allocatable :: point_emissions_srcfilen ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
@@ -146,9 +145,15 @@ contains
       call MAPL_GridCompGetResource(gc, "source_fraction", self%sfrac, _RC)
       call MAPL_GridCompGetResource(gc, "Ch_DU", self%Ch_DU_res, _RC)
       _ASSERT(size(self%Ch_DU_res)==NHRES, "incorrect size of Ch_DU")
-
       call MAPL_GridCompGetResource(gc, "radius_lower", self%rlow, _RC)
       call MAPL_GridCompGetResource(gc, "radius_upper", self%rup, _RC)
+
+      ! Choose Emission Scheme
+      call MAPL_GridCompGetResource(gc, "emission_scheme", emission_scheme, default="ginoux", _RC)
+      self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), _RC)
+
+      ! Test if our scheme is allowed, if so, print it out
+      _ASSERT(any(self%emission_scheme == [character(len=7) :: 'ginoux','k14','fengsha']), "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha")
 
       ! Point Sources
       call MAPL_GridCompGetResource(gc, "point_emissions_srcfilen", self%point_emissions_srcfilen, default='/dev/null', _RC)
@@ -157,13 +162,6 @@ contains
       else
          self%doing_point_emissions = .true.  ! we are good to go
       end if
-
-      ! Choose Emission Scheme
-      call MAPL_GridCompGetResource(gc, "emission_scheme", emission_scheme, default="ginoux", _RC)
-      self%emission_scheme = ESMF_UtilStringLowerCase(trim(emission_scheme), _RC)
-
-      ! Test if our scheme is allowed, if so, print it out
-      _ASSERT(any(self%emission_scheme == [character(len=7) :: 'ginoux','k14','fengsha']), "Error. Unallowed emission scheme: "//trim(self%emission_scheme)//". Allowed: ginoux, k14, fengsha")
 
       ! read scheme-specific parameters
       select case (self%emission_scheme)
@@ -174,6 +172,14 @@ contains
          call MAPL_GridCompGetResource(gc, "soil_drylimit_factor", self%f_sdl, _RC)
          call MAPL_GridCompGetResource(gc, "vertical_to_horizontal_flux_ratio_limit", self%kvhmax, _RC)
          call MAPL_GridCompGetResource(gc, "drag_partition_option", self%drag_opt, _RC)
+         if (MAPL_AM_I_ROOT()) then
+            write (*,*) "FENGSHA: config: alpha: " , self%alpha
+            write (*,*) "FENGSHA: config: gamma: " , self%gamma
+            write (*,*) "FENGSHA: config: soil_moisture_factor: " , self%f_swc
+            write (*,*) "FENGSHA: config: soil_drylimit_factor: " , self%f_sdl
+            write (*,*) "FENGSHA: config: vertical_to_horizontal_flux_ratio_limit: " , self%kvhmax
+            write (*,*) "FENGSHA: config: drag_partition_option: " , self%drag_opt
+         end if
       case ('k14')
          call MAPL_GridCompGetResource(gc, "clayFlag", self%clayFlag, _RC)
          call MAPL_GridCompGetResource(gc, "soil_moisture_factor", self%f_swc, _RC)
@@ -439,6 +445,18 @@ contains
       call MAPL_GridCompGetResource(gc, "aerosol_radBands_optics_file", file_, _RC )
       self%rad_Mie = GOCART2G_Mie(trim(file_), _RC)
 
+      ! Trigger for photolysis calculations
+      ! call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
+      call ESMF_InfoSet(aero_info, key="use_photolysis_table", value=0, _RC)
+
+      ! Create Photolysis Mie Table
+      ! Get file names for the optical tables
+      call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_file", file_, _RC )
+      call MAPL_GridCompGetResource(gc, "n_phase_function_moments_photolysis", nmom_, default=0, _RC)
+      call MAPL_GridCompGetResource(gc, "aerosol_photolysis_wavelength_in_nm_from_LUT", channels_, _RC)
+      self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+
       ! Create Diagnostics Mie Table
       ! Get file names for the optical tables
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_file", file_, _RC )
@@ -449,17 +467,12 @@ contains
 
       ! Mie Table instance/index
       ! call ESMF_AttributeSet (aero, name="mie_table_instance", value=instance, _RC)
-      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
       call ESMF_InfoSet(aero_info, key="mie_table_instance", value=instance, _RC)
 
       ! Add variables to DU instance's aero state. This is used in aerosol optics calculations
       call MAPL_GridCompGet(gc, geom=geom, _RC)
       call add_aero(aero, label="air_pressure_for_aerosol_optics", label2="PLE", geom=geom, km=self%km, _RC)
       call add_aero(aero, label="relative_humidity_for_aerosol_optics", label2="RH", geom=geom, km=self%km, _RC)
-      ! call ESMF_StateGet (import, "PLE", field, _RC)
-      ! call MAPL2_StateAdd (aero, field, _RC)
-      ! call ESMF_StateGet (import, "RH2", field, _RC)
-      ! call MAPL2_StateAdd (aero, field, _RC)
       call add_aero( &
            aero, &
            label="extinction_in_air_due_to_ambient_aerosol", label2="EXT", &
@@ -471,13 +484,18 @@ contains
       call add_aero(aero, &
            label="asymmetry_parameter_of_ambient_aerosol", label2="ASY", &
            geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call MAPL_GridCompGetResource(gc, "n_phase_function_moments_photolysis", nmom_, default=0, _RC)
+      if (nmom_ > 0) then
+         call add_aero(aero, &
+              label="legendre_coefficients_of_p11_for_photolysis", label2="MOM", &
+              geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, ungrid=nmom_, _RC)
+      end if
       call add_aero( &
            aero, &
            label="monochromatic_extinction_in_air_due_to_ambient_aerosol", label2="monochromatic_EXT", &
            geom=geom, typekind=ESMF_TYPEKIND_R4,_RC)
       call add_aero(aero, label="sum_of_internalState_aerosol", label2="aerosolSum", geom=geom, km=self%km, _RC)
 
-      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
       call ESMF_InfoSet(aero_info, key="band_for_aerosol_optics", value=0, _RC)
       call ESMF_InfoSet(aero_info, key="wavelength_for_aerosol_optics", value=0., _RC)
       mieTable_pointer = transfer(c_loc(self), [1])
@@ -631,6 +649,7 @@ contains
       if (associated(du_src)) then
          where (1.01*du_src > MAPL_UNDEFINED_REAL) du_src = 0.
       endif
+
       ! Get dimensions
       import_shape = shape(wet1)
       i2 = import_shape(1)
@@ -791,7 +810,8 @@ contains
       real :: fwet, rainout_eff(3)
       real, parameter :: cpd = 1004.16
       real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-      real, target, allocatable, dimension(:,:,:) :: RH20,RH80
+      real, pointer, dimension(:, :, :) :: dusd_vel
+      real, target, allocatable, dimension(:,:,:) :: RH20, RH80
       real, pointer, dimension(:,:) :: flux_ptr
 #include "DU2G_DeclarePointer___.h"
       real, allocatable, target, dimension(:,:,:) :: ple0, zle0, pfl_lsan0, pfi_lsan0
@@ -841,10 +861,12 @@ contains
       do n = 1, self%nbins
          nullify(flux_ptr)
          if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
+         nullify(dusd_vel)
+         if (associated(DUSD_V)) dusd_vel => DUSD_V(:,:,:,n)
          call Chem_SettlingSimple( &
               self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
               DU(:,:,:,n), t, airdens, &
-              rh2, zle0, delp, flux_ptr, correctionMaring=self%maringFlag, &
+              rh2, zle0, delp, flux_ptr, dusd_vel, correctionMaring=self%maringFlag, &
               settling_scheme=settling_opt, _RC)
       end do
 
@@ -872,10 +894,9 @@ contains
       select case (self%wet_removal_scheme)
       case ('gocart')
          do n = 1, self%nbins
-            fwet = 1.0
             call WetRemovalGOCART2G( &
                  self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'dust', &
-                 KIN, MAPL_GRAV, fwet, DU(:,:,:,n), ple0, t, airdens, &
+                 KIN, MAPL_GRAV, self%fwet(n), DU(:,:,:,n), ple0, t, airdens, &
                  pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, DUWT, _RC)
          end do
       case ('ufs')
@@ -990,14 +1011,18 @@ contains
       integer, parameter :: DP=kind(1.0d0)
       real, dimension(:,:,:), pointer :: ple, rh
       real(kind=DP), dimension(:,:,:), pointer :: var
+      real(kind=DP), dimension(:,:,:,:), pointer :: var4d
       real, dimension(:,:,:,:), pointer :: q, q_4d
       integer, allocatable :: opaque_self(:)
       type(C_PTR) :: address
       type(DU2G_GridComp), pointer :: self
       character(len=ESMF_MAXSTR) :: fld_name
       real(kind=DP), dimension(:,:,:), allocatable :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
+      real(kind=DP), dimension(:,:,:,:), allocatable :: pmom_s  ! (lon:,lat:,lev:,nmom:)
       real, dimension(:,:,:), allocatable :: x
-      integer :: instance, n, nbins, i1, j1, i2, j2, km, band, k, status
+      integer :: instance, n, nbins, i1, j1, i2, j2, km, band, k,
+      integer :: use_phot_table
+      real :: wavelength
 
       call ESMF_InfoGetFromHost(state, info, _RC)
 
@@ -1006,6 +1031,9 @@ contains
 
       ! Radiation band
       call ESMF_InfoGet(info, key="band_for_aerosol_optics", value=band, default=0, _RC)
+
+      ! Are we doing a photolysis calculation?
+      call ESMF_InfoGet(info, key="use_photolysis_table", value=use_phot_table, default=0, _RC)
 
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
@@ -1048,7 +1076,13 @@ contains
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
 
-      call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, _RC)
+      if (use_phot_table /= 0) then
+         wavelength = band*1.e-9
+         allocate(pmom_s(i1:i2, j1:j2, km, self%phot_Mie%nmom), _STAT)
+         call miephot_(self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, pmom_s, _RC)
+      else
+         call mie_(self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, _RC)
+      end if
 
       call ESMF_InfoGet(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= "") then
@@ -1062,13 +1096,22 @@ contains
          var = ssa_s(:,:,:)
       end if
 
-      call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
-      if (fld_name /= "") then
-         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
-         var = asy_s(:,:,:)
+      if (use_phot_table /= 0) then
+         call ESMF_InfoGet(info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+         if (fld_name /= "") then
+            call MAPL_StateGetPointer(state, var4d, trim(fld_name), _RC)
+            var4d = pmom_s(:,:,:,:)
+         end if
+      else
+         call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+         if (fld_name /= "") then
+            call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
+            var = asy_s(:,:,:)
+         end if
       end if
 
       deallocate(ext_s, ssa_s, asy_s, _STAT)
+      if (use_phot_table /= 0) deallocate(pmom_s, _STAT)
       deallocate(q_4d, _STAT)
 
       _RETURN(_SUCCESS)
@@ -1077,8 +1120,8 @@ contains
 
       subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
          type(GOCART2G_Mie), intent(inout) :: mie ! mie table
-         integer, intent(in) :: nbins   ! number of bins
-         integer, intent(in) :: band    ! channel
+         integer, intent(in) :: nbins ! number of bins
+         integer, intent(in) :: band  ! channel
          real, intent(in) :: q(:,:,:,:) ! aerosol mass mixing ratio, kg kg-1
          real, intent(in) :: rh(:,:,:)  ! relative humidity
          real(kind=DP), intent(out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
@@ -1101,12 +1144,45 @@ contains
             call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, _RC)
             bext_s  = bext_s  +             bext     ! extinction
             bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-            basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
+            basym_s = basym_s + gasym*(bssa*bext)    ! asymmetry parameter multiplied by scattering extiction
          end do
 
          _RETURN(_SUCCESS)
-
       end subroutine mie_
+
+      subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, bpmom_s, rc)
+         type(GOCART2G_Mie), intent(inout) :: mie ! mie table
+         integer, intent(in) :: nbins ! number of bins
+         real, intent(in) :: wavelength ! wavelength in nm
+         real, intent(in) :: q(:,:,:,:) ! aerosol mass mixing ratio, kg kg-1
+         real, intent(in) :: rh(:,:,:)  ! relative humidity
+         real(kind=DP), intent(out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+         real(kind=DP), intent(out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+         real(kind=DP), intent(out) :: bpmom_s(size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4))
+         integer, intent(out) :: rc
+
+         ! local
+         integer :: l, m
+         real :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
+         real :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
+         real :: pmom (size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4),6)
+
+         bext_s  = 0.0d0
+         bssa_s  = 0.0d0
+         bpmom_s = 0.0d0
+
+         do l = 1, nbins
+            ! tau is converted to bext
+            call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, pmom=pmom, ssa=bssa, _RC)
+            bext_s  = bext_s  +             bext     ! extinction
+            bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+            do m = 1, mie%nmom
+               bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext) ! moments multiplied by scattering
+            end do
+         end do
+
+         _RETURN(_SUCCESS)
+      end subroutine miephot_
 
    end subroutine aerosol_optics
 
@@ -1198,10 +1274,10 @@ contains
 
 end module DU2G_GridCompMod
 
-subroutine SetServices(gc, rc)
+subroutine DU2G_SetServices(gc, rc)
    use ESMF
    use DU2G_GridCompMod, only : mySetservices=>SetServices
    type(ESMF_GridComp) :: gc
    integer, intent(out) :: rc
    call mySetServices(gc, rc=rc)
-end subroutine SetServices
+end subroutine DU2G_SetServices
