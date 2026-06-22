@@ -2354,10 +2354,10 @@ contains
 
 end module GOCART2G_GridCompMod
 
-subroutine GOCART2G_SetServices(gc, rc)
+subroutine SetServices(gc, rc)
    use ESMF
    use GOCART2G_GridCompMod, only : mySetservices => SetServices
    type(ESMF_GridComp) :: gc
    integer, intent(out) :: rc
    call mySetservices(gc, rc=rc)
-end subroutine GOCART2G_SetServices
+end subroutine SetServices

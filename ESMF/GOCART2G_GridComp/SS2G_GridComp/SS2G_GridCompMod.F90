@@ -1141,10 +1141,10 @@ contains
 
 end module SS2G_GridCompMod
 
-subroutine SS2G_SetServices(gc, rc)
+subroutine SetServices(gc, rc)
    use ESMF
    use SS2G_GridCompMod, only : mySetservices => SetServices
    type(ESMF_GridComp) :: gc
    integer, intent(out) :: rc
    call mySetservices(gc, rc=rc)
-end subroutine SS2G_SetServices
+end subroutine SetServices
