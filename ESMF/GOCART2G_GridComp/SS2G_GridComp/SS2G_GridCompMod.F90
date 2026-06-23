@@ -10,20 +10,20 @@ module SS2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
-   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return, &
-                   MAPL_GridGet, MAPL_GridGetCoordinates, mapl_GridGetGlobalCellCountPerDim, &
-                   MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, MAPL_GridCompGet, &
-                   MAPL_GridCompGetResource, MAPL_GridCompGetInternalState, &
-                   MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet, &
-                   MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState, &
-                   MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE, &
-                   MAPL_RESTART_SKIP, MAPL_StateGetPointer, mapl_UngriddedDim
+   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
+   use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, MAPL_GridGetGlobalCellCountPerDim
+   use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, MAPL_GridCompGet
+   use MAPL, only: MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
+   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+   use MAPL, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
+   use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+   use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_UngriddedDim
    use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
 
-   use GOCART2G_Process       ! GOCART2G process library
+   use GOCART2G_Process ! GOCART2G process library
    use GA_EnvironmentMod
 
    implicit none
@@ -36,7 +36,7 @@ module SS2G_GridCompMod
    ! character(len=*), parameter :: namespace = "/user/SS"
 
    !PUBLIC MEMBER FUNCTIONS:
-   PUBLIC  SetServices
+   public :: SetServices
 
    real, parameter :: cpd = 1004.16
 
@@ -71,7 +71,7 @@ contains
    subroutine SetServices(gc, rc)
 
       !ARGUMENTS:
-      type (ESMF_GridComp), intent(inout) :: gc
+      type(ESMF_GridComp), intent(inout) :: gc
       integer, intent(out) :: rc
 
       ! DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
@@ -89,9 +89,9 @@ contains
       type(SS2G_GridComp), pointer :: self
       character(len=ESMF_MAXSTR) :: field_name
       real :: DEFVAL
-      logical :: data_driven=.true.
+      logical :: data_driven = .true.
       real, allocatable :: emission_scale_res(:)
-      class(Logger_t), pointer :: logger
+      class(logger_t), pointer :: logger
       type(mapl_UngriddedDim) :: ungrd_nbins
       type(mapl_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: i, status
@@ -124,7 +124,7 @@ contains
       call MAPL_GridCompGetResource(gc, "hoppelFlag", self%hoppelFlag, _RC)
       call MAPL_GridCompGetResource(gc, "emission_scheme", self%emission_scheme, _RC)
       call MAPL_GridCompGetResource(gc, "emission_scale", emission_scale_res, _RC)
-      _ASSERT(size(emission_scale_res)==NHRES, "emission scale has wrong size")
+      _ASSERT(size(emission_scale_res) == NHRES, "emission scale has wrong size")
       self%emission_scale_res = emission_scale_res
       call MAPL_GridCompGetResource(gc, "radius_lower", self%rlow, _RC)
       call MAPL_GridCompGetResource(gc, "radius_upper", self%rup, _RC)
@@ -135,11 +135,11 @@ contains
       call logger%info("DATA DRIVEN? %l", data_driven)
 
       ! Set entry points
-      call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_INITIALIZE,  Initialize, _RC)
-      call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_RUN, Run, phase_name="Run1", _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_INITIALIZE, Initialize, _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, phase_name="Run1", _RC)
       if (data_driven .neqv. .true.) then
-         call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
-         call MAPL_GridCompSetEntryPoint (gc, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
       end if
 
       DEFVAL = 0.0
@@ -172,22 +172,22 @@ contains
 
          ! Pressure at layer edges
          call MAPL_GridCompAddSpec(gc, &
-              STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-              SHORT_NAME='PLE', &
-              STANDARD_NAME='air_pressure', &
-              UNITS='Pa', &
-              DIMS='xyz', &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name='PLE', &
+              standard_name='air_pressure', &
+              units='Pa', &
+              dims='xyz', &
               vertical_stagger=MAPL_VERTICAL_STAGGER_EDGE, &
               restart_mode=MAPL_RESTART_SKIP, &
               _RC)
 
          ! RH: is between 0 and 1
          call MAPL_GridCompAddSpec(gc, &
-              STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-              SHORT_NAME='RH2', &
-              STANDARD_NAME='Rel_Hum_after_moist', &
-              UNITS='1', &
-              DIMS = 'xyz', &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name='RH2', &
+              standard_name='Rel_Hum_after_moist', &
+              units='1', &
+              dims='xyz', &
               vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
               restart_mode=MAPL_RESTART_SKIP, &
               _RC)
@@ -195,54 +195,54 @@ contains
          do i = 1, self%nbins
             write(field_name, '(A, I0.3)') '', i
             call MAPL_GridCompAddSpec(gc, &
-                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-                 SHORT_NAME='climss'//trim(field_name), &
-                 STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-                 UNITS='kg kg-1 s-1', &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climss' // trim(field_name), &
+                 standard_name='Sea Salt Mixing Ratio (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
                  restart_mode=MAPL_RESTART_SKIP, &
-                 DIMS='xyz', &
+                 dims='xyz', &
                  vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, _RC)
 
             ! dry deposition
             call MAPL_GridCompAddSpec(gc, &
-                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-                 SHORT_NAME='climSSDP'//trim(field_name), &
-                 STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-                 UNITS='kg kg-1 s-1', &
-                 DIMS='xy', &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climSSDP' // trim(field_name), &
+                 standard_name='Sea Salt Mixing Ratio (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
+                 dims='xy', &
                  vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
                  restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! wet deposition
             call MAPL_GridCompAddSpec(gc, &
-                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-                 SHORT_NAME='climSSWT'//trim(field_name), &
-                 STANDARD_NAME='Sea Salt wet removal (bin '//trim(field_name)//')', &
-                 UNITS='kg kg-1 s-1', &
-                 DIMS='xy', &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climSSWT' // trim(field_name), &
+                 standard_name='Sea Salt wet removal (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
+                 dims='xy', &
                  vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
                  restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! gravitational settling
             call MAPL_GridCompAddSpec(gc, &
-                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-                 SHORT_NAME='climSSSD'//trim(field_name), &
-                 STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-                 UNITS='kg kg-1 s-1', &
-                 DIMS='xy', &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climSSSD' // trim(field_name), &
+                 standard_name='Sea Salt Mixing Ratio (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
+                 dims='xy', &
                  vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
                  restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
 
             ! convective scavenging
             call MAPL_GridCompAddSpec(gc, &
-                 STATE_INTENT=ESMF_STATEINTENT_IMPORT, &
-                 SHORT_NAME='climSSSV'//trim(field_name), &
-                 STANDARD_NAME='Sea Salt Mixing Ratio (bin '//trim(field_name)//')', &
-                 UNITS='kg kg-1 s-1', &
-                 DIMS='xy', &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climSSSV' // trim(field_name), &
+                 standard_name='Sea Salt Mixing Ratio (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
+                 dims='xy', &
                  vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
                  restart_mode=MAPL_RESTART_SKIP, &
                  _RC)
@@ -259,12 +259,12 @@ contains
 
       ! This state holds fields needed by radiation
       call MAPL_GridCompAddSpec(gc, &
-           STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
-           SHORT_NAME=trim(comp_name)//"_AERO", &
-           STANDARD_NAME="aerosols_from_"//trim(comp_name), &
-           DIMS="xyz", &
+           state_intent=ESMF_STATEINTENT_EXPORT, &
+           short_name=trim(comp_name) // "_AERO", &
+           standard_name="aerosols_from_" // trim(comp_name), &
+           dims="xyz", &
            vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
-           UNITS="kg kg-1", &
+           units="kg kg-1", &
            ITEMTYPE=MAPL_STATEITEM_STATE, &
            _RC)
 
@@ -272,12 +272,12 @@ contains
       ! by aerosol settling and deposition
       ! DEVELOPMENT NOTE - Change to StateItem in future
       call MAPL_GridCompAddSpec(gc, &
-           STATE_INTENT=ESMF_STATEINTENT_EXPORT, &
-           SHORT_NAME=trim(comp_name)//"_AERO_DP", &
-           STANDARD_NAME="aerosol_deposition_from_"//trim(comp_name), &
-           DIMS="xy", &
+           state_intent=ESMF_STATEINTENT_EXPORT, &
+           short_name=trim(comp_name) // "_AERO_DP", &
+           standard_name="aerosol_deposition_from_" // trim(comp_name), &
+           dims="xy", &
            vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
-           UNITS="kg m-2 s-1", &
+           units="kg m-2 s-1", &
            ITEMTYPE=MAPL_STATEITEM_FIELDBUNDLE, &
            _RC)
 
@@ -291,10 +291,10 @@ contains
    subroutine Initialize(gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type (ESMF_GridComp) :: gc
-      type (ESMF_State) :: import
-      type (ESMF_State) :: export
-      type (ESMF_Clock) :: clock
+      type(ESMF_GridComp) :: gc
+      type(ESMF_State) :: import
+      type(ESMF_State) :: export
+      type(ESMF_Clock) :: clock
       integer, intent(out) :: rc
 
       !DESCRIPTION: This initializes SS' Grid Component. It primaryily fills
@@ -314,11 +314,11 @@ contains
       character(len=:), allocatable :: comp_name
       character(len=ESMF_MAXSTR) :: prefix, bin_index
       character(:), allocatable :: file_
-      real, pointer, dimension(:,:) :: deep_lakes_mask
-      real, allocatable, dimension(:,:), target :: lats, lons
-      real, pointer, dimension(:,:) :: plats => null(), plons => null()
+      real, pointer, dimension(:, :) :: deep_lakes_mask
+      real, allocatable, dimension(:, :), target :: lats, lons
+      real, pointer, dimension(:, :) :: plats => null(), plons => null()
       real :: CDT ! chemistry timestep (secs)
-      real(ESMF_KIND_R4) :: HDT ! model timestep (secs)
+      real(kind=ESMF_KIND_R4) :: HDT ! model timestep (secs)
       logical :: data_driven
       integer, allocatable, dimension(:) :: mieTable_pointer, channels_
       integer :: instance, nmom_
@@ -348,7 +348,7 @@ contains
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Is SS data driven?
-      call determine_data_driven (comp_name, data_driven, _RC)
+      call determine_data_driven(comp_name, data_driven, _RC)
 
       ! If this is a data component, the data is provided in the import
       ! state via ExtData instead of the actual GOCART children
@@ -367,8 +367,8 @@ contains
       call ESMF_InfoSet(field_info, key="ScavengingFractionPerKm", value=self%fscav(1), _RC)
 
       ! Fill AERO State with sea salt fields
-      call ESMF_StateGet(export, trim(comp_name)//'_AERO', aero, _RC)
-      call ESMF_StateGet(export, trim(comp_name)//'_AERO_DP', bundle_dp, _RC)
+      call ESMF_StateGet(export, trim(comp_name) // '_AERO', aero, _RC)
+      call ESMF_StateGet(export, trim(comp_name) // '_AERO_DP', bundle_dp, _RC)
 
       call ESMF_StateGet(internal, 'SS', field, _RC)
       ! call ESMF_AttributeSet(field, NAME='klid', value=self%klid, _RC)
@@ -380,15 +380,15 @@ contains
       if (data_driven) then
          instance = instanceData
          do i = 1, self%nbins
-            write (bin_index, '(A, I0.3)') '', i
+            write(bin_index, '(A, I0.3)') '', i
             ! Dry deposition
-            call append_to_bundle('SSDP'//trim(bin_index), provider_state, prefix, bundle_dp, _RC)
+            call append_to_bundle('SSDP' // trim(bin_index), provider_state, prefix, bundle_dp, _RC)
             ! Wet deposition (Convective scavenging)
-            call append_to_bundle('SSSV'//trim(bin_index), provider_state, prefix, bundle_dp, _RC)
+            call append_to_bundle('SSSV' // trim(bin_index), provider_state, prefix, bundle_dp, _RC)
             ! Wet deposition
-            call append_to_bundle('SSWT'//trim(bin_index), provider_state, prefix, bundle_dp, _RC)
+            call append_to_bundle('SSWT' // trim(bin_index), provider_state, prefix, bundle_dp, _RC)
             ! Gravitational Settling
-            call append_to_bundle('SSSD'//trim(bin_index), provider_state, prefix, bundle_dp, _RC)
+            call append_to_bundle('SSSD' // trim(bin_index), provider_state, prefix, bundle_dp, _RC)
          end do
       else
          instance = instanceComputational
@@ -405,14 +405,25 @@ contains
 
       ! Create Radiation Mie Table
       call MAPL_GridCompGetResource(gc, "aerosol_radBands_optics_file", file_, _RC)
-      self%rad_Mie = GOCART2G_Mie(file_, _RC)
+      self%rad_Mie = GOCART2G_Mie(trim(file_), _RC)
+
+      ! Trigger for photolysis calculations
+      ! pchakrab: TODO - use ESMF_InfoSet instead
+      call ESMF_AttributeSet(aero, name="use_photolysis_table", value=0, _RC)
+
+      ! Create Photolysis Mie Table
+      ! Get file names for the optical tables
+      call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_file", file_, _RC)
+      call MAPL_GridCompGetResource(gc, "n_phase_function_moments_photolysis", nmom_, default=0, _RC)
+      call MAPL_GridCompGetResource(gc, "aerosol_photolysis_wavelength_in_nm_from_LUT", channels_, _RC)
+      self%phot_Mie = GOCART2G_Mie(trim(file_), channels_ * 1.e-9, nmom=nmom_, _RC)
 
       ! Create Diagnostics Mie Table
       ! Get file names for the optical tables
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_file", file_, _RC)
       call MAPL_GridCompGetResource(gc, "n_moments", nmom_, default=0, _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", channels_, _RC)
-      self%diag_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, _RC)
+      self%diag_Mie = GOCART2G_Mie(trim(file_), channels_ * 1.e-9, nmom=nmom_, _RC)
 
       ! Add variables to SS instance's aero state. This is used in aerosol optics calculations
       ! add_aero adds 1 to km, when creating field PLE
@@ -433,10 +444,16 @@ contains
       call add_aero(aero, &
            label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
            geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call MAPL_GridCompGetResource(gc, "n_phase_function_moments_photolysis", nmom_, default=0, _RC)
+      if (nmom_ > 0) then
+         call add_aero(aero, &
+              label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
+              geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, ungrid=nmom_, _RC)
+      end if
       call add_aero( &
            aero, &
            label='monochromatic_extinction_in_air_due_to_ambient_aerosol', label2='monochromatic_EXT', &
-           geom=geom, typekind=ESMF_TYPEKIND_R4,_RC)
+           geom=geom, typekind=ESMF_TYPEKIND_R4, _RC)
       call add_aero(aero, label='sum_of_internalState_aerosol', label2='aerosolSum', geom=geom, km=self%km, _RC)
       call ESMF_InfoGetFromHost(aero, aero_info, _RC)
       call ESMF_InfoSet(aero_info, key="mie_table_instance", value=instance, _RC)
@@ -451,7 +468,7 @@ contains
       call ESMF_MethodAdd(aero, label="get_mixR", userRoutine=get_mixR, _RC)
 
       ! Mask to prevent emissions from the Great Lakes and the Caspian Sea
-      !allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), __STAT__)
+      !allocate(self%deep_lakes_mask(ubound(lons, 1),ubound(lons, 2)), _STA)
       !call deepLakesMask (lons, lats, real(MAPL_RADIANS_TO_DEGREES), self%deep_lakes_mask, _RC)
       call MAPL_StateGetPointer(internal, itemName="DEEP_LAKES_MASK", farrayPtr=deep_lakes_mask, _RC)
       call MAPL_GridGetCoordinates(grid, latitudes=lats, longitudes=lons, _RC)
@@ -469,10 +486,10 @@ contains
    !INTERFACE:
    subroutine Run0(gc, import, export, clock, rc)
       !ARGUMENTS:
-      type (ESMF_GridComp) :: gc
-      type (ESMF_State) :: import
-      type (ESMF_State) :: export
-      type (ESMF_Clock) :: clock
+      type(ESMF_GridComp) :: gc
+      type(ESMF_State) :: import
+      type(ESMF_State) :: export
+      type(ESMF_Clock) :: clock
       integer, intent(out) :: rc
 
       !DESCRIPTION:  Clears klid to 0.0 for Seasalt
@@ -481,8 +498,8 @@ contains
       ! Locals
       type(ESMF_State) :: internal
       type(SS2G_GridComp), pointer :: self
-      real, pointer, dimension(:,:,:) :: ple, ple0
-      real, pointer, dimension(:,:,:,:) :: ptr4d_int
+      real, pointer, dimension(:, :, :) :: ple, ple0
+      real, pointer, dimension(:, :, :, :) :: ptr4d_int
       integer :: i1, j1, i2, j2, km, status
 
       ! Get internal state
@@ -511,19 +528,19 @@ contains
    !INTERFACE:
    subroutine Run(gc, import, export, clock, rc)
       !ARGUMENTS:
-      type (ESMF_GridComp) :: gc  ! Gridded component
-      type (ESMF_State) :: import ! Import state
-      type (ESMF_State) :: export ! Export state
-      type (ESMF_Clock) :: clock  ! The clock
-      integer, intent(out) :: rc  ! Error code:
+      type(ESMF_GridComp) :: gc
+      type(ESMF_State) :: import
+      type(ESMF_State) :: export
+      type(ESMF_Clock) :: clock
+      integer, intent(out) :: rc
 
       !DESCRIPTION: Run method for the Sea Salt Grid Component. Determines whether to run
       !               data or computational run method.
       !EOP
 
       !Locals
-      character (len=ESMF_MAXSTR) :: comp_name
-      type (ESMF_State) :: internal
+      character(len=ESMF_MAXSTR) :: comp_name
+      type(ESMF_State) :: internal
       logical :: data_driven
       integer :: status
 
@@ -559,11 +576,11 @@ contains
       !Locals
       type(ESMF_State) :: internal
       type(SS2G_GridComp), pointer :: self
-      real, allocatable, dimension(:,:) :: fgridefficiency
-      real, allocatable, dimension(:,:) :: fsstemis
-      real, allocatable, dimension(:,:) :: fhoppel
-      real, allocatable, dimension(:,:) :: memissions, nemissions, dqa
-      real(kind=DP), allocatable, dimension(:,:) :: gweibull
+      real, allocatable, dimension(:, :) :: fgridefficiency
+      real, allocatable, dimension(:, :) :: fsstemis
+      real, allocatable, dimension(:, :) :: fhoppel
+      real, allocatable, dimension(:, :) :: memissions, nemissions, dqa
+      real(kind=DP), allocatable, dimension(:, :) :: gweibull
       integer :: n, status
 #include "SS2G_DeclarePointer___.h"
 
@@ -578,22 +595,22 @@ contains
       ! Sea Salt Source (and modifications)
       ! Grid box efficiency to emission (fraction of sea water)
       allocate(fgridefficiency, mold=frocean, _STAT)
-      fgridefficiency = min(max(0., (frocean-fraci)*deep_lakes_mask), 1.)
+      fgridefficiency = min(max(0., (frocean - fraci) * deep_lakes_mask), 1.)
 
       ! Apply SST correction following Jaegle et al. 2011 if needed
-      allocate(fsstemis, mold=frocean, __STAT__ )
+      allocate(fsstemis, mold=frocean, _STAT)
       call jeagleSSTcorrection(self%sstEmisFlag, fsstemis, ts, _RC)
 
       ! Apply a Weibull distribution to emissions wind speeds
-      allocate(gweibull(ubound(u10m,1), ubound(u10m,2)), __STAT__ )
-      call weibullDistribution (gweibull, self%weibullFlag, u10m, v10m, _RC)
+      allocate(gweibull(ubound(u10m, 1), ubound(u10m, 2)), _STAT)
+      call weibullDistribution(gweibull, self%weibullFlag, u10m, v10m, _RC)
 
       ! Loop over bins and do emission calculation
       ! Possibly apply the Hoppel correction based on fall speed (Fan and Toon, 2011)
-      allocate(fhoppel, mold=frocean, __STAT__ )
-      allocate(memissions, mold=frocean, __STAT__ )
-      allocate(nemissions, mold=frocean, __STAT__ )
-      allocate(dqa, mold=frocean, __STAT__ )
+      allocate(fhoppel, mold=frocean, _STAT)
+      allocate(memissions, mold=frocean, _STAT)
+      allocate(nemissions, mold=frocean, _STAT)
+      allocate(dqa, mold=frocean, _STAT)
 
       fhoppel = 1.0
 
@@ -602,8 +619,8 @@ contains
          nemissions = 0.
          dqa = 0.
 
-         call SeasaltEmission (self%rlow(n), self%rup(n), self%emission_scheme, u10m, &
-              v10m, ustar, MAPL_PI, memissions, nemissions, _RC )
+         call SeasaltEmission(self%rlow(n), self%rup(n), self%emission_scheme, u10m, &
+              v10m, ustar, MAPL_PI, memissions, nemissions, _RC)
 
          ! For the Hoppel correction need to compute the wet radius and settling velocity
          ! in the surface
@@ -617,16 +634,15 @@ contains
          ! end if
 
          memissions = self%emission_scale * fgridefficiency * fsstemis * fhoppel * gweibull * memissions
-         dqa = memissions * self%cdt * MAPL_GRAV / delp(:,:,self%km)
-         SS(:,:,self%km,n) = SS(:,:,self%km,n) + dqa
+         dqa = memissions * self%CDT * MAPL_GRAV / delp(:, :, self%km)
+         SS(:, :, self%km, n) = SS(:, :, self%km, n) + dqa
 
          if (associated(SSEM)) then
-            SSEM(:,:,n) = memissions
+            SSEM(:, :, n) = memissions
          end if
       end do !n = 1
 
-      deallocate(fhoppel, memissions, nemissions, dqa, gweibull, &
-           fsstemis, fgridefficiency, __STAT__)
+      deallocate(fhoppel, memissions, nemissions, dqa, gweibull, fsstemis, fgridefficiency, _STAT)
 
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(clock)
@@ -651,16 +667,16 @@ contains
       ! Locals
       type(ESMF_State) :: internal
       type(SS2G_GridComp), pointer :: self
-      real :: fwet
       logical :: KIN
-      real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-      real, target, allocatable, dimension(:,:,:) :: RH20,RH80
-      real, pointer, dimension(:,:,:) :: ple0, zle0, pfl_lsan0, pfi_lsan0
-      real, pointer, dimension(:,:) :: flux_ptr
+      real, allocatable, dimension(:, :) :: drydepositionfrequency, dqa
+      real, pointer, dimension(:, :, :) :: sssd_vel
+      real, target, allocatable, dimension(:, :, :) :: RH20, RH80
+      real, pointer, dimension(:, :, :) :: ple0, zle0, pfl_lsan0, pfi_lsan0
+      real, pointer, dimension(:, :) :: flux_ptr
+      real :: rainout_eff(3)
       integer :: n, i1, j1, i2, j2, km
       integer :: settling_opt, status
 #include "SS2G_DeclarePointer___.h"
-
 
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 #include "SS2G_GetPointer___.h"
@@ -684,34 +700,36 @@ contains
       allocate(pfi_lsan0(i1:i2, j1:j2, 0:km), source=pfi_lsan(i1:i2, j1:j2, 1:km+1))
 
       ! Set klid and Set internal values to 0 above klid
-      call findKlid (self%klid, self%plid, ple0, __RC__)
-      call setZeroKlid4d (self%km, self%klid, SS)
+      call findKlid(self%klid, self%plid, ple0, _RC)
+      call setZeroKlid4d(self%km, self%klid, SS)
 
-      allocate(dqa, mold=lwi, __STAT__)
-      allocate(drydepositionfrequency, mold=lwi, __STAT__)
+      allocate(dqa, mold=lwi, _STAT)
+      allocate(drydepositionfrequency, mold=lwi, _STAT)
 
       ! Sea Salt Settling
-      select case(self%settling_scheme)
-      case("gocart")
+      select case (self%settling_scheme)
+      case ("gocart")
          settling_opt = 1
-      case("ufs")
+      case ("ufs")
          settling_opt = 2
       case default
-         _ASSERT_RC(.false., 'Unsupported settling scheme: '//trim(self%settling_scheme), ESMF_RC_NOT_IMPL)
+         _FAIL('Unsupported settling scheme: ' // trim(self%settling_scheme))
       end select
 
       do n = 1, self%nbins
          nullify(flux_ptr)
-         if (associated(SSSD)) flux_ptr => SSSD(:,:,n)
-         call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
-              SS(:,:,:,n), t, airdens, &
-              rh2, zle0, delp, flux_ptr, settling_scheme=settling_opt, _RC)
+         if (associated(SSSD)) flux_ptr => SSSD(:, :, n)
+         nullify(sssd_vel)
+         if (associated(SSSD_V)) sssd_vel => SSSD_V(:, :, :, n)
+         call Chem_SettlingSimple(self%km, self%klid, self%diag_Mie, n, self%CDT, MAPL_GRAV, &
+              SS(:, :, :, n), t, airdens, &
+              rh2, zle0, delp, flux_ptr, sssd_vel, settling_scheme=settling_opt, _RC)
       end do
 
       ! Deposition
       drydepositionfrequency = 0.
       call DryDeposition(self%km, t, airdens, zle0, lwi, ustar, zpbl, sh,&
-           MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, _RC )
+           MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, _RC)
 
       ! increase deposition velocity over land
       where (abs(lwi - LAND) < 0.5)
@@ -720,59 +738,73 @@ contains
 
       do n = 1, self%nbins
          dqa = 0.
-         dqa = max(0.0, SS(:,:,self%km,n)*(1.-exp(-drydepositionfrequency*self%cdt)))
-         SS(:,:,self%km,n) = SS(:,:,self%km,n) - dqa
+         dqa = max(0.0, SS(:, :, self%km, n) * (1. - exp(-drydepositionfrequency * self%CDT)))
+         SS(:, :, self%km, n) = SS(:, :, self%km, n) - dqa
          if (associated(SSDP)) then
-            SSDP(:,:,n) = dqa * delp(:,:,self%km) / MAPL_GRAV / self%cdt
+            SSDP(:, :, n) = dqa * delp(:, :, self%km) / MAPL_GRAV / self%CDT
          end if
       end do
 
       ! Large-scale Wet Removal
-      KIN = .TRUE.
-      do n = 1, self%nbins
-         fwet = 1.
-         call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%cdt, 'sea_salt', &
-              KIN, MAPL_GRAV, fwet, SS(:,:,:,n), ple0, t, airdens, &
-              pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, SSWT, _RC)
-      end do
+      KIN = .true.
+      select case (self%wet_removal_scheme)
+      case ('gocart')
+         do n = 1, self%nbins
+            call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, n, self%CDT, 'sea_salt', &
+                 KIN, MAPL_GRAV, self%fwet(n), SS(:, :, :, n), ple0, t, airdens, &
+                 pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, SSWT, _RC)
+         end do
+      case ('ufs')
+         rainout_eff = 0.0
+         do n = 1, self%nbins
+            rainout_eff(1) = self%fwet_ice(n) ! remove with ice
+            rainout_eff(2) = self%fwet_snow(n) ! remove with snow
+            rainout_eff(3) = self%fwet_rain(n) ! remove with rain
+            call WetRemovalUFS(self%km, self%klid, n, self%CDT, 'sea_salt', KIN, MAPL_GRAV, &
+                 self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
+                 SS(:, :, :, n), ple0, t, airdens, pfl_lsan0, pfi_lsan, SSWT, _RC)
+         end do
+      case default
+         _FAIL('Unsupported wet removal scheme: ' // trim(self%wet_removal_scheme))
+      end select
 
       ! Compute diagnostics
       ! Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
       call Aero_Compute_Diags( &
            self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
-           self%rup, self%wavelengths_profile*1.0e-9, &
-           self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
-           delp, ple0, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
+           self%rup, self%wavelengths_profile * 1.0e-9, &
+           self%wavelengths_vertint * 1.0e-9, SS, MAPL_GRAV, t, airdens, rh2, u, v, &
+           delp, ple0, tropp, SSSMASS, SSCMASS, SSMASS, SSEXTTAU, SSSTEXTTAU, SSSCATAU, SSSTSCATAU, &
            SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
-           SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF,    &
-           SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,_RC)
+           SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF, &
+           SSEXTTFM, SSSCATFM, SSANGSTR, SSAERIDX, NO3nFlag=.false., _RC)
 
       i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
       j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
       km = ubound(RH2, 3)
 
-      allocate(RH20(i1:i2,j1:j2,km), __STAT__)
-      allocate(RH80(i1:i2,j1:j2,km), __STAT__)
+      allocate(RH20(i1:i2, j1:j2, km), _STAT)
+      allocate(RH80(i1:i2, j1:j2, km), _STAT)
 
-      RH20(:,:,:) = 0.20
+      RH20(:, :, :) = 0.20
       call Aero_Compute_Diags( &
            mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
            nbins=self%nbins, rlow=self%rlow, &
-           rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
-           wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
+           rup=self%rup, wavelengths_profile=self%wavelengths_profile * 1.0e-9, &
+           wavelengths_vertint=self%wavelengths_vertint * 1.0e-9, aerosol=SS, &
            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-           rh=rh20,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
-           extcoef = SSEXTCOEFRH20, scacoef = SSSCACOEFRH20, NO3nFlag=.False., _RC)
+           rh=RH20, u=u, v=v, delp=delp, ple=ple0, tropp=tropp, &
+           extcoef=SSEXTCOEFRH20, scacoef=SSSCACOEFRH20, NO3nFlag=.false., _RC)
 
-      RH80(:,:,:) = 0.80
+      RH80(:, :, :) = 0.80
       call Aero_Compute_Diags( &
            mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
            nbins=self%nbins, rlow=self%rlow, &
-           rup=self%rup, wavelengths_profile=self%wavelengths_profile*1.0e-9, &
-           wavelengths_vertint=self%wavelengths_vertint*1.0e-9, aerosol=SS, &
+           rup=self%rup, wavelengths_profile=self%wavelengths_profile * 1.0e-9, &
+           wavelengths_vertint=self%wavelengths_vertint * 1.0e-9, aerosol=SS, &
            grav=MAPL_GRAV, tmpu=t, rhoa=airdens, &
-           rh=rh80,u=u, v=v, delp=delp, ple=ple0,tropp=tropp, &
-           extcoef = SSEXTCOEFRH80, scacoef = SSSCACOEFRH80, NO3nFlag=.False., _RC)
+           rh=RH80, u=u, v=v, delp=delp, ple=ple0, tropp=tropp, &
+           extcoef=SSEXTCOEFRH80, scacoef=SSSCACOEFRH80, NO3nFlag=.false., _RC)
 
       deallocate(RH20, RH80)
       deallocate(ple0, zle0, pfl_lsan0, pfi_lsan0)
@@ -800,8 +832,8 @@ contains
       ! Locals
       type(SS2G_GridComp), pointer :: self
       character(len=ESMF_MAXSTR) :: field_name
-      real, pointer, dimension(:,:,:,:) :: ptr4d_int
-      real, pointer, dimension(:,:,:) :: ptr3d_imp
+      real, pointer, dimension(:, :, :, :) :: ptr4d_int
+      real, pointer, dimension(:, :, :) :: ptr3d_imp
       integer :: i, status
 
       ! Get my private internal state
@@ -812,8 +844,8 @@ contains
 
       do i = 1, self%nbins
          write(field_name, '(A, I0.3)') 'ss', i
-         call MAPL_StateGetPointer(import, itemName='clim'//trim(field_name), farrayPtr=ptr3d_imp, _RC)
-         ptr4d_int(:,:,:,i) = ptr3d_imp
+         call MAPL_StateGetPointer(import, itemName='clim' // trim(field_name), farrayPtr=ptr3d_imp, _RC)
+         ptr4d_int(:, :, :, i) = ptr3d_imp
       end do
 
       _RETURN(_SUCCESS)
@@ -827,21 +859,25 @@ contains
       integer, intent(out) :: rc
 
       !Local
-      real, dimension(:,:,:), pointer :: ple, rh
-      real(kind=DP), dimension(:,:,:), pointer :: var
-      real, dimension(:,:,:,:), pointer :: q, q_4d
+      real, dimension(:, :, :), pointer :: ple, rh
+      real(kind=DP), dimension(:, :, :), pointer :: var
+      real(kind=DP), dimension(:, :, :, :), pointer :: var4d
+      real, dimension(:, :, :, :), pointer :: q, q_4d
       integer, allocatable :: opaque_self(:)
-      type(C_PTR) :: address
+      type(c_ptr) :: address
       type(SS2G_GridComp), pointer :: self
       character(len=ESMF_MAXSTR) :: fld_name, int_fld_name
       type(ESMF_Field) :: fld
       type(ESMF_Info) :: info
-      real(kind=DP), dimension(:,:,:), allocatable :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
-      real, dimension(:,:,:), allocatable :: x
+      real(kind=DP), dimension(:, :, :), allocatable :: ext_s, ssa_s, asy_s ! (lon:,lat:,lev:)
+      real(kind=DP), dimension(:, :, :, :), allocatable :: pmom_s ! (lon:,lat:,lev:,nmom:)
+      real, dimension(:, :, :), allocatable :: x
       integer :: instance
       integer :: n, nbins
       integer :: i1, j1, i2, j2, km
       integer :: band
+      integer :: use_phot_table
+      real :: wavelength
       integer :: k, status
 
       call ESMF_InfoGetFromHost(state, info, _RC)
@@ -851,6 +887,9 @@ contains
 
       ! Radiation band
       call ESMF_InfoGet(info, key="band_for_aerosol_optics", value=band, default=0, _RC)
+
+      ! Are we doing a photolysis calculation?
+      call ESMF_InfoGet(info, key="use_photolysis_table", value=use_phot_table, default=0, _RC)
 
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
@@ -878,14 +917,14 @@ contains
       call ESMF_StateGet(state, trim(int_fld_name), field=fld, _RC) !add as attribute - dont hard code?
       call ESMF_FieldGet(fld, farrayPtr=q, _RC)
 
-      nbins = size(q,4)
+      nbins = size(q, 4)
 
       allocate(q_4d(i1:i2, j1:j2, km, nbins), _STAT)
 
       do n = 1, nbins
          do k = 1, km
-            x(:,:,k) = ((PLE(:,:,k) - PLE(:,:,k-1))*0.01)*(100./MAPL_GRAV)
-            q_4d(:,:,k,n) = x(:,:,k) * q(:,:,k,n)
+            x(:, :, k) = ((ple(:, :, k) - ple(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV)
+            q_4d(:, :, k, n) = x(:, :, k) * q(:, :, k, n)
          end do
       end do
 
@@ -894,27 +933,42 @@ contains
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
 
-      call mie_(self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, _RC)
+      if (use_phot_table /= 0) then
+         wavelength = band * 1.e-9
+         allocate(pmom_s(i1:i2, j1:j2, km, self%phot_Mie%nmom), _STAT)
+         call miephot_(self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, pmom_s, _RC)
+      else
+         call mie_(self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, _RC)
+      end if
 
       call ESMF_InfoGet(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= '') then
          call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
-         var = ext_s(:,:,:)
+         var = ext_s(:, :, :)
       end if
 
       call ESMF_InfoGet(info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= '') then
          call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
-         var = ssa_s(:,:,:)
+         var = ssa_s(:, :, :)
       end if
 
-      call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
-      if (fld_name /= '') then
-         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
-         var = asy_s(:,:,:)
+      if (use_phot_table /= 0) then
+         call ESMF_InfoGet(info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, var4d, trim(fld_name), _RC)
+            var4d = pmom_s(:, :, :, :)
+         end if
+      else
+         call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
+            var = asy_s(:, :, :)
+         end if
       end if
 
       deallocate(ext_s, ssa_s, asy_s, _STAT)
+      if (use_phot_table /= 0) deallocate(pmom_s, _STAT)
       deallocate(q_4d, _STAT)
 
       _RETURN(_SUCCESS)
@@ -923,59 +977,93 @@ contains
 
       subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
          type(GOCART2G_Mie), intent(inout) :: mie ! mie table
-         integer, intent(in) :: nbins   ! number of bins
-         integer, intent(in) :: band    ! channel
-         real, intent(in) :: q(:,:,:,:) ! aerosol mass mixing ratio, kg kg-1
-         real, intent(in) :: rh(:,:,:)  ! relative humidity
-         real(kind=8), intent(out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         real(kind=8), intent(out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         real(kind=8), intent(out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
-         integer, intent(out)  :: rc
+         integer, intent(in) :: nbins ! number of bins
+         integer, intent(in) :: band ! channel
+         real, intent(in) :: q(:, :, :, :) ! aerosol mass mixing ratio, kg kg-1
+         real, intent(in) :: rh(:, :, :) ! relative humidity
+         real(kind=8), intent(out) :: bext_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
+         real(kind=8), intent(out) :: bssa_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
+         real(kind=8), intent(out) :: basym_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
+         integer, intent(out) :: rc
 
          ! local
          integer :: l
-         real :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
-         real :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-         real :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
+         real :: bext(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3)) ! extinction
+         real :: bssa(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3)) ! SSA
+         real :: gasym(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3)) ! asymmetry parameter
          integer :: status
 
-         bext_s  = 0.0d0
-         bssa_s  = 0.0d0
+         bext_s = 0.0d0
+         bssa_s = 0.0d0
          basym_s = 0.0d0
 
          do l = 1, nbins
             ! tau is converted to bext
-            call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, _RC)
+            call mie%Query(band, l, q(:, :, :, l), rh, tau=bext, gasym=gasym, ssa=bssa, _RC)
 
-            bext_s  = bext_s  +             bext     ! extinction
-            bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-            basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
+            bext_s = bext_s + bext ! extinction
+            bssa_s = bssa_s + (bssa * bext) ! scattering
+            basym_s = basym_s + gasym * (bssa * bext) ! asymmetry parameter multiplied by scattering
          end do
 
          _RETURN(_SUCCESS)
       end subroutine mie_
+
+      subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, bpmom_s, rc)
+         type(GOCART2G_Mie), intent(inout) :: mie ! mie table
+         integer, intent(in) :: nbins ! number of bins
+         real, intent(in) :: wavelength ! wavelength in nm
+         real, intent(in) :: q(:, :, :, :) ! aerosol mass mixing ratio, kg kg-1
+         real, intent(in) :: rh(:, :, :) ! relative humidity
+         real(kind=DP), intent(out) :: bext_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
+         real(kind=DP), intent(out) :: bssa_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
+         real(kind=DP), intent(out) :: bpmom_s(size(pmom_s, 1), size(pmom_s, 2), size(pmom_s, 3), size(pmom_s, 4))
+         integer, intent(out) :: rc
+
+         ! local
+         integer :: l, m
+         real :: bext(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3)) ! extinction
+         real :: bssa(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3)) ! SSA
+         real :: pmom(size(pmom_s, 1), size(pmom_s, 2), size(pmom_s, 3), size(pmom_s, 4), 6)
+
+         bext_s = 0.0d0
+         bssa_s = 0.0d0
+         bpmom_s = 0.0d0
+
+         do l = 1, nbins
+            ! tau is converted to bext
+            call mie%Query(wavelength, l, q(:, :, :, l), rh, tau=bext, pmom=pmom, ssa=bssa, _RC)
+            bext_s = bext_s + bext ! extinction
+            bssa_s = bssa_s + (bssa * bext) ! scattering
+            do m = 1, mie%nmom
+               bpmom_s(:, :, :, m) = bpmom_s(:, :, :, m) + pmom(:, :, :, m, 1) * (bssa * bext) ! moments multiplied by scattering
+            end do
+         end do
+
+         _RETURN(_SUCCESS)
+      end subroutine miephot_
 
    end subroutine aerosol_optics
 
    subroutine monochromatic_aerosol_optics(state, rc)
 
       !ARGUMENTS:
-      type (ESMF_State) :: state
+      type(ESMF_State) :: state
       integer, intent(out) :: rc
 
       !Local
-      real, dimension(:,:,:), pointer :: ple, rh
-      real, dimension(:,:), pointer :: var
-      real, dimension(:,:,:,:), pointer :: q, q_4d
+      real, dimension(:, :, :), pointer :: ple, rh
+      real, dimension(:, :), pointer :: var
+      real, dimension(:, :, :, :), pointer :: q, q_4d
       integer, allocatable :: opaque_self(:)
-      type(C_PTR) :: address
+      type(c_ptr) :: address
       type(SS2G_GridComp), pointer :: self
 
       character(len=ESMF_MAXSTR) :: fld_name
       type(ESMF_Field) :: fld
       type(ESMF_Info) :: info
 
-      real, dimension(:,:,:), allocatable :: tau_s, tau, x ! (lon:,lat:,lev:)
+      real, dimension(:, :, :), allocatable :: tau_s, tau, x ! (lon:,lat:,lev:)
       integer :: instance
       integer :: n, nbins, k
       integer :: i1, j1, i2, j2, km
@@ -1012,20 +1100,20 @@ contains
            tau(i1:i2, j1:j2, km), &
            x(i1:i2, j1:j2, km), _STAT)
       tau_s = 0.
-      tau   = 0.
+      tau = 0.
 
       call ESMF_StateGet(state, 'SS', field=fld, _RC)
       call ESMF_FieldGet(fld, farrayPtr=q, _RC)
 
-      nbins = size(q,4)
+      nbins = size(q, 4)
 
       allocate(q_4d(i1:i2, j1:j2, km, nbins), _STAT)
       q_4d = 0.
 
       do n = 1, nbins
          do k = 1, km
-            x(:,:,k) = (PLE(:,:,k) - PLE(:,:,k-1)) / MAPL_GRAV
-            q_4d(:,:,k,n) = x(:,:,k) * q(:,:,k,n)
+            x(:, :, k) = (ple(:, :, k) - ple(:, :, k - 1)) / MAPL_GRAV
+            q_4d(:, :, k, n) = x(:, :, k) * q(:, :, k, n)
          end do
       end do
 
@@ -1035,7 +1123,7 @@ contains
       call c_f_pointer(address, self)
 
       do n = 1, nbins
-         call self%diag_Mie%Query(wavelength, n, q_4d(:,:,:,n), rh, tau=tau, _RC)
+         call self%diag_Mie%Query(wavelength, n, q_4d(:, :, :, n), rh, tau=tau, _RC)
          tau_s = tau_s + tau
       end do
 
@@ -1055,8 +1143,8 @@ end module SS2G_GridCompMod
 
 subroutine SetServices(gc, rc)
    use ESMF
-   use SS2G_GridCompMod, only : mySetservices=>SetServices
+   use SS2G_GridCompMod, only : mySetservices => SetServices
    type(ESMF_GridComp) :: gc
    integer, intent(out) :: rc
-   call mySetServices(gc, rc=rc)
+   call mySetservices(gc, rc=rc)
 end subroutine SetServices

@@ -12,16 +12,17 @@ module GA_EnvironmentMod
    public :: GA_Environment
 
    type :: GA_Environment
-       type(GOCART2G_Mie)     :: rad_Mie, diag_Mie
+       type(GOCART2G_Mie)     :: rad_Mie, diag_Mie, phot_Mie
        real, allocatable      :: radius(:)      ! particle effective radius [um]
        real, allocatable      :: rhop(:)        ! soil class density [kg m-3]
        real, allocatable      :: fscav(:)       ! scavenging efficiency
+       real, allocatable      :: fwet(:)        ! large scale wet removal efficiency (GOCART)
 !      logical                :: scav_byColdCloud ! new flag example
        real, allocatable      :: molwght(:)     ! molecular weight            !NOT UNIVERSAL ONLY FOR GASES,
        real, allocatable      :: fnum(:)        ! number of particles per kg mass
-       real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice
-       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow
-       real, allocatable      :: fwet_rain(:)   ! large scale wet removal scaling factor for rain
+       real, allocatable      :: fwet_ice(:)    ! large scale wet removal scaling factor for ice (UFS)
+       real, allocatable      :: fwet_snow(:)   ! large scale wet removal scaling factor for snow (UFS)
+       real, allocatable      :: fwet_rain(:)   ! large scale wet removal scaling factor for rain (UFS)
        real                   :: washout_tuning ! tuning factor for washout process (1 by default)
        real                   :: wet_radius_thr ! wet radius threshold [um]
        integer                :: rhFlag
@@ -54,25 +55,24 @@ module GA_EnvironmentMod
 
        call MAPL_GridCompGetResource(gc, "nbins", self%nbins, _RC)
        nbins = self%nbins
+       allocate(ones(nbins), source=1.0)
 
        call MAPL_GridCompGetResource(gc, "particle_radius_microns", self%radius, _RC)
        call MAPL_GridCompGetResource(gc, "particle_density", self%rhop, _RC)
        call MAPL_GridCompGetResource(gc, "fscav", self%fscav, _RC)
+       call MAPL_GridCompGetResource(gc, "fwet", self%fwet, default=ones, _RC)
        call MAPL_GridCompGetResource(gc, "molecular_weight", self%molwght, _RC)
        call MAPL_GridCompGetResource(gc, "fnum", self%fnum, _RC)
        call MAPL_GridCompGetResource(gc, "pressure_lid_in_hPa", self%plid, _RC)
-
+       call MAPL_GridCompGetResource(gc, "fwet_ice", self%fwet_ice, default=ones, _RC)
+       call MAPL_GridCompGetResource(gc, "fwet_snow", self%fwet_snow, default=ones, _RC)
+       call MAPL_GridCompGetResource(gc, "fwet_rain", self%fwet_rain, default=ones, _RC)
        call MAPL_GridCompGetResource(gc, "wet_radius_thr", self%wet_radius_thr, default=0.05, _RC)
        call MAPL_GridCompGetResource(gc, "washout_tuning", self%washout_tuning, default=1.0, _RC)
        call MAPL_GridCompGetResource(gc, "wet_removal_scheme", wet_removal_scheme, default="gocart", _RC)
        call MAPL_GridCompGetResource(gc, "settling_scheme", settling_scheme, default='gocart', _RC)
        self%wet_removal_scheme = ESMF_UtilStringLowerCase(wet_removal_scheme, _RC)
        self%settling_scheme = ESMF_UtilStringLowerCase(settling_scheme, _RC)
-
-       allocate(ones(nbins), source=1.0)
-       call MAPL_GridCompGetResource(gc, "fwet_ice", self%fwet_ice, default=ones, _RC)
-       call MAPL_GridCompGetResource(gc, "fwet_snow", self%fwet_snow, default=ones, _RC)
-       call MAPL_GridCompGetResource(gc, "fwet_rain", self%fwet_rain, default=ones, _RC)
 
        call MAPL_GridCompGetResource(gc, "wavelengths_for_profile_aop_in_nm", self%wavelengths_profile, _RC)
        call MAPL_GridCompGetResource(gc, "wavelengths_for_vertically_integrated_aop_in_nm", self%wavelengths_vertint, _RC)

@@ -1,0 +1,24 @@
+---
+mapl:
+
+  run_phases:
+    run1: false
+    run2: true
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 48
+    vertical_grid:
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 72
+      field_edge: PLE
+      field_center: PE
+
+  children:
+    GOCART2G:
+      dso: libGOCART2G_GridComp.so
+      setservice: setservices_
+      config_file: GOCART_GridComp.yaml

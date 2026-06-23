@@ -61,7 +61,8 @@ integer, parameter     :: DP = kind(1.0d0)
        real, allocatable :: fnumDU(:), fnumSS(:) ! DU and SS particles per kg mass
        type(ThreadWorkspace), allocatable :: workspaces(:)
        type(ESMF_Alarm) :: alarm
-    end type NI2G_GridComp
+       logical :: using_GMI !CM: logic for hno3 GMI coupling
+   end type NI2G_GridComp
 
    type wrap_
       type (NI2G_GridComp), pointer     :: PTR !=> null()
@@ -137,6 +138,9 @@ contains
 
     ! process generic config items
     call self%GA_Environment%load_from_config( cfg, universal_cfg, __RC__)
+
+    ! process NI specific items
+    call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', __RC__)
 
 !   Is NI data driven?
 !   ------------------
@@ -232,6 +236,16 @@ contains
           restart=MAPL_RestartOptional, __RC__)
     end if ! (data_driven)
 
+    if(self%using_GMI) then
+
+       call MAPL_AddImportSpec(GC,                           &
+          SHORT_NAME = 'GMI_HNO3',                             &
+          LONG_NAME  = 'nitric_acid',                   &
+          UNITS      = 'mol/mol',                            &
+          DIMS       = MAPL_DimsHorzVert,                    &
+          VLOCATION  = MAPL_VLocationCenter,                 &
+          RESTART    = MAPL_RestartSkip,     __RC__)
+    endif
 
 !   Import, Export, Internal states for computational instance
 !   ----------------------------------------------------------
@@ -454,6 +468,23 @@ contains
     call ESMF_ConfigGetAttribute (cfg, file_, label="aerosol_radBands_optics_file:", __RC__ )
     self%rad_Mie = GOCART2G_Mie(trim(file_), __RC__)
 
+!   Trigger for photolysis calculations
+!   -----------------------------------
+    call ESMF_AttributeSet (aero, name="use_photolysis_table", value=0, __RC__)
+
+!   Create Photolysis Mie Table
+!   ---------------------------
+!   Get file names for the optical tables
+    call ESMF_ConfigGetAttribute (cfg, file_, &
+                                  label="aerosol_monochromatic_optics_file:", __RC__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label="n_phase_function_moments_photolysis:", default=0,  __RC__)
+    i = ESMF_ConfigGetLen (universal_cfg, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', __RC__)
+    allocate (channels_(i), __STAT__ )
+    call ESMF_ConfigGetAttribute (universal_cfg, channels_, &
+                                  label= "aerosol_photolysis_wavelength_in_nm_from_LUT:", __RC__)
+    self%phot_Mie = GOCART2G_Mie(trim(file_), channels_*1.e-9, nmom=nmom_, __RC__)
+    deallocate(channels_)
+
 !   Create Diagnostics Mie Table
 !   -----------------------------
 !   Get file names for the optical tables
@@ -481,6 +512,11 @@ contains
     call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
     call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
+    call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
+    if(nmom_ > 0) then
+       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
+                      grid=grid, typekind=MAPL_R8, ungrid=nmom_, __RC__)
+    endif
     call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
     call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
@@ -751,7 +787,7 @@ contains
     type (NI2G_GridComp), pointer     :: self
 
     real, allocatable, dimension(:,:) :: drydepositionfrequency, dqa
-    real                              :: fwet
+    real, pointer, dimension(:,:,:)   :: nisd_vel
     logical                           :: KIN
     real, allocatable, target, dimension(:,:,:) :: fluxoutWT
     real, allocatable, dimension(:,:,:,:) :: aerosol
@@ -805,45 +841,58 @@ contains
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
 
-    alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
+    if(self%using_GMI) then
+      xhno3 = GMI_HNO3
+      call MAPL_MaxMin ( 'GMI:HNO3  ', xhno3)
+
+    else
+      alarm_is_ringing = ESMF_AlarmIsRinging(self%alarm, _RC)
 #ifdef DEBUG
-    if (alarm_is_ringing) then
+      if (alarm_is_ringing) then
           if (MAPL_Am_I_Root()) then
              print *,'DEBUG:: NI replenish alarm is ringing'
           end if
-    end if
+      end if
 #endif
 
-!   Save local copy of HNO3 for first pass through run method regardless
-    thread = MAPL_get_current_thread()
-    workspace => self%workspaces(thread)
+      !Save local copy of HNO3 for first pass through run method regardless
+      thread = MAPL_get_current_thread()
+      workspace => self%workspaces(thread)
 
-    !if (workspace%first) then
-       !xhno3 = MAPL_UNDEF
-       !workspace%first = .false.
-    !end if
+      ! Recycle HNO3 every 3 hours
+      if (alarm_is_ringing) then
+         xhno3 = NITRATE_HNO3
+      end if
+    endif
 
-!   Recycle HNO3 every 3 hours
-    if (alarm_is_ringing) then
-       xhno3 = NITRATE_HNO3
-    end if
 
     if (associated(NIPNO3AQ)) NIPNO3AQ(:,:) = 0.
     if (associated(NIPNH4AQ)) NIPNH4AQ(:,:) = 0.
     if (associated(NIPNH3AQ)) NIPNH3AQ(:,:) = 0.
+    if (associated(NIPHNO3AQ)) NIPHNO3AQ(:,:) = 0.
+    ! 3D diag
+    if (associated(NIPNO3AQV)) NIPNO3AQV(:,:,:) = 0.
+    if (associated(NIPNH4AQV)) NIPNH4AQV(:,:,:) = 0.
+    if (associated(NIPNH3AQV)) NIPNH3AQV(:,:,:) = 0.
+    if (associated(NIPHNO3AQV)) NIPHNO3AQV(:,:,:) = 0.
 
     call NIthermo (self%km, self%klid, self%cdt, MAPL_GRAV, delp, airdens, &
                    t, rh2, fMassHNO3, MAPL_AIRMW, SO4, NH3, NO3an1, NH4a, &
-                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, __RC__)
+                   xhno3, NIPNO3AQ, NIPNH4AQ, NIPNH3AQ, NIPHNO3AQ, &
+                   NIPNO3AQV, NIPNH4AQV, NIPNH3AQV, NIPHNO3AQV, __RC__)
 
 
-    call NIheterogenousChem (NIHT, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
+    call NIheterogenousChem (NIHT, NIHTV, xhno3, MAPL_UNDEF, MAPL_AVOGAD, MAPL_AIRMW, &
                              MAPL_PI, MAPL_RUNIV/1000., airdens, t, rh2, delp, DU, &
                              SS, self%rmedDU*1.e-6, self%rmedSS*1.e-6, &
                              self%fnumDU, self%fnumSS, self%km, self%klid, &
                              self%cdt, MAPL_GRAV, fMassHNO3, fMassNO3, NO3an1, NO3an2, &
                              NO3an3, HNO3CONC, HNO3SMASS,  HNO3CMASS, __RC__)
-!   Save local copy of HNO3 for first pass through run method regardless
+
+    ! CM: update GMI_HNO3 after nitrate processes for 2way coupling.
+    if(self%using_GMI) then
+      GMI_HNO3 = xhno3
+    endif
 
 
 !   NI Settling
@@ -858,26 +907,35 @@ contains
     end select
 
 !   Ammonium - settles like bin 1 of nitrate
+    nullify(nisd_vel)
+    if (associated(NH4SD_V)) nisd_vel => NH4SD_V
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
-                              NH4a, t, airdens, rh2, zle, delp, NH4SD, settling_scheme=settling_opt, __RC__)
+                              NH4a, t, airdens, rh2, zle, delp, NH4SD, nisd_vel, &
+                              settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 1
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,1)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,1)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 1, self%cdt, MAPL_GRAV, &
                         NO3an1, t, airdens, &
-                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 2
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,2)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,2)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 2, self%cdt, MAPL_GRAV, &
                         NO3an2, t, airdens, &
-                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 !   Nitrate Bin 3
     nullify(flux_ptr)
     if (associated(NISD)) flux_ptr => NISD(:,:,3)
+    nullify(nisd_vel)
+    if (associated(NISD_V)) nisd_vel => NISD_V(:,:,:,3)
     call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, 3, self%cdt, MAPL_GRAV, &
                         NO3an3, t, airdens, &
-                        rh2, zle, delp, flux_ptr,  settling_scheme=settling_opt, __RC__)
+                        rh2, zle, delp, flux_ptr, nisd_vel, settling_scheme=settling_opt, __RC__)
 
 
 
@@ -933,22 +991,20 @@ contains
    end if
 !  NH3
    KIN = .false.
-   fwet = 1.
    nullify(fluxWT_ptr)
    if (associated(NH3WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G (self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH3', &
-                            KIN, MAPL_GRAV, fwet, NH3, ple, t, airdens, &
+                            KIN, MAPL_GRAV, self%fwet(1), NH3, ple, t, airdens, &
                             pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
 !   Save local copy of HNO3 for first pass through run method regardless
    if (associated(NH3WT)) NH3WT = fluxWT_ptr(:,:,1)
 
 !  NH4a
    KIN = .true.
-   fwet = 1.
    nullify(fluxWT_ptr)
    if (associated(NH4WT)) fluxWT_ptr => fluxoutWT
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'NH4a', &
-                           KIN, MAPL_GRAV, fwet, NH4a, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(2), NH4a, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, fluxWT_ptr, __RC__)
    if (associated(NH4WT)) NH4WT = fluxWT_ptr(:,:,1)
 
@@ -957,21 +1013,18 @@ contains
    end if
 
    KIN = .true.
-   fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 1, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an1, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(3), NO3an1, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
    KIN = .true.
-   fwet = 1.
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 2, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an2, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(4), NO3an2, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
    KIN = .true.
-   fwet = 0.3
    call WetRemovalGOCART2G(self%km, self%klid, self%nbins, self%nbins, 3, self%cdt, 'nitrate', &
-                           KIN, MAPL_GRAV, fwet, NO3an3, ple, t, airdens, &
+                           KIN, MAPL_GRAV, self%fwet(5), NO3an3, ple, t, airdens, &
                            pfl_lsan, pfi_lsan, cn_prcp, ncn_prcp, NIWT, __RC__)
 
 !   Save local copy of HNO3 for first pass through run method regardless
@@ -1134,6 +1187,7 @@ contains
     integer, parameter                               :: DP=kind(1.0d0)
     real, dimension(:,:,:), pointer                  :: ple, rh
     real(kind=DP), dimension(:,:,:), pointer         :: var
+    real(kind=DP), dimension(:,:,:,:), pointer       :: var4d
     real, dimension(:,:,:), pointer                  :: q
     real, dimension(:,:,:,:), pointer                :: q_4d
     integer, allocatable                             :: opaque_self(:)
@@ -1145,12 +1199,14 @@ contains
     character (len=ESMF_MAXSTR),allocatable          :: aerosol_names(:)
 
     real(kind=DP), dimension(:,:,:), allocatable     :: ext_s, ssa_s, asy_s  ! (lon:,lat:,lev:)
+    real(kind=DP), dimension(:,:,:,:), allocatable   :: pmom_s               ! (lon:,lat:,lev:,nmom:)
     real                                             :: x
     integer                                          :: instance
     integer                                          :: n, nbins
     integer                                          :: i1, j1, i2, j2, km
     integer                                          :: band
-
+    integer                                          :: usePhotTable
+    real                                             :: wavelength
     integer :: i, j, k
 
     __Iam__('NI2G::aerosol_optics')
@@ -1171,6 +1227,11 @@ contains
 !   --------------
     band = 0
     call ESMF_AttributeGet(state, name='band_for_aerosol_optics', value=band, __RC__)
+
+!   Are we doing a photolysis calculation?
+!   --------------------------------------
+    usePhotTable = 0
+    call ESMF_AttributeGet (state, name='use_photolysis_table', value=usePhotTable, __RC__)
 
 !   Pressure at layer edges
 !   ------------------------
@@ -1217,7 +1278,13 @@ contains
     address = transfer(opaque_self, address)
     call c_f_pointer(address, self)
 
-    call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    if (usePhotTable /= 0) then
+       wavelength = band*1.e-9
+       allocate(pmom_s(i1:i2, j1:j2, km, self%phot_Mie%nmom), __STAT__)
+       call miephot_ (self%phot_Mie, nbins, wavelength, q_4d, rh, ext_s, ssa_s, pmom_s, __RC__)
+    else
+       call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
+    endif
 
     call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
     if (fld_name /= '') then
@@ -1231,20 +1298,28 @@ contains
         var = ssa_s(:,:,:)
     end if
 
-   call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
-        var = asy_s(:,:,:)
+    if (usePhotTable /= 0) then
+       call ESMF_AttributeGet (state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var4d, trim(fld_name), __RC__)
+           var4d = pmom_s(:,:,:,:)
+     end if
+    else
+       call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+       if (fld_name /= '') then
+           call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+           var = asy_s(:,:,:)
+     end if
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
+    if (usePhotTable /= 0) deallocate(pmom_s, __STAT__)
     deallocate(q_4d, __STAT__)
 
     RETURN_(ESMF_SUCCESS)
 
   contains
 
-!    subroutine mie_(mie_table, aerosol_names, nb, offset, q, rh, bext_s, bssa_s, basym_s, rc)
     subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
 
     implicit none
@@ -1275,14 +1350,55 @@ contains
        call mie%Query(band, l, q(:,:,:,l), rh, tau=bext, gasym=gasym, ssa=bssa, __RC__)
 
        bext_s  = bext_s  +             bext     ! extinction
-       bssa_s  = bssa_s  +       (bssa*bext)    ! scattering extinction
-       basym_s = basym_s + gasym*(bssa*bext)    ! asymetry parameter multiplied by scatering extiction
+       bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+       basym_s = basym_s + gasym*(bssa*bext)    ! asymmetry parameter multiplied by scattering
 
     end do
 
     RETURN_(ESMF_SUCCESS)
 
     end subroutine mie_
+
+    subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, bpmom_s, rc)
+
+    implicit none
+
+    type(GOCART2G_Mie),            intent(inout) :: mie              ! mie table
+    integer,                       intent(in   ) :: nbins            ! number of bins
+    real,                          intent(in )   :: wavelength       ! wavelength in nm
+    real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
+    real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
+    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bpmom_s(size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4))
+    integer,                       intent(  out) :: rc
+
+    ! local
+    integer                           :: l, m
+    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
+    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
+    real                              :: pmom (size(pmom_s,1),size(pmom_s,2),size(pmom_s,3),size(pmom_s,4),6)
+
+    __Iam__('NI2G::aerosol_optics::miephot_')
+
+     bext_s  = 0.0d0
+     bssa_s  = 0.0d0
+     bpmom_s = 0.0d0
+
+     do l = 1, nbins
+        ! tau is converted to bext
+        call mie%Query(wavelength, l, q(:,:,:,l), rh, tau=bext, pmom=pmom, ssa=bssa, __RC__)
+        bext_s  = bext_s  +             bext     ! extinction
+        bssa_s  = bssa_s  +       (bssa*bext)    ! scattering
+        do m = 1, mie%nmom
+           bpmom_s(:,:,:,m) = bpmom_s(:,:,:,m) + pmom(:,:,:,m,1)*(bssa*bext)    ! moments multiplied by scattering
+        enddo
+     end do
+
+
+     RETURN_(ESMF_SUCCESS)
+
+    end subroutine miephot_
 
   end subroutine aerosol_optics
 

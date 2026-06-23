@@ -11,11 +11,11 @@ module Chem_AeroGeneric
 
    !USES:
    use ESMF
-   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return, &
-                   MAPL_StateGetPointer, MAPL_FieldGet, MAPL_FieldCreate, MAPL_FieldBundleAdd, &
-                   MAPL_VerticalStaggerLoc, MAPL_VERTICAL_STAGGER_EDGE, MAPL_VERTICAL_STAGGER_CENTER, &
-                   mapl_UngriddedDims
-   ! USE Chem_MieMod2G
+   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
+   use MAPL, only: MAPL_StateGetPointer, MAPL_FieldGet, MAPL_FieldCreate, MAPL_FieldBundleAdd
+   use MAPL, only: MAPL_VerticalStaggerLoc, MAPL_UngriddedDims
+   use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_EDGE, MAPL_VERTICAL_STAGGER_CENTER
+   ! USE GOCART_MieMod2G
 
    implicit none
    private
@@ -38,7 +38,7 @@ module Chem_AeroGeneric
 
 contains
 
-   subroutine add_aero(state, label, label2, geom, km, typekind, ptr, rc)
+   subroutine add_aero(state, label, label2, geom, km, typekind, ptr, ungrid, rc)
 
       ! Description: Adds fields to aero state for aerosol optics calcualtions.
 
@@ -49,6 +49,7 @@ contains
       integer, optional, intent(in) :: km
       type(ESMF_TypeKind_Flag), optional, intent(in) :: typekind
       real, pointer, dimension(:,:,:), optional, intent(in) :: ptr
+      integer, optional, intent(in) :: ungrid
       integer, intent(out) :: rc
 
       ! locals
@@ -77,11 +78,19 @@ contains
             field = MAPL_FieldCreate(geom, typekind_, name=field_name, _RC)
          else
             _ASSERT(present(km), "missing km for a 3D field")
-            field = MAPL_FieldCreate( &
-                 geom, typekind_, &
-                 name=field_name, &
-                 num_levels=km, &
-                 vert_staggerloc=MAPL_VERTICAL_STAGGER_CENTER, _RC)
+            if (present(ungrid)) then
+               field = MAPL_FieldCreate( &
+                    geom, typekind_, &
+                    name=field_name, &
+                    ungridded_dims=MAPL_UngriddedDims([ungrid]), &
+                    vert_staggerloc=MAPL_VERTICAL_STAGGER_NONE, _RC)
+            else
+               field = MAPL_FieldCreate( &
+                    geom, typekind_, &
+                    name=field_name, &
+                    num_levels=km, &
+                    vert_staggerloc=MAPL_VERTICAL_STAGGER_CENTER, _RC)
+            end if
          end if
          call ESMF_StateAdd(state, [field], _RC)
       end if
@@ -125,7 +134,6 @@ contains
 
       !Local
       type(ESMF_Field) :: field, field2d
-      type(ESMF_Info) :: info
       type(ESMF_Geom), allocatable :: geom
       type(ESMF_TypeKind_Flag) :: typekind
       real, pointer :: orig_ptr(:,:,:)

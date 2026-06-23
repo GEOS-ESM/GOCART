@@ -46,6 +46,92 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrate `DU2G_GridCompMod.F90`, `SU2G_GridCompMod.F90`, `CA2G_GridCompMod.F90` from `MAPL_PackTime` to `MAPL_PackedDateCreate`/`MAPL_PackedTimeCreate` from `MAPL_PackedTimeMod`
 - Migrate `ReplenishAlarm.F90`: remove `MAPL_UnpackTime`; inline HHMMSS arithmetic directly into `ESMF_TimeIntervalSet`
 - Migrate `ReplenishAlarm.F90` from bare `use MAPL2` to `use MAPL` + `use MAPL2, only: MAPL_UnpackTime`; replace `MAPL_GetObjectFromGC`/`MAPL_GetResource` with `MAPL_GridCompGetResource`
+- Changed the Process_Library GOCART_MieMod and MieQuery files to handle dimension
+  reordered aerosol optical property LUTs.
+- Changed pointer in XX2G_instance rc files to v2.x.x aerosol optical property
+  LUTs now based on GEOSmie and with dimensions renamed and reordered as above
+- Updated version of volcanic sulfur emissions for AMIP configuration to v202601
+- Update aerosol optics bands files to default to RRTMGP bands, rather than RRTMG (as GEOSgcm v12 has switched to RRTMGP)
+  - NOTE: This means users needing RRTMG bands will need to update at run time. See https://github.com/GEOS-ESM/GEOSgcm_App/pull/878 for changes needed at run-time for GEOSgcm
+
+### Fixed
+
+- Fixed ifx compilation errors in legacy GOCART GridComps (Ops emissions path):
+  - Changed `intent(in)` to `intent(inout)` on `w_c` (`Chem_Bundle`) arguments in `Aero`, `CFC`, `CH4`, `CO`, `CO2`, and `Rn` GridComps, as sub-components temporarily modify registry indices
+- Additional fixes in `CO_GridCompMod.F90`:
+  - Initialize `eCO_bioburn_` to `0.0` to prevent use of uninitialized data when `diurnal_bb` is false
+  - Guard `DEALLOCATE` of `ier` with an `ALLOCATED` check
+  - Add local `ios` variable in `CO_Emission` to prevent host-association aliasing under optimization
+
+### Added
+
+## [v2.6.5] - 2026-05-15
+
+### Fixed
+
+- Fixed an issue with data-driven SU and `PSO4`
+  - `PSO4` is only an export of computational SU but an Export was being added in the data-driven SU instance.
+
+## [v2.6.4] - 2026-05-12
+
+### Changed
+
+- ExtData yaml files for CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
+- Updated `GOCART2G_GridComp.rc` to output AOD profile at 470 nm and 870 nm
+  for JEDI (in addition to the existing 550 nm vertically integrated AOD),
+  without changing behavior for the PSAS AOD analysis
+
+## [v2.6.3] - 2026-05-11
+
+### Fixed
+
+- There was a bug where the degassing lat/lon were used to assign emission points for
+  explosive volcanic SO2 emissions; this has been corrected.
+- There was a bug where the scaling of explosive volcanic SO2 emissions was mistakenely
+  being applied to the degassing (effectively further doubling the degassing and not
+  correctly scaling the explosive; this has been corrected.
+
+## [v2.6.2] - 2026-03-09
+
+### Changed
+
+- Corrected `pressure_lid_in_hPa` values from integers to floats in CA2G (bc, br, oc), DU2G, NI2G, SU2G (default, AMIP, AMIP.20C), and SS2G instance RC files
+- Updated SS2G `emission_scale` values (still not finalized)
+- Removed unused pointer variables (`int_ptr`, `ple`) from `SU2G_GridCompMod.F90`
+
+### Fixed
+
+- Added floating-point protection (TINY/EPS guards) in molality calculation in `GOCART2G_Process.F90` to avoid potential division-by-zero or zero-power operations
+
+## [v2.6.1] - 2026-02-17
+
+### Fixed
+
+- Fix missing `GMI_HNO3` entry in `AMIP/NI2G_GridComp_ExtData.yaml` file
+- Fix start-stop regression failure in SU GridComp
+
+## [v2.6.0] - 2026-02-05
+
+### Changed
+
+- Updated RC configuration settings for GEOSgcm v12
+  - Adjusted pressure_lid_in_hPa values for various components (CA2G: 0.01→10 hPa for bc/br/oc, NI2G: 0.01→10 hPa, DU2G: 0.01→10 hPa, SS2G: 0.01→40 hPa, SU2G: 0.01→1 hPa)
+  - Switched dust (DU2G) emission coefficients (Ch_DU) from L072 to L181 values
+  - Updated dust (DU2G) fwet parameter from 0.8 to 1.0 for all bins
+  - Switched sea salt (SS2G) emission_scale from L072 to L181 values
+
+## [v2.5.0] - 2026-02-05
+
+### Changed
+
+- Cleaned up SU AMIP instance RC files; fixed path for degassing volcanic emissions
+  in AMIP.20C and removed unneccessary rhFlag from both AMIP dirs
+- Calculation of surface area density and effective radius for connection to chemistry
+  now comes from optics tables
+- Changed effective radius in MieQuery.H to remove in place units scaling; made
+  corresponding change in Chem_SettlingSimple
+- Updated optics lookup tables to accommodate area and effective radius calculation
+- Check userRC in ESMF_GridCompRun in GOCART2G gridcomp
 - The pressure lid change associated with the introduction of run0 to set 0 above the lid
 - Fwet value in dust modified from 0.8 to 1.0
 - Dust and Sea salt Emission scale factors updated for L181
@@ -54,15 +140,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Heartbeat time step removed and `timeToWork` logical added
 - Modified filepaths for the optics files to no longer link to a personal nobackup directory
 - Added logic to ensure the alarm accounts for skipping heartbeat in `NI` and `SU` components
+- Update CI to use reusable workflows
+- Update `components.yaml` to match that of GEOSgcm main as of 2026-01-15
+  - ESMA_env v5.17.0
+  - ESMA_cmake v3.69.0
+  - GMAO_Shared v2.1.6
+  - MAPL v2.64.1
+- fwet removed from children GridCompMod and placed in respective instance RC files
+- Updated settling routine and calls to allow settling velocity diagnostics in output field
+- Updated pressure lids in instance.rc files for use in GCMv12
 
 ### Fixed
 
+- In SU an incorrect (older) optics table was specified in AMIP/AMIP.20C sub-directories.
+  This is corrected from v1_3 to v1_6
+- In DU2G_GridCompMod.F90 remove unnecessary "if(associated())" check for DU_SRC
+  to future proof for application of new MAPL filtering
 - Units error in sulfate surface area density calculation in Process Library corrected
 - Removed erroneous/extraneous friendly attributes to internal state for DU and NI
   when in data_driven mode
 - typo in filepath for BR optics file
+- Units error for dust and sea salt radius in NIheterogenousChem in Process Library corrected.
+- stochiometric coefficent correction for heterogenous production diagnostic NI_phet
+  in NIheterogenousChem in Process Library.
+- corrected references for RH factor for hno3 uptake on dust in NIheterogenousChem in Process Library.
+- units error for external data hno3 corrected in NI instance file and in Process Library.
+- corrected units error for hno3 column diagnostic in Process Library.
+- Bug fix for "WetRemovalUFS"
 
 ### Added
+
+- Added effective radius and surface area density to aerosol states for use in chemistry
+- Added logic in SU2G_GridCompMod.F90 through SU2G_instance_SU.rc to allow one-way
+  coupling of GMI OH, NO3, H2O2 to sulfur chemistry mechanism
+- Added a callback to allow a chemistry module to call for optical properties needed
+  for photolysis calculation; currently used for GMI with CloudJ
+- Added 3d diagnostics for nitrate production.
+- Added logic in NI2G_GridCompMod.F90 through NI2G_instance_NI.rc to allow two-way
+  coupling of GMI HNO3 to nitrate chemistry mechanism.
+- Implementation of the "WetRemovalUFS" option for sulfate
 
 ## [v2.4.3] - 2025-07-21
 
@@ -78,7 +194,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
  - Added option for choosing SettlingSolver
-   - `gocart' - Default GOCART Settling scheme | 'ufs' - New Settling scheme
+   - 'gocart' - Default GOCART Settling scheme | 'ufs' - New Settling scheme
 
 ## [v2.4.2] - 2025-06-12
 
@@ -175,6 +291,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add `soil_moisture_factor` to the DU2G_instance_DU.rc (same name used in the K14 scheme) and DU2G_GridCompMod.F90 files for FENGSHA
 - Add `soil_drylimit_factor` to the DU2G_instance_DU.rc and DU2G_GridCompMod.F90 files for FENGSHA
 - Moved process library macros to header file.
+
+## [v2.3.1] - 2026-03-10
+
+### Changed
+
+- ExtData yaml files for CA, NI, SU, and CO to use QFED3 files beginning 1/15/2026 for OPS emissions and 3/1/2023 for AMIP emissions
 
 ## [v2.3.0] - 2025-01-16
 
