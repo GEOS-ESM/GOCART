@@ -14,7 +14,6 @@ module DU2G_GridCompMod
    use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
    use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
    use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
-   use MAPL, only: MAPL_UserCompSetInternalState, MAPL_UserCompGetInternalState
    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
    use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
