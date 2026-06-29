@@ -12,7 +12,6 @@ module GOCART2G_GridCompMod
    use MAPL, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
    use MAPL, only: MAPL_GridCompAddConnection, MAPL_GridCompGetResource, MAPL_GridCompReexport
    use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
-   use MAPL, only: MAPL_UserCompGetInternalState, MAPL_UserCompSetInternalState
    use MAPL, only: MAPL_RESTART_SKIP
    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
    use MAPL, only: MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet, MAPL_UngriddedDim
