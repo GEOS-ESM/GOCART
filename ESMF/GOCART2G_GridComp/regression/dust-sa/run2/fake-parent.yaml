@@ -9,6 +9,11 @@ aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
 mapl:
+
+  run_phases:
+    Run1: false
+    Run2: true
+
   misc:
     activate_all_imports: true
     activate_all_exports: true
@@ -16,15 +21,12 @@ mapl:
   geometry:
     esmf_geom:
       class: CubedSphere
-      im_world: 48
-      jm_world: 288
-      pole: PC
-      dateline: DC
+      im_world: 12
     vertical_grid:
       class: model
       standard_name: air_pressure
       units: hPa
-      num_levels: 72
+      num_levels: 181
       field_edge: PLE
       field_center: PE
 
