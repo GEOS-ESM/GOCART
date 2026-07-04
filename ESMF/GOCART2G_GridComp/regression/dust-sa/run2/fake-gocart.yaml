@@ -9,14 +9,7 @@ aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
 mapl:
-
-  run_phases:
-    Run1: false
-    Run2: true
-
-  misc:
-    activate_all_imports: true
-    activate_all_exports: true
+  children_run_phases: ["Run2"]
 
   geometry:
     esmf_geom:

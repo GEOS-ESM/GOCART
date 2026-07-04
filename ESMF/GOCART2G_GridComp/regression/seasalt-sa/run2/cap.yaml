@@ -11,13 +11,13 @@ cap:
 
   run_extdata: false
   run_history: false
-  root_name: FakeParent
+  root_name: Root
 
   mapl:
     children:
-      FakeParent:
-        dso: libfakeparent_gridcomp.so
-        config_file: fake-parent.yaml
+      Root:
+        dso: libconfigurable_gridcomp.so
+        config_file: root.yaml
 
   checkpointing:
     enabled: true

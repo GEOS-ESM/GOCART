@@ -1,0 +1,85 @@
+mapl:
+
+  misc:
+    restart:
+      internal: true
+
+  states:
+    internal:
+      LWI:
+        standard_name: "land-ocean-ice_mask"
+        units: "1"
+        vertical_dim_spec: "n"
+      TROPP:
+        standard_name: "tropopause_pressure_based_on_blended_estimate"
+        units: "Pa"
+        vertical_dim_spec: "n"
+      USTAR:
+        standard_name: "surface_velocity_scale"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      DZ:
+        standard_name: "surface_layer_height"
+        units: "m"
+        vertical_dim_spec: "n"
+      ZPBL:
+        standard_name: "planetary_boundary_layer_height"
+        units: "m"
+        vertical_dim_spec: "n"
+      SH:
+        standard_name: "sensible_heat_flux_from_turbulence"
+        units: "w m-2"
+        vertical_dim_spec: "n"
+      Z0H:
+        standard_name: "surface_roughness_for_heat"
+        units: "m"
+        vertical_dim_spec: "n"
+      CN_PRCP:
+        standard_name: "surface_conv._rain_flux_needed_by_land"
+        units: "kg/m^2/s"
+        vertical_dim_spec: "n"
+      NCN_PRCP:
+        standard_name: "Non-convective precipitation"
+        units: "kg/m^2/s"
+        vertical_dim_spec: "n"
+      AIRDENS:
+        standard_name: "moist_air_density"
+        units: "kg/m^3"
+        vertical_dim_spec: "c"
+      DELP:
+        standard_name: "pressure_thickness"
+        units: "Pa"
+        vertical_dim_spec: "c"
+      T:
+        standard_name: "air_temperature"
+        units: "K"
+        vertical_dim_spec: "c"
+      RH2:
+        standard_name: "Rel_Hum_after_moist"
+        units: "1"
+        vertical_dim_spec: "c"
+      ZLE:
+        standard_name: "geopotential_height"
+        units: "m"
+        vertical_dim_spec: "e"
+      PLE:
+        standard_name: "air_pressure"
+        units: "Pa"
+        vertical_dim_spec: "e"
+      PFL_LSAN:
+        standard_name: "3D_flux_of_liquid_nonconvective_precipitation"
+        units: "kg/m2/s"
+        vertical_dim_spec: "e"
+      PFI_LSAN:
+        standard_name: "3D_flux_of_ice_nonconvective_precipitation"
+        units: "kg/m2/s"
+        vertical_dim_spec: "e"
+      U:
+        standard_name: "eastward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "c"
+      V:
+        standard_name: "northward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "c"
+

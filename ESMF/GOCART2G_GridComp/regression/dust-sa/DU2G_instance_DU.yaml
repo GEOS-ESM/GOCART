@@ -78,10 +78,8 @@ settling_scheme: gocart
 
 mapl:
   misc:
-    activate_all_imports: true
     activate_all_exports: true
     restart:
-      import: true
       internal: true
     checkpoint:
       export: true

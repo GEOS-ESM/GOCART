@@ -9,14 +9,7 @@ aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
 mapl:
-
-  run_phases:
-    Run1: true
-    Run2: false
-
-  misc:
-    activate_all_imports: true
-    activate_all_exports: true
+  children_run_phases: ["Run1"]
 
   geometry:
     esmf_geom:
@@ -35,3 +28,5 @@ mapl:
       dso: libDU2G_GridComp.so
       setservice: setservices_
       config_file: DU_instance_DU.yaml
+
+
