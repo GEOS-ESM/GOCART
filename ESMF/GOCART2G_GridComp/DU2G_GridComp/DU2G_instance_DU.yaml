@@ -63,27 +63,15 @@ maringFlag: true
 
 nbins: 5
 
-pressure_lid_in_hPa: 40.0
+pressure_lid_in_hPa: 10.0
 
 # FENGSHA emission scheme settings
 alpha: 0.16
 gamma: 1
-soil_moisture_factor: 1.0
+soil_moisture_factor: 1.0 # TODO: pchakrab - DEFINED TWICE
 soil_drylimit_factor: 1.0
 vertical_to_horizontal_flux_ratio_limit: 2.e-04
 drag_partition_option: 2
 
 # SettlingSolver options: gocart or ufs
 settling_scheme: gocart
-
-mapl:
-  misc:
-    activate_all_imports: true
-    activate_all_exports: true
-    restart:
-      import: true
-      internal: true
-    checkpoint:
-      export: true
-      import: true
-      internal: true

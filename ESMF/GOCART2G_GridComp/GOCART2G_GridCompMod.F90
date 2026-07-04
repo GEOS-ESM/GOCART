@@ -104,8 +104,8 @@ contains
 
       ! Set the Initialize, Run, Finalize entry points
       call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Initialize, Initialize, _RC)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run1, phase_name="Run1", _RC)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, Run2, phase_name="Run2", _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, run1, phase_name="Run1", _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_Method_Run, run2, phase_name="Run2", _RC)
 
       ! Retrieve the private state
       _GET_NAMED_PRIVATE_STATE(gc, GOCART_State, PRIVATE_STATE, self)
@@ -504,9 +504,9 @@ contains
    end subroutine Initialize
 
    !BOP
-   !IROUTINE: RUN -- Run method for GOCART2G
+   !IROUTINE: RUN -- run method for GOCART2G
    !INTERFACE:
-   subroutine Run1(gc, import, export, clock, rc)
+   subroutine run1(gc, import, export, clock, rc)
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
       type(ESMF_State) :: import
@@ -514,7 +514,7 @@ contains
       type(ESMF_Clock) :: clock
       integer, intent(out) :: rc
 
-      !DESCRIPTION: Run method
+      !DESCRIPTION: run method
       !EOP
       character(len=:), allocatable :: child_name
       integer :: num_children, iter, status
@@ -530,12 +530,12 @@ contains
       _UNUSED_DUMMY(import)
       _UNUSED_DUMMY(export)
       _UNUSED_DUMMY(clock)
-   end subroutine Run1
+   end subroutine run1
 
    !BOP
-   !IROUTINE: RUN2 -- Run2 method for GOCART2G component
+   !IROUTINE: RUN2 -- run2 method for GOCART2G component
    !INTERFACE:
-   subroutine Run2(gc, import, export, clock, rc)
+   subroutine run2(gc, import, export, clock, rc)
 
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
@@ -1186,7 +1186,7 @@ contains
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(clock)
 
-   end subroutine Run2
+   end subroutine run2
 
    subroutine setup_constituents_(self, hconfig, rc)
       type(GOCART_State), pointer, intent(in) :: self
