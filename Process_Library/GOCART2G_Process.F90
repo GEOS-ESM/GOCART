@@ -2007,7 +2007,7 @@ end function DarmenovaDragPartition
    subroutine Chem_SettlingSimple ( km, klid, mie, bin, cdt, grav, &
                                     int_qa, tmpu, rhoa, rh, hghte, &
                                     delp, fluxout,  &
-                                    vsettleOut, correctionMaring, &
+                                    vsettleOut, correctionMaring, rhopInp, &
                                     settling_scheme, rc)
 
 ! !USES:
@@ -2035,6 +2035,10 @@ end function DarmenovaDragPartition
    integer, optional, intent(out)             :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 -
+
+!  Optionally explicitly provide the particle density [kg m-3]
+   real, optional :: rhopInp
+
 !  Optionally output the settling velocity calculated
    real, pointer, optional, dimension(:,:,:)  :: vsettleOut
 
@@ -2131,6 +2135,12 @@ end function DarmenovaDragPartition
     call mie%Query(550e-9,bin,   &
                          qa*delp/grav, &
                          rh, reff=radius, rhop=rhop, __RC__)
+!   If providing the density then overwrite what comes from mie query
+    if(present(rhopInp)) then
+!     print *,"RHOP: ", rhopInp
+     rhop(:,:,:) = rhopInp
+    endif
+
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
@@ -2152,6 +2162,9 @@ end function DarmenovaDragPartition
     endif
 
 !   Time integration
+       if(present(rhopInp)) then
+          print *, "FALL: ", radius(i1,j2,km), vsettle(i1,j1,km), dz(i1,j1,km), cdt
+       endif
     select case (settling_scheme)
       case (1)  ! Use the default gocart SettlingSolver
          call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)
