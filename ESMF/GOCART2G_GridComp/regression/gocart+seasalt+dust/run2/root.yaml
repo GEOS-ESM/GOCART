@@ -1,0 +1,191 @@
+---
+mapl:
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 12
+    vertical_grid:
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 181
+      field_edge: PLE
+      field_center: PE
+
+  children:
+    DataDU:
+      dso: libconfigurable_gridcomp.so
+      setservice: setservices_
+      config_file: data-du.yaml
+      run_phases:
+        - run
+
+    DataSS:
+      dso: libconfigurable_gridcomp.so
+      setservice: setservices_
+      config_file: data-ss.yaml
+      run_phases:
+        - run
+
+    DataGOCART2G:
+      dso: libconfigurable_gridcomp.so
+      setservice: setservices_
+      config_file: data-gocart2g.yaml
+      run_phases:
+        - run
+
+    GOCART2G:
+      dso: libGOCART2G_GridComp.so
+      setservice: setservices_
+      config_file: GOCART2G_GridComp.yaml
+      run_phases:
+        - Run2
+
+  connections:
+    # From DataGOCART2G
+    - src_name: AIRDENS
+      src_comp: DataGOCART2G
+      src_intent: internal
+      dst_name: AIRDENS
+      dst_comp: GOCART2G
+
+    - src_name: DELP
+      src_comp: DataGOCART2G
+      src_intent: internal
+      dst_name: DELP
+      dst_comp: GOCART2G
+
+    - src_name: T
+      src_comp: DataGOCART2G
+      src_intent: internal
+      dst_name: T
+      dst_comp: GOCART2G
+
+    - src_name: PLE
+      src_comp: DataGOCART2G
+      src_intent: internal
+      dst_name: PLE
+      dst_comp: GOCART2G
+
+    # From DataDU
+    - src_name: FRLAKE
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: FRLAKE
+      dst_comp: GOCART2G
+
+    - src_name: WET1
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: WET1
+      dst_comp: GOCART2G
+
+    - src_name: LWI
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: LWI
+      dst_comp: GOCART2G
+
+    - src_name: TROPP
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: TROPP
+      dst_comp: GOCART2G
+
+    - src_name: U10M
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: U10M
+      dst_comp: GOCART2G
+
+    - src_name: V10M
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: V10M
+      dst_comp: GOCART2G
+
+    - src_name: AREA
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: AREA
+      dst_comp: GOCART2G
+
+    - src_name: USTAR
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: USTAR
+      dst_comp: GOCART2G
+
+    - src_name: CN_PRCP
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: CN_PRCP
+      dst_comp: GOCART2G
+
+    - src_name: NCN_PRCP
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: NCN_PRCP
+      dst_comp: GOCART2G
+
+    - src_name: ZPBL
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: ZPBL
+      dst_comp: GOCART2G
+
+    - src_name: SH
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: SH
+      dst_comp: GOCART2G
+
+    - src_name: Z0H
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: Z0H
+      dst_comp: GOCART2G
+
+    - src_name: RH2
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: RH2
+      dst_comp: GOCART2G
+
+    - src_name: ZLE
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: ZLE
+      dst_comp: GOCART2G
+
+    - src_name: PFL_LSAN
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: PFL_LSAN
+      dst_comp: GOCART2G
+
+    - src_name: PFI_LSAN
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: PFI_LSAN
+      dst_comp: GOCART2G
+
+    - src_name: U
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: U
+      dst_comp: GOCART2G
+
+    - src_name: V
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: V
+      dst_comp: GOCART2G
+
+    # From DataSS
+    - src_name: DZ
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: DZ
+      dst_comp: GOCART2G
+

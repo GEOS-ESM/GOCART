@@ -2,6 +2,11 @@
 # Downloads GOCART2G regression data from S3.
 # Required inputs (via -D): LOCAL_DIR, WORK_DIR, ESMA_SYNC_DATA_SCRIPT
 
+if(DEFINED ENV{LOCAL_REGRESSION_DATA_DIR} AND NOT "$ENV{LOCAL_REGRESSION_DATA_DIR}" STREQUAL "")
+  message(STATUS "LOCAL_REGRESSION_DATA_DIR is set -- skipping S3 sync")
+  return()
+endif()
+
 if(EXISTS "${LOCAL_DIR}")
   message(STATUS "Regression data already present: ${LOCAL_DIR} -- skipping sync")
   return()

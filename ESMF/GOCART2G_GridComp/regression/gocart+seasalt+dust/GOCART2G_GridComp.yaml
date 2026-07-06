@@ -8,22 +8,24 @@ wavelengths_for_vertically_integrated_aop_in_nm: 550  # must be included in LUT
 aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
-mapl:
-  geometry:
-    esmf_geom:
-      class: CubedSphere
-      im_world: 12
-    vertical_grid:
-      class: model
-      standard_name: air_pressure
-      units: hPa
-      num_levels: 181
-      field_edge: PLE
-      field_center: PE
+ACTIVE_INSTANCES:
+  DU: [DU]  # [DU.data]
+  SS: [SS]  # [SS.data]
+  SU: [SU]  # [SU.data]
+  CA: [CA.oc, CA.bc, CA.br]  # [CA.oc.data, CA.bc.data]
+  NI: [NI]  # [NI.data]
 
-  children:
-    DU:
-      dso: libDU2G_GridComp.so
-      setservice: setservices_
-      config_file: DU_instance_DU.yaml
-      run_phases: [Run2]
+PASSIVE_INSTANCES:
+  DU: []
+  SS: []
+  SU: []
+  CA: []
+  NI: []
+
+mapl:
+
+  misc:
+    activate_all_exports: true
+    checkpoint:
+      export: true
+      import: true

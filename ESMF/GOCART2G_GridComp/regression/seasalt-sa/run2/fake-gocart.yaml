@@ -9,8 +9,6 @@ aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
 mapl:
-  children_run_phases: ["Run2"]
-
   geometry:
     esmf_geom:
       class: CubedSphere
@@ -28,3 +26,4 @@ mapl:
       dso: libSS2G_GridComp.so
       setservice: setservices_
       config_file: SS_instance_SS.yaml
+      run_phases: [Run2]

@@ -1,0 +1,24 @@
+mapl:
+
+  misc:
+    restart:
+      internal: true
+
+  states:
+    internal:
+      DELP:
+        standard_name: "pressure_thickness"
+        units: "Pa"
+        vertical_dim_spec: "c"
+      AIRDENS:
+        standard_name: "moist_air_density"
+        units: "kg m-3"
+        vertical_dim_spec: "c"
+      T:
+        standard_name: "air_temperature"
+        units: "K"
+        vertical_dim_spec: "c"
+      PLE:
+        standard_name: "air_pressure"
+        units: "Pa"
+        vertical_dim_spec: "e"

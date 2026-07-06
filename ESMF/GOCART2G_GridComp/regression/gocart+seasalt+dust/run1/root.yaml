@@ -1,0 +1,112 @@
+---
+mapl:
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 12
+    vertical_grid:
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 181
+      field_edge: PLE
+      field_center: PE
+
+  children:
+    DataDU:
+      dso: libconfigurable_gridcomp.so
+      setservice: setservices_
+      config_file: data-du.yaml
+      run_phases:
+        - run
+
+    DataSS:
+      dso: libconfigurable_gridcomp.so
+      setservice: setservices_
+      config_file: data-ss.yaml
+      run_phases:
+        - run
+
+    DataGOCART2G:
+      dso: libconfigurable_gridcomp.so
+      setservice: setservices_
+      config_file: data-gocart2g.yaml
+      run_phases:
+        - run
+
+    GOCART2G:
+      dso: libGOCART2G_GridComp.so
+      setservice: setservices_
+      config_file: GOCART2G_GridComp.yaml
+      run_phases:
+        - Run1
+
+  connections:
+    # DataGOCART2G
+    - src_name: AIRDENS
+      src_comp: DataGOCART2G
+      src_intent: internal
+      dst_name: AIRDENS
+      dst_comp: GOCART2G
+
+    - src_name: DELP
+      src_comp: DataGOCART2G
+      src_intent: internal
+      dst_name: DELP
+      dst_comp: GOCART2G
+
+    # From DataDU
+    - src_name: DU_SRC
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: DU_SRC
+      dst_comp: GOCART2G
+
+    - src_name: WET1
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: WET1
+      dst_comp: GOCART2G
+
+    - src_name: LWI
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: LWI
+      dst_comp: GOCART2G
+
+    # From DataSS
+    - src_name: FROCEAN
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: FROCEAN
+      dst_comp: GOCART2G
+
+    - src_name: FRACI
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: FRACI
+      dst_comp: GOCART2G
+
+    - src_name: U10M
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: U10M
+      dst_comp: GOCART2G
+
+    - src_name: V10M
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: V10M
+      dst_comp: GOCART2G
+
+    - src_name: USTAR
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: USTAR
+      dst_comp: GOCART2G
+
+    - src_name: TS
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: TS
+      dst_comp: GOCART2G
