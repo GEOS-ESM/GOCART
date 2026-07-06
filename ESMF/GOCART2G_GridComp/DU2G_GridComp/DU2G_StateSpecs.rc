@@ -91,6 +91,7 @@ category: EXPORT
  DUDP          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Dry Deposition (Bin %d)
  DUWT          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Wet Deposition (Bin %d)
  DUSV          | kg m-2 s-1 | xy   | N    | self%nbins                     | Dust Convective Scavenging (Bin %d)
+ DUVSET        | m s-1      | xyz  | C    | self%nbins                     | Dust bins settling velocity (Bin %d)
  DU_UST        | 1          | xy   | N    |                                | aeolian_friction_velocity
  DU_UST_T      | 1          | xy   | N    |                                | aeolian_threshold_friction_velocity
  DU_UST_TS     | 1          | xy   | N    |                                | aeolian_threshold_friction_velocity_over_smooth_surface

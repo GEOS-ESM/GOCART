@@ -1066,6 +1066,7 @@ contains
     real, parameter ::  cpd    = 1004.16
     real, target, allocatable, dimension(:,:,:)   :: RH20,RH80
     real, pointer, dimension(:,:)     :: flux_ptr
+    real, pointer, dimension(:,:,:)   :: vset_ptr
     integer                           :: settling_opt
 #include "DU2G_DeclarePointer___.h"
 
@@ -1118,11 +1119,14 @@ contains
 
     do n = 1, self%nbins
        nullify(flux_ptr)
+       nullify(vset_ptr)
        if (associated(DUSD)) flux_ptr => DUSD(:,:,n)
+       if (associated(DUVSET)) vset_ptr => DUVSET(:,:,:,n)
        call Chem_SettlingSimple (self%km, self%klid, self%diag_Mie, n, self%cdt, MAPL_GRAV, &
                            DU(:,:,:,n), t, airdens, &
-                           rh2, zle, delp, flux_ptr, correctionMaring=self%maringFlag, &
-                           settling_scheme=settling_opt, __RC__)
+                           rh2, zle, delp, flux_ptr, &
+                           correctionMaring=self%maringFlag, &
+                           rhopInp=self%rhop(n), settling_scheme=settling_opt, __RC__)
     end do
 
 !   Dust Deposition
