@@ -88,7 +88,8 @@ module DU2G_GridCompMod
        real          :: gvfMax         ! for   "                 "             "
        real          :: gvfMin         ! for   "                 "             "
        real          :: ut0            ! for sginoux scheme
-!      !Workspae for point emissions
+       logical       :: do_intermittency = .false.
+!      !Workspace for point emissions
        logical                :: doing_point_emissions = .false.
        character(len=255)     :: point_emissions_srcfilen   ! filename for pointwise emissions
        type(ThreadWorkspace), allocatable :: workspaces(:)
@@ -211,6 +212,7 @@ contains
        call ESMF_ConfigGetAttribute (cfg, self%mclay,      label='uniform_clay_fraction:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%tsoilf,     label='soil_freezing_temp:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%sfrac,      label='source_fraction_dead03:', __RC__)
+       call ESMF_ConfigGetAttribute (cfg, self%do_intermittency, label='intermittencyFlag:', __RC__)
     case ('fengsha')
        call ESMF_ConfigGetAttribute (cfg, self%alpha,    label='alpha:', __RC__)
        call ESMF_ConfigGetAttribute (cfg, self%gamma,    label='gamma:', __RC__)
@@ -932,12 +934,14 @@ contains
                 self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
 
     case ('dead03')
-       call DustEmissionDEAD03(lwi, frlake, asnow, du_src, self%vegMaskYN, du_gvf, &
+       call DustEmissionDEAD03(self%km, lwi, frlake, asnow, du_src, self%vegMaskYN, du_gvf, &
                                self%x0gvf, self%kgvf, self%gvfMax, self%gvfMin,    &
                                du_sand, du_clay,  wet1, u10m, v10m, ustar, rhos,   &
+                               t, zpbl, sh, MAPL_KARMAN, MAPL_CPDRY,               &
                                tsoil1, self%mclay, self%cs, self%z0ms, self%z0m,   &
                                self%tsoilf, MAPL_GRAV, self%soil_diam,             &
-                               self%radius*1.e-6, emissions_surface, __RC__)
+                               self%radius*1.e-6, self%do_intermittency,           &
+                               emissions_surface, __RC__)
 
     case ('ginoux01')
        call DustEmissionGINOUX01(self%radius*1.e-6, frlake, asnow, wet1, lwi,     &

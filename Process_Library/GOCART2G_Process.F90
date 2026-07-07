@@ -262,10 +262,11 @@ end subroutine DustEmissionSGINOUX
 !BOP
 !  !IROUTINE: DustEmissionDEAD03
 
-   subroutine DustEmissionDEAD03(oro, fraclake, fracsnow, du_src, veg_mask, gvf, x0_gvf,  &
-                                 k_gvf, gvf_max, gvf_min, sandfrac, clayfrac, vwettop,    &
-                                 u10m, v10m, ustar, adens, tsoil, mclay, cs, z0ms, z0m,   &
-                                 tsoilf, grav, soil_diam, radius, emissions, rc)
+   subroutine DustEmissionDEAD03(km, oro, fraclake, fracsnow, du_src, veg_mask, gvf, x0_gvf,  &
+                                 k_gvf, gvf_max, gvf_min, sandfrac, clayfrac, vwettop,        &
+                                 u10m, v10m, ustar, adens, tmpu, pblh, shflux, vk, cpd,       &
+                                 tsoil, mclay, cs, z0ms, z0m,tsoilf, grav, soil_diam, radius, &
+                                 do_intermittency, emissions, rc)
 
    !---------------------------------------------------------------------------------------------------x
    ! !DESCRIPTION: Computes the dust emissions for one time step                                       !
@@ -277,6 +278,12 @@ end subroutine DustEmissionSGINOUX
    ! !REVISION HISTORY:                                                                                !
    !                                                                                                   !
    !                                                                                                   !
+   !  06Jul2026 Colarco    Revised to implement intermittency parameterization (optionally)            !
+   !                       following Leung et al. 2023 (https://doi.org/10.5194/acp-23-6487-2023)      !
+   !                       > eta calculation as in paper above (fraction of time source active)        !  
+   !                       > xi is an amplifier meant to represent the part of wind speed PDF          !
+   !                         that exceeds the threshold; the calculation of this blows up at low       !
+   !                         ustar so we set flux == 0 for u_t > ustar + 4*sigma (see below)           !
    !  28Dec2023 J.Joshi    Revised and implemented                                                     !
    !                        > applied source func (du_src) and vegetation mask                         !
    !                        > changed soil wetness correction (fw): added conversion from volumetric   !
@@ -301,6 +308,7 @@ end subroutine DustEmissionSGINOUX
    implicit NONE
 
 !  INPUT
+   integer, intent(in) :: km                         ! Number of model vertical levels
    real,    intent(in) :: oro(:,:)                   ! land-ocean-ice mask [1]
    real,    intent(in) :: fraclake(:,:)              ! fraction of lake [1]
    real,    intent(in) :: fracsnow(:,:)              ! fraction of snow [1]
@@ -315,11 +323,15 @@ end subroutine DustEmissionSGINOUX
    real,    intent(in) :: clayfrac(:,:)              ! clayfrac [1]
    real,    intent(in) :: vwettop(:,:)               ! surface soil wetness volumetric [1]
    real,    intent(in) :: u10m(:,:)                  ! 10 m eastward wind [m/sec]
-
    real,    intent(in) :: v10m(:,:)                  !      northward wind [m/sec]
-   real,    intent(in) :: ustar(:,:)                 ! u*
    real,    intent(in) :: adens(:,:)                 ! sfc-air density
    real,    intent(in) :: tsoil(:,:)                 ! soil temperature [K]
+   real,    intent(in) :: tmpu(:,:,:)                ! air temperature [K]
+   real, pointer, dimension(:,:), intent(in) :: shflux(:,:)  ! sensible heat flux [W m-2]
+   real, pointer, dimension(:,:), intent(in) :: pblh(:,:)    ! planetary boundary layer height [m]
+   real, pointer, dimension(:,:), intent(in) :: ustar(:,:)   ! friction velocity [m s-1]
+   real,    intent(in) :: vk                         ! von Karman constant = 0.4
+   real,    intent(in) :: cpd                        ! specific heat of air at constant pressure
    real,    intent(in) :: mclay                      ! constant clay mass fraction
    real,    intent(in) :: cs                         ! cs constant
    real,    intent(in) :: z0ms                       ! smooth roughness length [m]
@@ -328,6 +340,7 @@ end subroutine DustEmissionSGINOUX
    real,    intent(in) :: grav                       ! gravity [m/sec^2]
    real,    intent(in) :: soil_diam                  ! soil_diameter, for monomodal saltatators [m]
    real,    intent(in) :: radius(:)                  ! particle radius for nbins
+   logical, intent(in) :: do_intermittency           ! flag to implement Leung et al. (2023) intermittency
 
 !  OUTPUT
    real, intent(inout)   :: emissions(:,:,:)         ! Local emission [kg/(m^2 sec)]
@@ -359,9 +372,13 @@ end subroutine DustEmissionSGINOUX
    real                ::  awet = 1.0                ! "ad hoc" tuning term, see Zender eq. 5 (they use 5)
    integer             ::  i1, i2, j1, j2, nbins     !
    integer             ::  dims(2)                   !
+   real                ::  eta                       ! temporal intermittency factor (fraction of time step)
+   real                ::  xi                        ! amplifier for intermittency
+   real, allocatable   ::  obk(:,:)                  ! Obukhov Length [m]
+   real, allocatable   ::  sigma(:,:)                ! width of wind speed distribution
 
    !EOP
-   !-------------------------------------------------------------------------                                                                                                !
+   !-------------------------------------------------------------------------                                                         !
 
    !  Initialize local variables
    !  --------------------------
@@ -375,7 +392,18 @@ end subroutine DustEmissionSGINOUX
    i2        = dims(1); j2 = dims(2)
    allocate (emissions_tot(i2,j2))
 
-
+   ! If doing intermittency calculation then initialize
+   ! --------------------------------------------------
+   if(do_intermittency) then
+      allocate(obk(i1:i2,j1:j2), sigma(i1:i2,j1:j2))
+!     Calculate the Obukhov length scale
+!     -----------------------------------
+      call ObukhovLength2G( i1, i2, j1, j2, vk, cpd, grav, &
+                            tmpu(:,:,km), adens, shflux, ustar, &
+                            obk )
+      sigma = ustar * (12. - 0.5*pblh/obk)**(1./3.)
+   endif
+   
    ! Drag partion factor (King et al. eq. 11, similar to Marticorena eq. 3)
    ! (note units of z0m/z0ms in GEOS are m)
    fd     = 1.0 - ( log(z0m/z0ms) / log( 0.7 * ((0.1/z0ms)**0.8) ) )
@@ -431,13 +459,26 @@ end subroutine DustEmissionSGINOUX
        endif
        ! increased the threshold, also reduce the ustar (see MB97 eq. 3)
        fd_ustar    = fd*ustars
+
+       ! Calculate intermittency factors
+       eta = 1.
+       xi  = 1.
+       if(do_intermittency) then
+          eta = 1. - 0.5*(1. + erf((u_thresh_d_w - fd_ustar)/sqrt(2.)/sigma(i,j)))
+          if(u_thresh_d_w > fd_ustar+4.*sigma(i,j)) then
+             xi = 1.
+          else
+             xi  = 1. + sigma(i,j)**2./(eta*fd_ustar)
+          endif
+       endif
+       
        ! Calculate the horizontal mass flux of dust [kg m-1 s-1]
        ! Marticorena et al. 1997 eq. 5
        ! Note: differs from Zender et al. 2003 eq. 10
        ! use model-predicted adens; ref DOI: 10.1016/j.apr.2024.102230
-       rat = u_thresh_d_w / ustars
+       rat = u_thresh_d_w / (xi * ustars)
        if ( rat < 1.0 ) then
-        horiz_flux = cs * adens(i,j) * fd_ustar**3 /grav * &
+        horiz_flux = eta * cs * adens(i,j) * xi **3 * fd_ustar**3 /grav * &
                        (1 - rat**2) * (1+rat)
 
         ! optionally apply vegetation mask
@@ -465,6 +506,9 @@ end subroutine DustEmissionSGINOUX
      emissions(:,:,n) = emissions_tot(:,:)
    end do
 
+   if(do_intermittency) then
+      deallocate(obk, sigma)
+   endif
 
    rc = __SUCCESS__
 
@@ -2162,9 +2206,6 @@ end function DarmenovaDragPartition
     endif
 
 !   Time integration
-       if(present(rhopInp)) then
-          print *, "FALL: ", radius(i1,j2,km), vsettle(i1,j1,km), dz(i1,j1,km), cdt
-       endif
     select case (settling_scheme)
       case (1)  ! Use the default gocart SettlingSolver
          call SettlingSolver(i1, i2, j1, j2, km, cdt, delp, dz, vsettle, qa)

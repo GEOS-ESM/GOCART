@@ -35,9 +35,9 @@ fwet_rain: 0.8 0.8 0.8 1.0 1.0
 
 ## <<--- Select the Emission scheme -->>
 
-emission_scheme: ginoux01
+#emission_scheme: ginoux01
 #emission_scheme: sginoux
-#emission_scheme: dead03
+emission_scheme: dead03
 #emission_scheme: kok14
 #emission_scheme: fengsha
 #emission_scheme: kok14simp
@@ -54,25 +54,28 @@ soil_freezing_temp: 273.0
 
 ## ginoux01 scheme
 # resolution dependent tuning constant for emissions (a,b,c,d,e,f)
-Ch_DU_ginoux01:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
-#Ch_DU_ginoux01: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)
+#Ch_DU_ginoux01:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
+Ch_DU_ginoux01: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)
 source_fraction_ginoux01: 0.1 0.25 0.25 0.25 0.25
 
 
 ## sginoux scheme
 Ch_DU_sginoux:  0.20 0.15 0.10 0.09 0.080 0.070 # L181 values for (a,b,c,d,e,f)
-#Ch_DU_sginoux: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)
+#Ch_DU_sginoux: 0.30 0.30 0.11 0.11 0.110 0.088 # L072 values for (a,b,c,d,e,f)Ch_DU_sginoux: 0.3 0.3 0.11 0.11 0.11 0.088
 source_fraction_sginoux: 0.1 0.25 0.25 0.25 0.25
 dry_threshold_ut: 6.5
 
 
 ## dead03 scheme
-cs: 2.61
+#cs: 2.61
+#cs: 0.000328625  # ad hoc correction for missing global tuning factor (~0.0000525*2.61 above,prc)
+cs: 0.00000032    # for intermittency need to scale back further
 monomodal_soil_diameter: 75.e-06
 znot_ms: 33.e-06
 znot_m: 100.e-06
 uniform_clay_fraction: 0.2
 source_fraction_dead03: 0.044 0.106 0.219 0.486 0.145
+intermittencyFlag: .true.
 
 ## kok14simp scheme
 # apply owen effect? source func? 0 - No, 1 - Yes
