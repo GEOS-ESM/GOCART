@@ -1,0 +1,24 @@
+mapl:
+
+  misc:
+    restart:
+      internal: true
+
+  states:
+    internal:
+      DU_SRC:
+        standard_name: "erod - dust emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      WET1:
+        standard_name: "surface_soil_wetness"
+        units: "1"
+        vertical_dim_spec: "n"
+      LWI:
+        standard_name: "land-ocean-ice_mask"
+        units: "1"
+        vertical_dim_spec: "n"
+      DELP:
+        standard_name: "pressure_thickness"
+        units: "Pa"
+        vertical_dim_spec: "c"

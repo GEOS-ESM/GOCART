@@ -1,0 +1,139 @@
+---
+mapl:
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 12
+    vertical_grid:
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 181
+      field_edge: PLE
+      field_center: PE
+
+  children:
+    DataSS:
+      dso: libconfigurable_gridcomp.so
+      setservice: setservices_
+      config_file: data-ss.yaml
+
+    FakeGOCART:
+      dso: libconfigurable_gridcomp.so
+      config_file: fake-gocart.yaml
+
+  connections:
+    - src_name: LWI
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: LWI
+      dst_comp: FakeGOCART
+
+    - src_name: TROPP
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: TROPP
+      dst_comp: FakeGOCART
+
+    - src_name: USTAR
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: USTAR
+      dst_comp: FakeGOCART
+
+    - src_name: DZ
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: DZ
+      dst_comp: FakeGOCART
+
+    - src_name: ZPBL
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: ZPBL
+      dst_comp: FakeGOCART
+
+    - src_name: SH
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: SH
+      dst_comp: FakeGOCART
+
+    - src_name: Z0H
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: Z0H
+      dst_comp: FakeGOCART
+
+    - src_name: CN_PRCP
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: CN_PRCP
+      dst_comp: FakeGOCART
+
+    - src_name: NCN_PRCP
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: NCN_PRCP
+      dst_comp: FakeGOCART
+
+    - src_name: AIRDENS
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: AIRDENS
+      dst_comp: FakeGOCART
+
+    - src_name: DELP
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: DELP
+      dst_comp: FakeGOCART
+
+    - src_name: T
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: T
+      dst_comp: FakeGOCART
+
+    - src_name: RH2
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: RH2
+      dst_comp: FakeGOCART
+
+    - src_name: ZLE
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: ZLE
+      dst_comp: FakeGOCART
+
+    - src_name: PLE
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: PLE
+      dst_comp: FakeGOCART
+
+    - src_name: PFL_LSAN
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: PFL_LSAN
+      dst_comp: FakeGOCART
+
+    - src_name: PFI_LSAN
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: PFI_LSAN
+      dst_comp: FakeGOCART
+
+    - src_name: U
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: U
+      dst_comp: FakeGOCART
+
+    - src_name: V
+      src_comp: DataSS
+      src_intent: internal
+      dst_name: V
+      dst_comp: FakeGOCART

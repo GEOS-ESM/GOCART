@@ -1,0 +1,36 @@
+mapl:
+
+  misc:
+    restart:
+      internal: true
+
+  states:
+    internal:
+      FROCEAN:
+        standard_name: "fraction_of_ocean"
+        units: "1"
+        vertical_dim_spec: "n"
+      FRACI:
+        standard_name: "ice_covered_fraction_of_tile"
+        units: "1"
+        vertical_dim_spec: "n"
+      U10M:
+        standard_name: "10-meter_eastward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      V10M:
+        standard_name: "10-meter_northward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      USTAR:
+        standard_name: "surface_velocity_scale"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      TS:
+        standard_name: "surface skin temperature"
+        units: "K"
+        vertical_dim_spec: "n"
+      DELP:
+        standard_name: "pressure_thickness"
+        units: "Pa"
+        vertical_dim_spec: "c"

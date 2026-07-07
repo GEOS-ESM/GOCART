@@ -38,3 +38,13 @@ pressure_lid_in_hPa: 40.0
 
 # SettlingSolver options (gocart or ufs)
 settling_scheme: gocart
+
+mapl:
+  misc:
+    activate_all_exports: true
+    restart:
+      internal: true
+    checkpoint:
+      export: true
+      import: true
+      internal: true

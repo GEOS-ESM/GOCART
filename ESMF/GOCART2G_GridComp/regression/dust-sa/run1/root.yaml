@@ -1,0 +1,49 @@
+---
+mapl:
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 12
+    vertical_grid:
+      class: model
+      standard_name: air_pressure
+      units: hPa
+      num_levels: 181
+      field_edge: PLE
+      field_center: PE
+
+  children:
+    DataDU:
+      dso: libconfigurable_gridcomp.so
+      setservice: setservices_
+      config_file: data-du.yaml
+
+    FakeGOCART:
+      dso: libconfigurable_gridcomp.so
+      config_file: fake-gocart.yaml
+
+  connections:
+    - src_name: DU_SRC
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: DU_SRC
+      dst_comp: FakeGOCART
+
+    - src_name: WET1
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: WET1
+      dst_comp: FakeGOCART
+
+    - src_name: LWI
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: LWI
+      dst_comp: FakeGOCART
+
+    - src_name: DELP
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: DELP
+      dst_comp: FakeGOCART

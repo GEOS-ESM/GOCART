@@ -38,3 +38,5 @@ mapl_acg (
 if (NOT CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
   target_link_libraries(${this} PRIVATE OpenMP::OpenMP_Fortran)
 endif ()
+
+add_subdirectory(regression)

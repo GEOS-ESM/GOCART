@@ -195,10 +195,10 @@ contains
 
       ! Set entry points
       call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_INITIALIZE, Initialize, _RC)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, phase_name="Run1", _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, run, phase_name="Run1", _RC)
       if (data_driven .neqv. .true.) then
-         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
-         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, run2, phase_name="Run2", _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, run0, phase_name="Run0", _RC)
       end if
 
       DEFVAL = 0.0
@@ -509,9 +509,9 @@ contains
    end subroutine Initialize
 
    !BOP
-   !IROUTINE: Run0
+   !IROUTINE: run0
    !INTERFACE:
-   subroutine Run0(gc, import, export, clock, rc)
+   subroutine run0(gc, import, export, clock, rc)
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
       type(ESMF_State) :: import
@@ -549,12 +549,12 @@ contains
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(export)
       _UNUSED_DUMMY(clock)
-   end subroutine Run0
+   end subroutine run0
 
    !BOP
-   !IROUTINE: Run
+   !IROUTINE: run
    !INTERFACE:
-   subroutine Run(gc, import, export, clock, rc)
+   subroutine run(gc, import, export, clock, rc)
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
       type(ESMF_State) :: import
@@ -562,7 +562,7 @@ contains
       type(ESMF_Clock) :: clock
       integer, intent(out) :: rc
 
-      !DESCRIPTION: Run method for the Dust Grid Component. Determines whether to
+      !DESCRIPTION: run method for the Dust Grid Component. Determines whether to
       !                 run data or computational run method.
       !EOP
 
@@ -581,18 +581,18 @@ contains
 
       ! Update INTERNAL state variables with ExtData
       if (data_driven) then
-         call Run_data(gc, import, export, internal, _RC)
+         call run_data(gc, import, export, internal, _RC)
       else
-         call Run1(gc, import, export, clock, _RC)
+         call run1(gc, import, export, clock, _RC)
       end if
 
       _RETURN(_SUCCESS)
-   end subroutine Run
+   end subroutine run
 
    !BOP
-   !IROUTINE: Run1
+   !IROUTINE: run1
    !INTERFACE:
-   subroutine Run1(gc, import, export, clock, rc)
+   subroutine run1(gc, import, export, clock, rc)
 
       !ARGUMENTS:
       type(ESMF_GridComp), intent(inout) :: gc
@@ -707,12 +707,12 @@ contains
 
       case ('ginoux')
          call DustEmissionGOCART2G( &
-              self%radius * 1.e-6, frlake, wet1, lwi, U10M, v10m, &
+              self%radius * 1.e-6, frlake, wet1, lwi, U10M, V10M, &
               self%Ch_DU, du_src, MAPL_GRAV, &
               emissions_surface, _RC)
 
       case default
-         _ASSERT_RC(.false., "missing dust emission scheme. Allowed: ginoux, fengsha, k14", ESMF_RC_NOT_IMPL)
+         _FAIL("missing dust emission scheme. Allowed: ginoux, fengsha, k14")
 
       end select
 
@@ -783,12 +783,12 @@ contains
 
       _RETURN(_SUCCESS)
 
-   end subroutine Run1
+   end subroutine run1
 
    !BOP
-   !IROUTINE: Run2
+   !IROUTINE: run2
    !INTERFACE:
-   subroutine Run2(gc, import, export, clock, rc)
+   subroutine run2(gc, import, export, clock, rc)
 
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
@@ -797,7 +797,7 @@ contains
       type(ESMF_Clock) :: clock
       integer, intent(out) :: rc
 
-      !DESCRIPTION: Run2 method for the Dust Grid Component.
+      !DESCRIPTION: run2 method for the Dust Grid Component.
       !EOP
 
       type(ESMF_State) :: internal
@@ -874,7 +874,7 @@ contains
          call DryDeposition( &
               self%km, t, airdens, zle0, lwi, ustar, zpbl, sh,&
               MAPL_KARMAN, cpd, MAPL_GRAV, z0h, drydepositionfrequency, status, &
-              self%radius(n) * 1.e-6, self%rhop(n), U10M, v10m, frlake, wet1)
+              self%radius(n) * 1.e-6, self%rhop(n), U10M, V10M, frlake, wet1)
          _VERIFY(status)
 
          dqa = 0.
@@ -957,13 +957,13 @@ contains
       _UNUSED_DUMMY(export)
       _UNUSED_DUMMY(clock)
 
-   end subroutine Run2
+   end subroutine run2
 
    !BOP
-   !IROUTINE: Run_data -- ExtData Dust Grid Component
+   !IROUTINE: run_data -- ExtData Dust Grid Component
 
    !INTERFACE:
-   subroutine Run_data(gc, import, export, internal, rc)
+   subroutine run_data(gc, import, export, internal, rc)
       !ARGUMENTS:
       type(ESMF_GridComp), intent(inout) :: gc
       type(ESMF_State), intent(inout) :: import
@@ -994,7 +994,7 @@ contains
 
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(export)
-   end subroutine Run_data
+   end subroutine run_data
 
    subroutine aerosol_optics(state, rc)
 

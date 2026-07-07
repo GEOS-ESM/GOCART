@@ -1,0 +1,6 @@
+dust-sa/run1
+dust-sa/run2
+seasalt-sa/run1
+seasalt-sa/run2
+gocart+seasalt+dust/run1
+gocart+seasalt+dust/run2

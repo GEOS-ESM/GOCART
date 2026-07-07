@@ -135,10 +135,10 @@ contains
 
       ! Set entry points
       call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_INITIALIZE, Initialize, _RC)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, phase_name="Run1", _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, run, phase_name="Run1", _RC)
       if (data_driven .neqv. .true.) then
-         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
-         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, run2, phase_name="Run2", _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, run0, phase_name="Run0", _RC)
       end if
 
       DEFVAL = 0.0
@@ -480,10 +480,10 @@ contains
    end subroutine Initialize
 
    !BOP
-   !IROUTINE: Run0
+   !IROUTINE: run0
 
    !INTERFACE:
-   subroutine Run0(gc, import, export, clock, rc)
+   subroutine run0(gc, import, export, clock, rc)
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
       type(ESMF_State) :: import
@@ -520,12 +520,12 @@ contains
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(export)
       _UNUSED_DUMMY(clock)
-   end subroutine Run0
+   end subroutine run0
 
    !BOP
-   !IROUTINE: Run
+   !IROUTINE: run
    !INTERFACE:
-   subroutine Run(gc, import, export, clock, rc)
+   subroutine run(gc, import, export, clock, rc)
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
       type(ESMF_State) :: import
@@ -533,7 +533,7 @@ contains
       type(ESMF_Clock) :: clock
       integer, intent(out) :: rc
 
-      !DESCRIPTION: Run method for the Sea Salt Grid Component. Determines whether to run
+      !DESCRIPTION: run method for the Sea Salt Grid Component. Determines whether to run
       !               data or computational run method.
       !EOP
 
@@ -550,18 +550,18 @@ contains
       ! Update INTERNAL state variables with ExtData
       if (data_driven) then
          call MAPL_GridCompGetInternalState(gc, internal, _RC)
-         call Run_data(gc, import, export, internal, _RC)
+         call run_data(gc, import, export, internal, _RC)
       else
-         call Run1(gc, import, export, clock, _RC)
+         call run1(gc, import, export, clock, _RC)
       end if
 
       _RETURN(_SUCCESS)
-   end subroutine Run
+   end subroutine run
 
    !BOP
-   !IROUTINE: Run1
+   !IROUTINE: run1
    !INTERFACE:
-   subroutine Run1(gc, import, export, clock, rc)
+   subroutine run1(gc, import, export, clock, rc)
       !ARGUMENTS:
       type(ESMF_GridComp), intent(inout) :: gc
       type(ESMF_State), intent(inout) :: import
@@ -585,8 +585,6 @@ contains
 
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 #include "SS2G_GetPointer___.h"
-
-      if (associated(SSSMASS)) SSSMASS = 0.
 
       ! Get my private internal state
       _GET_NAMED_PRIVATE_STATE(gc, SS2G_GridComp, PRIVATE_STATE, self)
@@ -645,13 +643,13 @@ contains
 
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(clock)
-   end subroutine Run1
+   end subroutine run1
 
    !BOP
-   !IROUTINE: Run2
+   !IROUTINE: run2
    !INTERFACE:
 
-   subroutine Run2(gc, import, export, clock, rc)
+   subroutine run2(gc, import, export, clock, rc)
 
       !ARGUMENTS:
       type(ESMF_GridComp) :: gc
@@ -660,7 +658,7 @@ contains
       type(ESMF_Clock) :: clock
       integer, intent(out) :: rc
 
-      !DESCRIPTION: Run2 method for the Sea Salt Grid Component.
+      !DESCRIPTION: run2 method for the Sea Salt Grid Component.
       !EOP
 
       ! Locals
@@ -811,13 +809,13 @@ contains
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(clock)
 
-   end subroutine Run2
+   end subroutine run2
 
    !BOP
-   !IROUTINE: Run_data -- ExtData Sea Salt Grid Component
+   !IROUTINE: run_data -- ExtData Sea Salt Grid Component
    !INTERFACE:
 
-   subroutine Run_data(gc, import, export, internal, rc)
+   subroutine run_data(gc, import, export, internal, rc)
       !ARGUMENTS:
       type(ESMF_GridComp), intent(inout) :: gc
       type(ESMF_State), intent(inout) :: import
@@ -849,7 +847,7 @@ contains
 
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(export)
-   end subroutine Run_data
+   end subroutine run_data
 
    subroutine aerosol_optics(state, rc)
 
