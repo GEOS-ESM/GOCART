@@ -71,3 +71,17 @@ pressure_lid_in_hPa: 10.0
 
 # SettlingSolver options: gocart or ufs
 settling_scheme: gocart
+
+# TODO: remove this section once GOCART regression tests
+# start running via ctest on CI
+mapl:
+  misc:
+    activate_all_imports: true
+    activate_all_exports: true
+    restart:
+      import: true
+      internal: true
+    checkpoint:
+      export: true
+      import: true
+      internal: true
