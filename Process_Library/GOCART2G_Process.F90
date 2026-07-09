@@ -266,7 +266,7 @@ end subroutine DustEmissionSGINOUX
                                  k_gvf, gvf_max, gvf_min, sandfrac, clayfrac, vwettop,        &
                                  u10m, v10m, ustar, adens, tmpu, pblh, shflux, vk, cpd,       &
                                  tsoil, mclay, cs, z0ms, z0m,tsoilf, grav, soil_diam, radius, &
-                                 do_intermittency, emissions, rc)
+                                 do_intermittency, emissions, eta, xi, obk, sigma, rc)
 
    !---------------------------------------------------------------------------------------------------x
    ! !DESCRIPTION: Computes the dust emissions for one time step                                       !
@@ -344,6 +344,9 @@ end subroutine DustEmissionSGINOUX
 
 !  OUTPUT
    real, intent(inout)   :: emissions(:,:,:)         ! Local emission [kg/(m^2 sec)]
+   real, intent(inout)   :: eta(:,:), xi(:,:)        ! intermittency parameters
+   real, intent(inout)   :: obk(:,:)                 ! Obukhov Length [m]
+   real, intent(inout)   :: sigma(:,:)               ! width of wind speed distribution
    integer, intent(out)  :: rc                       ! Error return code: 0 well, 1 -
 
 !  LOCAL
@@ -372,10 +375,6 @@ end subroutine DustEmissionSGINOUX
    real                ::  awet = 1.0                ! "ad hoc" tuning term, see Zender eq. 5 (they use 5)
    integer             ::  i1, i2, j1, j2, nbins     !
    integer             ::  dims(2)                   !
-   real                ::  eta                       ! temporal intermittency factor (fraction of time step)
-   real                ::  xi                        ! amplifier for intermittency
-   real, allocatable   ::  obk(:,:)                  ! Obukhov Length [m]
-   real, allocatable   ::  sigma(:,:)                ! width of wind speed distribution
 
    !EOP
    !-------------------------------------------------------------------------                                                         !
@@ -395,7 +394,6 @@ end subroutine DustEmissionSGINOUX
    ! If doing intermittency calculation then initialize
    ! --------------------------------------------------
    if(do_intermittency) then
-      allocate(obk(i1:i2,j1:j2), sigma(i1:i2,j1:j2))
 !     Calculate the Obukhov length scale
 !     -----------------------------------
       call ObukhovLength2G( i1, i2, j1, j2, vk, cpd, grav, &
@@ -417,6 +415,8 @@ end subroutine DustEmissionSGINOUX
    k_z    = 0.4 / log(10./z0m)
 
    ! Spatially dependent part
+   eta(:,:) = 0.
+   xi(:,:)  = 1.
    do j = j1, j2
     do i = i1, i2
 
@@ -461,14 +461,12 @@ end subroutine DustEmissionSGINOUX
        fd_ustar    = fd*ustars
 
        ! Calculate intermittency factors
-       eta = 1.
-       xi  = 1.
        if(do_intermittency) then
-          eta = 1. - 0.5*(1. + erf((u_thresh_d_w - fd_ustar)/sqrt(2.)/sigma(i,j)))
+          eta(i,j) = 1. - 0.5*(1. + erf((u_thresh_d_w - fd_ustar)/sqrt(2.)/sigma(i,j)))
           if(u_thresh_d_w > fd_ustar+4.*sigma(i,j)) then
-             xi = 1.
+             xi(i,j) = 1.
           else
-             xi  = 1. + sigma(i,j)**2./(eta*fd_ustar)
+             xi(i,j)  = 1. + sigma(i,j)**2./(eta(i,j)*fd_ustar)
           endif
        endif
        
@@ -476,9 +474,9 @@ end subroutine DustEmissionSGINOUX
        ! Marticorena et al. 1997 eq. 5
        ! Note: differs from Zender et al. 2003 eq. 10
        ! use model-predicted adens; ref DOI: 10.1016/j.apr.2024.102230
-       rat = u_thresh_d_w / (xi * ustars)
+       rat = u_thresh_d_w / (xi(i,j) * ustars)
        if ( rat < 1.0 ) then
-        horiz_flux = eta * cs * adens(i,j) * xi **3 * fd_ustar**3 /grav * &
+        horiz_flux = eta(i,j) * cs * adens(i,j) * xi(i,j) **3 * fd_ustar**3 /grav * &
                        (1 - rat**2) * (1+rat)
 
         ! optionally apply vegetation mask
@@ -505,10 +503,6 @@ end subroutine DustEmissionSGINOUX
    do n = 1, nbins
      emissions(:,:,n) = emissions_tot(:,:)
    end do
-
-   if(do_intermittency) then
-      deallocate(obk, sigma)
-   endif
 
    rc = __SUCCESS__
 

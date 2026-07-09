@@ -98,7 +98,10 @@ category: EXPORT
  DU_DPC        | 1          | xy   | N    |                                | aeolian_drag_partition_correction
  DU_SMC        | 1          | xy   | N    |                                | aeolian_soil_moisture_correction
  DU_EROD       | 1          | xy   | N    |                                | aeolian_erodibilitiy
-
+ DU_ETA        | 1          | xy   | N    |                                | intermittency fraction of time step
+ DU_XI         | 1          | xy   | N    |                                | intermittency ustar scaling factor
+ DU_OBK        | m          | xy   | N    |                                | intermittency Monin-Obukov length
+ DU_SIGMA      | 1          | xy   | N    |                                | intermittency distribution width
 
 category: INTERNAL
 #--------------------------------------------------------------------------------------------------------------------

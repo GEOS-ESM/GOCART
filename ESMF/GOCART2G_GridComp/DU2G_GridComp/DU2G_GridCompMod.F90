@@ -827,6 +827,7 @@ contains
     real, dimension(:,:), allocatable   :: R_
     real, dimension(:,:), allocatable   :: H_w_
     real, dimension(:,:), allocatable   :: f_erod_
+    real, dimension(:,:), allocatable   :: eta, xi, obk, sigma
     type(ThreadWorkspace), pointer :: workspace
     integer :: thread, jstart, jend
 
@@ -934,6 +935,10 @@ contains
                 self%rhop, self%sdist, self%f_sdl, self%f_swc, self%drag_opt, emissions_surface,  __RC__)
 
     case ('dead03')
+       allocate(eta,   mold=U10M,   __STAT__)
+       allocate(xi,    mold=U10M,   __STAT__)
+       allocate(obk,   mold=U10M,   __STAT__)
+       allocate(sigma, mold=U10M,   __STAT__)
        call DustEmissionDEAD03(self%km, lwi, frlake, asnow, du_src, self%vegMaskYN, du_gvf, &
                                self%x0gvf, self%kgvf, self%gvfMax, self%gvfMin,    &
                                du_sand, du_clay,  wet1, u10m, v10m, ustar, rhos,   &
@@ -941,8 +946,13 @@ contains
                                tsoil1, self%mclay, self%cs, self%z0ms, self%z0m,   &
                                self%tsoilf, MAPL_GRAV, self%soil_diam,             &
                                self%radius*1.e-6, self%do_intermittency,           &
-                               emissions_surface, __RC__)
+                               emissions_surface, eta, xi, obk, sigma, __RC__)
+       if (associated(DU_ETA))    DU_ETA   = eta
+       if (associated(DU_XI))     DU_XI    = xi
+       if (associated(DU_OBK))    DU_OBK   = obk
+       if (associated(DU_SIGMA))  DU_SIGMA = sigma
 
+       
     case ('ginoux01')
        call DustEmissionGINOUX01(self%radius*1.e-6, frlake, asnow, wet1, lwi,     &
                                  self%vegMaskYN, du_gvf, self%x0gvf, self%kgvf,   &
