@@ -422,7 +422,7 @@ end subroutine DustEmissionSGINOUX
 
        ! Filtering for land and valid soil composition information
        if ( oro(i,j) /= LAND ) cycle              ! only over LAND gridpoints
-       id ( du_src(i,j) < 0.00001) cycle          ! only where source map allows emissions
+       if ( du_src(i,j) < 0.00001) cycle          ! only where source map allows emissions
        if ( (clayfrac(i,j) < 0.0 .or. clayfrac(i,j) > 1.0) .or. &
             (sandfrac(i,j) < 0.0 .or. sandfrac(i,j) > 1.0) .or. &
             (tsoil(i,j) < tsoilf) ) cycle
