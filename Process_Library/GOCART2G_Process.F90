@@ -415,13 +415,14 @@ end subroutine DustEmissionSGINOUX
    k_z    = 0.4 / log(10./z0m)
 
    ! Spatially dependent part
-   eta(:,:) = 0.
-   xi(:,:)  = 1.
+   eta(:,:) = 1.  ! fraction of time source is active
+   xi(:,:)  = 1.  ! amplification of ustar
    do j = j1, j2
     do i = i1, i2
 
        ! Filtering for land and valid soil composition information
        if ( oro(i,j) /= LAND ) cycle              ! only over LAND gridpoints
+       id ( du_src(i,j) < 0.00001) cycle          ! only where source map allows emissions
        if ( (clayfrac(i,j) < 0.0 .or. clayfrac(i,j) > 1.0) .or. &
             (sandfrac(i,j) < 0.0 .or. sandfrac(i,j) > 1.0) .or. &
             (tsoil(i,j) < tsoilf) ) cycle
@@ -462,11 +463,14 @@ end subroutine DustEmissionSGINOUX
 
        ! Calculate intermittency factors
        if(do_intermittency) then
-          eta(i,j) = 1. - 0.5*(1. + erf((u_thresh_d_w - fd_ustar)/sqrt(2.)/sigma(i,j)))
-          if(u_thresh_d_w > fd_ustar+4.*sigma(i,j)) then
-             xi(i,j) = 1.
-          else
-             xi(i,j)  = 1. + sigma(i,j)**2./(eta(i,j)*fd_ustar)
+          if(sigma(i,j) > 0. .and. (fd_ustar < u_thresh_d_w)) then
+            eta(i,j) = 1. - 0.5*(1. + erf((u_thresh_d_w - fd_ustar)/sqrt(2.)/sigma(i,j)))
+            ! If ustar is really small then don't bother; else cap xi at max = 4 
+            if(u_thresh_d_w > fd_ustar+4.*sigma(i,j)) then
+               xi(i,j) = 1.
+            else
+               xi(i,j)  = min(4.,1. + sigma(i,j)**2./(eta(i,j)*fd_ustar))
+            endif
           endif
        endif
        
