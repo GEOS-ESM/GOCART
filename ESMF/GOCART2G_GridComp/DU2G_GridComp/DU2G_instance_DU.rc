@@ -69,7 +69,7 @@ dry_threshold_ut: 6.5
 ## dead03 scheme
 #cs: 2.61
 #cs: 0.000328625  # ad hoc correction for missing global tuning factor (~0.0000525*2.61 above,prc)
-cs: 0.00000032    # for intermittency need to scale back further
+cs: 0.00001    # for intermittency need to scale back further
 monomodal_soil_diameter: 75.e-06
 znot_ms: 33.e-06
 znot_m: 100.e-06
