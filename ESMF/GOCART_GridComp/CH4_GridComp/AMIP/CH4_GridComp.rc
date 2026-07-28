@@ -1,14 +1,50 @@
 #
 #  CH4 main resource file defining the particular instances.
 #
-#  For detailed description of the ARCTAS tags consult:
-#
-#  http://geos5.org/wiki/index.php?title=GEOS-5_Configuration_for_ARCTAS
-#
 # ------------------|-------|------------
 #       Region      | Tag   |   Masking
 # ------------------|-------|------------
 #  All instances    | full  | -1
 # ------------------|-------|------------
+# The instances are defined in Chem_Registry.rc, not here
 
-CH4_instances: animls coal leak gasvnt hydz msw soilab trmite bogs burn ricec swamps tundra bf tot
+# Which components/instances should be combined to for total CH4?
+CH4_total_components: CH4wetland CH4industrial CH4extract CH4transport CH4agwaste CH4biofuel CH4onat CH4fire
+
+# Instance CH4xxx will get emissions from a variable called emis_CH4xxx in ExtData by default. However, for some
+# composite instances such as CH4microbial, there is no separate emis_CH4microbial. For those instances, list
+# the variables (from ExtData) that should be summed to calculate emissions.
+emissions.CH4pyrogenic: emis_CH4biofuel emis_CH4fire
+emissions.CH4anthropogenic: emis_CH4industrial emis_CH4extract emis_CH4transport emis_CH4agwaste emis_CH4biofuel
+
+# -------------------------------------------------------------------------------------------
+# The keys below apply to all CH4 tags, unless overridden by a tag specific key. For example, if DEBUG is false,
+# to turn it on just for CH4wetland,
+# DEBUG.CH4wetland: T
+# Similarly, say do_chemistry is turned on. Then to turn it off for CH4fire,
+# do_chemistry.CH4fire: F
+
+# Indicate regions using a comma-delimited list of integers.
+# To activate all land boxes, use -1, or all or global (not case sensitive)
+# -------------------------------------------------------------------------------------------
+CH4_regions_indices: -1
+
+# Largest solar zenith angle (degrees) allowed as daytime
+# -------------------------------------------------------------------------------------------
+solar_ZA_cutoff: 94.00
+
+# Run-time debug switch to print additional stuff
+# -------------------------------------------------------------------------------------------
+DEBUG: F
+
+# Turn chemistry on in the model to simulate oxidation by OH, Cl and O1D
+# -------------------------------------------------------------------------------------------
+do_chemistry: T
+do_chemistry.CH4noemi: F
+
+# -------------------------------------------------------------------------------------------
+# The keys below apply to CH4 emission variables defined in ExtData. E.g., emis_CH4fire, no matter which
+# instance it is added to, must always have PBL injection turned on.
+
+emis_CH4fire.diurnal_fire: T
+emis_CH4fire.pbl_injection: T

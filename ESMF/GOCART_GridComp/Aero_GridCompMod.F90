@@ -117,7 +117,7 @@ CONTAINS
    endif
 
    if ( chemReg%doing_CH4 ) then
-#     include "CH4_ExportSpec___.h"
+!#     include "CH4_ExportSpec___.h"
       call CH4_GridCompSetServices(GC, chemReg, __RC__)
    endif
 

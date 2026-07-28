@@ -4,7 +4,6 @@ esma_add_library (${this}
   SRCS ${this}Mod.F90
   DEPENDENCIES Chem_Shared Chem_Base GMAO_mpeu MAPL_cfio_r4 NetCDF::NetCDF_Fortran
   )
-esma_generate_gocart_code (${this} "-B\;-E\;-F\;-N\;GOCART")
 
 file (GLOB_RECURSE rc_files CONFIGURE_DEPENDS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.rc *.yaml)
 foreach ( file ${rc_files} )
