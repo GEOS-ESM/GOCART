@@ -24,6 +24,6 @@ mapl:
   children:
     SS:
       dso: libSS2G_GridComp.so
-      setservice: setservices_
+      setservices: setservices_
       config_file: SS_instance_SS.yaml
       run_phases: [Run1]

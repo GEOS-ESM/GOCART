@@ -16,7 +16,7 @@ mapl:
   children:
     DataDU:
       dso: libconfigurable_gridcomp.so
-      setservice: setservices_
+      setservices: setservices_
       config_file: data-du.yaml
     FakeGOCART:
       dso: libconfigurable_gridcomp.so

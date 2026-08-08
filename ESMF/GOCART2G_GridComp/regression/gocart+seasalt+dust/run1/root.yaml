@@ -15,28 +15,28 @@ mapl:
   children:
     DataDU:
       dso: libconfigurable_gridcomp.so
-      setservice: setservices_
+      setservices: setservices_
       config_file: data-du.yaml
       run_phases:
         - run
 
     DataSS:
       dso: libconfigurable_gridcomp.so
-      setservice: setservices_
+      setservices: setservices_
       config_file: data-ss.yaml
       run_phases:
         - run
 
     DataGOCART2G:
       dso: libconfigurable_gridcomp.so
-      setservice: setservices_
+      setservices: setservices_
       config_file: data-gocart2g.yaml
       run_phases:
         - run
 
     GOCART2G:
       dso: libGOCART2G_GridComp.so
-      setservice: setservices_
+      setservices: setservices_
       config_file: GOCART2G_GridComp.yaml
       run_phases:
         - Run1
