@@ -24,6 +24,6 @@ mapl:
   children:
     DU:
       dso: libDU2G_GridComp.so
-      setservice: setservices_
+      setservices: setservices_
       config_file: DU_instance_DU.yaml
       run_phases: [Run1]
