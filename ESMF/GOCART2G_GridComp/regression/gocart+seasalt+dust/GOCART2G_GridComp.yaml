@@ -24,6 +24,9 @@ PASSIVE_INSTANCES:
 
 mapl:
 
+  setServices:
+    sharedObj: libGOCART2G_GridComp
+
   misc:
     activate_all_exports: true
     checkpoint:

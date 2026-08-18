@@ -1,6 +1,9 @@
 ---
 mapl:
 
+  setServices:
+    dso: libconfigurable_gridcomp.so
+
   geometry:
     esmf_geom:
       class: CubedSphere
