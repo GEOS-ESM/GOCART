@@ -40,6 +40,9 @@ pressure_lid_in_hPa: 40.0
 settling_scheme: gocart
 
 mapl:
+  setServices:
+    sharedObj: libSS2G_GridComp.so
+
   misc:
     activate_all_exports: true
     restart:

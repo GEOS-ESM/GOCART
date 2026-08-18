@@ -73,6 +73,10 @@ pressure_lid_in_hPa: 10.0
 settling_scheme: gocart
 
 mapl:
+
+  setServices:
+    sharedObj: libDU2G_GridComp
+
   misc:
     activate_all_exports: true
     restart:

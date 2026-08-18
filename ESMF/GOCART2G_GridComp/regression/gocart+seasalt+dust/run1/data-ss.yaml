@@ -1,5 +1,8 @@
 mapl:
 
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
   misc:
     restart:
       internal: true
