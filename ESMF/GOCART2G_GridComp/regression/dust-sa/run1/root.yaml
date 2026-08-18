@@ -2,7 +2,7 @@
 mapl:
 
   setServices:
-    dso: libconfigurable_gridcomp.so
+    sharedObj: libconfigurable_gridcomp
 
   geometry:
     esmf_geom:

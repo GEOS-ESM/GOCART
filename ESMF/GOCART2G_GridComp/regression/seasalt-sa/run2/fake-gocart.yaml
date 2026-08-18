@@ -9,6 +9,10 @@ aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
 mapl:
+
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+  
   geometry:
     esmf_geom:
       class: CubedSphere
