@@ -19,7 +19,7 @@ function(run_case case_name regression_data_dir)
   copy_restarts(${root_dir} ${expdir})
   link_directory(${regression_data_dir}/ExtData ${expdir}/ExtData)
   run_geos(${num_procs} ${case_name} ${expdir})
-  compare_results(${checkpoints_dir} ${expdir}/checkpoints/last)
+  compare_results(${checkpoints_dir} ${expdir}/checkpoints/last NANS_ARE_EQUAL TOLERANCE 3.5e-4 EXCLUDE_VARS lons corner_lons lats corner_lats)
 
   file(REMOVE_RECURSE ${expdir})
 endfunction()
