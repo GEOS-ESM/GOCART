@@ -50,3 +50,9 @@ mapl:
       src_intent: internal
       dst_name: DELP
       dst_comp: FakeGOCART
+
+    - src_name: U10M
+      src_comp: DataDU
+      src_intent: internal
+      dst_name: U10M
+      dst_comp: FakeGOCART
