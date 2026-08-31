@@ -145,6 +145,7 @@ contains
           end if
        end if
        field_alias = ESMF_NamedAlias(field, name=label, __RC__)
+       call MAPL_StateAdd (state, field, __RC__)
        call MAPL_StateAdd (state, field_alias, __RC__)
     end if
 
