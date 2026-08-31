@@ -1263,8 +1263,6 @@ contains
 
 !   Pressure at layer edges
 !   ------------------------
-    !call ESMF_AttributeGet (state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    !call MAPL_GetPointer (state, ple, trim(fld_name), __RC__)
     call MAPL_GetPointer (state, ple, 'air_pressure_for_aerosol_optics', __RC__)
 
 !    call MAPL_GetPointer (state, ple, 'PLE', __RC__)
