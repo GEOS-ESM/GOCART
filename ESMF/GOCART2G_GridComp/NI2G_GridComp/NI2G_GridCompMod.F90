@@ -502,24 +502,24 @@ contains
     call ESMF_AttributeSet(aero, name='mie_table_instance', value=instance, __RC__)
 
     ! Add variables to NI instance's aero state. This is used in aerosol optics calculations
-    call add_aero (aero, label='air_pressure_for_aerosol_optics',             label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='relative_humidity_for_aerosol_optics',        label2='RH',  grid=grid, typekind=MAPL_R4,__RC__)
+    call add_aero_named_alias (aero, label='air_pressure_for_aerosol_optics',             label2='PLE', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='relative_humidity_for_aerosol_optics',        label2='RH',  grid=grid, typekind=MAPL_R4,__RC__)
 !   call ESMF_StateGet (import, 'PLE', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 !   call ESMF_StateGet (import, 'RH2', field, __RC__)
 !   call MAPL_StateAdd (aero, field, __RC__)
 
-    call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
-    call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
-    call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
+    call add_aero_named_alias (aero, label='extinction_in_air_due_to_ambient_aerosol',    label2='EXT', grid=grid, typekind=MAPL_R8,__RC__)
+    call add_aero_named_alias (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, typekind=MAPL_R8,__RC__)
+    call add_aero_named_alias (aero, label='asymmetry_parameter_of_ambient_aerosol',      label2='ASY', grid=grid, typekind=MAPL_R8,__RC__)
     call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
     if(nmom_ > 0) then
-       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
+       call add_aero_named_alias (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
                       grid=grid, typekind=MAPL_R8, ungrid=nmom_, __RC__)
     endif
-    call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
+    call add_aero_named_alias (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4,__RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet (aero, name='band_for_aerosol_optics', value=0, __RC__)
     call ESMF_AttributeSet (aero, name='wavelength_for_aerosol_optics', value=0., __RC__)
@@ -1194,7 +1194,6 @@ contains
     type(C_PTR)                                      :: address
     type(NI2G_GridComp), pointer                     :: self
 
-    character (len=ESMF_MAXSTR)                      :: fld_name
     type(ESMF_Field)                                 :: fld
     character (len=ESMF_MAXSTR),allocatable          :: aerosol_names(:)
 
@@ -1235,8 +1234,7 @@ contains
 
 !   Pressure at layer edges
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, ple, 'air_pressure_for_aerosol_optics', __RC__)
 
 !    call MAPL_GetPointer (state, ple, 'PLE', __RC__)
 
@@ -1246,8 +1244,7 @@ contains
 
 !   Relative humidity
 !   -----------------
-    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, rh, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, rh, 'relative_humidity_for_aerosol_optics', __RC__)
 
 !    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
 
@@ -1286,30 +1283,18 @@ contains
        call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
     endif
 
-    call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, var, 'extinction_in_air_due_to_ambient_aerosol', __RC__)
         var = ext_s(:,:,:)
-    end if
 
-    call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, var, 'single_scattering_albedo_of_ambient_aerosol', __RC__)
         var = ssa_s(:,:,:)
-    end if
 
     if (usePhotTable /= 0) then
-       call ESMF_AttributeGet (state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
-       if (fld_name /= '') then
-           call MAPL_GetPointer (state, var4d, trim(fld_name), __RC__)
+       call MAPL_GetPointer (state, var4d, 'legendre_coefficients_of_p11_for_photolysis', __RC__)
            var4d = pmom_s(:,:,:,:)
-     end if
     else
-       call ESMF_AttributeGet (state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-       if (fld_name /= '') then
-           call MAPL_GetPointer (state, var, trim(fld_name), __RC__)
+       call MAPL_GetPointer (state, var, 'asymmetry_parameter_of_ambient_aerosol', __RC__)
            var = asy_s(:,:,:)
-     end if
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
@@ -1421,7 +1406,6 @@ contains
     type(C_PTR)                                      :: address
     type(NI2G_GridComp), pointer                     :: self
 
-    character (len=ESMF_MAXSTR)                      :: fld_name
     type(ESMF_Field)                                 :: fld
     character (len=ESMF_MAXSTR),allocatable          :: aerosol_names(:)
 
@@ -1454,8 +1438,7 @@ contains
 
 !   Pressure at layer edges
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, ple, 'air_pressure_for_aerosol_optics', __RC__)
 !    call MAPL_GetPointer (state, ple, 'PLE', __RC__)
 
     i1 = lbound(ple, 1); i2 = ubound(ple, 1)
@@ -1464,8 +1447,7 @@ contains
 
 !   Relative humidity
 !   -----------------
-    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, rh, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, rh, 'relative_humidity_for_aerosol_optics', __RC__)
 !    call MAPL_GetPointer (state, rh, 'RH2', __RC__)
 
     allocate(tau_s(i1:i2, j1:j2, km), &
@@ -1501,11 +1483,8 @@ contains
        tau_s = tau_s + tau
     end do
 
-    call ESMF_AttributeGet(state, name='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, var, 'monochromatic_extinction_in_air_due_to_ambient_aerosol', __RC__)
         var = sum(tau_s, dim=3)
-    end if
 
     deallocate(q_4d, __STAT__)
 

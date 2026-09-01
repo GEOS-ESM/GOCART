@@ -361,38 +361,38 @@ contains
 !   Begin AERO_RAD
 !   --------------
 !   Add variables to AERO_RAD state. Used in aerosol optics calculations
-    call add_aero (aero, label='air_pressure_for_aerosol_optics', label2='PLE', &
+    call add_aero_named_alias (aero, label='air_pressure_for_aerosol_optics', label2='PLE', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='relative_humidity_for_aerosol_optics', label2='RH', &
+    call add_aero_named_alias (aero, label='relative_humidity_for_aerosol_optics', label2='RH', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
+    call add_aero_named_alias (aero, label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
+    call add_aero_named_alias (aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
+    call add_aero_named_alias (aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', &
                    grid=grid, typekind=MAPL_R4, __RC__)
     call ESMF_ConfigGetAttribute (universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0,  __RC__)
     if(nmom_ > 0) then
-       call add_aero (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
+       call add_aero_named_alias (aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
                       grid=grid, typekind=MAPL_R4, ungrid=nmom_, __RC__)
     endif
-    call add_aero (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
+    call add_aero_named_alias (aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
                    label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, __RC__)
 
 !   Used in get_mixRatioSum
-    call add_aero (aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', &
+    call add_aero_named_alias (aero, label='sum_of_internalState_aerosol_DU', label2='aerosolSumDU', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', &
+    call add_aero_named_alias (aero, label='sum_of_internalState_aerosol_SS', label2='aerosolSumSS', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', &
+    call add_aero_named_alias (aero, label='sum_of_internalState_aerosol_NI', label2='aerosolSumNI', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_CA.oc', label2='aerosolSumCA.oc', &
+    call add_aero_named_alias (aero, label='sum_of_internalState_aerosol_CA.oc', label2='aerosolSumCA.oc', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_CA.bc', label2='aerosolSumCA.bc', &
+    call add_aero_named_alias (aero, label='sum_of_internalState_aerosol_CA.bc', label2='aerosolSumCA.bc', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_CA.br', label2='aerosolSumCA.br', &
+    call add_aero_named_alias (aero, label='sum_of_internalState_aerosol_CA.br', label2='aerosolSumCA.br', &
                    grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='sum_of_internalState_aerosol_SU', label2='aerosolSumSU', &
+    call add_aero_named_alias (aero, label='sum_of_internalState_aerosol_SU', label2='aerosolSumSU', &
                    grid=grid, typekind=MAPL_R4, __RC__)
 
     call ESMF_AttributeSet(aero, name='band_for_aerosol_optics', value=0, __RC__)
@@ -443,16 +443,16 @@ contains
     call ESMF_AttributeSet(aero, name='ccn_tuning', value=CCNtuning, __RC__)
 
 !   Add variables to AERO state
-    call add_aero (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='width_of_aerosol_mode', label2='SIGMA', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='aerosol_number_concentration', label2='NUM', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='aerosol_dry_size', label2='DGN', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='aerosol_density', label2='density', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='aerosol_hygroscopicity', label2='KAPPA', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='fraction_of_dust_aerosol', label2='FDUST', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='fraction_of_soot_aerosol', label2='FSOOT', grid=grid, typekind=MAPL_R4, __RC__)
-    call add_aero (aero, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='air_temperature', label2='T', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='fraction_of_land_type', label2='FRLAND', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='width_of_aerosol_mode', label2='SIGMA', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='aerosol_number_concentration', label2='NUM', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='aerosol_dry_size', label2='DGN', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='aerosol_density', label2='density', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='aerosol_hygroscopicity', label2='KAPPA', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='fraction_of_dust_aerosol', label2='FDUST', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='fraction_of_soot_aerosol', label2='FSOOT', grid=grid, typekind=MAPL_R4, __RC__)
+    call add_aero_named_alias (aero, label='fraction_of_organic_aerosol', label2='FORGANIC', grid=grid, typekind=MAPL_R4, __RC__)
 
 !   Attach the aerosol optics method
     call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
@@ -1596,13 +1596,11 @@ contains
 
 !   Relative humidity
 !   -----------------
-    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, RH, 'relative_humidity_for_aerosol_optics', __RC__)
 
 !   Pressure at layer edges
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, PLE, 'air_pressure_for_aerosol_optics', __RC__)
 
     i1 = lbound(ple, 1); i2 = ubound(ple, 1)
     j1 = lbound(ple, 2); j2 = ubound(ple, 2)
@@ -1787,8 +1785,6 @@ contains
     real                            :: max_clean          ! max mixing ratio before considered polluted
     real                            :: ccn_tuning         ! tunes conversion factors for sulfate
 
-    character(len=ESMF_MAXSTR)      :: fld_name
-
     integer                         :: i2, j2, km
     integer                         :: b, i, j, n, aerosol_bin
     integer                         :: varNameLen
@@ -1850,18 +1846,15 @@ contains
 
 !   Land fraction
 !   -------------
-    call ESMF_AttributeGet(state, name='fraction_of_land_type', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, f_land, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, f_land, 'fraction_of_land_type', __RC__)
 
 !   Pressure at layer edges
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, ple, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, ple, 'air_pressure_for_aerosol_optics', __RC__)
 
 !   Temperature
 !   -----------
-    call ESMF_AttributeGet(state, name='air_temperature', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, temperature, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, temperature, 'air_temperature', __RC__)
 
     i2 = ubound(temperature, 1)
     j2 = ubound(temperature, 2)
@@ -1869,29 +1862,21 @@ contains
 
 !   Activation activation properties
 !   --------------------------------
-    call ESMF_AttributeGet(state, name='aerosol_number_concentration', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, num, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, num, 'aerosol_number_concentration', __RC__)
 
-    call ESMF_AttributeGet(state, name='aerosol_dry_size', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, diameter, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, diameter, 'aerosol_dry_size', __RC__)
 
-    call ESMF_AttributeGet(state, name='width_of_aerosol_mode', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, sigma, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, sigma, 'width_of_aerosol_mode', __RC__)
 
-    call ESMF_AttributeGet(state, name='aerosol_density', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, density, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, density, 'aerosol_density', __RC__)
 
-    call ESMF_AttributeGet(state, name='aerosol_hygroscopicity', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, hygroscopicity, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, hygroscopicity, 'aerosol_hygroscopicity', __RC__)
 
-    call ESMF_AttributeGet(state, name='fraction_of_dust_aerosol', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, f_dust, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, f_dust, 'fraction_of_dust_aerosol', __RC__)
 
-    call ESMF_AttributeGet(state, name='fraction_of_soot_aerosol', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, f_soot, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, f_soot, 'fraction_of_soot_aerosol', __RC__)
 
-    call ESMF_AttributeGet(state, name='fraction_of_organic_aerosol', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, f_organic, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, f_organic, 'fraction_of_organic_aerosol', __RC__)
 
 !   Sea salt scaling fctor
 !   ----------------------
@@ -2298,13 +2283,11 @@ contains
 
 !   Relative humidity
 !   -----------------
-    call ESMF_AttributeGet(state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, RH, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, RH, 'relative_humidity_for_aerosol_optics', __RC__)
 
 !   Pressure at layer edges
 !   ------------------------
-    call ESMF_AttributeGet(state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
-    call MAPL_GetPointer(state, PLE, trim(fld_name), __RC__)
+    call MAPL_GetPointer(state, PLE, 'air_pressure_for_aerosol_optics', __RC__)
 
     i1 = lbound(ple, 1); i2 = ubound(ple, 1)
     j1 = lbound(ple, 2); j2 = ubound(ple, 2)
