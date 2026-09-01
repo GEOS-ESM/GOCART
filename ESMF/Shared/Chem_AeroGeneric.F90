@@ -128,6 +128,7 @@ contains
 !----------------------------------------------------------------------------------
 !   Begin...
 
+    call ESMF_AttributeSet (state, name=trim(label), value=trim(label2),  __RC__)
     if (field_name /= '') then
        field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
        if (trim(field_name) == 'PLE') then
