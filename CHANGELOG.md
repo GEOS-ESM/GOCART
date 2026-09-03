@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Add local `ios` variable in `CO_Emission` to prevent host-association aliasing under optimization
 
 ### Added
-
+- setZeroKlid for non-radiatively active tracers in Run0
 ## [v2.6.6] - 2026-08-26
 
 ### Fixed
