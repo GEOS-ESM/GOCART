@@ -128,9 +128,13 @@ contains
 !----------------------------------------------------------------------------------
 !   Begin...
 
-    call ESMF_AttributeSet (state, name=trim(label), value=trim(label2),  __RC__)
-    if (field_name /= '') then
-       field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
+    !call ESMF_AttributeSet (state, name=trim(label), value=trim(label2),  __RC__)
+
+    !call ESMF_AttributeGet (state, name=trim(label), value=field_name, __RC__)
+    field_name = label2
+    if (label /= '') then
+       !field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
+       field = MAPL_FieldCreateEmpty(trim(label), grid, __RC__)
        if (trim(field_name) == 'PLE') then
           call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationEdge, typekind=typekind, hw=0, __RC__)
        else if ((trim(field_name) == 'FRLAND') .or. (trim(field_name) == 'monochromatic_EXT')) then
@@ -142,9 +146,9 @@ contains
              call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
           end if
        end if
-       field_alias = ESMF_NamedAlias(field, name=label, __RC__)
+       !field_alias = ESMF_NamedAlias(field, name=label, __RC__)
        call MAPL_StateAdd (state, field, __RC__)
-       call MAPL_StateAdd (state, field_alias, __RC__)
+       !call MAPL_StateAdd (state, field_alias, __RC__)
     end if
 
     RETURN_(ESMF_SUCCESS)

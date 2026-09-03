@@ -1575,6 +1575,7 @@ contains
     real, pointer,     dimension(:,:,:)              :: as_ptr_3d
 
     type (ESMF_StateItem_Flag), allocatable          :: itemTypes(:)
+    type (ESMF_StateItem_Flag)                       :: item_type
 
     __Iam__('GOCART2G::run_aerosol_optics')
 
@@ -1645,18 +1646,24 @@ contains
         call ESMF_StateGet(state, trim(aeroList(i)), child_state, __RC__)
 
 !       ! set RH in child's aero state
-        call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
+        !call ESMF_AttributeGet(child_state, name='relative_humidity_for_aerosol_optics', value=fld_name, __RC__)
 
-        if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+        call ESMF_StateGet(child_state, 'relative_humidity_for_aerosol_optics', item_type, _RC)
+        !if (fld_name /= '') then
+        if (item_type == ESMF_STATEITEM_FIELD) then
+            !call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, as_ptr_3d, 'relative_humidity_for_aerosol_optics', __RC__)
             as_ptr_3d = rh
         end if
 
 !       ! set PLE in child's aero state
-        call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
+        !call ESMF_AttributeGet(child_state, name='air_pressure_for_aerosol_optics', value=fld_name, __RC__)
 
-        if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+        call ESMF_StateGet(child_state, 'air_pressure_for_aerosol_optics', item_type, _RC)
+        !if (fld_name /= '') then
+        if (item_type == ESMF_STATEITEM_FIELD) then
+            !call MAPL_GetPointer(child_state, as_ptr_3d, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, as_ptr_3d, 'air_pressure_for_aerosol_optics', __RC__)
             as_ptr_3d = ple
         end if
 
@@ -1670,30 +1677,42 @@ contains
         call ESMF_MethodExecute(child_state, label="aerosol_optics", __RC__)
 
 !       ! Retrieve extinction from each child
-        call ESMF_AttributeGet(child_state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, ext_, trim(fld_name), __RC__)
+        !call ESMF_AttributeGet(child_state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+        call ESMF_StateGet(child_state, 'extinction_in_air_due_to_ambient_aerosol', item_type, _RC)
+        !if (fld_name /= '') then
+        if (item_type == ESMF_STATEITEM_FIELD) then
+            !call MAPL_GetPointer(child_state, ext_, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, ext_, 'extinction_in_air_due_to_ambient_aerosol', __RC__)
         end if
 
 !       ! Retrieve scattering from each child
-        call ESMF_AttributeGet(child_state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
-        if (fld_name /= '') then
-            call MAPL_GetPointer(child_state, ssa_, trim(fld_name), __RC__)
+        !call ESMF_AttributeGet(child_state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
+        call ESMF_StateGet(child_state, 'single_scattering_albedo_of_ambient_aerosol', item_type, _RC)
+        !if (fld_name /= '') then
+        if (item_type == ESMF_STATEITEM_FIELD) then
+            !call MAPL_GetPointer(child_state, ssa_, trim(fld_name), __RC__)
+            call MAPL_GetPointer(child_state, ssa_, 'single_scattering_albedo_of_ambient_aerosol', __RC__)
         end if
 
 !       ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
 !       ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
 
         if(usePhotTable /= 0) then
-          call ESMF_AttributeGet(child_state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
-          if (fld_name /= '') then
-              call MAPL_GetPointer(child_state, pmom_, trim(fld_name), __RC__)
+          !call ESMF_AttributeGet(child_state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
+          call ESMF_StateGet(child_state, 'legendre_coefficients_of_p11_for_photolysis', item_type, _RC)
+          !if (fld_name /= '') then
+          if (item_type == ESMF_STATEITEM_FIELD) then
+              !call MAPL_GetPointer(child_state, pmom_, trim(fld_name), __RC__)
+              call MAPL_GetPointer(child_state, pmom_, 'legendre_coefficients_of_p11_for_photolysis', __RC__)
           end if
 
         else
-          call ESMF_AttributeGet(child_state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-          if (fld_name /= '') then
-              call MAPL_GetPointer(child_state, asy_, trim(fld_name), __RC__)
+          !call ESMF_AttributeGet(child_state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+          call ESMF_StateGet(child_state, 'asymmetry_parameter_of_ambient_aerosol', item_type, _RC)
+          !if (fld_name /= '') then
+          if (item_type == ESMF_STATEITEM_FIELD) then
+              !call MAPL_GetPointer(child_state, asy_, trim(fld_name), __RC__)
+              call MAPL_GetPointer(child_state, asy_, 'asymmetry_parameter_of_ambient_aerosol', __RC__)
           end if
        end if
 
@@ -1711,27 +1730,39 @@ contains
 
 !   ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children.
     ! This is what is passed to radiation or photolysis.
-    call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+    !call ESMF_AttributeGet(state, name='extinction_in_air_due_to_ambient_aerosol', value=fld_name, __RC__)
+    call ESMF_StateGet(state, 'extinction_in_air_due_to_ambient_aerosol', item_type, _RC)
+    if (item_type == ESMF_STATEITEM_FIELD) then
+    !if (fld_name /= '') then
+        !call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        call MAPL_GetPointer(state, var, 'extinction_in_air_due_to_ambient_aerosol', __RC__)
         var = ext(:,:,:)
     end if
 
-    call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
-    if (fld_name /= '') then
-        call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+    !call ESMF_AttributeGet(state, name='single_scattering_albedo_of_ambient_aerosol', value=fld_name, __RC__)
+    call ESMF_StateGet(state, 'single_scattering_albedo_of_ambient_aerosol', item_type, _RC)
+    if (item_type == ESMF_STATEITEM_FIELD) then
+    !if (fld_name /= '') then
+        !call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+        call MAPL_GetPointer(state, var, 'single_scattering_albedo_of_ambient_aerosol', __RC__)
         var = ssa(:,:,:)
     end if
     if(usePhotTable /= 0) then
-       call ESMF_AttributeGet(state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
-       if (fld_name /= '') then
-           call MAPL_GetPointer(state, var4d, trim(fld_name), __RC__)
+       !call ESMF_AttributeGet(state, name='legendre_coefficients_of_p11_for_photolysis', value=fld_name, __RC__)
+       call ESMF_StateGet(state, 'legendre_coefficients_of_p11_for_photolysis', item_type, _RC)
+       if (item_type == ESMF_STATEITEM_FIELD) then
+       !if (fld_name /= '') then
+           !call MAPL_GetPointer(state, var4d, trim(fld_name), __RC__)
+           call MAPL_GetPointer(state, var4d, 'legendre_coefficients_of_p11_for_photolysis', __RC__)
            var4d = pmom(:,:,:,:)
        end if
     else
-       call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
-       if (fld_name /= '') then
-           call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+       !call ESMF_AttributeGet(state, name='asymmetry_parameter_of_ambient_aerosol', value=fld_name, __RC__)
+       call ESMF_StateGet(state, 'asymmetry_parameter_of_ambient_aerosol', item_type, _RC)
+       if (item_type == ESMF_STATEITEM_FIELD) then
+       !if (fld_name /= '') then
+           !call MAPL_GetPointer(state, var, trim(fld_name), __RC__)
+           call MAPL_GetPointer(state, var, 'asymmetry_parameter_of_ambient_aerosol', __RC__)
            var = asy(:,:,:)
        end if
     end if

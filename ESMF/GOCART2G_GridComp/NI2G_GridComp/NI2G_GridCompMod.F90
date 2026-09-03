@@ -1207,6 +1207,7 @@ contains
     integer                                          :: usePhotTable
     real                                             :: wavelength
     integer :: i, j, k
+    type(ESMF_StateItem_Flag) :: item_type
 
     __Iam__('NI2G::aerosol_optics')
 
@@ -1283,18 +1284,30 @@ contains
        call mie_ (self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, __RC__)
     endif
 
-    call MAPL_GetPointer(state, var, 'extinction_in_air_due_to_ambient_aerosol', __RC__)
-        var = ext_s(:,:,:)
+    call ESMF_StateGet(state, 'extinction_in_air_due_to_ambient_aerosol', item_type, _RC)
+    if (item_type == ESMF_STATEITEM_FIELD) then
+       call MAPL_GetPointer(state, var, 'extinction_in_air_due_to_ambient_aerosol', __RC__)
+       var = ext_s(:,:,:)
+    end if
 
-    call MAPL_GetPointer(state, var, 'single_scattering_albedo_of_ambient_aerosol', __RC__)
-        var = ssa_s(:,:,:)
+    call ESMF_StateGet(state, 'single_scattering_albedo_of_ambient_aerosol', item_type, _RC)
+    if (item_type == ESMF_STATEITEM_FIELD) then
+       call MAPL_GetPointer(state, var, 'single_scattering_albedo_of_ambient_aerosol', __RC__)
+       var = ssa_s(:,:,:)
+    end if
 
     if (usePhotTable /= 0) then
-       call MAPL_GetPointer (state, var4d, 'legendre_coefficients_of_p11_for_photolysis', __RC__)
-           var4d = pmom_s(:,:,:,:)
+       call ESMF_StateGet(state, 'legendre_coefficients_of_p11_for_photolysis', item_type, _RC)
+       if (item_type == ESMF_STATEITEM_FIELD) then
+          call MAPL_GetPointer (state, var4d, 'legendre_coefficients_of_p11_for_photolysis', __RC__)
+          var4d = pmom_s(:,:,:,:)
+       end if
     else
-       call MAPL_GetPointer (state, var, 'asymmetry_parameter_of_ambient_aerosol', __RC__)
-           var = asy_s(:,:,:)
+       call ESMF_StateGet(state, 'asymmetry_parameter_of_ambient_aerosol', item_type, _RC)
+       if (item_type == ESMF_STATEITEM_FIELD) then
+          call MAPL_GetPointer (state, var, 'asymmetry_parameter_of_ambient_aerosol', __RC__)
+          var = asy_s(:,:,:)
+       end if
     end if
 
     deallocate(ext_s, ssa_s, asy_s, __STAT__)
@@ -1416,6 +1429,7 @@ contains
     integer                                          :: i1, j1, i2, j2, km
     real                                             :: wavelength
     integer :: i, j, k
+    type(ESMF_StateItem_Flag) :: item_type
 
     __Iam__('NI2G:: monochromatic_aerosol_optics')
 
@@ -1483,8 +1497,11 @@ contains
        tau_s = tau_s + tau
     end do
 
-    call MAPL_GetPointer(state, var, 'monochromatic_extinction_in_air_due_to_ambient_aerosol', __RC__)
-        var = sum(tau_s, dim=3)
+    call ESMF_StateGet(state, 'monochromatic_extinction_in_air_due_to_ambient_aerosol', item_type, _RC)
+    if (item_type == ESMF_STATEITEM_FIELD) then
+       call MAPL_GetPointer(state, var, 'monochromatic_extinction_in_air_due_to_ambient_aerosol', __RC__)
+       var = sum(tau_s, dim=3)
+    end if
 
     deallocate(q_4d, __STAT__)
 
