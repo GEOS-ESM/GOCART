@@ -345,7 +345,7 @@ CONTAINS
 !
 
    subroutine CO_GridCompRun ( gcCO, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
+                                       nymd, nhms, cdt, rc )
 
 ! !USES:
 
@@ -403,7 +403,7 @@ CONTAINS
 !
 
    subroutine CO_GridCompFinalize ( gcCO, w_c, impChem, expChem, &
-                                      nymd, nhms, cdt, rc )
+                                       nymd, nhms, cdt, rc )
 
 ! !USES:
 
