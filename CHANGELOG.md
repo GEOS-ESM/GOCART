@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-
+- trap for divide by zero error in the equilibrium constant calculation within RPMARES
 ### Fixed
 
 ### Changed

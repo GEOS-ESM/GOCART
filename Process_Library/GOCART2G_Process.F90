@@ -8788,12 +8788,19 @@ loop2: DO l = 1,nspecies_HL
       KW   = 1.010d-14 *  EXP( -22.52d0 * T3 + 26.92d0 * T4 )
       KPH  = 57.639d0  *  EXP(  13.79d0 * T3 -  5.39d0 * T4 ) * T6
       !K3   =  5.746E-17 * EXP( -74.38 * T3 + 6.12  * T4 ) * T6 * T6
+      
+      ! Trap to prevent a divide by zero errors
+      IF ( KW .EQ. 0.0d0 ) THEN
+          KW = FLOOR
+      ENDIF
+      
       KHAT =  KPH * K1A / KW
       KAN  =  KNA * KHAT
 
       ! Compute temperature dependent equilibrium constant for NH4NO3
       ! (from Mozurkewich, 1993)
       K3 = EXP( 118.87d0  - 24084.0d0 / TEMP -  6.025d0  * LOG( TEMP ) )
+      K3 = MAX( FLOOR, K3 )
 
       ! Convert to (micromoles/m**3) **2
       K3     = K3 * CONVT * CONVT
