@@ -128,16 +128,14 @@ contains
 !----------------------------------------------------------------------------------
 !   Begin...
 
-    !call ESMF_AttributeSet (state, name=trim(label), value=trim(label2),  __RC__)
+    call ESMF_AttributeSet (state, name=trim(label), value=trim(label2),  __RC__)
 
-    !call ESMF_AttributeGet (state, name=trim(label), value=field_name, __RC__)
-    field_name = label2
+    field_name = label
     if (label /= '') then
-       !field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
-       field = MAPL_FieldCreateEmpty(trim(label), grid, __RC__)
-       if (trim(field_name) == 'PLE') then
+       field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
+       if (trim(label2) == 'PLE') then
           call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationEdge, typekind=typekind, hw=0, __RC__)
-       else if ((trim(field_name) == 'FRLAND') .or. (trim(field_name) == 'monochromatic_EXT')) then
+       else if ((trim(label2) == 'FRLAND') .or. (trim(label2) == 'monochromatic_EXT')) then
           call MAPL_FieldAllocCommit(field, dims=MAPL_DimsHorzOnly, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
        else
           if(present(ungrid)) then
@@ -146,9 +144,9 @@ contains
              call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
           end if
        end if
-       !field_alias = ESMF_NamedAlias(field, name=label, __RC__)
+       field_alias = ESMF_NamedAlias(field, name=label2, __RC__)
        call MAPL_StateAdd (state, field, __RC__)
-       !call MAPL_StateAdd (state, field_alias, __RC__)
+       call MAPL_StateAdd (state, field_alias, __RC__)
     end if
 
     RETURN_(ESMF_SUCCESS)
