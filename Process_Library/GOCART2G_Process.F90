@@ -8800,7 +8800,6 @@ loop2: DO l = 1,nspecies_HL
       ! Compute temperature dependent equilibrium constant for NH4NO3
       ! (from Mozurkewich, 1993)
       K3 = EXP( 118.87d0  - 24084.0d0 / TEMP -  6.025d0  * LOG( TEMP ) )
-      K3 = MAX( FLOOR, K3 )
 
       ! Convert to (micromoles/m**3) **2
       K3     = K3 * CONVT * CONVT
