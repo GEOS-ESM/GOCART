@@ -11,9 +11,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Changed the Process_Library GOCART_MieMod and MieQuery files to handle dimension
+  reordered aerosol optical property LUTs.
+- Changed pointer in XX2G_instance rc files to v2.x.x aerosol optical property
+  LUTs now based on GEOSmie and with dimensions renamed and reordered as above
+- Updated version of volcanic sulfur emissions for AMIP configuration to v202601
+- Update aerosol optics bands files to default to RRTMGP bands, rather than RRTMG (as GEOSgcm v12 has switched to RRTMGP)
+  - NOTE: This means users needing RRTMG bands will need to update at run time. See https://github.com/GEOS-ESM/GEOSgcm_App/pull/878 for changes needed at run-time for GEOSgcm
+
 ### Fixed
 
+- Fixed ifx compilation errors in legacy GOCART GridComps (Ops emissions path):
+  - Changed `intent(in)` to `intent(inout)` on `w_c` (`Chem_Bundle`) arguments in `Aero`, `CFC`, `CH4`, `CO`, `CO2`, and `Rn` GridComps, as sub-components temporarily modify registry indices
+- Additional fixes in `CO_GridCompMod.F90`:
+  - Initialize `eCO_bioburn_` to `0.0` to prevent use of uninitialized data when `diurnal_bb` is false
+  - Guard `DEALLOCATE` of `ier` with an `ALLOCATED` check
+  - Add local `ios` variable in `CO_Emission` to prevent host-association aliasing under optimization
+
 ### Added
+- setZeroKlid for non-radiatively active tracers in Run0
+## [v2.6.6] - 2026-08-26
+
+### Fixed
+
+- Fixed ifx compilation errors in legacy GOCART GridComps (Ops emissions path):
+  - Changed `intent(in)` to `intent(inout)` on `w_c` (`Chem_Bundle`) arguments in `Aero`, `CFC`, `CH4`, `CO`, `CO2`, and `Rn` GridComps, as sub-components temporarily modify registry indices
+- Additional fixes in `CO_GridCompMod.F90`:
+  - Initialize `eCO_bioburn_` to `0.0` to prevent use of uninitialized data when `diurnal_bb` is false
+  - Guard `DEALLOCATE` of `ier` with an `ALLOCATED` check
+  - Add local `ios` variable in `CO_Emission` to prevent host-association aliasing under optimization
 
 ## [v2.6.5] - 2026-05-15
 

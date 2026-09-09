@@ -507,7 +507,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   type(Chem_Bundle), intent(in)  :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout) :: w_c     ! Chemical tracer fields (inout: sub-components temporarily modify reg indices)
    integer, intent(in) :: nymd, nhms          ! time
    real, intent(in) :: cdt                    ! chemistry timestep (secs)
 
@@ -601,4 +601,3 @@ CONTAINS
  end subroutine Aero_GridCompFinalize
 
  end module Aero_GridCompMod
-
