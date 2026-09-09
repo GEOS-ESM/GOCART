@@ -606,6 +606,11 @@ contains
     call setZeroKlid (self%km, self%klid, ptr3d_int)
     call MAPL_GetPointer (internal, name='NO3an3', ptr=ptr3d_int, __RC__)
     call setZeroKlid (self%km, self%klid, ptr3d_int)
+    call MAPL_GetPointer (internal, name='NH4a', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+    call MAPL_GetPointer (internal, name='NH3', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+    
 
     RETURN_(ESMF_SUCCESS)
 
@@ -837,6 +842,8 @@ contains
     call setZeroKlid (self%km, self%klid, NO3an1)
     call setZeroKlid (self%km, self%klid, NO3an2)
     call setZeroKlid (self%km, self%klid, NO3an3)
+    call setZeroKlid (self%km, self%klid, NH4a)
+    call setZeroKlid (self%km, self%klid, NH3)
 
     allocate(dqa, mold=lwi, __STAT__)
     allocate(drydepositionfrequency, mold=lwi, __STAT__)
