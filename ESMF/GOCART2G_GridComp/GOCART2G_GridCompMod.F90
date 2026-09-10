@@ -2338,13 +2338,13 @@ contains
       integer                      :: i, varNameLen
       logical                      :: added, added_any
 
-      real, parameter :: sig_acc = 1.8
-      real, parameter :: sig_ait = 1.6
-      real, parameter :: sig_cdu = 1.8
-      real, parameter :: sig_css = 2.0
-      real, parameter :: sig_fdu = 1.8
-      real, parameter :: sig_fss = 2.0
-      real, parameter :: sig_pcm = 1.6
+      real, parameter :: sig_acc = log(1.8)
+      real, parameter :: sig_ait = log(1.6)
+      real, parameter :: sig_cdu = log(1.8)
+      real, parameter :: sig_css = log(2.0)
+      real, parameter :: sig_fdu = log(1.8)
+      real, parameter :: sig_fss = log(2.0)
+      real, parameter :: sig_pcm = log(1.6)
 
 !     PySR emulator native units:
 !       aerosol mass inputs  : log10(microgram aerosol / kg air)
@@ -2710,8 +2710,7 @@ contains
         diameter = min(max(diameter, 0.039e-6), 0.13e-6)
 
         case default
-           __raise__(UNKNOWN_AEROSOL_MODE, "Unknown MAMnet emulator aerosol mode in GOCART2G "// &
-                                      "aerosol activation properties: "//trim(mode))
+           __raise__(UNKNOWN_AEROSOL_MODE, "Unknown MAMnet emulator aerosol mode in aerosol activation properties: ")
       end select
 
       num = modal_number
