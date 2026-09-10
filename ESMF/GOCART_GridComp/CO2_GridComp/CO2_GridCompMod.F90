@@ -265,7 +265,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   type(Chem_Bundle), intent(in) :: w_c        ! Chemical tracer fields      
+   type(Chem_Bundle), intent(inout) :: w_c     ! Chemical tracer fields (inout: SingleInstance_ temporarily modifies reg indices)      
    integer, intent(in) :: nymd, nhms           ! time
    real,    intent(in) :: cdt                  ! chemical timestep (secs)
 
@@ -989,7 +989,7 @@ CONTAINS
 
 ! !INPUT PARAMETERS:
 
-   type(Chem_Bundle), intent(in)  :: w_c      ! Chemical tracer fields   
+   type(Chem_Bundle), intent(inout) :: w_c   ! Chemical tracer fields (inout: SingleInstance_ temporarily modifies reg indices)
    integer, intent(in) :: nymd, nhms          ! time
    real,    intent(in) :: cdt                 ! chemical timestep (secs)
 

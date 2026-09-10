@@ -746,6 +746,13 @@ contains
     call findKlid (self%klid, self%plid, ple, __RC__)
     call MAPL_GetPointer (internal, NAME='SO4', ptr=ptr3d_int, __RC__)
     call setZeroKlid (self%km, self%klid, ptr3d_int)
+    call MAPL_GetPointer (internal, NAME='SO2', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+    call MAPL_GetPointer (internal, NAME='DMS', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+    call MAPL_GetPointer (internal, NAME='MSA', ptr=ptr3d_int, __RC__)
+    call setZeroKlid (self%km, self%klid, ptr3d_int)
+    
 
     RETURN_(ESMF_SUCCESS)
 
@@ -765,7 +772,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: rc     ! Error code:
 
-! !DESCRIPTION: Run method for the Sea Salt Grid Component. Determines whether to run
+! !DESCRIPTION: Run method for the Sulfate Component. Determines whether to run
 !               data or computational run method.
 
 !EOP
@@ -1219,6 +1226,9 @@ contains
 !   ---------------------------------------------------
     call findKlid (self%klid, self%plid, ple, __RC__)
     call setZeroKlid (self%km, self%klid, SO4)
+    call setZeroKlid (self%km, self%klid, SO2)
+    call setZeroKlid (self%km, self%klid, DMS)
+    call setZeroKlid (self%km, self%klid, MSA)
 
     thread = MAPL_get_current_thread()
     workspace => self%workspaces(thread)
@@ -1394,7 +1404,7 @@ contains
 
 !============================================================================
 !BOP
-! !IROUTINE: Run_data -- ExtData Sea Salt Grid Component
+! !IROUTINE: Run_data -- ExtData Sulfate Grid Component
 
 ! !INTERFACE:
 
