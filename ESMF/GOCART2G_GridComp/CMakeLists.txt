@@ -10,6 +10,7 @@ set (alldirs
   )
 
 set (srcs
+  ${CMAKE_CURRENT_SOURCE_DIR}/../Shared/GOCART2G_AerosolActivationMod.F90
   GOCART2G_GridCompMod.F90
   )
 

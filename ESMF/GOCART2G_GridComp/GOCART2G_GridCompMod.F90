@@ -14,6 +14,7 @@ module GOCART2G_GridCompMod
    use ESMF
    use MAPL
    use Chem_AeroGeneric
+   use GOCART2G_AerosolActivationMod, only : setup_aerosol_activation
 
 ! !Establish the Childen's SetServices
  !-----------------------------------
@@ -296,6 +297,7 @@ contains
     type (GOCART_State),      pointer      :: self
     type (wrap_)                           :: wrap
 
+<<<<<<< Updated upstream
     integer                                :: n_modes
     integer, parameter                     :: n_gocart_modes = 14
     integer, parameter                     :: n_mamnet_modes = 7
@@ -306,6 +308,11 @@ contains
     character(len=ESMF_MAXSTR)             :: mamnet_aci_modes(n_mamnet_modes)
     real                                   :: f_aci_seasalt, maxclean, ccntuning
     logical                                :: use_mamnet
+=======
+    integer                                :: dims(3)
+    integer                                :: nmom_ = 0
+
+>>>>>>> Stashed changes
 
     __Iam__('Initialize')
 
@@ -425,6 +432,7 @@ contains
     ! explicitly set to true.
     call ESMF_AttributeSet(aero, name='implements_aerosol_optics_method', value=.true., __RC__)
 
+<<<<<<< Updated upstream
 !   Begin adding necessary aerosol cloud interaction information
 !   ------------------------------------------------------------
     aero_aci_modes =  (/'du001    ', 'du002    ', 'du003    ', &
@@ -471,6 +479,12 @@ contains
 
 !   Attach the aerosol optics method
     call ESMF_MethodAdd(aero, label='aerosol_activation_properties', userRoutine=aerosol_activation_properties, __RC__)
+=======
+!   Configure aerosol cloud interaction fields and callback.
+!   Implementation lives in GOCART2G_AerosolActivationMod.
+!   -------------------------------------------------------
+    call setup_aerosol_activation(aero, grid, CF, __RC__)
+>>>>>>> Stashed changes
 
     RETURN_(ESMF_SUCCESS)
 
@@ -1764,6 +1778,7 @@ contains
 
 !=====================================================================================================
 
+<<<<<<< Updated upstream
   subroutine aerosol_activation_properties(state, rc)
 
     implicit none
@@ -2895,6 +2910,8 @@ contains
       end subroutine add_field_sum_
 
   end subroutine aerosol_activation_properties
+=======
+>>>>>>> Stashed changes
 
 
 !===================================================================================
