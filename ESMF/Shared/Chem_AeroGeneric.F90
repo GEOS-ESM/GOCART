@@ -25,6 +25,7 @@ module  Chem_AeroGeneric
 !
 ! !PUBLIC MEMBER FUNCTIONS:
    public add_aero
+   public add_aero_named_alias
    public append_to_bundle
    public determine_data_driven
    public setZeroKlid
@@ -98,6 +99,59 @@ contains
     RETURN_(ESMF_SUCCESS)
 
   end subroutine add_aero
+
+!=====================================================================================
+
+!====================================================================================
+  subroutine add_aero_named_alias (state, label, label2, grid, typekind, ptr, ungrid, rc)
+
+!   Description: Adds fields to aero state for aerosol optics calcualtions.
+
+    implicit none
+
+    type (ESMF_State),                          intent(inout)     :: state
+    character (len=*),                          intent(in   )     :: label
+    character (len=*),                          intent(in   )     :: label2
+    type (ESMF_Grid),                           intent(inout)     :: grid
+    integer,                                    intent(in   )     :: typekind
+    real, pointer, dimension(:,:,:), optional,  intent(in   )     :: ptr
+    integer, optional,                          intent(in   )     :: ungrid
+    integer,                                    intent(  out)     :: rc
+    
+    ! locals
+    type (ESMF_Field)                                             :: field
+    character (len=ESMF_MAXSTR)                                   :: field_name
+    type (ESMF_Field)                                             :: field_alias
+
+    __Iam__('add_aero_named_alias')
+
+!----------------------------------------------------------------------------------
+!   Begin...
+
+    call ESMF_AttributeSet (state, name=trim(label), value=trim(label2),  __RC__)
+
+    field_name = label
+    if (label /= '') then
+       field = MAPL_FieldCreateEmpty(trim(field_name), grid, __RC__)
+       if (trim(label2) == 'PLE') then
+          call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationEdge, typekind=typekind, hw=0, __RC__)
+       else if ((trim(label2) == 'FRLAND') .or. (trim(label2) == 'monochromatic_EXT')) then
+          call MAPL_FieldAllocCommit(field, dims=MAPL_DimsHorzOnly, location=MAPL_VLocationCenter, typekind=MAPL_R4, hw=0, __RC__)
+       else
+          if(present(ungrid)) then
+             call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, ungrid=[ungrid], hw=0, __RC__)
+          else        
+             call MAPL_FieldAllocCommit (field, dims=MAPL_DimsHorzVert, location=MAPL_VLocationCenter, typekind=typekind, hw=0, __RC__)
+          end if
+       end if
+       field_alias = ESMF_NamedAlias(field, name=label2, __RC__)
+       call MAPL_StateAdd (state, field, __RC__)
+       call MAPL_StateAdd (state, field_alias, __RC__)
+    end if
+
+    RETURN_(ESMF_SUCCESS)
+
+  end subroutine add_aero_named_alias
 
 !=====================================================================================
 
