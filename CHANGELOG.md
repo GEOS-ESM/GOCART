@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated version of volcanic sulfur emissions for AMIP configuration to v202601
 - Update aerosol optics bands files to default to RRTMGP bands, rather than RRTMG (as GEOSgcm v12 has switched to RRTMGP)
   - NOTE: This means users needing RRTMG bands will need to update at run time. See https://github.com/GEOS-ESM/GEOSgcm_App/pull/878 for changes needed at run-time for GEOSgcm
-
+- Changed the Maring correction to only apply to bins 4 and 5. Note this should probably be revisited to pull in the bin radius and use that as a deciding factor in case we ever change the definition of the dust bins.
 ### Fixed
 
 - Fixed ifx compilation errors in legacy GOCART GridComps (Ops emissions path):

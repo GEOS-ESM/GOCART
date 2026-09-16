@@ -1571,7 +1571,7 @@ end function DarmenovaDragPartition
     end do
 
     if(present(correctionMaring)) then
-       if (correctionMaring) then
+       if (correctionMaring .and. bin >= 4) then
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
@@ -1755,7 +1755,7 @@ end function DarmenovaDragPartition
     end do
 
     if(present(correctionMaring)) then
-       if (correctionMaring) then
+       if (correctionMaring .and. bin >= 4) then
           vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
