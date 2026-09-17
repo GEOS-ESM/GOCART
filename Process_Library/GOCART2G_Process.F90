@@ -1571,7 +1571,8 @@ end function DarmenovaDragPartition
     end do
 
     if(present(correctionMaring)) then
-       if (correctionMaring .and. bin >= 4) then
+! Only apply the Maring correction if the upper end of the bin radius is >= 6um  
+       if (correctionMaring .and. mie%rUp(bin) >= 6.0e-6) then
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif

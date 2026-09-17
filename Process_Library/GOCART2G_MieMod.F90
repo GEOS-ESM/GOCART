@@ -54,6 +54,7 @@ module GOCART2G_MieMod
                                             ! c=channel, r=rh, b=bin, m=moments, p=nPol
       real, pointer  :: wavelengths(:) => Null()  ! (c) wavelengths [m]
       real, pointer  :: rh(:) => Null()           ! (r) RH values   [fraction]
+      real, pointer  :: rUp(:) => Null()          ! (b) upper edge of radius bin [m]
       real, pointer  :: reff(:,:) => Null()       ! (r,b) effective radius [m]
       real, pointer  :: bext(:,:,:) => Null()     ! (r,c,b) bext values [m2 kg-1]
       real, pointer  :: bsca(:,:,:) => Null()     ! (r,c,b) bsca values [m2 kg-1]
@@ -150,7 +151,7 @@ CONTAINS
                             pmom_table(:,:,:,:,:),pback_table(:,:,:,:),            &
                             gf_table(:,:),        rhop_table(:,:), rhod_table(:,:),&
                             vol_table(:,:),       area_table(:,:),                 &
-                            refr_table(:,:,:),    refi_table(:,:,:)
+                            refr_table(:,:,:),    rUp_table(:),  refi_table(:,:,:)
 
      real, pointer  :: pback(:,:,:,:)  ! (r,c,b,p) Backscatter phase function
      
@@ -228,6 +229,7 @@ CONTAINS
       allocate(channels_table(nch_table), __NF_STAT__)
       allocate(rh_table(nrh_table), __NF_STAT__)
       allocate(reff_table(nrh_table,nbin_table), __NF_STAT__)
+      allocate(rUp_table(nbin_table), __NF_STAT__)
       allocate(bext_table(nrh_table,nch_table,nbin_table), __NF_STAT__)
       allocate(bsca_table(nrh_table,nch_table,nbin_table), __NF_STAT__)
       allocate(bbck_table(nrh_table,nch_table,nbin_table),  __NF_STAT__)
@@ -248,6 +250,8 @@ CONTAINS
       NF_VERIFY_(nf90_get_var(ncid,ivarid,channels_table))
       NF_VERIFY_(nf90_inq_varid(ncid,'rEff',ivarid))
       NF_VERIFY_(nf90_get_var(ncid,ivarid,reff_table))
+      NF_VERIFY_(nf90_inq_varid(ncid,'rUp',ivarid))
+      NF_VERIFY_(nf90_get_var(ncid,ivarid,rUp_table))
       NF_VERIFY_(nf90_inq_varid(ncid,'bext',ivarid))
       NF_VERIFY_(nf90_get_var(ncid,ivarid,bext_table))
       NF_VERIFY_(nf90_inq_varid(ncid,'bsca',ivarid))
@@ -351,6 +355,7 @@ CONTAINS
 
       allocate (this%rh(this%nrh), __NF_STAT__)
       allocate (this%reff(this%nrh,this%nbin), __NF_STAT__)
+      allocate (this%rUp(this%nbin), __NF_STAT__)
       allocate (this%bext(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%bsca(this%nrh,this%nch,this%nbin), __NF_STAT__)
       allocate (this%bbck(this%nrh,this%nch,this%nbin), __NF_STAT__)
@@ -375,6 +380,9 @@ CONTAINS
 
 !     Insert rEff (moist effective radius)
       this%reff = reff_table
+ 
+!     Insert rUp
+      this%rUp = rUp_table      
 
 !     Insert growth factor
       this%gf = gf_table
