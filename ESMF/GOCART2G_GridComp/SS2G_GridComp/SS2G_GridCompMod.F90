@@ -53,6 +53,7 @@ real, parameter ::  cpd    = 1004.16
        integer                :: emission_scheme
        real                   :: emission_scale ! global scaling factor
        real                   :: emission_scale_res(NHRES) ! global scaling factor
+       real                   :: shape_factor ! shape factor used to convert geometric to aerodynamic diameter
    end type SS2G_GridComp
 
    type wrap_
@@ -940,9 +941,9 @@ contains
                              self%rup, self%wavelengths_profile*1.0e-9, &
                              self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
                              delp, ple, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
-                             SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
+                             SSSMASS25, SSSMASS25A, SSCMASS25, SSMASS25, SSMASSFM, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF,    &
-                             SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
+                             SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false., BinFracFlag=.true., shapefactor=self%shape_factor , __RC__)
 
     i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
     j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)

@@ -66,6 +66,7 @@ module DU2G_GridCompMod
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
+       real                   :: shape_factor ! shape factor used to convert to aerodynamic diameter
        integer                :: day_save = -1
        character(len=:), allocatable :: emission_scheme     ! emission scheme selector
        integer       :: clayFlag       ! clay and silt term in K14
@@ -164,6 +165,7 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%shape_factor, label='shape_factor:', __RC__)
 
     ! Choose Emission Scheme
     !-----------------------
@@ -378,7 +380,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes DU's Grid Component. It primaryily fills
+! !DESCRIPTION: This initializes DU's Grid Component. It primarily fills
 !               GOCART's AERO states with its dust fields.
 
 ! !REVISION HISTORY:
@@ -1114,16 +1116,15 @@ contains
                             self%wavelengths_vertint*1.0e-9, DU, MAPL_GRAV, t, airdens, &
                             rh2, u, v, delp, ple,tropp, &
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
-                            DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
+                            DUSMASS25, DUSMASS25A, DUCMASS25, DUMASS25, DUMASSFM, DUEXTT25, DUSCAT25, &
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
-                            DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
+                            DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., BinFracFlag=.true., shapefactor=self%shape_factor, __RC__ )
 
 
    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
    km = ubound(RH2, 3)
 
-   allocate(RH20(i1:i2,j1:j2,km), __STAT__)
    allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
    RH20(:,:,:) = 0.20

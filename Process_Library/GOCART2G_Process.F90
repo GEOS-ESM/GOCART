@@ -2030,7 +2030,7 @@ end function DarmenovaDragPartition
 
          if (dt_cfl >= cdt) then
             ! no need for time sub-splitting
-            nSubSteps = 0
+            nSubSteps = 1
             dt = cdt
          else
             nSubSteps = max(1, ceiling(cdt / dt_cfl))
@@ -4372,10 +4372,10 @@ end function DarmenovaDragPartition
                                   wavelengths_profile, wavelengths_vertint, aerosol, &
                                   grav, tmpu, rhoa, rh, u, v, delp, ple,tropp, &
                                   sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
-                                  sfcmass25, colmass25, mass25, exttau25, scatau25, &
+                                  sfcmass25, sfcmass25aerodyn, colmass25, mass25, mass1, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, bckcoef,&
                                   exttaufm, scataufm, angstrom, aerindx, NO3nFlag, &
-                                  sarea, reff, rc )
+                                  sarea, reff, BinFracFlag, shapefactor, rc )
 
 ! !USES:
 
@@ -4400,6 +4400,8 @@ end function DarmenovaDragPartition
    real, pointer, dimension(:,:,:), intent(in) :: ple   ! level edge air pressure [Pa]
    real, pointer, dimension(:,:), intent(in)   :: tropp ! tropopause pressure [Pa]
    logical, optional, intent(in)               :: NO3nFlag
+   logical, optional, intent(in)               :: BinFracFlag
+   real, optional, intent(in) :: shapefactor ! used to convert geometric to aerodynamic 
 
 ! !OUTPUT PARAMETERS:
 !  Total mass
@@ -4413,8 +4415,10 @@ end function DarmenovaDragPartition
    real, optional, dimension(:,:,:), intent(inout)   :: scatau    ! sct. AOT at 550 nm
    real, optional, dimension(:,:,:), intent(inout)   :: stscatau  ! stratospheric sct. AOT at 550 nm
    real, optional, dimension(:,:), intent(inout)   :: sfcmass25 ! sfc mass concentration kg/m3 (pm2.5)
+   real, optional, dimension(:,:), intent(inout)   :: sfcmass25aerodyn ! sfc mass concentration kg/m3 computed with an aerodynamic diameter (pm2.5)
    real, optional, dimension(:,:), intent(inout)   :: colmass25 ! col mass density kg/m2 (pm2.5)
    real, optional, dimension(:,:,:), intent(inout) :: mass25    ! 3d mass mixing ratio kg/kg (pm2.5)
+   real, optional, dimension(:,:,:), intent(inout) :: mass1    ! 3d mass mixing ratio kg/kg (pm1)
    real, optional, dimension(:,:,:), intent(inout)   :: exttau25  ! ext. AOT at 550 nm (pm2.5)
    real, optional, dimension(:,:,:), intent(inout)   :: scatau25  ! sct. AOT at 550 nm (pm2.5)
    real, optional, dimension(:,:),  intent(inout)  :: aerindx   ! TOMS UV AI
@@ -4439,6 +4443,7 @@ end function DarmenovaDragPartition
 !  16APR2004, Colarco
 !  11MAR2010, Nowottnick
 !  11AUG2020, E.Sherman - refactored to work for multiple aerosols
+!  22SEP2026, Collow - added aerodynamic PM2.5, PM2.5 using radius from optics files, and fine column mass
 
 ! !Local Variables
    character(len=*), parameter :: myname = 'Aero_Compute_Diags'
@@ -4449,10 +4454,14 @@ end function DarmenovaDragPartition
 !   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
 !   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
-   real, dimension(:), allocatable :: fPM25  ! fraction of bin with particles diameter < 2.5 um
+   real, dimension(:), allocatable :: fPM25  ! fraction of bin with particles geometric diameter < 2.5 um
+   real, dimension(:), allocatable :: fPM25aerodyn  ! fraction of bin with particles aerodynamic diameter < 2.5 um   
    logical :: do_angstrom
    real, dimension(:,:), allocatable :: tau470, tau870
    logical   :: NO3nFlag_ !local version of the input
+   logical   :: BinFracFlag_ !local version of the input
+   real, dimension(:), allocatable :: local_rUp, local_rLow, local_rhop, rUpaerodyn, rLowaerodyn
+   real, dimension(1) :: RH0, temp_rUp, temp_rLow, temp_rhop
 
 !EOP
 !-------------------------------------------------------------------------
@@ -4463,6 +4472,11 @@ end function DarmenovaDragPartition
    else
       NO3nFlag_ = .false.
    end if
+   if( present(BinFracFlag) ) then
+      BinFracFlag_ = BinFracFlag
+   else
+      BinFracFlag_ = .false.
+   end if
 
 !  Initialize local variables
 !  --------------------------
@@ -4470,6 +4484,8 @@ end function DarmenovaDragPartition
    j2 = size(rhoa,2)
    allocate(fPMfm(nbins),source=0.0)
    allocate(fPM25(nbins),source=0.0)
+   allocate(fPM25aerodyn(nbins),source=0.0)
+   allocate(local_rUp(nbins), local_rLow(nbins), local_rhop(nbins), rUpaerodyn(nbins), rLowaerodyn(nbins), source=0.0)
 
 !  Get the wavelength indices
 !  --------------------------
@@ -4495,11 +4511,38 @@ end function DarmenovaDragPartition
       end if
    end if
 
+
+!  Get rUp and rLow if needed
+   if( BinFracFlag_ ) then
+      RH0(1)=0.0
+      
+      ! Query into the specific bin index of our local arrays
+      do n = nbegin, nbins
+         call mie%Query(550e-9, n,   &
+                   aerosol(1:1,1,1,n)*delp(1:1,1,1)/grav, &
+                   RH0, rUp=temp_rUp, rLow=temp_rLow, rhop=temp_rhop, __RC__)   
+         
+         local_rUp(n)  = temp_rUp(1)
+         local_rLow(n) = temp_rLow(1)
+         local_rhop(n) = temp_rhop(1)
+      end do
+      print *, local_rUp
+      
+!  Compute aerodynamic diameter
+      if (present(shapefactor)) then     
+         rUpaerodyn = local_rUp * SQRT(local_rhop/shapefactor)
+         rLowaerodyn = local_rLow * SQRT(local_rhop/shapefactor) 
+      else
+         ! Fallback if shapefactor isn't passed
+         rUpaerodyn = local_rUp
+         rLowaerodyn = local_rLow
+      end if    
+
 !  Compute the fine mode (sub-micron) and PM2.5 bin-wise fractions
-!  ------------------------------------
-   if (present(rlow) .and. present(rup)) then
-      call Aero_Binwise_PM_Fractions(fPMfm, 0.50, rlow, rup, nbins)   ! 2*r < 1.0 um
-      call Aero_Binwise_PM_Fractions(fPM25, 1.25, rlow, rup, nbins)   ! 2*r < 2.5 um
+!  NOTE: We pass our local arrays into the fraction subroutine instead of the intent(in) arrays
+      call Aero_Binwise_PM_Fractions(fPMfm, 0.50, local_rLow, local_rUp, nbins)   ! 2*r < 1.0 um
+      call Aero_Binwise_PM_Fractions(fPM25, 1.25, local_rLow, local_rUp, nbins)   ! 2*r < 2.5 um
+      call Aero_Binwise_PM_Fractions(fPM25aerodyn, 1.25, rLowaerodyn, rUpaerodyn, nbins)
    end if
 
    if (present(aerindx))  aerindx = 0.0  ! for now
@@ -4517,10 +4560,14 @@ end function DarmenovaDragPartition
    endif
    if( present(sfcmass25) ) then
       sfcmass25(i1:i2,j1:j2) = 0.
+      sfcmass25aerodyn(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          sfcmass25(i1:i2,j1:j2) &
               =   sfcmass25(i1:i2,j1:j2) &
               + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)*fPM25(n)
+         sfcmass25aerodyn(i1:i2,j1:j2) &
+              =   sfcmass25aerodyn(i1:i2,j1:j2) &
+              + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)*fPM25aerodyn(n)
       end do
    endif
 
@@ -4573,6 +4620,15 @@ end function DarmenovaDragPartition
            + aerosol(i1:i2,j1:j2,1:km,n)*fPM25(n)
       end do
    endif
+   if( present(mass1) ) then
+      mass1(i1:i2,j1:j2,1:km) = 0.
+      do n = nbegin, nbins
+       mass1(i1:i2,j1:j2,1:km) &
+         =   mass1(i1:i2,j1:j2,1:km) &
+           + aerosol(i1:i2,j1:j2,1:km,n)*fPMfm(n)
+      end do
+   endif   
+   
 
 !  Calculate the column mass flux in x direction
    if( present(fluxu) ) then

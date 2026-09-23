@@ -43,6 +43,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  SSMASS        | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio
  SSMASS25      | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio of Particulate Matter < 2.5 microns (PM2.5)
+ SSMASSFM      | kg kg-1      | xyz   | C     |                                | Sea Salt Mass Mixing Ratio of Particulate Matter < 1 microns (PM1)
  SSCONC        | kg m-3       | xyz   | C     |                                | Sea Salt Mass Concentration
  SSSD_V        | m s-1        | xyz   | C     | self%nbins                     | Sea Salt Settling Velocity (Bin %d)
  SSEXTCOEF     | m-1          | xyz   | C     | size(self%wavelengths_profile) | Sea Salt Extinction Coefficient
@@ -64,7 +65,8 @@ category: EXPORT
  SSSTEXTTAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | Sea Salt Stratospheric Aerosol Optical Thickness
  SSSCATAU      | 1            | xy    | N     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth Due to Scattering
  SSSTSCATAU    | 1            | xy    | N     | size(self%wavelengths_vertint) | Sea Salt Stratospheric Aerosol Optical Thickness Due to Scattering
- SSSMASS25     | kg m-3       | xy    | N     |                                | Sea Salt Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
+ SSSMASS25     | kg m-3       | xy    | N     |                                | Sea Salt Surface Mass Concentration of Particulate Matter < geometric 2.5 microns (PM2.5)
+ SSSMASS25A     | kg m-3       | xy    | N     |                                | Sea Salt Surface Mass Concentration of Particulate Matter < aerodynamic 2.5 microns (PM2.5)
  SSCMASS25     | kg m-2       | xy    | N     |                                | Sea Salt Column Mass Density of Particulate Matter < 2.5 microns (PM2.5)
  SSEXTT25      | 1            | xy    | N     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth from Particulate Matter < 2.5 microns (PM2.5)
  SSSCAT25      | 1            | xy    | N     | size(self%wavelengths_vertint) | Sea Salt Aerosol Optical Depth Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)

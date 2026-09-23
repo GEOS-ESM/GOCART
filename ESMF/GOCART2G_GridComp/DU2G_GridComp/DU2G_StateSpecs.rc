@@ -61,6 +61,7 @@ category: EXPORT
 #----------------------------------------------------------------------------------------
  DUMASS        | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
  DUMASS25      | kg kg-1    | xyz  | C    |                                | Dust Mass Mixing Ratio
+ DUMASSFM      | kg kg-1    | xyz  | C    |                                | Fine Mode Dust Mass Mixing Ratio (PM1)
  DUCONC        | kg m-3     | xyz  | C    |                                | Dust Mass Concentration
  DUSD_V        | m s-1      | xyz  | C    | self%nbins                     | Dust Settling Velocity (Bin %d)
  DUEXTCOEF     | m-1        | xyz  | C    | size(self%wavelengths_profile) | Dust Extinction Coefficient
@@ -77,7 +78,8 @@ category: EXPORT
  DUSTEXTTAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Stratospheric Aerosol Optical Thickness
  DUSCATAU      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth Due to Scattering
  DUSTSCATAU    | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Stratospheric Aerosol Optical Thickness Due to Scattering
- DUSMASS25     | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration of Particulate Matter < 2.5 microns (PM 2.5)
+ DUSMASS25     | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration of Particulate Matter < geometric 2.5 microns (PM 2.5)
+ DUSMASS25A     | kg m-3     | xy   | N    |                                | Dust Surface Mass Concentration of Particulate Matter < aerodynamic 2.5 microns (PM 2.5)
  DUCMASS25     | kg m-2     | xy   | N    |                                | Dust Column Mass Density of Particulate Matter < 2.5 microns (PM 2.5)
  DUEXTT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth from Particulate Matter < 2.5 microns (PM2.5)
  DUSCAT25      | 1          | xy   | N    | size(self%wavelengths_vertint) | Dust Aerosol Optical Depth Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)

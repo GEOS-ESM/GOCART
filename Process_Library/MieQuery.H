@@ -29,7 +29,7 @@
 
  subroutine SUBCHANNEL_ ( this, channel , bin, q_mass, rh,   &
                    tau, ssa, gasym, bext, bsca, bbck,   &
-                   reff, pmom, p11, p22, gf, rhop, rhod, &
+                   reff, rUp, rLow, pmom, p11, p22, gf, rhop, rhod, &
                    vol, area, refr, refi, rc )
 
 ! !INPUT PARAMETERS:
@@ -49,6 +49,8 @@
      real,    optional,      intent(out) :: bsca   (__DIMS__)      ! mass scattering efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: bbck   (__DIMS__)      ! mass backscatter efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (micron)
+     real,    optional,      intent(out) :: rLow   (__DIMS__)      ! radius lower bound (micron)
+     real,    optional,      intent(out) :: rUp   (__DIMS__)       ! radius upper bound (micron)          
      real,    optional,      intent(out) :: pmom   (:,:,__DIMS__)  ! moments of phase function 
      real,    optional,      intent(out) :: p11    (__DIMS__)      ! P11 phase function at backscatter
      real,    optional,      intent(out) :: p22    (__DIMS__)      ! P22 phase function at backscatter
@@ -118,6 +120,14 @@
        rEff = __RHINTERP2__(this%rEff, irh, arh, bin, rEff)
      endif
 
+     if(present(rUp)) then
+       rUp = __RHINTERP2__(this%rUp, irh, arh, bin, rUp)
+     endif     
+
+     if(present(rLow)) then
+       rLow = __RHINTERP2__(this%rLow, irh, arh, bin, rLow)
+     endif     
+
      if(present(rhop)) then
        rhop = __RHINTERP2__(this%rhop, irh, arh, bin, rhop)
      endif
@@ -185,7 +195,7 @@
 
  subroutine SUBWAVELENGTH_ ( this, wavelength, bin, q_mass, rh,   &
                    tau, ssa, gasym, bext, bsca, bbck,   &
-                   reff, pmom, p11, p22, gf, rhop, rhod, &
+                   reff, rUp, rLow, pmom, p11, p22, gf, rhop, rhod, &
                    vol, area, refr, refi, rc )
 
 ! !INPUT PARAMETERS:
@@ -205,6 +215,8 @@
      real,    optional,      intent(out) :: bsca   (__DIMS__)      ! mass scattering efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: bbck   (__DIMS__)      ! mass backscatter efficiency [m2 (kg dry mass)-1]
      real,    optional,      intent(out) :: reff   (__DIMS__)      ! effective radius (micron)
+     real,    optional,      intent(out) :: rUp   (__DIMS__)       ! radius upper bound (micron)
+     real,    optional,      intent(out) :: rLow   (__DIMS__)      ! radius lower bound (micron)          
      real,    optional,      intent(out) :: pmom   (:,:,__DIMS__)  ! moments of phase function
      real,    optional,      intent(out) :: p11    (__DIMS__)      ! P11 phase function at backscatter
      real,    optional,      intent(out) :: p22    (__DIMS__)      ! P22 phase function at backscatter
@@ -248,7 +260,7 @@
 
     call this%Query(channel, bin, q_mass, rh,                   &
                    tau, ssa, gasym, bext, bsca, bbck,           &
-                   reff, pmom, p11, p22, gf, rhop, rhod, &
+                   reff, rUp, rLow, pmom, p11, p22, gf, rhop, rhod, &
                    vol, area, refr, refi, rc )
 
  end subroutine SUBWAVELENGTH_

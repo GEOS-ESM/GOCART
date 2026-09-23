@@ -13,6 +13,8 @@ radius_upper: 0.1 0.5 1.5 5.0 10.0
 
 particle_density: 2200. 2200. 2200. 2200. 2200.
 
+shape_factor: 1
+
 # Wet Removal Scheme Option | gocart, ufs
 wet_removal_scheme: gocart ! default value
 
