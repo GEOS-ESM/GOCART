@@ -1124,7 +1124,8 @@ contains
    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
    km = ubound(RH2, 3)
-
+   
+   allocate(RH20(i1:i2,j1:j2,km), __STAT__)
    allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
    RH20(:,:,:) = 0.20
