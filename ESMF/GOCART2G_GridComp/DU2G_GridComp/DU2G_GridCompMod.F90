@@ -1120,7 +1120,7 @@ contains
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
                             DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., BinFracFlag=.true., shapefactor=self%shape_factor, __RC__ )
 
-
+ 
    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
    km = ubound(RH2, 3)
@@ -1358,16 +1358,16 @@ contains
     integer,                       intent(in )   :: band             ! channel
     real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
     real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
-    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bext_s (size(rh,1),size(rh,2),size(rh,3))
+    real(kind=DP), intent(  out) :: bssa_s (size(rh,1),size(rh,2),size(rh,3))
+    real(kind=DP), intent(  out) :: basym_s(size(rh,1),size(rh,2),size(rh,3))
     integer,                       intent(  out) :: rc
 
     ! local
     integer                           :: l
-    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
-    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-    real                              :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
+    real                              :: bext (size(rh,1),size(rh,2),size(rh,3))  ! extinction
+    real                              :: bssa (size(rh,1),size(rh,2),size(rh,3))  ! SSA
+    real                              :: gasym(size(rh,1),size(rh,2),size(rh,3))  ! asymmetry parameter
 
     __Iam__('DU2G::aerosol_optics::mie_')
 
@@ -1396,16 +1396,17 @@ contains
     real,                          intent(in )   :: wavelength       ! wavelength in nm
     real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
     real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
-    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bpmom_s(size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4))
+    real(kind=DP), intent(  out) :: bext_s (:,:,:)
+    real(kind=DP), intent(  out) :: bssa_s (:,:,:)
+    real(kind=DP), intent(  out) :: bpmom_s(:,:,:,:)
     integer,                       intent(  out) :: rc
 
     ! local
     integer                           :: l, m
-    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
-    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-    real                              :: pmom (size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4),6)
+    real                              :: bext (size(rh,1),size(rh,2),size(rh,3))  ! extinction
+    real                              :: bssa (size(rh,1),size(rh,2),size(rh,3))  ! SSA
+    real                              :: pmom (size(rh,1),size(rh,2),size(rh,3),size(bpmom_s,4),6)
+
 
     __Iam__('DU2G::aerosol_optics::miephot_')
 

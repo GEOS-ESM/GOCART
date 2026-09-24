@@ -4526,23 +4526,25 @@ end function DarmenovaDragPartition
          local_rLow(n) = temp_rLow(1)
          local_rhop(n) = temp_rhop(1)
       end do
-      print *, local_rUp
+
       
 !  Compute aerodynamic diameter
-      if (present(shapefactor)) then     
-         rUpaerodyn = local_rUp * SQRT(local_rhop/shapefactor)
-         rLowaerodyn = local_rLow * SQRT(local_rhop/shapefactor) 
+      if (present(shapefactor)) then
+         rUpaerodyn = local_rUp * SQRT(local_rhop*0.001/shapefactor)
+         rLowaerodyn = local_rLow * SQRT(local_rhop*0.001/shapefactor)
       else
          ! Fallback if shapefactor isn't passed
          rUpaerodyn = local_rUp
          rLowaerodyn = local_rLow
       end if    
 
+
 !  Compute the fine mode (sub-micron) and PM2.5 bin-wise fractions
 !  NOTE: We pass our local arrays into the fraction subroutine instead of the intent(in) arrays
-      call Aero_Binwise_PM_Fractions(fPMfm, 0.50, local_rLow, local_rUp, nbins)   ! 2*r < 1.0 um
-      call Aero_Binwise_PM_Fractions(fPM25, 1.25, local_rLow, local_rUp, nbins)   ! 2*r < 2.5 um
-      call Aero_Binwise_PM_Fractions(fPM25aerodyn, 1.25, rLowaerodyn, rUpaerodyn, nbins)
+! units for radius must be converted to microns
+      call Aero_Binwise_PM_Fractions(fPMfm, 0.50, local_rLow * 1e6, local_rUp * 1e6, nbins)   ! 2*r < 1.0 um
+      call Aero_Binwise_PM_Fractions(fPM25, 1.25, local_rLow * 1e6, local_rUp * 1e6, nbins)   ! 2*r < 2.5 um
+      call Aero_Binwise_PM_Fractions(fPM25aerodyn, 1.25, rLowaerodyn * 1e6, rUpaerodyn * 1e6, nbins)
    end if
 
    if (present(aerindx))  aerindx = 0.0  ! for now
@@ -4570,7 +4572,7 @@ end function DarmenovaDragPartition
               + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)*fPM25aerodyn(n)
       end do
    endif
-
+  
 !  Calculate the aerosol column loading
    if( present(colmass) ) then
       colmass(i1:i2,j1:j2) = 0.
@@ -4858,10 +4860,10 @@ end function DarmenovaDragPartition
   real, dimension(:), intent(inout) :: fPM     ! bin-wise PM fraction (r < rPM)
 
 ! !INPUT PARAMETERS:
-   real,    intent(in)              :: rPM     ! PM radius
+   real,    intent(in)              :: rPM     ! PM radius in microns
    integer, intent(in)              :: nbins   ! number of bins
-   real, dimension(:), intent(in)   :: r_low   ! bin radii - low bounds
-   real, dimension(:), intent(in)   :: r_up    ! bin radii - upper bounds
+   real, dimension(:), intent(in)   :: r_low   ! bin radii - low bounds in microns
+   real, dimension(:), intent(in)   :: r_up    ! bin radii - upper bounds in microns
 
 ! !Local Variables
 
@@ -4884,7 +4886,6 @@ end function DarmenovaDragPartition
        endif
      endif
    enddo
-
    end subroutine Aero_Binwise_PM_Fractions
 
 !======================================================================================

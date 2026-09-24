@@ -140,6 +140,7 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%rlow, label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup, label='radius_upper:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rmed, label='particle_radius_number:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%shape_factor, label='shape_factor:', __RC__)
 
 !   Is SS data driven?
 !   ------------------
