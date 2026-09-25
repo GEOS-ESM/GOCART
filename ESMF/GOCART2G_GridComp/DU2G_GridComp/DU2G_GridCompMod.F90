@@ -47,6 +47,9 @@ module DU2G_GridCompMod
    integer, parameter :: NHRES = 6
 
    !Dust state
+   ! Per-thread mutable state.  Everything that is written during a run
+   ! must live here (indexed by thread) rather than in DU2G_GridComp,
+   ! which is shared by all threads of a threaded component.
    type :: ThreadWorkspace
       integer :: day_save = -1
       integer :: nPts = -1
@@ -71,7 +74,6 @@ module DU2G_GridCompMod
       logical :: maringFlag             ! maring settling velocity correction
       integer :: drag_opt               ! FENGSHA drag option 1 - input only, 2 - Darmenova, 3 - Leung
       integer :: distribution_opt       ! FENGSHA distribution option 1 - Kok, 2 - Kok 2021, 3 - Meng 2022
-      integer :: day_save = -1
       integer :: clayFlag               ! clay and silt term in K14
       character(len=:), allocatable :: emission_scheme ! emission scheme selector
       ! Workspace for point emissions
