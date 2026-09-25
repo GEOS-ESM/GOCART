@@ -10,7 +10,7 @@ module DU2G_GridCompMod
    use ESMF
    use pflogger, only: logger_t => logger
    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
-   use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
+   use MAPL, only: MAPL_get_current_thread
    use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
    use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
    use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
@@ -113,7 +113,7 @@ contains
       type(MAPL_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: status
 
-      call MAPL_GridCompGet(gc, name=comp_name, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, num_threads=num_threads, _RC)
 
       ! Wrap gridcomp's private state and store it in gridcomp
       _SET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE)
@@ -121,7 +121,9 @@ contains
       ! Retrieve the private state
       _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
-      num_threads = MAPL_get_num_threads()
+      ! One workspace per thread that this component will be run on.  The
+      ! number of threads is a property of this gridcomp (set in the "mapl:
+      ! misc:" section of its config), and not of the process as a whole.
       allocate(self%workspaces(0:num_threads - 1), __STAT__)
 
       ! process generic config items
@@ -718,6 +720,7 @@ contains
 
       ! Read point emissions file once per day
       thread = MAPL_get_current_thread()
+      _ASSERT(thread <= ubound(self%workspaces, 1), "thread id exceeds the number of workspaces of <" // comp_name // ">")
       workspace => self%workspaces(thread)
       if (self%doing_point_emissions) then
          if (workspace%day_save /= idd) then

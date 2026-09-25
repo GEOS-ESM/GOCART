@@ -78,6 +78,12 @@ mapl:
   misc:
     activate_all_imports: true
     activate_all_exports: true
+    # OpenMP threading of this component.  When use_threads is true, this
+    # component is replicated into num_threads "mini" components that are
+    # run concurrently on subsets of the local geometry.  num_threads
+    # defaults to the number of threads available to the process.
+    # use_threads: false
+    # num_threads: 1
     restart:
       import: true
       internal: true

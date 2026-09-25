@@ -93,7 +93,6 @@ contains
       type(ESMF_HConfig) :: hconfig
       type(GOCART_State), pointer :: self
       integer, allocatable :: wavelengths_diagmie(:), wavelengths_photmie(:)
-      ! logical :: use_threads
       type(Instance), allocatable :: child
       character(len=:), allocatable :: child_items
       type(MAPL_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
@@ -114,8 +113,6 @@ contains
       call MAPL_GridCompGetResource(gc, "wavelengths_for_vertically_integrated_aop_in_nm", self%wavelengths_vertint, _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", wavelengths_diagmie, _RC)
       call MAPL_GridCompGetResource(gc, "aerosol_photolysis_wavelengths_in_nm_from_LUT", wavelengths_photmie, _RC)
-      ! pchakrab: TODO - Do we re-implement threading?
-      ! call MAPL_GridCompGetResource(gc, "use_threads", use_threads, default=.false., _RC)
 
       ! Defined UngriddedDim items
       ungrd_wavelengths_profile = MAPL_UngriddedDim( &
@@ -127,10 +124,12 @@ contains
            name="wavelengths_vertint", &
            units="nm")
 
-      ! ! Get my internal MAPL_Generic state
-      ! call MAPL_GetObjectFromGC (GC, MAPL, _RC)
-      ! ! set use_threads
-      ! call MAPL%set_use_threads(use_threads)
+      ! OpenMP threading is configured per gridded component through the
+      ! "mapl: misc:" section of its own config (use_threads / num_threads),
+      ! e.g. in DU2G_instance_DU.yaml.  It is requested on the children that
+      ! do the gridpoint work rather than on GOCART2G itself, because the
+      ! children of a threaded component are run inside its parallel region
+      ! and may not have couplers.
 
       ! Get instances to determine what children will be born
       ! IMPORTANT: Active instances are created first
