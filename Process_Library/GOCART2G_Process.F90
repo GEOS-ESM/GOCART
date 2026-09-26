@@ -1559,7 +1559,7 @@ end function DarmenovaDragPartition
 ! Find radius and density of the wet particle
     call mie%Query(550e-9,bin,   &
                          qa*delp/grav, &
-                         rh, reff=radius, rhop=rhop, __RC__)
+                         rh, reff=radius, rLow=rLow, rhop=rhop, __RC__)
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
@@ -1570,8 +1570,9 @@ end function DarmenovaDragPartition
        end do
     end do
 
+! Maring 2003 (https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2002JD002536) indicates that a correction is needed for dust particles with a diameter of 7.3 microns
     if(present(correctionMaring)) then
-       if (correctionMaring) then
+       if (correctionMaring) .and. rUp(i,j,k)*1e6 >= 3.65 then
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
@@ -4372,7 +4373,7 @@ end function DarmenovaDragPartition
                                   wavelengths_profile, wavelengths_vertint, aerosol, &
                                   grav, tmpu, rhoa, rh, u, v, delp, ple,tropp, &
                                   sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
-                                  sfcmass25, sfcmass25aerodyn, colmass25, mass25, mass1, exttau25, scatau25, &
+                                  sfcmass25, sfcmass25aerodyn, sfcmass25aerodynRH35, colmass25, mass25, mass1, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, bckcoef,&
                                   exttaufm, scataufm, angstrom, aerindx, NO3nFlag, &
                                   sarea, reff, BinFracFlag, shapefactor, rc )
@@ -4416,6 +4417,7 @@ end function DarmenovaDragPartition
    real, optional, dimension(:,:,:), intent(inout)   :: stscatau  ! stratospheric sct. AOT at 550 nm
    real, optional, dimension(:,:), intent(inout)   :: sfcmass25 ! sfc mass concentration kg/m3 (pm2.5)
    real, optional, dimension(:,:), intent(inout)   :: sfcmass25aerodyn ! sfc mass concentration kg/m3 computed with an aerodynamic diameter (pm2.5)
+   real, optional, dimension(:,:), intent(inout)   :: sfcmass25aerodynRH35 ! sfc mass concentration kg/m3 computed with aerodynamic diameter at ambient RH, water removed for RH>35% (pm2.5)
    real, optional, dimension(:,:), intent(inout)   :: colmass25 ! col mass density kg/m2 (pm2.5)
    real, optional, dimension(:,:,:), intent(inout) :: mass25    ! 3d mass mixing ratio kg/kg (pm2.5)
    real, optional, dimension(:,:,:), intent(inout) :: mass1    ! 3d mass mixing ratio kg/kg (pm1)
@@ -4462,6 +4464,17 @@ end function DarmenovaDragPartition
    logical   :: BinFracFlag_ !local version of the input
    real, dimension(:), allocatable :: local_rUp, local_rLow, local_rhop, rUpaerodyn, rLowaerodyn
    real, dimension(1) :: RH0, temp_rUp, temp_rLow, temp_rhop
+   real, parameter :: RH_THRESHOLD = 0.35  ! 35% RH threshold
+   real, parameter :: RHOW = 997.0         ! water density kg m-3
+   real, dimension(:,:,:), allocatable :: rEff_wet, rEff_dry, rEff_35rh
+   real, dimension(:,:), allocatable :: growthfactor_ambient, growthfactor_35rh
+   real, dimension(:,:), allocatable :: waterfactor_excess
+   real, dimension(:,:,:), allocatable :: rh_35
+   real, dimension(:,:,:), allocatable :: rLow_wet, rUp_wet
+   real, dimension(:), allocatable :: fPM25aerodyn_wet_1d
+   real, dimension(:), allocatable :: rLow_wet_aerodyn, rUp_wet_aerodyn
+   real :: rhod_local
+   integer :: ij, npts
 
 !EOP
 !-------------------------------------------------------------------------
@@ -4571,6 +4584,147 @@ end function DarmenovaDragPartition
               =   sfcmass25aerodyn(i1:i2,j1:j2) &
               + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)*fPM25aerodyn(n)
       end do
+   endif
+   
+!  Calculate PM2.5 aerodynamic diameter at 35% RH (water removed for RH>35%)
+   if( present(sfcmass25aerodynRH35) ) then
+      
+      ! Allocate working arrays - need 3D arrays for mie%Query
+      allocate(rEff_wet(i1:i2,j1:j2,1), __STAT__)
+      allocate(rEff_dry(i1:i2,j1:j2,1), __STAT__)
+      allocate(rEff_35rh(i1:i2,j1:j2,1), __STAT__)
+      allocate(growthfactor_ambient(i1:i2,j1:j2), __STAT__)
+      allocate(growthfactor_35rh(i1:i2,j1:j2), __STAT__)
+      allocate(waterfactor_excess(i1:i2,j1:j2), __STAT__)
+      allocate(rh_35(i1:i2,j1:j2,1), __STAT__)
+      allocate(rLow_wet(i1:i2,j1:j2,1), __STAT__)
+      allocate(rUp_wet(i1:i2,j1:j2,1), __STAT__)
+      
+      sfcmass25aerodynRH35(i1:i2,j1:j2) = 0.
+      
+      ! Number of spatial points
+      npts = (i2-i1+1) * (j2-j1+1)
+      
+      do n = nbegin, nbins
+         ! Get particle density
+         rhod_local = local_rhop(n)  ! from earlier calculation
+         
+         ! Get wet effective radius at ambient RH
+         call mie%Query(550e-9, n, &
+                   aerosol(i1:i2,j1:j2,km:km,n)*delp(i1:i2,j1:j2,km:km)/grav, &
+                   rh(i1:i2,j1:j2,km:km), rEff=rEff_wet, __RC__)
+         
+         ! Get dry effective radius at 0% RH
+         rh_35(:,:,1) = 0.0
+         call mie%Query(550e-9, n, &
+                   aerosol(i1:i2,j1:j2,km:km,n)*delp(i1:i2,j1:j2,km:km)/grav, &
+                   rh_35, rEff=rEff_dry, __RC__)
+         
+         ! Get effective radius at 35% RH
+         rh_35(:,:,1) = RH_THRESHOLD
+         call mie%Query(550e-9, n, &
+                   aerosol(i1:i2,j1:j2,km:km,n)*delp(i1:i2,j1:j2,km:km)/grav, &
+                   rh_35, rEff=rEff_35rh, __RC__)
+         
+         ! Calculate hygroscopic growth factor at ambient RH (mass_wet/mass_dry)
+         ! Extract from 3D to 2D arrays
+         growthfactor_ambient(i1:i2,j1:j2) = 1.0 + &
+              (((rEff_wet(i1:i2,j1:j2,1) / rEff_dry(i1:i2,j1:j2,1))**3 - 1.0) * &
+              (RHOW / rhod_local))
+         
+         ! Calculate hygroscopic growth factor at 35% RH (mass_at_35rh/mass_dry)
+         growthfactor_35rh(i1:i2,j1:j2) = 1.0 + &
+              (((rEff_35rh(i1:i2,j1:j2,1) / rEff_dry(i1:i2,j1:j2,1))**3 - 1.0) * &
+              (RHOW / rhod_local))
+         
+         ! Calculate the fraction of EXCESS water (water above 35% RH)
+         ! This is: (mass_ambient - mass_35rh) / mass_ambient
+         where (rh(i1:i2,j1:j2,km) > RH_THRESHOLD)
+            waterfactor_excess(i1:i2,j1:j2) = &
+                 (growthfactor_ambient(i1:i2,j1:j2) - growthfactor_35rh(i1:i2,j1:j2)) / &
+                 growthfactor_ambient(i1:i2,j1:j2)
+         elsewhere
+            ! If RH <= 35%, no water removal
+            waterfactor_excess(i1:i2,j1:j2) = 0.0
+         end where
+         
+         ! Calculate fPM25 for aerodynamic diameter at ambient humidity
+         if( BinFracFlag_ ) then
+            ! Get wet bin boundaries at ambient RH
+            call mie%Query(550e-9, n, &
+                      aerosol(i1:i2,j1:j2,km:km,n)*delp(i1:i2,j1:j2,km:km)/grav, &
+                      rh(i1:i2,j1:j2,km:km), rUp=rUp_wet, rLow=rLow_wet, __RC__)
+            
+            ! Allocate arrays for aerodynamic radii (flattened spatial dimensions)
+            allocate(rLow_wet_aerodyn(npts), __STAT__)
+            allocate(rUp_wet_aerodyn(npts), __STAT__)
+            allocate(fPM25aerodyn_wet_1d(npts), __STAT__)
+            
+            ! Calculate wet aerodynamic radii
+            ! Convert from geometric to aerodynamic using density and shape factor
+            if (present(shapefactor)) then
+               ! rLow_wet and rUp_wet are in meters, convert to microns and then to aerodynamic
+               ! Aerodynamic radius = geometric radius * sqrt(rhop / (shapefactor * 1000))
+               ! where rhop is in kg/m3 and we divide by 1000 to get g/cm3
+               ij = 0
+               do j = j1, j2
+                  do i = i1, i2
+                     ij = ij + 1
+                     rLow_wet_aerodyn(ij) = rLow_wet(i,j,1) * 1.0e6 * &
+                                           SQRT(rhod_local * 0.001 / shapefactor)
+                     rUp_wet_aerodyn(ij)  = rUp_wet(i,j,1) * 1.0e6 * &
+                                           SQRT(rhod_local * 0.001 / shapefactor)
+                  end do
+               end do
+            else
+               ! Fallback if shapefactor isn't passed - use geometric diameter
+               ij = 0
+               do j = j1, j2
+                  do i = i1, i2
+                     ij = ij + 1
+                     rLow_wet_aerodyn(ij) = rLow_wet(i,j,1) * 1.0e6
+                     rUp_wet_aerodyn(ij)  = rUp_wet(i,j,1) * 1.0e6
+                  end do
+               end do
+            end if
+            
+            ! Call Aero_Binwise_PM_Fractions to calculate PM2.5 fraction
+            ! rPM = 1.25 microns (radius) for 2.5 micron diameter
+            call Aero_Binwise_PM_Fractions(fPM25aerodyn_wet_1d, 1.25, &
+                                          rLow_wet_aerodyn, rUp_wet_aerodyn, npts)
+            
+            ! Reshape back to 2D and add PM2.5 mass
+            ij = 0
+            do j = j1, j2
+               do i = i1, i2
+                  ij = ij + 1
+                  sfcmass25aerodynRH35(i,j) = &
+                       sfcmass25aerodynRH35(i,j) + &
+                       aerosol(i,j,km,n) * rhoa(i,j,km) * &
+                       fPM25aerodyn_wet_1d(ij) * growthfactor_ambient(i,j) * &
+                       (1.0 - waterfactor_excess(i,j))
+               end do
+            end do
+            
+            deallocate(rLow_wet_aerodyn, rUp_wet_aerodyn, fPM25aerodyn_wet_1d)
+            
+         else
+            ! If BinFracFlag is false, fPM25aerodyn_wet = 1.0
+            sfcmass25aerodynRH35(i1:i2,j1:j2) = &
+                 sfcmass25aerodynRH35(i1:i2,j1:j2) + &
+                 aerosol(i1:i2,j1:j2,km,n) * rhoa(i1:i2,j1:j2,km) * &
+                 1.0 * growthfactor_ambient(i1:i2,j1:j2) * &
+                 (1.0 - waterfactor_excess(i1:i2,j1:j2))
+         end if
+         
+      end do
+      
+      ! Deallocate working arrays
+      deallocate(rEff_wet, rEff_dry, rEff_35rh)
+      deallocate(growthfactor_ambient, growthfactor_35rh)
+      deallocate(waterfactor_excess, rh_35)
+      deallocate(rLow_wet, rUp_wet)
+      
    endif
   
 !  Calculate the aerosol column loading
@@ -8014,7 +8168,7 @@ K_LOOP: do k = km, 1, -1
                                  so2sfcmass, so2colmass, &
                                  so4sfcmass, so4colmass, &
                                  exttau, stexttau,scatau, stscatau,so4mass, so4conc, extcoef, &
-                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, reff, rc )
+                                 scacoef, bckcoef, angstrom, fluxu, fluxv, sarea, snum, reff, so4sfcmass25RH35,rc )
 
 ! !USES:
    implicit NONE
@@ -8066,6 +8220,7 @@ K_LOOP: do k = km, 1, -1
    real, optional, dimension(:,:,:), intent(inout)  :: sarea      ! Sulfate surface area density [m2 m-3]
    real, optional, dimension(:,:,:), intent(inout)  :: snum       ! Sulfate number density [# m-2]
    real, optional, dimension(:,:,:), intent(inout)  :: reff       ! Sulfate effective radius [m]
+   real, optional, dimension(:,:), intent(inout)  :: so4sfcmass25RH35 ! sfc mass concentration kg/m3 (pm2.5 at 35% RH)
    integer, optional, intent(out)   :: rc         ! Error return code:
                                                   !  0 - all is well
                                                   !  1 -
@@ -8085,6 +8240,12 @@ K_LOOP: do k = km, 1, -1
    integer    :: ilam470, ilam870
    logical :: do_angstrom
    real :: rh_, gf, rwet, svol
+   real, parameter :: RH_THRESHOLD = 0.35  ! 35% RH threshold
+   real, parameter :: RHOW = 997.0         ! water density kg m-3
+   real, dimension(:,:,:), allocatable :: rEff_wet_sfc, rEff_dry_sfc, rEff_35rh_sfc
+   real, dimension(:,:), allocatable :: growthfactor_ambient_sfc, growthfactor_35rh_sfc
+   real, dimension(:,:), allocatable :: waterfactor_excess_sfc
+   real, dimension(:,:,:), allocatable :: rh_35_sfc
 
 
 !EOP
@@ -8334,6 +8495,74 @@ K_LOOP: do k = km, 1, -1
                          reff=reff, __RC__)
    endif
    
+!  Calculate PM2.5 surface mass at 35% RH (sulfate with excess water removed for RH>35%)
+!  Note: Sulfate particles do not swell larger than 2.5 microns, so all sulfate
+!  is PM2.5 and we don't need aerodynamic diameter or bin fraction calculations
+   if( present(so4sfcmass25RH35) ) then
+      
+      ! Allocate working arrays - need 3D arrays for mie%Query
+      allocate(rEff_wet_sfc(i1:i2,j1:j2,1), __STAT__)
+      allocate(rEff_dry_sfc(i1:i2,j1:j2,1), __STAT__)
+      allocate(rEff_35rh_sfc(i1:i2,j1:j2,1), __STAT__)
+      allocate(growthfactor_ambient_sfc(i1:i2,j1:j2), __STAT__)
+      allocate(growthfactor_35rh_sfc(i1:i2,j1:j2), __STAT__)
+      allocate(waterfactor_excess_sfc(i1:i2,j1:j2), __STAT__)
+      allocate(rh_35_sfc(i1:i2,j1:j2,1), __STAT__)
+      
+      ! Get wet effective radius at ambient RH (surface level only)
+      call mie%Query(550e-9, 1, &
+                SO4(i1:i2,j1:j2,km:km)*delp(i1:i2,j1:j2,km:km)/grav, &
+                rh(i1:i2,j1:j2,km:km), &
+                rEff=rEff_wet_sfc, __RC__)
+      
+      ! Get dry effective radius at 0% RH
+      rh_35_sfc(:,:,1) = 0.0
+      call mie%Query(550e-9, 1, &
+                SO4(i1:i2,j1:j2,km:km)*delp(i1:i2,j1:j2,km:km)/grav, &
+                rh_35_sfc, &
+                rEff=rEff_dry_sfc, __RC__)
+      
+      ! Get effective radius at 35% RH
+      rh_35_sfc(:,:,1) = RH_THRESHOLD
+      call mie%Query(550e-9, 1, &
+                SO4(i1:i2,j1:j2,km:km)*delp(i1:i2,j1:j2,km:km)/grav, &
+                rh_35_sfc, &
+                rEff=rEff_35rh_sfc, __RC__)
+      
+      ! Calculate hygroscopic growth factor at ambient RH (mass_wet/mass_dry)
+      ! Extract from 3D to 2D arrays
+      growthfactor_ambient_sfc(i1:i2,j1:j2) = 1.0 + &
+           (((rEff_wet_sfc(i1:i2,j1:j2,1) / rEff_dry_sfc(i1:i2,j1:j2,1))**3 - 1.0) * &
+           (RHOW / rhop))
+      
+      ! Calculate hygroscopic growth factor at 35% RH (mass_at_35rh/mass_dry)
+      growthfactor_35rh_sfc(i1:i2,j1:j2) = 1.0 + &
+           (((rEff_35rh_sfc(i1:i2,j1:j2,1) / rEff_dry_sfc(i1:i2,j1:j2,1))**3 - 1.0) * &
+           (RHOW / rhop))
+      
+      ! Calculate the fraction of EXCESS water (water above 35% RH)
+      where (rh(i1:i2,j1:j2,km) > RH_THRESHOLD)
+         waterfactor_excess_sfc(i1:i2,j1:j2) = &
+              (growthfactor_ambient_sfc(i1:i2,j1:j2) - growthfactor_35rh_sfc(i1:i2,j1:j2)) / &
+              growthfactor_ambient_sfc(i1:i2,j1:j2)
+      elsewhere
+         waterfactor_excess_sfc(i1:i2,j1:j2) = 0.0
+      end where
+      
+      ! Calculate surface mass concentration at 35% RH
+      so4sfcmass25RH35(i1:i2,j1:j2) = 0.
+      so4sfcmass25RH35(i1:i2,j1:j2) = &
+           SO4(i1:i2,j1:j2,km) * rhoa(i1:i2,j1:j2,km) * &
+           growthfactor_ambient_sfc(i1:i2,j1:j2) * &
+           (1.0 - waterfactor_excess_sfc(i1:i2,j1:j2))
+      
+      ! Deallocate working arrays
+      deallocate(rEff_wet_sfc, rEff_dry_sfc, rEff_35rh_sfc)
+      deallocate(growthfactor_ambient_sfc, growthfactor_35rh_sfc)
+      deallocate(waterfactor_excess_sfc, rh_35_sfc)
+      
+   endif
+   
    
 !  To implement if desired:
    if(present(snum)) then   
@@ -8382,7 +8611,7 @@ K_LOOP: do k = km, 1, -1
    real, dimension(:,:), intent(in) :: latRad   ! model grid lat [radians]
    real, dimension(:,:,:), intent(inout) :: dms  ! dimethyl sulfide [kg/kg]
    real, dimension(:,:,:), intent(inout) :: so2  ! sulfer dioxide [kg/kg]
-   real, dimension(:,:,:), intent(inout) :: so4  ! sulfate aerosol [kg/kg]
+   real, dimension(:,:,:), intent(inout) :: so4  ! sulfate sol [kg/kg]
    real, pointer, dimension(:,:,:), intent(inout) :: msa  ! methanesulphonic acid [kg/kg]
    integer, intent(in) :: nDMS, nSO2, nSO4, nMSA ! index position of sulfates
    real, dimension(:,:,:), intent(in) :: delp   ! pressure thickness [Pa]

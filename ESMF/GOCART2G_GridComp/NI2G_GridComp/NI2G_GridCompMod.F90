@@ -1067,9 +1067,9 @@ contains
                             wavelengths_vertint=self%wavelengths_vertint*1.0e-9, &
                             aerosol=aerosol, grav=MAPL_GRAV, tmpu=t, rhoa=airdens, rh=rh2, u=u, v=v, &
                             delp=delp, ple=ple, tropp=tropp,&
-                            sfcmass=NISMASS25, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, &
+                            sfcmass=NISMASS25, sfcmass25aerodynRH35=NISMASS25ARH35, colmass=NICMASS25, mass=NIMASS25, conc=NICONC25, &
                             exttau25=NIEXTT25, scatau25=NISCAT25, exttaufm=NIEXTTFM, scataufm=NISCATFM, &
-                            NO3nFlag=.true., __RC__)
+                            NO3nFlag=.true., __RC__) 
 !   Save local copy of HNO3 for first pass through run method regardless
 
    aerosol(:,:,:,1) = NO3an1

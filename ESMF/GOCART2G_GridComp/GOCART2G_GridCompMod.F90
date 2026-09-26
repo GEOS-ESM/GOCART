@@ -612,7 +612,7 @@ contains
     real, pointer, dimension(:,:,:,:) :: duscacoefrh20, duscacoefrh80
     real, pointer, dimension(:,:,:,:) :: dubckcoef
     real, pointer, dimension(:,:)   :: duangstr, dusmass,  &
-                                       dusmass25, dusmass25a
+                                       dusmass25, dusmass25a, dusmass25arh35
     real, pointer, dimension(:,:,:) :: ssexttau, ssstexttau, &
                                        ssscatau, ssstscatau, &
                                        ssextt25, ssscat25, &
@@ -622,7 +622,7 @@ contains
     real, pointer, dimension(:,:,:,:) :: ssscacoefrh20, ssscacoefrh80
     real, pointer, dimension(:,:,:,:) :: ssbckcoef
     real, pointer, dimension(:,:)   :: ssangstr, sssmass,  &
-                                       sssmass25, sssmass25a
+                                       sssmass25, sssmass25a, sssmass25arh35
     real, pointer, dimension(:,:,:) :: niexttau, nistexttau, &
                                        niscatau, nistscatau, &
                                        niextt25, niscat25, &
@@ -632,7 +632,7 @@ contains
     real, pointer, dimension(:,:,:,:) :: niscacoefrh20, niscacoefrh80
     real, pointer, dimension(:,:,:,:) :: nibckcoef
     real, pointer, dimension(:,:)   :: niangstr, nismass,  &
-                                       nismass25
+                                       nismass25, nismass25arh35
     real, pointer, dimension(:,:)   :: nh4smass
     real, pointer, dimension(:,:,:) :: suexttau, sustexttau, &
                                        suscatau, sustscatau
@@ -640,25 +640,25 @@ contains
     real, pointer, dimension(:,:,:,:) :: suextcoefrh20, suextcoefrh80
     real, pointer, dimension(:,:,:,:) :: suscacoefrh20, suscacoefrh80
     real, pointer, dimension(:,:,:,:) :: subckcoef
-    real, pointer, dimension(:,:)   :: suangstr, so4smass
+    real, pointer, dimension(:,:)   :: suangstr, so4smass, so4smassrh35
     real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau
     real, pointer, dimension(:,:,:,:) :: bcextcoef, bcscacoef
     real, pointer, dimension(:,:,:,:) :: bcextcoefrh20, bcextcoefrh80
     real, pointer, dimension(:,:,:,:) :: bcscacoefrh20, bcscacoefrh80
     real, pointer, dimension(:,:,:,:) :: bcbckcoef
-    real, pointer, dimension(:,:)   :: bcangstr, bcsmass
+    real, pointer, dimension(:,:)   :: bcangstr, bcsmass, bcsmass25arh35
     real, pointer, dimension(:,:,:) :: ocexttau, ocstexttau, ocscatau, ocstscatau
     real, pointer, dimension(:,:,:,:) :: ocextcoef, ocscacoef
     real, pointer, dimension(:,:,:,:) :: ocextcoefrh20, ocextcoefrh80
     real, pointer, dimension(:,:,:,:) :: ocscacoefrh20, ocscacoefrh80
     real, pointer, dimension(:,:,:,:) :: ocbckcoef
-    real, pointer, dimension(:,:)   :: ocangstr, ocsmass
+    real, pointer, dimension(:,:)   :: ocangstr, ocsmass, ocsmass25arh35
     real, pointer, dimension(:,:,:) :: brexttau, brstexttau, brscatau, brstscatau
     real, pointer, dimension(:,:,:,:) :: brextcoef, brscacoef
     real, pointer, dimension(:,:,:,:) :: brextcoefrh20, brextcoefrh80
     real, pointer, dimension(:,:,:,:) :: brscacoefrh20, brscacoefrh80
     real, pointer, dimension(:,:,:,:) :: brbckcoef
-    real, pointer, dimension(:,:)   :: brangstr, brsmass
+    real, pointer, dimension(:,:)   :: brangstr, brsmass, brsmass25arh35
     real, pointer, dimension(:,:,:) :: pso4
     real, allocatable               :: tau1(:,:), tau2(:,:)
     real, allocatable               :: backscat_mol(:,:,:)
@@ -742,6 +742,7 @@ contains
     if(associated(pm))        pm(:,:)        = 0.
     if(associated(pm25))      pm25(:,:)      = 0.
     if(associated(pm25a))     pm25a(:,:)     = 0.
+    if(associated(pm25arh35)) pm25arh35(:,:) = 0.
     if(associated(pm_rh35))   pm_rh35(:,:)   = 0.
     if(associated(pm25_rh35)) pm25_rh35(:,:) = 0.
     if(associated(pm_rh50))   pm_rh50(:,:)   = 0.
@@ -836,9 +837,11 @@ contains
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass,   'DUSMASS',   __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25, 'DUSMASS25', __RC__)
           call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25a, 'DUSMASS25A', __RC__)
+          call MAPL_GetPointer (gex(self%DU%instances(n)%id), dusmass25arh35, 'DUSMASS25ARH35', __RC__)
           if(associated(pm)        .and. associated(dusmass))   pm        = pm        + dusmass
           if(associated(pm25)      .and. associated(dusmass25)) pm25      = pm25      + dusmass25
           if(associated(pm25a)      .and. associated(dusmass25a)) pm25a   = pm25a     + dusmass25a
+          if(associated(pm25arh35)  .and. associated(dusmass25arh35)) pm25arh35 = pm25arh35 + dusmass25arh35
           if(associated(pm_rh35)   .and. associated(dusmass))   pm_rh35   = pm_rh35   + dusmass
           if(associated(pm25_rh35) .and. associated(dusmass25)) pm25_rh35 = pm25_rh35 + dusmass25
           if(associated(pm_rh50)   .and. associated(dusmass))   pm_rh50   = pm_rh50   + dusmass
@@ -896,9 +899,11 @@ contains
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass,   'SSSMASS',   __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass25, 'SSSMASS25', __RC__)
           call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass25a, 'SSSMASS25A', __RC__)
+          call MAPL_GetPointer (gex(self%SS%instances(n)%id), sssmass25arh35, 'SSSMASS25ARH35', __RC__)
           if(associated(pm)        .and. associated(sssmass))   pm        = pm        + sssmass
           if(associated(pm25)      .and. associated(sssmass25)) pm25      = pm25      + sssmass25
           if(associated(pm25a)     .and. associated(sssmass25a)) pm25a    = pm25a     + sssmass25a
+          if(associated(pm25arh35) .and. associated(sssmass25arh35)) pm25arh35 = pm25arh35  + sssmass25arh35
           if(associated(pm_rh35)   .and. associated(sssmass))   pm_rh35   = pm_rh35   + 1.86*sssmass
           if(associated(pm25_rh35) .and. associated(sssmass25)) pm25_rh35 = pm25_rh35 + 1.86*sssmass25
           if(associated(pm_rh50)   .and. associated(sssmass))   pm_rh50   = pm_rh50   + 2.42*sssmass
@@ -956,9 +961,11 @@ contains
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', __RC__)
           call MAPL_GetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   __RC__)
+          call MAPL_GetPointer (gex(self%NI%instances(n)%id), nismass25arh35,  'NISMASS25ARH35',   __RC__)
           if(associated(pm)        .and. associated(nismass)   .and. associated(nh4smass)) pm        = pm   + nismass   + nh4smass
           if(associated(pm25)      .and. associated(nismass25) .and. associated(nh4smass)) pm25      = pm25 + nismass25 + nh4smass
           if(associated(pm25a)      .and. associated(nismass25) .and. associated(nh4smass)) pm25a      = pm25a + nismass25 + nh4smass
+          if(associated(pm25arh35) .and. associated(nismass25arh35) .and. associated(nh4smass)) pm25arh35  = pm25arh35 + nismass25arh35 + nh4smass
           if(associated(pm_rh35)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh35   = pm_rh35   + 1.33*(nismass   + nh4smass)
           if(associated(pm25_rh35) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh35 = pm25_rh35 + 1.33*(nismass25 + nh4smass)
           if(associated(pm_rh50)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh50   = pm_rh50   + 1.51*(nismass   + nh4smass)
@@ -1018,10 +1025,12 @@ contains
           if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
           call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', __RC__)
+          call MAPL_GetPointer (gex(self%SU%instances(n)%id), so4smassrh35, 'SO4SMASSRH35', __RC__)
           if(associated(so4smass)) then
              if(associated(pm)       ) pm        = pm        + nifactor*so4smass
              if(associated(pm25)     ) pm25      = pm25      + nifactor*so4smass
              if(associated(pm25a)    ) pm25a     = pm25a     + nifactor*so4smass
+             if(associated(pm25arh35)) pm25arh35 = pm25arh35 + nifactor*so4smassrh35
              if(associated(pm_rh35)  ) pm_rh35   = pm_rh35   + 1.33*nifactor*so4smass
              if(associated(pm25_rh35)) pm25_rh35 = pm25_rh35 + 1.33*nifactor*so4smass
              if(associated(pm_rh50)  ) pm_rh50   = pm_rh50   + 1.51*nifactor*so4smass
@@ -1077,9 +1086,11 @@ contains
           end do
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), bcsmass25arh35, 'CA.bcSMASS25ARH35', __RC__)
           if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
           if(associated(pm25)      .and. associated(bcsmass)) pm25      = pm25      + bcsmass
           if(associated(pm25a)     .and. associated(bcsmass)) pm25a     = pm25a     + bcsmass
+          if(associated(pm25arh35) .and. associated(bcsmass25arh35)) pm25arh35 = pm25arh35     + bcsmass25arh35
           if(associated(pm_rh35)   .and. associated(bcsmass)) pm_rh35   = pm_rh35   + bcsmass
           if(associated(pm25_rh35) .and. associated(bcsmass)) pm25_rh35 = pm25_rh35 + bcsmass
           if(associated(pm_rh50)   .and. associated(bcsmass)) pm_rh50   = pm_rh50   + bcsmass
@@ -1128,9 +1139,11 @@ contains
           end do
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), ocsmass25arh35, 'CA.ocSMASS25ARH35', __RC__)
           if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
           if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
-          if(associated(pm25a)      .and. associated(ocsmass)) pm25a    = pm25a     + ocsmass   
+          if(associated(pm25a)      .and. associated(ocsmass)) pm25a    = pm25a     + ocsmass
+          if(associated(pm25arh35)      .and. associated(ocsmass25arh35)) pm25arh35    = pm25arh35     + ocsmass25arh35
           if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be revisited: OCpho + 1.16 OCphi
           if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  !
           if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*ocsmass  ! needs to be revisited: OCpho + 1.24 OCphi
@@ -1179,9 +1192,11 @@ contains
           end do
 
           call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', __RC__)
+          call MAPL_GetPointer (gex(self%CA%instances(n)%id), brsmass25arh35, 'CA.brSMASS25ARH35', __RC__)
           if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
           if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
           if(associated(pm25a)      .and. associated(brsmass)) pm25a    = pm25a     + brsmass
+          if(associated(pm25arh35)  .and. associated(brsmass25arh35)) pm25arh35    = pm25arh35     + brsmass25arh35
           if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be revisited: OCpho + 1.16 OCphi
           if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  !
           if(associated(pm_rh50)   .and. associated(brsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be revisited: OCpho + 1.24 OCphi
