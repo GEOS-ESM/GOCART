@@ -1506,7 +1506,7 @@ end function DarmenovaDragPartition
    real, pointer, dimension(:,:)   :: hsurf
    real(kind=DP), dimension(:,:), allocatable  :: cmass_before, cmass_after
    real, allocatable    :: dz(:,:,:)
-   real, dimension(:,:,:), allocatable  :: radius, rhop, qa
+   real, dimension(:,:,:), allocatable  :: radius, rhop, qa, rUp
    real, dimension(:,:,:), allocatable  :: vsettle   ! fall speed [m s-1]
    real ::  ONE_OVER_G
    integer :: status
@@ -1523,7 +1523,7 @@ end function DarmenovaDragPartition
 
    hsurf => hghte(i1:i2,j1:j2,km)
 
-   allocate(dz(i2,j2,km), radius(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km), source=0.0)
+   allocate(dz(i2,j2,km), radius(i2,j2,km), rUp(i2,j2,km), rhop(i2,j2,km), vsettle(i2,j2,km), qa(i2,j2,km), source=0.0)
    allocate(cmass_before(i2,j2), cmass_after(i2,j2), source=0.0_DP)
 
    qa = int_qa
@@ -1559,7 +1559,7 @@ end function DarmenovaDragPartition
 ! Find radius and density of the wet particle
     call mie%Query(550e-9,bin,   &
                          qa*delp/grav, &
-                         rh, reff=radius, rLow=rLow, rhop=rhop, __RC__)
+                         rh, reff=radius, rUp=rUp, rhop=rhop, __RC__)
 !   Settling velocity of the wet particle
     do k = klid, km
        do j = j1, j2
@@ -1572,7 +1572,7 @@ end function DarmenovaDragPartition
 
 ! Maring 2003 (https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2002JD002536) indicates that a correction is needed for dust particles with a diameter of 7.3 microns
     if(present(correctionMaring)) then
-       if (correctionMaring) .and. rUp(i,j,k)*1e6 >= 3.65 then
+       if (correctionMaring .and. rUp(1,1,1)*1e6 >= 3.65) then
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
