@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated version of volcanic sulfur emissions for AMIP configuration to v202601
 - Update aerosol optics bands files to default to RRTMGP bands, rather than RRTMG (as GEOSgcm v12 has switched to RRTMGP)
   - NOTE: This means users needing RRTMG bands will need to update at run time. See https://github.com/GEOS-ESM/GEOSgcm_App/pull/878 for changes needed at run-time for GEOSgcm
+- fraction of PM2.5 bin calculation to use radius from optics file instead of RC file
+- Application of the Maring correction to only bins 4 and 5 for dust
 
 ### Fixed
 
@@ -27,9 +29,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Initialize `eCO_bioburn_` to `0.0` to prevent use of uninitialized data when `diurnal_bb` is false
   - Guard `DEALLOCATE` of `ier` with an `ALLOCATED` check
   - Add local `ios` variable in `CO_Emission` to prevent host-association aliasing under optimization
+- nsubsteps bug in the UFS Setting Solver
 
 ### Added
 - setZeroKlid for non-radiatively active tracers in Run0
+- diagnostics for PM2.5 using an aerodynamic diameter and RH=35%
+- diagnostics for fine mode vertical profile of mixing rations for dust and sea salt
+- ability to use rUp and rLow from optics files through Mie Query
+
 ## [v2.6.6] - 2026-08-26
 
 ### Fixed
