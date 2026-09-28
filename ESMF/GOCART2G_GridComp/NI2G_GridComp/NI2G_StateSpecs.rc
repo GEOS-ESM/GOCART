@@ -93,6 +93,7 @@ category: EXPORT
   NH4SMASS      | kg m-3       | xy    | N     |                                | Ammonium Surface Mass Concentration
   NISMASS       | kg m-3       | xy    | N     |                                | Nitrate Surface Mass Concentration
   NISMASS25     | kg m-3       | xy    | N     |                                | Nitrate Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
+  NISMASS25ARH35  | kg m-3       | xy    | N     |                                | Nitrate Surface Mass Concentration of Particulate Matter < aerodynamic 2.5 microns (PM2.5) at RH=35% 
   HNO3CMASS     | kg m-3       | xy    | N     |                                | Nitric Acid Column Mass Density
   NH3CMASS      | kg m-3       | xy    | N     |                                | Ammonia Column Mass Density
   NH4CMASS      | kg m-3       | xy    | N     |                                | Ammonium Column Mass Density

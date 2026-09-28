@@ -11,6 +11,8 @@ radius_lower: 0.1 1.0 1.8 3.0 6.0
 
 radius_upper: 1.0 1.8 3.0 6.0 10.0
 
+shape_factor: 1.4
+
 # units [kg/m-3]
 particle_density: 2500. 2650. 2650. 2650. 2650.
 

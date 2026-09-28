@@ -66,6 +66,7 @@ module DU2G_GridCompMod
        real                   :: Ch_DU_res(NHRES) ! resolutions used for Ch_DU
        real                   :: Ch_DU          ! dust emission tuning coefficient [kg s2 m-5].
        logical                :: maringFlag=.false.  ! maring settling velocity correction
+       real                   :: shape_factor ! shape factor used to convert to aerodynamic diameter
        integer                :: day_save = -1
        character(len=:), allocatable :: emission_scheme     ! emission scheme selector
        integer       :: clayFlag       ! clay and silt term in K14
@@ -164,6 +165,7 @@ contains
     call ESMF_ConfigGetAttribute (cfg, self%Ch_DU_res,  label='Ch_DU:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rlow,       label='radius_lower:', __RC__)
     call ESMF_ConfigGetAttribute (cfg, self%rup,        label='radius_upper:', __RC__)
+    call ESMF_ConfigGetAttribute (cfg, self%shape_factor, label='shape_factor:', __RC__)
 
     ! Choose Emission Scheme
     !-----------------------
@@ -378,7 +380,7 @@ contains
     type (ESMF_Clock),    intent(inout) :: clock  ! The clock
     integer, optional,    intent(  out) :: RC     ! Error code
 
-! !DESCRIPTION: This initializes DU's Grid Component. It primaryily fills
+! !DESCRIPTION: This initializes DU's Grid Component. It primarily fills
 !               GOCART's AERO states with its dust fields.
 
 ! !REVISION HISTORY:
@@ -1114,15 +1116,15 @@ contains
                             self%wavelengths_vertint*1.0e-9, DU, MAPL_GRAV, t, airdens, &
                             rh2, u, v, delp, ple,tropp, &
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
-                            DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
+                            DUSMASS25, DUSMASS25A, DUSMASS25ARH35, DUCMASS25, DUMASS25, DUMASSFM, DUEXTT25, DUSCAT25, &
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
-                            DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
+                            DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., BinFracFlag=.true., shapefactor=self%shape_factor, __RC__ )
 
-
+ 
    i1 = lbound(RH2, 1); i2 = ubound(RH2, 1)
    j1 = lbound(RH2, 2); j2 = ubound(RH2, 2)
    km = ubound(RH2, 3)
-
+   
    allocate(RH20(i1:i2,j1:j2,km), __STAT__)
    allocate(RH80(i1:i2,j1:j2,km), __STAT__)
 
@@ -1356,16 +1358,16 @@ contains
     integer,                       intent(in )   :: band             ! channel
     real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
     real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
-    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: basym_s(size(ext_s,1),size(ext_s,2),size(ext_s,3))
+    real(kind=DP), intent(  out) :: bext_s (size(rh,1),size(rh,2),size(rh,3))
+    real(kind=DP), intent(  out) :: bssa_s (size(rh,1),size(rh,2),size(rh,3))
+    real(kind=DP), intent(  out) :: basym_s(size(rh,1),size(rh,2),size(rh,3))
     integer,                       intent(  out) :: rc
 
     ! local
     integer                           :: l
-    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
-    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-    real                              :: gasym(size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! asymmetry parameter
+    real                              :: bext (size(rh,1),size(rh,2),size(rh,3))  ! extinction
+    real                              :: bssa (size(rh,1),size(rh,2),size(rh,3))  ! SSA
+    real                              :: gasym(size(rh,1),size(rh,2),size(rh,3))  ! asymmetry parameter
 
     __Iam__('DU2G::aerosol_optics::mie_')
 
@@ -1394,16 +1396,17 @@ contains
     real,                          intent(in )   :: wavelength       ! wavelength in nm
     real,                          intent(in )   :: q(:,:,:,:)       ! aerosol mass mixing ratio, kg kg-1
     real,                          intent(in )   :: rh(:,:,:)        ! relative humidity
-    real(kind=DP), intent(  out) :: bext_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bssa_s (size(ext_s,1),size(ext_s,2),size(ext_s,3))
-    real(kind=DP), intent(  out) :: bpmom_s(size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4))
+    real(kind=DP), intent(  out) :: bext_s (:,:,:)
+    real(kind=DP), intent(  out) :: bssa_s (:,:,:)
+    real(kind=DP), intent(  out) :: bpmom_s(:,:,:,:)
     integer,                       intent(  out) :: rc
 
     ! local
     integer                           :: l, m
-    real                              :: bext (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! extinction
-    real                              :: bssa (size(ext_s,1),size(ext_s,2),size(ext_s,3))  ! SSA
-    real                              :: pmom (size(ext_s,1),size(ext_s,2),size(ext_s,3),size(pmom_s,4),6)
+    real                              :: bext (size(rh,1),size(rh,2),size(rh,3))  ! extinction
+    real                              :: bssa (size(rh,1),size(rh,2),size(rh,3))  ! SSA
+    real                              :: pmom (size(rh,1),size(rh,2),size(rh,3),size(bpmom_s,4),6)
+
 
     __Iam__('DU2G::aerosol_optics::miephot_')
 

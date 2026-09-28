@@ -81,6 +81,7 @@ category: EXPORT
  SO2SMASS      | kg m-3     | xy   | N    |                                | SO2 Surface Mass Concentration
  SO2CMASS      | kg m-2     | xy   | N    |                                | SO2 Column Mass Density
  SO4SMASS      | kg m-3     | xy   | N    |                                | SO4 Surface Mass Concentration
+ SO4SMASSRH35  | kg m-3     | xy   | N    |                                | SO4 Surface Mass Concentration  at RH=35%
  SO4CMASS      | kg m-2     | xy   | N    |                                | SO4 Column Mass Density
  DMSSMASS      | kg m-3     | xy   | N    |                                | DMS Surface Mass Concentration
  DMSCMASS      | kg m-2     | xy   | N    |                                | DMS Column Mass Density
