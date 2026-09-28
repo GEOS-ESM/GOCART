@@ -4453,8 +4453,6 @@ end function DarmenovaDragPartition
    integer :: i1 =1, i2, j1=1, j2
    integer :: ilam470, ilam870
    real, allocatable, dimension(:,:,:) :: tau, ssa, bck, area, tarea, pref, pref0
-!   real :: fPMfm(nbins)  ! fraction of bin with particles diameter < 1.0 um
-!   real :: fPM25(nbins)  ! fraction of bin with particles diameter < 2.5 um
    real, dimension(:), allocatable :: fPMfm  ! fraction of bin with particles diameter < 1.0 um
    real, dimension(:), allocatable :: fPM25  ! fraction of bin with particles geometric diameter < 2.5 um
    real, dimension(:), allocatable :: fPM25aerodyn  ! fraction of bin with particles aerodynamic diameter < 2.5 um   
@@ -4463,7 +4461,7 @@ end function DarmenovaDragPartition
    logical   :: NO3nFlag_ !local version of the input
    logical   :: BinFracFlag_ !local version of the input
    real, dimension(:), allocatable :: local_rUp, local_rLow, local_rhop, rUpaerodyn, rLowaerodyn
-   real, dimension(1) :: RH0, temp_rUp, temp_rLow, temp_rhop
+   real, dimension(1) :: RH0, temp_rUp, temp_rLow, temp_rhop, dummy_mass
    real, parameter :: RH_THRESHOLD = 0.35  ! 35% RH threshold
    real, parameter :: RHOW = 997.0         ! water density kg m-3
    real, dimension(:,:,:), allocatable :: rEff_wet, rEff_dry, rEff_35rh
@@ -4526,37 +4524,51 @@ end function DarmenovaDragPartition
 
 
 !  Get rUp and rLow if needed
-   if( BinFracFlag_ ) then
-      RH0(1)=0.0
+   RH0(1)=0.0
+   dummy_mass(1)=1.0e-12
       
-      ! Query into the specific bin index of our local arrays
-      do n = nbegin, nbins
-         call mie%Query(550e-9, n,   &
-                   aerosol(1:1,1,1,n)*delp(1:1,1,1)/grav, &
-                   RH0, rUp=temp_rUp, rLow=temp_rLow, rhop=temp_rhop, __RC__)   
+   ! Query into the specific bin index of our local arrays
+   do n = nbegin, nbins
+      temp_rUp(1) = 1.0
+      temp_rLow(1) = 0.0
+      temp_rhop(1) = 1000.0
+      call mie%Query(550e-9, n,   &
+                dummy_mass, &
+                RH0, rUp=temp_rUp, rLow=temp_rLow, rhop=temp_rhop, __RC__)   
          
-         local_rUp(n)  = temp_rUp(1)
-         local_rLow(n) = temp_rLow(1)
-         local_rhop(n) = temp_rhop(1)
-      end do
+      local_rUp(n)  = temp_rUp(1)
+      local_rLow(n) = temp_rLow(1)
+      local_rhop(n) = temp_rhop(1)
+   end do
 
-      
-!  Compute aerodynamic diameter
-      if (present(shapefactor)) then
-         rUpaerodyn = local_rUp * SQRT(local_rhop*0.001/shapefactor)
-         rLowaerodyn = local_rLow * SQRT(local_rhop*0.001/shapefactor)
-      else
-         ! Fallback if shapefactor isn't passed
-         rUpaerodyn = local_rUp
-         rLowaerodyn = local_rLow
-      end if    
-
-
-!  Compute the fine mode (sub-micron) and PM2.5 bin-wise fractions
-!  NOTE: We pass our local arrays into the fraction subroutine instead of the intent(in) arrays
-! units for radius must be converted to microns
+   if( BinFracFlag_ ) then      
+      ! Compute the fine mode (sub-micron) and PM2.5 bin-wise fractions if needed
+      ! This is not needed for species with dry diameters smaller than the threshold
+      ! because the species PM2.5 diag is not written out and *SMASS is used for the
+      ! total PM2.5 calculation
+      ! units for radius must be converted to microns
       call Aero_Binwise_PM_Fractions(fPMfm, 0.50, local_rLow * 1e6, local_rUp * 1e6, nbins)   ! 2*r < 1.0 um
       call Aero_Binwise_PM_Fractions(fPM25, 1.25, local_rLow * 1e6, local_rUp * 1e6, nbins)   ! 2*r < 2.5 um
+      
+      ! Compute aerodynamic diameter for each bin
+      do n = nbegin, nbins
+         if (present(shapefactor)) then
+            ! Ensure shapefactor is strictly > 0.0 to prevent Div by Zero
+            if (shapefactor > 1.0e-12 .and. local_rhop(n) > 1.0e-12) then 
+               rUpaerodyn(n) = local_rUp(n) * SQRT(local_rhop(n)*0.001/shapefactor)
+               rLowaerodyn(n) = local_rLow(n) * SQRT(local_rhop(n)*0.001/shapefactor)
+            else
+               rUpaerodyn(n) = local_rUp(n)
+               rLowaerodyn(n) = local_rLow(n)
+            end if
+         else
+            ! Fallback if shapefactor isn't passed
+            rUpaerodyn(n) = local_rUp(n)
+            rLowaerodyn(n) = local_rLow(n)
+         end if
+      end do
+      
+      ! Now calculate PM2.5 aerodynamic fractions with the computed aerodynamic radii
       call Aero_Binwise_PM_Fractions(fPM25aerodyn, 1.25, rLowaerodyn * 1e6, rUpaerodyn * 1e6, nbins)
    end if
 
@@ -4573,13 +4585,22 @@ end function DarmenovaDragPartition
               + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)
       end do
    endif
+   
+   
+! Calculate PM2.5 surface mass concentration (geometric diameter)
    if( present(sfcmass25) ) then
       sfcmass25(i1:i2,j1:j2) = 0.
-      sfcmass25aerodyn(i1:i2,j1:j2) = 0.
       do n = nbegin, nbins
          sfcmass25(i1:i2,j1:j2) &
               =   sfcmass25(i1:i2,j1:j2) &
               + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)*fPM25(n)
+      end do
+   endif
+   
+! Calculate PM2.5 surface mass concentration (aerodynamic diameter)
+   if( present(sfcmass25aerodyn) ) then
+      sfcmass25aerodyn(i1:i2,j1:j2) = 0.
+      do n = nbegin, nbins
          sfcmass25aerodyn(i1:i2,j1:j2) &
               =   sfcmass25aerodyn(i1:i2,j1:j2) &
               + aerosol(i1:i2,j1:j2,km,n)*rhoa(i1:i2,j1:j2,km)*fPM25aerodyn(n)
@@ -4588,7 +4609,7 @@ end function DarmenovaDragPartition
    
 !  Calculate PM2.5 aerodynamic diameter at 35% RH (water removed for RH>35%)
    if( present(sfcmass25aerodynRH35) ) then
-      
+      print *, 'working on sfcmass25aerodynRH35, allocating vars'
       ! Allocate working arrays - need 3D arrays for mie%Query
       allocate(rEff_wet(i1:i2,j1:j2,1), __STAT__)
       allocate(rEff_dry(i1:i2,j1:j2,1), __STAT__)
@@ -4605,9 +4626,15 @@ end function DarmenovaDragPartition
       ! Number of spatial points
       npts = (i2-i1+1) * (j2-j1+1)
       
+      print *, 'vars allocated, moving on to mie query'
       do n = nbegin, nbins
          ! Get particle density
          rhod_local = local_rhop(n)  ! from earlier calculation
+         
+         ! Default initializations to prevent NaNs if mie%Query bypasses population
+         rEff_wet = 1.0
+         rEff_dry = 1.0
+         rEff_35rh = 1.0
          
          ! Get wet effective radius at ambient RH
          call mie%Query(550e-9, n, &
@@ -4627,69 +4654,82 @@ end function DarmenovaDragPartition
                    rh_35, rEff=rEff_35rh, __RC__)
          
          ! Calculate hygroscopic growth factor at ambient RH (mass_wet/mass_dry)
-         ! Extract from 3D to 2D arrays
-         growthfactor_ambient(i1:i2,j1:j2) = 1.0 + &
-              (((rEff_wet(i1:i2,j1:j2,1) / rEff_dry(i1:i2,j1:j2,1))**3 - 1.0) * &
-              (RHOW / rhod_local))
-         
-         ! Calculate hygroscopic growth factor at 35% RH (mass_at_35rh/mass_dry)
-         growthfactor_35rh(i1:i2,j1:j2) = 1.0 + &
-              (((rEff_35rh(i1:i2,j1:j2,1) / rEff_dry(i1:i2,j1:j2,1))**3 - 1.0) * &
-              (RHOW / rhod_local))
+         ! Safely check against zero denominators
+         do j = j1, j2
+            do i = i1, i2
+               if (rEff_dry(i,j,1) > 1.0e-12 .and. rhod_local > 1.0e-12) then
+                  growthfactor_ambient(i,j) = 1.0 + &
+                       (((rEff_wet(i,j,1) / rEff_dry(i,j,1))**3 - 1.0) * &
+                       (RHOW / rhod_local))
+                  growthfactor_35rh(i,j) = 1.0 + &
+                       (((rEff_35rh(i,j,1) / rEff_dry(i,j,1))**3 - 1.0) * &
+                       (RHOW / rhod_local))
+               else
+                  growthfactor_ambient(i,j) = 1.0
+                  growthfactor_35rh(i,j) = 1.0
+               end if
+            end do
+         end do
          
          ! Calculate the fraction of EXCESS water (water above 35% RH)
          ! This is: (mass_ambient - mass_35rh) / mass_ambient
-         where (rh(i1:i2,j1:j2,km) > RH_THRESHOLD)
-            waterfactor_excess(i1:i2,j1:j2) = &
-                 (growthfactor_ambient(i1:i2,j1:j2) - growthfactor_35rh(i1:i2,j1:j2)) / &
-                 growthfactor_ambient(i1:i2,j1:j2)
-         elsewhere
-            ! If RH <= 35%, no water removal
-            waterfactor_excess(i1:i2,j1:j2) = 0.0
-         end where
+         do j = j1, j2
+            do i = i1, i2
+               if (rh(i,j,km) > RH_THRESHOLD .and. growthfactor_ambient(i,j) > 1.0e-12) then
+                  waterfactor_excess(i,j) = &
+                       (growthfactor_ambient(i,j) - growthfactor_35rh(i,j)) / &
+                       growthfactor_ambient(i,j)
+                  ! Ensure value remains bounded >= 0
+                  waterfactor_excess(i,j) = max(0.0, waterfactor_excess(i,j))
+               else
+                  waterfactor_excess(i,j) = 0.0
+               end if
+            end do
+         end do
          
          ! Calculate fPM25 for aerodynamic diameter at ambient humidity
          if( BinFracFlag_ ) then
+            ! Seed rUp/rLow incase mie%Query bypasses them
+            rUp_wet = 1.0
+            rLow_wet = 0.0
+             
             ! Get wet bin boundaries at ambient RH
             call mie%Query(550e-9, n, &
                       aerosol(i1:i2,j1:j2,km:km,n)*delp(i1:i2,j1:j2,km:km)/grav, &
                       rh(i1:i2,j1:j2,km:km), rUp=rUp_wet, rLow=rLow_wet, __RC__)
             
-            ! Allocate arrays for aerodynamic radii (flattened spatial dimensions)
+            ! Allocate arrays for aerodynamic radii
             allocate(rLow_wet_aerodyn(npts), __STAT__)
             allocate(rUp_wet_aerodyn(npts), __STAT__)
             allocate(fPM25aerodyn_wet_1d(npts), __STAT__)
             
+            rLow_wet_aerodyn = 0.0
+            rUp_wet_aerodyn = 1.0
+            fPM25aerodyn_wet_1d = 0.0
+            
             ! Calculate wet aerodynamic radii
-            ! Convert from geometric to aerodynamic using density and shape factor
-            if (present(shapefactor)) then
-               ! rLow_wet and rUp_wet are in meters, convert to microns and then to aerodynamic
-               ! Aerodynamic radius = geometric radius * sqrt(rhop / (shapefactor * 1000))
-               ! where rhop is in kg/m3 and we divide by 1000 to get g/cm3
-               ij = 0
-               do j = j1, j2
-                  do i = i1, i2
-                     ij = ij + 1
-                     rLow_wet_aerodyn(ij) = rLow_wet(i,j,1) * 1.0e6 * &
-                                           SQRT(rhod_local * 0.001 / shapefactor)
-                     rUp_wet_aerodyn(ij)  = rUp_wet(i,j,1) * 1.0e6 * &
-                                           SQRT(rhod_local * 0.001 / shapefactor)
-                  end do
-               end do
-            else
-               ! Fallback if shapefactor isn't passed - use geometric diameter
-               ij = 0
-               do j = j1, j2
-                  do i = i1, i2
-                     ij = ij + 1
+            ij = 0
+            do j = j1, j2
+               do i = i1, i2
+                  ij = ij + 1
+                  if (present(shapefactor)) then
+                     if (shapefactor > 1.0e-12 .and. rhod_local > 1.0e-12) then
+                        rLow_wet_aerodyn(ij) = rLow_wet(i,j,1) * 1.0e6 * &
+                                              SQRT(rhod_local * 0.001 / shapefactor)
+                        rUp_wet_aerodyn(ij)  = rUp_wet(i,j,1) * 1.0e6 * &
+                                              SQRT(rhod_local * 0.001 / shapefactor)
+                     else
+                        rLow_wet_aerodyn(ij) = rLow_wet(i,j,1) * 1.0e6
+                        rUp_wet_aerodyn(ij)  = rUp_wet(i,j,1) * 1.0e6
+                     end if
+                  else
                      rLow_wet_aerodyn(ij) = rLow_wet(i,j,1) * 1.0e6
                      rUp_wet_aerodyn(ij)  = rUp_wet(i,j,1) * 1.0e6
-                  end do
+                  end if
                end do
-            end if
+            end do
             
             ! Call Aero_Binwise_PM_Fractions to calculate PM2.5 fraction
-            ! rPM = 1.25 microns (radius) for 2.5 micron diameter
             call Aero_Binwise_PM_Fractions(fPM25aerodyn_wet_1d, 1.25, &
                                           rLow_wet_aerodyn, rUp_wet_aerodyn, npts)
             
@@ -4710,20 +4750,21 @@ end function DarmenovaDragPartition
             
          else
             ! If BinFracFlag is false, fPM25aerodyn_wet = 1.0
-            sfcmass25aerodynRH35(i1:i2,j1:j2) = &
-                 sfcmass25aerodynRH35(i1:i2,j1:j2) + &
-                 aerosol(i1:i2,j1:j2,km,n) * rhoa(i1:i2,j1:j2,km) * &
-                 1.0 * growthfactor_ambient(i1:i2,j1:j2) * &
-                 (1.0 - waterfactor_excess(i1:i2,j1:j2))
+            do j = j1, j2
+               do i = i1, i2
+                  sfcmass25aerodynRH35(i,j) = &
+                       sfcmass25aerodynRH35(i,j) + &
+                       aerosol(i,j,km,n) * rhoa(i,j,km) * &
+                       1.0 * growthfactor_ambient(i,j) * &
+                       (1.0 - waterfactor_excess(i,j))
+               end do
+            end do
          end if
          
       end do
       
       ! Deallocate working arrays
-      deallocate(rEff_wet, rEff_dry, rEff_35rh)
-      deallocate(growthfactor_ambient, growthfactor_35rh)
-      deallocate(waterfactor_excess, rh_35)
-      deallocate(rLow_wet, rUp_wet)
+      deallocate(rEff_wet, rEff_dry, rEff_35rh, growthfactor_ambient, growthfactor_35rh, waterfactor_excess, rh_35, rLow_wet, rUp_wet)
       
    endif
   
@@ -4998,6 +5039,7 @@ end function DarmenovaDragPartition
 
    __RETURN__(__SUCCESS__)
    end subroutine Aero_Compute_Diags
+   
 !====================================================================
 
 !BOP
