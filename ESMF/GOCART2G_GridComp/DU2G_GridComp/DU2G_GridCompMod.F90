@@ -1114,7 +1114,7 @@ contains
                             self%wavelengths_vertint*1.0e-9, DU, MAPL_GRAV, t, airdens, &
                             rh2, u, v, delp, ple,tropp, &
                             DUSMASS, DUCMASS, DUMASS, DUEXTTAU, DUSTEXTTAU, DUSCATAU,DUSTSCATAU, &
-                            DUSMASS25, DUCMASS25, DUMASS25, DUEXTT25, DUSCAT25, &
+                            DUSMASS25, DUCMASS25, DUMASS25, DUMASSFM, DUEXTT25, DUSCAT25, &
                             DUFLUXU, DUFLUXV, DUCONC, DUEXTCOEF, DUSCACOEF, &
                             DUBCKCOEF,DUEXTTFM, DUSCATFM, DUANGSTR, DUAERIDX, NO3nFlag=.false., __RC__ )
 
