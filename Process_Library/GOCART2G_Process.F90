@@ -4372,7 +4372,7 @@ end function DarmenovaDragPartition
                                   wavelengths_profile, wavelengths_vertint, aerosol, &
                                   grav, tmpu, rhoa, rh, u, v, delp, ple,tropp, &
                                   sfcmass, colmass, mass, exttau, stexttau, scatau, stscatau,&
-                                  sfcmass25, colmass25, mass25, exttau25, scatau25, &
+                                  sfcmass25, colmass25, mass25, mass1, exttau25, scatau25, &
                                   fluxu, fluxv, conc, extcoef, scacoef, bckcoef,&
                                   exttaufm, scataufm, angstrom, aerindx, NO3nFlag, &
                                   sarea, reff, rc )
@@ -4415,6 +4415,7 @@ end function DarmenovaDragPartition
    real, optional, dimension(:,:), intent(inout)   :: sfcmass25 ! sfc mass concentration kg/m3 (pm2.5)
    real, optional, dimension(:,:), intent(inout)   :: colmass25 ! col mass density kg/m2 (pm2.5)
    real, optional, dimension(:,:,:), intent(inout) :: mass25    ! 3d mass mixing ratio kg/kg (pm2.5)
+   real, optional, dimension(:,:,:), intent(inout) :: mass1    ! 3d mass mixing ratio kg/kg (pm1)
    real, optional, dimension(:,:,:), intent(inout)   :: exttau25  ! ext. AOT at 550 nm (pm2.5)
    real, optional, dimension(:,:,:), intent(inout)   :: scatau25  ! sct. AOT at 550 nm (pm2.5)
    real, optional, dimension(:,:),  intent(inout)  :: aerindx   ! TOMS UV AI
@@ -4571,6 +4572,14 @@ end function DarmenovaDragPartition
        mass25(i1:i2,j1:j2,1:km) &
          =   mass25(i1:i2,j1:j2,1:km) &
            + aerosol(i1:i2,j1:j2,1:km,n)*fPM25(n)
+      end do
+   endif
+   if( present(mass1) ) then
+      mass1(i1:i2,j1:j2,1:km) = 0.
+      do n = nbegin, nbins
+       mass1(i1:i2,j1:j2,1:km) &
+         =   mass1(i1:i2,j1:j2,1:km) &
+           + aerosol(i1:i2,j1:j2,1:km,n)*fPMfm(n)
       end do
    endif
 

@@ -940,7 +940,7 @@ contains
                              self%rup, self%wavelengths_profile*1.0e-9, &
                              self%wavelengths_vertint*1.0e-9, SS, MAPL_GRAV, t, airdens,rh2, u, v, &
                              delp, ple, tropp,SSSMASS, SSCMASS, SSMASS, SSEXTTAU,SSSTEXTTAU, SSSCATAU,SSSTSCATAU, &
-                             SSSMASS25, SSCMASS25, SSMASS25, SSEXTT25, SSSCAT25, &
+                             SSSMASS25, SSCMASS25, SSMASS25, SSMASSFM, SSEXTT25, SSSCAT25, &
                              SSFLUXU, SSFLUXV, SSCONC, SSEXTCOEF, SSSCACOEF, SSBCKCOEF,    &
                              SSEXTTFM, SSSCATFM ,SSANGSTR, SSAERIDX, NO3nFlag=.false.,__RC__)
 
