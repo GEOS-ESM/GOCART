@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Introduce new function to add fields to callback state and reference field when retrieving by long name, attribute logic was unneccessary
+
 ### Fixed
 
 ### Added
