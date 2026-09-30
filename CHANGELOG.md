@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Introduce new function to add fields to callback state and reference field when retrieving by long
+  name, attribute logic was unnecessary
 - Changed the Process_Library GOCART_MieMod and MieQuery files to handle dimension
   reordered aerosol optical property LUTs.
 - Changed pointer in XX2G_instance rc files to v2.x.x aerosol optical property
