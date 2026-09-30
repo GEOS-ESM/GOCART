@@ -1572,8 +1572,7 @@ end function DarmenovaDragPartition
 
 ! Maring 2003 (https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2002JD002536) indicates that a correction is needed for dust particles with a diameter of 7.3 microns
     if(present(correctionMaring)) then
-       !if (correctionMaring .and. rUp(1,1,1)*1e6 >= 3.65) then
-       if (correctionMaring) then
+       if (correctionMaring .and. rUp(1,1,1)*1e6 >= 3.65) then
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
