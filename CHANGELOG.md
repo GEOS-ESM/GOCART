@@ -11,11 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Introduce new function to add fields to callback state and reference field when retrieving by long name, attribute logic was unneccessary
-
 ### Fixed
 
 ### Added
+
+## [v2.6.7] - 2026-09-30
+
+### Changed
+
+- Introduce new function to add fields to callback state and reference field when retrieving by long name, attribute logic was unneccessary
+- Update `components.yaml` to match that of GEOSgcm `main` as of 2026-09-30
+  - ESMA_env v5.25.2
+  - ESMA_cmake v4.49.1
+  - ecbuild geos/v3.15.2
+  - GMAO_Shared v3.0.2
+  - MAPL v2.71.0
+- Update CI to latest workflows and add `ifx`
 
 ## [v2.6.6] - 2026-08-26
 
