@@ -13,7 +13,7 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/develop' }}
 
 jobs:
   build_gcm:
@@ -31,7 +31,7 @@ jobs:
   build_gocart:
     strategy:
       matrix:
-        compiler: [ifort]
+        compiler: [ifort, gfortran-15, ifx]
         build-type: [Debug]
     uses: GEOS-ESM/CI-workflows/.github/workflows/geosgcm_build_tests.yml@project/geosgcm
     with:
@@ -47,10 +47,7 @@ jobs:
       BUILDCACHE_TOKEN: ${{ secrets.BUILDCACHE_TOKEN }}
     with:
       fixture-repo: GEOS-ESM/GEOSgcm
-      run-mepo-develop: false
-      patch-esmf: true
-      # For some reason, Spack builds have weird install issues. For now, skip install.
-      run-install: false
+      run-mepo-develop: true
       load-fms: true
 
   spack_build_gocart:
@@ -61,8 +58,5 @@ jobs:
     with:
       run-mepo-develop: false
       build-target: '--target GOCART2G_GridComp'
-      patch-esmf: true
-      # Note: you cannot build the install target with plain gocart
-      run-install: false
       load-fms: true
 

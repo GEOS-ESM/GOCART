@@ -1,11 +1,11 @@
 version: 2.1
 
 # Anchors in case we need to override the defaults from the orb
-#baselibs_version: &baselibs_version v8.24.0
-#bcs_version: &bcs_version v11.6.0
+#baselibs_version: &baselibs_version v8.33.0
+#bcs_version: &bcs_version v12.0.0
 
 orbs:
-  ci: geos-esm/circleci-tools@4
+  ci: geos-esm/circleci-tools@5
 
 workflows:
   build-and-test:
@@ -17,7 +17,7 @@ workflows:
             - docker-hub-creds
           matrix:
             parameters:
-              compiler: [gfortran, ifort]
+              compiler: [gfortran, ifort, ifx]
           #baselibs_version: *baselibs_version
           repo: GOCART
           buildtarget: GOCART2G_GridComp
@@ -32,7 +32,7 @@ workflows:
             - docker-hub-creds
           matrix:
             parameters:
-              compiler: [gfortran, ifort]
+              compiler: [gfortran, ifort, ifx]
           #baselibs_version: *baselibs_version
           repo: GOCART
           buildtarget: GOCART2G_GridComp
@@ -48,7 +48,7 @@ workflows:
             - docker-hub-creds
           matrix:
             parameters:
-              compiler: [gfortran, ifort]
+              compiler: [gfortran, ifort, ifx]
           #baselibs_version: *baselibs_version
           repo: GEOSgcm
           checkout_fixture: true
