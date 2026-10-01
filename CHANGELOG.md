@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+## [v2.6.8] - 2026-10-01
+
+### Fixed
+
+- Restore L72 `fwet` value for dust to 0.8 `DU2G_instance_DU.rc`. The 1.0 values were for
+  L181 and were mistakenly applied to L72. `gcm_setup` will select the L72 values when
+  a 72-level experiment is created. This is non-zero-diff for L72 runs, but zero-diff for non-L72 runs.
+
 ## [v2.6.7] - 2026-09-30
 
 ### Changed
