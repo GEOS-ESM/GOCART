@@ -36,8 +36,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Guard `DEALLOCATE` of `ier` with an `ALLOCATED` check
   - Add local `ios` variable in `CO_Emission` to prevent host-association aliasing under optimization
 
-### Added
-
 ## [v2.6.8] - 2026-10-01
 
 ### Fixed
