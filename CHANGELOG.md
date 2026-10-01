@@ -7,13 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-
-
 ### Removed
+
 ### Added
 
 - Added support for the symbolic MAMnet implementation in GEOS, including export of MAMnet-predicted aerosol mode number concentrations for accumulation, Aitken, dust, sea salt, and primary carbonaceous modes.
 - Diagnostics for the vertical profile of fine mode (PM1) dust and sea salt
+- setZeroKlid for non-radiatively active tracers in Run0
 
 ### Changed
 
@@ -37,7 +37,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Add local `ios` variable in `CO_Emission` to prevent host-association aliasing under optimization
 
 ### Added
-- setZeroKlid for non-radiatively active tracers in Run0
+
+## [v2.6.8] - 2026-10-01
+
+### Fixed
+
+- Restore L72 `fwet` value for dust to 0.8 `DU2G_instance_DU.rc`. The 1.0 values were for
+  L181 and were mistakenly applied to L72. `gcm_setup` will select the L72 values when
+  a 72-level experiment is created. This is non-zero-diff for L72 runs, but zero-diff for non-L72 runs.
+
+## [v2.6.7] - 2026-09-30
+
+### Changed
+
+- Introduce new function to add fields to callback state and reference field when retrieving by long name, attribute logic was unneccessary
+- Update `components.yaml` to match that of GEOSgcm `main` as of 2026-09-30
+  - ESMA_env v5.25.2
+  - ESMA_cmake v4.49.1
+  - ecbuild geos/v3.15.2
+  - GMAO_Shared v3.0.2
+  - MAPL v2.71.0
+- Update CI to latest workflows and add `ifx`
+
 ## [v2.6.6] - 2026-08-26
 
 ### Fixed
