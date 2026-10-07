@@ -6,16 +6,17 @@
 module GOCART2G_GridCompMod
 
    !USES:
-   use ESMF
-   use MAPL, only: MAPL_Verify, MAPL_Return, MAPL_Assert
-   use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
-   use MAPL, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
-   use MAPL, only: MAPL_GridCompAddConnection, MAPL_GridCompGetResource, MAPL_GridCompReexport
-   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
-   use MAPL, only: MAPL_RESTART_SKIP
-   use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
-   use MAPL, only: MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet, MAPL_UngriddedDim
-   use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
+    use ESMF
+    use MAPL, only: MAPL_Verify, MAPL_Return, MAPL_Assert
+    use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
+    use MAPL, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
+    use MAPL, only: MAPL_GridCompAddConnection, MAPL_GridCompGetResource, MAPL_GridCompReexport
+    use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE
+    use MAPL, only: MAPL_RESTART_SKIP
+    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+    use MAPL, only: MAPL_FieldBundleAdd, MAPL_FieldBundleGet, MAPL_StateGetPointer, MAPL_GridGet, MAPL_UngriddedDim
+    use MAPL_Constants, only: MAPL_GRAV, MAPL_PI
+    use mapl_OwningGridComp_mod, only: mapl_get_owning_gridcomp
 
    use Chem_AeroGeneric
 

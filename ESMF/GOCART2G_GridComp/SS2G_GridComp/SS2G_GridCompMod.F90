@@ -8,16 +8,17 @@
 module SS2G_GridCompMod
 
    !USES:
-   use ESMF
-   use pflogger, only: logger_t => logger
-   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
-   use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, MAPL_GridGetGlobalCellCountPerDim
-   use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, MAPL_GridCompGet
-   use MAPL, only: MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
-   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
-   use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
-   use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_UngriddedDim
-   use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
+    use ESMF
+    use pflogger, only: logger_t => logger
+    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
+    use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, MAPL_GridGetGlobalCellCountPerDim
+    use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, MAPL_GridCompGet
+    use MAPL, only: MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
+    use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_UngriddedDim
+    use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
+    use mapl_OwningGridComp_mod, only: mapl_get_owning_gridcomp
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr

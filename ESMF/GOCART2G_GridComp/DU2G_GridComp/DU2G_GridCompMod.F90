@@ -7,18 +7,19 @@
 module DU2G_GridCompMod
 
    !USES:
-   use ESMF
-   use pflogger, only: logger_t => logger
-   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
-   use MAPL, only: MAPL_get_current_thread
-   use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
-   use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
-   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
-   use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
-   use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
-   use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
-   use MAPL, only: MAPL_PackedDateCreate, MAPL_PackedTimeCreate
-   use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
+    use ESMF
+    use pflogger, only: logger_t => logger
+    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
+    use MAPL, only: MAPL_get_current_thread
+    use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
+    use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
+    use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
+    use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
+    use MAPL, only: MAPL_PackedDateCreate, MAPL_PackedTimeCreate
+    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
+    use mapl_OwningGridComp_mod, only: mapl_get_owning_gridcomp
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -110,12 +111,15 @@ contains
       character(len=:), allocatable :: emission_scheme
       real :: DEFVAL
       logical :: data_driven = .true.
+      logical :: use_threads
       integer :: num_threads
       type(MAPL_UngriddedDim) :: ungrd_nbins
       type(MAPL_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: status
 
-      call MAPL_GridCompGet(gc, name=comp_name, num_threads=num_threads, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, num_threads=num_threads, &
+           use_threads=use_threads,  _RC)
+      print *, 'DU2G num threads ...', num_threads, use_threads
 
       ! Wrap gridcomp's private state and store it in gridcomp
       _SET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE)
