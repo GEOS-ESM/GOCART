@@ -52,6 +52,7 @@ module DU2G_GridCompMod
    ! must live here (indexed by thread) rather than in DU2G_GridComp,
    ! which is shared by all threads of a threaded component.
    type :: ThreadWorkspace
+      integer :: klid = 1 ! vertical index of pressure lid (recomputed every run phase from this thread's PLE)
       integer :: day_save = -1
       integer :: nPts = -1
       integer, allocatable, dimension(:) :: pstart, pend
@@ -536,12 +537,19 @@ contains
       real, allocatable, dimension(:, :, :) :: ple0
       real, pointer, dimension(:, :, :, :) :: ptr4d_int
       integer :: i1, i2, j1, j2, km, status
+      integer :: thread
+      type(ThreadWorkspace), pointer :: workspace
 
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my internal private state
       _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
+
+      ! Per-thread mutable state
+      thread = MAPL_get_current_thread()
+      _ASSERT(thread <= ubound(self%workspaces, 1), "thread id exceeds the number of DU2G workspaces")
+      workspace => self%workspaces(thread)
 
       ! Edge variable PLE is expected to be 0-based
       km = self%km
@@ -550,9 +558,9 @@ contains
       allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
 
       ! Set klid and Set internal values to 0 above klid
-      call findKlid(self%klid, self%plid, ple0, _RC)
+      call findKlid(workspace%klid, self%plid, ple0, _RC)
       call MAPL_StateGetPointer(internal, ptr4d_int, "DU", _RC)
-      call setZeroKlid4d(self%km, self%klid, ptr4d_int)
+      call setZeroKlid4d(self%km, workspace%klid, ptr4d_int)
 
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(export)
@@ -820,6 +828,8 @@ contains
       real, pointer, dimension(:, :, :) :: dusd_vel
       real, target, allocatable, dimension(:, :, :) :: RH20, RH80
       real, pointer, dimension(:, :) :: flux_ptr
+      integer :: thread
+      type(ThreadWorkspace), pointer :: workspace
 #include "DU2G_DeclarePointer___.h"
       real, allocatable, target, dimension(:, :, :) :: ple0, zle0, pfl_lsan0, pfi_lsan0
 
@@ -828,6 +838,11 @@ contains
 
       ! Get my private internal state
       _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
+
+      ! Per-thread mutable state
+      thread = MAPL_get_current_thread()
+      _ASSERT(thread <= ubound(self%workspaces, 1), "thread id exceeds the number of DU2G workspaces")
+      workspace => self%workspaces(thread)
 
       associate(scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
@@ -852,8 +867,8 @@ contains
       allocate(pfi_lsan0(i1:i2, j1:j2, 0:km), source=pfi_lsan(i1:i2, j1:j2, 1:km+1))
 
       ! Set klid and Set internal DU values to 0 above klid
-      call findKlid(self%klid, self%plid, ple0, _RC)
-      call setZeroKlid4d(self%km, self%klid, DU)
+      call findKlid(workspace%klid, self%plid, ple0, _RC)
+      call setZeroKlid4d(self%km, workspace%klid, DU)
 
       ! Dust Settling
       select case (self%settling_scheme)
@@ -871,7 +886,7 @@ contains
          nullify(dusd_vel)
          if (associated(DUSD_V)) dusd_vel => DUSD_V(:, :, :, n)
          call Chem_SettlingSimple( &
-              self%km, self%klid, self%diag_Mie, n, self%CDT, MAPL_GRAV, &
+              self%km, workspace%klid, self%diag_Mie, n, self%CDT, MAPL_GRAV, &
               DU(:, :, :, n), t, airdens, &
               rh2, zle0, delp, flux_ptr, dusd_vel, correctionMaring=self%maringFlag, &
               settling_scheme=settling_opt, _RC)
@@ -901,7 +916,7 @@ contains
       case ('gocart')
          do n = 1, self%nbins
             call WetRemovalGOCART2G( &
-                 self%km, self%klid, self%nbins, self%nbins, n, self%CDT, 'dust', &
+                 self%km, workspace%klid, self%nbins, self%nbins, n, self%CDT, 'dust', &
                  KIN, MAPL_GRAV, self%fwet(n), DU(:, :, :, n), ple0, t, airdens, &
                  pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, DUWT, _RC)
          end do
@@ -912,7 +927,7 @@ contains
             rainout_eff(2) = self%fwet_snow(n) ! remove with snow
             rainout_eff(3) = self%fwet_rain(n) ! remove with rain
             call WetRemovalUFS( &
-                 self%km, self%klid, n, self%CDT, 'dust', KIN, MAPL_GRAV, &
+                 self%km, workspace%klid, n, self%CDT, 'dust', KIN, MAPL_GRAV, &
                  self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
                  DU(:, :, :, n), ple0, t, airdens, pfl_lsan0, pfi_lsan0, DUWT, _RC)
          end do
@@ -923,7 +938,7 @@ contains
       ! Compute diagnostics
       ! Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
       call Aero_Compute_Diags( &
-           self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
+           self%diag_Mie, self%km, workspace%klid, 1, self%nbins, self%rlow, &
            self%rup, self%wavelengths_profile * 1.0e-9, &
            self%wavelengths_vertint * 1.0e-9, DU, MAPL_GRAV, t, airdens, &
            rh2, u, v, delp, ple0, tropp, &
@@ -941,7 +956,7 @@ contains
 
       RH20(:, :, :) = 0.20
       call Aero_Compute_Diags( &
-           mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
+           mie=self%diag_Mie, km=self%km, klid=workspace%klid, nbegin=1, &
            nbins=self%nbins, rlow=self%rlow, &
            rup=self%rup, wavelengths_profile=self%wavelengths_profile * 1.0e-9, &
            wavelengths_vertint=self%wavelengths_vertint * 1.0e-9, aerosol=DU, &
@@ -952,7 +967,7 @@ contains
       RH80(:, :, :) = 0.80
 
       call Aero_Compute_Diags( &
-           mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
+           mie=self%diag_Mie, km=self%km, klid=workspace%klid, nbegin=1, &
            nbins=self%nbins, rlow=self%rlow, &
            rup=self%rup, wavelengths_profile=self%wavelengths_profile * 1.0e-9, &
            wavelengths_vertint=self%wavelengths_vertint * 1.0e-9, aerosol=DU, &
