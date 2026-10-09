@@ -80,7 +80,7 @@ mapl:
   misc:
     activate_all_exports: true
     use_threads: true
-    num_threads: 2
+    num_threads: 4
     restart:
       internal: true
     checkpoint:

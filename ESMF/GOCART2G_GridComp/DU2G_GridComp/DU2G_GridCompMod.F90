@@ -120,7 +120,6 @@ contains
 
       call MAPL_GridCompGet(gc, name=comp_name, num_threads=num_threads, &
            use_threads=use_threads,  _RC)
-      print *, 'DU2G num threads ...', num_threads, use_threads
 
       ! Wrap gridcomp's private state and store it in gridcomp
       _SET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE)
