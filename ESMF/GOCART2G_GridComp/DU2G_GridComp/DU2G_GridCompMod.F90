@@ -7,18 +7,19 @@
 module DU2G_GridCompMod
 
    !USES:
-   use ESMF
-   use pflogger, only: logger_t => logger
-   use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
-   use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
-   use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
-   use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
-   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
-   use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
-   use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
-   use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
-   use MAPL, only: MAPL_PackedDateCreate, MAPL_PackedTimeCreate
-   use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
+    use ESMF
+    use pflogger, only: logger_t => logger
+    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
+    use MAPL, only: MAPL_get_current_thread
+    use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
+    use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
+    use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
+    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
+    use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
+    use MAPL, only: MAPL_PackedDateCreate, MAPL_PackedTimeCreate
+    use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
+    use mapl_OwningGridComp_mod, only: mapl_get_owning_gridcomp
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -47,7 +48,11 @@ module DU2G_GridCompMod
    integer, parameter :: NHRES = 6
 
    !Dust state
+   ! Per-thread mutable state.  Everything that is written during a run
+   ! must live here (indexed by thread) rather than in DU2G_GridComp,
+   ! which is shared by all threads of a threaded component.
    type :: ThreadWorkspace
+      integer :: klid = 1 ! vertical index of pressure lid (recomputed every run phase from this thread's PLE)
       integer :: day_save = -1
       integer :: nPts = -1
       integer, allocatable, dimension(:) :: pstart, pend
@@ -71,7 +76,6 @@ module DU2G_GridCompMod
       logical :: maringFlag             ! maring settling velocity correction
       integer :: drag_opt               ! FENGSHA drag option 1 - input only, 2 - Darmenova, 3 - Leung
       integer :: distribution_opt       ! FENGSHA distribution option 1 - Kok, 2 - Kok 2021, 3 - Meng 2022
-      integer :: day_save = -1
       integer :: clayFlag               ! clay and silt term in K14
       character(len=:), allocatable :: emission_scheme ! emission scheme selector
       ! Workspace for point emissions
@@ -108,12 +112,14 @@ contains
       character(len=:), allocatable :: emission_scheme
       real :: DEFVAL
       logical :: data_driven = .true.
+      logical :: use_threads
       integer :: num_threads
       type(MAPL_UngriddedDim) :: ungrd_nbins
       type(MAPL_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
       integer :: status
 
-      call MAPL_GridCompGet(gc, name=comp_name, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, num_threads=num_threads, &
+           use_threads=use_threads,  _RC)
 
       ! Wrap gridcomp's private state and store it in gridcomp
       _SET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE)
@@ -121,7 +127,9 @@ contains
       ! Retrieve the private state
       _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
 
-      num_threads = MAPL_get_num_threads()
+      ! One workspace per thread that this component will be run on.  The
+      ! number of threads is a property of this gridcomp (set in the "mapl:
+      ! misc:" section of its config), and not of the process as a whole.
       allocate(self%workspaces(0:num_threads - 1), __STAT__)
 
       ! process generic config items
@@ -528,12 +536,19 @@ contains
       real, allocatable, dimension(:, :, :) :: ple0
       real, pointer, dimension(:, :, :, :) :: ptr4d_int
       integer :: i1, i2, j1, j2, km, status
+      integer :: thread
+      type(ThreadWorkspace), pointer :: workspace
 
       ! Get parameters from generic state.
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my internal private state
       _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
+
+      ! Per-thread mutable state
+      thread = MAPL_get_current_thread()
+      _ASSERT(thread <= ubound(self%workspaces, 1), "thread id exceeds the number of DU2G workspaces")
+      workspace => self%workspaces(thread)
 
       ! Edge variable PLE is expected to be 0-based
       km = self%km
@@ -542,9 +557,9 @@ contains
       allocate(ple0(i1:i2, j1:j2, 0:km), source=ple(i1:i2, j1:j2, 1:km+1))
 
       ! Set klid and Set internal values to 0 above klid
-      call findKlid(self%klid, self%plid, ple0, _RC)
+      call findKlid(workspace%klid, self%plid, ple0, _RC)
       call MAPL_StateGetPointer(internal, ptr4d_int, "DU", _RC)
-      call setZeroKlid4d(self%km, self%klid, ptr4d_int)
+      call setZeroKlid4d(self%km, workspace%klid, ptr4d_int)
 
       _RETURN(_SUCCESS)
       _UNUSED_DUMMY(export)
@@ -718,6 +733,7 @@ contains
 
       ! Read point emissions file once per day
       thread = MAPL_get_current_thread()
+      _ASSERT(thread <= ubound(self%workspaces, 1), "thread id exceeds the number of workspaces of <" // comp_name // ">")
       workspace => self%workspaces(thread)
       if (self%doing_point_emissions) then
          if (workspace%day_save /= idd) then
@@ -811,6 +827,8 @@ contains
       real, pointer, dimension(:, :, :) :: dusd_vel
       real, target, allocatable, dimension(:, :, :) :: RH20, RH80
       real, pointer, dimension(:, :) :: flux_ptr
+      integer :: thread
+      type(ThreadWorkspace), pointer :: workspace
 #include "DU2G_DeclarePointer___.h"
       real, allocatable, target, dimension(:, :, :) :: ple0, zle0, pfl_lsan0, pfi_lsan0
 
@@ -819,6 +837,11 @@ contains
 
       ! Get my private internal state
       _GET_NAMED_PRIVATE_STATE(gc, DU2G_GridComp, PRIVATE_STATE, self)
+
+      ! Per-thread mutable state
+      thread = MAPL_get_current_thread()
+      _ASSERT(thread <= ubound(self%workspaces, 1), "thread id exceeds the number of DU2G workspaces")
+      workspace => self%workspaces(thread)
 
       associate(scheme => self%emission_scheme)
 #include "DU2G_GetPointer___.h"
@@ -843,8 +866,8 @@ contains
       allocate(pfi_lsan0(i1:i2, j1:j2, 0:km), source=pfi_lsan(i1:i2, j1:j2, 1:km+1))
 
       ! Set klid and Set internal DU values to 0 above klid
-      call findKlid(self%klid, self%plid, ple0, _RC)
-      call setZeroKlid4d(self%km, self%klid, DU)
+      call findKlid(workspace%klid, self%plid, ple0, _RC)
+      call setZeroKlid4d(self%km, workspace%klid, DU)
 
       ! Dust Settling
       select case (self%settling_scheme)
@@ -862,7 +885,7 @@ contains
          nullify(dusd_vel)
          if (associated(DUSD_V)) dusd_vel => DUSD_V(:, :, :, n)
          call Chem_SettlingSimple( &
-              self%km, self%klid, self%diag_Mie, n, self%CDT, MAPL_GRAV, &
+              self%km, workspace%klid, self%diag_Mie, n, self%CDT, MAPL_GRAV, &
               DU(:, :, :, n), t, airdens, &
               rh2, zle0, delp, flux_ptr, dusd_vel, correctionMaring=self%maringFlag, &
               settling_scheme=settling_opt, _RC)
@@ -892,7 +915,7 @@ contains
       case ('gocart')
          do n = 1, self%nbins
             call WetRemovalGOCART2G( &
-                 self%km, self%klid, self%nbins, self%nbins, n, self%CDT, 'dust', &
+                 self%km, workspace%klid, self%nbins, self%nbins, n, self%CDT, 'dust', &
                  KIN, MAPL_GRAV, self%fwet(n), DU(:, :, :, n), ple0, t, airdens, &
                  pfl_lsan0, pfi_lsan0, cn_prcp, ncn_prcp, DUWT, _RC)
          end do
@@ -903,7 +926,7 @@ contains
             rainout_eff(2) = self%fwet_snow(n) ! remove with snow
             rainout_eff(3) = self%fwet_rain(n) ! remove with rain
             call WetRemovalUFS( &
-                 self%km, self%klid, n, self%CDT, 'dust', KIN, MAPL_GRAV, &
+                 self%km, workspace%klid, n, self%CDT, 'dust', KIN, MAPL_GRAV, &
                  self%radius(n), rainout_eff, self%washout_tuning, self%wet_radius_thr, &
                  DU(:, :, :, n), ple0, t, airdens, pfl_lsan0, pfi_lsan0, DUWT, _RC)
          end do
@@ -914,7 +937,7 @@ contains
       ! Compute diagnostics
       ! Certain variables are multiplied by 1.0e-9 to convert from nanometers to meters
       call Aero_Compute_Diags( &
-           self%diag_Mie, self%km, self%klid, 1, self%nbins, self%rlow, &
+           self%diag_Mie, self%km, workspace%klid, 1, self%nbins, self%rlow, &
            self%rup, self%wavelengths_profile * 1.0e-9, &
            self%wavelengths_vertint * 1.0e-9, DU, MAPL_GRAV, t, airdens, &
            rh2, u, v, delp, ple0, tropp, &
@@ -932,7 +955,7 @@ contains
 
       RH20(:, :, :) = 0.20
       call Aero_Compute_Diags( &
-           mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
+           mie=self%diag_Mie, km=self%km, klid=workspace%klid, nbegin=1, &
            nbins=self%nbins, rlow=self%rlow, &
            rup=self%rup, wavelengths_profile=self%wavelengths_profile * 1.0e-9, &
            wavelengths_vertint=self%wavelengths_vertint * 1.0e-9, aerosol=DU, &
@@ -943,7 +966,7 @@ contains
       RH80(:, :, :) = 0.80
 
       call Aero_Compute_Diags( &
-           mie=self%diag_Mie, km=self%km, klid=self%klid, nbegin=1, &
+           mie=self%diag_Mie, km=self%km, klid=workspace%klid, nbegin=1, &
            nbins=self%nbins, rlow=self%rlow, &
            rup=self%rup, wavelengths_profile=self%wavelengths_profile * 1.0e-9, &
            wavelengths_vertint=self%wavelengths_vertint * 1.0e-9, aerosol=DU, &
