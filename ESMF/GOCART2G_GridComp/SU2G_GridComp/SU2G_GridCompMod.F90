@@ -32,6 +32,9 @@ module SU2G_GridCompMod
 
    real, parameter :: cpd = 1004.16
 
+   ! MAPL2's undefined value; MAPL3's MAPL_UNDEF is -huge, which breaks the 1.01*x > undef masks
+   real, parameter :: MAPL2_UNDEF = huge(1.)
+
    ! relative position of sulfate tracers
    integer, parameter :: nDMS = 1, nSO2 = 2, nSO4 = 3, nMSA = 4
    real, parameter :: OCEAN = 0.0, LAND = 1.0, SEA_ICE = 2.0
@@ -91,10 +94,6 @@ module SU2G_GridCompMod
    end type SU2G_GridComp
 
    character(*), parameter :: PRIVATE_STATE = "SU2G_GridComp"
-
-   type wrap_
-      type(SU2G_GridComp), pointer :: PTR !=> null()
-   end type wrap_
 
 contains
 
@@ -531,52 +530,42 @@ contains
       type(ESMF_State), intent(inout) :: import ! Import state
       type(ESMF_State), intent(inout) :: export ! Export state
       type(ESMF_Clock), intent(inout) :: clock ! The clock
-      integer, optional, intent(out) :: rc ! Error code:
+      integer, intent(out) :: rc ! Error code:
 
       !DESCRIPTION:  Clears klid to 0.0 for Sulfates
 
       ! Locals
-      character(len=ESMF_MAXSTR) :: COMP_NAME
-      type(MAPL_MetaComp), pointer :: MAPL
       type(ESMF_State) :: internal
-      type(wrap_) :: wrap
       type(SU2G_GridComp), pointer :: self
-      real, pointer, dimension(:, :, :) :: ple
+      real, pointer, dimension(:, :, :) :: ple, ple0
       real, pointer, dimension(:, :, :) :: ptr3d_int
-
       integer :: status
-      character(len=255) :: Iam = 'Run0'
 
       ! Begin...
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) // '::' // Iam
-
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
-
-      ! Get parameters from generic state.
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, _RC)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'SU2G_GridComp', wrap, status)
-      _VERIFY(status)
-      self => wrap%PTR
+      _GET_NAMED_PRIVATE_STATE(gc, SU2G_GridComp, PRIVATE_STATE, self)
+
+      ! Edge variable PLE is expected to be 0-based
+      call MAPL_StateGetPointer(import, ple, 'PLE', _RC)
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
       ! Set klid and Set internal values to 0 above klid
-      call MAPL_GetPointer(import, ple, 'PLE', _RC)
-      call findKlid(self%klid, self%plid, ple, _RC)
-      call MAPL_GetPointer(internal, NAME='SO4', PTR=ptr3d_int, _RC)
+      call findKlid(self%klid, self%plid, ple0, _RC)
+      call MAPL_StateGetPointer(internal, ptr3d_int, 'SO4', _RC)
       call setZeroKlid(self%km, self%klid, ptr3d_int)
-      call MAPL_GetPointer(internal, NAME='SO2', PTR=ptr3d_int, _RC)
+      call MAPL_StateGetPointer(internal, ptr3d_int, 'SO2', _RC)
       call setZeroKlid(self%km, self%klid, ptr3d_int)
-      call MAPL_GetPointer(internal, NAME='DMS', PTR=ptr3d_int, _RC)
+      call MAPL_StateGetPointer(internal, ptr3d_int, 'DMS', _RC)
       call setZeroKlid(self%km, self%klid, ptr3d_int)
-      call MAPL_GetPointer(internal, NAME='MSA', PTR=ptr3d_int, _RC)
+      call MAPL_StateGetPointer(internal, ptr3d_int, 'MSA', _RC)
       call setZeroKlid(self%km, self%klid, ptr3d_int)
 
-      _RETURN(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(export)
+      _UNUSED_DUMMY(clock)
 
    end subroutine Run0
 
@@ -590,35 +579,24 @@ contains
       type(ESMF_State), intent(inout) :: import ! Import state
       type(ESMF_State), intent(inout) :: export ! Export state
       type(ESMF_Clock), intent(inout) :: clock ! The clock
-      integer, optional, intent(out) :: rc ! Error code:
+      integer, intent(out) :: rc ! Error code:
 
       !DESCRIPTION: Run method for the Sulfate Component. Determines whether to run
       ! data or computational run method.
 
       ! Locals
-      character(len=ESMF_MAXSTR) :: COMP_NAME
-      type(MAPL_MetaComp), pointer :: MAPL
+      character(len=:), allocatable :: comp_name
       type(ESMF_State) :: internal
-
       logical :: data_driven
-
       integer :: status
-      character(len=255) :: Iam = 'Run'
 
       ! Begin...
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) // '::' // Iam
-
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
-
-      ! Get parameters from generic state.
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, _RC)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Is SU data driven?
-      call determine_data_driven(COMP_NAME, data_driven, _RC)
+      call determine_data_driven(comp_name, data_driven, _RC)
 
       ! Update INTERNAL state variables with ExtData
       if (data_driven) then
@@ -627,7 +605,7 @@ contains
          call Run1(gc, import, export, clock, _RC)
       end if
 
-      _RETURN(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine Run
 
@@ -641,24 +619,23 @@ contains
       type(ESMF_State), intent(inout) :: import ! Import state
       type(ESMF_State), intent(inout) :: export ! Export state
       type(ESMF_Clock), intent(inout) :: clock ! The clock
-      integer, optional, intent(out) :: rc ! Error code:
+      integer, intent(out) :: rc ! Error code:
 
-      !DESCRIPTION:  Computes emissions/sources for Sea Salt
+      !DESCRIPTION:  Computes emissions/sources for Sulfate
 
       ! Locals
-      character(len=ESMF_MAXSTR) :: COMP_NAME
-      type(MAPL_MetaComp), pointer :: MAPL
       type(ESMF_State) :: internal
       type(ESMF_Grid) :: grid
-      type(wrap_) :: wrap
+      type(ESMF_Geom) :: geom
       type(SU2G_GridComp), pointer :: self
       type(ESMF_Time) :: time
+      class(logger_t), pointer :: logger
 
       character(len=3) :: cdow
       integer :: idow
       integer :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
-      real, pointer, dimension(:, :) :: lats
-      real, pointer, dimension(:, :) :: lons
+      real, allocatable, dimension(:, :) :: lats
+      real, allocatable, dimension(:, :) :: lons
       real, dimension(:, :, :), allocatable :: aircraft_fuel_src, so2_ocs_src
       real, dimension(:, :), allocatable :: so2biomass_src, so2biomass_src_, so2anthro_l1_src, &
            so2anthro_l2_src, so2ship_src, so4ship_src, dmso_conc, &
@@ -669,40 +646,30 @@ contains
       logical :: fileExists
 
       real, pointer, dimension(:, :, :) :: dummyMSA !=> null() ! This is so the model can run without MSA enabled
+      real, pointer, dimension(:, :, :) :: zle0
       type(ThreadWorkspace), pointer :: workspace
       integer :: thread
 
 #include "SU2G_DeclarePointer___.h"
 
       integer :: status
-      character(len=255) :: Iam = 'Run1'
 
       ! Begin...
 
-      nullify(dummyMSA)
-
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) // '::' // Iam
-
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
-
-      call MAPL_Get(MAPL, grid=grid, _RC)
-
-      ! Get parameters from generic state.
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, &
-           lons=lons, &
-           lats=lats, _RC)
-
-#include "SU2G_GetPointer___.h"
-
-      call MAPL_GetPointer(internal, dummyMSA, 'MSA', rc=status)
+      call MAPL_GridCompGet(gc, logger=logger, geom=geom, grid=grid, _RC)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'SU2G_GridComp', wrap, status)
-      _VERIFY(status)
-      self => wrap%PTR
+      _GET_NAMED_PRIVATE_STATE(gc, SU2G_GridComp, PRIVATE_STATE, self)
+
+      associate(using_GMI => self%using_GMI)
+#include "SU2G_GetPointer___.h"
+      end associate
+
+      dummyMSA => MSA
+
+      ! Edge variable ZLE is expected to be 0-based
+      zle0(lbound(zle, 1):, lbound(zle, 2):, 0:) => zle
 
       ! Extract nymd(yyyymmdd) from clock
       call ESMF_ClockGet(clock, currTime=time, _RC)
@@ -718,9 +685,7 @@ contains
          SO2 = tiny(1.) ! avoid division by zero
          SO4 = tiny(1.) ! avoid division by zero
          if (associated(dummyMSA)) dummyMSA = tiny(1.) ! avoid division by zero
-         if (mapl_am_i_root()) then
-            print *, '<> SU ' // cdow // ' tracer being set to zero on ', nymd, nhms
-         end if
+         call logger%info('<> SU ' // cdow // ' tracer being set to zero on %i0 %i0', nymd, nhms)
       end if
 
       ! Implicit allocation with Fortran 2003
@@ -730,10 +695,10 @@ contains
       so4ship_src = SU_SHIPSO4
 
       ! As a safety check, where value is undefined set to 0
-      where (1.01 * so2anthro_l1_src > MAPL_UNDEF) so2anthro_l1_src = 0.
-      where (1.01 * so2anthro_l2_src > MAPL_UNDEF) so2anthro_l2_src = 0.
-      where (1.01 * so2ship_src > MAPL_UNDEF) so2ship_src = 0.
-      where (1.01 * so4ship_src > MAPL_UNDEF) so4ship_src = 0.
+      where (1.01 * so2anthro_l1_src > MAPL2_UNDEF) so2anthro_l1_src = 0.
+      where (1.01 * so2anthro_l2_src > MAPL2_UNDEF) so2anthro_l2_src = 0.
+      where (1.01 * so2ship_src > MAPL2_UNDEF) so2ship_src = 0.
+      where (1.01 * so4ship_src > MAPL2_UNDEF) so4ship_src = 0.
 
       aircraft_fuel_src = SU_AIRCRAFT
       so2biomass_src = SU_BIOMASS
@@ -759,12 +724,12 @@ contains
       end if
 
       ! As a safety check, where value is undefined set to 0
-      where (1.01 * so2biomass_src > MAPL_UNDEF) so2biomass_src = 0.
-      where (1.01 * dmso_conc > MAPL_UNDEF) dmso_conc = 0.
-      where (1.01 * aircraft_fuel_src > MAPL_UNDEF) aircraft_fuel_src = 0.
-      where (1.01 * aviation_lto_src > MAPL_UNDEF) aviation_lto_src = 0.
-      where (1.01 * aviation_cds_src > MAPL_UNDEF) aviation_cds_src = 0.
-      where (1.01 * aviation_crs_src > MAPL_UNDEF) aviation_crs_src = 0.
+      where (1.01 * so2biomass_src > MAPL2_UNDEF) so2biomass_src = 0.
+      where (1.01 * dmso_conc > MAPL2_UNDEF) dmso_conc = 0.
+      where (1.01 * aircraft_fuel_src > MAPL2_UNDEF) aircraft_fuel_src = 0.
+      where (1.01 * aviation_lto_src > MAPL2_UNDEF) aviation_lto_src = 0.
+      where (1.01 * aviation_cds_src > MAPL2_UNDEF) aviation_cds_src = 0.
+      where (1.01 * aviation_crs_src > MAPL2_UNDEF) aviation_crs_src = 0.
 
       ! Start with a clean emission diagnostic
       if (associated(SUEM)) SUEM = 0.0
@@ -779,7 +744,7 @@ contains
          ! DEGASSING: Get pointwise SO2 and altitude of volcanoes from a daily file data base
          workspace%nVolc = 0 ! case of /dev/null (no volcanoes) or ill-formed filename
          if (index(self%volcano_srcfilen_degassing, 'volcanic_') /= 0) then
-            call StrTemplate(fname, self%volcano_srcfilen_degassing, xid='unknown', &
+            call MAPL_StrTemplate(fname, self%volcano_srcfilen_degassing, xid='unknown', &
                  nymd=nymd, nhms=120000)
             inquire(file=fname, exist=fileExists)
             if (fileExists) then
@@ -793,7 +758,7 @@ contains
          ! EXPLOSIVE: Get pointwise SO2 and altitude of volcanoes from a daily file data base
          workspace%nVolcE = 0 ! case of /dev/null (no volcanoes) or ill-formed filename
          if (index(self%volcano_srcfilen_explosive, 'volcanic_') /= 0) then
-            call StrTemplate(fname, self%volcano_srcfilen_explosive, xid='unknown', &
+            call MAPL_StrTemplate(fname, self%volcano_srcfilen_explosive, xid='unknown', &
                  nymd=nymd, nhms=120000)
             inquire(file=fname, exist=fileExists)
             if (fileExists) then
@@ -809,46 +774,35 @@ contains
       ! DEGASSING: Apply volcanic emissions
       if (workspace%nVolc > 0) then
          if (associated(SO2EMVN)) SO2EMVN = 0.0
-         allocate(iPoint(workspace%nVolc), jPoint(workspace%nVolc), _STAT)
-         call MAPL_GetHorzIJIndex(workspace%nVolc, iPoint, jPoint, &
-              grid=grid, &
-              lon=workspace%vLon / real(MAPL_RADIANS_TO_DEGREES), &
-              lat=workspace%vLat / real(MAPL_RADIANS_TO_DEGREES), &
-              rc=status)
-         if (status /= 0) then
-            if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
-            _VERIFY(status)
-         end if
+         call MAPL_GeomGetHorzIJIndex(geom, &
+              workspace%vLon / real(MAPL_RADIANS_TO_DEGREES), &
+              workspace%vLat / real(MAPL_RADIANS_TO_DEGREES), &
+              iPoint, jPoint, local_indices=.true., _RC)
 
          call SUvolcanicEmissions(workspace%nVolc, workspace%vStart, workspace%vEnd, workspace%vSO2, workspace%vElev, &
               workspace%vCloud, iPoint, jPoint, nhms, SO2EMVN, SO2, nSO2, SUEM, &
-              self%km, self%CDT, MAPL_GRAV, zle, delp, area, workspace%vLat, workspace%vLon, _RC)
+              self%km, self%CDT, MAPL_GRAV, zle0, delp, area, workspace%vLat, workspace%vLon, _RC)
          deallocate(iPoint, jPoint, _STAT)
       end if
 
       ! EXPLOSIVE: Apply volcanic emissions
       if (workspace%nVolcE > 0) then
          if (associated(SO2EMVE)) SO2EMVE = 0.0
-         allocate(iPoint(workspace%nVolcE), jPoint(workspace%nVolcE), _STAT)
-         call MAPL_GetHorzIJIndex(workspace%nVolcE, iPoint, jPoint, &
-              grid=grid, &
-              lon=workspace%vLonE / real(MAPL_RADIANS_TO_DEGREES), &
-              lat=workspace%vLatE / real(MAPL_RADIANS_TO_DEGREES), &
-              rc=status)
-         if (status /= 0) then
-            if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
-            _VERIFY(status)
-         end if
+         call MAPL_GeomGetHorzIJIndex(geom, &
+              workspace%vLonE / real(MAPL_RADIANS_TO_DEGREES), &
+              workspace%vLatE / real(MAPL_RADIANS_TO_DEGREES), &
+              iPoint, jPoint, local_indices=.true., _RC)
 
          call SUvolcanicEmissions(workspace%nVolcE, workspace%vStartE, workspace%vEndE, workspace%vSO2E, workspace%&
               vElevE, &
               workspace%vCloudE, iPoint, jPoint, nhms, SO2EMVE, SO2, nSO2, SUEM, &
-              self%km, self%CDT, MAPL_GRAV, zle, delp, area, workspace%vLatE, workspace%vLonE, _RC)
+              self%km, self%CDT, MAPL_GRAV, zle0, delp, area, workspace%vLatE, workspace%vLonE, _RC)
          deallocate(iPoint, jPoint, _STAT)
       end if
 
       ! Apply diurnal cycle if so desired
       if (self%diurnal_bb) then
+         call MAPL_GridGetCoordinates(grid, latitudes=lats, longitudes=lons, _RC)
          so2biomass_src_ = so2biomass_src
          call Chem_BiomassDiurnal(so2biomass_src, so2biomass_src_, &
               lons(:, :) * real(MAPL_RADIANS_TO_DEGREES), &
@@ -865,7 +819,7 @@ contains
            so2ship_src, so4ship_src, &
            aircraft_fuel_src, &
            SO2, SO4, &
-           lwi, u10m, v10m, zle, zpbl, &
+           lwi, u10m, v10m, zle0, zpbl, &
            t, airdens, delp, workspace%nVolc, &
            SUEM, SO4EMAN, SO2EMAN, SO2EMBB, &
            self%aviation_layers, &
@@ -883,7 +837,7 @@ contains
 
       ! Read any pointwise emissions, if requested
       if (self%doing_point_emissions) then
-         call StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
+         call MAPL_StrTemplate(fname, self%point_emissions_srcfilen, xid='unknown', &
               nymd=nymd, nhms=120000)
          inquire(file=fname, exist=fileExists)
          if (fileExists) then
@@ -891,7 +845,9 @@ contains
                  workspace%pBase, workspace%pTop, workspace%pEmis, workspace%pstart, &
                  workspace%pend, label='source', _RC)
          else if (.not. fileExists) then
-            if (mapl_am_i_root()) print*, 'GOCART2G ', trim(COMP_NAME), ': ', trim(fname), ' not found; proceeding.'
+            !$omp critical (SU2G_1)
+            call logger%info("[" // trim(fname) // "] not found; proceeding...")
+            !$omp end critical (SU2G_1)
             workspace%nPts = -1 ! set this back to -1 so the "if (workspace%nPts > 0)" conditional is not exercised.
          end if
       end if
@@ -900,26 +856,20 @@ contains
       if (workspace%nPts > 0) then
          allocate(emissions_point, mold=delp,  _STAT)
          emissions_point = 0.0
-         allocate(iPoint(workspace%nPts), jPoint(workspace%nPts), _STAT)
-         call MAPL_GetHorzIJIndex(workspace%nPts, iPoint, jPoint, &
-              grid=grid, &
-              lon=workspace%pLon / real(MAPL_RADIANS_TO_DEGREES), &
-              lat=workspace%pLat / real(MAPL_RADIANS_TO_DEGREES), &
-              rc=status)
-         if (status /= 0) then
-            if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
-            _VERIFY(status)
-         end if
+         call MAPL_GeomGetHorzIJIndex(geom, &
+              workspace%pLon / real(MAPL_RADIANS_TO_DEGREES), &
+              workspace%pLat / real(MAPL_RADIANS_TO_DEGREES), &
+              iPoint, jPoint, local_indices=.true., _RC)
 
          call updatePointwiseEmissions(self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
-              workspace%pstart, workspace%pend, zle, &
+              workspace%pstart, workspace%pend, zle0, &
               area, iPoint, jPoint, nhms, emissions_point, _RC)
 
          deallocate(iPoint, jPoint, _STAT)
          SO4 = SO4 + self%CDT * MAPL_GRAV / delp * emissions_point
       end if
 
-      _RETURN(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine Run1
 
@@ -934,26 +884,28 @@ contains
       type(ESMF_State), intent(inout) :: import ! Import state
       type(ESMF_State), intent(inout) :: export ! Export state
       type(ESMF_Clock), intent(inout) :: clock ! The clock
-      integer, optional, intent(out) :: rc ! Error code:
+      integer, intent(out) :: rc ! Error code:
 
       !DESCRIPTION: Run2 method for the Sulfate Grid Component.
 
       ! Locals
-      character(len=ESMF_MAXSTR) :: COMP_NAME
-      type(MAPL_MetaComp), pointer :: MAPL
+      character(len=:), allocatable :: comp_name
       type(ESMF_State) :: internal
       type(ESMF_State) :: aero
-      type(wrap_) :: wrap
+      type(ESMF_Info) :: aero_info
+      type(ESMF_Grid) :: grid
       type(SU2G_GridComp), pointer :: self
       type(ESMF_Time) :: time
-      type(MAPL_VarSpec), pointer :: InternalSpec(:)
+
+      ! Internal state order, as in SU2G_StateSpecs.rc (nDMS, nSO2, nSO4, nMSA)
+      character(len=3), parameter :: internal_names(4) = ['DMS', 'SO2', 'SO4', 'MSA']
 
       integer :: nymd, nhms, iyr, imm, idd, ihr, imn, isc
       integer :: n
       logical :: KIN
-      real, pointer, dimension(:, :) :: lats
-      real, pointer, dimension(:, :) :: lons
-      character(len=ESMF_MAXSTR) :: SHORT_NAME, fld_name
+      real, allocatable, dimension(:, :) :: lats
+      real, allocatable, dimension(:, :) :: lons
+      character(len=ESMF_MAXSTR) :: fld_name
       real, pointer, dimension(:, :, :) :: int_ptr
 
       real, dimension(:, :, :), allocatable :: xoh, xno3, xh2o2
@@ -962,6 +914,7 @@ contains
       real, pointer, dimension(:, :, :) :: susd_vel
 
       real, pointer, dimension(:, :, :) :: dummyMSA !=> null() ! this is so the model can run without MSA enabled
+      real, pointer, dimension(:, :, :) :: ple0, zle0, pfl_lsan0, pfi_lsan0
       logical :: alarm_is_ringing
       type(ThreadWorkspace), pointer :: workspace
       integer :: thread
@@ -974,29 +927,32 @@ contains
 #include "SU2G_DeclarePointer___.h"
 
       integer :: status
-      character(len=255) :: Iam = 'Run2'
 
       ! Begin...
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) // '::' // Iam
+      call MAPL_GridCompGet(gc, name=comp_name, grid=grid, _RC)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
+      ! Get my private internal state
+      _GET_NAMED_PRIVATE_STATE(gc, SU2G_GridComp, PRIVATE_STATE, self)
 
-      ! Get parameters from generic state.
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, &
-           InternalSpec=InternalSpec, &
-           lons=lons, &
-           lats=lats, _RC)
+      call MAPL_GridGetCoordinates(grid, latitudes=lats, longitudes=lons, _RC)
 
       ! Get the aero state
-      call ESMF_StateGet(export, trim(COMP_NAME) // '_AERO', aero, _RC)
+      call ESMF_StateGet(export, trim(comp_name) // '_AERO', aero, _RC)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
 
+      associate(using_GMI => self%using_GMI)
 #include "SU2G_GetPointer___.h"
+      end associate
 
-      call MAPL_GetPointer(internal, dummyMSA, 'MSA', rc=status)
+      dummyMSA => MSA
+
+      ! Edge variables are expected to be 0-based
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
+      zle0(lbound(zle, 1):, lbound(zle, 2):, 0:) => zle
+      pfl_lsan0(lbound(pfl_lsan, 1):, lbound(pfl_lsan, 2):, 0:) => pfl_lsan
+      pfi_lsan0(lbound(pfi_lsan, 1):, lbound(pfi_lsan, 2):, 0:) => pfi_lsan
 
       ! Extract nymd(yyyymmdd) from clock
       call ESMF_ClockGet(clock, currTime=time, _RC)
@@ -1004,13 +960,8 @@ contains
       nymd = MAPL_PackedDateCreate(iyr, imm, idd)
       nhms = MAPL_PackedTimeCreate(ihr, imn, isc)
 
-      ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'SU2G_GridComp', wrap, status)
-      _VERIFY(status)
-      self => wrap%PTR
-
       ! Set klid and Set internal values to 0 above klid
-      call findKlid(self%klid, self%plid, ple, _RC)
+      call findKlid(self%klid, self%plid, ple0, _RC)
       call setZeroKlid(self%km, self%klid, SO4)
       call setZeroKlid(self%km, self%klid, SO2)
       call setZeroKlid(self%km, self%klid, DMS)
@@ -1050,7 +1001,7 @@ contains
          xh2o2 = h2o2_init
 
          call SulfateUpdateOxidants(nymd, nhms, lons, lats, airdens, self%km, self%CDT, &
-              workspace%nymd_oxidants, MAPL_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
+              workspace%nymd_oxidants, MAPL2_UNDEF, real(MAPL_RADIANS_TO_DEGREES), &
               MAPL_AVOGAD / 1000., MAPL_PI, MAPL_AIRMW, &
               SU_OH, SU_NO3, SU_H2O2, &
               xoh, xno3, xh2o2, workspace%recycle_H2O2, _RC)
@@ -1070,15 +1021,14 @@ contains
       if (associated(SUSD)) SUSD(:, :, :) = 0.0
       if (associated(SUSD_V)) SUSD_V(:, :, :, :) = 0.0
       ! Do settling only for sulfate aerosol tracer NSO4
-      call MAPL_VarSpecGet(InternalSpec(nSO4), SHORT_NAME=SHORT_NAME, _RC)
-      call MAPL_GetPointer(internal, NAME=SHORT_NAME, PTR=int_ptr, _RC)
+      call MAPL_StateGetPointer(internal, int_ptr, internal_names(nSO4), _RC)
       nullify(flux_ptr)
       if (associated(SUSD)) flux_ptr => SUSD(:, :, nSO4)
       nullify(susd_vel)
       if (associated(SUSD_V)) susd_vel => SUSD_V(:, :, :, nSO4)
       call Chem_SettlingSimple(self%km, self%klid, self%diag_Mie, 1, self%CDT, MAPL_GRAV, &
            int_ptr, t, airdens, &
-           rh2, zle, delp, flux_ptr, susd_vel, settling_scheme=settling_opt, _RC)
+           rh2, zle0, delp, flux_ptr, susd_vel, settling_scheme=settling_opt, _RC)
 
       allocate(drydepositionf, mold=lwi, _STAT)
       call SulfateChemDriver(self%km, self%klid, self%CDT, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
@@ -1088,7 +1038,7 @@ contains
            DMS, SO2, SO4, dummyMSA, &
            nDMS, nSO2, nSO4, nMSA, &
            xoh, xno3, xh2o2, h2o2_init, &
-           delp, t, fcld, airdens, zle, &
+           delp, t, fcld, airdens, zle0, &
            ustar, sh, lwi, zpbl, z0h, &
            SUDP, SUPSO2, SUPMSA, &
            SUPSO4, SUPSO4g, SUPSO4aq, &
@@ -1100,7 +1050,7 @@ contains
       case ('gocart')
          call SU_Wet_Removal(self%km, self%nbins, self%klid, self%CDT, KIN, MAPL_GRAV, MAPL_AIRMW, &
               delp, fMassSO4, fMassSO2, &
-              h2o2_init, ple, airdens, cn_prcp, ncn_prcp, pfl_lsan, pfi_lsan, t, &
+              h2o2_init, ple0, airdens, cn_prcp, ncn_prcp, pfl_lsan0, pfi_lsan0, t, &
               nDMS, nSO2, nSO4, nMSA, DMS, SO2, SO4, dummyMSA, &
               SUWT, SUPSO4, SUPSO4WT, pso4, PSO4WET, _RC)
 
@@ -1112,11 +1062,10 @@ contains
             rainout_eff(2) = self%fwet_snow(n)
             rainout_eff(3) = self%fwet_rain(n)
 
-            call MAPL_VarSpecGet(InternalSpec(n), SHORT_NAME=SHORT_NAME, _RC)
-            call MAPL_GetPointer(internal, NAME=SHORT_NAME, PTR=int_ptr, _RC)
+            call MAPL_StateGetPointer(internal, int_ptr, internal_names(n), _RC)
             call WetRemovalUFS(self%km, self%klid, n, self%CDT, 'sulfate', &
                  KIN, MAPL_GRAV, self%radius(n), rainout_eff, self%washout_tuning, &
-                 self%wet_radius_thr, int_ptr, ple, t, airdens, pfl_lsan, pfi_lsan, SUWT, _RC)
+                 self%wet_radius_thr, int_ptr, ple0, t, airdens, pfl_lsan0, pfi_lsan0, SUWT, _RC)
          end do
 
       case default
@@ -1127,7 +1076,7 @@ contains
       call SU_Compute_Diags(self%km, self%klid, self%rhop(nSO4), &
            MAPL_GRAV, MAPL_PI, nSO4, self%diag_Mie, &
            self%wavelengths_profile * 1.0e-9, self%wavelengths_vertint * 1.0e-9, &
-           t, airdens, delp, ple, tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
+           t, airdens, delp, ple0, tropp, rh2, u, v, DMS, SO2, SO4, dummyMSA, &
            DMSSMASS, DMSCMASS, &
            MSASMASS, MSACMASS, &
            SO2SMASS, SO2CMASS, &
@@ -1137,18 +1086,20 @@ contains
 
       if (associated(SO4SAREA)) then
          nullify(int_ptr)
-         call ESMF_StateGet(aero, 'surface_area_density', item_type, _RC)
+         call ESMF_InfoGet(aero_info, key='surface_area_density', value=fld_name, _RC)
+         call ESMF_StateGet(aero, trim(fld_name), item_type, _RC)
          if (item_type == ESMF_STATEITEM_FIELD) then
-            call MAPL_GetPointer(aero, int_ptr, 'surface_area_density', _RC)
+            call MAPL_StateGetPointer(aero, int_ptr, trim(fld_name), _RC)
             int_ptr = SO4SAREA
          end if
       end if
 
       if (associated(SO4REFF)) then ! Note unit conversion below to microns
          nullify(int_ptr)
-         call ESMF_StateGet(aero, 'effective_radius_in_microns', item_type, _RC)
+         call ESMF_InfoGet(aero_info, key='effective_radius_in_microns', value=fld_name, _RC)
+         call ESMF_StateGet(aero, trim(fld_name), item_type, _RC)
          if (item_type == ESMF_STATEITEM_FIELD) then
-            call MAPL_GetPointer(aero, int_ptr, 'effective_radius_in_microns', _RC)
+            call MAPL_StateGetPointer(aero, int_ptr, trim(fld_name), _RC)
             int_ptr = SO4REFF * 1.e6
          end if
       end if
@@ -1168,7 +1119,7 @@ contains
            grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
            wavelengths_profile=self%wavelengths_profile * 1.0e-9, &
            wavelengths_vertint=self%wavelengths_vertint * 1.0e-9, &
-           tmpu=t, rhoa=airdens, delp=delp, ple=ple, tropp=tropp, rh=RH20, u=u, v=v, &
+           tmpu=t, rhoa=airdens, delp=delp, ple=ple0, tropp=tropp, rh=RH20, u=u, v=v, &
            DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA, extcoef=SUEXTCOEFRH20, &
            scacoef=SUSCACOEFRH20, _RC)
 
@@ -1178,13 +1129,13 @@ contains
            grav=MAPL_GRAV, pi=MAPL_PI, nSO4=nSO4, mie=self%diag_Mie, &
            wavelengths_profile=self%wavelengths_profile * 1.0e-9, &
            wavelengths_vertint=self%wavelengths_vertint * 1.0e-9, &
-           tmpu=t, rhoa=airdens, delp=delp, ple=ple, tropp=tropp, rh=RH80, u=u, v=v, &
+           tmpu=t, rhoa=airdens, delp=delp, ple=ple0, tropp=tropp, rh=RH80, u=u, v=v, &
            DMS=DMS, SO2=SO2, SO4=SO4, MSA=dummyMSA, extcoef=SUEXTCOEFRH80,&
            scacoef=SUSCACOEFRH80, _RC)
 
       deallocate(xoh, xh2o2, xno3, stat=status)
 
-      _RETURN(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine Run2
 
@@ -1205,32 +1156,20 @@ contains
       !DESCRIPTION: Updates pointers in Internal state with fields from ExtData.
 
       ! Locals
-      character(len=ESMF_MAXSTR) :: COMP_NAME
-      type(wrap_) :: wrap
-      type(SU2G_GridComp), pointer :: self
-
       real, pointer, dimension(:, :, :) :: ptr3d_int, ptr3d_imp
 
       integer :: status
-      character(len=255) :: Iam = 'Run_data'
 
       ! Begin...
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) // '::' // Iam
-
-      ! Get my private internal state
-      call ESMF_UserCompGetInternalState(gc, 'SU2G_GridComp', wrap, status)
-      _VERIFY(status)
-      self => wrap%PTR
-
       ! Update interal data pointers with ExtData
-      call MAPL_GetPointer(internal, NAME='SO4', PTR=ptr3d_int, _RC)
-      call MAPL_GetPointer(import, NAME='climSO4', PTR=ptr3d_imp, _RC)
+      call MAPL_StateGetPointer(internal, ptr3d_int, 'SO4', _RC)
+      call MAPL_StateGetPointer(import, ptr3d_imp, 'climSO4', _RC)
       ptr3d_int = ptr3d_imp
 
-      _RETURN(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
+      _UNUSED_DUMMY(gc)
+      _UNUSED_DUMMY(export)
 
    end subroutine Run_data
 

@@ -1,6 +1,6 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3, 4 and 5 done.
+Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3, 4, 5 and 6 done.
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -202,29 +202,65 @@ monochromatic_aerosol_optics.
    - `createReplenishAlarm` call kept. `rc` is no longer optional, as in
      DU.
 
-6. **Run routines (one routine per commit, as DU was done).**
-   - Fetch fields through the generated `#include "SU2G_GetPointer___.h"`;
-     replace any other `MAPL_GetPointer` with `MAPL_StateGetPointer`.
-   - **Undefined-value masks (must fix):** about 10 lines like
+6. **DONE - Run routines** (Run0, Run, Run1, Run2, Run_data, in one
+   change rather than one per commit).
+   - All routines: `MAPL_GridCompGet`, `MAPL_GridCompGetInternalState`,
+     `_GET_NAMED_PRIVATE_STATE`; `MAPL_GetObjectFromGC`, `MAPL_Get`,
+     `ESMF_UserCompGetInternalState`, `Iam` gone; `rc` non-optional (except
+     the internal `Run_data`). The now-unused `type wrap_` was removed.
+   - Fields come from the generated `SU2G_GetPointer___.h`, wrapped in
+     `associate(using_GMI => self%using_GMI)` because the GMI imports are
+     `COND`-ed (step 4). Other `MAPL_GetPointer` -> `MAPL_StateGetPointer`.
+     `dummyMSA` now just points at the generated `MSA` pointer.
+   - Run2: `MAPL_VarSpecGet(InternalSpec(n))` (no MAPL3 equivalent) ->
+     a local `internal_names = ['DMS','SO2','SO4','MSA']` in the spec-file
+     order (`nDMS..nMSA`).
+   - Run2: `SAREA`/`REFF` written into the AERO state by looking up the
+     field name from the AERO Info key (`surface_area_density`,
+     `effective_radius_in_microns`), as `add_aero` stores them.
+   - `lons`/`lats` via `MAPL_GridGetCoordinates(grid, ...)` (radians, as
+     MAPL2's `MAPL_Get(lons=, lats=)`); Run1 fetches them only when
+     `diurnal_bb` is on.
+   - `MAPL_GetHorzIJIndex(n, i, j, grid=, lon=, lat=)` ->
+     `MAPL_GeomGetHorzIJIndex(geom, lon, lat, i, j, local_indices=.true.)`.
+     MAPL2 returned local indices (-1 off-PE); without `local_indices`
+     MAPL3 returns global ones. DU2G's Run1 omits `local_indices`, which
+     looks like a bug there (only hit with point emissions on).
+   - `StrTemplate` -> `MAPL_StrTemplate`; root-only prints ->
+     `logger%info` (the "not found" one in an `omp critical`, as DU).
+     No timers in SU's Run routines.
+   - **Undefined-value masks:** about 10 lines like
      `where(1.01*x > MAPL_UNDEF) x = 0.` in Run1 (around L930-L964).
      MAPL2's undefined value was `+huge`; MAPL3's is `-huge`
      (`InternalConstants.F90` L18-19). Ported as-is the condition is
-     always true and every emission is zeroed. Rewrite the test (e.g.
-     `abs(x) >= abs(MAPL_UNDEF)/1.01`) and run-test it.
+     always true and every emission is zeroed.
+     - DONE: module parameter `MAPL2_UNDEF = huge(1.)`, used in the ten
+       Run1 masks and passed as `undefval` to `SulfateUpdateOxidants`
+       (which applies the same `1.01*x > undefval` test to the oxidant
+       climatologies, Process_Library L7158-7164). This keeps the MAPL2
+       behaviour exactly. Still to check: what MAPL3 ExtData writes for
+       missing data (if `-huge`, these masks no longer catch it).
      - DU2G (`where (1.01*du_src > MAPL_UNDEFINED_REAL)`, around L648 on
        `release/MAPL-v3`) has the same pattern. Check whether DU's
        emissions are being zeroed too.
-   - **Edge-level fields** (`PLE`, `ZLE`): their vertical index starts at
-     1 in MAPL3 (0 in MAPL2). Remap code that assumes `0:LM`
-     (`p1d => PLE; PLE(0:LM) => p1d`), or confirm it only uses `lbound`.
-   - **Oxidants:** check whether `SulfateUpdateOxidants` /
-     `SulfateChemDriver` write back into the `SU_H2O2` import (the
-     `recycle_H2O2` path). MAPL3 may not let a component write into an
-     import.
-   - Timers -> `MAPL_GridCompTimerStart/Stop`. Threading keeps
-     `MAPL_get_current_thread`.
-   - File-name templating -> `MAPL_StrTemplate`. Date/time packing is
-     already ported.
+   - **Edge-level fields** (`PLE`, `ZLE`, `PFL_LSAN`, `PFI_LSAN`): 1-based
+     in MAPL3, 0-based in MAPL2. DONE: pointer lower-bound remaps
+     (`ple0(lbound(ple,1):, lbound(ple,2):, 0:) => ple`), passed to every
+     process-library call: `findKlid` (Run0, Run2), `SUvolcanicEmissions`,
+     `SulfateDistributeEmissions`, `updatePointwiseEmissions` (Run1),
+     `Chem_SettlingSimple`, `SulfateChemDriver`, `SU_Wet_Removal`,
+     `WetRemovalUFS`, `SU_Compute_Diags` (Run2). Remaps rather than DU's
+     allocated copies because most of these dummies are
+     `real, pointer` (some without `intent(in)`), which an allocatable
+     actual can't match. `findKlid` takes assumed shape, so it was
+     unaffected either way.
+   - **Oxidants:** `SulfateUpdateOxidants` writes into its `oh_clim`/
+     `no3_clim`/`h2o2_clim` arguments, i.e. the `SU_OH`/`SU_NO3`/
+     `SU_H2O2` imports: it zeroes negative and undefined values in
+     place (L7158-7164). It does not write chemistry results back; the
+     `recycle_H2O2` path only copies `h2o2_clim` into `xh2o2`. Unchanged
+     from MAPL2; check at run time that MAPL3 allows the in-place
+     cleanup (it modifies the provider's field).
 
 7. **AERO methods.** `aerosol_optics`, `monochromatic_aerosol_optics` and
    `get_mixR` follow DU's MAPL3 versions (`ESMF_InfoGet`, field lookup
@@ -264,6 +300,15 @@ monochromatic_aerosol_optics.
       non-zero `SO4`.
     - NI2G's `SO4` import from SU can be connected when NI is ported; wire
       DU->NI and SS->NI at the same time.
+    - DU2G fixes found while porting SU (separate PR, not on this branch):
+      - Undefined-value mask: `where (1.01 * du_src > MAPL_UNDEFINED_REAL)`
+        in `run1` is always true under MAPL3 (`-huge`), so `du_src` is
+        zeroed everywhere and Ginoux/K14 emissions are lost. Use the same
+        `MAPL2_UNDEF = huge(1.)` approach as SU (step 6).
+      - Point emissions: `run1` calls `MAPL_GeomGetHorzIJIndex` without
+        `local_indices=.true.`, so it gets global indices where
+        `updatePointwiseEmissions` expects local ones (-1 off-PE). Only hit
+        when `point_emissions_srcfilen` is set.
 
 ## Risks to settle early
 1. The undefined-value comparisons (step 6). This also affects DU on the
