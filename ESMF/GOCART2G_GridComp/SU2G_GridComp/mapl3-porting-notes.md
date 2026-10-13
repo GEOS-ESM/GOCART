@@ -1,6 +1,6 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c and 2 done.
+Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2 and 3 done.
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -106,16 +106,28 @@ monochromatic_aerosol_optics.
    - `CMakeLists.txt`: added `TYPE SHARED` and `NetCDF::NetCDF_Fortran`, as
      DU2G has.
 
-3. **Instance configuration.**
-   - Convert `SU2G_instance_SU.rc` to `SU2G_instance_SU.yaml` (plus a
-     `.data` variant), following `DU2G_instance_DU.yaml`.
-   - Generic settings already go through
-     `GA_Environment%load_from_config(gc)`, which is on MAPL3.
-   - SU-specific settings (`using_GMI`, `disable_emissions`, the volcano
-     files, `aircraft_fuel_emission_factor`, `so4_anthropogenic_fraction`,
-     `aviation_vertical_layers(4)`, `point_emissions_srcfilen`) move to
-     `MAPL_GridCompGetResource(gc, "label", ...)`, with the trailing `:`
-     dropped from labels.
+3. **DONE - Instance configuration.**
+   - Added `SU2G_instance_SU.yaml`, converted from `SU2G_instance_SU.rc`
+     following `DU2G_instance_DU.yaml` (values unchanged; `.false.` ->
+     `false`; lists in `[...]`; the `mapl:` CI section copied from DU).
+     The `.rc` is kept, as DU and SS keep theirs.
+     - `fwet_ice`/`fwet_snow`/`fwet_rain` were a single `1.0` in the `.rc`;
+       MAPL2 read them as `nbins`-arrays with `default=1.0`, so every bin
+       was 1.0. MAPL3's `load_from_config` reads an array, so the YAML
+       lists four `1.0` values.
+     - Integer-looking reals (`-1`, `1700`) written as `-1.0`, `1700.0`.
+   - No `.data` variant: the parent loads
+     `<species>_instance_<child>.yaml`, so `SU2G_instance_SU.data.yaml` is
+     only needed if `SU.data` is made active. DU and SS don't have one
+     either.
+   - SetServices: the `.rc` loading (with its `SU2G_instance_SU.rc`
+     fallback) is gone; `GA_Environment%load_from_config(gc)` and
+     `MAPL_GridCompGetResource(gc, "label", ...)` read the child's YAML.
+     `volcano_srcfilen_*` and `point_emissions_srcfilen` became
+     `character(len=:), allocatable`; `aviation_layers` became an
+     allocatable array with an `_ASSERT` that it has 4 values.
+   - Initialize still loads the `.rc` (optics files, `n_moments`, the
+     universal config); that moves in step 5.
 
 4. **SetServices.**
    - Store SU's state with `_SET_NAMED_PRIVATE_STATE` /

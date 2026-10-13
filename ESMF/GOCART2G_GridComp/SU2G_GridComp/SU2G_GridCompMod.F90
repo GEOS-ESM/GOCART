@@ -70,7 +70,7 @@ module SU2G_GridCompMod
       integer :: myDOW = -1 ! my Day of the week: Sun=1, Mon=2,...,Sat=7
       logical :: diurnal_bb ! diurnal biomass burning
       real :: eAircraftFuel ! Aircraft emission factor: go from kg fuel to kg SO2
-      real :: aviation_layers(4) ! heights of the LTO, CDS and CRS layers
+      real, allocatable :: aviation_layers(:) ! heights of the LTO, CDS and CRS layers
       real :: fSO4anth ! Fraction of anthropogenic emissions that are SO4
       !logical :: firstRun = .true.
 
@@ -79,12 +79,12 @@ module SU2G_GridCompMod
       logical :: disable_emissions
 
       ! Special handling for volcanic emissions
-      character(len=255) :: volcano_srcfilen_degassing
-      character(len=255) :: volcano_srcfilen_explosive
+      character(len=:), allocatable :: volcano_srcfilen_degassing
+      character(len=:), allocatable :: volcano_srcfilen_explosive
 
       ! Workspace for point emissions
       logical :: doing_point_emissions = .false.
-      character(len=255) :: point_emissions_srcfilen ! filename for pointwise emissions
+      character(len=:), allocatable :: point_emissions_srcfilen ! filename for pointwise emissions
       type(ThreadWorkspace), allocatable :: workspaces(:)
       type(ESMF_Alarm) :: alarm
    end type SU2G_GridComp
@@ -115,8 +115,6 @@ contains
 
       ! Locals
       character(len=ESMF_MAXSTR) :: COMP_NAME
-      type(ESMF_Config) :: cfg
-      type(ESMF_Config) :: universal_cfg
       type(wrap_) :: wrap
       type(SU2G_GridComp), pointer :: self
 
@@ -125,7 +123,6 @@ contains
       integer :: i
       real :: DEFVAL
       logical :: data_driven = .true.
-      logical :: file_exists
       integer :: num_threads
 
       integer :: status
@@ -134,7 +131,7 @@ contains
       ! Begin...
 
       ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, NAME=COMP_NAME, config=universal_cfg, _RC)
+      call ESMF_GridCompGet(gc, NAME=COMP_NAME, _RC)
       Iam = trim(COMP_NAME) // '::' // Iam
 
       ! Wrap internal state for storing in GC
@@ -144,34 +141,20 @@ contains
       num_threads = MAPL_get_num_threads()
       allocate(self%workspaces(0:num_threads - 1), _STAT)
 
-      ! Load resource file
-      cfg = ESMF_ConfigCreate(_RC)
-      inquire(file='SU2G_instance_' // trim(COMP_NAME) // '.rc', exist=file_exists)
-      if (file_exists) then
-         call ESMF_ConfigLoadFile(cfg, 'SU2G_instance_' // trim(COMP_NAME) // '.rc', _RC)
-      else
-         if (mapl_am_i_root()) print*, 'SU2G_instance_' // trim(COMP_NAME) // '.rc does not exist! loading' // &
-              ' SU2G_instance_SU.rc instead'
-         call ESMF_ConfigLoadFile(cfg, 'SU2G_instance_SU.rc', _RC)
-      end if
-
       ! process generic config items
-      call self%GA_Environment%load_from_config(cfg, universal_cfg, _RC)
+      call self%GA_Environment%load_from_config(gc, _RC)
 
       ! process SU-specific items
-      call ESMF_ConfigGetAttribute(cfg, self%using_GMI, label='using_GMI:', _RC)
-      call ESMF_ConfigGetAttribute(cfg, self%disable_emissions, label='disable_emissions:', _RC)
-      call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_degassing, label='volcano_srcfilen_degassing:', _RC)
-      call ESMF_ConfigGetAttribute(cfg, self%volcano_srcfilen_explosive, label='volcano_srcfilen_explosive:', _RC)
-      call ESMF_ConfigGetAttribute(cfg, self%eAircraftFuel, label='aircraft_fuel_emission_factor:', _RC)
-      call ESMF_ConfigGetAttribute(cfg, self%fSO4anth, label='so4_anthropogenic_fraction:', _RC)
-      call ESMF_ConfigFindLabel(cfg, 'aviation_vertical_layers:', _RC)
-      do i = 1, size(self%aviation_layers)
-         call ESMF_ConfigGetAttribute(cfg, self%aviation_layers(i), _RC)
-      end do
+      call MAPL_GridCompGetResource(gc, "using_GMI", self%using_GMI, _RC)
+      call MAPL_GridCompGetResource(gc, "disable_emissions", self%disable_emissions, _RC)
+      call MAPL_GridCompGetResource(gc, "volcano_srcfilen_degassing", self%volcano_srcfilen_degassing, _RC)
+      call MAPL_GridCompGetResource(gc, "volcano_srcfilen_explosive", self%volcano_srcfilen_explosive, _RC)
+      call MAPL_GridCompGetResource(gc, "aircraft_fuel_emission_factor", self%eAircraftFuel, _RC)
+      call MAPL_GridCompGetResource(gc, "so4_anthropogenic_fraction", self%fSO4anth, _RC)
+      call MAPL_GridCompGetResource(gc, "aviation_vertical_layers", self%aviation_layers, _RC)
+      _ASSERT(size(self%aviation_layers) == 4, "aviation_vertical_layers must have 4 values")
 
-      call ESMF_ConfigGetAttribute(cfg, self%point_emissions_srcfilen, &
-           label='point_emissions_srcfilen:', default='/dev/null', _RC)
+      call MAPL_GridCompGetResource(gc, "point_emissions_srcfilen", self%point_emissions_srcfilen, default='/dev/null', _RC)
       if ((index(self%point_emissions_srcfilen, '/dev/null') > 0)) then
          self%doing_point_emissions = .false. ! disable it if no file specified
       else
