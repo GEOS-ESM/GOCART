@@ -183,8 +183,15 @@ monochromatic_aerosol_optics.
        once they exist.
      - Check whether the subscription belongs in SU or in a GOCART2G/PHYS
        ancestor, and do the same for DU and SS.
-     - NOT DONE: no MAPL3 component subscribes to `TRADV` yet, and the
-       placement question above is open.
+     - DONE (SU only): SetServices subscribes to `TRADV` with
+       `service_items` DMS/SO2/SO4/MSA (a `StringVector`), for the
+       computational instance only. Placement settled: `items` must be the
+       subscriber's own internals, so it has to be in SU, not an ancestor.
+       Builds; not run-tested (first Fortran use of `service_items`; the
+       FV3 `adv-dyn`/`dyn-sa` regressions subscribe via YAML, with sibling
+       connections only). Open: whether a nested subscriber's `TRADV`
+       propagates up to a DYN/ADV connection in the parent, and duplicate
+       names if two SU instances subscribe. DU and SS still to do.
 
 5. **DONE - Initialize.** Rewritten after DU2G's MAPL3 Initialize:
    - `MAPL_GridCompGet(gc, name=, geom=, num_levels=)`; private state via
@@ -379,15 +386,32 @@ monochromatic_aerosol_optics.
         SS2G likely has the same pattern.
 
 ## Risks to settle early
+Nothing below has been checked at run time yet (no step-0 baseline, no
+`su-sa` case).
+
 1. The undefined-value comparisons (step 6). This also affects DU on the
    current branch.
+   - SU: fixed in code (`MAPL2_UNDEF = +huge` in the Run1 masks and
+     `SulfateUpdateOxidants`).
+   - Open: what MAPL3 ExtData writes for missing data; if `-huge`, the
+     masks don't catch it.
+   - DU: not fixed (step 10, separate PR).
 2. GMI coupling: `using_GMI` changes which fields SU imports. Test with
    GMI off first, and confirm the baseline used the same setting.
+   - Code done: the `GMI_*` imports are `COND=using_GMI` (step 4).
+   - Open: no GMI-off run yet; baseline setting unknown until step 0.
 3. Whether SU writes back into the `SU_H2O2` import (step 6).
+   - Settled by reading the code: no chemistry write-back.
+     `SulfateUpdateOxidants` only zeroes negative/undefined values in the
+     `SU_OH`/`SU_NO3`/`SU_H2O2` imports in place.
+   - Open: confirm at run time that MAPL3 allows modifying the import.
 4. Volcano and point-emission files are read from disk, so the regression
    data must include them.
+   - Not addressed: the `su-sa` case and its data don't exist yet (step 9).
 5. Tracer transport (step 4, friendliness): until SU subscribes to the
    `TRADV` service (and turbulence/moist equivalents exist), DMS, SO2,
    SO4 and MSA are not advected, diffused or convected in a coupled run.
    The SU-only standalone regression is unaffected. DU and SS have the
    same gap.
+   - Not addressed: no subscription, and placement (SU vs. a parent
+     component) is undecided.

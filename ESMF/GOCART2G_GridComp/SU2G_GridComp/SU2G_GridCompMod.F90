@@ -8,6 +8,7 @@ module SU2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
+   use gFTL2_StringVector, only: StringVector
    use MAPL
    use GOCART2G_MieMod
    use Chem_AeroGeneric
@@ -98,7 +99,6 @@ module SU2G_GridCompMod
 contains
 
    !IROUTINE: SetServices
-
    !INTERFACE:
    subroutine SetServices(gc, rc)
 
@@ -121,6 +121,7 @@ contains
       integer :: num_threads
       type(MAPL_UngriddedDim) :: ungrd_nbins
       type(MAPL_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      type(StringVector) :: advected_tracers
       integer :: i, status
 
       call MAPL_GridCompGet(gc, name=comp_name, logger=logger, _RC)
@@ -269,6 +270,17 @@ contains
 #include "SU2G_Import___.h"
          end associate
 #include "SU2G_Internal___.h"
+         ! Replaces MAPL2's FRIENDLYTO=DYNAMICS on DMS, SO2, SO4, MSA
+         call advected_tracers%push_back("DMS")
+         call advected_tracers%push_back("SO2")
+         call advected_tracers%push_back("SO4")
+         call advected_tracers%push_back("MSA")
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name="TRADV", &
+              standard_name="advected_quantities", &
+              itemtype=MAPL_STATEITEM_SERVICE, &
+              service_items=advected_tracers, _RC)
          call logger%info("Wet removal scheme is %a", trim(self%wet_removal_scheme))
          call logger%info("Settling scheme is %a", trim(self%settling_scheme))
       end if
@@ -300,7 +312,6 @@ contains
    end subroutine SetServices
 
    !IROUTINE: Initialize
-
    !INTERFACE:
    subroutine Initialize(gc, import, export, clock, rc)
 
@@ -519,7 +530,6 @@ contains
    end subroutine Initialize
 
    !IROUTINE: Run0
-
    !INTERFACE:
    subroutine Run0(gc, import, export, clock, rc)
 
@@ -568,7 +578,6 @@ contains
    end subroutine Run0
 
    !IROUTINE: Run
-
    !INTERFACE:
    subroutine Run(gc, import, export, clock, rc)
 
@@ -608,7 +617,6 @@ contains
    end subroutine Run
 
    !IROUTINE: Run1
-
    !INTERFACE:
    subroutine Run1(gc, import, export, clock, rc)
 
@@ -872,9 +880,7 @@ contains
    end subroutine Run1
 
    !IROUTINE: Run2
-
    !INTERFACE:
-
    subroutine Run2(gc, import, export, clock, rc)
 
       !ARGUMENTS:
@@ -1148,9 +1154,7 @@ contains
    end subroutine Run2
 
    !IROUTINE: Run_data -- ExtData Sulfate Grid Component
-
    !INTERFACE:
-
    subroutine Run_data(gc, import, export, internal, rc)
 
       !ARGUMENTS:
