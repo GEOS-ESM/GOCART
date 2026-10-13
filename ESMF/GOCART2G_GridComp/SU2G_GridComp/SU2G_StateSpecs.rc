@@ -111,13 +111,13 @@ category: INTERNAL
 #----------------------------------------------------------------------------------------
 #  VARIABLE                | DIMENSION        |          Additional Metadata
 #----------------------------------------------------------------------------------------
-  NAME     | UNITS   | DIMS | VLOC | RESTART  | ADD2EXPORT | FILL | LONG NAME
+  NAME     | UNITS   | DIMS | VLOC | ADD2EXPORT | FILL | LONG NAME
 #----------------------------------------------------------------------------------------
- DMS       | kg kg-1 | xyz  | C    | OPTIONAL | T          | 0.0  | Dimethylsulphide
- SO2       | kg kg-1 | xyz  | C    | OPTIONAL | T          | 0.0  | Sulphur dioxide
- SO4       | kg kg-1 | xyz  | C    | OPTIONAL | T          | 0.0  | Sulphate aerosol
- MSA       | kg kg-1 | xyz  | C    | OPTIONAL | T          | 0.0  | Methanesulphonic acid
- H2O2_INIT | kg kg-1 | xyz  | C    |          | F          | 0.0  | private H2O2 that is saved and used to initialize
+ DMS       | kg kg-1 | xyz  | C    | T          | 0.0  | Dimethylsulphide
+ SO2       | kg kg-1 | xyz  | C    | T          | 0.0  | Sulphur dioxide
+ SO4       | kg kg-1 | xyz  | C    | T          | 0.0  | Sulphate aerosol
+ MSA       | kg kg-1 | xyz  | C    | T          | 0.0  | Methanesulphonic acid
+ H2O2_INIT | kg kg-1 | xyz  | C    | F          | 0.0  | private H2O2 that is saved and used to initialize
 
 
 #********************************************************

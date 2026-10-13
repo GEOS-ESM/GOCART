@@ -96,13 +96,16 @@ monochromatic_aerosol_optics.
        `field_empty_complete`) unless `fill_value` is given.
      - Kept `ADD2EXPORT=T`; removed the `FRIENDLYTO` column (ignored by
        MAPL3's ACG).
-     - `RESTART`: `MAPL_RestartOptional` -> `OPTIONAL`. The MAPL2 spelling
-       isn't in the ACG's mapping and was silently dropped (DU2G's spec
-       still has this problem).
+     - `RESTART` column removed from the internals (was
+       `MAPL_RestartOptional`). MAPL3 has only `RESTART_REQUIRED` (the
+       default) and `RESTART_SKIP` (`infrastructure/field/RestartModes.F90`);
+       the ACG maps `OPTIONAL` to `MAPL_RESTART_OPTIONAL`, which doesn't
+       exist and fails to compile. Leaving it blank gives the default, the
+       same as DU2G (whose `MAPL_RestartOptional` is silently dropped).
    - Checked with the in-repo ACG
      (`python3.12 src/Shared/@MAPL/apps/MAPL_GridCompSpecs_ACG.py`): 17
      `ungridded_dim_array=[ ungrd_*]`, and internals emit
-     `restart_mode=MAPL_RESTART_OPTIONAL` and `fill_value=0.0`.
+     `fill_value=0.0`.
    - `CMakeLists.txt`: added `TYPE SHARED` and `NetCDF::NetCDF_Fortran`, as
      DU2G has.
 
@@ -141,6 +144,13 @@ monochromatic_aerosol_optics.
    - Entry points: `Run` -> `"Run1"`, `Run2` -> `"Run2"`, `Run0` ->
      `"Run0"` (the names GOCART2G's `MAPL_GridCompRunChild` calls use).
      `MAPL_GenericSetServices` and `ESMF_UserCompSetInternalState` gone.
+   - Entry-point signatures: every routine passed to
+     `MAPL_GridCompSetEntryPoint` (Initialize, Run, Run2, Run0) must match
+     MAPL3's `I_Run` (`infrastructure/esmf/ESMF_Interfaces.F90`): `gc`,
+     `import`, `export`, `clock` declared with no `intent`, `rc`
+     `intent(out)` and not optional, as in DU2G. MAPL2's
+     `intent(inout)` dummies fail with ifx errors #7061-7063. (Missed in
+     the original plan and fixed at the first build; see step 9.)
    - Data-driven specs converted to `MAPL_GridCompAddSpec` (`PLE`, `RH2`,
      internal `SO4` with `add_to_export`/`fill_value=0.0`, `climSO4`,
      per-bin `climSU{DP,WT,SD,SV}nnn`), but guarded by `_FAIL` first, as
@@ -329,6 +339,13 @@ monochromatic_aerosol_optics.
      GOCART2G's SetServices iterates over `size(self%SS%instances)`.
 
 9. **Run-testing.**
+   - First build (ifx Debug) of SU2G + GOCART2G succeeds after three
+     fixes: entry-point dummies lose their `intent(inout)` (step 4 should
+     have covered this); no
+     `MAPL_RESTART_OPTIONAL` (step 2, and the data-driven `SO4`/`climSO4`
+     specs); `MAPL_MaxMin` is now a function `MAPL_MaxMin(array, comm)`
+     returning `[max, min]`, so the GMI diagnostics in Run2 log it with
+     the VM's MPI communicator.
    - Add a `regression/su-sa` case: `root.yaml` (current vertical-grid
      schema), `cap_driver.yaml`, `cap_restart.yaml`, and SU's ExtData
      needs (anthropogenic/ship/biomass/aircraft/DMS emissions, the

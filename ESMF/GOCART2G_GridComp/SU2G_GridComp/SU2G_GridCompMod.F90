@@ -207,7 +207,6 @@ contains
               units='kg kg-1', &
               dims='xyz', &
               vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
-              restart_mode=MAPL_RESTART_OPTIONAL, &
               fill_value=0.0, &
               add_to_export=.true., _RC)
 
@@ -217,8 +216,7 @@ contains
               standard_name='Sulphate aerosol', &
               units='kg kg-1', &
               dims='xyz', &
-              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
-              restart_mode=MAPL_RESTART_OPTIONAL, _RC)
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, _RC)
 
          do i = 1, self%nbins
             write(field_name, '(A, I0.3)') '', i
@@ -307,10 +305,10 @@ contains
    subroutine Initialize(gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type(ESMF_GridComp), intent(inout) :: gc ! Gridded component
-      type(ESMF_State), intent(inout) :: import ! Import state
-      type(ESMF_State), intent(inout) :: export ! Export state
-      type(ESMF_Clock), intent(inout) :: clock ! The clock
+      type(ESMF_GridComp) :: gc ! Gridded component
+      type(ESMF_State) :: import ! Import state
+      type(ESMF_State) :: export ! Export state
+      type(ESMF_Clock) :: clock ! The clock
       integer, intent(out) :: rc ! Error code
 
       !DESCRIPTION: This initializes SU Grid Component.
@@ -526,10 +524,10 @@ contains
    subroutine Run0(gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type(ESMF_GridComp), intent(inout) :: gc ! Gridded component
-      type(ESMF_State), intent(inout) :: import ! Import state
-      type(ESMF_State), intent(inout) :: export ! Export state
-      type(ESMF_Clock), intent(inout) :: clock ! The clock
+      type(ESMF_GridComp) :: gc ! Gridded component
+      type(ESMF_State) :: import ! Import state
+      type(ESMF_State) :: export ! Export state
+      type(ESMF_Clock) :: clock ! The clock
       integer, intent(out) :: rc ! Error code:
 
       !DESCRIPTION:  Clears klid to 0.0 for Sulfates
@@ -575,10 +573,10 @@ contains
    subroutine Run(gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type(ESMF_GridComp), intent(inout) :: gc ! Gridded component
-      type(ESMF_State), intent(inout) :: import ! Import state
-      type(ESMF_State), intent(inout) :: export ! Export state
-      type(ESMF_Clock), intent(inout) :: clock ! The clock
+      type(ESMF_GridComp) :: gc ! Gridded component
+      type(ESMF_State) :: import ! Import state
+      type(ESMF_State) :: export ! Export state
+      type(ESMF_Clock) :: clock ! The clock
       integer, intent(out) :: rc ! Error code:
 
       !DESCRIPTION: Run method for the Sulfate Component. Determines whether to run
@@ -615,10 +613,10 @@ contains
    subroutine Run1(gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type(ESMF_GridComp), intent(inout) :: gc ! Gridded component
-      type(ESMF_State), intent(inout) :: import ! Import state
-      type(ESMF_State), intent(inout) :: export ! Export state
-      type(ESMF_Clock), intent(inout) :: clock ! The clock
+      type(ESMF_GridComp) :: gc ! Gridded component
+      type(ESMF_State) :: import ! Import state
+      type(ESMF_State) :: export ! Export state
+      type(ESMF_Clock) :: clock ! The clock
       integer, intent(out) :: rc ! Error code:
 
       !DESCRIPTION:  Computes emissions/sources for Sulfate
@@ -880,10 +878,10 @@ contains
    subroutine Run2(gc, import, export, clock, rc)
 
       !ARGUMENTS:
-      type(ESMF_GridComp), intent(inout) :: gc ! Gridded component
-      type(ESMF_State), intent(inout) :: import ! Import state
-      type(ESMF_State), intent(inout) :: export ! Export state
-      type(ESMF_Clock), intent(inout) :: clock ! The clock
+      type(ESMF_GridComp) :: gc ! Gridded component
+      type(ESMF_State) :: import ! Import state
+      type(ESMF_State) :: export ! Export state
+      type(ESMF_Clock) :: clock ! The clock
       integer, intent(out) :: rc ! Error code:
 
       !DESCRIPTION: Run2 method for the Sulfate Grid Component.
@@ -924,13 +922,17 @@ contains
       real, pointer, dimension(:, :) :: flux_ptr
       integer :: settling_opt
       type(ESMF_StateItem_Flag) :: item_type
+      class(logger_t), pointer :: logger
+      type(ESMF_VM) :: vm
+      integer :: comm
+      real :: mm(2)
 #include "SU2G_DeclarePointer___.h"
 
       integer :: status
 
       ! Begin...
 
-      call MAPL_GridCompGet(gc, name=comp_name, grid=grid, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, grid=grid, logger=logger, _RC)
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Get my private internal state
@@ -990,10 +992,16 @@ contains
          xh2o2 = GMI_H2O2
          xno3 = GMI_NO3
          xoh = xoh * (MAPL_AVOGAD / 1000.) / MAPL_AIRMW * 1000. * airdens * 1.00E-06
-         call MAPL_MaxMin('GMI:OH   ', xoh)
-         call MAPL_MaxMin('GMI:H2O2 ', xh2o2)
-         call MAPL_MaxMin('GMI:NO3  ', xno3)
-         call MAPL_MaxMin('GMI:rhoa ', airdens)
+         call ESMF_VMGetCurrent(vm, _RC)
+         call ESMF_VMGet(vm, mpiCommunicator=comm, _RC)
+         mm = MAPL_MaxMin(xoh, comm, _RC)
+         call logger%info('GMI:OH    max, min: %es12.5 %es12.5', mm(1), mm(2))
+         mm = MAPL_MaxMin(xh2o2, comm, _RC)
+         call logger%info('GMI:H2O2  max, min: %es12.5 %es12.5', mm(1), mm(2))
+         mm = MAPL_MaxMin(xno3, comm, _RC)
+         call logger%info('GMI:NO3   max, min: %es12.5 %es12.5', mm(1), mm(2))
+         mm = MAPL_MaxMin(airdens, comm, _RC)
+         call logger%info('GMI:rhoa  max, min: %es12.5 %es12.5', mm(1), mm(2))
       else
 
          xoh = 0.0
@@ -1147,9 +1155,9 @@ contains
 
       !ARGUMENTS:
 
-      type(ESMF_GridComp), intent(inout) :: gc ! Gridded component
-      type(ESMF_State), intent(inout) :: import ! Import state
-      type(ESMF_State), intent(inout) :: export ! Export state
+      type(ESMF_GridComp) :: gc ! Gridded component
+      type(ESMF_State) :: import ! Import state
+      type(ESMF_State) :: export ! Export state
       type(ESMF_State), intent(inout) :: internal ! Interal state
       integer, optional, intent(out) :: rc ! Error code:
 
