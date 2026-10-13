@@ -1,6 +1,6 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3 and 4 done.
+Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3, 4 and 5 done.
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -176,24 +176,31 @@ monochromatic_aerosol_optics.
      - NOT DONE: no MAPL3 component subscribes to `TRADV` yet, and the
        placement question above is open.
 
-5. **Initialize.**
-   - Get grid, levels and coordinates from MAPL (Solar step 18: never ask
-     ESMF for the grid): `MAPL_GridCompGet(gc, geom=, grid=, num_levels=,
-     logger=)`, `MAPL_GridGetCoordinates` for `LONS`/`LATS`,
-     `MAPL_GridCompGetInternalState`.
-   - Timestep from the clock; `GOCART2G_DT` and `DIURNAL_BIOMASS_BURNING`
-     via `MAPL_GridCompGetResource`.
-   - Field and state attributes become `ESMF_InfoSet`:
-     - `ScavengingFractionPerKm` on DMS/SO2/SO4/MSA
-     - the `SetofHenryLawCts` vector, as `values=`
-     - on the AERO state: `use_photolysis_table`, `mie_table_instance`,
-       `band_for_aerosol_optics`, `wavelength_for_aerosol_optics`,
-       `mieTable_pointer`, `internal_variable_name`
-   - Replace `add_aero_named_alias` (develop's old-API helper) with the
-     MAPL3 `add_aero(..., geom=, km=, ...)`, including the SU-only
-     `SAREA` and `REFF` fields used by chemistry.
-   - Mie tables: radiation bands, photolysis and diagnostics, as DU does.
-   - `createReplenishAlarm` is already on MAPL3; keep the call.
+5. **DONE - Initialize.** Rewritten after DU2G's MAPL3 Initialize:
+   - `MAPL_GridCompGet(gc, name=, geom=, num_levels=)`; private state via
+     `_GET_NAMED_PRIVATE_STATE`; internal state via
+     `MAPL_GridCompGetInternalState`. `MAPL_GetObjectFromGC`, `MAPL_Get`,
+     `MAPL_GridGet` and `MAPL_GenericInitialize` gone. The unused
+     `lons`/`lats` fetch was dropped.
+   - Timestep: `MAPL_ClockGet(clock, dt=)`; `GOCART2G_DT`,
+     `DIURNAL_BIOMASS_BURNING` (default `YES`) and all optics settings
+     (`aerosol_*_optics_file`, `n_moments`,
+     `n_phase_function_moments_photolysis`, the LUT wavelengths) via
+     `MAPL_GridCompGetResource`. The `.rc` loading and the universal
+     `ESMF_Config` are gone.
+   - Attributes -> `ESMF_InfoSet`: `ScavengingFractionPerKm` on
+     DMS/SO2/SO4/MSA, `SetofHenryLawCts` (`values=`), and on the AERO
+     state `use_photolysis_table`, `mie_table_instance`,
+     `band_for_aerosol_optics`, `wavelength_for_aerosol_optics`,
+     `mieTable_pointer`, `internal_variable_name`. The MSA check now uses
+     `ESMF_StateGet(..., itemType)` instead of testing the `rc` of a
+     failed get.
+   - SO4 goes into the AERO state with `ESMF_StateAdd(aero, [field])`, as
+     DU does, instead of `MAPL_FieldCreate` + `MAPL_StateAdd`.
+   - `add_aero_named_alias` -> `add_aero(..., geom=, km=, typekind=)`,
+     including `SAREA` and `REFF` (R4, 3D).
+   - `createReplenishAlarm` call kept. `rc` is no longer optional, as in
+     DU.
 
 6. **Run routines (one routine per commit, as DU was done).**
    - Fetch fields through the generated `#include "SU2G_GetPointer___.h"`;

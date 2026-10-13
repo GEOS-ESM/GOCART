@@ -312,7 +312,7 @@ contains
       type(ESMF_State), intent(inout) :: import ! Import state
       type(ESMF_State), intent(inout) :: export ! Export state
       type(ESMF_Clock), intent(inout) :: clock ! The clock
-      integer, optional, intent(out) :: rc ! Error code
+      integer, intent(out) :: rc ! Error code
 
       !DESCRIPTION: This initializes SU Grid Component.
 
@@ -320,255 +320,204 @@ contains
       ! 08July2019   E.Sherman  First attempt at refactoring
 
       ! Locals
-      character(len=ESMF_MAXSTR) :: COMP_NAME
-      type(MAPL_MetaComp), pointer :: MAPL
-      type(ESMF_Grid) :: grid
+      character(len=:), allocatable :: comp_name
+      type(ESMF_Geom) :: geom
       type(ESMF_State) :: internal
       type(ESMF_State) :: aero
-      type(ESMF_State) :: providerState
-      type(ESMF_Config) :: cfg, universal_cfg
-      type(ESMF_FieldBundle) :: Bundle_DP
-      type(wrap_) :: wrap
+      type(ESMF_State) :: provider_state
+      type(ESMF_FieldBundle) :: bundle_dp
+      type(ESMF_Field) :: field
+      type(ESMF_Info) :: field_info, aero_info
+      type(ESMF_StateItem_Flag) :: item_type
       type(SU2G_GridComp), pointer :: self
 
       integer, allocatable :: mieTable_pointer(:)
-      integer :: i, DIMS(3), km
+      integer :: km
       integer :: instance
-      type(ESMF_Field) :: field, fld
-      character(len=ESMF_MAXSTR) :: prefix, diurnal_bb
-      real, pointer, dimension(:, :) :: lats
-      real, pointer, dimension(:, :) :: lons
+      character(len=ESMF_MAXSTR) :: prefix
+      character(len=:), allocatable :: diurnal_bb
       real :: CDT ! chemistry timestep (secs)
-      integer :: HDT ! model     timestep (secs)
+      real :: HDT ! model timestep (secs)
       logical :: data_driven
-      integer :: NUM_BANDS
-      logical :: bands_are_present
-
-      type(ESMF_Calendar) :: calendar
-      type(ESMF_Time) :: currentTime
-      type(ESMF_Time) :: ringTime
-      type(ESMF_TimeInterval) :: ringInterval
-      integer :: year, month, day, hh, mm, ss
 
       real, dimension(4) :: Vect_Hcts
       integer, allocatable, dimension(:) :: channels_
       integer :: nmom_
-      character(len=ESMF_MAXSTR) :: file_
-      logical :: file_exists
+      character(len=:), allocatable :: file_
       integer :: status
-      character(len=255) :: Iam = 'Initialize'
 
       ! Begin...
 
-      ! Get the target components name and set-up traceback handle.
-      call ESMF_GridCompGet(gc, grid=grid, NAME=COMP_NAME, config=universal_cfg, _RC)
-      Iam = trim(COMP_NAME) // '::' // trim(Iam)
-
-      ! Get my internal MAPL_Generic state
-      call MAPL_GetObjectFromGC(gc, MAPL, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, geom=geom, num_levels=km, _RC)
 
       ! Get my internal private state
-      call ESMF_UserCompGetInternalState(gc, 'SU2G_GridComp', wrap, status)
-      _VERIFY(status)
-      self => wrap%PTR
+      _GET_NAMED_PRIVATE_STATE(gc, SU2G_GridComp, PRIVATE_STATE, self)
 
-      ! Get dimensions
-      call MAPL_GridGet(grid, localCellCountPerDim=DIMS, _RC)
-      km = DIMS(3)
       self%km = km
 
       ! Get DTs
-      call MAPL_GetResource(MAPL, HDT, label='RUN_DT:', _RC)
-      call MAPL_GetResource(MAPL, CDT, label='GOCART2G_DT:', default=real(HDT), _RC)
+      call MAPL_ClockGet(clock, dt=HDT, _RC)
+      call MAPL_GridCompGetResource(gc, "GOCART2G_DT", CDT, default=real(HDT), _RC)
       self%CDT = CDT
 
       ! Check whether to de-activate diurnal biomass burning (default is *on*)
-      call ESMF_ConfigGetAttribute(universal_cfg, diurnal_bb, label='DIURNAL_BIOMASS_BURNING:', &
-           default='YES', _RC)
+      call MAPL_GridCompGetResource(gc, "DIURNAL_BIOMASS_BURNING", diurnal_bb, default='YES', _RC)
       diurnal_bb = ESMF_UtilStringUpperCase(diurnal_bb, _RC)
-      if (trim(diurnal_bb) == 'YES') then
-         self%diurnal_bb = .true.
-      else
-         self%diurnal_bb = .false.
-      end if
+      self%diurnal_bb = (trim(diurnal_bb) == 'YES')
 
-      ! Load resource file and get number of bins
-      cfg = ESMF_ConfigCreate(_RC)
-      inquire(file='SU2G_instance_' // trim(COMP_NAME) // '.rc', exist=file_exists)
-      if (file_exists) then
-         call ESMF_ConfigLoadFile(cfg, 'SU2G_instance_' // trim(COMP_NAME) // '.rc', _RC)
-      else
-         if (mapl_am_i_root()) print*, 'SU2G_instance_' // trim(COMP_NAME) // '.rc does not exist! loading' // &
-              ' SU2G_instance_SU.rc instead'
-         call ESMF_ConfigLoadFile(cfg, 'SU2G_instance_SU.rc', _RC)
-      end if
-
-      ! Call Generic Initialize
-      call MAPL_GenericInitialize(gc, import, export, clock, _RC)
-
-      ! Get parameters from generic state.
-      call MAPL_Get(MAPL, INTERNAL_ESMF_STATE=internal, &
-           lons=lons, &
-           lats=lats, _RC)
+      call MAPL_GridCompGetInternalState(gc, internal, _RC)
 
       ! Is SU data driven?
-      call determine_data_driven(COMP_NAME, data_driven, _RC)
+      call determine_data_driven(comp_name, data_driven, _RC)
 
       ! If this is a data component, the data is provided in the import
       ! state via ExtData instead of the actual GOCART children
       if (data_driven) then
-         providerState = import
+         provider_state = import
          prefix = 'clim'
       else
-         providerState = export
+         provider_state = export
          prefix = ''
       end if
 
       ! Add attribute information
       if (.not. data_driven) then
          call ESMF_StateGet(internal, 'DMS', field, _RC)
-         call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(1), _RC)
+         call ESMF_InfoGetFromHost(field, field_info, _RC)
+         call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(1), _RC)
          ! Vect_Hcts=(/0.56, 3500.0, 0.0, 0.0/)
          call get_HenrysLawCts('DMS', Vect_Hcts(1), Vect_Hcts(2), Vect_Hcts(3), Vect_Hcts(4), _RC)
-         call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, _RC)
+         call ESMF_InfoSet(field_info, key='SetofHenryLawCts', values=Vect_Hcts, _RC)
 
          call ESMF_StateGet(internal, 'SO2', field, _RC)
-         call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(2), _RC)
+         call ESMF_InfoGetFromHost(field, field_info, _RC)
+         call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(2), _RC)
          ! Vect_Hcts=(/1.4, 2900.0, 1.3E-02, 2000.0/)
          call get_HenrysLawCts('SO2', Vect_Hcts(1), Vect_Hcts(2), Vect_Hcts(3), Vect_Hcts(4), _RC)
-         call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, _RC)
+         call ESMF_InfoSet(field_info, key='SetofHenryLawCts', values=Vect_Hcts, _RC)
 
-         call ESMF_StateGet(internal, 'MSA', field, rc=status)
-         if (status == 0) then
-            call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(4), _RC)
+         call ESMF_StateGet(internal, 'MSA', item_type, _RC)
+         if (item_type == ESMF_STATEITEM_FIELD) then
+            call ESMF_StateGet(internal, 'MSA', field, _RC)
+            call ESMF_InfoGetFromHost(field, field_info, _RC)
+            call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(4), _RC)
          end if
       end if
 
       ! Fill AERO State with SO4
-      call ESMF_StateGet(export, trim(COMP_NAME) // '_AERO', aero, _RC)
-      call ESMF_StateGet(export, trim(COMP_NAME) // '_AERO_DP', Bundle_DP, _RC)
+      call ESMF_StateGet(export, trim(comp_name) // '_AERO', aero, _RC)
+      call ESMF_StateGet(export, trim(comp_name) // '_AERO_DP', bundle_dp, _RC)
 
       call ESMF_StateGet(internal, 'SO4', field, _RC)
-      call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=self%fscav(3), _RC)
-      fld = MAPL_FieldCreate(field, 'SO4', _RC)
-      call MAPL_StateAdd(aero, fld, _RC)
+      call ESMF_InfoGetFromHost(field, field_info, _RC)
+      call ESMF_InfoSet(field_info, key='ScavengingFractionPerKm', value=self%fscav(3), _RC)
+      call ESMF_StateAdd(aero, [field], _RC)
 
       if (data_driven) then
          instance = instanceData
 
          ! (SO4; only aerosol component; bin 003)
          ! Dry deposition
-         call append_to_bundle('SUDP003', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SUDP003', provider_state, prefix, bundle_dp, _RC)
 
          ! Wet deposition (Convective scavenging)
-         call append_to_bundle('SUSV003', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SUSV003', provider_state, prefix, bundle_dp, _RC)
 
          ! Wet deposition
-         call append_to_bundle('SUWT003', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SUWT003', provider_state, prefix, bundle_dp, _RC)
 
          ! Gravitational Settling
-         call append_to_bundle('SUSD003', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SUSD003', provider_state, prefix, bundle_dp, _RC)
       else
          instance = instanceComputational
 
          ! Dry deposition
-         call append_to_bundle('SUDP', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SUDP', provider_state, prefix, bundle_dp, _RC)
 
          ! Wet deposition (Convective scavenging)
-         call append_to_bundle('SUSV', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SUSV', provider_state, prefix, bundle_dp, _RC)
 
          ! Wet deposition
-         call append_to_bundle('SUWT', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SUWT', provider_state, prefix, bundle_dp, _RC)
 
          ! Gravitational Settling
-         call append_to_bundle('SUSD', providerState, prefix, Bundle_DP, _RC)
+         call append_to_bundle('SUSD', provider_state, prefix, bundle_dp, _RC)
       end if
 
       self%instance = instance
 
       ! Create Radiation Mie Table
-      call ESMF_ConfigGetAttribute(cfg, file_, label="aerosol_radBands_optics_file:", _RC)
+      call MAPL_GridCompGetResource(gc, "aerosol_radBands_optics_file", file_, _RC)
       self%rad_Mie = GOCART2G_Mie(trim(file_), _RC)
 
       ! Trigger for photolysis calculations
-      call ESMF_AttributeSet(aero, NAME="use_photolysis_table", VALUE=0, _RC)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
+      call ESMF_InfoSet(aero_info, key="use_photolysis_table", value=0, _RC)
 
       ! Create Photolysis Mie Table
       ! Get file names for the optical tables
-      call ESMF_ConfigGetAttribute(cfg, file_, &
-           label="aerosol_monochromatic_optics_file:", _RC)
-      call ESMF_ConfigGetAttribute(universal_cfg, nmom_, label="n_phase_function_moments_photolysis:", default=0, &
-           _RC)
-      i = ESMF_ConfigGetLen(universal_cfg, label='aerosol_photolysis_wavelength_in_nm_from_LUT:', _RC)
-      allocate(channels_(i), _STAT)
-      call ESMF_ConfigGetAttribute(universal_cfg, channels_, &
-           label="aerosol_photolysis_wavelength_in_nm_from_LUT:", _RC)
+      call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_file", file_, _RC)
+      call MAPL_GridCompGetResource(gc, "n_phase_function_moments_photolysis", nmom_, default=0, _RC)
+      call MAPL_GridCompGetResource(gc, "aerosol_photolysis_wavelength_in_nm_from_LUT", channels_, _RC)
       self%phot_Mie = GOCART2G_Mie(trim(file_), channels_ * 1.e-9, nmom=nmom_, _RC)
-      deallocate(channels_)
 
       ! Create Diagnostics Mie Table
       ! Get file names for the optical tables
-      call ESMF_ConfigGetAttribute(cfg, file_, &
-           label="aerosol_monochromatic_optics_file:", _RC)
-      call ESMF_ConfigGetAttribute(cfg, nmom_, label="n_moments:", default=0, _RC)
-      i = ESMF_ConfigGetLen(universal_cfg, label='aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:', _RC)
-      allocate(channels_(i), _STAT)
-      call ESMF_ConfigGetAttribute(universal_cfg, channels_, &
-           label="aerosol_monochromatic_optics_wavelength_in_nm_from_LUT:", _RC)
+      call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_file", file_, _RC)
+      call MAPL_GridCompGetResource(gc, "n_moments", nmom_, default=0, _RC)
+      call MAPL_GridCompGetResource(gc, "aerosol_monochromatic_optics_wavelength_in_nm_from_LUT", channels_, _RC)
+      _ASSERT(allocated(channels_), "problem with reading wavelengths")
       self%diag_Mie = GOCART2G_Mie(trim(file_), channels_ * 1.e-9, nmom=nmom_, _RC)
-      deallocate(channels_)
 
       ! Mie Table instance/index
-      call ESMF_AttributeSet(aero, NAME='mie_table_instance', VALUE=instance, _RC)
+      call ESMF_InfoSet(aero_info, key="mie_table_instance", value=instance, _RC)
 
       ! Add variables to SU instance's aero state. This is used in aerosol optics calculations
-      call add_aero_named_alias(aero, label='air_pressure_for_aerosol_optics', label2='PLE', grid=grid, typekind=&
-           MAPL_R4, _RC)
-      call add_aero_named_alias(aero, label='relative_humidity_for_aerosol_optics', label2='RH', grid=grid, typekind=&
-           MAPL_R4, _RC)
-      ! call ESMF_StateGet (import, 'PLE', field, __RC__)
-      ! call MAPL_StateAdd (aero, field, __RC__)
-      ! call ESMF_StateGet (import, 'RH2', field, __RC__)
-      ! call MAPL_StateAdd (aero, field, __RC__)
+      call add_aero(aero, label="air_pressure_for_aerosol_optics", label2="PLE", geom=geom, km=self%km, _RC)
+      call add_aero(aero, label="relative_humidity_for_aerosol_optics", label2="RH", geom=geom, km=self%km, _RC)
 
       ! Add variables to SU instance aero state for chemistry
-      call add_aero_named_alias(aero, label='surface_area_density', label2='SAREA', grid=grid, typekind=MAPL_R4, _RC)
-      call add_aero_named_alias(aero, label='effective_radius_in_microns', label2='REFF', grid=grid, typekind=MAPL_R4, &
-           _RC)
+      call add_aero(aero, label="surface_area_density", label2="SAREA", geom=geom, km=self%km, _RC)
+      call add_aero(aero, label="effective_radius_in_microns", label2="REFF", geom=geom, km=self%km, _RC)
 
-      call add_aero_named_alias(aero, label='extinction_in_air_due_to_ambient_aerosol', label2='EXT', grid=grid, &
-           typekind=MAPL_R8, _RC)
-      call add_aero_named_alias(aero, label='single_scattering_albedo_of_ambient_aerosol', label2='SSA', grid=grid, &
-           typekind=MAPL_R8, _RC)
-      call add_aero_named_alias(aero, label='asymmetry_parameter_of_ambient_aerosol', label2='ASY', grid=grid, typekind&
-           =MAPL_R8, _RC)
-      call ESMF_ConfigGetAttribute(universal_cfg, nmom_, label='n_phase_function_moments_photolysis:', default=0, &
-           _RC)
+      call add_aero( &
+           aero, &
+           label="extinction_in_air_due_to_ambient_aerosol", label2="EXT", &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call add_aero( &
+           aero, &
+           label="single_scattering_albedo_of_ambient_aerosol", label2="SSA", &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call add_aero(aero, &
+           label="asymmetry_parameter_of_ambient_aerosol", label2="ASY", &
+           geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, _RC)
+      call MAPL_GridCompGetResource(gc, "n_phase_function_moments_photolysis", nmom_, default=0, _RC)
       if (nmom_ > 0) then
-         call add_aero_named_alias(aero, label='legendre_coefficients_of_p11_for_photolysis', label2='MOM', &
-              grid=grid, typekind=MAPL_R8, ungrid=nmom_, _RC)
+         call add_aero(aero, &
+              label="legendre_coefficients_of_p11_for_photolysis", label2="MOM", &
+              geom=geom, km=self%km, typekind=ESMF_TYPEKIND_R8, ungrid=nmom_, _RC)
       end if
-      call add_aero_named_alias(aero, label='monochromatic_extinction_in_air_due_to_ambient_aerosol', &
-           label2='monochromatic_EXT', grid=grid, typekind=MAPL_R4, _RC)
-      call add_aero_named_alias(aero, label='sum_of_internalState_aerosol', label2='aerosolSum', grid=grid, typekind=&
-           MAPL_R4, _RC)
+      call add_aero(aero, &
+           label="monochromatic_extinction_in_air_due_to_ambient_aerosol", label2="monochromatic_EXT", &
+           geom=geom, typekind=ESMF_TYPEKIND_R4, _RC)
+      call add_aero(aero, label="sum_of_internalState_aerosol", label2="aerosolSum", geom=geom, km=self%km, _RC)
 
-      call ESMF_AttributeSet(aero, NAME='band_for_aerosol_optics', VALUE=0, _RC)
-      call ESMF_AttributeSet(aero, NAME='wavelength_for_aerosol_optics', VALUE=0., _RC)
+      call ESMF_InfoSet(aero_info, key="band_for_aerosol_optics", value=0, _RC)
+      call ESMF_InfoSet(aero_info, key="wavelength_for_aerosol_optics", value=0., _RC)
 
       mieTable_pointer = transfer(c_loc(self), [1])
-      call ESMF_AttributeSet(aero, NAME='mieTable_pointer', valueList=mieTable_pointer, itemCount=size(mieTable_pointer&
-           ), _RC)
+      call ESMF_InfoSet(aero_info, key="mieTable_pointer", values=mieTable_pointer, _RC)
 
-      call ESMF_AttributeSet(aero, NAME='internal_variable_name', VALUE='SO4', _RC)
+      call ESMF_InfoSet(aero_info, key="internal_variable_name", value="SO4", _RC)
 
-      call ESMF_MethodAdd(aero, label='aerosol_optics', userRoutine=aerosol_optics, _RC)
-      call ESMF_MethodAdd(aero, label='monochromatic_aerosol_optics', userRoutine=monochromatic_aerosol_optics, _RC)
-      call ESMF_MethodAdd(aero, label='get_mixR', userRoutine=get_mixR, _RC)
+      call ESMF_MethodAdd(aero, label="aerosol_optics", userRoutine=aerosol_optics, _RC)
+      call ESMF_MethodAdd(aero, label="monochromatic_aerosol_optics", userRoutine=monochromatic_aerosol_optics, _RC)
+      call ESMF_MethodAdd(aero, label="get_mixR", userRoutine=get_mixR, _RC)
 
       ! Deal with replenishment alarm (formerly the daily_alarm subroutine)
       self%alarm = createReplenishAlarm(gc, clock, 30000, _RC)
-      _RETURN(ESMF_SUCCESS)
+
+      _RETURN(_SUCCESS)
 
    end subroutine Initialize
 
