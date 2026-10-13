@@ -17,7 +17,7 @@ workflows:
             - docker-hub-creds
           matrix:
             parameters:
-              compiler: [gfortran, ifort, ifx]
+              compiler: [gfortran, ifx]
           #baselibs_version: *baselibs_version
           repo: GOCART
           buildtarget: GOCART2G_GridComp
@@ -32,7 +32,7 @@ workflows:
             - docker-hub-creds
           matrix:
             parameters:
-              compiler: [gfortran, ifort, ifx]
+              compiler: [gfortran, ifx]
           #baselibs_version: *baselibs_version
           repo: GOCART
           buildtarget: GOCART2G_GridComp
@@ -48,7 +48,7 @@ workflows:
             - docker-hub-creds
           matrix:
             parameters:
-              compiler: [gfortran, ifort, ifx]
+              compiler: [gfortran, ifx]
           #baselibs_version: *baselibs_version
           repo: GEOSgcm
           checkout_fixture: true
