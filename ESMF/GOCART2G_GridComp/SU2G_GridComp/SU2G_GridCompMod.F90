@@ -1456,3 +1456,11 @@ contains
    end subroutine monochromatic_aerosol_optics
 
 end module SU2G_GridCompMod
+
+subroutine SU2G_SetServices(gc, rc)
+   use ESMF
+   use SU2G_GridCompMod, only : mySetServices => SetServices
+   type(ESMF_GridComp) :: gc
+   integer, intent(out) :: rc
+   call mySetServices(gc, rc=rc)
+end subroutine SU2G_SetServices

@@ -1270,10 +1270,10 @@ contains
 
 end module DU2G_GridCompMod
 
-subroutine SetServices(gc, rc)
+subroutine DU2G_SetServices(gc, rc)
    use ESMF
    use DU2G_GridCompMod, only : mySetServices => SetServices
    type(ESMF_GridComp) :: gc
    integer, intent(out) :: rc
    call mySetServices(gc, rc=rc)
-end subroutine SetServices
+end subroutine DU2G_SetServices

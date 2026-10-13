@@ -26,6 +26,7 @@ mapl:
 
   setServices:
     sharedObj: libGOCART2G_GridComp
+    userRoutine: gocart2g_setservices_
 
   misc:
     activate_all_exports: true

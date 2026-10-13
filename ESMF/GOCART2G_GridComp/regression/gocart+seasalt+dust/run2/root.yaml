@@ -40,7 +40,7 @@ mapl:
 
     GOCART2G:
       dso: libGOCART2G_GridComp.so
-      setservices: setservices_
+      setservices: gocart2g_setservices_
       config_file: GOCART2G_GridComp.yaml
       run_phases:
         - Run2

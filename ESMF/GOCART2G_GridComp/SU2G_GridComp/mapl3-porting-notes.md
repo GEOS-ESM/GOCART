@@ -1,6 +1,6 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3, 4, 5, 6 and 7 done.
+Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3, 4, 5, 6, 7 and 8 done.
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -285,19 +285,48 @@ monochromatic_aerosol_optics.
      while SU/DU/SS store a scalar, still calls `ESMF_AttributeGet`, and
      never sets `rc`. Check when it's first exercised (step 9).
 
-8. **Wrapper and parent wiring.**
-   - Add an external `SU2G_SetServices` wrapper after `end module`, as in
-     DU and Solar step 13.
-   - In `../GOCART2G_GridCompMod.F90`:
-     - uncomment `use SU2G_GridCompMod`, `add_children__(gc, self%SU, ...)`
-       and `add_aero_states_(self%SU%instances(:))`
-     - add connections for SU's export diagnostics and
-       `<name>_AERO`/`_AERO_DP`, following the SS/DU blocks
-     - re-export `PSO4` (replacing the commented
-       `MAPL_AddExportSpec(CHILD_ID=...)` around L230-233)
-     - restore the SU parts of the Run2 totals (the commented block around
-       L795-850, including `pso4tot`)
-   - Uncomment `SU2G_GridComp` in `../CMakeLists.txt`.
+8. **DONE - Wrapper and parent wiring** (not built yet).
+   - External `SetServices` wrapper after `end module SU2G_GridCompMod`, as
+     in DU.
+   - The standalone wrappers now have unique names: `DU2G_SetServices`,
+     `SS2G_SetServices`, `SU2G_SetServices`, `GOCART2G_SetServices` (were
+     all `SetServices`). Regression YAMLs that load them by symbol now say
+     `setservices: <comp>_setservices_` (children `dso:` entries) or
+     `userRoutine: <comp>_setservices_` (`mapl: setServices: sharedObj:`).
+     Fortran callers (GOCART2G, Aerosol_GridComp, GEOS_ChemGridComp) use
+     the module procedures and are unaffected.
+   - `../GOCART2G_GridCompMod.F90`:
+     - `use SU2G_GridCompMod`, `add_children__(gc, self%SU, ...)`,
+       `add_aero_states_(self%SU%instances(:))` enabled.
+     - SetServices: `<name>_AERO` (state) and `<name>_AERO_DP` (bundle)
+       import specs for every SU instance, and connections from each
+       active computational SU instance for `_AERO`, `_AERO_DP` and
+       `SUEXTTAU, SUSTEXTTAU, SUSCATAU, SUSTSCATAU, SUEXTCOEF,
+       SUEXTCOEFRH20/80, SUSCACOEF, SUSCACOEFRH20/80, SUBCKCOEF, SUANGSTR,
+       SO4SMASS, PSO4`, following the SS/DU blocks.
+     - `PSO4`: `MAPL_AddExportSpec(..., CHILD_ID=)` ->
+       `MAPL_GridCompReexport(gc, src_comp=<first SU>, src_name="PSO4")`
+       when the first SU instance is active and computational. `PSO4` is
+       also connected into GOCART2G's import for `pso4tot`; check at run
+       time that re-exporting and connecting the same child export works.
+     - Run2: SU totals restored, after the DU/SS blocks (whole-array
+       sums through the generated pointers instead of `gex(id)` and
+       per-wavelength loops). As in MAPL2, `totextt25`/`totexttfm` use
+       `suexttau` and `totscat25`/`totscatfm` use `suscatau` (SU has no
+       PM2.5/PM1 optics). `nifactor` = 132.14/96.06 unless an active NI
+       instance exists (none on MAPL3 yet). The commented SU pointer
+       declarations were dropped.
+   - `../GOCART2G_StateSpecs.rc`: the 14 SU fields above added as IMPORT
+     rows (`#-imports-from-sulfate-`), units/long names from SU's spec.
+     ACG checked: 54 import specs, pointers generated.
+   - `../CMakeLists.txt`: `SU2G_GridComp` enabled in `alldirs`.
+   - Instance config name: `add_children__` loads
+     `<species>_instance_<child>.yaml` with species `SU`, i.e.
+     `SU_instance_SU.yaml`, not `SU2G_instance_SU.yaml` (step 3). DU/SS
+     regressions ship `DU_instance_DU.yaml`/`SS_instance_SS.yaml` in their
+     run dirs; the `su-sa` case needs `SU_instance_SU.yaml` too.
+   - Noticed, not changed: the DU `_AERO_DP` import-spec loop in
+     GOCART2G's SetServices iterates over `size(self%SS%instances)`.
 
 9. **Run-testing.**
    - Add a `regression/su-sa` case: `root.yaml` (current vertical-grid
