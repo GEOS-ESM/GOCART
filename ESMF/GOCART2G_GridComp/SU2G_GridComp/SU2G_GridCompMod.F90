@@ -1175,99 +1175,76 @@ contains
 
    subroutine aerosol_optics(state, rc)
 
-      implicit none
-
       ! ARGUMENTS:
       type(ESMF_State) :: state
       integer, intent(out) :: rc
 
       ! Local
-      integer, parameter :: DP = kind(1.0d0)
-      real, dimension(:, :, :), pointer :: ple, rh
+      type(ESMF_Info) :: info
+      real, dimension(:, :, :), pointer :: ple, ple0, rh
       real(kind=DP), dimension(:, :, :), pointer :: var
       real(kind=DP), dimension(:, :, :, :), pointer :: var4d
       real, dimension(:, :, :), pointer :: q
-      real, dimension(:, :, :, :), pointer :: q_4d
+      real, dimension(:, :, :, :), allocatable :: q_4d
       integer, allocatable :: opaque_self(:)
       type(c_ptr) :: address
       type(SU2G_GridComp), pointer :: self
-
-      type(ESMF_Field) :: fld
-      character(len=ESMF_MAXSTR), allocatable :: aerosol_names(:)
+      character(len=ESMF_MAXSTR) :: fld_name
 
       real(kind=DP), dimension(:, :, :), allocatable :: ext_s, ssa_s, asy_s ! (lon:,lat:,lev:)
       real(kind=DP), dimension(:, :, :, :), allocatable :: pmom_s ! (lon:,lat:,lev:,nmom:)
-      real :: x
       integer :: instance
-      integer :: n, nbins
+      integer :: nbins
       integer :: i1, j1, i2, j2, km
       integer :: band
       integer :: usePhotTable
       real :: wavelength
-
-      integer :: i, j, k
-      type(ESMF_StateItem_Flag) :: item_type
-
+      integer :: k
       integer :: status
-      character(len=255) :: Iam = 'SU2G::aerosol_optics'
 
       ! Begin...
 
-      ! Mie Table instance/index
-      call ESMF_AttributeGet(state, NAME='mie_table_instance', VALUE=instance, _RC)
+      call ESMF_InfoGetFromHost(state, info, _RC)
 
-      ! Get aerosol names
-      call ESMF_AttributeGet(state, NAME='internal_variable_name', itemCount=nbins, _RC)
-      allocate(aerosol_names(nbins), _STAT)
-      call ESMF_AttributeGet(state, NAME='internal_variable_name', valueList=aerosol_names, _RC)
+      ! Mie Table instance/index
+      call ESMF_InfoGet(info, key='mie_table_instance', value=instance, _RC)
 
       ! Radiation band
-      band = 0
-      call ESMF_AttributeGet(state, NAME='band_for_aerosol_optics', VALUE=band, _RC)
+      call ESMF_InfoGet(info, key='band_for_aerosol_optics', value=band, default=0, _RC)
 
       ! Are we doing a photolysis calculation?
-      usePhotTable = 0
-      call ESMF_AttributeGet(state, NAME='use_photolysis_table', VALUE=usePhotTable, _RC)
+      call ESMF_InfoGet(info, key='use_photolysis_table', value=usePhotTable, default=0, _RC)
 
-      ! Pressure at layer edges
-      call MAPL_GetPointer(state, ple, 'air_pressure_for_aerosol_optics', _RC)
+      ! Pressure at layer edges, expected to be 0-based
+      call ESMF_InfoGet(info, key='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
-      ! call MAPL_GetPointer (state, ple, 'PLE', __RC__)
-
-      i1 = lbound(ple, 1)
-      i2 = ubound(ple, 1)
-      j1 = lbound(ple, 2)
-      j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      i1 = lbound(ple0, 1)
+      i2 = ubound(ple0, 1)
+      j1 = lbound(ple0, 2)
+      j2 = ubound(ple0, 2)
+      km = ubound(ple0, 3)
 
       ! Relative humidity
-      call MAPL_GetPointer(state, rh, 'relative_humidity_for_aerosol_optics', _RC)
-
-      ! call MAPL_GetPointer (state, rh, 'RH2', __RC__)
+      call ESMF_InfoGet(info, key='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
       allocate(ext_s(i1:i2, j1:j2, km), &
            ssa_s(i1:i2, j1:j2, km), &
            asy_s(i1:i2, j1:j2, km), _STAT)
 
+      ! SO4 is the only aerosol tracer
+      call ESMF_InfoGet(info, key='internal_variable_name', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, q, trim(fld_name), _RC)
+      nbins = 1
+
       allocate(q_4d(i1:i2, j1:j2, km, nbins), _STAT)
-
-      do n = 1, nbins
-         call ESMF_StateGet(state, trim(aerosol_names(n)), field=fld, _RC)
-         call ESMF_FieldGet(fld, farrayPtr=q, _RC)
-
-         do k = 1, km
-            do j = j1, j2
-               do i = i1, i2
-                  x = ((ple(i, j, k) - ple(i, j, k - 1)) * 0.01) * (100. / MAPL_GRAV)
-                  q_4d(i, j, k, n) = x * q(i, j, k)
-               end do
-            end do
-         end do
+      do k = 1, km
+         q_4d(:, :, k, 1) = ((ple0(:, :, k) - ple0(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV) * q(:, :, k)
       end do
 
-      call ESMF_AttributeGet(state, NAME='mieTable_pointer', itemCount=n, _RC)
-      allocate(opaque_self(n), _STAT)
-      call ESMF_AttributeGet(state, NAME='mieTable_pointer', valueList=opaque_self, _RC)
+      call ESMF_InfoGet(info, key='mieTable_pointer', values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1280,25 +1257,28 @@ contains
          call mie_(self%rad_Mie, nbins, band, q_4d, rh, ext_s, ssa_s, asy_s, _RC)
       end if
 
-      call ESMF_StateGet(state, 'extinction_in_air_due_to_ambient_aerosol', item_type, _RC)
-      if (item_type == ESMF_STATEITEM_FIELD) then
-         call MAPL_GetPointer(state, var, 'extinction_in_air_due_to_ambient_aerosol', _RC)
+      call ESMF_InfoGet(info, key='extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
+      if (fld_name /= '') then
+         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = ext_s(:, :, :)
       end if
 
-      if (item_type == ESMF_STATEITEM_FIELD) then
-         call MAPL_GetPointer(state, var, 'single_scattering_albedo_of_ambient_aerosol', _RC)
+      call ESMF_InfoGet(info, key='single_scattering_albedo_of_ambient_aerosol', value=fld_name, _RC)
+      if (fld_name /= '') then
+         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = ssa_s(:, :, :)
       end if
 
       if (usePhotTable /= 0) then
-         if (item_type == ESMF_STATEITEM_FIELD) then
-            call MAPL_GetPointer(state, var4d, 'legendre_coefficients_of_p11_for_photolysis', _RC)
+         call ESMF_InfoGet(info, key='legendre_coefficients_of_p11_for_photolysis', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, var4d, trim(fld_name), _RC)
             var4d = pmom_s(:, :, :, :)
          end if
       else
-         if (item_type == ESMF_STATEITEM_FIELD) then
-            call MAPL_GetPointer(state, var, 'asymmetry_parameter_of_ambient_aerosol', _RC)
+         call ESMF_InfoGet(info, key='asymmetry_parameter_of_ambient_aerosol', value=fld_name, _RC)
+         if (fld_name /= '') then
+            call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
             var = asy_s(:, :, :)
          end if
       end if
@@ -1307,22 +1287,20 @@ contains
       if (usePhotTable /= 0) deallocate(pmom_s, _STAT)
       deallocate(q_4d, _STAT)
 
-      _RETURN(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    contains
 
       subroutine mie_(mie, nbins, band, q, rh, bext_s, bssa_s, basym_s, rc)
-
-         implicit none
 
          type(GOCART2G_Mie), intent(inout) :: mie ! mie table
          integer, intent(in) :: nbins ! number of bins
          integer, intent(in) :: band ! channel
          real, intent(in) :: q(:, :, :, :) ! aerosol mass mixing ratio, kg kg-1
          real, intent(in) :: rh(:, :, :) ! relative humidity
-         real(kind=8), intent(out) :: bext_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
-         real(kind=8), intent(out) :: bssa_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
-         real(kind=8), intent(out) :: basym_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
+         real(kind=DP), intent(out) :: bext_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
+         real(kind=DP), intent(out) :: bssa_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
+         real(kind=DP), intent(out) :: basym_s(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3))
          integer, intent(out) :: rc
          ! local
          integer :: l
@@ -1331,7 +1309,6 @@ contains
          real :: gasym(size(ext_s, 1), size(ext_s, 2), size(ext_s, 3)) ! asymmetry parameter
 
          integer :: status
-         character(len=255) :: Iam = 'SU2G::aerosol_optics::mie_'
 
          bext_s = 0.0d0
          bssa_s = 0.0d0
@@ -1347,13 +1324,11 @@ contains
 
          end do
 
-         _RETURN(ESMF_SUCCESS)
+         _RETURN(_SUCCESS)
 
       end subroutine mie_
 
       subroutine miephot_(mie, nbins, wavelength, q, rh, bext_s, bssa_s, bpmom_s, rc)
-
-         implicit none
 
          type(GOCART2G_Mie), intent(inout) :: mie ! mie table
          integer, intent(in) :: nbins ! number of bins
@@ -1372,7 +1347,6 @@ contains
          real :: pmom(size(pmom_s, 1), size(pmom_s, 2), size(pmom_s, 3), size(pmom_s, 4), 6)
 
          integer :: status
-         character(len=255) :: Iam = 'SU2G::aerosol_optics::miephot_'
 
          bext_s = 0.0d0
          bssa_s = 0.0d0
@@ -1388,7 +1362,7 @@ contains
             end do
          end do
 
-         _RETURN(ESMF_SUCCESS)
+         _RETURN(_SUCCESS)
 
       end subroutine miephot_
 
@@ -1396,87 +1370,70 @@ contains
 
    subroutine monochromatic_aerosol_optics(state, rc)
 
-      implicit none
-
       ! ARGUMENTS:
       type(ESMF_State) :: state
       integer, intent(out) :: rc
 
       ! Local
-      real, dimension(:, :, :), pointer :: ple, rh
+      type(ESMF_Info) :: info
+      real, dimension(:, :, :), pointer :: ple, ple0, rh
       real, dimension(:, :), pointer :: var
       real, dimension(:, :, :), pointer :: q
-      real, dimension(:, :, :, :), pointer :: q_4d
+      real, dimension(:, :, :, :), allocatable :: q_4d
       integer, allocatable :: opaque_self(:)
       type(c_ptr) :: address
       type(SU2G_GridComp), pointer :: self
-
-      type(ESMF_Field) :: fld
-      character(len=ESMF_MAXSTR), allocatable :: aerosol_names(:)
+      character(len=ESMF_MAXSTR) :: fld_name
 
       real, dimension(:, :, :), allocatable :: tau_s, tau ! (lon:,lat:,lev:)
-      real :: x
       integer :: instance
       integer :: n, nbins
       integer :: i1, j1, i2, j2, km
       real :: wavelength
-      integer :: i, j, k
-      type(ESMF_StateItem_Flag) :: item_type
-
+      integer :: k
       integer :: status
-      character(len=255) :: Iam = 'SU2G::monochromatic_aerosol_optics'
 
       ! Begin...
 
-      ! Mie Table instance/index
-      call ESMF_AttributeGet(state, NAME='mie_table_instance', VALUE=instance, _RC)
+      call ESMF_InfoGetFromHost(state, info, _RC)
 
-      ! Get aerosol names
-      call ESMF_AttributeGet(state, NAME='internal_variable_name', itemCount=nbins, _RC)
-      allocate(aerosol_names(nbins), _STAT)
-      call ESMF_AttributeGet(state, NAME='internal_variable_name', valueList=aerosol_names, _RC)
+      ! Mie Table instance/index
+      call ESMF_InfoGet(info, key='mie_table_instance', value=instance, _RC)
 
       ! Radiation band
-      call ESMF_AttributeGet(state, NAME='wavelength_for_aerosol_optics', VALUE=wavelength, _RC)
+      call ESMF_InfoGet(info, key='wavelength_for_aerosol_optics', value=wavelength, default=0., _RC)
 
-      ! Pressure at layer edges
-      call MAPL_GetPointer(state, ple, 'air_pressure_for_aerosol_optics', _RC)
-      ! call MAPL_GetPointer (state, ple, 'PLE', __RC__)
+      ! Pressure at layer edges, expected to be 0-based
+      call ESMF_InfoGet(info, key='air_pressure_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
-      i1 = lbound(ple, 1)
-      i2 = ubound(ple, 1)
-      j1 = lbound(ple, 2)
-      j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      i1 = lbound(ple0, 1)
+      i2 = ubound(ple0, 1)
+      j1 = lbound(ple0, 2)
+      j2 = ubound(ple0, 2)
+      km = ubound(ple0, 3)
 
       ! Relative humidity
-      call MAPL_GetPointer(state, rh, 'relative_humidity_for_aerosol_optics', _RC)
-      ! call MAPL_GetPointer (state, rh, 'RH2', __RC__)
+      call ESMF_InfoGet(info, key='relative_humidity_for_aerosol_optics', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, rh, trim(fld_name), _RC)
 
       allocate(tau_s(i1:i2, j1:j2, km), &
            tau(i1:i2, j1:j2, km), _STAT)
       tau_s = 0.0
       tau = 0.0
 
+      ! SO4 is the only aerosol tracer
+      call ESMF_InfoGet(info, key='internal_variable_name', value=fld_name, _RC)
+      call MAPL_StateGetPointer(state, q, trim(fld_name), _RC)
+      nbins = 1
+
       allocate(q_4d(i1:i2, j1:j2, km, nbins), _STAT)
-
-      do n = 1, nbins
-         call ESMF_StateGet(state, trim(aerosol_names(n)), field=fld, _RC)
-         call ESMF_FieldGet(fld, farrayPtr=q, _RC)
-
-         do k = 1, km
-            do j = j1, j2
-               do i = i1, i2
-                  x = (ple(i, j, k) - ple(i, j, k - 1)) / MAPL_GRAV
-                  q_4d(i, j, k, n) = x * q(i, j, k)
-               end do
-            end do
-         end do
+      do k = 1, km
+         q_4d(:, :, k, 1) = (ple0(:, :, k) - ple0(:, :, k - 1)) / MAPL_GRAV * q(:, :, k)
       end do
 
-      call ESMF_AttributeGet(state, NAME='mieTable_pointer', itemCount=n, _RC)
-      allocate(opaque_self(n), _STAT)
-      call ESMF_AttributeGet(state, NAME='mieTable_pointer', valueList=opaque_self, _RC)
+      call ESMF_InfoGet(info, key='mieTable_pointer', values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1486,15 +1443,15 @@ contains
          tau_s = tau_s + tau
       end do
 
-      call ESMF_StateGet(state, 'monochromatic_extinction_in_air_due_to_ambient_aerosol', item_type, _RC)
-      if (item_type == ESMF_STATEITEM_FIELD) then
-         call MAPL_GetPointer(state, var, 'monochromatic_extinction_in_air_due_to_ambient_aerosol', _RC)
+      call ESMF_InfoGet(info, key='monochromatic_extinction_in_air_due_to_ambient_aerosol', value=fld_name, _RC)
+      if (fld_name /= '') then
+         call MAPL_StateGetPointer(state, var, trim(fld_name), _RC)
          var = sum(tau_s, dim=3)
       end if
 
       deallocate(q_4d, _STAT)
 
-      _RETURN(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine monochromatic_aerosol_optics
 

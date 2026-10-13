@@ -1,6 +1,6 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3, 4, 5 and 6 done.
+Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3, 4, 5, 6 and 7 done.
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -262,10 +262,28 @@ monochromatic_aerosol_optics.
      from MAPL2; check at run time that MAPL3 allows the in-place
      cleanup (it modifies the provider's field).
 
-7. **AERO methods.** `aerosol_optics`, `monochromatic_aerosol_optics` and
-   `get_mixR` follow DU's MAPL3 versions (`ESMF_InfoGet`, field lookup
-   through Info keys). The current copies use develop's long-name lookup,
-   which needs reverting to the Info-key style.
+7. **DONE - AERO methods.** `aerosol_optics` and
+   `monochromatic_aerosol_optics` rewritten after DU's MAPL3 versions:
+   - `ESMF_AttributeGet` -> `ESMF_InfoGet` on the state's Info; every
+     field (PLE, RH, SO4, EXT/SSA/ASY/MOM, monochromatic_EXT) is found
+     through the name stored under its Info key (`add_aero`), and outputs
+     are skipped when that name is empty. `MAPL_GetPointer` ->
+     `MAPL_StateGetPointer`.
+   - The aerosol field name comes from the scalar
+     `internal_variable_name` (`SO4`, set in Initialize); `nbins = 1`,
+     as before (the MAPL2 list had one entry).
+   - **PLE indexing:** `add_aero` creates PLE with `num_levels=km+1`, and
+     MAPL3 field bounds start at 1 (`make_bounds_from_args`, `LU_Bound(1,
+     num_levels)`). The layer loops use `ple(k) - ple(k-1)` for
+     `k = 1..ubound(ple,3)`, so they now go through a 0-based remap
+     `ple0`, as in step 6 (`km = ubound(ple0,3)` = number of layers).
+     DU2G's MAPL3 optics read `ple(:,:,k-1)` at `k = 1` and take
+     `km = ubound(ple,3)` (= km+1): out of bounds and one level too many.
+     Same fix needed there (see step 10).
+   - `get_mixR` lives in `ESMF/Shared/Chem_AeroGeneric.F90` (shared, not
+     touched). It reads `internal_variable_name` with `values=` (a list)
+     while SU/DU/SS store a scalar, still calls `ESMF_AttributeGet`, and
+     never sets `rc`. Check when it's first exercised (step 9).
 
 8. **Wrapper and parent wiring.**
    - Add an external `SU2G_SetServices` wrapper after `end module`, as in
@@ -309,6 +327,10 @@ monochromatic_aerosol_optics.
         `local_indices=.true.`, so it gets global indices where
         `updatePointwiseEmissions` expects local ones (-1 off-PE). Only hit
         when `point_emissions_srcfilen` is set.
+      - AERO optics: `aerosol_optics` and `monochromatic_aerosol_optics`
+        index the 1-based PLE as if 0-based (`ple(:,:,k-1)` at `k = 1`,
+        `km = ubound(ple,3)`). Use a 0-based remap as SU does (step 7).
+        SS2G likely has the same pattern.
 
 ## Risks to settle early
 1. The undefined-value comparisons (step 6). This also affects DU on the
