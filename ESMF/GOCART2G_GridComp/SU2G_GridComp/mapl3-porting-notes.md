@@ -1,6 +1,6 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2 and 3 done.
+Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3 and 4 done.
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -129,21 +129,37 @@ monochromatic_aerosol_optics.
    - Initialize still loads the `.rc` (optics files, `n_moments`, the
      universal config); that moves in step 5.
 
-4. **SetServices.**
-   - Store SU's state with `_SET_NAMED_PRIVATE_STATE` /
-     `_GET_NAMED_PRIVATE_STATE` in place of the `wrap_` +
-     `ESMF_UserComp*InternalState` pattern. Keep the per-thread
-     `workspaces` (`MAPL_get_num_threads`).
-   - Register entry points with `phase_name` (`"Run1"`, `"Run2"`,
-     `"Run0"`), as DU does. Drop `MAPL_GenericSetServices`.
-   - Convert the manually declared fields to `MAPL_GridCompAddSpec`,
-     following DU2G's manual `MAPL_GridCompAddSpec` calls in SetServices:
-     - data-driven: `PLE`, `RH2`, `SO4` (internal with add-to-export),
-       `climSO4`, and the per-bin `climSU{DP,WT,SD,SV}nnn`
-     - `SU_H2O2/OH/NO3` (computational instance only), and
-       `GMI_OH/H2O2/NO3` (only `if (using_GMI)`)
-     - the `<name>_AERO` state and `<name>_AERO_DP` bundle, as in DU
-   - Friendliness (MAPL2 `FRIENDLYTO=DYNAMICS:TURBULENCE:MOIST` on DMS,
+4. **DONE (except friendliness) - SetServices.** Rewritten after DU/SS:
+   - `MAPL_GridCompGet(gc, name=, logger=)`; private state via
+     `_SET_NAMED_PRIVATE_STATE`/`_GET_NAMED_PRIVATE_STATE` with
+     `PRIVATE_STATE = "SU2G_GridComp"`; per-thread `workspaces` kept.
+     The module still has `type wrap_`, used by the other routines until
+     they are ported (steps 5-7); they won't find the state until then.
+   - `ungrd_nbins` / `ungrd_wavelengths_profile` /
+     `ungrd_wavelengths_vertint` (`MAPL_UngriddedDim`) declared and set
+     before the ACG includes.
+   - Entry points: `Run` -> `"Run1"`, `Run2` -> `"Run2"`, `Run0` ->
+     `"Run0"` (the names GOCART2G's `MAPL_GridCompRunChild` calls use).
+     `MAPL_GenericSetServices` and `ESMF_UserCompSetInternalState` gone.
+   - Data-driven specs converted to `MAPL_GridCompAddSpec` (`PLE`, `RH2`,
+     internal `SO4` with `add_to_export`/`fill_value=0.0`, `climSO4`,
+     per-bin `climSU{DP,WT,SD,SV}nnn`), but guarded by `_FAIL` first, as
+     SS does: the data-driven path is not active. The per-bin fields were
+     `xy` + `VLocationCenter` in MAPL2; now `xy` + `NONE`.
+   - Manual `SU_H2O2/OH/NO3` imports dropped: they duplicated the spec
+     file's rows (MAPL2 tolerated the duplicates). The manual
+     `if (using_GMI)` `GMI_*` imports moved into the spec file instead:
+     new `COND` column (`using_GMI`), units `1` -> `mol/mol` (what Run2
+     assumes, and what the manual specs said). The Import include is
+     wrapped in `associate(using_GMI => self%using_GMI)`. ACG checked: 40
+     import specs as before, the three `GMI_*` inside `if (using_GMI)`;
+     export and internal output unchanged.
+   - `<name>_AERO` (`MAPL_STATEITEM_STATE`) and `<name>_AERO_DP`
+     (`MAPL_STATEITEM_FIELDBUNDLE`) as in DU.
+   - `MAPL_AM_I_ROOT` prints -> `logger%info`; `Iam` and `DEFVAL` dropped.
+   - Import `RESTART` cells say `OPT`, which the ACG doesn't map
+     (only `OPTIONAL`, `SKIP`, ...), so they're silently dropped; `SKIP`
+     works. Left as is; pre-existing. (MAPL2 `FRIENDLYTO=DYNAMICS:TURBULENCE:MOIST` on DMS,
      SO2, SO4, MSA). The MAPL3 ACG ignores `FRIENDLYTO` (DU2G's spec still
      carries it as a no-op), so nothing currently puts SU's tracers into
      the advection/diffusion/convection bundles. The MAPL3 replacement is
@@ -157,7 +173,8 @@ monochromatic_aerosol_optics.
        once they exist.
      - Check whether the subscription belongs in SU or in a GOCART2G/PHYS
        ancestor, and do the same for DU and SS.
-   - Replace the `MAPL_AM_I_ROOT` prints with the component logger.
+     - NOT DONE: no MAPL3 component subscribes to `TRADV` yet, and the
+       placement question above is open.
 
 5. **Initialize.**
    - Get grid, levels and coordinates from MAPL (Solar step 18: never ask

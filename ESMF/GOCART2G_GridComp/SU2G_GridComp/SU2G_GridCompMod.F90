@@ -7,6 +7,7 @@ module SU2G_GridCompMod
 
    !USES:
    use ESMF
+   use pflogger, only: logger_t => logger
    use MAPL
    use GOCART2G_MieMod
    use Chem_AeroGeneric
@@ -89,6 +90,8 @@ module SU2G_GridCompMod
       type(ESMF_Alarm) :: alarm
    end type SU2G_GridComp
 
+   character(*), parameter :: PRIVATE_STATE = "SU2G_GridComp"
+
    type wrap_
       type(SU2G_GridComp), pointer :: PTR !=> null()
    end type wrap_
@@ -104,45 +107,47 @@ contains
       type(ESMF_GridComp), intent(inout) :: gc ! gridded component
       integer, intent(out) :: rc ! return code
 
-      !DESCRIPTION: This version uses MAPL_GenericSetServices, which sets
-      ! the Initialize and Finalize services to generic versions. It also
-      ! allocates our instance of a generic state and puts it in the
-      ! gridded component (GC). Here we only set the two-stage run method
-      ! and declare the data services.
+      !DESCRIPTION: Declares SU's private state, entry points (Initialize and
+      ! the Run0/Run1/Run2 phases) and state specs.
 
       !REVISION HISTORY:
       ! 08July2020   E.Sherman, A.Da Silva, A.Darmenov, T.Clune  First attempt at refactoring
 
       ! Locals
-      character(len=ESMF_MAXSTR) :: COMP_NAME
-      type(wrap_) :: wrap
+      character(len=:), allocatable :: comp_name
       type(SU2G_GridComp), pointer :: self
-
+      class(logger_t), pointer :: logger
       character(len=ESMF_MAXSTR) :: field_name
-
-      integer :: i
-      real :: DEFVAL
       logical :: data_driven = .true.
       integer :: num_threads
+      type(MAPL_UngriddedDim) :: ungrd_nbins
+      type(MAPL_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      integer :: i, status
 
-      integer :: status
-      character(len=255) :: Iam = 'SetServices'
+      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, _RC)
 
-      ! Begin...
+      ! Wrap gridcomp's private state and store it in gridcomp
+      _SET_NAMED_PRIVATE_STATE(gc, SU2G_GridComp, PRIVATE_STATE)
 
-      ! Get my name and set-up traceback handle
-      call ESMF_GridCompGet(gc, NAME=COMP_NAME, _RC)
-      Iam = trim(COMP_NAME) // '::' // Iam
-
-      ! Wrap internal state for storing in GC
-      allocate(self, _STAT)
-      wrap%PTR => self
+      ! Retrieve the private state
+      _GET_NAMED_PRIVATE_STATE(gc, SU2G_GridComp, PRIVATE_STATE, self)
 
       num_threads = MAPL_get_num_threads()
       allocate(self%workspaces(0:num_threads - 1), _STAT)
 
       ! process generic config items
       call self%GA_Environment%load_from_config(gc, _RC)
+
+      ! Defined UngriddedDim items
+      ungrd_nbins = MAPL_UngriddedDim(self%nbins, name="nbins", units="1")
+      ungrd_wavelengths_profile = MAPL_UngriddedDim( &
+           size(self%wavelengths_profile), &
+           name="wavelengths_profile", &
+           units="nm")
+      ungrd_wavelengths_vertint = MAPL_UngriddedDim( &
+           size(self%wavelengths_vertint), &
+           name="wavelengths_vertint", &
+           units="nm")
 
       ! process SU-specific items
       call MAPL_GridCompGetResource(gc, "using_GMI", self%using_GMI, _RC)
@@ -162,187 +167,138 @@ contains
       end if
 
       ! Is SU data driven?
-      call determine_data_driven(COMP_NAME, data_driven, _RC)
+      call determine_data_driven(comp_name, data_driven, _RC)
 
       ! Set entry points
       call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_INITIALIZE, Initialize, _RC)
-      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, _RC)
+      call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run, phase_name="Run1", _RC)
       if (data_driven .neqv. .true.) then
-         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run2, _RC)
-         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run0, _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run2, phase_name="Run2", _RC)
+         call MAPL_GridCompSetEntryPoint(gc, ESMF_METHOD_RUN, Run0, phase_name="Run0", _RC)
       end if
-
-      DEFVAL = 0.0
 
       ! Import and Internal states if data instance
       if (data_driven) then
+         _FAIL("data driven section has not been activated yet")
 
          ! Pressure at layer edges
-         call MAPL_AddImportSpec(gc, &
-              SHORT_NAME='PLE', &
-              LONG_NAME='air_pressure', &
-              UNITS='Pa', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationEdge, &
-              RESTART=MAPL_RestartSkip, _RC)
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name='PLE', &
+              standard_name='air_pressure', &
+              units='Pa', &
+              dims='xyz', &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_EDGE, &
+              restart_mode=MAPL_RESTART_SKIP, _RC)
 
          ! RH: is between 0 and 1
-         call MAPL_AddImportSpec(gc, &
-              SHORT_NAME='RH2', &
-              LONG_NAME='Rel_Hum_after_moist', &
-              UNITS='1', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartSkip, _RC)
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name='RH2', &
+              standard_name='Rel_Hum_after_moist', &
+              units='1', &
+              dims='xyz', &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
+              restart_mode=MAPL_RESTART_SKIP, _RC)
 
-         call MAPL_AddInternalSpec(gc,&
-              SHORT_NAME='SO4', &
-              LONG_NAME='Sulphate aerosol', &
-              UNITS='kg kg-1', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartOptional, &
-         ! friendlyto='DYNAMICS:TURBULENCE:MOIST', &
-              add2export=.true., _RC)
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_INTERNAL, &
+              short_name='SO4', &
+              standard_name='Sulphate aerosol', &
+              units='kg kg-1', &
+              dims='xyz', &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
+              restart_mode=MAPL_RESTART_OPTIONAL, &
+              fill_value=0.0, &
+              add_to_export=.true., _RC)
 
-         call MAPL_AddImportSpec(gc,&
-              SHORT_NAME='climSO4', &
-              LONG_NAME='Sulphate aerosol', &
-              UNITS='kg kg-1', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartOptional, _RC)
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name='climSO4', &
+              standard_name='Sulphate aerosol', &
+              units='kg kg-1', &
+              dims='xyz', &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
+              restart_mode=MAPL_RESTART_OPTIONAL, _RC)
 
          do i = 1, self%nbins
             write(field_name, '(A, I0.3)') '', i
             ! dry deposition
-            call MAPL_AddImportSpec(gc, &
-                 SHORT_NAME='climSUDP' // trim(field_name), &
-                 LONG_NAME='Sulfate dry deposition (bin ' // trim(field_name) // ')', &
-                 UNITS='kg kg-1 s-1', &
-                 DIMS=MAPL_DimsHorzOnly, &
-                 VLOCATION=MAPL_VLocationCenter, &
-                 RESTART=MAPL_RestartSkip, _RC)
+            call MAPL_GridCompAddSpec(gc, &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climSUDP' // trim(field_name), &
+                 standard_name='Sulfate dry deposition (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
+                 dims='xy', &
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
+                 restart_mode=MAPL_RESTART_SKIP, _RC)
 
             ! wet deposition
-            call MAPL_AddImportSpec(gc, &
-                 SHORT_NAME='climSUWT' // trim(field_name), &
-                 LONG_NAME='Sulfate wet deposition (bin ' // trim(field_name) // ')', &
-                 UNITS='kg kg-1 s-1', &
-                 DIMS=MAPL_DimsHorzOnly, &
-                 VLOCATION=MAPL_VLocationCenter, &
-                 RESTART=MAPL_RestartSkip, _RC)
+            call MAPL_GridCompAddSpec(gc, &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climSUWT' // trim(field_name), &
+                 standard_name='Sulfate wet deposition (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
+                 dims='xy', &
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
+                 restart_mode=MAPL_RESTART_SKIP, _RC)
 
             ! gravitational settling
-            call MAPL_AddImportSpec(gc, &
-                 SHORT_NAME='climSUSD' // trim(field_name), &
-                 LONG_NAME='Sulfate settling (bin ' // trim(field_name) // ')', &
-                 UNITS='kg kg-1 s-1', &
-                 DIMS=MAPL_DimsHorzOnly, &
-                 VLOCATION=MAPL_VLocationCenter, &
-                 RESTART=MAPL_RestartSkip, _RC)
+            call MAPL_GridCompAddSpec(gc, &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climSUSD' // trim(field_name), &
+                 standard_name='Sulfate settling (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
+                 dims='xy', &
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
+                 restart_mode=MAPL_RESTART_SKIP, _RC)
 
             ! convective scavenging
-            call MAPL_AddImportSpec(gc, &
-                 SHORT_NAME='climSUSV' // trim(field_name), &
-                 LONG_NAME='Sulfate convective scavenging (bin ' // trim(field_name) // ')', &
-                 UNITS='kg kg-1 s-1', &
-                 DIMS=MAPL_DimsHorzOnly, &
-                 VLOCATION=MAPL_VLocationCenter, &
-                 RESTART=MAPL_RestartSkip, _RC)
+            call MAPL_GridCompAddSpec(gc, &
+                 state_intent=ESMF_STATEINTENT_IMPORT, &
+                 short_name='climSUSV' // trim(field_name), &
+                 standard_name='Sulfate convective scavenging (bin ' // trim(field_name) // ')', &
+                 units='kg kg-1 s-1', &
+                 dims='xy', &
+                 vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
+                 restart_mode=MAPL_RESTART_SKIP, _RC)
          end do
       end if ! (data_driven)
-
-      if (.not. data_driven) then
-         call MAPL_AddImportSpec(gc, &
-              SHORT_NAME='SU_H2O2', &
-              LONG_NAME='source species', &
-              UNITS='1', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartSkip, _RC)
-
-         call MAPL_AddImportSpec(gc, &
-              SHORT_NAME='SU_OH', &
-              LONG_NAME='source species', &
-              UNITS='1', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartSkip, _RC)
-
-         call MAPL_AddImportSpec(gc, &
-              SHORT_NAME='SU_NO3', &
-              LONG_NAME='source species', &
-              UNITS='1', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartSkip, _RC)
-      end if
-
-      if (self%using_GMI) then
-
-         call MAPL_AddImportSpec(gc, &
-              SHORT_NAME='GMI_OH', &
-              LONG_NAME='Hydroxyl_radical', &
-              UNITS='mol/mol', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartSkip, _RC)
-
-         call MAPL_AddImportSpec(gc, &
-              SHORT_NAME='GMI_H2O2', &
-              LONG_NAME='Hydrogen_peroxide', &
-              UNITS='mol/mol', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartSkip, _RC)
-
-         call MAPL_AddImportSpec(gc, &
-              SHORT_NAME='GMI_NO3', &
-              LONG_NAME='Nitrogen_trioxide', &
-              UNITS='mol/mol', &
-              DIMS=MAPL_DimsHorzVert, &
-              VLOCATION=MAPL_VLocationCenter, &
-              RESTART=MAPL_RestartSkip, _RC)
-      end if
 
       ! Import, Export, Internal states for computational instance
       if (.not. data_driven) then
 #include "SU2G_Export___.h"
+         associate(using_GMI => self%using_GMI)
 #include "SU2G_Import___.h"
+         end associate
 #include "SU2G_Internal___.h"
-         if (mapl_am_i_root()) then
-            write(*, *) trim(Iam) // ": Wet removal scheme is " // trim(self%wet_removal_scheme)
-            write(*, *) trim(Iam) // ": Settling scheme is " // trim(self%settling_scheme)
-         end if
+         call logger%info("Wet removal scheme is %a", trim(self%wet_removal_scheme))
+         call logger%info("Settling scheme is %a", trim(self%settling_scheme))
       end if
 
       ! This state holds fields needed by radiation
-      call MAPL_AddExportSpec(gc, &
-           SHORT_NAME=trim(COMP_NAME) // '_AERO', &
-           LONG_NAME='aerosols_from_' // trim(COMP_NAME), &
-           UNITS='kg kg-1', &
-           DIMS=MAPL_DimsHorzVert, &
-           VLOCATION=MAPL_VLocationCenter, &
-           DATATYPE=MAPL_StateItem, _RC)
+      call MAPL_GridCompAddSpec(gc, &
+           state_intent=ESMF_STATEINTENT_EXPORT, &
+           short_name=trim(comp_name) // "_AERO", &
+           standard_name="aerosols_from_" // trim(comp_name), &
+           units="kg kg-1", &
+           dims="xyz", &
+           vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
+           itemtype=MAPL_STATEITEM_STATE, _RC)
 
       ! This bundle is needed by surface for snow albedo modification
       ! by aerosol settling and deposition
       ! DEVELOPMENT NOTE - Change to StateItem in future
-      call MAPL_AddExportSpec(gc, &
-           SHORT_NAME=trim(COMP_NAME) // '_AERO_DP', &
-           LONG_NAME='aerosol_deposition_from_' // trim(COMP_NAME), &
-           UNITS='kg m-2 s-1', &
-           DIMS=MAPL_DimsHorzOnly, &
-           DATATYPE=MAPL_BundleItem, _RC)
+      call MAPL_GridCompAddSpec(gc, &
+           state_intent=ESMF_STATEINTENT_EXPORT, &
+           short_name=trim(comp_name) // "_AERO_DP", &
+           standard_name="aerosol_deposition_from_" // trim(comp_name), &
+           units="kg m-2 s-1", &
+           dims="xy", &
+           vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
+           itemtype=MAPL_STATEITEM_FIELDBUNDLE, _RC)
 
-      ! Store internal state in GC
-      call ESMF_UserCompSetInternalState(gc, 'SU2G_GridComp', wrap, _RC)
-
-      ! Set generic services
-      call MAPL_GenericSetServices(gc, _RC)
-
-      _RETURN(ESMF_SUCCESS)
+      _RETURN(_SUCCESS)
 
    end subroutine SetServices
 
