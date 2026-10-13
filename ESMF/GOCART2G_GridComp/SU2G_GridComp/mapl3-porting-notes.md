@@ -1,6 +1,6 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b and 1c done.
+Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c and 2 done.
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -85,19 +85,25 @@ monochromatic_aerosol_optics.
    count unchanged (1674). Verified layout/case-only with the same
    token-stream check as step 1.
 
-2. **State specs and build.**
+2. **DONE - State specs and build.**
    - `SU2G_StateSpecs.rc`:
      - `self%nbins` -> `ungrd_nbins`.
      - `size(self%wavelengths_*)` -> `ungrd_wavelengths_profile` /
-       `ungrd_wavelengths_vertint`, matching DU and SS.
-     - Every MAPL2 `DEFAULT=` becomes `FILL=`. Give every internal an
-       explicit `FILL` (MAPL2 zero-filled internals; MAPL3 leaves them
-       uninitialised).
-     - Keep `ADD2EXPORT=T`. Remove the `FRIENDLYTO` column (MAPL3's ACG
-       ignores it).
-   - Check with the in-repo ACG script:
-     `python3.12 src/Shared/@MAPL/apps/MAPL_GridCompSpecs_ACG.py`.
-   - `CMakeLists.txt`: add `TYPE SHARED` and `NetCDF::NetCDF_Fortran`, as
+       `ungrd_wavelengths_vertint`, matching DU and SS. SetServices must
+       declare and set these before the ACG includes (step 4).
+     - All five internals get `FILL=0.0`. MAPL2 zero-filled internals;
+       MAPL3 fills new fields with a sentinel (`FieldFill` in
+       `field_empty_complete`) unless `fill_value` is given.
+     - Kept `ADD2EXPORT=T`; removed the `FRIENDLYTO` column (ignored by
+       MAPL3's ACG).
+     - `RESTART`: `MAPL_RestartOptional` -> `OPTIONAL`. The MAPL2 spelling
+       isn't in the ACG's mapping and was silently dropped (DU2G's spec
+       still has this problem).
+   - Checked with the in-repo ACG
+     (`python3.12 src/Shared/@MAPL/apps/MAPL_GridCompSpecs_ACG.py`): 17
+     `ungridded_dim_array=[ ungrd_*]`, and internals emit
+     `restart_mode=MAPL_RESTART_OPTIONAL` and `fill_value=0.0`.
+   - `CMakeLists.txt`: added `TYPE SHARED` and `NetCDF::NetCDF_Fortran`, as
      DU2G has.
 
 3. **Instance configuration.**
@@ -125,6 +131,20 @@ monochromatic_aerosol_optics.
      - `SU_H2O2/OH/NO3` (computational instance only), and
        `GMI_OH/H2O2/NO3` (only `if (using_GMI)`)
      - the `<name>_AERO` state and `<name>_AERO_DP` bundle, as in DU
+   - Friendliness (MAPL2 `FRIENDLYTO=DYNAMICS:TURBULENCE:MOIST` on DMS,
+     SO2, SO4, MSA). The MAPL3 ACG ignores `FRIENDLYTO` (DU2G's spec still
+     carries it as a no-op), so nothing currently puts SU's tracers into
+     the advection/diffusion/convection bundles. The MAPL3 replacement is
+     `MAPL_STATEITEM_SERVICE`:
+     - Subscribe to advection: an import `TRADV` with
+       `itemtype=MAPL_STATEITEM_SERVICE` and
+       `service_items=['DMS','SO2','SO4','MSA']` (`MAPL_GridCompAddSpec`
+       argument; `items:` in YAML). DynCore/AdvCore already provide
+       `TRADV`, and Superdyn re-exports it; no component subscribes yet.
+     - Turbulence and moist have no MAPL3 service providers yet; subscribe
+       once they exist.
+     - Check whether the subscription belongs in SU or in a GOCART2G/PHYS
+       ancestor, and do the same for DU and SS.
    - Replace the `MAPL_AM_I_ROOT` prints with the component logger.
 
 5. **Initialize.**
@@ -217,3 +237,8 @@ monochromatic_aerosol_optics.
 3. Whether SU writes back into the `SU_H2O2` import (step 6).
 4. Volcano and point-emission files are read from disk, so the regression
    data must include them.
+5. Tracer transport (step 4, friendliness): until SU subscribes to the
+   `TRADV` service (and turbulence/moist equivalents exist), DMS, SO2,
+   SO4 and MSA are not advected, diffused or convected in a coupled run.
+   The SU-only standalone regression is unaffected. DU and SS have the
+   same gap.
