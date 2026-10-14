@@ -4,3 +4,5 @@ seasalt-sa/run1
 seasalt-sa/run2
 gocart+seasalt+dust/run1
 gocart+seasalt+dust/run2
+sulfate-sa/run1
+sulfate-sa/run2

@@ -248,10 +248,13 @@ monochromatic_aerosol_optics.
      No timers in SU's Run routines.
    - **Undefined-value masks:** about 10 lines like
      `where(1.01*x > MAPL_UNDEF) x = 0.` in Run1 (around L930-L964).
-     MAPL2's undefined value was `+huge`; MAPL3's is `-huge`
+     MAPL2's `MAPL_UNDEF` (from `use MAPL`) was `1.0e15`
+     (`base/Base/Base_Base.F90` in v2.69; MAPL2's `MAPL_UNDEFINED_REAL`
+     was `huge`, but SU didn't use it); MAPL3's is `-huge`
      (`InternalConstants.F90` L18-19). Ported as-is the condition is
      always true and every emission is zeroed.
-     - DONE: module parameter `MAPL2_UNDEF = huge(1.)`, used in the ten
+     - DONE: module parameter `MAPL2_UNDEF = 1.0e15` (first written as
+       `huge(1.)`, which would miss 1e15 fill values), used in the ten
        Run1 masks and passed as `undefval` to `SulfateUpdateOxidants`
        (which applies the same `1.01*x > undefval` test to the oxidant
        climatologies, Process_Library L7158-7164). This keeps the MAPL2
@@ -357,6 +360,19 @@ monochromatic_aerosol_optics.
      schema), `cap_driver.yaml`, `cap_restart.yaml`, and SU's ExtData
      needs (anthropogenic/ship/biomass/aircraft/DMS emissions, the
      `SU_OH/H2O2/NO3` oxidants, volcano tables).
+     - DONE (case files only): `regression/sulfate-sa/run{1,2}`, after
+       dust-sa: `DataForSU` (configurable, restarted internals) feeds the
+       imports each phase reads to `FakeGOCART` -> `SU` with
+       `run_phases: [Run1]` / `[Run2]` (Run0's work is repeated at the
+       start of Run2). Volcanoes off (`/dev/null`), `using_GMI: false`.
+       Registered in `cases.txt`; skipped until data exists.
+     - Data still needed under `.../GOCART2G_GridComp/sulfate-sa/run{1,2}/
+       checkpoints/`: `2000-04-14T21:20:00/{DataForSU,SU}_internal.nc` and
+       `last/SU_{import,internal,export}.nc` from the step-0 MAPL2 run;
+       plus `optics_SU.v2.1.0.nc4` and `opticsBands_SU.v2.1.0.RRTMGP.nc4`
+       in `ExtData/chemistry/AerosolOptics/v2.x.x/x/`.
+     - First run will show whether the unconnected `TRADV` service
+       import is accepted standalone.
    - Hand runs: `export OMP_NUM_THREADS=1`, set `LD_LIBRARY_PATH` to the
      install `lib`, reset `cap_restart.yaml` before each run. Compare with
      a `cmpchk.py`-style script that counts both `+huge` and `-huge` as
@@ -375,7 +391,8 @@ monochromatic_aerosol_optics.
       - Undefined-value mask: `where (1.01 * du_src > MAPL_UNDEFINED_REAL)`
         in `run1` is always true under MAPL3 (`-huge`), so `du_src` is
         zeroed everywhere and Ginoux/K14 emissions are lost. Use the same
-        `MAPL2_UNDEF = huge(1.)` approach as SU (step 6).
+        `MAPL2_UNDEF = 1.0e15` approach as SU (step 6).
+      - Also passes `MAPL_UNDEFINED_REAL` as `undef` to `DustEmissionK14`.
       - Point emissions: `run1` calls `MAPL_GeomGetHorzIJIndex` without
         `local_indices=.true.`, so it gets global indices where
         `updatePointwiseEmissions` expects local ones (-1 off-PE). Only hit
@@ -384,6 +401,13 @@ monochromatic_aerosol_optics.
         index the 1-based PLE as if 0-based (`ple(:,:,k-1)` at `k = 1`,
         `km = ubound(ple,3)`). Use a 0-based remap as SU does (step 7).
         SS2G likely has the same pattern.
+    - SS2G: sets `wavelength_for_aerosol_optics` as an integer (`value=0`;
+      DU/SU use `0.`) and never sets `use_photolysis_table`.
+    - Rename the input-provider children `DataDU`/`DataSS` to
+      `DataForDU`/`DataForSS` in `dust-sa`, `seasalt-sa` (and
+      `gocart+seasalt+dust` if used), matching `DataForSU`/`DataForSolar`;
+      `DataDU` reads like a data-driven DU instance. Also rename
+      `checkpoints/*/Data{DU,SS}_internal.nc` in the regression data.
 
 ## Risks to settle early
 Nothing below has been checked at run time yet (no step-0 baseline, no
@@ -391,7 +415,7 @@ Nothing below has been checked at run time yet (no step-0 baseline, no
 
 1. The undefined-value comparisons (step 6). This also affects DU on the
    current branch.
-   - SU: fixed in code (`MAPL2_UNDEF = +huge` in the Run1 masks and
+   - SU: fixed in code (`MAPL2_UNDEF = 1.0e15` in the Run1 masks and
      `SulfateUpdateOxidants`).
    - Open: what MAPL3 ExtData writes for missing data; if `-huge`, the
      masks don't catch it.
