@@ -20,7 +20,7 @@ mapl:
     DataForSU:
       dso: libconfigurable_gridcomp.so
       setservices: setservices_
-      config_file: data-su.yaml
+      config_file: data-for-su.yaml
 
     FakeGOCART:
       dso: libconfigurable_gridcomp.so

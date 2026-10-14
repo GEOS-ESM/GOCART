@@ -403,11 +403,27 @@ monochromatic_aerosol_optics.
         SS2G likely has the same pattern.
     - SS2G: sets `wavelength_for_aerosol_optics` as an integer (`value=0`;
       DU/SU use `0.`) and never sets `use_photolysis_table`.
-    - Rename the input-provider children `DataDU`/`DataSS` to
-      `DataForDU`/`DataForSS` in `dust-sa`, `seasalt-sa` (and
-      `gocart+seasalt+dust` if used), matching `DataForSU`/`DataForSolar`;
-      `DataDU` reads like a data-driven DU instance. Also rename
-      `checkpoints/*/Data{DU,SS}_internal.nc` in the regression data.
+    - DONE: input-provider children renamed `DataDU`/`DataSS`/
+      `DataGOCART2G` -> `DataForDU`/`DataForSS`/`DataForGOCART2G` in
+      `dust-sa`, `seasalt-sa` and `gocart+seasalt+dust`, and their config
+      files `data-<comp>.yaml` -> `data-for-<comp>.yaml`, matching
+      `DataForSU`/`DataForSolar`. Checkpoints
+      `Data{DU,SS,GOCART2G}_internal.nc` -> `DataFor*_internal.nc` renamed
+      only in the personal copy (`LOCAL_REGRESSION_DATA_DIR=
+      /home/pchakrab/regression-data`); all three cases pass there.
+      Still to do: the same rename in the shared
+      `/ford1/share/gmao_SIteam/regression-data` and on S3, otherwise
+      these cases fail against the shared data.
+    - DONE: `DUMASS25` dropped from `EXCLUDE_VARS` in
+      `regression/run_case.cmake`. The baselines carried the old
+      `standard_name` ("Dust Mass Mixing Ratio"), which `nccmp -m` flags;
+      patched in the personal copy with
+      `ncatted -h -O -a standard_name,DUMASS25,o,c,'Dust Mass Mixing Ratio
+      of Particulate Matter < 2.5 microns (PM2.5)'` on
+      `{dust-sa,gocart+seasalt+dust}/run{1,2}/checkpoints/last/DU_export.nc`.
+      Needs the same fix in the shared copy and on S3.
+      `DUMASSFM`/`SSMASSFM` stay excluded (new exports absent from the
+      baselines).
 
 ## Risks to settle early
 Nothing below has been checked at run time yet (no step-0 baseline, no
