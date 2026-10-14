@@ -33,8 +33,8 @@ module SU2G_GridCompMod
 
    real, parameter :: cpd = 1004.16
 
-   ! MAPL2's undefined value; MAPL3's MAPL_UNDEF is -huge, which breaks the 1.01*x > undef masks
-   real, parameter :: MAPL2_UNDEF = huge(1.)
+   ! MAPL2's MAPL_UNDEF; MAPL3's is -huge, which breaks the 1.01*x > undef masks
+   real, parameter :: MAPL2_UNDEF = 1.0e15
 
    ! relative position of sulfate tracers
    integer, parameter :: nDMS = 1, nSO2 = 2, nSO4 = 3, nMSA = 4
@@ -159,7 +159,8 @@ contains
       call MAPL_GridCompGetResource(gc, "aviation_vertical_layers", self%aviation_layers, _RC)
       _ASSERT(size(self%aviation_layers) == 4, "aviation_vertical_layers must have 4 values")
 
-      call MAPL_GridCompGetResource(gc, "point_emissions_srcfilen", self%point_emissions_srcfilen, default='/dev/null', _RC)
+      call MAPL_GridCompGetResource(gc, &
+           "point_emissions_srcfilen", self%point_emissions_srcfilen, default='/dev/null', _RC)
       if ((index(self%point_emissions_srcfilen, '/dev/null') > 0)) then
          self%doing_point_emissions = .false. ! disable it if no file specified
       else
@@ -754,7 +755,8 @@ contains
                  nymd=nymd, nhms=120000)
             inquire(file=fname, exist=fileExists)
             if (fileExists) then
-               call ReadPointEmissions(nymd, fname, workspace%nVolc, workspace%vLat, workspace%vLon, &
+               call ReadPointEmissions(nymd, fname, &
+                    workspace%nVolc, workspace%vLat, workspace%vLon, &
                     workspace%vElev, workspace%vCloud, workspace%vSO2, workspace%vStart, &
                     workspace%vEnd, label='volcano', _RC)
                workspace%vSO2 = workspace%vSO2 * fMassSO2 / fMassSulfur
@@ -768,7 +770,8 @@ contains
                  nymd=nymd, nhms=120000)
             inquire(file=fname, exist=fileExists)
             if (fileExists) then
-               call ReadPointEmissions(nymd, fname, workspace%nVolcE, workspace%vLatE, workspace%vLonE, &
+               call ReadPointEmissions(nymd, fname, &
+                    workspace%nVolcE, workspace%vLatE, workspace%vLonE, &
                     workspace%vElevE, workspace%vCloudE, workspace%vSO2E, workspace%vStartE, &
                     workspace%vEndE, label='volcano', _RC)
                workspace%vSO2E = workspace%vSO2E * fMassSO2 / fMassSulfur
@@ -785,8 +788,10 @@ contains
               workspace%vLat / real(MAPL_RADIANS_TO_DEGREES), &
               iPoint, jPoint, local_indices=.true., _RC)
 
-         call SUvolcanicEmissions(workspace%nVolc, workspace%vStart, workspace%vEnd, workspace%vSO2, workspace%vElev, &
-              workspace%vCloud, iPoint, jPoint, nhms, SO2EMVN, SO2, nSO2, SUEM, &
+         call SUvolcanicEmissions( &
+              workspace%nVolc, workspace%vStart, workspace%vEnd, &
+              workspace%vSO2, workspace%vElev, workspace%vCloud, &
+              iPoint, jPoint, nhms, SO2EMVN, SO2, nSO2, SUEM, &
               self%km, self%CDT, MAPL_GRAV, zle0, delp, area, workspace%vLat, workspace%vLon, _RC)
          deallocate(iPoint, jPoint, _STAT)
       end if
@@ -799,9 +804,10 @@ contains
               workspace%vLatE / real(MAPL_RADIANS_TO_DEGREES), &
               iPoint, jPoint, local_indices=.true., _RC)
 
-         call SUvolcanicEmissions(workspace%nVolcE, workspace%vStartE, workspace%vEndE, workspace%vSO2E, workspace%&
-              vElevE, &
-              workspace%vCloudE, iPoint, jPoint, nhms, SO2EMVE, SO2, nSO2, SUEM, &
+         call SUvolcanicEmissions( &
+              workspace%nVolcE, workspace%vStartE, workspace%vEndE, &
+              workspace%vSO2E, workspace%vElevE, workspace%vCloudE, &
+              iPoint, jPoint, nhms, SO2EMVE, SO2, nSO2, SUEM, &
               self%km, self%CDT, MAPL_GRAV, zle0, delp, area, workspace%vLatE, workspace%vLonE, _RC)
          deallocate(iPoint, jPoint, _STAT)
       end if
@@ -867,7 +873,8 @@ contains
               workspace%pLat / real(MAPL_RADIANS_TO_DEGREES), &
               iPoint, jPoint, local_indices=.true., _RC)
 
-         call updatePointwiseEmissions(self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
+         call updatePointwiseEmissions( &
+              self%km, workspace%pBase, workspace%pTop, workspace%pEmis, workspace%nPts, &
               workspace%pstart, workspace%pend, zle0, &
               area, iPoint, jPoint, nhms, emissions_point, _RC)
 
@@ -1045,7 +1052,8 @@ contains
            rh2, zle0, delp, flux_ptr, susd_vel, settling_scheme=settling_opt, _RC)
 
       allocate(drydepositionf, mold=lwi, _STAT)
-      call SulfateChemDriver(self%km, self%klid, self%CDT, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
+      call SulfateChemDriver( &
+           self%km, self%klid, self%CDT, MAPL_PI, real(MAPL_RADIANS_TO_DEGREES), MAPL_KARMAN, &
            MAPL_AIRMW, MAPL_AVOGAD / 1000., cpd, MAPL_GRAV, &
            fMassMSA, fMassDMS, fMassSO2, fMassSO4, &
            nymd, nhms, lons, lats, &
