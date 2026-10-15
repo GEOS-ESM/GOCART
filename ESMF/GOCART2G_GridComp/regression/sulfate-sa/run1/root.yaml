@@ -9,12 +9,9 @@ mapl:
       class: CubedSphere
       im_world: 12
     vertical_grid:
-      class: model
-      standard_name: air_pressure
-      units: hPa
+      grid_type: model
+      fields: {pressure: PLE}
       num_levels: 181
-      field_edge: PLE
-      field_center: PE
 
   children:
     DataForSU:
