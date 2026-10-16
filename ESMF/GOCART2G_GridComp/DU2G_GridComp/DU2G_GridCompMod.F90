@@ -9,11 +9,12 @@ module DU2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
+   use gFTL2_StringVector, only: StringVector
    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
    use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
    use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
-   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_STATEITEM_SERVICE, MAPL_ClockGet
    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
    use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
@@ -114,6 +115,7 @@ contains
       integer :: num_threads
       type(MAPL_UngriddedDim) :: ungrd_nbins
       type(MAPL_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      type(StringVector) :: advected_tracers
       integer :: status
 
       call MAPL_GridCompGet(gc, name=comp_name, _RC)
@@ -294,6 +296,14 @@ contains
 #include "DU2G_Import___.h"
          end associate
 #include "DU2G_Internal___.h"
+         ! Replaces MAPL2's FRIENDLYTO=DYNAMICS on DU
+         call advected_tracers%push_back("DU")
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name="TRADV", &
+              standard_name="advected_quantities", &
+              itemtype=MAPL_STATEITEM_SERVICE, &
+              service_items=advected_tracers, _RC)
       end if
 
       ! This state holds fields needed by radiation

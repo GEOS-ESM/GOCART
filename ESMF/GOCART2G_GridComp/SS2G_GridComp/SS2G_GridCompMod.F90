@@ -10,11 +10,12 @@ module SS2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
+   use gFTL2_StringVector, only: StringVector
    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, MAPL_GridGetGlobalCellCountPerDim
    use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, MAPL_GridCompGet
    use MAPL, only: MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
-   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_STATEITEM_SERVICE, MAPL_ClockGet
    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_UngriddedDim
    use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
@@ -93,6 +94,7 @@ contains
       class(logger_t), pointer :: logger
       type(mapl_UngriddedDim) :: ungrd_nbins
       type(mapl_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      type(StringVector) :: advected_tracers
       integer :: i, status
 
       call MAPL_GridCompGet(gc, logger=logger, name=comp_name, _RC)
@@ -253,6 +255,14 @@ contains
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
 #include "SS2G_Internal___.h"
+         ! Replaces MAPL2's FRIENDLYTO=DYNAMICS on SS
+         call advected_tracers%push_back("SS")
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name="TRADV", &
+              standard_name="advected_quantities", &
+              itemtype=MAPL_STATEITEM_SERVICE, &
+              service_items=advected_tracers, _RC)
          call logger%info("Wet removal scheme is %a", trim(self%wet_removal_scheme))
       end if
 
