@@ -1,6 +1,9 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 1, 1a, 1b, 1c, 2, 3, 4, 5, 6, 7 and 8 done.
+Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 0-9 done:
+`sulfate-sa` and `gocart+seasalt+dust+sulfate` reproduce the MAPL2 baseline
+bit-for-bit. Open: publishing the regression data (step 9), friendliness
+(step 4) and the step-10 follow-ups.
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -37,6 +40,24 @@ monochromatic_aerosol_optics.
      `disable_emissions`, the volcano and point-emission files,
      `DIURNAL_BIOMASS_BURNING`, `GOCART2G_DT`, `MAXCLEAN`, `CCNTUNING`,
      `USE_MAMNET`.
+   - DONE: GOCART `develop` (MAPL2), C12L181, DU/SS/SU/GOCART2G each
+     recorded at 2000-04-14T21:20 (runs start at 21:00, so a crash in the
+     first step writes no record files). Converted to new-style cubed-sphere
+     files in `~/input/gocart+seasalt+dust+sulfate/C12L181/{before,after}/
+     new-style/` (`get-and-convert.sh`). Settings: `using_GMI: false`,
+     `disable_emissions: false`, CARN v202601 degassing volcanoes, no
+     explosive table for that date.
+   - `HISTORY.rc` must request SU's `SUEXTTAU`, `SUSTEXTTAU`, `SUSCATAU`,
+     `SUSTSCATAU`, `SUANGSTR` and `SO4SMASS`. MAPL2 allocates exports only on
+     request, and GOCART2G's totals skip SU when they are unallocated: the
+     first baseline had DU+SS-only `TOT*`/`PM*`. The SU/GOCART2G import and
+     internal files were bit-identical after the rerun; only the exports
+     changed, so DU/SS did not need recapturing.
+   - The MAPL2 build had the `nifactor` assignment in GOCART2G Run2
+     commented out with the NI section, so with `SO4SMASS` allocated the PM
+     line trapped on an uninitialized (signalling-NaN) `nifactor`. Restored
+     `nifactor = 132.14/96.06` there; the NI check stays commented (no NI in
+     the baseline).
 
 1. **DONE - codee format pass** (before any other change).
    `codee format --verbose ~/config/codee-format SU2G_GridCompMod.F90`,
@@ -183,15 +204,40 @@ monochromatic_aerosol_optics.
        once they exist.
      - Check whether the subscription belongs in SU or in a GOCART2G/PHYS
        ancestor, and do the same for DU and SS.
-     - DONE (SU only): SetServices subscribes to `TRADV` with
-       `service_items` DMS/SO2/SO4/MSA (a `StringVector`), for the
-       computational instance only. Placement settled: `items` must be the
-       subscriber's own internals, so it has to be in SU, not an ancestor.
-       Builds; not run-tested (first Fortran use of `service_items`; the
-       FV3 `adv-dyn`/`dyn-sa` regressions subscribe via YAML, with sibling
-       connections only). Open: whether a nested subscriber's `TRADV`
-       propagates up to a DYN/ADV connection in the parent, and duplicate
-       names if two SU instances subscribe. DU and SS still to do.
+     - DONE: SetServices subscribes to `TRADV` with `service_items`
+       DMS/SO2/SO4/MSA (a `StringVector`), for the computational instance
+       only. Placement settled: `items` must be the subscriber's own
+       internals, so it has to be in SU, not an ancestor.
+     - DONE: DU2G and SS2G subscribe the same way (`DU`, `SS`). In MAPL2
+       their internals were also `FRIENDLYTO=DYNAMICS:TURBULENCE:MOIST`;
+       the MAPL3 ports had dropped this silently.
+     - Run-tested only standalone: the unconnected `TRADV` imports are
+       accepted, including DU, SS and SU subscribing as siblings under
+       GOCART2G (`gocart+seasalt+dust+sulfate`); all GOCART2G regressions
+       still pass. The FV3 `adv-dyn`/`dyn-sa` regressions subscribe via YAML,
+       with sibling connections only.
+     - Routing (from the MAPL3 source; no GOCART2G change needed):
+       - Unconnected child imports propagate up automatically
+         (`StateRegistry_Propagation_smod.F90`): the DU, SS and SU `TRADV`
+         imports are linked under GOCART2G's `TRADV`, then CHEMISTRY's and
+         PHYSICS', with nothing declared in the parents.
+       - A connection to that `TRADV` connects every linked import
+         (`SimpleConnection%connect_sibling` loops over the family), and
+         each subscriber's `connect_to_import` adds its own internals to the
+         provider's bundle (`ServiceClassAspect.F90`). Several subscribers
+         per provider is by design.
+       - Provider: FV3 `DynCore`/`AdvCore` provide `TRADV`; Superdyn
+         re-exports DYN's. The AGCM still has the MAPL2 connection
+         PHYS -> SDYN (`GEOS_AgcmGridComp.F90`), where Physics assembles
+         the friendly bundle. When AGCM and Physics are ported: connect
+         SUPERDYN/`TRADV` -> PHYS/`TRADV` and drop Physics' MAPL2 `TRADV`
+         export. Until then the subscriptions are unused.
+     - Open, for the first coupled run:
+       - duplicate names when several instances (e.g. two SU) subscribe;
+       - `DU` and `SS` are single fields with 5 ungridded bins, while SU's
+         are plain 3-D fields: check that the service and DynCore/AdvCore
+         advect fields with an ungridded dimension (every bin), or split
+         the bins.
 
 5. **DONE - Initialize.** Rewritten after DU2G's MAPL3 Initialize:
    - `MAPL_GridCompGet(gc, name=, geom=, num_levels=)`; private state via
@@ -344,9 +390,12 @@ monochromatic_aerosol_optics.
      `<species>_instance_<child>.yaml` with species `SU`, i.e.
      `SU_instance_SU.yaml`, not `SU2G_instance_SU.yaml` (step 3). DU/SS
      regressions ship `DU_instance_DU.yaml`/`SS_instance_SS.yaml` in their
-     run dirs; the `su-sa` case needs `SU_instance_SU.yaml` too.
-   - Noticed, not changed: the DU `_AERO_DP` import-spec loop in
-     GOCART2G's SetServices iterates over `size(self%SS%instances)`.
+     run dirs; the `sulfate-sa` case ships `SU_instance_SU.yaml`.
+   - DONE (`51109f7`): the DU `_AERO_DP` import-spec loop in GOCART2G's
+     SetServices iterated over `size(self%SS%instances)`; now
+     `size(self%DU%instances)`.
+   - Run-tested: re-exporting `PSO4` and connecting it into GOCART2G's
+     import works; `PSO4` matches the baseline in the combined case.
 
 9. **Run-testing.**
    - First build (ifx Debug) of SU2G + GOCART2G succeeds after three
@@ -356,7 +405,7 @@ monochromatic_aerosol_optics.
      specs); `MAPL_MaxMin` is now a function `MAPL_MaxMin(array, comm)`
      returning `[max, min]`, so the GMI diagnostics in Run2 log it with
      the VM's MPI communicator.
-   - Add a `regression/su-sa` case: `root.yaml` (current vertical-grid
+   - Add an SU standalone regression case: `root.yaml` (current vertical-grid
      schema), `cap_driver.yaml`, `cap_restart.yaml`, and SU's ExtData
      needs (anthropogenic/ship/biomass/aircraft/DMS emissions, the
      `SU_OH/H2O2/NO3` oxidants, volcano tables).
@@ -366,20 +415,44 @@ monochromatic_aerosol_optics.
        `run_phases: [Run1]` / `[Run2]` (Run0's work is repeated at the
        start of Run2). Volcanoes off (`/dev/null`), `using_GMI: false`.
        Registered in `cases.txt`; skipped until data exists.
-     - Data still needed under `.../GOCART2G_GridComp/sulfate-sa/run{1,2}/
-       checkpoints/`: `2000-04-14T21:20:00/{DataForSU,SU}_internal.nc` and
-       `last/SU_{import,internal,export}.nc` from the step-0 MAPL2 run;
-       plus `optics_SU.v2.1.0.nc4` and `opticsBands_SU.v2.1.0.RRTMGP.nc4`
-       in `ExtData/chemistry/AerosolOptics/v2.x.x/x/`.
-     - First run will show whether the unconnected `TRADV` service
-       import is accepted standalone.
+     - Volcanoes changed to CARN v202601 degassing
+       (`ExtData/chemistry/CARN/v202601/degassing/`), explosive `/dev/null`,
+       to match the baseline; `mapl: misc:` checkpoints import, export and
+       internal.
+     - The unconnected `TRADV` service import is accepted standalone.
+   - DONE - **`sulfate-sa`**: bit-for-bit against the step-0 baseline in all
+     three states (run1 29 fields, run2 41). Fields a run never writes are
+     NaN in MAPL3, where MAPL2 has values left from the previous step or
+     zero-fill, so `cmpchk.py` reports them as `nan` (no skips):
+     - after Run1: `PSO4`, `SUDP`, `SUSD`, `SUWT`, the optics/mass
+       diagnostics (all computed in Run2) and `SUSV`;
+     - after Run2: `SUSV` (written by moist, not SU).
+   - DONE - **`gocart+seasalt+dust+sulfate`** replaces
+     `gocart+seasalt+dust`: SU active in GOCART2G, and one
+     `DataForGOCART2G` provider, restarted from the MAPL2 GOCART2G import
+     state (the union of the DU/SS/SU imports, with equal values for shared
+     fields), feeds all 43 imports (GMI omitted). Bit-for-bit in all
+     DU/SS/SU/GOCART2G states, including the `TOT*`/`PM*` totals (run1 104
+     fields, run2 160).
+     - `ACTIVE_INSTANCES` must have `CA: []` and `NI: []`. GOCART2G creates
+       only DU/SS/SU children, but the Run2 `nifactor` check reads the
+       config: listing `NI` gave `nifactor = 1.0` instead of 132.14/96.06
+       (`PM*` off by up to 8%).
+   - DONE - **Regression data** in the personal copy
+     (`/home/pchakrab/regression-data/.../GOCART2G_GridComp`): `sulfate-sa`,
+     `gocart+seasalt+dust+sulfate`, and `dust-sa`/`seasalt-sa` regenerated
+     from the same inputs (with the DU fix, step 10); `gocart+seasalt+dust`
+     removed. `ctest -L REGRESSION` with `LOCAL_REGRESSION_DATA_DIR` set to it:
+     all 8 GOCART2G cases pass.
+     - Still to do: upload to S3 and the shared
+       `/ford1/share/gmao_SIteam/regression-data`. Against the shared copy
+       `dust-sa`/`seasalt-sa` fail (old `Data{DU,SS}_internal.nc` names) and
+       the two SU cases are skipped, which `run_case.cmake` reports as
+       passed.
    - Hand runs: `export OMP_NUM_THREADS=1`, set `LD_LIBRARY_PATH` to the
-     install `lib`, reset `cap_restart.yaml` before each run. Compare with
-     a `cmpchk.py`-style script that counts both `+huge` and `-huge` as
-     undefined.
-   - Target: bit-for-bit against the step-0 baseline in all three states.
-     Publish data under `regression-data/.../GOCART2G_GridComp/su-sa` and
-     add `su-sa` to `regression/cases.txt`.
+     install `lib`, reset `cap_restart.yaml` before each run. Each run dir
+     has a `baseline` link to `~/input/.../after/new-style`, read by
+     `cmpchk.py`.
 
 10. **Follow-ups unlocked by SU.**
     - Check that the `sulforg01-03` activation modes and MAMnet's `SUsum`
@@ -387,12 +460,15 @@ monochromatic_aerosol_optics.
       non-zero `SO4`.
     - NI2G's `SO4` import from SU can be connected when NI is ported; wire
       DU->NI and SS->NI at the same time.
-    - DU2G fixes found while porting SU (separate PR, not on this branch):
-      - Undefined-value mask: `where (1.01 * du_src > MAPL_UNDEFINED_REAL)`
-        in `run1` is always true under MAPL3 (`-huge`), so `du_src` is
-        zeroed everywhere and Ginoux/K14 emissions are lost. Use the same
-        `MAPL2_UNDEF = 1.0e15` approach as SU (step 6).
-      - Also passes `MAPL_UNDEFINED_REAL` as `undef` to `DustEmissionK14`.
+    - DU2G fixes found while porting SU:
+      - DONE (`51109f7`, on this branch): the `run1` undefined-value mask
+        `where (1.01 * du_src > MAPL_UNDEFINED_REAL)` was always true under
+        MAPL3 (`-huge`), so `du_src` was zeroed and Ginoux emissions lost
+        (the old `dust-sa` baselines had `DU_SRC = 0`). Now uses
+        `MAPL2_UNDEF = 1.0e15`, as SU does (step 6).
+      - DONE (`fe97dda`): `dust-sa/run1` now provides `V10M` and `FRLAKE`,
+        which Ginoux reads; Run1 crashed on the unassociated `V10M`.
+      - Still passes `MAPL_UNDEFINED_REAL` as `undef` to `DustEmissionK14`.
       - Point emissions: `run1` calls `MAPL_GeomGetHorzIJIndex` without
         `local_indices=.true.`, so it gets global indices where
         `updatePointwiseEmissions` expects local ones (-1 off-PE). Only hit
@@ -407,51 +483,40 @@ monochromatic_aerosol_optics.
       `DataGOCART2G` -> `DataForDU`/`DataForSS`/`DataForGOCART2G` in
       `dust-sa`, `seasalt-sa` and `gocart+seasalt+dust`, and their config
       files `data-<comp>.yaml` -> `data-for-<comp>.yaml`, matching
-      `DataForSU`/`DataForSolar`. Checkpoints
-      `Data{DU,SS,GOCART2G}_internal.nc` -> `DataFor*_internal.nc` renamed
-      only in the personal copy (`LOCAL_REGRESSION_DATA_DIR=
-      /home/pchakrab/regression-data`); all three cases pass there.
-      Still to do: the same rename in the shared
-      `/ford1/share/gmao_SIteam/regression-data` and on S3, otherwise
-      these cases fail against the shared data.
-    - DONE: `DUMASS25` dropped from `EXCLUDE_VARS` in
-      `regression/run_case.cmake`. The baselines carried the old
-      `standard_name` ("Dust Mass Mixing Ratio"), which `nccmp -m` flags;
-      patched in the personal copy with
-      `ncatted -h -O -a standard_name,DUMASS25,o,c,'Dust Mass Mixing Ratio
-      of Particulate Matter < 2.5 microns (PM2.5)'` on
-      `{dust-sa,gocart+seasalt+dust}/run{1,2}/checkpoints/last/DU_export.nc`.
-      Needs the same fix in the shared copy and on S3.
-      `DUMASSFM`/`SSMASSFM` stay excluded (new exports absent from the
-      baselines).
+      `DataForSU`/`DataForSolar`. The regenerated data (step 9) uses the
+      new names; the shared copy and S3 still have the old ones.
+    - DONE: `DUMASS25`, `DUMASSFM` and `SSMASSFM` no longer in
+      `EXCLUDE_VARS` (`regression/run_case.cmake`); the regenerated
+      baselines have all three with current metadata. The `ncatted`
+      `standard_name` patch on the old baselines is moot.
 
 ## Risks to settle early
-Nothing below has been checked at run time yet (no step-0 baseline, no
-`su-sa` case).
+Items 1-4 were checked at run time with the step-0 baseline (step 9).
 
-1. The undefined-value comparisons (step 6). This also affects DU on the
-   current branch.
-   - SU: fixed in code (`MAPL2_UNDEF = 1.0e15` in the Run1 masks and
-     `SulfateUpdateOxidants`).
+1. The undefined-value comparisons (step 6).
+   - SU and DU: fixed (`MAPL2_UNDEF = 1.0e15`); both reproduce the
+     baseline.
    - Open: what MAPL3 ExtData writes for missing data; if `-huge`, the
-     masks don't catch it.
-   - DU: not fixed (step 10, separate PR).
-2. GMI coupling: `using_GMI` changes which fields SU imports. Test with
-   GMI off first, and confirm the baseline used the same setting.
-   - Code done: the `GMI_*` imports are `COND=using_GMI` (step 4).
-   - Open: no GMI-off run yet; baseline setting unknown until step 0.
+     masks don't catch it. The regression inputs have no undefined
+     values, so this is untested.
+2. GMI coupling: `using_GMI` changes which fields SU imports.
+   - Settled for GMI off: the baseline used `using_GMI: false`, and the
+     GMI-off runs match. GMI on is untested.
 3. Whether SU writes back into the `SU_H2O2` import (step 6).
-   - Settled by reading the code: no chemistry write-back.
-     `SulfateUpdateOxidants` only zeroes negative/undefined values in the
-     `SU_OH`/`SU_NO3`/`SU_H2O2` imports in place.
-   - Open: confirm at run time that MAPL3 allows modifying the import.
+   - Settled: no chemistry write-back, and MAPL3 accepts the in-place
+     cleanup in `SulfateUpdateOxidants` (the run1 imports match the
+     baseline).
 4. Volcano and point-emission files are read from disk, so the regression
    data must include them.
-   - Not addressed: the `su-sa` case and its data don't exist yet (step 9).
-5. Tracer transport (step 4, friendliness): until SU subscribes to the
-   `TRADV` service (and turbulence/moist equivalents exist), DMS, SO2,
-   SO4 and MSA are not advected, diffused or convected in a coupled run.
-   The SU-only standalone regression is unaffected. DU and SS have the
-   same gap.
-   - Not addressed: no subscription, and placement (SU vs. a parent
-     component) is undecided.
+   - Settled: the CARN degassing table is in the regression `ExtData`;
+     point emissions are off.
+5. Tracer transport (step 4, friendliness): SU, DU and SS tracers must be
+   advected, diffused and convected in a coupled run. The standalone
+   regressions are unaffected.
+   - Advection: SU, DU and SS subscribe to `TRADV` (in each component,
+     computational instances only); MAPL3 propagates the imports through
+     GOCART2G/CHEM/PHYS. Inactive until the AGCM connects SUPERDYN/`TRADV`
+     -> PHYS/`TRADV` (needs the AGCM and Physics ports). Untested in a
+     coupled run, including whether the ungridded DU/SS bins are advected.
+   - Diffusion and convection: not addressed; turbulence and moist have no
+     MAPL3 service providers yet.
