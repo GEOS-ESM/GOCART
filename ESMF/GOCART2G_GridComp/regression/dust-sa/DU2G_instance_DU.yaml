@@ -79,6 +79,8 @@ mapl:
 
   misc:
     activate_all_exports: true
+    use_threads: true
+    num_threads: 1
     restart:
       internal: true
     checkpoint:
