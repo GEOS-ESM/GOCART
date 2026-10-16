@@ -516,6 +516,9 @@ contains
 
             ! AERO state
             call ESMF_StateGet(import, instance_%name // "_AERO", state_, _RC)
+            ! MAPL3 gives the state a default name (StateNNN); the AERO
+            ! callbacks select children by name, so add it as <name>_AERO
+            state_ = ESMF_NamedAlias(state_, name=instance_%name // "_AERO", _RC)
             call ESMF_StateAdd(aero, [state_], _RC)
 
             ! AERO_DP bundle
@@ -1297,6 +1300,7 @@ contains
 
       character(len=ESMF_MAXSTR) :: binIndexstr
       character(len=ESMF_MAXSTR), allocatable :: aeroName(:)
+      character(len=:), allocatable :: int_fld_name
 
       real, pointer, dimension(:, :, :, :) :: orig_ptr
       real, pointer, dimension(:, :, :) :: ptr3d
@@ -1320,8 +1324,10 @@ contains
       do i = 1, n
          if (itemTypes(i) /= ESMF_STATEITEM_STATE) cycle ! exclude non-states
          call ESMF_StateGet(state, trim(itemList(i)), child_state, _RC)
-         call ESMF_InfoGetFromHost(state, info, _RC)
-         call ESMF_InfoGet(info, key="internal_variable_name", values=aeroName, _RC)
+         call ESMF_InfoGetFromHost(child_state, info, _RC)
+         ! Children store a single name; MAPL2 stored a list
+         call ESMF_InfoGetCharAlloc(info, key="internal_variable_name", value=int_fld_name, _RC)
+         aeroName = [character(len=ESMF_MAXSTR) :: int_fld_name]
          do b = 1, size(aeroName)
             call ESMF_StateGet(child_state, trim(aeroName(b)), field, _RC)
             call ESMF_FieldGet(field, rank=rank, _RC)
@@ -1394,7 +1400,7 @@ contains
       call ESMF_InfoGet(info, key="band_for_aerosol_optics", value=band, _RC)
 
       ! Relative humidity
-      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
       ! Are we using a photolysis table?
@@ -1404,11 +1410,11 @@ contains
       end if
 
       ! Relative humidity
-      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
       ! Pressure at layer edges
-      call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
       ! TODO: pchakrab - CAREFUL! In MAPL3 land, PLE is (:, :, 1:km+1), instead of (:, :, 0:km)
@@ -1457,7 +1463,7 @@ contains
          call ESMF_InfoGetFromHost(child_state, child_info, _RC)
 
          ! set RH in child's aero state
-         call ESMF_InfoGet(child_info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
 
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
@@ -1465,7 +1471,7 @@ contains
          end if
 
          ! set PLE in child's aero state
-         call ESMF_InfoGet(child_info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
 
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
@@ -1482,13 +1488,13 @@ contains
          call ESMF_MethodExecute(child_state, label="aerosol_optics", _RC)
 
          ! Retrieve extinction from each child
-         call ESMF_InfoGet(child_info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ext_, _RC)
          end if
 
          ! Retrieve scattering extinction from each child
-         call ESMF_InfoGet(child_info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ssa_, _RC)
          end if
@@ -1496,12 +1502,12 @@ contains
          ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
          ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
          if (use_phot_table /= 0) then
-            call ESMF_InfoGet(child_info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+            call ESMF_InfoGetCharAlloc(child_info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
             if (fld_name /= '') then
                call MAPL_StateGetPointer(child_state, itemName=trim(fld_name), farrayPtr=pmom_, _RC)
             end if
          else
-            call ESMF_InfoGet(child_info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+            call ESMF_InfoGetCharAlloc(child_info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
             if (fld_name /= "") then
                call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=asy_, _RC)
             end if
@@ -1521,26 +1527,26 @@ contains
 
       ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children
       ! This is what is passed to radiation or photolysis
-      call ESMF_InfoGet(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= "") then
          call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = ext(:, :, :)
       end if
 
-      call ESMF_InfoGet(info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= "") then
          call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = ssa(:, :, :)
       end if
 
       if (use_phot_table /= 0) then
-         call ESMF_InfoGet(info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
          if (fld_name /= '') then
             call MAPL_StateGetPointer(state, itemName=trim(fld_name), farrayPtr=var4d, _RC)
             var4d = pmom(:, :, :, :)
          end if
       else
-         call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = asy(:, :, :)
@@ -1586,11 +1592,11 @@ contains
       call ESMF_InfoGet(info, key="wavelength_for_aerosol_optics", value=wavelength, _RC)
 
       ! Relative humidity
-      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
       ! Pressure at layer edges
-      call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
       ! TODO: pchakrab - CAREFUL! ple in MAPL3 is (:, :, 1:km+1), instead of (:, :, km)
@@ -1632,7 +1638,7 @@ contains
          call ESMF_InfoGetFromHost(child_state, child_info, _RC)
 
          ! set RH in child's aero state
-         call ESMF_InfoGet(child_info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
 
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
@@ -1640,7 +1646,7 @@ contains
          end if
 
          ! set PLE in child's aero state
-         call ESMF_InfoGet(child_info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
 
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
@@ -1654,7 +1660,7 @@ contains
          call ESMF_MethodExecute(child_state, label="monochromatic_aerosol_optics", _RC)
 
          ! Retrieve extinction from each child
-         call ESMF_InfoGet(child_info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=tau_, _RC)
          end if
@@ -1664,7 +1670,7 @@ contains
       end do
 
       ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
-      call ESMF_InfoGet(info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= "") then
          call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = tau
@@ -1699,7 +1705,7 @@ contains
 
       call ESMF_InfoGetFromHost(state, info, _RC)
 
-      call ESMF_InfoGet(info, key="aerosolName", value=aeroName, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="aerosolName", value=aeroName, _RC)
       call ESMF_InfoGet(info, key="im", value=im, _RC)
       call ESMF_InfoGet(info, key="jm", value=jm, _RC)
       call ESMF_InfoGet(info, key="km", value=km, _RC)
@@ -1735,7 +1741,7 @@ contains
       case ("dust")
          call getAerosolSum("DU", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_DU", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_DU", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1744,7 +1750,7 @@ contains
       case ("seasalt")
          call getAerosolSum("SS", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_SS", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_SS", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1753,7 +1759,7 @@ contains
       case ("organicCarbon")
          call getAerosolSum("CA.oc", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_CA.oc", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.oc", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1762,7 +1768,7 @@ contains
       case ("blackCarbon")
          call getAerosolSum("CA.bc", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_CA.bc", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.bc", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1771,7 +1777,7 @@ contains
       case ("brownCarbon")
          call getAerosolSum("CA.br", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_CA.br", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.br", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1780,7 +1786,7 @@ contains
       case ("sulfate")
          call getAerosolSum("SU", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_SU", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_SU", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1789,7 +1795,7 @@ contains
       case ("nitrate")
          call getAerosolSum("NI", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_NI", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_NI", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1828,7 +1834,8 @@ contains
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                call ESMF_MethodExecute(child_state, label="get_mixR", _RC)
                call ESMF_InfoGetFromHost(child_state, child_info, _RC)
-               call ESMF_InfoGet(child_info, key="sum_of_internalState_aerosol", value=fld_name, _RC)
+               ! A species need not register a sum field
+               call ESMF_InfoGet(child_info, key="sum_of_internalState_aerosol", value=fld_name, default="", _RC)
                if (fld_name /= "") then
                   call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ptr3d, _RC)
                   aeroOut = aeroOut + ptr3d

@@ -346,10 +346,33 @@ monochromatic_aerosol_optics.
      DU2G's MAPL3 optics read `ple(:,:,k-1)` at `k = 1` and take
      `km = ubound(ple,3)` (= km+1): out of bounds and one level too many.
      Same fix needed there (see step 10).
-   - `get_mixR` lives in `ESMF/Shared/Chem_AeroGeneric.F90` (shared, not
-     touched). It reads `internal_variable_name` with `values=` (a list)
-     while SU/DU/SS store a scalar, still calls `ESMF_AttributeGet`, and
-     never sets `rc`. Check when it's first exercised (step 9).
+   - DONE - `get_mixR` (`ESMF/Shared/Chem_AeroGeneric.F90`) and the
+     GOCART2G AERO callbacks it serves:
+     - `get_mixR`: reads `internal_variable_name` as the scalar the
+       children store (was `values=`), the sum-field name from Info (was
+       `ESMF_AttributeGet`) with `default=""`, returns early without one,
+       and sets `rc`. GOCART2G's `serialize_bundle` had the same list read,
+       and read the parent's Info instead of the child's.
+     - **`ESMF_InfoGet` into deferred-length strings:** ESMF 8.x's generic
+       `ESMF_InfoGet` has no allocatable-character specific, so
+       `value=` a `character(:), allocatable` resolves to `ESMF_InfoGetCH`
+       (`len=*`) and traps at run time on the unallocated actual; the
+       compiler can't tell them apart. Use `ESMF_InfoGetCharAlloc`. Fixed
+       at 30 sites: `get_mixR`, and GOCART2G's `run_aerosol_optics`,
+       `get_monochromatic_aop`, `get_mixRatioSum`, `serialize_bundle`.
+       DU2G/SS2G/SU2G had none.
+     - **Child AERO state names:** MAPL3 creates the `<name>_AERO` state
+       items with default names (`StateNNN`), and `get_mixRatioSum`
+       selects children by name prefix, so every sum was zero.
+       `add_aero_states_` now adds each as
+       `ESMF_NamedAlias(state, name=<name>_AERO)`, as in MAPL2.
+     - Run-tested with a temporary hook in GOCART2G Run2 (combined case,
+       6 ranks): `get_mixRatioSum` gives DU/SS/SU sums matching the
+       internals (DU = bin sum of `DU` to float32 rounding, SU = `SO4`),
+       and `serialize_bundle` gives 11 fields (5 DU, 5 SS, SO4). All 8
+       GOCART2G regressions still pass. `run_aerosol_optics` and
+       `get_monochromatic_aop` build but are not exercised until
+       radiation calls them.
 
 8. **DONE - Wrapper and parent wiring** (not built yet).
    - External `SetServices` wrapper after `end module SU2G_GridCompMod`, as
