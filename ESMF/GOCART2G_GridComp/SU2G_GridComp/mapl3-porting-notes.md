@@ -1,9 +1,26 @@
 # SU2G_GridComp MAPL3 porting plan
 
-Status: in progress on `feature/pchakrab/port-su2g-to-mapl3`. Steps 0-9 done:
-`sulfate-sa` and `gocart+seasalt+dust+sulfate` reproduce the MAPL2 baseline
-bit-for-bit. Open: publishing the regression data (step 9), friendliness
-(step 4) and the step-10 follow-ups.
+Status: **complete** (2026-10-16) on `feature/pchakrab/port-su2g-to-mapl3`.
+Steps 0-9 done: `sulfate-sa` and `gocart+seasalt+dust+sulfate` reproduce the
+MAPL2 baseline bit-for-bit, and GOCART2G's aerosol optics run with SOLAR as
+the caller.
+
+Left after the port (none blocks it):
+- Publish the regression data to S3 and the shared
+  `/ford1/share/gmao_SIteam/regression-data` (step 9).
+- Blocked on other ports:
+  - Advection: SU, DU and SS subscribe to `TRADV`; takes effect once the
+    AGCM and Physics are ported (SUPERDYN/`TRADV` -> PHYS/`TRADV`, drop
+    Physics' MAPL2 `TRADV` export). Then check that the DU/SS bins are
+    advected (step 4).
+  - Diffusion and convection: need MAPL3 turbulence and moist service
+    providers (step 4).
+  - NI2G's `SO4` import from SU, plus DU->NI and SS->NI (step 10).
+- Fixed but not run-tested: DU2G `DustEmissionK14` undef and point-emission
+  indices (no case uses them); GOCART2G `get_monochromatic_aop` (no caller).
+- Untested: what MAPL3 ExtData writes for missing data (risk 1), GMI on
+  (risk 2), and whether the activation modes/MAMnet now see non-zero `SO4`
+  (step 10).
 
 Derived from the Radiation porting notes
 (`@GEOSradiation_GridComp/GEOSsolar_GridComp/mapl3-porting-notes.md` and
@@ -29,507 +46,538 @@ monochromatic_aerosol_optics.
 
 ## Steps
 
-0. **MAPL2 baseline (do this first).**
-   - Capture an SU-only MAPL2 run at C12L181, the way the Solar and GWD
-     baselines were captured: `COMPONENT_TO_RECORD: SU`, with before and
-     after Run-phase files for import, internal and export.
-   - The baseline must match the standalone's configuration, or it will
-     never reproduce bit-for-bit (Solar "Comparison status"; GWD grid name,
-     timestep and efficiency settings).
-   - Record every SU and GOCART2G setting the baseline used: `using_GMI`,
-     `disable_emissions`, the volcano and point-emission files,
-     `DIURNAL_BIOMASS_BURNING`, `GOCART2G_DT`, `MAXCLEAN`, `CCNTUNING`,
-     `USE_MAMNET`.
-   - DONE: GOCART `develop` (MAPL2), C12L181, DU/SS/SU/GOCART2G each
-     recorded at 2000-04-14T21:20 (runs start at 21:00, so a crash in the
-     first step writes no record files). Converted to new-style cubed-sphere
-     files in `~/input/gocart+seasalt+dust+sulfate/C12L181/{before,after}/
-     new-style/` (`get-and-convert.sh`). Settings: `using_GMI: false`,
-     `disable_emissions: false`, CARN v202601 degassing volcanoes, no
-     explosive table for that date.
-   - `HISTORY.rc` must request SU's `SUEXTTAU`, `SUSTEXTTAU`, `SUSCATAU`,
-     `SUSTSCATAU`, `SUANGSTR` and `SO4SMASS`. MAPL2 allocates exports only on
-     request, and GOCART2G's totals skip SU when they are unallocated: the
-     first baseline had DU+SS-only `TOT*`/`PM*`. The SU/GOCART2G import and
-     internal files were bit-identical after the rerun; only the exports
-     changed, so DU/SS did not need recapturing.
-   - The MAPL2 build had the `nifactor` assignment in GOCART2G Run2
-     commented out with the NI section, so with `SO4SMASS` allocated the PM
-     line trapped on an uninitialized (signalling-NaN) `nifactor`. Restored
-     `nifactor = 132.14/96.06` there; the NI check stays commented (no NI in
-     the baseline).
+### 0. DONE - MAPL2 baseline (done first)
 
-1. **DONE - codee format pass** (before any other change).
-   `codee format --verbose ~/config/codee-format SU2G_GridCompMod.F90`,
-   following `.vscode/instructions/fortran-formatting.instructions.md`.
-   - Five `allocate(x, mold=y, __STAT__)` lines (L1105, L1247-1249, L1298
-     before formatting) were syntax errors to codee; masked with
-     `!CODEE_MASK!`, formatted, unmasked. codee re-indented the masked
-     comment lines, so unmasking kept codee's indentation; each statement
-     text is present unchanged.
-   - Verified layout-only: code token stream (lowercased outside strings,
-     whitespace/`&`/`;` removed, codee's `'a'//'b'` literal splits joined),
-     comments and cpp lines all identical; subroutine/end-subroutine,
-     `contains`, `#if`/`#endif` counts unchanged. 1791 -> 1800 lines.
+- Capture an SU-only MAPL2 run at C12L181, the way the Solar and GWD
+  baselines were captured: `COMPONENT_TO_RECORD: SU`, with before and
+  after Run-phase files for import, internal and export.
+- The baseline must match the standalone's configuration, or it will
+  never reproduce bit-for-bit (Solar "Comparison status"; GWD grid name,
+  timestep and efficiency settings).
+- Record every SU and GOCART2G setting the baseline used: `using_GMI`,
+  `disable_emissions`, the volcano and point-emission files,
+  `DIURNAL_BIOMASS_BURNING`, `GOCART2G_DT`, `MAXCLEAN`, `CCNTUNING`,
+  `USE_MAMNET`.
+- DONE: GOCART `develop` (MAPL2), C12L181, DU/SS/SU/GOCART2G each
+  recorded at 2000-04-14T21:20 (runs start at 21:00, so a crash in the
+  first step writes no record files). Converted to new-style cubed-sphere
+  files in `~/input/gocart+seasalt+dust+sulfate/C12L181/{before,after}/
+  new-style/` (`get-and-convert.sh`). Settings: `using_GMI: false`,
+  `disable_emissions: false`, CARN v202601 degassing volcanoes, no
+  explosive table for that date.
+- `HISTORY.rc` must request SU's `SUEXTTAU`, `SUSTEXTTAU`, `SUSCATAU`,
+  `SUSTSCATAU`, `SUANGSTR` and `SO4SMASS`. MAPL2 allocates exports only on
+  request, and GOCART2G's totals skip SU when they are unallocated: the
+  first baseline had DU+SS-only `TOT*`/`PM*`. The SU/GOCART2G import and
+  internal files were bit-identical after the rerun; only the exports
+  changed, so DU/SS did not need recapturing.
+- The MAPL2 build had the `nifactor` assignment in GOCART2G Run2
+  commented out with the NI section, so with `SO4SMASS` allocated the PM
+  line trapped on an uninitialized (signalling-NaN) `nifactor`. Restored
+  `nifactor = 132.14/96.06` there; the NI check stays commented (no NI in
+  the baseline).
 
-1a. **DONE - Style-only pass (no logic changes)**, as in Solar step 1.
-   codee (step 1) had already lowercased keywords/`intent` and indented
-   every continuation line +5, so this step only changed macro lines
-   (1800 -> 1811 lines, from the `__Iam__` expansions); every changed line
-   is a macro rename.
-   - Error-handling macros: `__RC__`/`__STAT__`/`VERIFY_`/`RETURN_` ->
-     `_RC`/`_STAT`/`_VERIFY`/`_RETURN`; each `__Iam__('x')` expanded to
-     its two declarations (`integer :: status`,
-     `character(len=255) :: Iam = 'x'`); `#include "MAPL_Generic.h"` ->
-     `#include "MAPL.h"`. All expand identically (`MAPL_ErrLog.h`,
-     `MAPL_Exceptions.h`; `MAPL_Generic.h` only includes `MAPL.h`).
-   - Lowercase keywords and dot-operators in code; `intent( IN )` ->
-     `intent(in)`; continuation lines indented 5 spaces from the
-     statement.
-   - Verified by normalizing both versions (cpp lines and comments as-is,
-     code lowercased with whitespace removed outside strings): identical.
-     Macro spellings inside comments were left unchanged.
+### 1. DONE - codee format pass (before any other change)
 
-1b. **DONE - Comment cleanup** (1811 -> 1691 lines).
-   - Removed 116 decorative comment lines: `!` followed only by `-`/`=`/
-     `*` runs, bare `!`, and ProTeX `!BOP`/`!EOP`.
-   - `!   text` -> `! text` and `!   ! text` -> `! text` (full-line and
-     trailing comments); trailing whitespace stripped; blank-line runs
-     collapsed. ProTeX headings `! !ROUTINE:` -> `! ROUTINE:` (44 lines).
-     `!$` OpenMP sentinels kept.
-   - Verified: code and cpp lines identical; the 286 remaining comments
-     have the same text as before modulo whitespace.
+`codee format --verbose ~/config/codee-format SU2G_GridCompMod.F90`,
+following `.vscode/instructions/fortran-formatting.instructions.md`.
 
-1c. **DONE - codee format re-run** after 1a/1b (same masking of the five
-   `allocate(..., mold=..., _STAT)` lines). codee fixed 161 issues, mostly
-   identifier case (e.g. `GC`/`RC` -> `gc`/`rc`); 232 changed lines, line
-   count unchanged (1674). Verified layout/case-only with the same
-   token-stream check as step 1.
+- Five `allocate(x, mold=y, __STAT__)` lines (L1105, L1247-1249, L1298
+  before formatting) were syntax errors to codee; masked with
+  `!CODEE_MASK!`, formatted, unmasked. codee re-indented the masked
+  comment lines, so unmasking kept codee's indentation; each statement
+  text is present unchanged.
+- Verified layout-only: code token stream (lowercased outside strings,
+  whitespace/`&`/`;` removed, codee's `'a'//'b'` literal splits joined),
+  comments and cpp lines all identical; subroutine/end-subroutine,
+  `contains`, `#if`/`#endif` counts unchanged. 1791 -> 1800 lines.
 
-2. **DONE - State specs and build.**
-   - `SU2G_StateSpecs.rc`:
-     - `self%nbins` -> `ungrd_nbins`.
-     - `size(self%wavelengths_*)` -> `ungrd_wavelengths_profile` /
-       `ungrd_wavelengths_vertint`, matching DU and SS. SetServices must
-       declare and set these before the ACG includes (step 4).
-     - All five internals get `FILL=0.0`. MAPL2 zero-filled internals;
-       MAPL3 fills new fields with a sentinel (`FieldFill` in
-       `field_empty_complete`) unless `fill_value` is given.
-     - Kept `ADD2EXPORT=T`; removed the `FRIENDLYTO` column (ignored by
-       MAPL3's ACG).
-     - `RESTART` column removed from the internals (was
-       `MAPL_RestartOptional`). MAPL3 has only `RESTART_REQUIRED` (the
-       default) and `RESTART_SKIP` (`infrastructure/field/RestartModes.F90`);
-       the ACG maps `OPTIONAL` to `MAPL_RESTART_OPTIONAL`, which doesn't
-       exist and fails to compile. Leaving it blank gives the default, the
-       same as DU2G (whose `MAPL_RestartOptional` is silently dropped).
-   - Checked with the in-repo ACG
-     (`python3.12 src/Shared/@MAPL/apps/MAPL_GridCompSpecs_ACG.py`): 17
-     `ungridded_dim_array=[ ungrd_*]`, and internals emit
-     `fill_value=0.0`.
-   - `CMakeLists.txt`: added `TYPE SHARED` and `NetCDF::NetCDF_Fortran`, as
-     DU2G has.
+### 1a. DONE - Style-only pass (no logic changes), as in Solar step 1
 
-3. **DONE - Instance configuration.**
-   - Added `SU2G_instance_SU.yaml`, converted from `SU2G_instance_SU.rc`
-     following `DU2G_instance_DU.yaml` (values unchanged; `.false.` ->
-     `false`; lists in `[...]`; the `mapl:` CI section copied from DU).
-     The `.rc` is kept, as DU and SS keep theirs.
-     - `fwet_ice`/`fwet_snow`/`fwet_rain` were a single `1.0` in the `.rc`;
-       MAPL2 read them as `nbins`-arrays with `default=1.0`, so every bin
-       was 1.0. MAPL3's `load_from_config` reads an array, so the YAML
-       lists four `1.0` values.
-     - Integer-looking reals (`-1`, `1700`) written as `-1.0`, `1700.0`.
-   - No `.data` variant: the parent loads
-     `<species>_instance_<child>.yaml`, so `SU2G_instance_SU.data.yaml` is
-     only needed if `SU.data` is made active. DU and SS don't have one
-     either.
-   - SetServices: the `.rc` loading (with its `SU2G_instance_SU.rc`
-     fallback) is gone; `GA_Environment%load_from_config(gc)` and
-     `MAPL_GridCompGetResource(gc, "label", ...)` read the child's YAML.
-     `volcano_srcfilen_*` and `point_emissions_srcfilen` became
-     `character(len=:), allocatable`; `aviation_layers` became an
-     allocatable array with an `_ASSERT` that it has 4 values.
-   - Initialize still loads the `.rc` (optics files, `n_moments`, the
-     universal config); that moves in step 5.
+codee (step 1) had already lowercased keywords/`intent` and indented
+every continuation line +5, so this step only changed macro lines
+(1800 -> 1811 lines, from the `__Iam__` expansions); every changed line
+is a macro rename.
 
-4. **DONE (except friendliness) - SetServices.** Rewritten after DU/SS:
-   - `MAPL_GridCompGet(gc, name=, logger=)`; private state via
-     `_SET_NAMED_PRIVATE_STATE`/`_GET_NAMED_PRIVATE_STATE` with
-     `PRIVATE_STATE = "SU2G_GridComp"`; per-thread `workspaces` kept.
-     The module still has `type wrap_`, used by the other routines until
-     they are ported (steps 5-7); they won't find the state until then.
-   - `ungrd_nbins` / `ungrd_wavelengths_profile` /
-     `ungrd_wavelengths_vertint` (`MAPL_UngriddedDim`) declared and set
-     before the ACG includes.
-   - Entry points: `Run` -> `"Run1"`, `Run2` -> `"Run2"`, `Run0` ->
-     `"Run0"` (the names GOCART2G's `MAPL_GridCompRunChild` calls use).
-     `MAPL_GenericSetServices` and `ESMF_UserCompSetInternalState` gone.
-   - Entry-point signatures: every routine passed to
-     `MAPL_GridCompSetEntryPoint` (Initialize, Run, Run2, Run0) must match
-     MAPL3's `I_Run` (`infrastructure/esmf/ESMF_Interfaces.F90`): `gc`,
-     `import`, `export`, `clock` declared with no `intent`, `rc`
-     `intent(out)` and not optional, as in DU2G. MAPL2's
-     `intent(inout)` dummies fail with ifx errors #7061-7063. (Missed in
-     the original plan and fixed at the first build; see step 9.)
-   - Data-driven specs converted to `MAPL_GridCompAddSpec` (`PLE`, `RH2`,
-     internal `SO4` with `add_to_export`/`fill_value=0.0`, `climSO4`,
-     per-bin `climSU{DP,WT,SD,SV}nnn`), but guarded by `_FAIL` first, as
-     SS does: the data-driven path is not active. The per-bin fields were
-     `xy` + `VLocationCenter` in MAPL2; now `xy` + `NONE`.
-   - Manual `SU_H2O2/OH/NO3` imports dropped: they duplicated the spec
-     file's rows (MAPL2 tolerated the duplicates). The manual
-     `if (using_GMI)` `GMI_*` imports moved into the spec file instead:
-     new `COND` column (`using_GMI`), units `1` -> `mol/mol` (what Run2
-     assumes, and what the manual specs said). The Import include is
-     wrapped in `associate(using_GMI => self%using_GMI)`. ACG checked: 40
-     import specs as before, the three `GMI_*` inside `if (using_GMI)`;
-     export and internal output unchanged.
-   - `<name>_AERO` (`MAPL_STATEITEM_STATE`) and `<name>_AERO_DP`
-     (`MAPL_STATEITEM_FIELDBUNDLE`) as in DU.
-   - `MAPL_AM_I_ROOT` prints -> `logger%info`; `Iam` and `DEFVAL` dropped.
-   - Import `RESTART` cells say `OPT`, which the ACG doesn't map
-     (only `OPTIONAL`, `SKIP`, ...), so they're silently dropped; `SKIP`
-     works. Left as is; pre-existing. (MAPL2 `FRIENDLYTO=DYNAMICS:TURBULENCE:MOIST` on DMS,
-     SO2, SO4, MSA). The MAPL3 ACG ignores `FRIENDLYTO` (DU2G's spec still
-     carries it as a no-op), so nothing currently puts SU's tracers into
-     the advection/diffusion/convection bundles. The MAPL3 replacement is
-     `MAPL_STATEITEM_SERVICE`:
-     - Subscribe to advection: an import `TRADV` with
-       `itemtype=MAPL_STATEITEM_SERVICE` and
-       `service_items=['DMS','SO2','SO4','MSA']` (`MAPL_GridCompAddSpec`
-       argument; `items:` in YAML). DynCore/AdvCore already provide
-       `TRADV`, and Superdyn re-exports it; no component subscribes yet.
-     - Turbulence and moist have no MAPL3 service providers yet; subscribe
-       once they exist.
-     - Check whether the subscription belongs in SU or in a GOCART2G/PHYS
-       ancestor, and do the same for DU and SS.
-     - DONE: SetServices subscribes to `TRADV` with `service_items`
-       DMS/SO2/SO4/MSA (a `StringVector`), for the computational instance
-       only. Placement settled: `items` must be the subscriber's own
-       internals, so it has to be in SU, not an ancestor.
-     - DONE: DU2G and SS2G subscribe the same way (`DU`, `SS`). In MAPL2
-       their internals were also `FRIENDLYTO=DYNAMICS:TURBULENCE:MOIST`;
-       the MAPL3 ports had dropped this silently.
-     - Run-tested only standalone: the unconnected `TRADV` imports are
-       accepted, including DU, SS and SU subscribing as siblings under
-       GOCART2G (`gocart+seasalt+dust+sulfate`); all GOCART2G regressions
-       still pass. The FV3 `adv-dyn`/`dyn-sa` regressions subscribe via YAML,
-       with sibling connections only.
-     - Routing (from the MAPL3 source; no GOCART2G change needed):
-       - Unconnected child imports propagate up automatically
-         (`StateRegistry_Propagation_smod.F90`): the DU, SS and SU `TRADV`
-         imports are linked under GOCART2G's `TRADV`, then CHEMISTRY's and
-         PHYSICS', with nothing declared in the parents.
-       - A connection to that `TRADV` connects every linked import
-         (`SimpleConnection%connect_sibling` loops over the family), and
-         each subscriber's `connect_to_import` adds its own internals to the
-         provider's bundle (`ServiceClassAspect.F90`). Several subscribers
-         per provider is by design.
-       - Provider: FV3 `DynCore`/`AdvCore` provide `TRADV`; Superdyn
-         re-exports DYN's. The AGCM still has the MAPL2 connection
-         PHYS -> SDYN (`GEOS_AgcmGridComp.F90`), where Physics assembles
-         the friendly bundle. When AGCM and Physics are ported: connect
-         SUPERDYN/`TRADV` -> PHYS/`TRADV` and drop Physics' MAPL2 `TRADV`
-         export. Until then the subscriptions are unused.
-     - Open, for the first coupled run:
-       - duplicate names when several instances (e.g. two SU) subscribe;
-       - `DU` and `SS` are single fields with 5 ungridded bins, while SU's
-         are plain 3-D fields: check that the service and DynCore/AdvCore
-         advect fields with an ungridded dimension (every bin), or split
-         the bins.
+- Error-handling macros: `__RC__`/`__STAT__`/`VERIFY_`/`RETURN_` ->
+  `_RC`/`_STAT`/`_VERIFY`/`_RETURN`; each `__Iam__('x')` expanded to
+  its two declarations (`integer :: status`,
+  `character(len=255) :: Iam = 'x'`); `#include "MAPL_Generic.h"` ->
+  `#include "MAPL.h"`. All expand identically (`MAPL_ErrLog.h`,
+  `MAPL_Exceptions.h`; `MAPL_Generic.h` only includes `MAPL.h`).
+- Lowercase keywords and dot-operators in code; `intent( IN )` ->
+  `intent(in)`; continuation lines indented 5 spaces from the
+  statement.
+- Verified by normalizing both versions (cpp lines and comments as-is,
+  code lowercased with whitespace removed outside strings): identical.
+  Macro spellings inside comments were left unchanged.
 
-5. **DONE - Initialize.** Rewritten after DU2G's MAPL3 Initialize:
-   - `MAPL_GridCompGet(gc, name=, geom=, num_levels=)`; private state via
-     `_GET_NAMED_PRIVATE_STATE`; internal state via
-     `MAPL_GridCompGetInternalState`. `MAPL_GetObjectFromGC`, `MAPL_Get`,
-     `MAPL_GridGet` and `MAPL_GenericInitialize` gone. The unused
-     `lons`/`lats` fetch was dropped.
-   - Timestep: `MAPL_ClockGet(clock, dt=)`; `GOCART2G_DT`,
-     `DIURNAL_BIOMASS_BURNING` (default `YES`) and all optics settings
-     (`aerosol_*_optics_file`, `n_moments`,
-     `n_phase_function_moments_photolysis`, the LUT wavelengths) via
-     `MAPL_GridCompGetResource`. The `.rc` loading and the universal
-     `ESMF_Config` are gone.
-   - Attributes -> `ESMF_InfoSet`: `ScavengingFractionPerKm` on
-     DMS/SO2/SO4/MSA, `SetofHenryLawCts` (`values=`), and on the AERO
-     state `use_photolysis_table`, `mie_table_instance`,
-     `band_for_aerosol_optics`, `wavelength_for_aerosol_optics`,
-     `mieTable_pointer`, `internal_variable_name`. The MSA check now uses
-     `ESMF_StateGet(..., itemType)` instead of testing the `rc` of a
-     failed get.
-   - SO4 goes into the AERO state with `ESMF_StateAdd(aero, [field])`, as
-     DU does, instead of `MAPL_FieldCreate` + `MAPL_StateAdd`.
-   - `add_aero_named_alias` -> `add_aero(..., geom=, km=, typekind=)`,
-     including `SAREA` and `REFF` (R4, 3D).
-   - `createReplenishAlarm` call kept. `rc` is no longer optional, as in
-     DU.
+### 1b. DONE - Comment cleanup (1811 -> 1691 lines)
 
-6. **DONE - Run routines** (Run0, Run, Run1, Run2, Run_data, in one
-   change rather than one per commit).
-   - All routines: `MAPL_GridCompGet`, `MAPL_GridCompGetInternalState`,
-     `_GET_NAMED_PRIVATE_STATE`; `MAPL_GetObjectFromGC`, `MAPL_Get`,
-     `ESMF_UserCompGetInternalState`, `Iam` gone; `rc` non-optional (except
-     the internal `Run_data`). The now-unused `type wrap_` was removed.
-   - Fields come from the generated `SU2G_GetPointer___.h`, wrapped in
-     `associate(using_GMI => self%using_GMI)` because the GMI imports are
-     `COND`-ed (step 4). Other `MAPL_GetPointer` -> `MAPL_StateGetPointer`.
-     `dummyMSA` now just points at the generated `MSA` pointer.
-   - Run2: `MAPL_VarSpecGet(InternalSpec(n))` (no MAPL3 equivalent) ->
-     a local `internal_names = ['DMS','SO2','SO4','MSA']` in the spec-file
-     order (`nDMS..nMSA`).
-   - Run2: `SAREA`/`REFF` written into the AERO state by looking up the
-     field name from the AERO Info key (`surface_area_density`,
-     `effective_radius_in_microns`), as `add_aero` stores them.
-   - `lons`/`lats` via `MAPL_GridGetCoordinates(grid, ...)` (radians, as
-     MAPL2's `MAPL_Get(lons=, lats=)`); Run1 fetches them only when
-     `diurnal_bb` is on.
-   - `MAPL_GetHorzIJIndex(n, i, j, grid=, lon=, lat=)` ->
-     `MAPL_GeomGetHorzIJIndex(geom, lon, lat, i, j, local_indices=.true.)`.
-     MAPL2 returned local indices (-1 off-PE); without `local_indices`
-     MAPL3 returns global ones. DU2G's Run1 omitted `local_indices`; fixed
-     (step 10).
-   - `StrTemplate` -> `MAPL_StrTemplate`; root-only prints ->
-     `logger%info` (the "not found" one in an `omp critical`, as DU).
-     No timers in SU's Run routines.
-   - **Undefined-value masks:** about 10 lines like
-     `where(1.01*x > MAPL_UNDEF) x = 0.` in Run1 (around L930-L964).
-     MAPL2's `MAPL_UNDEF` (from `use MAPL`) was `1.0e15`
-     (`base/Base/Base_Base.F90` in v2.69; MAPL2's `MAPL_UNDEFINED_REAL`
-     was `huge`, but SU didn't use it); MAPL3's is `-huge`
-     (`InternalConstants.F90` L18-19). Ported as-is the condition is
-     always true and every emission is zeroed.
-     - DONE: module parameter `MAPL2_UNDEF = 1.0e15` (first written as
-       `huge(1.)`, which would miss 1e15 fill values), used in the ten
-       Run1 masks and passed as `undefval` to `SulfateUpdateOxidants`
-       (which applies the same `1.01*x > undefval` test to the oxidant
-       climatologies, Process_Library L7158-7164). This keeps the MAPL2
-       behaviour exactly. Still to check: what MAPL3 ExtData writes for
-       missing data (if `-huge`, these masks no longer catch it).
-     - DU2G (`where (1.01*du_src > MAPL_UNDEFINED_REAL)`, around L648 on
-       `release/MAPL-v3`) has the same pattern. Check whether DU's
-       emissions are being zeroed too.
-   - **Edge-level fields** (`PLE`, `ZLE`, `PFL_LSAN`, `PFI_LSAN`): 1-based
-     in MAPL3, 0-based in MAPL2. DONE: pointer lower-bound remaps
-     (`ple0(lbound(ple,1):, lbound(ple,2):, 0:) => ple`), passed to every
-     process-library call: `findKlid` (Run0, Run2), `SUvolcanicEmissions`,
-     `SulfateDistributeEmissions`, `updatePointwiseEmissions` (Run1),
-     `Chem_SettlingSimple`, `SulfateChemDriver`, `SU_Wet_Removal`,
-     `WetRemovalUFS`, `SU_Compute_Diags` (Run2). Remaps rather than DU's
-     allocated copies because most of these dummies are
-     `real, pointer` (some without `intent(in)`), which an allocatable
-     actual can't match. `findKlid` takes assumed shape, so it was
-     unaffected either way.
-   - **Oxidants:** `SulfateUpdateOxidants` writes into its `oh_clim`/
-     `no3_clim`/`h2o2_clim` arguments, i.e. the `SU_OH`/`SU_NO3`/
-     `SU_H2O2` imports: it zeroes negative and undefined values in
-     place (L7158-7164). It does not write chemistry results back; the
-     `recycle_H2O2` path only copies `h2o2_clim` into `xh2o2`. Unchanged
-     from MAPL2; check at run time that MAPL3 allows the in-place
-     cleanup (it modifies the provider's field).
+- Removed 116 decorative comment lines: `!` followed only by `-`/`=`/
+  `*` runs, bare `!`, and ProTeX `!BOP`/`!EOP`.
+- `!   text` -> `! text` and `!   ! text` -> `! text` (full-line and
+  trailing comments); trailing whitespace stripped; blank-line runs
+  collapsed. ProTeX headings `! !ROUTINE:` -> `! ROUTINE:` (44 lines).
+  `!$` OpenMP sentinels kept.
+- Verified: code and cpp lines identical; the 286 remaining comments
+  have the same text as before modulo whitespace.
 
-7. **DONE - AERO methods.** `aerosol_optics` and
-   `monochromatic_aerosol_optics` rewritten after DU's MAPL3 versions:
-   - `ESMF_AttributeGet` -> `ESMF_InfoGet` on the state's Info; every
-     field (PLE, RH, SO4, EXT/SSA/ASY/MOM, monochromatic_EXT) is found
-     through the name stored under its Info key (`add_aero`), and outputs
-     are skipped when that name is empty. `MAPL_GetPointer` ->
-     `MAPL_StateGetPointer`.
-   - The aerosol field name comes from the scalar
-     `internal_variable_name` (`SO4`, set in Initialize); `nbins = 1`,
-     as before (the MAPL2 list had one entry).
-   - **PLE indexing:** `add_aero` creates PLE with `num_levels=km+1`, and
-     MAPL3 field bounds start at 1 (`make_bounds_from_args`, `LU_Bound(1,
-     num_levels)`). The layer loops use `ple(k) - ple(k-1)` for
-     `k = 1..ubound(ple,3)`, so they now go through a 0-based remap
-     `ple0`, as in step 6 (`km = ubound(ple0,3)` = number of layers).
-     DU2G's MAPL3 optics read `ple(:,:,k-1)` at `k = 1` and take
-     `km = ubound(ple,3)` (= km+1): out of bounds and one level too many.
-     DONE: same remap in DU2G and SS2G; GOCART2G's `run_aerosol_optics`
-     and `get_monochromatic_aop` now take `km = size(ple,3) - 1`.
-   - DONE - `get_mixR` (`ESMF/Shared/Chem_AeroGeneric.F90`) and the
-     GOCART2G AERO callbacks it serves:
-     - `get_mixR`: reads `internal_variable_name` as the scalar the
-       children store (was `values=`), the sum-field name from Info (was
-       `ESMF_AttributeGet`) with `default=""`, returns early without one,
-       and sets `rc`. GOCART2G's `serialize_bundle` had the same list read,
-       and read the parent's Info instead of the child's.
-     - **`ESMF_InfoGet` into deferred-length strings:** ESMF 8.x's generic
-       `ESMF_InfoGet` has no allocatable-character specific, so
-       `value=` a `character(:), allocatable` resolves to `ESMF_InfoGetCH`
-       (`len=*`) and traps at run time on the unallocated actual; the
-       compiler can't tell them apart. Use `ESMF_InfoGetCharAlloc`. Fixed
-       at 30 sites: `get_mixR`, and GOCART2G's `run_aerosol_optics`,
-       `get_monochromatic_aop`, `get_mixRatioSum`, `serialize_bundle`.
-       DU2G/SS2G/SU2G had none.
-     - **Child AERO state names:** MAPL3 creates the `<name>_AERO` state
-       items with default names (`StateNNN`), and `get_mixRatioSum`
-       selects children by name prefix, so every sum was zero.
-       `add_aero_states_` now adds each as
-       `ESMF_NamedAlias(state, name=<name>_AERO)`, as in MAPL2.
-     - Run-tested with a temporary hook in GOCART2G Run2 (combined case,
-       6 ranks): `get_mixRatioSum` gives DU/SS/SU sums matching the
-       internals (DU = bin sum of `DU` to float32 rounding, SU = `SO4`),
-       and `serialize_bundle` gives 11 fields (5 DU, 5 SS, SO4). All 8
-       GOCART2G regressions still pass. `run_aerosol_optics` has been run
-       with SOLAR as the caller; `get_monochromatic_aop` has not been run.
-     - **`ESMF_InfoGet` into allocatable arrays:** same class of bug.
-       The generic's array specifics take `values(:)` (not allocatable),
-       so an unallocated allocatable actual fails (status 59). Use
-       `ESMF_InfoGetAlloc`. Fixed for the `mieTable_pointer` read in the
-       DU2G, SS2G and SU2G `aerosol_optics` and
-       `monochromatic_aerosol_optics` (6 sites).
+### 1c. DONE - codee format re-run
 
-8. **DONE - Wrapper and parent wiring** (not built yet).
-   - External `SetServices` wrapper after `end module SU2G_GridCompMod`, as
-     in DU.
-   - The standalone wrappers now have unique names: `DU2G_SetServices`,
-     `SS2G_SetServices`, `SU2G_SetServices`, `GOCART2G_SetServices` (were
-     all `SetServices`). Regression YAMLs that load them by symbol now say
-     `setservices: <comp>_setservices_` (children `dso:` entries) or
-     `userRoutine: <comp>_setservices_` (`mapl: setServices: sharedObj:`).
-     Fortran callers (GOCART2G, Aerosol_GridComp, GEOS_ChemGridComp) use
-     the module procedures and are unaffected.
-   - `../GOCART2G_GridCompMod.F90`:
-     - `use SU2G_GridCompMod`, `add_children__(gc, self%SU, ...)`,
-       `add_aero_states_(self%SU%instances(:))` enabled.
-     - SetServices: `<name>_AERO` (state) and `<name>_AERO_DP` (bundle)
-       import specs for every SU instance, and connections from each
-       active computational SU instance for `_AERO`, `_AERO_DP` and
-       `SUEXTTAU, SUSTEXTTAU, SUSCATAU, SUSTSCATAU, SUEXTCOEF,
-       SUEXTCOEFRH20/80, SUSCACOEF, SUSCACOEFRH20/80, SUBCKCOEF, SUANGSTR,
-       SO4SMASS, PSO4`, following the SS/DU blocks.
-     - `PSO4`: `MAPL_AddExportSpec(..., CHILD_ID=)` ->
-       `MAPL_GridCompReexport(gc, src_comp=<first SU>, src_name="PSO4")`
-       when the first SU instance is active and computational. `PSO4` is
-       also connected into GOCART2G's import for `pso4tot`; check at run
-       time that re-exporting and connecting the same child export works.
-     - Run2: SU totals restored, after the DU/SS blocks (whole-array
-       sums through the generated pointers instead of `gex(id)` and
-       per-wavelength loops). As in MAPL2, `totextt25`/`totexttfm` use
-       `suexttau` and `totscat25`/`totscatfm` use `suscatau` (SU has no
-       PM2.5/PM1 optics). `nifactor` = 132.14/96.06 unless an active NI
-       instance exists (none on MAPL3 yet). The commented SU pointer
-       declarations were dropped.
-   - `../GOCART2G_StateSpecs.rc`: the 14 SU fields above added as IMPORT
-     rows (`#-imports-from-sulfate-`), units/long names from SU's spec.
-     ACG checked: 54 import specs, pointers generated.
-   - `../CMakeLists.txt`: `SU2G_GridComp` enabled in `alldirs`.
-   - Instance config name: `add_children__` loads
-     `<species>_instance_<child>.yaml` with species `SU`, i.e.
-     `SU_instance_SU.yaml`, not `SU2G_instance_SU.yaml` (step 3). DU/SS
-     regressions ship `DU_instance_DU.yaml`/`SS_instance_SS.yaml` in their
-     run dirs; the `sulfate-sa` case ships `SU_instance_SU.yaml`.
-   - DONE (`51109f7`): the DU `_AERO_DP` import-spec loop in GOCART2G's
-     SetServices iterated over `size(self%SS%instances)`; now
-     `size(self%DU%instances)`.
-   - Run-tested: re-exporting `PSO4` and connecting it into GOCART2G's
-     import works; `PSO4` matches the baseline in the combined case.
+After 1a/1b (same masking of the five
+`allocate(..., mold=..., _STAT)` lines). codee fixed 161 issues, mostly
+identifier case (e.g. `GC`/`RC` -> `gc`/`rc`); 232 changed lines, line
+count unchanged (1674). Verified layout/case-only with the same
+token-stream check as step 1.
 
-9. **Run-testing.**
-   - First build (ifx Debug) of SU2G + GOCART2G succeeds after three
-     fixes: entry-point dummies lose their `intent(inout)` (step 4 should
-     have covered this); no
-     `MAPL_RESTART_OPTIONAL` (step 2, and the data-driven `SO4`/`climSO4`
-     specs); `MAPL_MaxMin` is now a function `MAPL_MaxMin(array, comm)`
-     returning `[max, min]`, so the GMI diagnostics in Run2 log it with
-     the VM's MPI communicator.
-   - Add an SU standalone regression case: `root.yaml` (current vertical-grid
-     schema), `cap_driver.yaml`, `cap_restart.yaml`, and SU's ExtData
-     needs (anthropogenic/ship/biomass/aircraft/DMS emissions, the
-     `SU_OH/H2O2/NO3` oxidants, volcano tables).
-     - DONE (case files only): `regression/sulfate-sa/run{1,2}`, after
-       dust-sa: `DataForSU` (configurable, restarted internals) feeds the
-       imports each phase reads to `FakeGOCART` -> `SU` with
-       `run_phases: [Run1]` / `[Run2]` (Run0's work is repeated at the
-       start of Run2). Volcanoes off (`/dev/null`), `using_GMI: false`.
-       Registered in `cases.txt`; skipped until data exists.
-     - Volcanoes changed to CARN v202601 degassing
-       (`ExtData/chemistry/CARN/v202601/degassing/`), explosive `/dev/null`,
-       to match the baseline; `mapl: misc:` checkpoints import, export and
-       internal.
-     - The unconnected `TRADV` service import is accepted standalone.
-   - DONE - **`sulfate-sa`**: bit-for-bit against the step-0 baseline in all
-     three states (run1 29 fields, run2 41). Fields a run never writes are
-     NaN in MAPL3, where MAPL2 has values left from the previous step or
-     zero-fill, so `cmpchk.py` reports them as `nan` (no skips):
-     - after Run1: `PSO4`, `SUDP`, `SUSD`, `SUWT`, the optics/mass
-       diagnostics (all computed in Run2) and `SUSV`;
-     - after Run2: `SUSV` (written by moist, not SU).
-   - DONE - **`gocart+seasalt+dust+sulfate`** replaces
-     `gocart+seasalt+dust`: SU active in GOCART2G, and one
-     `DataForGOCART2G` provider, restarted from the MAPL2 GOCART2G import
-     state (the union of the DU/SS/SU imports, with equal values for shared
-     fields), feeds all 43 imports (GMI omitted). Bit-for-bit in all
-     DU/SS/SU/GOCART2G states, including the `TOT*`/`PM*` totals (run1 104
-     fields, run2 160).
-     - `ACTIVE_INSTANCES` has `CA: []` and `NI: []`. GOCART2G creates only
-       DU/SS/SU children, but the Run2 `nifactor` check read the config:
-       listing `NI` gave `nifactor = 1.0` instead of 132.14/96.06 (`PM*` off
-       by up to 8%). Fixed in GOCART2G (step 10); `[]` kept to avoid the
-       warning.
-   - DONE - **Regression data** in the personal copy
-     (`/home/pchakrab/regression-data/.../GOCART2G_GridComp`): `sulfate-sa`,
-     `gocart+seasalt+dust+sulfate`, and `dust-sa`/`seasalt-sa` regenerated
-     from the same inputs (with the DU fix, step 10); `gocart+seasalt+dust`
-     removed. `ctest -L REGRESSION` with `LOCAL_REGRESSION_DATA_DIR` set to it:
-     all 8 GOCART2G cases pass.
-     - Still to do: upload to S3 and the shared
-       `/ford1/share/gmao_SIteam/regression-data`. Against the shared copy
-       `dust-sa`/`seasalt-sa` fail (old `Data{DU,SS}_internal.nc` names) and
-       the two SU cases are skipped, which `run_case.cmake` reports as
-       passed.
-   - Hand runs: `export OMP_NUM_THREADS=1`, set `LD_LIBRARY_PATH` to the
-     install `lib`, reset `cap_restart.yaml` before each run. Each run dir
-     has a `baseline` link to `~/input/.../after/new-style`, read by
-     `cmpchk.py`.
+### 2. DONE - State specs and build
 
-10. **Follow-ups unlocked by SU.**
-    - Check that the `sulforg01-03` activation modes and MAMnet's `SUsum`
-      input (`ESMF/Shared/GOCART2G_AerosolActivationMod.F90`) now pick up
-      non-zero `SO4`.
-    - NI2G's `SO4` import from SU can be connected when NI is ported; wire
-      DU->NI and SS->NI at the same time.
-    - DU2G fixes found while porting SU:
-      - DONE (`51109f7`, on this branch): the `run1` undefined-value mask
-        `where (1.01 * du_src > MAPL_UNDEFINED_REAL)` was always true under
-        MAPL3 (`-huge`), so `du_src` was zeroed and Ginoux emissions lost
-        (the old `dust-sa` baselines had `DU_SRC = 0`). Now uses
-        `MAPL2_UNDEF = 1.0e15`, as SU does (step 6).
-      - DONE (`fe97dda`): `dust-sa/run1` now provides `V10M` and `FRLAKE`,
-        which Ginoux reads; Run1 crashed on the unassociated `V10M`.
-      - DONE: `DustEmissionK14` got `MAPL_UNDEFINED_REAL` (`-huge`) as
-        `UNDEF`. It fills with it and also compares against it, e.g.
-        `where (w_g > w_gt)` with `w_gt` left at `UNDEF` (clay out of
-        range): false with 1e15, true with `-huge` (then overflows). Now
-        `MAPL2_UNDEF`. Not run-tested (no case uses K14).
-      - DONE: point emissions: `run1` called `MAPL_GeomGetHorzIJIndex`
-        without `local_indices=.true.`, so it got global indices where
-        `updatePointwiseEmissions` expects local ones (-1 off-PE). Not
-        run-tested (no case sets `point_emissions_srcfilen`).
-      - DONE: AERO optics indexed the 1-based PLE as if 0-based
-        (`ple(:,:,k-1)` at `k = 1`, `km = ubound(ple,3)`); now a 0-based
-        remap as in SU (step 7). SS2G had the same pattern, also fixed.
-    - DONE - SS2G: `wavelength_for_aerosol_optics` stored as `0.` (was the
-      integer `0`; DU/SU and the reader use a real), and
-      `use_photolysis_table` set with `ESMF_InfoSet` (was MAPL2
-      `ESMF_AttributeSet`).
-    - DONE - GOCART2G: `create_instances_` marks the CA and NI instances
-      inactive (`deactivate_instances__`, with a warning if any were
-      listed active), since their children are not created. Checks of
-      `is_active` such as Run2's `nifactor` now match what was built:
-      `gocart+seasalt+dust+sulfate/run2` with CA/NI listed active matches
-      the regression baseline exactly, `PM*` included.
-    - DONE: input-provider children renamed `DataDU`/`DataSS`/
-      `DataGOCART2G` -> `DataForDU`/`DataForSS`/`DataForGOCART2G` in
-      `dust-sa`, `seasalt-sa` and `gocart+seasalt+dust`, and their config
-      files `data-<comp>.yaml` -> `data-for-<comp>.yaml`, matching
-      `DataForSU`/`DataForSolar`. The regenerated data (step 9) uses the
-      new names; the shared copy and S3 still have the old ones.
-    - DONE: `DUMASS25`, `DUMASSFM` and `SSMASSFM` no longer in
-      `EXCLUDE_VARS` (`regression/run_case.cmake`); the regenerated
-      baselines have all three with current metadata. The `ncatted`
-      `standard_name` patch on the old baselines is moot.
+- `SU2G_StateSpecs.rc`:
+  - `self%nbins` -> `ungrd_nbins`.
+  - `size(self%wavelengths_*)` -> `ungrd_wavelengths_profile` /
+    `ungrd_wavelengths_vertint`, matching DU and SS. SetServices must
+    declare and set these before the ACG includes (step 4).
+  - All five internals get `FILL=0.0`. MAPL2 zero-filled internals;
+    MAPL3 fills new fields with a sentinel (`FieldFill` in
+    `field_empty_complete`) unless `fill_value` is given.
+  - Kept `ADD2EXPORT=T`; removed the `FRIENDLYTO` column (ignored by
+    MAPL3's ACG).
+  - `RESTART` column removed from the internals (was
+    `MAPL_RestartOptional`). MAPL3 has only `RESTART_REQUIRED` (the
+    default) and `RESTART_SKIP` (`infrastructure/field/RestartModes.F90`);
+    the ACG maps `OPTIONAL` to `MAPL_RESTART_OPTIONAL`, which doesn't
+    exist and fails to compile. Leaving it blank gives the default, the
+    same as DU2G (whose `MAPL_RestartOptional` is silently dropped).
+- Checked with the in-repo ACG
+  (`python3.12 src/Shared/@MAPL/apps/MAPL_GridCompSpecs_ACG.py`): 17
+  `ungridded_dim_array=[ ungrd_*]`, and internals emit
+  `fill_value=0.0`.
+- `CMakeLists.txt`: added `TYPE SHARED` and `NetCDF::NetCDF_Fortran`, as
+  DU2G has.
+
+### 3. DONE - Instance configuration
+
+- Added `SU2G_instance_SU.yaml`, converted from `SU2G_instance_SU.rc`
+  following `DU2G_instance_DU.yaml` (values unchanged; `.false.` ->
+  `false`; lists in `[...]`; the `mapl:` CI section copied from DU).
+  The `.rc` is kept, as DU and SS keep theirs.
+  - `fwet_ice`/`fwet_snow`/`fwet_rain` were a single `1.0` in the `.rc`;
+    MAPL2 read them as `nbins`-arrays with `default=1.0`, so every bin
+    was 1.0. MAPL3's `load_from_config` reads an array, so the YAML
+    lists four `1.0` values.
+  - Integer-looking reals (`-1`, `1700`) written as `-1.0`, `1700.0`.
+- No `.data` variant: the parent loads
+  `<species>_instance_<child>.yaml`, so `SU2G_instance_SU.data.yaml` is
+  only needed if `SU.data` is made active. DU and SS don't have one
+  either.
+- SetServices: the `.rc` loading (with its `SU2G_instance_SU.rc`
+  fallback) is gone; `GA_Environment%load_from_config(gc)` and
+  `MAPL_GridCompGetResource(gc, "label", ...)` read the child's YAML.
+  `volcano_srcfilen_*` and `point_emissions_srcfilen` became
+  `character(len=:), allocatable`; `aviation_layers` became an
+  allocatable array with an `_ASSERT` that it has 4 values.
+- Initialize still loads the `.rc` (optics files, `n_moments`, the
+  universal config); that moves in step 5.
+
+### 4. DONE - SetServices
+
+Friendliness: advection subscribed; diffusion/convection blocked.
+Rewritten after DU/SS:
+
+- `MAPL_GridCompGet(gc, name=, logger=)`; private state via
+  `_SET_NAMED_PRIVATE_STATE`/`_GET_NAMED_PRIVATE_STATE` with
+  `PRIVATE_STATE = "SU2G_GridComp"`; per-thread `workspaces` kept.
+  The module still has `type wrap_`, used by the other routines until
+  they are ported (steps 5-7); they won't find the state until then.
+- `ungrd_nbins` / `ungrd_wavelengths_profile` /
+  `ungrd_wavelengths_vertint` (`MAPL_UngriddedDim`) declared and set
+  before the ACG includes.
+- Entry points: `Run` -> `"Run1"`, `Run2` -> `"Run2"`, `Run0` ->
+  `"Run0"` (the names GOCART2G's `MAPL_GridCompRunChild` calls use).
+  `MAPL_GenericSetServices` and `ESMF_UserCompSetInternalState` gone.
+- Entry-point signatures: every routine passed to
+  `MAPL_GridCompSetEntryPoint` (Initialize, Run, Run2, Run0) must match
+  MAPL3's `I_Run` (`infrastructure/esmf/ESMF_Interfaces.F90`): `gc`,
+  `import`, `export`, `clock` declared with no `intent`, `rc`
+  `intent(out)` and not optional, as in DU2G. MAPL2's
+  `intent(inout)` dummies fail with ifx errors #7061-7063. (Missed in
+  the original plan and fixed at the first build; see step 9.)
+- Data-driven specs converted to `MAPL_GridCompAddSpec` (`PLE`, `RH2`,
+  internal `SO4` with `add_to_export`/`fill_value=0.0`, `climSO4`,
+  per-bin `climSU{DP,WT,SD,SV}nnn`), but guarded by `_FAIL` first, as
+  SS does: the data-driven path is not active. The per-bin fields were
+  `xy` + `VLocationCenter` in MAPL2; now `xy` + `NONE`.
+- Manual `SU_H2O2/OH/NO3` imports dropped: they duplicated the spec
+  file's rows (MAPL2 tolerated the duplicates). The manual
+  `if (using_GMI)` `GMI_*` imports moved into the spec file instead:
+  new `COND` column (`using_GMI`), units `1` -> `mol/mol` (what Run2
+  assumes, and what the manual specs said). The Import include is
+  wrapped in `associate(using_GMI => self%using_GMI)`. ACG checked: 40
+  import specs as before, the three `GMI_*` inside `if (using_GMI)`;
+  export and internal output unchanged.
+- `<name>_AERO` (`MAPL_STATEITEM_STATE`) and `<name>_AERO_DP`
+  (`MAPL_STATEITEM_FIELDBUNDLE`) as in DU.
+- `MAPL_AM_I_ROOT` prints -> `logger%info`; `Iam` and `DEFVAL` dropped.
+- Import `RESTART` cells say `OPT`, which the ACG doesn't map
+  (only `OPTIONAL`, `SKIP`, ...), so they're silently dropped; `SKIP`
+  works. Left as is; pre-existing.
+- Friendliness (MAPL2 `FRIENDLYTO=DYNAMICS:TURBULENCE:MOIST` on DMS,
+  SO2, SO4, MSA). The MAPL3 ACG ignores `FRIENDLYTO` (DU2G's spec still
+  carries it as a no-op), so nothing put SU's tracers into the
+  advection/diffusion/convection bundles. The MAPL3 replacement is
+  `MAPL_STATEITEM_SERVICE`:
+  - Subscribe to advection: an import `TRADV` with
+    `itemtype=MAPL_STATEITEM_SERVICE` and
+    `service_items=['DMS','SO2','SO4','MSA']` (`MAPL_GridCompAddSpec`
+    argument; `items:` in YAML). DynCore/AdvCore already provide
+    `TRADV`, and Superdyn re-exports it; no component subscribes yet.
+  - Turbulence and moist have no MAPL3 service providers yet; subscribe
+    once they exist.
+  - Check whether the subscription belongs in SU or in a GOCART2G/PHYS
+    ancestor, and do the same for DU and SS.
+  - DONE: SetServices subscribes to `TRADV` with `service_items`
+    DMS/SO2/SO4/MSA (a `StringVector`), for the computational instance
+    only. Placement settled: `items` must be the subscriber's own
+    internals, so it has to be in SU, not an ancestor.
+  - DONE: DU2G and SS2G subscribe the same way (`DU`, `SS`). In MAPL2
+    their internals were also `FRIENDLYTO=DYNAMICS:TURBULENCE:MOIST`;
+    the MAPL3 ports had dropped this silently.
+  - Run-tested only standalone: the unconnected `TRADV` imports are
+    accepted, including DU, SS and SU subscribing as siblings under
+    GOCART2G (`gocart+seasalt+dust+sulfate`); all GOCART2G regressions
+    still pass. The FV3 `adv-dyn`/`dyn-sa` regressions subscribe via YAML,
+    with sibling connections only.
+  - Routing (from the MAPL3 source; no GOCART2G change needed):
+    - Unconnected child imports propagate up automatically
+      (`StateRegistry_Propagation_smod.F90`): the DU, SS and SU `TRADV`
+      imports are linked under GOCART2G's `TRADV`, then CHEMISTRY's and
+      PHYSICS', with nothing declared in the parents.
+    - A connection to that `TRADV` connects every linked import
+      (`SimpleConnection%connect_sibling` loops over the family), and
+      each subscriber's `connect_to_import` adds its own internals to the
+      provider's bundle (`ServiceClassAspect.F90`). Several subscribers
+      per provider is by design.
+    - Provider: FV3 `DynCore`/`AdvCore` provide `TRADV`; Superdyn
+      re-exports DYN's. The AGCM still has the MAPL2 connection
+      PHYS -> SDYN (`GEOS_AgcmGridComp.F90`), where Physics assembles
+      the friendly bundle. When AGCM and Physics are ported: connect
+      SUPERDYN/`TRADV` -> PHYS/`TRADV` and drop Physics' MAPL2 `TRADV`
+      export. Until then the subscriptions are unused.
+  - Open, for the first coupled run:
+    - duplicate names when several instances (e.g. two SU) subscribe;
+    - `DU` and `SS` are single fields with 5 ungridded bins, while SU's
+      are plain 3-D fields: check that the service and DynCore/AdvCore
+      advect fields with an ungridded dimension (every bin), or split
+      the bins.
+
+### 5. DONE - Initialize
+
+Rewritten after DU2G's MAPL3 Initialize:
+
+- `MAPL_GridCompGet(gc, name=, geom=, num_levels=)`; private state via
+  `_GET_NAMED_PRIVATE_STATE`; internal state via
+  `MAPL_GridCompGetInternalState`. `MAPL_GetObjectFromGC`, `MAPL_Get`,
+  `MAPL_GridGet` and `MAPL_GenericInitialize` gone. The unused
+  `lons`/`lats` fetch was dropped.
+- Timestep: `MAPL_ClockGet(clock, dt=)`; `GOCART2G_DT`,
+  `DIURNAL_BIOMASS_BURNING` (default `YES`) and all optics settings
+  (`aerosol_*_optics_file`, `n_moments`,
+  `n_phase_function_moments_photolysis`, the LUT wavelengths) via
+  `MAPL_GridCompGetResource`. The `.rc` loading and the universal
+  `ESMF_Config` are gone.
+- Attributes -> `ESMF_InfoSet`: `ScavengingFractionPerKm` on
+  DMS/SO2/SO4/MSA, `SetofHenryLawCts` (`values=`), and on the AERO
+  state `use_photolysis_table`, `mie_table_instance`,
+  `band_for_aerosol_optics`, `wavelength_for_aerosol_optics`,
+  `mieTable_pointer`, `internal_variable_name`. The MSA check now uses
+  `ESMF_StateGet(..., itemType)` instead of testing the `rc` of a
+  failed get.
+- SO4 goes into the AERO state with `ESMF_StateAdd(aero, [field])`, as
+  DU does, instead of `MAPL_FieldCreate` + `MAPL_StateAdd`.
+- `add_aero_named_alias` -> `add_aero(..., geom=, km=, typekind=)`,
+  including `SAREA` and `REFF` (R4, 3D).
+- `createReplenishAlarm` call kept. `rc` is no longer optional, as in
+  DU.
+
+### 6. DONE - Run routines
+
+Run0, Run, Run1, Run2, Run_data, in one change rather than one per
+commit.
+
+- All routines: `MAPL_GridCompGet`, `MAPL_GridCompGetInternalState`,
+  `_GET_NAMED_PRIVATE_STATE`; `MAPL_GetObjectFromGC`, `MAPL_Get`,
+  `ESMF_UserCompGetInternalState`, `Iam` gone; `rc` non-optional (except
+  the internal `Run_data`). The now-unused `type wrap_` was removed.
+- Fields come from the generated `SU2G_GetPointer___.h`, wrapped in
+  `associate(using_GMI => self%using_GMI)` because the GMI imports are
+  `COND`-ed (step 4). Other `MAPL_GetPointer` -> `MAPL_StateGetPointer`.
+  `dummyMSA` now just points at the generated `MSA` pointer.
+- Run2: `MAPL_VarSpecGet(InternalSpec(n))` (no MAPL3 equivalent) ->
+  a local `internal_names = ['DMS','SO2','SO4','MSA']` in the spec-file
+  order (`nDMS..nMSA`).
+- Run2: `SAREA`/`REFF` written into the AERO state by looking up the
+  field name from the AERO Info key (`surface_area_density`,
+  `effective_radius_in_microns`), as `add_aero` stores them.
+- `lons`/`lats` via `MAPL_GridGetCoordinates(grid, ...)` (radians, as
+  MAPL2's `MAPL_Get(lons=, lats=)`); Run1 fetches them only when
+  `diurnal_bb` is on.
+- `MAPL_GetHorzIJIndex(n, i, j, grid=, lon=, lat=)` ->
+  `MAPL_GeomGetHorzIJIndex(geom, lon, lat, i, j, local_indices=.true.)`.
+  MAPL2 returned local indices (-1 off-PE); without `local_indices`
+  MAPL3 returns global ones. DU2G's Run1 omitted `local_indices`; fixed
+  (step 10).
+- `StrTemplate` -> `MAPL_StrTemplate`; root-only prints ->
+  `logger%info` (the "not found" one in an `omp critical`, as DU).
+  No timers in SU's Run routines.
+- **Undefined-value masks:** about 10 lines like
+  `where(1.01*x > MAPL_UNDEF) x = 0.` in Run1 (around L930-L964).
+  MAPL2's `MAPL_UNDEF` (from `use MAPL`) was `1.0e15`
+  (`base/Base/Base_Base.F90` in v2.69; MAPL2's `MAPL_UNDEFINED_REAL`
+  was `huge`, but SU didn't use it); MAPL3's is `-huge`
+  (`InternalConstants.F90` L18-19). Ported as-is the condition is
+  always true and every emission is zeroed.
+  - DONE: module parameter `MAPL2_UNDEF = 1.0e15` (first written as
+    `huge(1.)`, which would miss 1e15 fill values), used in the ten
+    Run1 masks and passed as `undefval` to `SulfateUpdateOxidants`
+    (which applies the same `1.01*x > undefval` test to the oxidant
+    climatologies, Process_Library L7158-7164). This keeps the MAPL2
+    behaviour exactly. Still to check: what MAPL3 ExtData writes for
+    missing data (if `-huge`, these masks no longer catch it).
+  - DU2G (`where (1.01*du_src > MAPL_UNDEFINED_REAL)`, around L648 on
+    `release/MAPL-v3`) has the same pattern. Check whether DU's
+    emissions are being zeroed too.
+- **Edge-level fields** (`PLE`, `ZLE`, `PFL_LSAN`, `PFI_LSAN`): 1-based
+  in MAPL3, 0-based in MAPL2. DONE: pointer lower-bound remaps
+  (`ple0(lbound(ple,1):, lbound(ple,2):, 0:) => ple`), passed to every
+  process-library call: `findKlid` (Run0, Run2), `SUvolcanicEmissions`,
+  `SulfateDistributeEmissions`, `updatePointwiseEmissions` (Run1),
+  `Chem_SettlingSimple`, `SulfateChemDriver`, `SU_Wet_Removal`,
+  `WetRemovalUFS`, `SU_Compute_Diags` (Run2). Remaps rather than DU's
+  allocated copies because most of these dummies are
+  `real, pointer` (some without `intent(in)`), which an allocatable
+  actual can't match. `findKlid` takes assumed shape, so it was
+  unaffected either way.
+- **Oxidants:** `SulfateUpdateOxidants` writes into its `oh_clim`/
+  `no3_clim`/`h2o2_clim` arguments, i.e. the `SU_OH`/`SU_NO3`/
+  `SU_H2O2` imports: it zeroes negative and undefined values in
+  place (L7158-7164). It does not write chemistry results back; the
+  `recycle_H2O2` path only copies `h2o2_clim` into `xh2o2`. Unchanged
+  from MAPL2; check at run time that MAPL3 allows the in-place
+  cleanup (it modifies the provider's field).
+
+### 7. DONE - AERO methods
+
+`aerosol_optics` and `monochromatic_aerosol_optics` rewritten after DU's
+MAPL3 versions:
+
+- `ESMF_AttributeGet` -> `ESMF_InfoGet` on the state's Info; every
+  field (PLE, RH, SO4, EXT/SSA/ASY/MOM, monochromatic_EXT) is found
+  through the name stored under its Info key (`add_aero`), and outputs
+  are skipped when that name is empty. `MAPL_GetPointer` ->
+  `MAPL_StateGetPointer`.
+- The aerosol field name comes from the scalar
+  `internal_variable_name` (`SO4`, set in Initialize); `nbins = 1`,
+  as before (the MAPL2 list had one entry).
+- **PLE indexing:** `add_aero` creates PLE with `num_levels=km+1`, and
+  MAPL3 field bounds start at 1 (`make_bounds_from_args`, `LU_Bound(1,
+  num_levels)`). The layer loops use `ple(k) - ple(k-1)` for
+  `k = 1..ubound(ple,3)`, so they now go through a 0-based remap
+  `ple0`, as in step 6 (`km = ubound(ple0,3)` = number of layers).
+  DU2G's MAPL3 optics read `ple(:,:,k-1)` at `k = 1` and take
+  `km = ubound(ple,3)` (= km+1): out of bounds and one level too many.
+  DONE: same remap in DU2G and SS2G; GOCART2G's `run_aerosol_optics`
+  and `get_monochromatic_aop` now take `km = size(ple,3) - 1`.
+- DONE - `get_mixR` (`ESMF/Shared/Chem_AeroGeneric.F90`) and the
+  GOCART2G AERO callbacks it serves:
+  - `get_mixR`: reads `internal_variable_name` as the scalar the
+    children store (was `values=`), the sum-field name from Info (was
+    `ESMF_AttributeGet`) with `default=""`, returns early without one,
+    and sets `rc`. GOCART2G's `serialize_bundle` had the same list read,
+    and read the parent's Info instead of the child's.
+  - **`ESMF_InfoGet` into deferred-length strings:** ESMF 8.x's generic
+    `ESMF_InfoGet` has no allocatable-character specific, so
+    `value=` a `character(:), allocatable` resolves to `ESMF_InfoGetCH`
+    (`len=*`) and traps at run time on the unallocated actual; the
+    compiler can't tell them apart. Use `ESMF_InfoGetCharAlloc`. Fixed
+    at 30 sites: `get_mixR`, and GOCART2G's `run_aerosol_optics`,
+    `get_monochromatic_aop`, `get_mixRatioSum`, `serialize_bundle`.
+    DU2G/SS2G/SU2G had none.
+  - **Child AERO state names:** MAPL3 creates the `<name>_AERO` state
+    items with default names (`StateNNN`), and `get_mixRatioSum`
+    selects children by name prefix, so every sum was zero.
+    `add_aero_states_` now adds each as
+    `ESMF_NamedAlias(state, name=<name>_AERO)`, as in MAPL2.
+  - Run-tested with a temporary hook in GOCART2G Run2 (combined case,
+    6 ranks): `get_mixRatioSum` gives DU/SS/SU sums matching the
+    internals (DU = bin sum of `DU` to float32 rounding, SU = `SO4`),
+    and `serialize_bundle` gives 11 fields (5 DU, 5 SS, SO4). All 8
+    GOCART2G regressions still pass. `run_aerosol_optics` has been run
+    with SOLAR as the caller; `get_monochromatic_aop` has not been run.
+  - **`ESMF_InfoGet` into allocatable arrays:** same class of bug.
+    The generic's array specifics take `values(:)` (not allocatable),
+    so an unallocated allocatable actual fails (status 59). Use
+    `ESMF_InfoGetAlloc`. Fixed for the `mieTable_pointer` read in the
+    DU2G, SS2G and SU2G `aerosol_optics` and
+    `monochromatic_aerosol_optics` (6 sites).
+
+### 8. DONE - Wrapper and parent wiring
+
+- External `SetServices` wrapper after `end module SU2G_GridCompMod`, as
+  in DU.
+- The standalone wrappers now have unique names: `DU2G_SetServices`,
+  `SS2G_SetServices`, `SU2G_SetServices`, `GOCART2G_SetServices` (were
+  all `SetServices`). Regression YAMLs that load them by symbol now say
+  `setservices: <comp>_setservices_` (children `dso:` entries) or
+  `userRoutine: <comp>_setservices_` (`mapl: setServices: sharedObj:`).
+  Fortran callers (GOCART2G, Aerosol_GridComp, GEOS_ChemGridComp) use
+  the module procedures and are unaffected.
+- `../GOCART2G_GridCompMod.F90`:
+  - `use SU2G_GridCompMod`, `add_children__(gc, self%SU, ...)`,
+    `add_aero_states_(self%SU%instances(:))` enabled.
+  - SetServices: `<name>_AERO` (state) and `<name>_AERO_DP` (bundle)
+    import specs for every SU instance, and connections from each
+    active computational SU instance for `_AERO`, `_AERO_DP` and
+    `SUEXTTAU, SUSTEXTTAU, SUSCATAU, SUSTSCATAU, SUEXTCOEF,
+    SUEXTCOEFRH20/80, SUSCACOEF, SUSCACOEFRH20/80, SUBCKCOEF, SUANGSTR,
+    SO4SMASS, PSO4`, following the SS/DU blocks.
+  - `PSO4`: `MAPL_AddExportSpec(..., CHILD_ID=)` ->
+    `MAPL_GridCompReexport(gc, src_comp=<first SU>, src_name="PSO4")`
+    when the first SU instance is active and computational. `PSO4` is
+    also connected into GOCART2G's import for `pso4tot`; check at run
+    time that re-exporting and connecting the same child export works.
+  - Run2: SU totals restored, after the DU/SS blocks (whole-array
+    sums through the generated pointers instead of `gex(id)` and
+    per-wavelength loops). As in MAPL2, `totextt25`/`totexttfm` use
+    `suexttau` and `totscat25`/`totscatfm` use `suscatau` (SU has no
+    PM2.5/PM1 optics). `nifactor` = 132.14/96.06 unless an active NI
+    instance exists (none on MAPL3 yet). The commented SU pointer
+    declarations were dropped.
+- `../GOCART2G_StateSpecs.rc`: the 14 SU fields above added as IMPORT
+  rows (`#-imports-from-sulfate-`), units/long names from SU's spec.
+  ACG checked: 54 import specs, pointers generated.
+- `../CMakeLists.txt`: `SU2G_GridComp` enabled in `alldirs`.
+- Instance config name: `add_children__` loads
+  `<species>_instance_<child>.yaml` with species `SU`, i.e.
+  `SU_instance_SU.yaml`, not `SU2G_instance_SU.yaml` (step 3). DU/SS
+  regressions ship `DU_instance_DU.yaml`/`SS_instance_SS.yaml` in their
+  run dirs; the `sulfate-sa` case ships `SU_instance_SU.yaml`.
+- DONE (`51109f7`): the DU `_AERO_DP` import-spec loop in GOCART2G's
+  SetServices iterated over `size(self%SS%instances)`; now
+  `size(self%DU%instances)`.
+- Run-tested: re-exporting `PSO4` and connecting it into GOCART2G's
+  import works; `PSO4` matches the baseline in the combined case.
+
+### 9. DONE - Run-testing
+
+Regression data upload pending.
+
+- First build (ifx Debug) of SU2G + GOCART2G succeeds after three
+  fixes: entry-point dummies lose their `intent(inout)` (step 4 should
+  have covered this); no
+  `MAPL_RESTART_OPTIONAL` (step 2, and the data-driven `SO4`/`climSO4`
+  specs); `MAPL_MaxMin` is now a function `MAPL_MaxMin(array, comm)`
+  returning `[max, min]`, so the GMI diagnostics in Run2 log it with
+  the VM's MPI communicator.
+- Add an SU standalone regression case: `root.yaml` (current vertical-grid
+  schema), `cap_driver.yaml`, `cap_restart.yaml`, and SU's ExtData
+  needs (anthropogenic/ship/biomass/aircraft/DMS emissions, the
+  `SU_OH/H2O2/NO3` oxidants, volcano tables).
+  - DONE (case files only): `regression/sulfate-sa/run{1,2}`, after
+    dust-sa: `DataForSU` (configurable, restarted internals) feeds the
+    imports each phase reads to `FakeGOCART` -> `SU` with
+    `run_phases: [Run1]` / `[Run2]` (Run0's work is repeated at the
+    start of Run2). Volcanoes off (`/dev/null`), `using_GMI: false`.
+    Registered in `cases.txt`; skipped until data exists.
+  - Volcanoes changed to CARN v202601 degassing
+    (`ExtData/chemistry/CARN/v202601/degassing/`), explosive `/dev/null`,
+    to match the baseline; `mapl: misc:` checkpoints import, export and
+    internal.
+  - The unconnected `TRADV` service import is accepted standalone.
+- DONE - **`sulfate-sa`**: bit-for-bit against the step-0 baseline in all
+  three states (run1 29 fields, run2 41). Fields a run never writes are
+  NaN in MAPL3, where MAPL2 has values left from the previous step or
+  zero-fill, so `cmpchk.py` reports them as `nan` (no skips):
+  - after Run1: `PSO4`, `SUDP`, `SUSD`, `SUWT`, the optics/mass
+    diagnostics (all computed in Run2) and `SUSV`;
+  - after Run2: `SUSV` (written by moist, not SU).
+- DONE - **`gocart+seasalt+dust+sulfate`** replaces
+  `gocart+seasalt+dust`: SU active in GOCART2G, and one
+  `DataForGOCART2G` provider, restarted from the MAPL2 GOCART2G import
+  state (the union of the DU/SS/SU imports, with equal values for shared
+  fields), feeds all 43 imports (GMI omitted). Bit-for-bit in all
+  DU/SS/SU/GOCART2G states, including the `TOT*`/`PM*` totals (run1 104
+  fields, run2 160).
+  - `ACTIVE_INSTANCES` has `CA: []` and `NI: []`. GOCART2G creates only
+    DU/SS/SU children, but the Run2 `nifactor` check read the config:
+    listing `NI` gave `nifactor = 1.0` instead of 132.14/96.06 (`PM*` off
+    by up to 8%). Fixed in GOCART2G (step 10); `[]` kept to avoid the
+    warning.
+- DONE - **Regression data** in the personal copy
+  (`/home/pchakrab/regression-data/.../GOCART2G_GridComp`): `sulfate-sa`,
+  `gocart+seasalt+dust+sulfate`, and `dust-sa`/`seasalt-sa` regenerated
+  from the same inputs (with the DU fix, step 10); `gocart+seasalt+dust`
+  removed. `ctest -L REGRESSION` with `LOCAL_REGRESSION_DATA_DIR` set to it:
+  all 8 GOCART2G cases pass.
+  - Still to do: upload to S3 and the shared
+    `/ford1/share/gmao_SIteam/regression-data`. Against the shared copy
+    `dust-sa`/`seasalt-sa` fail (old `Data{DU,SS}_internal.nc` names) and
+    the two SU cases are skipped, which `run_case.cmake` reports as
+    passed.
+- Hand runs: `export OMP_NUM_THREADS=1`, set `LD_LIBRARY_PATH` to the
+  install `lib`, reset `cap_restart.yaml` before each run. Each run dir
+  has a `baseline` link to `~/input/.../after/new-style`, read by
+  `cmpchk.py`.
+
+### 10. Follow-ups unlocked by SU
+
+Open ones are listed under Status.
+
+- Check that the `sulforg01-03` activation modes and MAMnet's `SUsum`
+  input (`ESMF/Shared/GOCART2G_AerosolActivationMod.F90`) now pick up
+  non-zero `SO4`.
+- NI2G's `SO4` import from SU can be connected when NI is ported; wire
+  DU->NI and SS->NI at the same time.
+- DU2G fixes found while porting SU:
+  - DONE (`51109f7`, on this branch): the `run1` undefined-value mask
+    `where (1.01 * du_src > MAPL_UNDEFINED_REAL)` was always true under
+    MAPL3 (`-huge`), so `du_src` was zeroed and Ginoux emissions lost
+    (the old `dust-sa` baselines had `DU_SRC = 0`). Now uses
+    `MAPL2_UNDEF = 1.0e15`, as SU does (step 6).
+  - DONE (`fe97dda`): `dust-sa/run1` now provides `V10M` and `FRLAKE`,
+    which Ginoux reads; Run1 crashed on the unassociated `V10M`.
+  - DONE: `DustEmissionK14` got `MAPL_UNDEFINED_REAL` (`-huge`) as
+    `UNDEF`. It fills with it and also compares against it, e.g.
+    `where (w_g > w_gt)` with `w_gt` left at `UNDEF` (clay out of
+    range): false with 1e15, true with `-huge` (then overflows). Now
+    `MAPL2_UNDEF`. Not run-tested (no case uses K14).
+  - DONE: point emissions: `run1` called `MAPL_GeomGetHorzIJIndex`
+    without `local_indices=.true.`, so it got global indices where
+    `updatePointwiseEmissions` expects local ones (-1 off-PE). Not
+    run-tested (no case sets `point_emissions_srcfilen`).
+  - DONE: AERO optics indexed the 1-based PLE as if 0-based
+    (`ple(:,:,k-1)` at `k = 1`, `km = ubound(ple,3)`); now a 0-based
+    remap as in SU (step 7). SS2G had the same pattern, also fixed.
+- DONE - SS2G: `wavelength_for_aerosol_optics` stored as `0.` (was the
+  integer `0`; DU/SU and the reader use a real), and
+  `use_photolysis_table` set with `ESMF_InfoSet` (was MAPL2
+  `ESMF_AttributeSet`).
+- DONE - GOCART2G: `create_instances_` marks the CA and NI instances
+  inactive (`deactivate_instances__`, with a warning if any were
+  listed active), since their children are not created. Checks of
+  `is_active` such as Run2's `nifactor` now match what was built:
+  `gocart+seasalt+dust+sulfate/run2` with CA/NI listed active matches
+  the regression baseline exactly, `PM*` included.
+- DONE: input-provider children renamed `DataDU`/`DataSS`/
+  `DataGOCART2G` -> `DataForDU`/`DataForSS`/`DataForGOCART2G` in
+  `dust-sa`, `seasalt-sa` and `gocart+seasalt+dust`, and their config
+  files `data-<comp>.yaml` -> `data-for-<comp>.yaml`, matching
+  `DataForSU`/`DataForSolar`. The regenerated data (step 9) uses the
+  new names; the shared copy and S3 still have the old ones.
+- DONE: `DUMASS25`, `DUMASSFM` and `SSMASSFM` no longer in
+  `EXCLUDE_VARS` (`regression/run_case.cmake`); the regenerated
+  baselines have all three with current metadata. The `ncatted`
+  `standard_name` patch on the old baselines is moot.
 
 ## Risks to settle early
 Items 1-4 were checked at run time with the step-0 baseline (step 9).
