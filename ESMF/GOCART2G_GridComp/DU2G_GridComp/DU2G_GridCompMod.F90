@@ -13,13 +13,13 @@ module DU2G_GridCompMod
     use MAPL, only: MAPL_get_current_thread
     use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
     use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
+    use MAPL, only: MAPL_InternalStateGet
     use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
     use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
     use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
     use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
     use MAPL, only: MAPL_PackedDateCreate, MAPL_PackedTimeCreate
     use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
-    use mapl_OwningGridComp_mod, only: mapl_get_owning_gridcomp
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
