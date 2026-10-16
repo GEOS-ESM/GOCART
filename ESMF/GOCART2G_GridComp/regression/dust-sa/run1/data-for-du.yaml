@@ -29,3 +29,11 @@ mapl:
         standard_name: 10-meter_eastward_wind
         units: "m s-1"
         vertical_dim_spec: "n"
+      V10M:
+        standard_name: 10-meter_northward_wind
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      FRLAKE:
+        standard_name: "fraction_of_lake"
+        units: "1"
+        vertical_dim_spec: "n"

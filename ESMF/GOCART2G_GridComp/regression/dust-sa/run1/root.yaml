@@ -53,3 +53,15 @@ mapl:
       src_intent: internal
       dst_name: U10M
       dst_comp: FakeGOCART
+
+    - src_name: V10M
+      src_comp: DataForDU
+      src_intent: internal
+      dst_name: V10M
+      dst_comp: FakeGOCART
+
+    - src_name: FRLAKE
+      src_comp: DataForDU
+      src_intent: internal
+      dst_name: FRLAKE
+      dst_comp: FakeGOCART

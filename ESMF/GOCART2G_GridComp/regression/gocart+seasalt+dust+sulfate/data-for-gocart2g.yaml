@@ -9,6 +9,10 @@ mapl:
 
   states:
     internal:
+      DU_SRC:
+        standard_name: "erod - dust emissions"
+        units: "1"
+        vertical_dim_spec: "n"
       FRLAKE:
         standard_name: "fraction_of_lake"
         units: "1"
@@ -38,7 +42,7 @@ mapl:
         units: "m^2"
         vertical_dim_spec: "n"
       USTAR:
-        standard_name: "equivalent_neutral_10-meter_northward_wind"
+        standard_name: "surface_velocity_scale"
         units: "m s-1"
         vertical_dim_spec: "n"
       CN_PRCP:
@@ -101,3 +105,79 @@ mapl:
         standard_name: "northward_wind"
         units: "m s-1"
         vertical_dim_spec: "c"
+      FROCEAN:
+        standard_name: "fraction_of_ocean"
+        units: "1"
+        vertical_dim_spec: "n"
+      FRACI:
+        standard_name: "ice_covered_fraction_of_tile"
+        units: "1"
+        vertical_dim_spec: "n"
+      TS:
+        standard_name: "surface skin temperature"
+        units: "K"
+        vertical_dim_spec: "n"
+      DZ:
+        standard_name: "surface_layer_height"
+        units: "m"
+        vertical_dim_spec: "n"
+      FCLD:
+        standard_name: "Cloud fraction for radiation"
+        units: "1"
+        vertical_dim_spec: "c"
+      pSO2_OCS:
+        standard_name: "source species"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_AIRCRAFT:
+        standard_name: "fuel source species"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_NO3:
+        standard_name: "climatological NO3 source"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_OH:
+        standard_name: "climatological OH source"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_H2O2:
+        standard_name: "climatological H2O2 source"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_BIOMASS:
+        standard_name: "biomass burning emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_ANTHROL1:
+        standard_name: "anthropogenic BF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_ANTHROL2:
+        standard_name: "anthropogenic FF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_SHIPSO2:
+        standard_name: "SO2 ship emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_SHIPSO4:
+        standard_name: "SO4 ship emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_DMSO:
+        standard_name: "DMS emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_LTO:
+        standard_name: "Landing/Take-off aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_CDS:
+        standard_name: "Climb/Descent aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_CRS:
+        standard_name: "Cruise aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"

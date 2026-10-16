@@ -6,7 +6,7 @@ import netCDF4 as nc4
 PHASE = "2"
 for state in ["import", "internal", "export"]:
     print("\nSTATE:", state)
-    baseline = f"/home/pchakrab/input/gocart+seasalt+dust/C12-L181/after/new-style/DU_{state}_after_runPhase{PHASE}.nc"
+    baseline = f"baseline/DU_{state}_after_runPhase{PHASE}.nc"
     current = f"checkpoints/last/DU_{state}.nc"
     with nc4.Dataset(baseline) as bas, nc4.Dataset(current) as cur:
         for var in bas.variables:

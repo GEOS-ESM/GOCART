@@ -8,9 +8,10 @@ aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v2.x.x/x/opti
 
 nbins: 4
 
-# Volcanic pointwise sources: off, so no volcano tables are needed
+# Volcanic pointwise sources: degassing only, matching the MAPL2 baseline
+# (CARN v202601 daily tables; there is no explosive table for 2000-04-14)
 volcano_srcfilen_explosive: /dev/null
-volcano_srcfilen_degassing: /dev/null
+volcano_srcfilen_degassing: ExtData/chemistry/CARN/v202601/degassing/so2_degassing_volcanic_emissions_Carn.%y4%m2%d2.rc
 
 # Heights [m] of LTO, CDS and CRS aviation emissions layers
 aviation_vertical_layers: [0.0, 100.0, 9.0e3, 10.0e3]
@@ -67,3 +68,12 @@ mapl:
   setServices:
     sharedObj: libSU2G_GridComp
     userRoutine: su2g_setservices_
+
+  misc:
+    activate_all_exports: true
+    restart:
+      internal: true
+    checkpoint:
+      export: true
+      import: true
+      internal: true

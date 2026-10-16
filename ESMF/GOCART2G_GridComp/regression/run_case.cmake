@@ -24,9 +24,7 @@ function(run_case case_name regression_data_dir)
     compare_results(
       ${checkpoints_dir} ${expdir}/checkpoints/last
       NANS_ARE_EQUAL
-      # DUMASSFM/SSMASSFM are new exports not in the baselines
-      # Drop these exclusions once the baselines are regenerated
-      EXCLUDE_VARS lons lats corner_lons corner_lats DUMASSFM SSMASSFM
+      EXCLUDE_VARS lons lats corner_lons corner_lats
     )
   endif()
 

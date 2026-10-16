@@ -11,9 +11,9 @@ n_phase_function_moments_photolysis: 0
 ACTIVE_INSTANCES:
   DU: [DU]  # [DU.data]
   SS: [SS]  # [SS.data]
-  SU: []  # [SU.data]
-  CA: [CA.oc, CA.bc, CA.br]  # [CA.oc.data, CA.bc.data]
-  NI: [NI]  # [NI.data]
+  SU: [SU]  # [SU.data]
+  CA: []  # [CA.oc, CA.bc, CA.br] not ported to MAPL3 yet
+  NI: []  # [NI] not ported to MAPL3 yet
 
 PASSIVE_INSTANCES:
   DU: []
