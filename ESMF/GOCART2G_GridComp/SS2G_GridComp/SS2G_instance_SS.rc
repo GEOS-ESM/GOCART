@@ -21,6 +21,11 @@ fscav: 0.4  0.4  0.4  0.4  0.4
 # Rainout efficiency per bin for wet_removal_scheme == gocart
 fwet: 1.0 1.0 1.0 1.0 1.0
 
+# Rainout efficiency per bin for wet_removal_scheme == ufs
+fwet_ice: 1.0 1.0 1.0 1.0 1.0
+fwet_snow: 1.0 1.0 1.0 1.0 1.0
+fwet_rain: 1.0 1.0 1.0 1.0 1.0
+
 # Emissions methods and scaling
 emission_scheme: 3                                     # 1 for Gong 2003, 2 for ...
 emission_scale:  0.600 0.525 0.450 0.400 0.375 0.350   # L181 global scaling factor

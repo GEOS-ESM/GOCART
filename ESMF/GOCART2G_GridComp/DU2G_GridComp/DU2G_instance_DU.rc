@@ -48,7 +48,8 @@ wet_removal_scheme: gocart ! default value
 fscav: 0.2  0.2  0.2  0.2  0.2
 
 # Large scale rainout efficiency per bin for wet_removal_scheme == gocart
-fwet: 1.0 1.0 1.0 1.0 1.0
+fwet: 1.0 1.0 1.0 1.0 1.0 # L181 values
+#fwet: 0.8 0.8 0.8 0.8 0.8 # L072 values
 
 # Rainout efficiency per bin for wet_removal_scheme == ufs
 fwet_ice: 0.8 0.8 0.8 1.0 1.0
