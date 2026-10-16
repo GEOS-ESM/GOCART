@@ -866,7 +866,7 @@ contains
       integer, intent(out) :: rc
 
       !Local
-      real, dimension(:, :, :), pointer :: ple, rh
+      real, dimension(:, :, :), pointer :: ple, ple0, rh
       real(kind=DP), dimension(:, :, :), pointer :: var
       real(kind=DP), dimension(:, :, :, :), pointer :: var4d
       real, dimension(:, :, :, :), pointer :: q, q_4d
@@ -901,12 +901,14 @@ contains
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
+      ! PLE is 1-based in MAPL3 (km+1 edges); the layer loop needs 0:km
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
       ! call MAPL_StateGetPointer (state, ple, 'PLE', _RC)
 
-      i1 = lbound(ple, 1); i2 = ubound(ple, 1)
-      j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      i1 = lbound(ple0, 1); i2 = ubound(ple0, 1)
+      j1 = lbound(ple0, 2); j2 = ubound(ple0, 2)
+      km = ubound(ple0, 3)
 
       ! Relative humidity
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
@@ -930,12 +932,12 @@ contains
 
       do n = 1, nbins
          do k = 1, km
-            x(:, :, k) = ((ple(:, :, k) - ple(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV)
+            x(:, :, k) = ((ple0(:, :, k) - ple0(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV)
             q_4d(:, :, k, n) = x(:, :, k) * q(:, :, k, n)
          end do
       end do
 
-      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
+      call ESMF_InfoGetAlloc(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1059,7 +1061,7 @@ contains
       integer, intent(out) :: rc
 
       !Local
-      real, dimension(:, :, :), pointer :: ple, rh
+      real, dimension(:, :, :), pointer :: ple, ple0, rh
       real, dimension(:, :), pointer :: var
       real, dimension(:, :, :, :), pointer :: q, q_4d
       integer, allocatable :: opaque_self(:)
@@ -1089,12 +1091,14 @@ contains
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
+      ! PLE is 1-based in MAPL3 (km+1 edges); the layer loop needs 0:km
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
       ! call MAPL_StateGetPointer (state, ple, 'PLE', _RC)
 
-      i1 = lbound(ple, 1); i2 = ubound(ple, 1)
-      j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      i1 = lbound(ple0, 1); i2 = ubound(ple0, 1)
+      j1 = lbound(ple0, 2); j2 = ubound(ple0, 2)
+      km = ubound(ple0, 3)
 
       ! Relative humidity
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
@@ -1119,12 +1123,12 @@ contains
 
       do n = 1, nbins
          do k = 1, km
-            x(:, :, k) = (ple(:, :, k) - ple(:, :, k - 1)) / MAPL_GRAV
+            x(:, :, k) = (ple0(:, :, k) - ple0(:, :, k - 1)) / MAPL_GRAV
             q_4d(:, :, k, n) = x(:, :, k) * q(:, :, k, n)
          end do
       end do
 
-      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
+      call ESMF_InfoGetAlloc(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)

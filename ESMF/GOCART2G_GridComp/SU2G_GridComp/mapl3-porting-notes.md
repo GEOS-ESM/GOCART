@@ -345,7 +345,8 @@ monochromatic_aerosol_optics.
      `ple0`, as in step 6 (`km = ubound(ple0,3)` = number of layers).
      DU2G's MAPL3 optics read `ple(:,:,k-1)` at `k = 1` and take
      `km = ubound(ple,3)` (= km+1): out of bounds and one level too many.
-     Same fix needed there (see step 10).
+     DONE: same remap in DU2G and SS2G; GOCART2G's `run_aerosol_optics`
+     and `get_monochromatic_aop` now take `km = size(ple,3) - 1`.
    - DONE - `get_mixR` (`ESMF/Shared/Chem_AeroGeneric.F90`) and the
      GOCART2G AERO callbacks it serves:
      - `get_mixR`: reads `internal_variable_name` as the scalar the
@@ -370,9 +371,14 @@ monochromatic_aerosol_optics.
        6 ranks): `get_mixRatioSum` gives DU/SS/SU sums matching the
        internals (DU = bin sum of `DU` to float32 rounding, SU = `SO4`),
        and `serialize_bundle` gives 11 fields (5 DU, 5 SS, SO4). All 8
-       GOCART2G regressions still pass. `run_aerosol_optics` and
-       `get_monochromatic_aop` build but are not exercised until
-       radiation calls them.
+       GOCART2G regressions still pass. `run_aerosol_optics` has been run
+       with SOLAR as the caller; `get_monochromatic_aop` has not been run.
+     - **`ESMF_InfoGet` into allocatable arrays:** same class of bug.
+       The generic's array specifics take `values(:)` (not allocatable),
+       so an unallocated allocatable actual fails (status 59). Use
+       `ESMF_InfoGetAlloc`. Fixed for the `mieTable_pointer` read in the
+       DU2G, SS2G and SU2G `aerosol_optics` and
+       `monochromatic_aerosol_optics` (6 sites).
 
 8. **DONE - Wrapper and parent wiring** (not built yet).
    - External `SetServices` wrapper after `end module SU2G_GridCompMod`, as
@@ -496,10 +502,9 @@ monochromatic_aerosol_optics.
         `local_indices=.true.`, so it gets global indices where
         `updatePointwiseEmissions` expects local ones (-1 off-PE). Only hit
         when `point_emissions_srcfilen` is set.
-      - AERO optics: `aerosol_optics` and `monochromatic_aerosol_optics`
-        index the 1-based PLE as if 0-based (`ple(:,:,k-1)` at `k = 1`,
-        `km = ubound(ple,3)`). Use a 0-based remap as SU does (step 7).
-        SS2G likely has the same pattern.
+      - DONE: AERO optics indexed the 1-based PLE as if 0-based
+        (`ple(:,:,k-1)` at `k = 1`, `km = ubound(ple,3)`); now a 0-based
+        remap as in SU (step 7). SS2G had the same pattern, also fixed.
     - SS2G: sets `wavelength_for_aerosol_optics` as an integer (`value=0`;
       DU/SU use `0.`) and never sets `use_photolysis_table`.
     - DONE: input-provider children renamed `DataDU`/`DataSS`/

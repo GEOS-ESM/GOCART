@@ -1417,10 +1417,10 @@ contains
       call ESMF_InfoGetCharAlloc(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
-      ! TODO: pchakrab - CAREFUL! In MAPL3 land, PLE is (:, :, 1:km+1), instead of (:, :, 0:km)
+      ! PLE is (:, :, 1:km+1) in MAPL3 (0:km in MAPL2)
       i1 = lbound(ple, 1); i2 = ubound(ple, 1)
       j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      km = size(ple, 3) - 1 ! number of layers
 
       allocate( &
            ext(i1:i2, j1:j2, km), &
@@ -1599,12 +1599,12 @@ contains
       call ESMF_InfoGetCharAlloc(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
-      ! TODO: pchakrab - CAREFUL! ple in MAPL3 is (:, :, 1:km+1), instead of (:, :, km)
+      ! PLE is (:, :, 1:km+1) in MAPL3 (0:km in MAPL2)
       i1 = lbound(ple, 1)
       i2 = ubound(ple, 1)
       j1 = lbound(ple, 2)
       j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      km = size(ple, 3) - 1 ! number of layers
 
       allocate(tau(i1:i2, j1:j2), _STAT)
       tau = 0.0

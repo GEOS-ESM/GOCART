@@ -1264,7 +1264,7 @@ contains
          q_4d(:, :, k, 1) = ((ple0(:, :, k) - ple0(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV) * q(:, :, k)
       end do
 
-      call ESMF_InfoGet(info, key='mieTable_pointer', values=opaque_self, _RC)
+      call ESMF_InfoGetAlloc(info, key='mieTable_pointer', values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1453,7 +1453,7 @@ contains
          q_4d(:, :, k, 1) = (ple0(:, :, k) - ple0(:, :, k - 1)) / MAPL_GRAV * q(:, :, k)
       end do
 
-      call ESMF_InfoGet(info, key='mieTable_pointer', values=opaque_self, _RC)
+      call ESMF_InfoGetAlloc(info, key='mieTable_pointer', values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
