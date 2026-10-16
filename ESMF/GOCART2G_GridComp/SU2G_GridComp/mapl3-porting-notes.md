@@ -287,8 +287,8 @@ monochromatic_aerosol_optics.
    - `MAPL_GetHorzIJIndex(n, i, j, grid=, lon=, lat=)` ->
      `MAPL_GeomGetHorzIJIndex(geom, lon, lat, i, j, local_indices=.true.)`.
      MAPL2 returned local indices (-1 off-PE); without `local_indices`
-     MAPL3 returns global ones. DU2G's Run1 omits `local_indices`, which
-     looks like a bug there (only hit with point emissions on).
+     MAPL3 returns global ones. DU2G's Run1 omitted `local_indices`; fixed
+     (step 10).
    - `StrTemplate` -> `MAPL_StrTemplate`; root-only prints ->
      `logger%info` (the "not found" one in an `omp critical`, as DU).
      No timers in SU's Run routines.
@@ -463,10 +463,11 @@ monochromatic_aerosol_optics.
      fields), feeds all 43 imports (GMI omitted). Bit-for-bit in all
      DU/SS/SU/GOCART2G states, including the `TOT*`/`PM*` totals (run1 104
      fields, run2 160).
-     - `ACTIVE_INSTANCES` must have `CA: []` and `NI: []`. GOCART2G creates
-       only DU/SS/SU children, but the Run2 `nifactor` check reads the
-       config: listing `NI` gave `nifactor = 1.0` instead of 132.14/96.06
-       (`PM*` off by up to 8%).
+     - `ACTIVE_INSTANCES` has `CA: []` and `NI: []`. GOCART2G creates only
+       DU/SS/SU children, but the Run2 `nifactor` check read the config:
+       listing `NI` gave `nifactor = 1.0` instead of 132.14/96.06 (`PM*` off
+       by up to 8%). Fixed in GOCART2G (step 10); `[]` kept to avoid the
+       warning.
    - DONE - **Regression data** in the personal copy
      (`/home/pchakrab/regression-data/.../GOCART2G_GridComp`): `sulfate-sa`,
      `gocart+seasalt+dust+sulfate`, and `dust-sa`/`seasalt-sa` regenerated
@@ -497,16 +498,28 @@ monochromatic_aerosol_optics.
         `MAPL2_UNDEF = 1.0e15`, as SU does (step 6).
       - DONE (`fe97dda`): `dust-sa/run1` now provides `V10M` and `FRLAKE`,
         which Ginoux reads; Run1 crashed on the unassociated `V10M`.
-      - Still passes `MAPL_UNDEFINED_REAL` as `undef` to `DustEmissionK14`.
-      - Point emissions: `run1` calls `MAPL_GeomGetHorzIJIndex` without
-        `local_indices=.true.`, so it gets global indices where
-        `updatePointwiseEmissions` expects local ones (-1 off-PE). Only hit
-        when `point_emissions_srcfilen` is set.
+      - DONE: `DustEmissionK14` got `MAPL_UNDEFINED_REAL` (`-huge`) as
+        `UNDEF`. It fills with it and also compares against it, e.g.
+        `where (w_g > w_gt)` with `w_gt` left at `UNDEF` (clay out of
+        range): false with 1e15, true with `-huge` (then overflows). Now
+        `MAPL2_UNDEF`. Not run-tested (no case uses K14).
+      - DONE: point emissions: `run1` called `MAPL_GeomGetHorzIJIndex`
+        without `local_indices=.true.`, so it got global indices where
+        `updatePointwiseEmissions` expects local ones (-1 off-PE). Not
+        run-tested (no case sets `point_emissions_srcfilen`).
       - DONE: AERO optics indexed the 1-based PLE as if 0-based
         (`ple(:,:,k-1)` at `k = 1`, `km = ubound(ple,3)`); now a 0-based
         remap as in SU (step 7). SS2G had the same pattern, also fixed.
-    - SS2G: sets `wavelength_for_aerosol_optics` as an integer (`value=0`;
-      DU/SU use `0.`) and never sets `use_photolysis_table`.
+    - DONE - SS2G: `wavelength_for_aerosol_optics` stored as `0.` (was the
+      integer `0`; DU/SU and the reader use a real), and
+      `use_photolysis_table` set with `ESMF_InfoSet` (was MAPL2
+      `ESMF_AttributeSet`).
+    - DONE - GOCART2G: `create_instances_` marks the CA and NI instances
+      inactive (`deactivate_instances__`, with a warning if any were
+      listed active), since their children are not created. Checks of
+      `is_active` such as Run2's `nifactor` now match what was built:
+      `gocart+seasalt+dust+sulfate/run2` with CA/NI listed active matches
+      the regression baseline exactly, `PM*` included.
     - DONE: input-provider children renamed `DataDU`/`DataSS`/
       `DataGOCART2G` -> `DataForDU`/`DataForSS`/`DataForGOCART2G` in
       `dust-sa`, `seasalt-sa` and `gocart+seasalt+dust`, and their config

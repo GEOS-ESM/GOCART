@@ -417,8 +417,8 @@ contains
       self%rad_Mie = GOCART2G_Mie(trim(file_), _RC)
 
       ! Trigger for photolysis calculations
-      ! pchakrab: TODO - use ESMF_InfoSet instead
-      call ESMF_AttributeSet(aero, name="use_photolysis_table", value=0, _RC)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
+      call ESMF_InfoSet(aero_info, key="use_photolysis_table", value=0, _RC)
 
       ! Create Photolysis Mie Table
       ! Get file names for the optical tables
@@ -467,7 +467,7 @@ contains
       call ESMF_InfoGetFromHost(aero, aero_info, _RC)
       call ESMF_InfoSet(aero_info, key="mie_table_instance", value=instance, _RC)
       call ESMF_InfoSet(aero_info, key="band_for_aerosol_optics", value=0, _RC)
-      call ESMF_InfoSet(aero_info, key="wavelength_for_aerosol_optics", value=0, _RC)
+      call ESMF_InfoSet(aero_info, key="wavelength_for_aerosol_optics", value=0., _RC)
       mieTable_pointer = transfer(c_loc(self), [1])
       call ESMF_InfoSet(aero_info, key="mieTable_pointer", values=mieTable_pointer, _RC)
       call ESMF_InfoSet(aero_info, key="internal_variable_name", value="SS", _RC)

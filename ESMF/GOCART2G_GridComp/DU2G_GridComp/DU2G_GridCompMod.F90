@@ -19,7 +19,7 @@ module DU2G_GridCompMod
    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
    use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
    use MAPL, only: MAPL_PackedDateCreate, MAPL_PackedTimeCreate
-   use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
+   use MAPL_Constants, only: MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -696,7 +696,7 @@ contains
               du_sand, du_silt, du_clay, &
               du_texture, du_veg, du_gvf, &
               self%f_swc, self%f_scl, self%uts_gamma, &
-              MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, &
+              MAPL2_UNDEF, MAPL_GRAV, MAPL_KARMAN, &
               self%clayFlag, self%Ch_DU / 1.e-9, &
               emissions_surface, &
               ustar_, &
@@ -758,7 +758,7 @@ contains
          call MAPL_GeomGetHorzIJIndex(geom, &
               workspace%pLon / real(MAPL_RADIANS_TO_DEGREES), &
               workspace%pLat / real(MAPL_RADIANS_TO_DEGREES), &
-              iPoint, jPoint, _RC)
+              iPoint, jPoint, local_indices=.true., _RC)
          ! if (status /= 0) then
          !    !$omp critical (DU2G_2)
          !    if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'

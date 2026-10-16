@@ -7,6 +7,7 @@ module GOCART2G_GridCompMod
 
    !USES:
    use ESMF
+   use pflogger, only: logger_t => logger
    use MAPL, only: MAPL_Verify, MAPL_Return, MAPL_Assert
    use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
    use MAPL, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
@@ -1259,9 +1260,32 @@ contains
       call add_children__(gc, self%SU, SU2G_SetServices, _RC)
       ! call add_children__(gc, self%CA, CA2G_SetServices, _RC)
       ! call add_children__(gc, self%NI, NI2G_SetServices, _RC)
+      ! CA and NI are not ported, so their children are not created; anything
+      ! that checks is_active (e.g. Run2's nifactor) must not see them as active
+      call deactivate_instances__(gc, self%CA, _RC)
+      call deactivate_instances__(gc, self%NI, _RC)
 
       _RETURN(_SUCCESS)
    end subroutine create_instances_
+
+   ! Marks every instance of a species inactive, for species whose children are not created
+   subroutine deactivate_instances__(gc, species, rc)
+      type(ESMF_GridComp), intent(inout) :: gc
+      type(Constituent), intent(inout) :: species
+      integer, intent(out) :: rc
+
+      class(logger_t), pointer :: logger
+      integer :: status
+
+      if (species%n_active > 0) then
+         call MAPL_GridCompGet(gc, logger=logger, _RC)
+         call logger%warning("Ignoring the active %a instances: %a is not ported to MAPL3", species%name, species%name)
+      end if
+      species%instances(:)%is_active = .false.
+      species%n_active = 0
+
+      _RETURN(_SUCCESS)
+   end subroutine deactivate_instances__
 
    subroutine add_children__(gc, species, setservices, rc)
       type (ESMF_GridComp), intent(inout) :: gc
