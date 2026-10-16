@@ -33,6 +33,9 @@ module DU2G_GridCompMod
    integer, parameter :: instanceComputational = 1
    integer, parameter :: instanceData = 2
 
+   ! MAPL2's MAPL_UNDEF; MAPL3's is -huge, which breaks the 1.01*x > undef masks
+   real, parameter :: MAPL2_UNDEF = 1.0e15
+
    !PUBLIC MEMBER FUNCTIONS:
    public SetServices
 
@@ -645,7 +648,7 @@ contains
 
       ! Set du_src to 0 where undefined
       if (associated(du_src)) then
-         where (1.01 * du_src > MAPL_UNDEFINED_REAL) du_src = 0.
+         where (1.01 * du_src > MAPL2_UNDEF) du_src = 0.
       end if
 
       ! Get dimensions

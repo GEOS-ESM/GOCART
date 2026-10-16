@@ -213,7 +213,7 @@ contains
               itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
               _RC)
       end do
-      do iter = 1, size(self%SS%instances)
+      do iter = 1, size(self%DU%instances)
          child = self%DU%instances(iter)
          call MAPL_GridCompAddSpec( &
               gc, &
