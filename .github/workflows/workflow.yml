@@ -10,6 +10,7 @@ on:
       - "**.sh"
       - "**.perl"
       - ".github/CODEOWNERS"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -31,7 +32,7 @@ jobs:
   build_gocart:
     strategy:
       matrix:
-        compiler: [ifort, gfortran-15]
+        compiler: [ifort, ifx, gfortran-15]
         build-type: [Debug]
     uses: GEOS-ESM/CI-workflows/.github/workflows/geosgcm_build_tests.yml@project/geosgcm
     with:
@@ -50,16 +51,13 @@ jobs:
       run-mepo-develop: true
       load-fms: true
 
-  # Some weird issues need fixing. Turning off for now
-  #######################################################################################
-  # spack_build_gocart:                                                                 #
-  #   uses: GEOS-ESM/CI-workflows/.github/workflows/spack_gcc_build.yml@project/geosgcm #
-  #   secrets:                                                                          #
-  #     BUILDCACHE_USERNAME: ${{ secrets.BUILDCACHE_USERNAME }}                         #
-  #     BUILDCACHE_TOKEN: ${{ secrets.BUILDCACHE_TOKEN }}                               #
-  #   with:                                                                             #
-  #     run-mepo-develop: false                                                         #
-  #     build-target: '--target GOCART2G_GridComp'                                      #
-  #     load-fms: true                                                                  #
-  #######################################################################################
+  spack_build_gocart:
+    uses: GEOS-ESM/CI-workflows/.github/workflows/spack_gcc_build.yml@project/geosgcm
+    secrets:
+      BUILDCACHE_USERNAME: ${{ secrets.BUILDCACHE_USERNAME }}
+      BUILDCACHE_TOKEN: ${{ secrets.BUILDCACHE_TOKEN }}
+    with:
+      run-mepo-develop: false
+      build-target: '--target GOCART2G_GridComp'
+      load-fms: true
 
