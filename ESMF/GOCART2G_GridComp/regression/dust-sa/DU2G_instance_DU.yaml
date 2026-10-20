@@ -76,6 +76,7 @@ mapl:
 
   setServices:
     sharedObj: libDU2G_GridComp
+    userRoutine: du2g_setservices_
 
   misc:
     activate_all_exports: true

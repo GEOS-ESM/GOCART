@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - setZeroKlid for non-radiatively active tracers in Run0
 
 ### Changed
+- CI: removed the GOCART-only builds from GitHub Actions (`build_gocart`, `spack_build_gocart`) and CircleCI (`build-GOCART2G`, `build-GOCART2G-like-UFS`)
+- CI: the CircleCI GEOSgcm build now runs `ctest -L REGRESSION`
 - Changes to use the split CAP.yaml linked to MAPL PR #5371 and Issue #5355
 - MAPL3 renames
 - Updated MAPL\_GridCompAddCHild to new interface that just takes a procedure

@@ -1,0 +1,79 @@
+---
+#
+# Resource file for Sulfur parameters (sulfate-sa regression).
+#
+
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v2.x.x/x/opticsBands_SU.v2.1.0.RRTMGP.nc4
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v2.x.x/x/optics_SU.v2.1.0.nc4
+
+nbins: 4
+
+# Volcanic pointwise sources: degassing only, matching the MAPL2 baseline
+# (CARN v202601 daily tables; there is no explosive table for 2000-04-14)
+volcano_srcfilen_explosive: /dev/null
+volcano_srcfilen_degassing: ExtData/chemistry/CARN/v202601/degassing/so2_degassing_volcanic_emissions_Carn.%y4%m2%d2.rc
+
+# Heights [m] of LTO, CDS and CRS aviation emissions layers
+aviation_vertical_layers: [0.0, 100.0, 9.0e3, 10.0e3]
+
+# Fraction of anthropogenic emissions that are SO4
+so4_anthropogenic_fraction: 0.03
+
+# Aircraft emission factor: convert input unit to kg SO2
+aircraft_fuel_emission_factor: 1.0000
+
+# Scavenging efficiency per bin [km-1]
+fscav: [0.0, 0.0, 0.4, 0.4]
+
+# Wet Removal Scheme Option | gocart, ufs
+wet_removal_scheme: gocart
+
+# Rainout efficiency for sulfate wet_removal_scheme == ufs
+fwet_ice: [1.0, 1.0, 1.0, 1.0]
+fwet_snow: [1.0, 1.0, 1.0, 1.0]
+fwet_rain: [1.0, 1.0, 1.0, 1.0]
+
+# Dummy wet removal efficiency for wet_removal_scheme == gocart
+fwet: [1.0, 1.0, 1.0, 1.0]
+
+# Dry particle radius [um], used for settling
+particle_radius_microns: [0.0, 0.0, 0.35, 0.0]
+
+# Dry particle density [kg m-3]
+particle_density: [-1.0, -1.0, 1700.0, -1.0]
+
+pressure_lid_in_hPa: 1.0
+
+# Molecular weight of species [kg mole-1]
+molecular_weight: [-1.0, -1.0, 0.132, -1.0]
+
+# Number of particles per kg mass
+fnum: [-1.0, -1.0, 9.01e16, -1.0]
+
+# Number median radius [um]
+particle_radius_number: [-1.0, -1.0, 0.0695, -1.0]
+
+# Sigma of lognormal number distribution
+sigma: [-1.0, -1.0, 2.03, -1.0]
+
+# The MAPL2 baseline must use the same settings
+using_GMI: false
+disable_emissions: false
+
+# SettlingSolver options: gocart or ufs
+settling_scheme: gocart
+
+mapl:
+
+  setServices:
+    sharedObj: libSU2G_GridComp
+    userRoutine: su2g_setservices_
+
+  misc:
+    activate_all_exports: true
+    restart:
+      internal: true
+    checkpoint:
+      export: true
+      import: true
+      internal: true

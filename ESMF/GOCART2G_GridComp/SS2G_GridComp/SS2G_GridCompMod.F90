@@ -10,11 +10,12 @@ module SS2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
+   use gFTL2_StringVector, only: StringVector
    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use MAPL, only: MAPL_GridGet, MAPL_GridGetCoordinates, MAPL_GridGetGlobalCellCountPerDim
    use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec, MAPL_GridCompGet
    use MAPL, only: MAPL_GridCompGetResource, MAPL_GridCompGetInternalState
-   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_STATEITEM_SERVICE, MAPL_ClockGet
    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_UngriddedDim
    use MAPL_Constants, only: MAPL_RADIANS_TO_DEGREES, MAPL_PI, MAPL_GRAV, MAPL_KARMAN
@@ -93,6 +94,7 @@ contains
       class(logger_t), pointer :: logger
       type(mapl_UngriddedDim) :: ungrd_nbins
       type(mapl_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      type(StringVector) :: advected_tracers
       integer :: i, status
 
       call MAPL_GridCompGet(gc, logger=logger, name=comp_name, _RC)
@@ -253,7 +255,14 @@ contains
 #include "SS2G_Export___.h"
 #include "SS2G_Import___.h"
 #include "SS2G_Internal___.h"
-         call logger%info("Wet removal scheme is %a", trim(self%wet_removal_scheme))
+         ! Replaces MAPL2's FRIENDLYTO=DYNAMICS on SS
+         call advected_tracers%push_back("SS")
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name="TRADV", &
+              standard_name="advected_quantities", &
+              itemtype=MAPL_STATEITEM_SERVICE, &
+              service_items=advected_tracers, _RC)
       end if
 
       ! This state holds fields needed by radiation
@@ -407,8 +416,8 @@ contains
       self%rad_Mie = GOCART2G_Mie(trim(file_), _RC)
 
       ! Trigger for photolysis calculations
-      ! pchakrab: TODO - use ESMF_InfoSet instead
-      call ESMF_AttributeSet(aero, name="use_photolysis_table", value=0, _RC)
+      call ESMF_InfoGetFromHost(aero, aero_info, _RC)
+      call ESMF_InfoSet(aero_info, key="use_photolysis_table", value=0, _RC)
 
       ! Create Photolysis Mie Table
       ! Get file names for the optical tables
@@ -457,7 +466,7 @@ contains
       call ESMF_InfoGetFromHost(aero, aero_info, _RC)
       call ESMF_InfoSet(aero_info, key="mie_table_instance", value=instance, _RC)
       call ESMF_InfoSet(aero_info, key="band_for_aerosol_optics", value=0, _RC)
-      call ESMF_InfoSet(aero_info, key="wavelength_for_aerosol_optics", value=0, _RC)
+      call ESMF_InfoSet(aero_info, key="wavelength_for_aerosol_optics", value=0., _RC)
       mieTable_pointer = transfer(c_loc(self), [1])
       call ESMF_InfoSet(aero_info, key="mieTable_pointer", values=mieTable_pointer, _RC)
       call ESMF_InfoSet(aero_info, key="internal_variable_name", value="SS", _RC)
@@ -856,7 +865,7 @@ contains
       integer, intent(out) :: rc
 
       !Local
-      real, dimension(:, :, :), pointer :: ple, rh
+      real, dimension(:, :, :), pointer :: ple, ple0, rh
       real(kind=DP), dimension(:, :, :), pointer :: var
       real(kind=DP), dimension(:, :, :, :), pointer :: var4d
       real, dimension(:, :, :, :), pointer :: q, q_4d
@@ -891,12 +900,14 @@ contains
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
+      ! PLE is 1-based in MAPL3 (km+1 edges); the layer loop needs 0:km
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
       ! call MAPL_StateGetPointer (state, ple, 'PLE', _RC)
 
-      i1 = lbound(ple, 1); i2 = ubound(ple, 1)
-      j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      i1 = lbound(ple0, 1); i2 = ubound(ple0, 1)
+      j1 = lbound(ple0, 2); j2 = ubound(ple0, 2)
+      km = ubound(ple0, 3)
 
       ! Relative humidity
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
@@ -920,12 +931,12 @@ contains
 
       do n = 1, nbins
          do k = 1, km
-            x(:, :, k) = ((ple(:, :, k) - ple(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV)
+            x(:, :, k) = ((ple0(:, :, k) - ple0(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV)
             q_4d(:, :, k, n) = x(:, :, k) * q(:, :, k, n)
          end do
       end do
 
-      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
+      call ESMF_InfoGetAlloc(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1049,7 +1060,7 @@ contains
       integer, intent(out) :: rc
 
       !Local
-      real, dimension(:, :, :), pointer :: ple, rh
+      real, dimension(:, :, :), pointer :: ple, ple0, rh
       real, dimension(:, :), pointer :: var
       real, dimension(:, :, :, :), pointer :: q, q_4d
       integer, allocatable :: opaque_self(:)
@@ -1079,12 +1090,14 @@ contains
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
+      ! PLE is 1-based in MAPL3 (km+1 edges); the layer loop needs 0:km
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
       ! call MAPL_StateGetPointer (state, ple, 'PLE', _RC)
 
-      i1 = lbound(ple, 1); i2 = ubound(ple, 1)
-      j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      i1 = lbound(ple0, 1); i2 = ubound(ple0, 1)
+      j1 = lbound(ple0, 2); j2 = ubound(ple0, 2)
+      km = ubound(ple0, 3)
 
       ! Relative humidity
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
@@ -1109,12 +1122,12 @@ contains
 
       do n = 1, nbins
          do k = 1, km
-            x(:, :, k) = (ple(:, :, k) - ple(:, :, k - 1)) / MAPL_GRAV
+            x(:, :, k) = (ple0(:, :, k) - ple0(:, :, k - 1)) / MAPL_GRAV
             q_4d(:, :, k, n) = x(:, :, k) * q(:, :, k, n)
          end do
       end do
 
-      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
+      call ESMF_InfoGetAlloc(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1138,10 +1151,10 @@ contains
 
 end module SS2G_GridCompMod
 
-subroutine SetServices(gc, rc)
+subroutine SS2G_SetServices(gc, rc)
    use ESMF
    use SS2G_GridCompMod, only : mySetservices => SetServices
    type(ESMF_GridComp) :: gc
    integer, intent(out) :: rc
    call mySetservices(gc, rc=rc)
-end subroutine SetServices
+end subroutine SS2G_SetServices

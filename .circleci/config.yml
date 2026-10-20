@@ -10,37 +10,6 @@ orbs:
 workflows:
   build-and-test:
     jobs:
-      # Build GOCART
-      - ci/build:
-          name: build-GOCART2G-on-<< matrix.compiler >>
-          context:
-            - docker-hub-creds
-          matrix:
-            parameters:
-              compiler: [gfortran, ifx]
-          #baselibs_version: *baselibs_version
-          repo: GOCART
-          buildtarget: GOCART2G_GridComp
-          mepodevelop: true
-          develop_repos: GMAO_Shared
-          persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
-
-      # Build GOCART like UFS
-      - ci/build:
-          name: build-GOCART2G-like-UFS-on-<< matrix.compiler >>
-          context:
-            - docker-hub-creds
-          matrix:
-            parameters:
-              compiler: [gfortran, ifx]
-          #baselibs_version: *baselibs_version
-          repo: GOCART
-          buildtarget: GOCART2G_GridComp
-          mepodevelop: true
-          develop_repos: GMAO_Shared
-          extra_cmake_options: "-DBUILD_WITH_FLAP=OFF -DBUILD_WITH_PFLOGGER=OFF -DBUILD_SHARED_MAPL=OFF -DUSE_EXTDATA2G=OFF"
-          persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
-
       # Build GEOSgcm
       - ci/build:
           name: build-GEOSgcm-on-<< matrix.compiler >>
@@ -54,4 +23,8 @@ workflows:
           checkout_fixture: true
           fixture_branch: release/MAPL-v3
           mepodevelop: false
+          run_regression_tests: true
+          ctest_options: "-L REGRESSION"
           persist_workspace: false # Needs to be true to run fv3/gcm experiment, costs extra
+          # The regression tests need a larger machine to run in a reasonable time
+          resource_class: xlarge

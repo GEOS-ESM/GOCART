@@ -9,18 +9,15 @@ mapl:
       class: CubedSphere
       im_world: 12
     vertical_grid:
-      class: model
-      standard_name: air_pressure
-      units: hPa
+      grid_type: model
+      fields: {pressure: PLE}
       num_levels: 181
-      field_edge: PLE
-      field_center: PE
 
   children:
-    DataDU:
+    DataForDU:
       dso: libconfigurable_gridcomp.so
       setservices: setservices_
-      config_file: data-du.yaml
+      config_file: data-for-du.yaml
 
     FakeGOCART:
       dso: libconfigurable_gridcomp.so
@@ -28,31 +25,43 @@ mapl:
 
   connections:
     - src_name: DU_SRC
-      src_comp: DataDU
+      src_comp: DataForDU
       src_intent: internal
       dst_name: DU_SRC
       dst_comp: FakeGOCART
 
     - src_name: WET1
-      src_comp: DataDU
+      src_comp: DataForDU
       src_intent: internal
       dst_name: WET1
       dst_comp: FakeGOCART
 
     - src_name: LWI
-      src_comp: DataDU
+      src_comp: DataForDU
       src_intent: internal
       dst_name: LWI
       dst_comp: FakeGOCART
 
     - src_name: DELP
-      src_comp: DataDU
+      src_comp: DataForDU
       src_intent: internal
       dst_name: DELP
       dst_comp: FakeGOCART
 
     - src_name: U10M
-      src_comp: DataDU
+      src_comp: DataForDU
       src_intent: internal
       dst_name: U10M
+      dst_comp: FakeGOCART
+
+    - src_name: V10M
+      src_comp: DataForDU
+      src_intent: internal
+      dst_name: V10M
+      dst_comp: FakeGOCART
+
+    - src_name: FRLAKE
+      src_comp: DataForDU
+      src_intent: internal
+      dst_name: FRLAKE
       dst_comp: FakeGOCART

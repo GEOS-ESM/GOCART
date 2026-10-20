@@ -9,16 +9,17 @@ module DU2G_GridCompMod
    !USES:
    use ESMF
    use pflogger, only: logger_t => logger
+   use gFTL2_StringVector, only: StringVector
    use MAPL, only: MAPL_Verify, MAPL_Assert, MAPL_Return
    use MAPL, only: MAPL_get_num_threads, MAPL_get_current_thread
    use MAPL, only: MAPL_GridGetGlobalCellCountPerDim, MAPL_GridCompGet, MAPL_GridCompGetResource
    use MAPL, only: MAPL_GridCompGetInternalState, MAPL_GridCompSetEntryPoint, MAPL_GridCompAddSpec
-   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_ClockGet
+   use MAPL, only: MAPL_STATEITEM_STATE, MAPL_STATEITEM_FIELDBUNDLE, MAPL_STATEITEM_SERVICE, MAPL_ClockGet
    use MAPL, only: MAPL_VERTICAL_STAGGER_NONE, MAPL_VERTICAL_STAGGER_CENTER, MAPL_VERTICAL_STAGGER_EDGE
    use MAPL, only: MAPL_RESTART_SKIP, MAPL_StateGetPointer, MAPL_GeomGetHorzIJIndex, MAPL_UngriddedDim
    use MAPL, only: MAPL_StrTemplate, MAPL_Am_I_Root
    use MAPL, only: MAPL_PackedDateCreate, MAPL_PackedTimeCreate
-   use MAPL_Constants, only: MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
+   use MAPL_Constants, only: MAPL_GRAV, MAPL_KARMAN, MAPL_RADIANS_TO_DEGREES
    use GOCART2G_MieMod
    use Chem_AeroGeneric
    use iso_c_binding, only: c_loc, c_f_pointer, c_ptr
@@ -32,6 +33,9 @@ module DU2G_GridCompMod
 
    integer, parameter :: instanceComputational = 1
    integer, parameter :: instanceData = 2
+
+   ! MAPL2's MAPL_UNDEF; MAPL3's is -huge, which breaks the 1.01*x > undef masks
+   real, parameter :: MAPL2_UNDEF = 1.0e15
 
    !PUBLIC MEMBER FUNCTIONS:
    public SetServices
@@ -111,6 +115,7 @@ contains
       integer :: num_threads
       type(MAPL_UngriddedDim) :: ungrd_nbins
       type(MAPL_UngriddedDim) :: ungrd_wavelengths_profile, ungrd_wavelengths_vertint
+      type(StringVector) :: advected_tracers
       integer :: status
 
       call MAPL_GridCompGet(gc, name=comp_name, _RC)
@@ -291,6 +296,14 @@ contains
 #include "DU2G_Import___.h"
          end associate
 #include "DU2G_Internal___.h"
+         ! Replaces MAPL2's FRIENDLYTO=DYNAMICS on DU
+         call advected_tracers%push_back("DU")
+         call MAPL_GridCompAddSpec(gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name="TRADV", &
+              standard_name="advected_quantities", &
+              itemtype=MAPL_STATEITEM_SERVICE, &
+              service_items=advected_tracers, _RC)
       end if
 
       ! This state holds fields needed by radiation
@@ -645,7 +658,7 @@ contains
 
       ! Set du_src to 0 where undefined
       if (associated(du_src)) then
-         where (1.01 * du_src > MAPL_UNDEFINED_REAL) du_src = 0.
+         where (1.01 * du_src > MAPL2_UNDEF) du_src = 0.
       end if
 
       ! Get dimensions
@@ -683,7 +696,7 @@ contains
               du_sand, du_silt, du_clay, &
               du_texture, du_veg, du_gvf, &
               self%f_swc, self%f_scl, self%uts_gamma, &
-              MAPL_UNDEFINED_REAL, MAPL_GRAV, MAPL_KARMAN, &
+              MAPL2_UNDEF, MAPL_GRAV, MAPL_KARMAN, &
               self%clayFlag, self%Ch_DU / 1.e-9, &
               emissions_surface, &
               ustar_, &
@@ -745,7 +758,7 @@ contains
          call MAPL_GeomGetHorzIJIndex(geom, &
               workspace%pLon / real(MAPL_RADIANS_TO_DEGREES), &
               workspace%pLat / real(MAPL_RADIANS_TO_DEGREES), &
-              iPoint, jPoint, _RC)
+              iPoint, jPoint, local_indices=.true., _RC)
          ! if (status /= 0) then
          !    !$omp critical (DU2G_2)
          !    if (mapl_am_i_root()) print*, trim(Iam), ' - cannot get indices for point emissions'
@@ -1006,7 +1019,7 @@ contains
       type(ESMF_Field) :: fld
       type(ESMF_Info) :: info
       integer, parameter :: DP = kind(1.0d0)
-      real, dimension(:, :, :), pointer :: ple, rh
+      real, dimension(:, :, :), pointer :: ple, ple0, rh
       real(kind=DP), dimension(:, :, :), pointer :: var
       real(kind=DP), dimension(:, :, :, :), pointer :: var4d
       real, dimension(:, :, :, :), pointer :: q, q_4d
@@ -1034,12 +1047,14 @@ contains
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
+      ! PLE is 1-based in MAPL3 (km+1 edges); the layer loop needs 0:km
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
       ! call MAPL_StateGetPointer (state, ple, "PLE", _RC)
 
-      i1 = lbound(ple, 1); i2 = ubound(ple, 1)
-      j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      i1 = lbound(ple0, 1); i2 = ubound(ple0, 1)
+      j1 = lbound(ple0, 2); j2 = ubound(ple0, 2)
+      km = ubound(ple0, 3)
 
       ! Relative humidity
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
@@ -1062,12 +1077,12 @@ contains
 
       do n = 1, nbins
          do k = 1, km
-            x(:, :, k) = ((ple(:, :, k) - ple(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV)
+            x(:, :, k) = ((ple0(:, :, k) - ple0(:, :, k - 1)) * 0.01) * (100. / MAPL_GRAV)
             q_4d(:, :, k, n) = x(:, :, k) * q(:, :, k, n)
          end do
       end do
 
-      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
+      call ESMF_InfoGetAlloc(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1188,7 +1203,7 @@ contains
       integer, intent(out) :: rc
 
       !Local
-      real, dimension(:, :, :), pointer :: ple, rh
+      real, dimension(:, :, :), pointer :: ple, ple0, rh
       real, dimension(:, :), pointer :: var
       real, dimension(:, :, :, :), pointer :: q, q_4d
       integer, allocatable :: opaque_self(:)
@@ -1212,11 +1227,13 @@ contains
       ! Pressure at layer edges
       call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, ple, trim(fld_name), _RC)
+      ! PLE is 1-based in MAPL3 (km+1 edges); the layer loop needs 0:km
+      ple0(lbound(ple, 1):, lbound(ple, 2):, 0:) => ple
 
       ! call MAPL_StateGetPointer (state, ple, "PLE", _RC)
-      i1 = lbound(ple, 1); i2 = ubound(ple, 1)
-      j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      i1 = lbound(ple0, 1); i2 = ubound(ple0, 1)
+      j1 = lbound(ple0, 2); j2 = ubound(ple0, 2)
+      km = ubound(ple0, 3)
 
       ! Relative humidity
       call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
@@ -1241,12 +1258,12 @@ contains
 
       do n = 1, nbins
          do k = 1, km
-            x(:, :, k) = (ple(:, :, k) - ple(:, :, k - 1)) / MAPL_GRAV
+            x(:, :, k) = (ple0(:, :, k) - ple0(:, :, k - 1)) / MAPL_GRAV
             q_4d(:, :, k, n) = x(:, :, k) * q(:, :, k, n)
          end do
       end do
 
-      call ESMF_InfoGet(info, key="mieTable_pointer", values=opaque_self, _RC)
+      call ESMF_InfoGetAlloc(info, key="mieTable_pointer", values=opaque_self, _RC)
 
       address = transfer(opaque_self, address)
       call c_f_pointer(address, self)
@@ -1270,10 +1287,10 @@ contains
 
 end module DU2G_GridCompMod
 
-subroutine SetServices(gc, rc)
+subroutine DU2G_SetServices(gc, rc)
    use ESMF
    use DU2G_GridCompMod, only : mySetServices => SetServices
    type(ESMF_GridComp) :: gc
    integer, intent(out) :: rc
    call mySetServices(gc, rc=rc)
-end subroutine SetServices
+end subroutine DU2G_SetServices

@@ -1,0 +1,91 @@
+mapl:
+
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
+  misc:
+    restart:
+      internal: true
+
+  states:
+    internal:
+      LWI:
+        standard_name: "land-ocean-ice_mask"
+        units: "1"
+        vertical_dim_spec: "n"
+      U10M:
+        standard_name: "10-meter_eastward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      V10M:
+        standard_name: "10-meter_northward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      AREA:
+        standard_name: "agrid_cell_area"
+        units: "m^2"
+        vertical_dim_spec: "n"
+      ZPBL:
+        standard_name: "planetary_boundary_layer_height"
+        units: "m"
+        vertical_dim_spec: "n"
+      AIRDENS:
+        standard_name: "moist_air_density"
+        units: "kg/m^3"
+        vertical_dim_spec: "c"
+      DELP:
+        standard_name: "pressure_thickness"
+        units: "Pa"
+        vertical_dim_spec: "c"
+      T:
+        standard_name: "air_temperature"
+        units: "K"
+        vertical_dim_spec: "c"
+      ZLE:
+        standard_name: "geopotential_height"
+        units: "m"
+        vertical_dim_spec: "e"
+      pSO2_OCS:
+        standard_name: "source species"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_AIRCRAFT:
+        standard_name: "fuel source species"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_BIOMASS:
+        standard_name: "biomass burning emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_ANTHROL1:
+        standard_name: "anthropogenic BF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_ANTHROL2:
+        standard_name: "anthropogenic FF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_SHIPSO2:
+        standard_name: "SO2 ship emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_SHIPSO4:
+        standard_name: "SO4 ship emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_DMSO:
+        standard_name: "DMS emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_LTO:
+        standard_name: "Landing/Take-off aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_CDS:
+        standard_name: "Climb/Descent aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_CRS:
+        standard_name: "Cruise aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"

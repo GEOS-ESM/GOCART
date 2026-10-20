@@ -368,32 +368,27 @@ contains
       real, dimension(:,:,:), pointer :: ptr3d
       real, dimension(:,:,:,:), pointer :: ptr4d
       real, dimension(:,:,:), pointer :: aeroSum
-      character(len=:), allocatable :: fld_name
-      integer :: i
-      character(len=ESMF_MAXSTR), allocatable :: aerosolNames(:)
+      character(len=:), allocatable :: fld_name, aerosol_name
       integer :: status
       !EOP
 
       call ESMF_InfoGetFromHost(state, info, _RC)
-      call ESMF_InfoGet(info, key="internal_variable_name", values=aerosolNames, _RC)
+      ! A species need not register a sum field
+      call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol", value=fld_name, default="", _RC)
+      _RETURN_IF(fld_name == "")
+      call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=aeroSum, _RC)
 
-      ! Zero out previous aerosol sum value so it doesn't keep growing.
-      call ESMF_AttributeGet (state, name="sum_of_internalState_aerosol", value=fld_name, _RC)
-      if (fld_name /= '') then
-         call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=aeroSum, _RC)
-         aeroSum = 0.0
+      ! A single name; MAPL2 stored a list
+      call ESMF_InfoGetCharAlloc(info, key="internal_variable_name", value=aerosol_name, _RC)
+      if ((aerosol_name == "DU") .or. (aerosol_name == "SS")) then
+         call MAPL_StateGetPointer(state, itemName=aerosol_name, farrayPtr=ptr4d, _RC)
+         aeroSum = sum(ptr4d, dim=4)
+      else
+         call MAPL_StateGetPointer(state, itemName=aerosol_name, farrayPtr=ptr3d, _RC)
+         aeroSum = ptr3d
       end if
 
-      do i = 1, size(aerosolNames)
-         if ((aerosolNames(i) == 'DU') .or. (aerosolNames(i) == 'SS')) then
-            call MAPL_StateGetPointer(state, itemName=aerosolNames(i), farrayPtr=ptr4d, _RC)
-            aeroSum = sum(ptr4d, dim=4) !DU and SS only have 1 internal state variable so no need to =+
-         else
-            call MAPL_StateGetPointer(state, itemName=aerosolNames(i), farrayPtr=ptr3d, _RC)
-            aeroSum = aeroSum + ptr3d
-         end if
-      end do
-
+      _RETURN(_SUCCESS)
    end subroutine get_mixR
 
 end module Chem_AeroGeneric

@@ -1,0 +1,126 @@
+---
+mapl:
+
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 12
+    vertical_grid:
+      grid_type: model
+      fields: {pressure: PLE}
+      num_levels: 181
+
+  children:
+    DataForSU:
+      dso: libconfigurable_gridcomp.so
+      setservices: setservices_
+      config_file: data-for-su.yaml
+
+    FakeGOCART:
+      dso: libconfigurable_gridcomp.so
+      config_file: fake-gocart.yaml
+
+  connections:
+    - src_name: LWI
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: LWI
+      dst_comp: FakeGOCART
+    - src_name: U10M
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: U10M
+      dst_comp: FakeGOCART
+    - src_name: V10M
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: V10M
+      dst_comp: FakeGOCART
+    - src_name: AREA
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: AREA
+      dst_comp: FakeGOCART
+    - src_name: ZPBL
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: ZPBL
+      dst_comp: FakeGOCART
+    - src_name: AIRDENS
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: AIRDENS
+      dst_comp: FakeGOCART
+    - src_name: DELP
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: DELP
+      dst_comp: FakeGOCART
+    - src_name: T
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: T
+      dst_comp: FakeGOCART
+    - src_name: ZLE
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: ZLE
+      dst_comp: FakeGOCART
+    - src_name: pSO2_OCS
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: pSO2_OCS
+      dst_comp: FakeGOCART
+    - src_name: SU_AIRCRAFT
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_AIRCRAFT
+      dst_comp: FakeGOCART
+    - src_name: SU_BIOMASS
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_BIOMASS
+      dst_comp: FakeGOCART
+    - src_name: SU_ANTHROL1
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_ANTHROL1
+      dst_comp: FakeGOCART
+    - src_name: SU_ANTHROL2
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_ANTHROL2
+      dst_comp: FakeGOCART
+    - src_name: SU_SHIPSO2
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_SHIPSO2
+      dst_comp: FakeGOCART
+    - src_name: SU_SHIPSO4
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_SHIPSO4
+      dst_comp: FakeGOCART
+    - src_name: SU_DMSO
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_DMSO
+      dst_comp: FakeGOCART
+    - src_name: SU_AVIATION_LTO
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_AVIATION_LTO
+      dst_comp: FakeGOCART
+    - src_name: SU_AVIATION_CDS
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_AVIATION_CDS
+      dst_comp: FakeGOCART
+    - src_name: SU_AVIATION_CRS
+      src_comp: DataForSU
+      src_intent: internal
+      dst_name: SU_AVIATION_CRS
+      dst_comp: FakeGOCART

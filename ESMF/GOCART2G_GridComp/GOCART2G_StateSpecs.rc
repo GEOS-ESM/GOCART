@@ -50,6 +50,21 @@ category: IMPORT
  DUANGSTR      | 1        | xy   | N    | SKIP    |                           | Dust Angstrom parameter [470-870 nm]
  DUSMASS       | kg m-3   | xy   | N    | SKIP    |                           | Dust Surface Mass Concentration
  DUSMASS25     | kg m-3   | xy   | N    | SKIP    |                           | Dust Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
+#-imports-from-sulfate-
+ SUEXTTAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | SO4 Aerosol Optical Depth
+ SUSTEXTTAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | SO4 Stratospheric Aerosol Optical Thickness
+ SUSCATAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | SO4 Aerosol Optical Depth Due to Scattering
+ SUSTSCATAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | SO4 Stratospheric Aerosol Optical Depth Due to Scattering
+ SUEXTCOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | SO4 Extinction Coefficient
+ SUEXTCOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | SO4 Extinction Coefficient - Fixed RH=20%
+ SUEXTCOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | SO4 Extinction Coefficient - Fixed RH=80%
+ SUSCACOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | SO4 Scattering Coefficient
+ SUSCACOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | SO4 Scattering Coefficient - Fixed RH=20%
+ SUSCACOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | SO4 Scattering Coefficient - Fixed RH=80%
+ SUBCKCOEF     | m-1 sr-1 | xyz  | C    | SKIP    | ungrd_wavelengths_profile | SO4 Backscatter Coefficient
+ SUANGSTR      | 1        | xy   | N    | SKIP    |                           | SO4 Angstrom parameter [470-870 nm]
+ SO4SMASS      | kg m-3   | xy   | N    | SKIP    |                           | SO4 Surface Mass Concentration
+ PSO4          | kg m-2 s-1 | xyz | C   | SKIP    |                           | SO4 Prod from all SO2 oxidation
 
 
 category: EXPORT

@@ -7,6 +7,7 @@ module GOCART2G_GridCompMod
 
    !USES:
    use ESMF
+   use pflogger, only: logger_t => logger
    use MAPL, only: MAPL_Verify, MAPL_Return, MAPL_Assert
    use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
    use MAPL, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
@@ -23,7 +24,7 @@ module GOCART2G_GridCompMod
    ! Establish the Childen's SetServices
    use DU2G_GridCompMod, only: DU2G_SetServices => SetServices
    use SS2G_GridCompMod, only: SS2G_SetServices => SetServices
-   ! use SU2G_GridCompMod, only: SU2G_SetServices  => SetServices
+   use SU2G_GridCompMod, only: SU2G_SetServices => SetServices
    ! use CA2G_GridCompMod, only: CA2G_SetServices  => SetServices
    ! use NI2G_GridCompMod, only: NI2G_SetServices  => SetServices
 
@@ -173,6 +174,19 @@ contains
               itemtype=MAPL_STATEITEM_STATE, &
               _RC)
       end do
+      do iter = 1, size(self%SU%instances)
+         child = self%SU%instances(iter)
+         call MAPL_GridCompAddSpec( &
+              gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name=child%name // "_AERO", &
+              standard_name="aerosol_mass_mixing_ratios_ng", &
+              dims="xyz", &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
+              units="kg kg-1", &
+              itemtype=MAPL_STATEITEM_STATE, &
+              _RC)
+      end do
       call MAPL_GridCompAddSpec( &
            gc, &
            state_intent=ESMF_STATEINTENT_EXPORT, &
@@ -200,8 +214,21 @@ contains
               itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
               _RC)
       end do
-      do iter = 1, size(self%SS%instances)
+      do iter = 1, size(self%DU%instances)
          child = self%DU%instances(iter)
+         call MAPL_GridCompAddSpec( &
+              gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name=child%name // "_AERO_DP", &
+              standard_name="aerosol_deposition_ng", &
+              dims="xy", &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
+              units="kg m-2 s-1", &
+              itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
+              _RC)
+      end do
+      do iter = 1, size(self%SU%instances)
+         child = self%SU%instances(iter)
          call MAPL_GridCompAddSpec( &
               gc, &
               state_intent=ESMF_STATEINTENT_IMPORT, &
@@ -227,11 +254,13 @@ contains
 #include "GOCART2G_Export___.h"
 #include "GOCART2G_Import___.h"
 
-      ! pchakrab: TODO - NEEDS PORTING - ACTIVATE ONCE SU HAS BEEN PORTED
-      ! ! Allow children of Chemistry to connect to these fields
-      ! if ((self%SU%instances(1)%is_active) .and. (index(self%SU%instances(1)%name, 'data') == 0 )) then
-      !    call MAPL_AddExportSpec (GC, SHORT_NAME='PSO4', CHILD_ID=self%SU%instances(1)%id, _RC)
-      ! end if
+      ! Allow children of Chemistry to connect to these fields
+      if (size(self%SU%instances) > 0) then
+         child = self%SU%instances(1)
+         if ((child%is_active) .and. (index(child%name, "data") == 0)) then
+            call MAPL_GridCompReexport(gc, src_comp=child%name, src_name="PSO4", _RC)
+         end if
+      end if
 
       ! pchakrab: TODO - ACTIVATE ONCE NI HAS BEEN PORTED
       ! ! Add connectivities for Nitrate component
@@ -330,6 +359,37 @@ contains
          end if
       end do
 
+      ! Connections to Sulfate's export items
+      child_items = &
+           "SUEXTTAU, SUSTEXTTAU, SUSCATAU, SUSTSCATAU, " // &
+           "SUEXTCOEF, SUEXTCOEFRH20, SUEXTCOEFRH80, " // &
+           "SUSCACOEF, SUSCACOEFRH20, SUSCACOEFRH80, " // &
+           "SUBCKCOEF, SUANGSTR, SO4SMASS, PSO4"
+      do iter = 1, size(self%SU%instances)
+         child = self%SU%instances(iter)
+         if ((child%is_active) .and. (index(child%name, "data") == 0)) then
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child_items, &
+                 dst_comp="<self>", _RC)
+            ! AERO
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child%name // "_AERO", &
+                 dst_comp="<self>", &
+                 dst_names=child%name // "_AERO", _RC)
+            ! AERO_DP
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child%name // "_AERO_DP", &
+                 dst_comp="<self>", &
+                 dst_names=child%name // "_AERO_DP", _RC)
+         end if
+      end do
+
       _RETURN(_SUCCESS)
 
    end subroutine SetServices
@@ -376,7 +436,7 @@ contains
       ! Only active instances are passed to radiation
       call add_aero_states_(self%DU%instances(:))
       call add_aero_states_(self%SS%instances(:))
-      ! call add_aero_states_(self%SU%instances(:))
+      call add_aero_states_(self%SU%instances(:))
       ! call add_aero_states_(self%CA%instances(:))
       ! call add_aero_states_(self%NI%instances(:))
 
@@ -457,6 +517,9 @@ contains
 
             ! AERO state
             call ESMF_StateGet(import, instance_%name // "_AERO", state_, _RC)
+            ! MAPL3 gives the state a default name (StateNNN); the AERO
+            ! callbacks select children by name, so add it as <name>_AERO
+            state_ = ESMF_NamedAlias(state_, name=instance_%name // "_AERO", _RC)
             call ESMF_StateAdd(aero, [state_], _RC)
 
             ! AERO_DP bundle
@@ -533,15 +596,6 @@ contains
       ! real, pointer, dimension(:,:)   :: niangstr, nismass, nismass25
       ! real, pointer, dimension(:,:)   :: nh4smass
 
-      ! ! Sulfates - ACG will generate this once we add NI's export states as GOCART's import
-      ! real, pointer, dimension(:,:,:) :: suexttau, sustexttau
-      ! real, pointer, dimension(:,:,:) :: suscatau, sustscatau
-      ! real, pointer, dimension(:,:,:,:) :: suextcoef, suscacoef
-      ! real, pointer, dimension(:,:,:,:) :: suextcoefrh20, suextcoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: suscacoefrh20, suscacoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: subckcoef
-      ! real, pointer, dimension(:,:)   :: suangstr, so4smass
-
       ! ! Carbonaceous - ACG will generate this once we add CA's export states as GOCART's import
       ! real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau
       ! real, pointer, dimension(:,:,:,:) :: bcextcoef, bcscacoef
@@ -565,6 +619,7 @@ contains
       ! real, pointer, dimension(:,:,:) :: pso4
       real, allocatable :: tau1(:, :), tau2(:, :)
       real :: c1, c2, c3
+      real :: nifactor
       real, parameter :: pi = 3.141529265 ! pchakrab: TODO - use MAPL_PI instead??
       integer :: ind550
       integer :: im, jm
@@ -786,83 +841,47 @@ contains
       !    end if
       ! end do
 
-      ! ! Sulfates
-      ! nifactor = 132.14/96.06
-      ! if (size(self%NI%instances) > 0) then
-      !    if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, 'data') == 0 )) nifactor = 1.0
-      ! end if
+      ! Sulfates
+      nifactor = 132.14 / 96.06
+      if (size(self%NI%instances) > 0) then
+         if ((self%NI%instances(1)%is_active) .and. (index(self%NI%instances(1)%name, "data") == 0)) nifactor = 1.0
+      end if
 
-      ! do n = 1, size(self%SU%instances)
-      !    if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, 'data') == 0 )) then
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suexttau, 'SUEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suextcoef, 'SUEXTCOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suextcoefrh20, 'SUEXTCOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suextcoefrh80, 'SUEXTCOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suscacoef, 'SUSCACOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suscacoefrh20, 'SUSCACOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suscacoefrh80, 'SUSCACOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), subckcoef, 'SUBCKCOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), sustexttau, 'SUSTEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suscatau, 'SUSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), sustscatau, 'SUSTSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), suangstr, 'SUANGSTR', _RC)
+      do n = 1, size(self%SU%instances)
+         if ((self%SU%instances(n)%is_active) .and. (index(self%SU%instances(n)%name, "data") == 0)) then
+            if (associated(totexttau)) totexttau = totexttau + suexttau
+            if (associated(totstexttau)) totstexttau = totstexttau + sustexttau
+            if (associated(totscatau)) totscatau = totscatau + suscatau
+            if (associated(totstscatau)) totstscatau = totstscatau + sustscatau
+            if (associated(totextt25)) totextt25 = totextt25 + suexttau
+            if (associated(totscat25)) totscat25 = totscat25 + suscatau
+            if (associated(totexttfm)) totexttfm = totexttfm + suexttau
+            if (associated(totscatfm)) totscatfm = totscatfm + suscatau
+            if (associated(totextcoef)) totextcoef = totextcoef + suextcoef
+            if (associated(totextcoefrh20)) totextcoefrh20 = totextcoefrh20 + suextcoefrh20
+            if (associated(totextcoefrh80)) totextcoefrh80 = totextcoefrh80 + suextcoefrh80
+            if (associated(totscacoef)) totscacoef = totscacoef + suscacoef
+            if (associated(totscacoefrh20)) totscacoefrh20 = totscacoefrh20 + suscacoefrh20
+            if (associated(totscacoefrh80)) totscacoefrh80 = totscacoefrh80 + suscacoefrh80
+            if (associated(totbckcoef)) totbckcoef = totbckcoef + subckcoef
 
-      !     !   Iterate over the wavelengths
-      !       do w = 1, size(self%wavelengths_vertint)
-      !          if(associated(totexttau) .and. associated(suexttau)) totexttau(:,:,w) =
-      ! totexttau(:,:,w)+suexttau(:,:,w)
-      !          if(associated(totstexttau) .and. associated(sustexttau)) totstexttau(:,:,w) =
-      ! totstexttau(:,:,w)+sustexttau(:,:,w)
-      !          if(associated(totscatau) .and. associated(suscatau)) totscatau(:,:,w) =
-      ! totscatau(:,:,w)+suscatau(:,:,w)
-      !          if(associated(totstscatau) .and. associated(sustscatau)) totstscatau(:,:,w) =
-      ! totstscatau(:,:,w)+sustscatau(:,:,w)
-      !          if(associated(totextt25) .and. associated(suexttau)) totextt25(:,:,w) =
-      ! totextt25(:,:,w)+suexttau(:,:,w)
-      !          if(associated(totscat25) .and. associated(suscatau)) totscat25(:,:,w) =
-      ! totscat25(:,:,w)+suscatau(:,:,w)
-      !          if(associated(totexttfm) .and. associated(suexttau)) totexttfm(:,:,w) =
-      ! totexttfm(:,:,w)+suexttau(:,:,w)
-      !          if(associated(totscatfm) .and. associated(suscatau)) totscatfm(:,:,w) =
-      ! totscatfm(:,:,w)+suscatau(:,:,w)
-      !       end do
+            if (associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
 
-      !       do w = 1, size(self%wavelengths_profile)
-      !          if(associated(totextcoef) .and. associated(suextcoef)) totextcoef(:,:,:,w) =
-      ! totextcoef(:,:,:,w)+suextcoef(:,:,:,w)
-      !          if(associated(totextcoefrh20) .and. associated(suextcoefrh20)) totextcoefrh20(:,:,:,w) =
-      ! totextcoefrh20(:,:,:,w)+suextcoefrh20(:,:,:,w)
-      !          if(associated(totextcoefrh80) .and. associated(suextcoefrh80)) totextcoefrh80(:,:,:,w) =
-      ! totextcoefrh80(:,:,:,w)+suextcoefrh80(:,:,:,w)
-      !          if(associated(totscacoef) .and. associated(suscacoef)) totscacoef(:,:,:,w) =
-      ! totscacoef(:,:,:,w)+suscacoef(:,:,:,w)
-      !          if(associated(totscacoefrh20) .and. associated(suscacoefrh20)) totscacoefrh20(:,:,:,w) =
-      ! totscacoefrh20(:,:,:,w)+suscacoefrh20(:,:,:,w)
-      !          if(associated(totscacoefrh80) .and. associated(suscacoefrh80)) totscacoefrh80(:,:,:,w) =
-      ! totscacoefrh80(:,:,:,w)+suscacoefrh80(:,:,:,w)
-      !          if(associated(totbckcoef) .and. associated(subckcoef)) totbckcoef(:,:,:,w) =
-      ! totbckcoef(:,:,:,w)+subckcoef(:,:,:,w)
-      !       end do
+            if (associated(so4smass)) then
+               if (associated(pm)) pm = pm + nifactor * so4smass
+               if (associated(pm25)) pm25 = pm25 + nifactor * so4smass
+               if (associated(pm_rh35)) pm_rh35 = pm_rh35 + 1.33 * nifactor * so4smass
+               if (associated(pm25_rh35)) pm25_rh35 = pm25_rh35 + 1.33 * nifactor * so4smass
+               if (associated(pm_rh50)) pm_rh50 = pm_rh50 + 1.51 * nifactor * so4smass
+               if (associated(pm25_rh50)) pm25_rh50 = pm25_rh50 + 1.51 * nifactor * so4smass
+            end if
 
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), pso4, 'PSO4', _RC)
-      !       if(associated(pso4tot) .and. associated(pso4)) pso4tot = pso4tot + pso4
-
-      !       call MAPL_StateGetPointer (gex(self%SU%instances(n)%id), so4smass, 'SO4SMASS', _RC)
-      !       if(associated(so4smass)) then
-      !          if(associated(pm)       ) pm        = pm        + nifactor*so4smass
-      !          if(associated(pm25)     ) pm25      = pm25      + nifactor*so4smass
-      !          if(associated(pm_rh35)  ) pm_rh35   = pm_rh35   + 1.33*nifactor*so4smass
-      !          if(associated(pm25_rh35)) pm25_rh35 = pm25_rh35 + 1.33*nifactor*so4smass
-      !          if(associated(pm_rh50)  ) pm_rh50   = pm_rh50   + 1.51*nifactor*so4smass
-      !          if(associated(pm25_rh50)) pm25_rh50 = pm25_rh50 + 1.51*nifactor*so4smass
-      !       end if
-
-      !       if(associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
-      !          tau1 = tau1 + suexttau(:,:,ind550)*exp(c1*suangstr)
-      !          tau2 = tau2 + suexttau(:,:,ind550)*exp(c2*suangstr)
-      !       end if
-      !    end if
-      ! end do
+            if (associated(totangstr) .and. associated(suexttau) .and. associated(suangstr)) then
+               tau1 = tau1 + suexttau(:, :, ind550) * exp(c1 * suangstr)
+               tau2 = tau2 + suexttau(:, :, ind550) * exp(c2 * suangstr)
+            end if
+         end if
+      end do
 
       ! ! Carbonaceous aerosols
       ! do n = 1, size(self%CA%instances)
@@ -1238,12 +1257,35 @@ contains
 
       call add_children__(gc, self%DU, DU2G_SetServices, _RC)
       call add_children__(gc, self%SS, SS2G_SetServices, _RC)
-      ! call add_children__(gc, self%SU, SU2G_SetServices, _RC)
+      call add_children__(gc, self%SU, SU2G_SetServices, _RC)
       ! call add_children__(gc, self%CA, CA2G_SetServices, _RC)
       ! call add_children__(gc, self%NI, NI2G_SetServices, _RC)
+      ! CA and NI are not ported, so their children are not created; anything
+      ! that checks is_active (e.g. Run2's nifactor) must not see them as active
+      call deactivate_instances__(gc, self%CA, _RC)
+      call deactivate_instances__(gc, self%NI, _RC)
 
       _RETURN(_SUCCESS)
    end subroutine create_instances_
+
+   ! Marks every instance of a species inactive, for species whose children are not created
+   subroutine deactivate_instances__(gc, species, rc)
+      type(ESMF_GridComp), intent(inout) :: gc
+      type(Constituent), intent(inout) :: species
+      integer, intent(out) :: rc
+
+      class(logger_t), pointer :: logger
+      integer :: status
+
+      if (species%n_active > 0) then
+         call MAPL_GridCompGet(gc, logger=logger, _RC)
+         call logger%warning("Ignoring the active %a instances: %a is not ported to MAPL3", species%name, species%name)
+      end if
+      species%instances(:)%is_active = .false.
+      species%n_active = 0
+
+      _RETURN(_SUCCESS)
+   end subroutine deactivate_instances__
 
    subroutine add_children__(gc, species, setservices, rc)
       type (ESMF_GridComp), intent(inout) :: gc
@@ -1282,6 +1324,7 @@ contains
 
       character(len=ESMF_MAXSTR) :: binIndexstr
       character(len=ESMF_MAXSTR), allocatable :: aeroName(:)
+      character(len=:), allocatable :: int_fld_name
 
       real, pointer, dimension(:, :, :, :) :: orig_ptr
       real, pointer, dimension(:, :, :) :: ptr3d
@@ -1305,8 +1348,10 @@ contains
       do i = 1, n
          if (itemTypes(i) /= ESMF_STATEITEM_STATE) cycle ! exclude non-states
          call ESMF_StateGet(state, trim(itemList(i)), child_state, _RC)
-         call ESMF_InfoGetFromHost(state, info, _RC)
-         call ESMF_InfoGet(info, key="internal_variable_name", values=aeroName, _RC)
+         call ESMF_InfoGetFromHost(child_state, info, _RC)
+         ! Children store a single name; MAPL2 stored a list
+         call ESMF_InfoGetCharAlloc(info, key="internal_variable_name", value=int_fld_name, _RC)
+         aeroName = [character(len=ESMF_MAXSTR) :: int_fld_name]
          do b = 1, size(aeroName)
             call ESMF_StateGet(child_state, trim(aeroName(b)), field, _RC)
             call ESMF_FieldGet(field, rank=rank, _RC)
@@ -1379,7 +1424,7 @@ contains
       call ESMF_InfoGet(info, key="band_for_aerosol_optics", value=band, _RC)
 
       ! Relative humidity
-      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
       ! Are we using a photolysis table?
@@ -1389,17 +1434,17 @@ contains
       end if
 
       ! Relative humidity
-      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
       ! Pressure at layer edges
-      call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
-      ! TODO: pchakrab - CAREFUL! In MAPL3 land, PLE is (:, :, 1:km+1), instead of (:, :, 0:km)
+      ! PLE is (:, :, 1:km+1) in MAPL3 (0:km in MAPL2)
       i1 = lbound(ple, 1); i2 = ubound(ple, 1)
       j1 = lbound(ple, 2); j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      km = size(ple, 3) - 1 ! number of layers
 
       allocate( &
            ext(i1:i2, j1:j2, km), &
@@ -1442,7 +1487,7 @@ contains
          call ESMF_InfoGetFromHost(child_state, child_info, _RC)
 
          ! set RH in child's aero state
-         call ESMF_InfoGet(child_info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
 
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
@@ -1450,7 +1495,7 @@ contains
          end if
 
          ! set PLE in child's aero state
-         call ESMF_InfoGet(child_info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
 
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
@@ -1467,13 +1512,13 @@ contains
          call ESMF_MethodExecute(child_state, label="aerosol_optics", _RC)
 
          ! Retrieve extinction from each child
-         call ESMF_InfoGet(child_info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ext_, _RC)
          end if
 
          ! Retrieve scattering extinction from each child
-         call ESMF_InfoGet(child_info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ssa_, _RC)
          end if
@@ -1481,12 +1526,12 @@ contains
          ! If for radiation retrieve asymmetry parameter multiplied by scattering from each child
          ! If for photolysis retrieve the phase function moments multipled by the scattering from each child
          if (use_phot_table /= 0) then
-            call ESMF_InfoGet(child_info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+            call ESMF_InfoGetCharAlloc(child_info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
             if (fld_name /= '') then
                call MAPL_StateGetPointer(child_state, itemName=trim(fld_name), farrayPtr=pmom_, _RC)
             end if
          else
-            call ESMF_InfoGet(child_info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+            call ESMF_InfoGetCharAlloc(child_info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
             if (fld_name /= "") then
                call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=asy_, _RC)
             end if
@@ -1506,26 +1551,26 @@ contains
 
       ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children
       ! This is what is passed to radiation or photolysis
-      call ESMF_InfoGet(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= "") then
          call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = ext(:, :, :)
       end if
 
-      call ESMF_InfoGet(info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="single_scattering_albedo_of_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= "") then
          call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = ssa(:, :, :)
       end if
 
       if (use_phot_table /= 0) then
-         call ESMF_InfoGet(info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="legendre_coefficients_of_p11_for_photolysis", value=fld_name, _RC)
          if (fld_name /= '') then
             call MAPL_StateGetPointer(state, itemName=trim(fld_name), farrayPtr=var4d, _RC)
             var4d = pmom(:, :, :, :)
          end if
       else
-         call ESMF_InfoGet(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="asymmetry_parameter_of_ambient_aerosol", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = asy(:, :, :)
@@ -1571,19 +1616,19 @@ contains
       call ESMF_InfoGet(info, key="wavelength_for_aerosol_optics", value=wavelength, _RC)
 
       ! Relative humidity
-      call ESMF_InfoGet(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=rh, _RC)
 
       ! Pressure at layer edges
-      call ESMF_InfoGet(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
       call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=ple, _RC)
 
-      ! TODO: pchakrab - CAREFUL! ple in MAPL3 is (:, :, 1:km+1), instead of (:, :, km)
+      ! PLE is (:, :, 1:km+1) in MAPL3 (0:km in MAPL2)
       i1 = lbound(ple, 1)
       i2 = ubound(ple, 1)
       j1 = lbound(ple, 2)
       j2 = ubound(ple, 2)
-      km = ubound(ple, 3)
+      km = size(ple, 3) - 1 ! number of layers
 
       allocate(tau(i1:i2, j1:j2), _STAT)
       tau = 0.0
@@ -1617,7 +1662,7 @@ contains
          call ESMF_InfoGetFromHost(child_state, child_info, _RC)
 
          ! set RH in child's aero state
-         call ESMF_InfoGet(child_info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="relative_humidity_for_aerosol_optics", value=fld_name, _RC)
 
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
@@ -1625,7 +1670,7 @@ contains
          end if
 
          ! set PLE in child's aero state
-         call ESMF_InfoGet(child_info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="air_pressure_for_aerosol_optics", value=fld_name, _RC)
 
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=as_ptr_3d, _RC)
@@ -1639,7 +1684,7 @@ contains
          call ESMF_MethodExecute(child_state, label="monochromatic_aerosol_optics", _RC)
 
          ! Retrieve extinction from each child
-         call ESMF_InfoGet(child_info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(child_info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=tau_, _RC)
          end if
@@ -1649,7 +1694,7 @@ contains
       end do
 
       ! Set ext, ssa, asy to equal the sum of ext, ssa, asy from the children. This is what is passed to radiation.
-      call ESMF_InfoGet(info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="monochromatic_extinction_in_air_due_to_ambient_aerosol", value=fld_name, _RC)
       if (fld_name /= "") then
          call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
          var = tau
@@ -1684,7 +1729,7 @@ contains
 
       call ESMF_InfoGetFromHost(state, info, _RC)
 
-      call ESMF_InfoGet(info, key="aerosolName", value=aeroName, _RC)
+      call ESMF_InfoGetCharAlloc(info, key="aerosolName", value=aeroName, _RC)
       call ESMF_InfoGet(info, key="im", value=im, _RC)
       call ESMF_InfoGet(info, key="jm", value=jm, _RC)
       call ESMF_InfoGet(info, key="km", value=km, _RC)
@@ -1720,7 +1765,7 @@ contains
       case ("dust")
          call getAerosolSum("DU", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_DU", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_DU", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1729,7 +1774,7 @@ contains
       case ("seasalt")
          call getAerosolSum("SS", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_SS", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_SS", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1738,7 +1783,7 @@ contains
       case ("organicCarbon")
          call getAerosolSum("CA.oc", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_CA.oc", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.oc", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1747,7 +1792,7 @@ contains
       case ("blackCarbon")
          call getAerosolSum("CA.bc", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_CA.bc", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.bc", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1756,7 +1801,7 @@ contains
       case ("brownCarbon")
          call getAerosolSum("CA.br", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_CA.br", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.br", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1765,7 +1810,7 @@ contains
       case ("sulfate")
          call getAerosolSum("SU", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_SU", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_SU", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1774,7 +1819,7 @@ contains
       case ("nitrate")
          call getAerosolSum("NI", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGet(info, key="sum_of_internalState_aerosol_NI", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_NI", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
@@ -1813,7 +1858,8 @@ contains
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                call ESMF_MethodExecute(child_state, label="get_mixR", _RC)
                call ESMF_InfoGetFromHost(child_state, child_info, _RC)
-               call ESMF_InfoGet(child_info, key="sum_of_internalState_aerosol", value=fld_name, _RC)
+               ! A species need not register a sum field
+               call ESMF_InfoGet(child_info, key="sum_of_internalState_aerosol", value=fld_name, default="", _RC)
                if (fld_name /= "") then
                   call MAPL_StateGetPointer(child_state, itemName=fld_name, farrayPtr=ptr3d, _RC)
                   aeroOut = aeroOut + ptr3d
@@ -1828,10 +1874,10 @@ contains
 
 end module GOCART2G_GridCompMod
 
-subroutine SetServices(gc, rc)
+subroutine GOCART2G_SetServices(gc, rc)
    use ESMF
    use GOCART2G_GridCompMod, only : mySetservices => SetServices
    type(ESMF_GridComp) :: gc
    integer, intent(out) :: rc
    call mySetservices(gc, rc=rc)
-end subroutine SetServices
+end subroutine GOCART2G_SetServices

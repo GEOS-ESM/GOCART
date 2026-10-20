@@ -42,6 +42,7 @@ settling_scheme: gocart
 mapl:
   setServices:
     sharedObj: libSS2G_GridComp.so
+    userRoutine: ss2g_setservices_
 
   misc:
     activate_all_exports: true
