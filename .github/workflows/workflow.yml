@@ -29,6 +29,9 @@ jobs:
       cmake-build-type: ${{ matrix.build-type }}
       fixture-repo: GEOS-ESM/GEOSgcm
 
+  # NOTE: If spack builds weirdly fail during spack install phase, you probably
+  # need to update the default refs in the workflow file to match the refs
+  # of the spack and spack-packages repo on the AWS build machine
   spack_build_gcm:
     uses: GEOS-ESM/CI-workflows/.github/workflows/spack_gcc_build.yml@project/geosgcm
     secrets:
