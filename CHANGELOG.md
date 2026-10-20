@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated version of volcanic sulfur emissions for AMIP configuration to v202601
 - Update aerosol optics bands files to default to RRTMGP bands, rather than RRTMG (as GEOSgcm v12 has switched to RRTMGP)
   - NOTE: This means users needing RRTMG bands will need to update at run time. See https://github.com/GEOS-ESM/GEOSgcm_App/pull/878 for changes needed at run-time for GEOSgcm
+- Update components: ESMA_env v5.26.0, ESMA_cmake v4.51.0, GMAO_Shared v3.0.3
+- CI: removed standalone GOCART builds (GitHub Actions and CircleCI, including the GEOS-like and UFS-like variants), keeping the GEOSgcm builds; added `workflow_dispatch` trigger and a spack refs note to the GitHub Actions workflow
 
 ### Fixed
 
