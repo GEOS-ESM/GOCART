@@ -26,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated version of volcanic sulfur emissions for AMIP configuration to v202601
 - Update aerosol optics bands files to default to RRTMGP bands, rather than RRTMG (as GEOSgcm v12 has switched to RRTMGP)
   - NOTE: This means users needing RRTMG bands will need to update at run time. See https://github.com/GEOS-ESM/GEOSgcm_App/pull/878 for changes needed at run-time for GEOSgcm
+- Testing CI
 
 ### Fixed
 
