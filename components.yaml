@@ -5,13 +5,13 @@ GOCART:
 env:
   local: ./env@
   remote: ../ESMA_env.git
-  tag: v5.25.2
+  tag: v5.26.0
   develop: main
 
 cmake:
   local: ./cmake@
   remote: ../ESMA_cmake.git
-  tag: v4.49.1
+  tag: v4.51.0
   develop: develop
 
 ecbuild:
@@ -28,7 +28,7 @@ HEMCO:
 GMAO_Shared:
   local: ./ESMF/Shared/GMAO_Shared@
   remote: ../GMAO_Shared.git
-  tag: v3.0.2
+  tag: v3.0.3
   sparse: ./config/GMAO_Shared.sparse
   develop: main
 
