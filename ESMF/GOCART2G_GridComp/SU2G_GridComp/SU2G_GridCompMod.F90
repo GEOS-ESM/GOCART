@@ -115,7 +115,6 @@ contains
       ! Locals
       character(len=:), allocatable :: comp_name
       type(SU2G_GridComp), pointer :: self
-      class(logger_t), pointer :: logger
       character(len=ESMF_MAXSTR) :: field_name
       logical :: data_driven = .true.
       integer :: num_threads
@@ -124,7 +123,7 @@ contains
       type(StringVector) :: advected_tracers
       integer :: i, status
 
-      call MAPL_GridCompGet(gc, name=comp_name, logger=logger, _RC)
+      call MAPL_GridCompGet(gc, name=comp_name, _RC)
 
       ! Wrap gridcomp's private state and store it in gridcomp
       _SET_NAMED_PRIVATE_STATE(gc, SU2G_GridComp, PRIVATE_STATE)
@@ -282,8 +281,6 @@ contains
               standard_name="advected_quantities", &
               itemtype=MAPL_STATEITEM_SERVICE, &
               service_items=advected_tracers, _RC)
-         call logger%info("Wet removal scheme is %a", trim(self%wet_removal_scheme))
-         call logger%info("Settling scheme is %a", trim(self%settling_scheme))
       end if
 
       ! This state holds fields needed by radiation

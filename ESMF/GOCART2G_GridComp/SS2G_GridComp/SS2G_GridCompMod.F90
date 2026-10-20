@@ -263,7 +263,6 @@ contains
               standard_name="advected_quantities", &
               itemtype=MAPL_STATEITEM_SERVICE, &
               service_items=advected_tracers, _RC)
-         call logger%info("Wet removal scheme is %a", trim(self%wet_removal_scheme))
       end if
 
       ! This state holds fields needed by radiation
