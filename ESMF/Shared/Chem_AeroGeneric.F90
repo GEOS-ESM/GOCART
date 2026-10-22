@@ -383,6 +383,15 @@ contains
       if ((aerosol_name == "DU") .or. (aerosol_name == "SS")) then
          call MAPL_StateGetPointer(state, itemName=aerosol_name, farrayPtr=ptr4d, _RC)
          aeroSum = sum(ptr4d, dim=4)
+      else if (aerosol_name == "NI") then
+         ! NI's three nitrate bins are separate named fields (NO3an1/2/3),
+         ! not an ungridded array like DU/SS
+         call MAPL_StateGetPointer(state, itemName="NO3an1", farrayPtr=ptr3d, _RC)
+         aeroSum = ptr3d
+         call MAPL_StateGetPointer(state, itemName="NO3an2", farrayPtr=ptr3d, _RC)
+         aeroSum = aeroSum + ptr3d
+         call MAPL_StateGetPointer(state, itemName="NO3an3", farrayPtr=ptr3d, _RC)
+         aeroSum = aeroSum + ptr3d
       else
          call MAPL_StateGetPointer(state, itemName=aerosol_name, farrayPtr=ptr3d, _RC)
          aeroSum = ptr3d

@@ -65,6 +65,26 @@ category: IMPORT
  SUANGSTR      | 1        | xy   | N    | SKIP    |                           | SO4 Angstrom parameter [470-870 nm]
  SO4SMASS      | kg m-3   | xy   | N    | SKIP    |                           | SO4 Surface Mass Concentration
  PSO4          | kg m-2 s-1 | xyz | C   | SKIP    |                           | SO4 Prod from all SO2 oxidation
+#-imports-from-nitrate-
+ NIEXTTAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Nitrate Aerosol Optical Depth
+ NISTEXTTAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Nitrate Stratospheric Aerosol Optical Thickness
+ NISCATAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Nitrate Aerosol Optical Depth Due to Scattering
+ NISTSCATAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Nitrate Stratospheric Aerosol Optical Thickness Due to Scattering
+ NIEXTCOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Nitrate Extinction Coefficient
+ NIEXTCOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Nitrate Extinction Coefficient - Fixed RH=20%
+ NIEXTCOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Nitrate Extinction Coefficient - Fixed RH=80%
+ NISCACOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Nitrate Scattering Coefficient
+ NISCACOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Nitrate Scattering Coefficient - Fixed RH=20%
+ NISCACOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Nitrate Scattering Coefficient - Fixed RH=80%
+ NIBCKCOEF     | m-1 sr-1 | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Nitrate Backscatter Coefficient
+ NIEXTT25      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Nitrate Aerosol Optical Depth from Particulate Matter < 2.5 microns (PM2.5)
+ NISCAT25      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Nitrate Aerosol Optical Depth Due to Scattering from Particulate Matter < 2.5 microns (PM2.5)
+ NIEXTTFM      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Nitrate Aerosol Optical Depth from Particulate Matter < 1 micron (PM1.0)
+ NISCATFM      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Nitrate Aerosol Optical Depth Due to Scattering from Particulate Matter < 1 micron (PM1.0)
+ NIANGSTR      | 1        | xy   | N    | SKIP    |                           | Nitrate Angstrom parameter [470-870 nm]
+ NISMASS       | kg m-3   | xy   | N    | SKIP    |                           | Nitrate Surface Mass Concentration
+ NISMASS25     | kg m-3   | xy   | N    | SKIP    |                           | Nitrate Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
+ NH4SMASS      | kg m-3   | xy   | N    | SKIP    |                           | Ammonium Surface Mass Concentration
 
 
 category: EXPORT
