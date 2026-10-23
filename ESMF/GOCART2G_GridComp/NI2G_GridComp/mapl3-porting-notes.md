@@ -1,6 +1,7 @@
 # NI2G_GridComp MAPL3 porting plan
 
-Status: **code-complete, not run-tested**. Ported on top of `release/MAPL-v3`,
+Status: **code-complete, partially run-tested** (see "Run-testing update"
+below). Ported on top of `release/MAPL-v3`,
 following the SU2G port
 (`../SU2G_GridComp/mapl3-porting-notes.md`) as the primary template, with
 DU2G (`../DU2G_GridComp/DU2G_GridCompMod.F90`) as the secondary template for
@@ -311,19 +312,72 @@ ungridded dimension -- see "structural difference" above):
 - `Chem_AeroGeneric.F90::get_mixR`: added the `"NI"` branch (see
   "structural difference" above).
 
+## Run-testing update (ctest -L REGRESSION)
+
+Picked up the "next step" from open item 1 below: built GOCART2G
+(`DU2G`/`SS2G`/`SU2G`/`NI2G`) with `ifx-stack` against this checkout's
+existing MAPL3 build, and added a `gocart+seasalt+dust+sulfate+nitrate`
+regression case (mirroring `regression/gocart+seasalt+dust+sulfate`, not
+`sulfate-sa`; see why below) so NI2G participates in `ctest -L REGRESSION`
+the same way DU2G/SS2G/SU2G do.
+
+- **A standalone `nitrate-sa` case (DataForNI only) does not work and was
+  not pursued.** NI2G's `Initialize` unconditionally does `ESMF_StateGet(
+  import, 'DU', field)` / `'SS'` and then reads the `radius`/`fnum` `Info`
+  attributes DU2G/SS2G's own `Initialize` writes onto their exported
+  `DU`/`SS` fields -- a generic `configurable_gridcomp` "data" component
+  can supply the array values but not those custom attributes. NI2G can
+  therefore only run with real, active DU2G/SS2G (and SU2G, for `SO4`)
+  instances upstream, i.e. only inside the GOCART2G parent, not alone. This
+  resolves the ambiguity the original item 1 below left open and confirms
+  the item-6 recommendation (a combined case) was the right call.
+- **Found and fixed a real connection bug** (not a test-scaffolding issue):
+  `NI2G_GridCompMod.F90`'s `ungrd_du_ss_bins` was declared
+  `MAPL_UngriddedDim(n_du_ss_bins, name="du_ss_bins", units="1")`, but
+  DU2G/SS2G declare the ungridded dim on their own exported `DU`/`SS`
+  fields as `name="nbins"`. MAPL's `UngriddedDimsAspect` connection check
+  requires an exact `name`/`units`/extent match between producer and
+  consumer (`UngriddedDim::equal_to`, `infrastructure/esmf/UngriddedDim.F90`),
+  so the DU->NI and SS->NI connections GOCART2G_GridCompMod.F90 wires up
+  failed at Initialize with `cannot connect aspect UNGRIDDED_DIMS` before
+  this fix. Changed the name to `"nbins"` to match; this was the only code
+  change needed. This bug would have hit *any* active NI configuration
+  (test or production), not just the new regression case.
+- **Verified end-to-end past this fix**, using the real
+  `gocart+seasalt+dust+sulfate/run1` checkpoint/restart data (DU/SS/SU) and
+  hand-fabricated zero-filled `NI_internal.nc` plus the 7 added
+  `EMI_NH3_*` variables in `DataForGOCART2G_internal.nc` (since no real
+  baseline exists yet for the new case name): DU/SS/SU/NI all read their
+  restarts and reach `NI: Initialize:: starting...` successfully; NI then
+  fails only on `nf90_open
+  ExtData/chemistry/AerosolOptics/v2.x.x/x/opticsBands_NI.v2.1.0.RRTMGP.nc4`
+  -- confirmed those `optics_NI`/`opticsBands_NI` files (and the new case's
+  own baseline checkpoints) simply don't exist yet under the shared
+  `/ford1/share/gmao_SIteam/regression-data/.../GOCART2G_GridComp/`
+  tree (DU/SS/SU's equivalents are present). I.e. the code path and YAML
+  wiring are confirmed correct up to a pure missing-data issue, consistent
+  with the ask to "assume the input data is available."
+- `ctest -L REGRESSION` (23 tests, including the 2 new
+  `gocart+seasalt+dust+sulfate+nitrate/run{1,2}` cases) passes cleanly
+  today: the new cases report "Regression data not found ... skipping" the
+  same way `sulfate-sa` etc. did before its data existed. Once baseline
+  checkpoints *and* the NI aerosol-optics ExtData files are published to
+  the shared/S3 regression-data tree (same `DATA_PATH` as DU2G/SS2G/SU2G,
+  under the new case subdirectory), these two tests should start actually
+  running and comparing, with no further config changes expected.
+
 ## Open items (follow-ups, not blocking the code port)
 
-1. **Not built, not run-tested.** No Fortran compiler toolchain or MAPL2
-   baseline data was available in this session (user-selected "code-level
-   port only" scope). Next step: build GOCART2G with ifx/gfortran against
-   MAPL3, and capture an MAPL2 `COMPONENT_TO_RECORD: NI` baseline (same
-   recipe as SU2G's step 0) at a config with `NI` (and DU/SS/SU, since NI
-   needs their exports) active, `using_GMI: false`, to compare bit-for-bit.
-   A `nitrate-sa`-style standalone regression case (mirroring
-   `regression/sulfate-sa`) would need `DataForDU`/`DataForSS`/`DataForSU`
-   (or restarted internals) plus NI's own ExtData
-   (`NI2G_GridComp_ExtData.yaml` already exists and is untouched by this
-   port) to run standalone.
+1. **Not built, not run-tested** in the original porting session. ~~No
+   Fortran compiler toolchain or MAPL2 baseline data was available in that
+   session (user-selected "code-level port only" scope).~~ **Update:** now
+   built and run-tested up to the point of missing data; see "Run-testing
+   update" above for what was found/fixed and what's left (NI aerosol
+   optics ExtData + a `gocart+seasalt+dust+sulfate+nitrate` baseline still
+   need to be captured/published). The original idea of a standalone
+   `nitrate-sa` case using `DataForDU`/`DataForSS`/`DataForSU` data
+   components (not real DU2G/SS2G/SU2G instances) does **not** work, for
+   the reason given above.
 2. **GMI coupling untested** (`using_GMI: true`): same open risk as SU2G.
 3. **The three `Chem_AeroGeneric::get_mixR` branches are now an
    `if/else if/else` on the `internal_variable_name` scalar**: this is
@@ -341,8 +395,10 @@ ungridded dimension -- see "structural difference" above):
    SUPERDYN's `TRADV` to PHYS's (see SU2G notes step 4/risk 5). Not
    run-tested even standalone in this session.
 6. **DU->NI/SS->NI/SU->NI connections**: wired per the SU2G notes' step-10
-   follow-up, but not run-tested (would need a combined
-   `gocart+seasalt+dust+sulfate+nitrate`-style case). Worth checking that
-   the sulforg01-03 activation modes / MAMnet `SUsum` pick up nonzero
-   `SO4` from SU now feeding NI too (same question SU2G's notes raised for
-   SU alone).
+   follow-up. **Update:** now run-tested via the new
+   `gocart+seasalt+dust+sulfate+nitrate` case (see "Run-testing update"
+   above); the connections themselves needed an ungridded-dim name fix
+   (done) and then connected/initialized successfully. Still worth
+   checking, once a real baseline exists, that the sulforg01-03 activation
+   modes / MAMnet `SUsum` pick up nonzero `SO4` from SU now feeding NI too
+   (same question SU2G's notes raised for SU alone).

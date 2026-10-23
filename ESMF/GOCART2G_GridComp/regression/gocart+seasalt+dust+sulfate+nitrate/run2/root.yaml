@@ -1,0 +1,329 @@
+---
+mapl:
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 12
+    vertical_grid:
+      grid_type: model
+      fields: {pressure: PLE}
+      num_levels: 181
+
+  children:
+    DataForGOCART2G:
+      dso: libconfigurable_gridcomp.so
+      setservices: setservices_
+      config_file: data-for-gocart2g.yaml
+      run_phases:
+        - run
+
+    GOCART2G:
+      dso: libGOCART2G_GridComp.so
+      setservices: gocart2g_setservices_
+      config_file: GOCART2G_GridComp.yaml
+      run_phases:
+        - Run2
+
+  connections:
+    - src_name: DU_SRC
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: DU_SRC
+      dst_comp: GOCART2G
+
+    - src_name: FRLAKE
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: FRLAKE
+      dst_comp: GOCART2G
+
+    - src_name: WET1
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: WET1
+      dst_comp: GOCART2G
+
+    - src_name: LWI
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: LWI
+      dst_comp: GOCART2G
+
+    - src_name: TROPP
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: TROPP
+      dst_comp: GOCART2G
+
+    - src_name: U10M
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: U10M
+      dst_comp: GOCART2G
+
+    - src_name: V10M
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: V10M
+      dst_comp: GOCART2G
+
+    - src_name: AREA
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: AREA
+      dst_comp: GOCART2G
+
+    - src_name: USTAR
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: USTAR
+      dst_comp: GOCART2G
+
+    - src_name: CN_PRCP
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: CN_PRCP
+      dst_comp: GOCART2G
+
+    - src_name: NCN_PRCP
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: NCN_PRCP
+      dst_comp: GOCART2G
+
+    - src_name: ZPBL
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: ZPBL
+      dst_comp: GOCART2G
+
+    - src_name: SH
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SH
+      dst_comp: GOCART2G
+
+    - src_name: Z0H
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: Z0H
+      dst_comp: GOCART2G
+
+    - src_name: AIRDENS
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: AIRDENS
+      dst_comp: GOCART2G
+
+    - src_name: DELP
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: DELP
+      dst_comp: GOCART2G
+
+    - src_name: RH2
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: RH2
+      dst_comp: GOCART2G
+
+    - src_name: T
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: T
+      dst_comp: GOCART2G
+
+    - src_name: ZLE
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: ZLE
+      dst_comp: GOCART2G
+
+    - src_name: PLE
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: PLE
+      dst_comp: GOCART2G
+
+    - src_name: PFL_LSAN
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: PFL_LSAN
+      dst_comp: GOCART2G
+
+    - src_name: PFI_LSAN
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: PFI_LSAN
+      dst_comp: GOCART2G
+
+    - src_name: U
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: U
+      dst_comp: GOCART2G
+
+    - src_name: V
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: V
+      dst_comp: GOCART2G
+
+    - src_name: FROCEAN
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: FROCEAN
+      dst_comp: GOCART2G
+
+    - src_name: FRACI
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: FRACI
+      dst_comp: GOCART2G
+
+    - src_name: TS
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: TS
+      dst_comp: GOCART2G
+
+    - src_name: DZ
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: DZ
+      dst_comp: GOCART2G
+
+    - src_name: FCLD
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: FCLD
+      dst_comp: GOCART2G
+
+    - src_name: pSO2_OCS
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: pSO2_OCS
+      dst_comp: GOCART2G
+
+    - src_name: SU_AIRCRAFT
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_AIRCRAFT
+      dst_comp: GOCART2G
+
+    - src_name: SU_NO3
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_NO3
+      dst_comp: GOCART2G
+
+    - src_name: SU_OH
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_OH
+      dst_comp: GOCART2G
+
+    - src_name: SU_H2O2
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_H2O2
+      dst_comp: GOCART2G
+
+    - src_name: SU_BIOMASS
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_BIOMASS
+      dst_comp: GOCART2G
+
+    - src_name: SU_ANTHROL1
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_ANTHROL1
+      dst_comp: GOCART2G
+
+    - src_name: SU_ANTHROL2
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_ANTHROL2
+      dst_comp: GOCART2G
+
+    - src_name: SU_SHIPSO2
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_SHIPSO2
+      dst_comp: GOCART2G
+
+    - src_name: SU_SHIPSO4
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_SHIPSO4
+      dst_comp: GOCART2G
+
+    - src_name: SU_DMSO
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_DMSO
+      dst_comp: GOCART2G
+
+    - src_name: SU_AVIATION_LTO
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_AVIATION_LTO
+      dst_comp: GOCART2G
+
+    - src_name: SU_AVIATION_CDS
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_AVIATION_CDS
+      dst_comp: GOCART2G
+
+    - src_name: SU_AVIATION_CRS
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: SU_AVIATION_CRS
+      dst_comp: GOCART2G
+
+    - src_name: EMI_NH3_AG
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: EMI_NH3_AG
+      dst_comp: GOCART2G
+
+    - src_name: EMI_NH3_BB
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: EMI_NH3_BB
+      dst_comp: GOCART2G
+
+    - src_name: EMI_NH3_EN
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: EMI_NH3_EN
+      dst_comp: GOCART2G
+
+    - src_name: EMI_NH3_IN
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: EMI_NH3_IN
+      dst_comp: GOCART2G
+
+    - src_name: EMI_NH3_OC
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: EMI_NH3_OC
+      dst_comp: GOCART2G
+
+    - src_name: EMI_NH3_RE
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: EMI_NH3_RE
+      dst_comp: GOCART2G
+
+    - src_name: EMI_NH3_TR
+      src_comp: DataForGOCART2G
+      src_intent: internal
+      dst_name: EMI_NH3_TR
+      dst_comp: GOCART2G

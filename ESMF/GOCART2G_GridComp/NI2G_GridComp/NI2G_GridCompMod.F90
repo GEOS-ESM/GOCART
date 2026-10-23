@@ -122,7 +122,14 @@ contains
            name="wavelengths_vertint", &
            units="nm")
       ungrd_no3_bins = MAPL_UngriddedDim(n_no3_bins, name="no3_bins", units="1")
-      ungrd_du_ss_bins = MAPL_UngriddedDim(n_du_ss_bins, name="du_ss_bins", units="1")
+      ! NOTE: name must be "nbins" (not "du_ss_bins") to match the ungridded
+      ! dim DU2G/SS2G attach to their own exported "DU"/"SS" fields
+      ! (MAPL_UngriddedDim(self%nbins, name="nbins", units="1")); MAPL's
+      ! connection logic requires an exact name/units/extent match between
+      ! producer and consumer, so a different name here would make the
+      ! DU->NI and SS->NI connections (wired in GOCART2G_GridCompMod.F90)
+      ! fail at Initialize with "cannot connect aspect UNGRIDDED_DIMS".
+      ungrd_du_ss_bins = MAPL_UngriddedDim(n_du_ss_bins, name="nbins", units="1")
 
       ! process NI-specific items
       call MAPL_GridCompGetResource(gc, "using_GMI", self%using_GMI, _RC)
