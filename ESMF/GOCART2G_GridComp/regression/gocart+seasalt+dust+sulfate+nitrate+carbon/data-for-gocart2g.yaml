@@ -1,0 +1,347 @@
+mapl:
+
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
+  misc:
+    restart:
+      internal: true
+
+  states:
+    internal:
+      DU_SRC:
+        standard_name: "erod - dust emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      FRLAKE:
+        standard_name: "fraction_of_lake"
+        units: "1"
+        vertical_dim_spec: "n"
+      WET1:
+        standard_name: "surface_soil_wetness"
+        units: "1"
+        vertical_dim_spec: "n"
+      LWI:
+        standard_name: "land-ocean-ice_mask"
+        units: "1"
+        vertical_dim_spec: "n"
+      TROPP:
+        standard_name: "tropopause_pressure_based_on_blended_estimate"
+        units: "Pa"
+        vertical_dim_spec: "n"
+      U10M:
+        standard_name: "10-meter_eastward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      V10M:
+        standard_name: "10-meter_northward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      AREA:
+        standard_name: "agrid_cell_area"
+        units: "m^2"
+        vertical_dim_spec: "n"
+      USTAR:
+        standard_name: "surface_velocity_scale"
+        units: "m s-1"
+        vertical_dim_spec: "n"
+      CN_PRCP:
+        standard_name: "surface_conv._rain_flux_needed_by_land"
+        units: "kg/m^2/s"
+        vertical_dim_spec: "n"
+      NCN_PRCP:
+        standard_name: "Non-convective precipitation"
+        units: "kg/m^2/s"
+        vertical_dim_spec: "n"
+      ZPBL:
+        standard_name: "planetary_boundary_layer_height"
+        units: "m"
+        vertical_dim_spec: "n"
+      SH:
+        standard_name: "sensible_heat_flux_from_turbulence"
+        units: "w m-2"
+        vertical_dim_spec: "n"
+      Z0H:
+        standard_name: "surface_roughness_for_heat"
+        units: "m"
+        vertical_dim_spec: "n"
+      AIRDENS:
+        standard_name: "moist_air_density"
+        units: "kg m-3"
+        vertical_dim_spec: "c"
+      DELP:
+        standard_name: "pressure_thickness"
+        units: "Pa"
+        vertical_dim_spec: "c"
+      RH2:
+        standard_name: "Rel_Hum_after_moist"
+        units: "1"
+        vertical_dim_spec: "c"
+      T:
+        standard_name: "air_temperature"
+        units: "K"
+        vertical_dim_spec: "c"
+      ZLE:
+        standard_name: "geopotential_height"
+        units: "m"
+        vertical_dim_spec: "e"
+      PLE:
+        standard_name: "air_pressure"
+        units: "Pa"
+        vertical_dim_spec: "e"
+      PFL_LSAN:
+        standard_name: "3D_flux_of_liquid_nonconvective_precipitation"
+        units: "kg/m2/s"
+        vertical_dim_spec: "e"
+      PFI_LSAN:
+        standard_name: "3D_flux_of_ice_nonconvective_precipitation"
+        units: "kg/m2/s"
+        vertical_dim_spec: "e"
+      U:
+        standard_name: "eastward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "c"
+      V:
+        standard_name: "northward_wind"
+        units: "m s-1"
+        vertical_dim_spec: "c"
+      FROCEAN:
+        standard_name: "fraction_of_ocean"
+        units: "1"
+        vertical_dim_spec: "n"
+      FRACI:
+        standard_name: "ice_covered_fraction_of_tile"
+        units: "1"
+        vertical_dim_spec: "n"
+      TS:
+        standard_name: "surface skin temperature"
+        units: "K"
+        vertical_dim_spec: "n"
+      DZ:
+        standard_name: "surface_layer_height"
+        units: "m"
+        vertical_dim_spec: "n"
+      FCLD:
+        standard_name: "Cloud fraction for radiation"
+        units: "1"
+        vertical_dim_spec: "c"
+      pSO2_OCS:
+        standard_name: "source species"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_AIRCRAFT:
+        standard_name: "fuel source species"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_NO3:
+        standard_name: "climatological NO3 source"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_OH:
+        standard_name: "climatological OH source"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_H2O2:
+        standard_name: "climatological H2O2 source"
+        units: "1"
+        vertical_dim_spec: "c"
+      SU_BIOMASS:
+        standard_name: "biomass burning emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_ANTHROL1:
+        standard_name: "anthropogenic BF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_ANTHROL2:
+        standard_name: "anthropogenic FF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_SHIPSO2:
+        standard_name: "SO2 ship emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_SHIPSO4:
+        standard_name: "SO4 ship emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_DMSO:
+        standard_name: "DMS emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_LTO:
+        standard_name: "Landing/Take-off aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_CDS:
+        standard_name: "Climb/Descent aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      SU_AVIATION_CRS:
+        standard_name: "Cruise aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      EMI_NH3_AG:
+        standard_name: "agriculture emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_BB:
+        standard_name: "biomass burning emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_EN:
+        standard_name: "energy emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_IN:
+        standard_name: "industry emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_OC:
+        standard_name: "ocean emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_RE:
+        standard_name: "resedential emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_TR:
+        standard_name: "transport emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      OC_AIRCRAFT:
+        standard_name: "aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "c"
+      BC_AIRCRAFT:
+        standard_name: "aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "c"
+      BRC_AIRCRAFT:
+        standard_name: "aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "c"
+      pSOA_ANTHRO_VOC:
+        standard_name: "SOA from Anthropogenic and biomass burning VOC"
+        units: "kg m-3 s-1"
+        vertical_dim_spec: "c"
+      pSOA_BIOB_VOC:
+        standard_name: "SOA from Anthropogenic and biomass burning VOC"
+        units: "kg m-3 s-1"
+        vertical_dim_spec: "c"
+      OC_BIOMASS:
+        standard_name: "biomass burning emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_ISOPRENE:
+        standard_name: "source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_MTPA:
+        standard_name: "source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_MTPO:
+        standard_name: "source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_LIMO:
+        standard_name: "source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_BIOFUEL:
+        standard_name: "biofuel emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_ANTEOC1:
+        standard_name: "anthropogenic BF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_ANTEOC2:
+        standard_name: "anthropogenic FF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_SHIP:
+        standard_name: "ship emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_AVIATION_LTO:
+        standard_name: "Landing/Take-off aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_AVIATION_CDS:
+        standard_name: "Climb/Descent aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      OC_AVIATION_CRS:
+        standard_name: "Cruise aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      BC_BIOMASS:
+        standard_name: "biomass burning emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BC_BIOFUEL:
+        standard_name: "biofuel emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BC_ANTEBC1:
+        standard_name: "anthropogenic BF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BC_ANTEBC2:
+        standard_name: "anthropogenic FF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BC_SHIP:
+        standard_name: "ship emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BC_AVIATION_LTO:
+        standard_name: "Landing/Take-off aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BC_AVIATION_CDS:
+        standard_name: "Climb/Descent aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BC_AVIATION_CRS:
+        standard_name: "Cruise aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_BIOMASS:
+        standard_name: "biomass burning emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_TERPENE:
+        standard_name: "terpene emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_BIOFUEL:
+        standard_name: "biofuel emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_ANTEBRC1:
+        standard_name: "anthropogenic BF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_ANTEBRC2:
+        standard_name: "anthropogenic FF emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_SHIP:
+        standard_name: "ship emisisons"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_AVIATION_LTO:
+        standard_name: "Landing/Take-off aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_AVIATION_CDS:
+        standard_name: "Climb/Descent aircraft emissions"
+        units: "1"
+        vertical_dim_spec: "n"
+      BRC_AVIATION_CRS:
+        standard_name: "Cruise aircraft source species"
+        units: "1"
+        vertical_dim_spec: "n"

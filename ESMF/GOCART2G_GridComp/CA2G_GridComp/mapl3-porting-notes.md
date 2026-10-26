@@ -307,6 +307,62 @@ since all three instances share one code path and only differ by
   still left as `[]` (disabled) in both, since enabling it would hit the
   same blocker described below.
 
+### 9. `gocart+seasalt+dust+sulfate+nitrate+carbon` combined-case harness
+
+Added (in a follow-up pass, after the blocker in "Run-testing update" below
+was already known and documented) a new combined-case directory,
+`regression/gocart+seasalt+dust+sulfate+nitrate+carbon/`, extending
+`gocart+seasalt+dust+sulfate+nitrate` by activating all three CA instances
+(`CA.oc`, `CA.bc`, `CA.br`) through the real GOCART2G parent, matching the
+production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
+`carbon-sa`, which only exercises one instance standalone via `FakeGOCART`.
+
+- `CA2G_instance_CA.{oc,bc,br}.yaml` (top-level): copies of the production
+  `CA2G_GridComp/CA2G_instance_CA.{oc,bc,br}.yaml` with the same
+  regression-vs-production trim DU/SS/SU/NI already use in this directory
+  (drop the "TODO: remove this section..." comment, drop
+  `activate_all_imports: true`, drop `restart: import: true`; keep
+  `restart: internal: true`). No `setServices:` block is added (or needed),
+  since these three instances are added via the parent's `add_children__`
+  procedure call, the same as DU/SS/SU/NI here -- not via `dso`/DSO loading
+  as in the standalone `carbon-sa` harness.
+- `data-for-gocart2g.yaml`: extended with the 34 CA-specific
+  emissions/aircraft/VOC-SOA fields from `carbon-sa`'s `data-for-ca.yaml`
+  (`OC_*`/`BC_*`/`BRC_*`, `pSOA_ANTHRO_VOC`, `pSOA_BIOB_VOC`); all met/
+  surface fields CA needs were already present (shared with DU/SS/SU/NI).
+- `GOCART2G_GridComp.yaml`: `CA: [CA.oc, CA.bc, CA.br]` enabled (vs `[]` in
+  the parent `+nitrate` directory), with a comment documenting the expected
+  `is_valid_name` failure inline (mirroring `nitrate-sa`'s
+  "KNOWN LIMITATION" comment style).
+- `run{1,2}/root.yaml`: the existing 92-field connection list (from
+  `+nitrate`) extended with the 34 new CA fields, same
+  `DataForGOCART2G -> GOCART2G` pattern.
+- `run{1,2}/CA_instance_CA.{oc,bc,br}.yaml`: symlinks to
+  `../CA2G_instance_CA.{oc,bc,br}.yaml`, following the naming convention
+  `add_children__` expects: `config_file = species%name // "_instance_" //
+  child_name // ".yaml"`, i.e. `species%name="CA"`, `child_name="CA.oc"` ->
+  `CA_instance_CA.oc.yaml` (confirmed by reading
+  `GOCART2G_GridCompMod.F90`'s `add_children__`).
+- `run{1,2}/cmpchk.py`: `GRIDCOMPS` dict extended with `"CA.oc"`, `"CA.bc"`,
+  `"CA.br"` entries (alongside `DU`/`SS`/`SU`/`NI`/`GOCART2G`).
+- Registered `gocart+seasalt+dust+sulfate+nitrate+carbon/run1`/`run2` in
+  `regression/cases.txt`.
+- **Confirmed via manual `GEOS.x mapl.yaml`** (same recipe as `carbon-sa`)
+  that this case hits the identical, already-documented `is_valid_name`
+  blocker, but this time inside the *real* `GOCART2G_GridCompMod.F90`
+  itself rather than only the standalone test scaffolding:
+  ```
+  FAIL at line=00442    MAPL_Generic.F90            <Child name <CA.oc> does not conform to GEOS standards.>
+  FAIL at line=01269    GOCART2G_GridCompMod.F90    <status=1>
+  FAIL at line=01250    GOCART2G_GridCompMod.F90    <status=1>
+  ```
+  This is the first time the production parent's own `add_children__` call
+  site (not just `carbon-sa`'s copy of the same MAPL3 API) has been
+  exercised end to end with CA active, and it fails exactly as predicted.
+  `ctest -L REGRESSION` still passes (29/29) with this case included, since
+  it reports "skipping" (no baseline data) rather than actually invoking
+  `GEOS.x`.
+
 ## Run-testing update (manual `GEOS.x`, not yet `ctest -L REGRESSION`)
 
 Built `CA2G_GridComp` and `GOCART2G_GridComp` (`cmake --build . --target
