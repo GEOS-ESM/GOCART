@@ -7,7 +7,6 @@ module GOCART2G_GridCompMod
 
    !USES:
    use ESMF
-   use pflogger, only: logger_t => logger
    use MAPL, only: MAPL_Verify, MAPL_Return, MAPL_Assert
    use MAPL, only: MAPL_GridCompSetEntryPoint, MAPL_GridCompGet, MAPL_GridCompAddSpec
    use MAPL, only: MAPL_GridCompAddChild, MAPL_GridCompGetChildName, MAPL_GridCompRunChild
@@ -25,7 +24,7 @@ module GOCART2G_GridCompMod
    use DU2G_GridCompMod, only: DU2G_SetServices => SetServices
    use SS2G_GridCompMod, only: SS2G_SetServices => SetServices
    use SU2G_GridCompMod, only: SU2G_SetServices => SetServices
-   ! use CA2G_GridCompMod, only: CA2G_SetServices  => SetServices
+   use CA2G_GridCompMod, only: CA2G_SetServices => SetServices
    use NI2G_GridCompMod, only: NI2G_SetServices => SetServices
 
    implicit none
@@ -187,6 +186,19 @@ contains
               itemtype=MAPL_STATEITEM_STATE, &
               _RC)
       end do
+      do iter = 1, size(self%CA%instances)
+         child = self%CA%instances(iter)
+         call MAPL_GridCompAddSpec( &
+              gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name=child%name // "_AERO", &
+              standard_name="aerosol_mass_mixing_ratios_ng", &
+              dims="xyz", &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
+              units="kg kg-1", &
+              itemtype=MAPL_STATEITEM_STATE, &
+              _RC)
+      end do
       do iter = 1, size(self%NI%instances)
          child = self%NI%instances(iter)
          call MAPL_GridCompAddSpec( &
@@ -242,6 +254,19 @@ contains
       end do
       do iter = 1, size(self%SU%instances)
          child = self%SU%instances(iter)
+         call MAPL_GridCompAddSpec( &
+              gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name=child%name // "_AERO_DP", &
+              standard_name="aerosol_deposition_ng", &
+              dims="xy", &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_NONE, &
+              units="kg m-2 s-1", &
+              itemtype=MAPL_STATEITEM_FIELDBUNDLE, &
+              _RC)
+      end do
+      do iter = 1, size(self%CA%instances)
+         child = self%CA%instances(iter)
          call MAPL_GridCompAddSpec( &
               gc, &
               state_intent=ESMF_STATEINTENT_IMPORT, &
@@ -402,6 +427,45 @@ contains
          end if
       end do
 
+      ! Connections to Carbonaceous aerosols' export items. Each CA instance
+      ! (CA.oc, CA.bc, CA.br) exports fields literally prefixed by its own
+      ! instance name (ACG's '*' substitution in CA2G_StateSpecs.rc), so the
+      ! connection source names must be built per-instance rather than as a
+      ! single constant string like the other species.
+      do iter = 1, size(self%CA%instances)
+         child = self%CA%instances(iter)
+         if ((child%is_active) .and. (index(child%name, "data") == 0)) then
+            child_items = &
+                 child%name // "EXTTAU, " // child%name // "STEXTTAU, " // &
+                 child%name // "SCATAU, " // child%name // "STSCATAU, " // &
+                 child%name // "EXTCOEF, " // child%name // "EXTCOEFRH20, " // &
+                 child%name // "EXTCOEFRH80, " // &
+                 child%name // "SCACOEF, " // child%name // "SCACOEFRH20, " // &
+                 child%name // "SCACOEFRH80, " // &
+                 child%name // "BCKCOEF, " // child%name // "ANGSTR, " // &
+                 child%name // "SMASS"
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child_items, &
+                 dst_comp="<self>", _RC)
+            ! AERO
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child%name // "_AERO", &
+                 dst_comp="<self>", &
+                 dst_names=child%name // "_AERO", _RC)
+            ! AERO_DP
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child%name // "_AERO_DP", &
+                 dst_comp="<self>", &
+                 dst_names=child%name // "_AERO_DP", _RC)
+         end if
+      end do
+
       ! Connections to Nitrate's export items. No AERO_DP: unlike DU/SS/SU,
       ! NI does not export a deposition bundle.
       child_items = &
@@ -475,7 +539,7 @@ contains
       call add_aero_states_(self%DU%instances(:))
       call add_aero_states_(self%SS%instances(:))
       call add_aero_states_(self%SU%instances(:))
-      ! call add_aero_states_(self%CA%instances(:))
+      call add_aero_states_(self%CA%instances(:))
       call add_aero_states_(self%NI%instances(:))
 
       ! Begin AERO_RAD
@@ -622,39 +686,6 @@ contains
       type(ESMF_Grid) :: grid
       type(GOCART_State), pointer :: self
 
-      ! ! Nitrates - ACG will generate this once we add NI's export states as GOCART's import
-      ! real, pointer, dimension(:,:,:) :: niexttau, nistexttau
-      ! real, pointer, dimension(:,:,:) :: niscatau, nistscatau
-      ! real, pointer, dimension(:,:,:) :: niextt25, niscat25
-      ! real, pointer, dimension(:,:,:) :: niexttfm, niscatfm
-      ! real, pointer, dimension(:,:,:,:) :: niextcoef, niscacoef
-      ! real, pointer, dimension(:,:,:,:) :: niextcoefrh20, niextcoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: niscacoefrh20, niscacoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: nibckcoef
-      ! real, pointer, dimension(:,:)   :: niangstr, nismass, nismass25
-      ! real, pointer, dimension(:,:)   :: nh4smass
-
-      ! ! Carbonaceous - ACG will generate this once we add CA's export states as GOCART's import
-      ! real, pointer, dimension(:,:,:) :: bcexttau, bcstexttau, bcscatau, bcstscatau
-      ! real, pointer, dimension(:,:,:,:) :: bcextcoef, bcscacoef
-      ! real, pointer, dimension(:,:,:,:) :: bcextcoefrh20, bcextcoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: bcscacoefrh20, bcscacoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: bcbckcoef
-      ! real, pointer, dimension(:,:)   :: bcangstr, bcsmass
-      ! real, pointer, dimension(:,:,:) :: ocexttau, ocstexttau, ocscatau, ocstscatau
-      ! real, pointer, dimension(:,:,:,:) :: ocextcoef, ocscacoef
-      ! real, pointer, dimension(:,:,:,:) :: ocextcoefrh20, ocextcoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: ocscacoefrh20, ocscacoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: ocbckcoef
-      ! real, pointer, dimension(:,:)   :: ocangstr, ocsmass
-      ! real, pointer, dimension(:,:,:) :: brexttau, brstexttau, brscatau, brstscatau
-      ! real, pointer, dimension(:,:,:,:) :: brextcoef, brscacoef
-      ! real, pointer, dimension(:,:,:,:) :: brextcoefrh20, brextcoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: brscacoefrh20, brscacoefrh80
-      ! real, pointer, dimension(:,:,:,:) :: brbckcoef
-      ! real, pointer, dimension(:,:)   :: brangstr, brsmass
-
-      ! real, pointer, dimension(:,:,:) :: pso4
       real, allocatable :: tau1(:, :), tau2(:, :)
       real :: c1, c2, c3
       real :: nifactor
@@ -880,209 +911,169 @@ contains
          end if
       end do
 
-      ! ! Carbonaceous aerosols
-      ! do n = 1, size(self%CA%instances)
-      !    if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
-      !         .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
+      ! Carbonaceous aerosols
+      do n = 1, size(self%CA%instances)
+         if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0) &
+              .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
 
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcexttau, 'CA.bcEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcstexttau, 'CA.bcSTEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcscatau, 'CA.bcSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcstscatau, 'CA.bcSTSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcangstr, 'CA.bcANGSTR', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcextcoef, 'CA.bcEXTCOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcextcoefrh20, 'CA.bcEXTCOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcextcoefrh80, 'CA.bcEXTCOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcscacoef, 'CA.bcSCACOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcscacoefrh20, 'CA.bcSCACOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcscacoefrh80, 'CA.bcSCACOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcbckcoef, 'CA.bcBCKCOEF', _RC)
+            ! Iterate over the wavelengths
+            do w = 1, size(self%wavelengths_vertint)
+               if (associated(totexttau) .and. associated(bcexttau)) &
+                    totexttau(:, :, w) = totexttau(:, :, w) + bcexttau(:, :, w)
+               if (associated(totstexttau) .and. associated(bcstexttau)) &
+                    totstexttau(:, :, w) = totstexttau(:, :, w) + bcstexttau(:, :, w)
+               if (associated(totscatau) .and. associated(bcscatau)) &
+                    totscatau(:, :, w) = totscatau(:, :, w) + bcscatau(:, :, w)
+               if (associated(totstscatau) .and. associated(bcstscatau)) &
+                    totstscatau(:, :, w) = totstscatau(:, :, w) + bcstscatau(:, :, w)
+               if (associated(totextt25) .and. associated(bcexttau)) &
+                    totextt25(:, :, w) = totextt25(:, :, w) + bcexttau(:, :, w)
+               if (associated(totscat25) .and. associated(bcscatau)) &
+                    totscat25(:, :, w) = totscat25(:, :, w) + bcscatau(:, :, w)
+               if (associated(totexttfm) .and. associated(bcexttau)) &
+                    totexttfm(:, :, w) = totexttfm(:, :, w) + bcexttau(:, :, w)
+               if (associated(totscatfm) .and. associated(bcscatau)) &
+                    totscatfm(:, :, w) = totscatfm(:, :, w) + bcscatau(:, :, w)
+            end do
 
-      !       ! Iterate over the wavelengths
-      !       do w = 1, size(self%wavelengths_vertint)
-      !          if(associated(totexttau) .and. associated(bcexttau)) totexttau(:,:,w) =
-      ! totexttau(:,:,w)+bcexttau(:,:,w)
-      !          if(associated(totstexttau) .and. associated(bcstexttau)) totstexttau(:,:,w) =
-      ! totstexttau(:,:,w)+bcstexttau(:,:,w)
-      !          if(associated(totscatau) .and. associated(bcscatau)) totscatau(:,:,w) =
-      ! totscatau(:,:,w)+bcscatau(:,:,w)
-      !          if(associated(totstscatau) .and. associated(bcstscatau)) totstscatau(:,:,w) =
-      ! totstscatau(:,:,w)+bcstscatau(:,:,w)
-      !          if(associated(totextt25) .and. associated(bcexttau)) totextt25(:,:,w) =
-      ! totextt25(:,:,w)+bcexttau(:,:,w)
-      !          if(associated(totscat25) .and. associated(bcscatau)) totscat25(:,:,w) =
-      ! totscat25(:,:,w)+bcscatau(:,:,w)
-      !          if(associated(totexttfm) .and. associated(bcexttau)) totexttfm(:,:,w) =
-      ! totexttfm(:,:,w)+bcexttau(:,:,w)
-      !          if(associated(totscatfm) .and. associated(bcscatau)) totscatfm(:,:,w) =
-      ! totscatfm(:,:,w)+bcscatau(:,:,w)
-      !       end do
+            do w = 1, size(self%wavelengths_profile)
+               if (associated(totextcoef) .and. associated(bcextcoef)) &
+                    totextcoef(:, :, :, w) = totextcoef(:, :, :, w) + bcextcoef(:, :, :, w)
+               if (associated(totextcoefrh20) .and. associated(bcextcoefrh20)) &
+                    totextcoefrh20(:, :, :, w) = totextcoefrh20(:, :, :, w) + bcextcoefrh20(:, :, :, w)
+               if (associated(totextcoefrh80) .and. associated(bcextcoefrh80)) &
+                    totextcoefrh80(:, :, :, w) = totextcoefrh80(:, :, :, w) + bcextcoefrh80(:, :, :, w)
+               if (associated(totscacoef) .and. associated(bcscacoef)) &
+                    totscacoef(:, :, :, w) = totscacoef(:, :, :, w) + bcscacoef(:, :, :, w)
+               if (associated(totscacoefrh20) .and. associated(bcscacoefrh20)) &
+                    totscacoefrh20(:, :, :, w) = totscacoefrh20(:, :, :, w) + bcscacoefrh20(:, :, :, w)
+               if (associated(totscacoefrh80) .and. associated(bcscacoefrh80)) &
+                    totscacoefrh80(:, :, :, w) = totscacoefrh80(:, :, :, w) + bcscacoefrh80(:, :, :, w)
+               if (associated(totbckcoef) .and. associated(bcbckcoef)) &
+                    totbckcoef(:, :, :, w) = totbckcoef(:, :, :, w) + bcbckcoef(:, :, :, w)
+            end do
 
-      !       do w = 1, size(self%wavelengths_profile)
-      !          if(associated(totextcoef) .and. associated(bcextcoef)) totextcoef(:,:,:,w) =
-      ! totextcoef(:,:,:,w)+bcextcoef(:,:,:,w)
-      !          if(associated(totextcoefrh20) .and. associated(bcextcoefrh20)) totextcoefrh20(:,:,:,w) =
-      ! totextcoefrh20(:,:,:,w)+bcextcoefrh20(:,:,:,w)
-      !          if(associated(totextcoefrh80) .and. associated(bcextcoefrh80)) totextcoefrh80(:,:,:,w) =
-      ! totextcoefrh80(:,:,:,w)+bcextcoefrh80(:,:,:,w)
-      !          if(associated(totscacoef) .and. associated(bcscacoef)) totscacoef(:,:,:,w) =
-      ! totscacoef(:,:,:,w)+bcscacoef(:,:,:,w)
-      !          if(associated(totscacoefrh20) .and. associated(bcscacoefrh20)) totscacoefrh20(:,:,:,w) =
-      ! totscacoefrh20(:,:,:,w)+bcscacoefrh20(:,:,:,w)
-      !          if(associated(totscacoefrh80) .and. associated(bcscacoefrh80)) totscacoefrh80(:,:,:,w) =
-      ! totscacoefrh80(:,:,:,w)+bcscacoefrh80(:,:,:,w)
-      !          if(associated(totbckcoef) .and. associated(bcbckcoef)) totbckcoef(:,:,:,w) =
-      ! totbckcoef(:,:,:,w)+bcbckcoef(:,:,:,w)
-      !       end do
+            if (associated(pm) .and. associated(bcsmass)) pm = pm + bcsmass
+            if (associated(pm25) .and. associated(bcsmass)) pm25 = pm25 + bcsmass
+            if (associated(pm_rh35) .and. associated(bcsmass)) pm_rh35 = pm_rh35 + bcsmass
+            if (associated(pm25_rh35) .and. associated(bcsmass)) pm25_rh35 = pm25_rh35 + bcsmass
+            if (associated(pm_rh50) .and. associated(bcsmass)) pm_rh50 = pm_rh50 + bcsmass
+            if (associated(pm25_rh50) .and. associated(bcsmass)) pm25_rh50 = pm25_rh50 + bcsmass
 
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), bcsmass, 'CA.bcSMASS', _RC)
-      !       if(associated(pm)        .and. associated(bcsmass)) pm        = pm        + bcsmass
-      !       if(associated(pm25)      .and. associated(bcsmass)) pm25      = pm25      + bcsmass
-      !       if(associated(pm_rh35)   .and. associated(bcsmass)) pm_rh35   = pm_rh35   + bcsmass
-      !       if(associated(pm25_rh35) .and. associated(bcsmass)) pm25_rh35 = pm25_rh35 + bcsmass
-      !       if(associated(pm_rh50)   .and. associated(bcsmass)) pm_rh50   = pm_rh50   + bcsmass
-      !       if(associated(pm25_rh50) .and. associated(bcsmass)) pm25_rh50 = pm25_rh50 + bcsmass
+            if (associated(totangstr) .and. associated(bcexttau) .and. associated(bcangstr)) then
+               tau1 = tau1 + bcexttau(:, :, ind550) * exp(c1 * bcangstr)
+               tau2 = tau2 + bcexttau(:, :, ind550) * exp(c2 * bcangstr)
+            end if
 
-      !       if(associated(totangstr) .and. associated(bcexttau) .and. associated(bcangstr)) then
-      !          tau1 = tau1 + bcexttau(:,:,ind550)*exp(c1*bcangstr)
-      !          tau2 = tau2 + bcexttau(:,:,ind550)*exp(c2*bcangstr)
-      !       end if
+         else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0) &
+              .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
 
-      !    else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
-      !         .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocexttau, 'CA.ocEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocstexttau, 'CA.ocSTEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocscatau, 'CA.ocSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocstscatau, 'CA.ocSTSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocangstr, 'CA.ocANGSTR', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocextcoef, 'CA.ocEXTCOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocextcoefrh20, 'CA.ocEXTCOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocextcoefrh80, 'CA.ocEXTCOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocscacoef, 'CA.ocSCACOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocscacoefrh20, 'CA.ocSCACOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocscacoefrh80, 'CA.ocSCACOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocbckcoef, 'CA.ocBCKCOEF', _RC)
+            ! Iterate over the wavelengths
+            do w = 1, size(self%wavelengths_vertint)
+               if (associated(totexttau) .and. associated(ocexttau)) &
+                    totexttau(:, :, w) = totexttau(:, :, w) + ocexttau(:, :, w)
+               if (associated(totstexttau) .and. associated(ocstexttau)) &
+                    totstexttau(:, :, w) = totstexttau(:, :, w) + ocstexttau(:, :, w)
+               if (associated(totscatau) .and. associated(ocscatau)) &
+                    totscatau(:, :, w) = totscatau(:, :, w) + ocscatau(:, :, w)
+               if (associated(totstscatau) .and. associated(ocstscatau)) &
+                    totstscatau(:, :, w) = totstscatau(:, :, w) + ocstscatau(:, :, w)
+               if (associated(totextt25) .and. associated(ocexttau)) &
+                    totextt25(:, :, w) = totextt25(:, :, w) + ocexttau(:, :, w)
+               if (associated(totscat25) .and. associated(ocscatau)) &
+                    totscat25(:, :, w) = totscat25(:, :, w) + ocscatau(:, :, w)
+               if (associated(totexttfm) .and. associated(ocexttau)) &
+                    totexttfm(:, :, w) = totexttfm(:, :, w) + ocexttau(:, :, w)
+               if (associated(totscatfm) .and. associated(ocscatau)) &
+                    totscatfm(:, :, w) = totscatfm(:, :, w) + ocscatau(:, :, w)
+            end do
 
-      !       ! Iterate over the wavelengths
-      !       do w = 1, size(self%wavelengths_vertint)
-      !          if(associated(totexttau) .and. associated(ocexttau)) totexttau(:,:,w) =
-      ! totexttau(:,:,w)+ocexttau(:,:,w)
-      !          if(associated(totstexttau) .and. associated(ocstexttau)) totstexttau(:,:,w) =
-      ! totstexttau(:,:,w)+ocstexttau(:,:,w)
-      !          if(associated(totscatau) .and. associated(ocscatau)) totscatau(:,:,w) =
-      ! totscatau(:,:,w)+ocscatau(:,:,w)
-      !          if(associated(totstscatau) .and. associated(ocstscatau)) totstscatau(:,:,w) =
-      ! totstscatau(:,:,w)+ocstscatau(:,:,w)
-      !          if(associated(totextt25) .and. associated(ocexttau)) totextt25(:,:,w) =
-      ! totextt25(:,:,w)+ocexttau(:,:,w)
-      !          if(associated(totscat25) .and. associated(ocscatau)) totscat25(:,:,w) =
-      ! totscat25(:,:,w)+ocscatau(:,:,w)
-      !          if(associated(totexttfm) .and. associated(ocexttau)) totexttfm(:,:,w) =
-      ! totexttfm(:,:,w)+ocexttau(:,:,w)
-      !          if(associated(totscatfm) .and. associated(ocscatau)) totscatfm(:,:,w) =
-      ! totscatfm(:,:,w)+ocscatau(:,:,w)
-      !       end do
+            do w = 1, size(self%wavelengths_profile)
+               if (associated(totextcoef) .and. associated(ocextcoef)) &
+                    totextcoef(:, :, :, w) = totextcoef(:, :, :, w) + ocextcoef(:, :, :, w)
+               if (associated(totextcoefrh20) .and. associated(ocextcoefrh20)) &
+                    totextcoefrh20(:, :, :, w) = totextcoefrh20(:, :, :, w) + ocextcoefrh20(:, :, :, w)
+               if (associated(totextcoefrh80) .and. associated(ocextcoefrh80)) &
+                    totextcoefrh80(:, :, :, w) = totextcoefrh80(:, :, :, w) + ocextcoefrh80(:, :, :, w)
+               if (associated(totscacoef) .and. associated(ocscacoef)) &
+                    totscacoef(:, :, :, w) = totscacoef(:, :, :, w) + ocscacoef(:, :, :, w)
+               if (associated(totscacoefrh20) .and. associated(ocscacoefrh20)) &
+                    totscacoefrh20(:, :, :, w) = totscacoefrh20(:, :, :, w) + ocscacoefrh20(:, :, :, w)
+               if (associated(totscacoefrh80) .and. associated(ocscacoefrh80)) &
+                    totscacoefrh80(:, :, :, w) = totscacoefrh80(:, :, :, w) + ocscacoefrh80(:, :, :, w)
+               if (associated(totbckcoef) .and. associated(ocbckcoef)) &
+                    totbckcoef(:, :, :, w) = totbckcoef(:, :, :, w) + ocbckcoef(:, :, :, w)
+            end do
 
-      !       do w = 1, size(self%wavelengths_profile)
-      !          if(associated(totextcoef) .and. associated(ocextcoef)) totextcoef(:,:,:,w) =
-      ! totextcoef(:,:,:,w)+ocextcoef(:,:,:,w)
-      !          if(associated(totextcoefrh20) .and. associated(ocextcoefrh20)) totextcoefrh20(:,:,:,w) =
-      ! totextcoefrh20(:,:,:,w)+ocextcoefrh20(:,:,:,w)
-      !          if(associated(totextcoefrh80) .and. associated(ocextcoefrh80)) totextcoefrh80(:,:,:,w) =
-      ! totextcoefrh80(:,:,:,w)+ocextcoefrh80(:,:,:,w)
-      !          if(associated(totscacoef) .and. associated(ocscacoef)) totscacoef(:,:,:,w) =
-      ! totscacoef(:,:,:,w)+ocscacoef(:,:,:,w)
-      !          if(associated(totscacoefrh20) .and. associated(ocscacoefrh20)) totscacoefrh20(:,:,:,w) =
-      ! totscacoefrh20(:,:,:,w)+ocscacoefrh20(:,:,:,w)
-      !          if(associated(totscacoefrh80) .and. associated(ocscacoefrh80)) totscacoefrh80(:,:,:,w) =
-      ! totscacoefrh80(:,:,:,w)+ocscacoefrh80(:,:,:,w)
-      !          if(associated(totbckcoef) .and. associated(ocbckcoef)) totbckcoef(:,:,:,w) =
-      ! totbckcoef(:,:,:,w)+ocbckcoef(:,:,:,w)
-      !       end do
+            if (associated(pm) .and. associated(ocsmass)) pm = pm + ocsmass
+            if (associated(pm25) .and. associated(ocsmass)) pm25 = pm25 + ocsmass
+            ! needs to be revisited: OCpho + 1.16 OCphi
+            if (associated(pm_rh35) .and. associated(ocsmass)) pm_rh35 = pm_rh35 + 1.16 * ocsmass
+            if (associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16 * ocsmass
+            ! needs to be revisited: OCpho + 1.24 OCphi
+            if (associated(pm_rh50) .and. associated(ocsmass)) pm_rh50 = pm_rh50 + 1.24 * ocsmass
+            if (associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24 * ocsmass
 
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), ocsmass, 'CA.ocSMASS', _RC)
-      !       if(associated(pm)        .and. associated(ocsmass)) pm        = pm        + ocsmass
-      !       if(associated(pm25)      .and. associated(ocsmass)) pm25      = pm25      + ocsmass
-      !       if(associated(pm_rh35)   .and. associated(ocsmass)) pm_rh35   = pm_rh35   + 1.16*ocsmass  ! needs to be
-      ! revisited: OCpho + 1.16 OCphi
-      !       if(associated(pm25_rh35) .and. associated(ocsmass)) pm25_rh35 = pm25_rh35 + 1.16*ocsmass  !
-      !       if(associated(pm_rh50)   .and. associated(ocsmass)) pm_rh50   = pm_rh50   + 1.24*ocsmass  ! needs to be
-      ! revisited: OCpho + 1.24 OCphi
-      !       if(associated(pm25_rh50) .and. associated(ocsmass)) pm25_rh50 = pm25_rh50 + 1.24*ocsmass  !
+            if (associated(totangstr) .and. associated(ocexttau) .and. associated(ocangstr)) then
+               tau1 = tau1 + ocexttau(:, :, ind550) * exp(c1 * ocangstr)
+               tau2 = tau2 + ocexttau(:, :, ind550) * exp(c2 * ocangstr)
+            end if
 
-      !       if(associated(totangstr) .and. associated(ocexttau) .and. associated(ocangstr)) then
-      !          tau1 = tau1 + ocexttau(:,:,ind550)*exp(c1*ocangstr)
-      !          tau2 = tau2 + ocexttau(:,:,ind550)*exp(c2*ocangstr)
-      !       end if
+         else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0) &
+              .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
 
-      !    else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0 ) &
-      !         .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brexttau, 'CA.brEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brstexttau, 'CA.brSTEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brscatau, 'CA.brSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brstscatau, 'CA.brSTSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brangstr, 'CA.brANGSTR', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brextcoef, 'CA.brEXTCOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brextcoefrh20, 'CA.brEXTCOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brextcoefrh80, 'CA.brEXTCOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brscacoef, 'CA.brSCACOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brscacoefrh20, 'CA.brSCACOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brscacoefrh80, 'CA.brSCACOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brbckcoef, 'CA.brBCKCOEF', _RC)
+            ! Iterate over the wavelengths
+            do w = 1, size(self%wavelengths_vertint)
+               if (associated(totexttau) .and. associated(brexttau)) &
+                    totexttau(:, :, w) = totexttau(:, :, w) + brexttau(:, :, w)
+               if (associated(totstexttau) .and. associated(brstexttau)) &
+                    totstexttau(:, :, w) = totstexttau(:, :, w) + brstexttau(:, :, w)
+               if (associated(totscatau) .and. associated(brscatau)) &
+                    totscatau(:, :, w) = totscatau(:, :, w) + brscatau(:, :, w)
+               if (associated(totstscatau) .and. associated(brstscatau)) &
+                    totstscatau(:, :, w) = totstscatau(:, :, w) + brstscatau(:, :, w)
+               if (associated(totextt25) .and. associated(brexttau)) &
+                    totextt25(:, :, w) = totextt25(:, :, w) + brexttau(:, :, w)
+               if (associated(totscat25) .and. associated(brscatau)) &
+                    totscat25(:, :, w) = totscat25(:, :, w) + brscatau(:, :, w)
+               if (associated(totexttfm) .and. associated(brexttau)) &
+                    totexttfm(:, :, w) = totexttfm(:, :, w) + brexttau(:, :, w)
+               if (associated(totscatfm) .and. associated(brscatau)) &
+                    totscatfm(:, :, w) = totscatfm(:, :, w) + brscatau(:, :, w)
+            end do
 
-      !       ! Iterate over the wavelengths
-      !       do w = 1, size(self%wavelengths_vertint)
-      !          if(associated(totexttau) .and. associated(brexttau)) totexttau(:,:,w) =
-      ! totexttau(:,:,w)+brexttau(:,:,w)
-      !          if(associated(totstexttau) .and. associated(brstexttau)) totstexttau(:,:,w) =
-      ! totstexttau(:,:,w)+brstexttau(:,:,w)
-      !          if(associated(totscatau) .and. associated(brscatau)) totscatau(:,:,w) =
-      ! totscatau(:,:,w)+brscatau(:,:,w)
-      !          if(associated(totstscatau) .and. associated(brstscatau)) totstscatau(:,:,w) =
-      ! totstscatau(:,:,w)+brstscatau(:,:,w)
-      !          if(associated(totextt25) .and. associated(brexttau)) totextt25(:,:,w) =
-      ! totextt25(:,:,w)+brexttau(:,:,w)
-      !          if(associated(totscat25) .and. associated(brscatau)) totscat25(:,:,w) =
-      ! totscat25(:,:,w)+brscatau(:,:,w)
-      !          if(associated(totexttfm) .and. associated(brexttau)) totexttfm(:,:,w) =
-      ! totexttfm(:,:,w)+brexttau(:,:,w)
-      !          if(associated(totscatfm) .and. associated(brscatau)) totscatfm(:,:,w) =
-      ! totscatfm(:,:,w)+brscatau(:,:,w)
-      !       end do
+            do w = 1, size(self%wavelengths_profile)
+               if (associated(totextcoef) .and. associated(brextcoef)) &
+                    totextcoef(:, :, :, w) = totextcoef(:, :, :, w) + brextcoef(:, :, :, w)
+               if (associated(totextcoefrh20) .and. associated(brextcoefrh20)) &
+                    totextcoefrh20(:, :, :, w) = totextcoefrh20(:, :, :, w) + brextcoefrh20(:, :, :, w)
+               if (associated(totextcoefrh80) .and. associated(brextcoefrh80)) &
+                    totextcoefrh80(:, :, :, w) = totextcoefrh80(:, :, :, w) + brextcoefrh80(:, :, :, w)
+               if (associated(totscacoef) .and. associated(brscacoef)) &
+                    totscacoef(:, :, :, w) = totscacoef(:, :, :, w) + brscacoef(:, :, :, w)
+               if (associated(totscacoefrh20) .and. associated(brscacoefrh20)) &
+                    totscacoefrh20(:, :, :, w) = totscacoefrh20(:, :, :, w) + brscacoefrh20(:, :, :, w)
+               if (associated(totscacoefrh80) .and. associated(brscacoefrh80)) &
+                    totscacoefrh80(:, :, :, w) = totscacoefrh80(:, :, :, w) + brscacoefrh80(:, :, :, w)
+               if (associated(totbckcoef) .and. associated(brbckcoef)) &
+                    totbckcoef(:, :, :, w) = totbckcoef(:, :, :, w) + brbckcoef(:, :, :, w)
+            end do
 
-      !       do w = 1, size(self%wavelengths_profile)
-      !          if(associated(totextcoef) .and. associated(brextcoef)) totextcoef(:,:,:,w) =
-      ! totextcoef(:,:,:,w)+brextcoef(:,:,:,w)
-      !          if(associated(totextcoefrh20) .and. associated(brextcoefrh20)) totextcoefrh20(:,:,:,w) =
-      ! totextcoefrh20(:,:,:,w)+brextcoefrh20(:,:,:,w)
-      !          if(associated(totextcoefrh80) .and. associated(brextcoefrh80)) totextcoefrh80(:,:,:,w) =
-      ! totextcoefrh80(:,:,:,w)+brextcoefrh80(:,:,:,w)
-      !          if(associated(totscacoef) .and. associated(brscacoef)) totscacoef(:,:,:,w) =
-      ! totscacoef(:,:,:,w)+brscacoef(:,:,:,w)
-      !          if(associated(totscacoefrh20) .and. associated(brscacoefrh20)) totscacoefrh20(:,:,:,w) =
-      ! totscacoefrh20(:,:,:,w)+brscacoefrh20(:,:,:,w)
-      !          if(associated(totscacoefrh80) .and. associated(brscacoefrh80)) totscacoefrh80(:,:,:,w) =
-      ! totscacoefrh80(:,:,:,w)+brscacoefrh80(:,:,:,w)
-      !          if(associated(totbckcoef) .and. associated(brbckcoef)) totbckcoef(:,:,:,w) =
-      ! totbckcoef(:,:,:,w)+brbckcoef(:,:,:,w)
-      !       end do
+            if (associated(pm) .and. associated(brsmass)) pm = pm + brsmass
+            if (associated(pm25) .and. associated(brsmass)) pm25 = pm25 + brsmass
+            ! needs to be revisited: OCpho + 1.16 OCphi
+            if (associated(pm_rh35) .and. associated(brsmass)) pm_rh35 = pm_rh35 + 1.16 * brsmass
+            if (associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16 * brsmass
+            ! needs to be revisited: OCpho + 1.24 OCphi
+            if (associated(pm_rh50) .and. associated(brsmass)) pm_rh50 = pm_rh50 + 1.24 * brsmass
+            if (associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24 * brsmass
 
-      !       call MAPL_StateGetPointer (gex(self%CA%instances(n)%id), brsmass, 'CA.brSMASS', _RC)
-      !       if(associated(pm)        .and. associated(brsmass)) pm        = pm        + brsmass
-      !       if(associated(pm25)      .and. associated(brsmass)) pm25      = pm25      + brsmass
-      !       if(associated(pm_rh35)   .and. associated(brsmass)) pm_rh35   = pm_rh35   + 1.16*brsmass  ! needs to be
-      ! revisited: OCpho + 1.16 OCphi
-      !       if(associated(pm25_rh35) .and. associated(brsmass)) pm25_rh35 = pm25_rh35 + 1.16*brsmass  !
-      !       if(associated(pm_rh50)   .and. associated(brsmass)) pm_rh50   = pm_rh50   + 1.24*brsmass  ! needs to be
-      ! revisited: OCpho + 1.24 OCphi
-      !       if(associated(pm25_rh50) .and. associated(brsmass)) pm25_rh50 = pm25_rh50 + 1.24*brsmass  !
-
-      !       if(associated(totangstr) .and. associated(brexttau) .and. associated(brangstr)) then
-      !          tau1 = tau1 + brexttau(:,:,ind550)*exp(c1*brangstr)
-      !          tau2 = tau2 + brexttau(:,:,ind550)*exp(c2*brangstr)
-      !       end if
-      !    end if
-      ! end do
+            if (associated(totangstr) .and. associated(brexttau) .and. associated(brangstr)) then
+               tau1 = tau1 + brexttau(:, :, ind550) * exp(c1 * brangstr)
+               tau2 = tau2 + brexttau(:, :, ind550) * exp(c2 * brangstr)
+            end if
+         end if
+      end do
 
       ! Finish calculating totangstr
       if (associated(totangstr)) then
@@ -1256,32 +1247,10 @@ contains
       call add_children__(gc, self%SS, SS2G_SetServices, _RC)
       call add_children__(gc, self%SU, SU2G_SetServices, _RC)
       call add_children__(gc, self%NI, NI2G_SetServices, _RC)
-      ! call add_children__(gc, self%CA, CA2G_SetServices, _RC)
-      ! CA is not ported, so its children are not created; anything that
-      ! checks is_active (e.g. Run2's PM totals) must not see it as active
-      call deactivate_instances__(gc, self%CA, _RC)
+      call add_children__(gc, self%CA, CA2G_SetServices, _RC)
 
       _RETURN(_SUCCESS)
    end subroutine create_instances_
-
-   ! Marks every instance of a species inactive, for species whose children are not created
-   subroutine deactivate_instances__(gc, species, rc)
-      type(ESMF_GridComp), intent(inout) :: gc
-      type(Constituent), intent(inout) :: species
-      integer, intent(out) :: rc
-
-      class(logger_t), pointer :: logger
-      integer :: status
-
-      if (species%n_active > 0) then
-         call MAPL_GridCompGet(gc, logger=logger, _RC)
-         call logger%warning("Ignoring the active %a instances: %a is not ported to MAPL3", species%name, species%name)
-      end if
-      species%instances(:)%is_active = .false.
-      species%n_active = 0
-
-      _RETURN(_SUCCESS)
-   end subroutine deactivate_instances__
 
    subroutine add_children__(gc, species, setservices, rc)
       type (ESMF_GridComp), intent(inout) :: gc

@@ -12,7 +12,9 @@ ACTIVE_INSTANCES:
   DU: [DU]  # [DU.data]
   SS: [SS]  # [SS.data]
   SU: [SU]  # [SU.data]
-  CA: []  # [CA.oc, CA.bc, CA.br] not ported to MAPL3 yet
+  CA: []  # [CA.oc, CA.bc, CA.br] code ported, but blocked: dotted child
+          # names fail MAPL3's is_valid_name() check (see
+          # ../../CA2G_GridComp/mapl3-porting-notes.md)
   NI: [NI]  # [NI.data]
 
 PASSIVE_INSTANCES:

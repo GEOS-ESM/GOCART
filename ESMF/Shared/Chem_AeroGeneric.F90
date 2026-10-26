@@ -139,6 +139,7 @@ contains
       real, pointer :: orig_ptr(:,:,:)
       real, pointer :: ptr2d(:,:)
       character(len=ESMF_MAXSTR) :: bin_index
+      character(len=:), allocatable :: varname_new
       character(:), allocatable :: units, stdname
       type(mapl_VerticalStaggerLoc) :: vert_stagger
       integer :: dim_count, iter, status
@@ -187,49 +188,76 @@ contains
             end do
          end if
 
-         ! if (index(trim(varname), 'SU') > 0) then ! only use SO4, which is the 3rd index
-         !    ptr2d => orig_ptr(:,:,3)
-         !    field2d = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
-         !         name=trim(varname)//'003' , indexflag=ESMF_INDEX_DELOCAL, _RC)
-         !    call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
-         !    call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
-         !    call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
-         !    call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin 003', _RC)
-         !    call MAPL2_AllocateCoupling(field2d, _RC)
-         !    call MAPL2_FieldBundleAdd(bundle, field2d, _RC)
-         ! end if
-
-         ! if (index(trim(varname), 'CA.oc') > 0) then
-         !    do iter = 1, size(orig_ptr, 3)
-         !       write (bin_index,'(A, I0.3)') '', iter
-         !       ptr2d => orig_ptr(:,:,iter)
-         !       varname_new = 'OC'//varname(6:7)
-         !       field2d = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
-         !            name=trim(varname_new)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, _RC)
-         !       call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
-         !       call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
-         !       call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
-         !       call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin '//trim(bin_index), _RC)
-         !       call MAPL2_AllocateCoupling(field2d, _RC)
-         !       call MAPL2_FieldBundleAdd(bundle, field2d, _RC)
-         !    end do
-         ! end if
-
-         ! if (index(trim(varname), 'CA.bc') > 0) then
-         !    do i = 1, size(orig_ptr, 3)
-         !       write (bin_index,'(A, I0.3)') '', iter
-         !       ptr2d => orig_ptr(:,:,iter)
-         !       varname_new = 'BC'//varname(6:7)
-         !       field2d = ESMF_FieldCreate(grid=grid, datacopyflag=ESMF_DATACOPY_REFERENCE, farray=ptr2d,&
-         !            name=trim(varname_new)//trim(bin_index) , indexflag=ESMF_INDEX_DELOCAL, _RC)
-         !       call ESMF_AttributeSet(field2d, name='DIMS', value=MAPL_DimsHorzOnly, _RC)
-         !       call ESMF_AttributeSet(field2d, name='VLOCATION', value=MAPL_VLocationNone, _RC)
-         !       call ESMF_AttributeSet(field2d, name='UNITS', value=units, _RC)
-         !       call ESMF_AttributeSet(field2d, name='STANDARD_NAME', value=stdname//' Bin '//trim(bin_index), _RC)
-         !       call MAPL2_AllocateCoupling(field2d, _RC)
-         !       call MAPL2_FieldBundleAdd(bundle, field2d, _RC)
-         !    end do
-         ! end if
+         ! CA's phobic/philic "bins" are per-species (CA.oc/CA.bc/CA.br),
+         ! not per-size like DU/SS; the deposition bundle field names
+         ! consumed downstream (e.g. by the land surface component for
+         ! snow albedo modification) follow the legacy GOCART convention
+         ! of a 2-letter species suffix (OC/BC/BR) in place of "CA.xx",
+         ! e.g. varname "CA.ocDP" (comp_name // 'DP') -> "OCDP001"/"OCDP002"
+         if (index(trim(varname), "CA.oc") > 0) then
+            varname_new = "OC" // varname(6:)
+            do iter = 1, size(orig_ptr, 3)
+               write (bin_index, "(A, I0.3)") "", iter
+               ptr2d => orig_ptr(:,:,iter)
+               field2d = MAPL_FieldCreate( &
+                    geom, typekind, &
+                    name=trim(varname_new)//trim(bin_index), &
+                    ungridded_dims=mapl_UngriddedDims(), &
+                    vert_staggerloc=vert_stagger, &
+                    units=units, &
+                    standard_name=stdname//' Bin '//trim(bin_index), &
+                    long_name="unknown", _RC)
+               call ESMF_FieldEmptyReset(field2d, status=ESMF_FIELDSTATUS_GEOMSET, _RC)
+               call ESMF_FieldEmptyComplete( &
+                    field2d, &
+                    farray=ptr2d, &
+                    indexflag=ESMF_INDEX_DELOCAL, &
+                    datacopyflag=ESMF_DATACOPY_REFERENCE, _RC)
+               call MAPL_FieldBundleAdd(bundle, [field2d], _RC)
+            end do
+         else if (index(trim(varname), "CA.bc") > 0) then
+            varname_new = "BC" // varname(6:)
+            do iter = 1, size(orig_ptr, 3)
+               write (bin_index, "(A, I0.3)") "", iter
+               ptr2d => orig_ptr(:,:,iter)
+               field2d = MAPL_FieldCreate( &
+                    geom, typekind, &
+                    name=trim(varname_new)//trim(bin_index), &
+                    ungridded_dims=mapl_UngriddedDims(), &
+                    vert_staggerloc=vert_stagger, &
+                    units=units, &
+                    standard_name=stdname//' Bin '//trim(bin_index), &
+                    long_name="unknown", _RC)
+               call ESMF_FieldEmptyReset(field2d, status=ESMF_FIELDSTATUS_GEOMSET, _RC)
+               call ESMF_FieldEmptyComplete( &
+                    field2d, &
+                    farray=ptr2d, &
+                    indexflag=ESMF_INDEX_DELOCAL, &
+                    datacopyflag=ESMF_DATACOPY_REFERENCE, _RC)
+               call MAPL_FieldBundleAdd(bundle, [field2d], _RC)
+            end do
+         else if (index(trim(varname), "CA.br") > 0) then
+            varname_new = "BR" // varname(6:)
+            do iter = 1, size(orig_ptr, 3)
+               write (bin_index, "(A, I0.3)") "", iter
+               ptr2d => orig_ptr(:,:,iter)
+               field2d = MAPL_FieldCreate( &
+                    geom, typekind, &
+                    name=trim(varname_new)//trim(bin_index), &
+                    ungridded_dims=mapl_UngriddedDims(), &
+                    vert_staggerloc=vert_stagger, &
+                    units=units, &
+                    standard_name=stdname//' Bin '//trim(bin_index), &
+                    long_name="unknown", _RC)
+               call ESMF_FieldEmptyReset(field2d, status=ESMF_FIELDSTATUS_GEOMSET, _RC)
+               call ESMF_FieldEmptyComplete( &
+                    field2d, &
+                    farray=ptr2d, &
+                    indexflag=ESMF_INDEX_DELOCAL, &
+                    datacopyflag=ESMF_DATACOPY_REFERENCE, _RC)
+               call MAPL_FieldBundleAdd(bundle, [field2d], _RC)
+            end do
+         end if
 
       case default
          _FAIL("dim_count is other than 2 and 3")
@@ -391,6 +419,13 @@ contains
          call MAPL_StateGetPointer(state, itemName="NO3an2", farrayPtr=ptr3d, _RC)
          aeroSum = aeroSum + ptr3d
          call MAPL_StateGetPointer(state, itemName="NO3an3", farrayPtr=ptr3d, _RC)
+         aeroSum = aeroSum + ptr3d
+      else if ((aerosol_name == "CA.oc") .or. (aerosol_name == "CA.bc") .or. (aerosol_name == "CA.br")) then
+         ! CA's two bins (hydrophobic/hydrophilic) are separate named
+         ! fields (<name>phobic/<name>philic), not an ungridded array
+         call MAPL_StateGetPointer(state, itemName=trim(aerosol_name)//"phobic", farrayPtr=ptr3d, _RC)
+         aeroSum = ptr3d
+         call MAPL_StateGetPointer(state, itemName=trim(aerosol_name)//"philic", farrayPtr=ptr3d, _RC)
          aeroSum = aeroSum + ptr3d
       else
          call MAPL_StateGetPointer(state, itemName=aerosol_name, farrayPtr=ptr3d, _RC)
