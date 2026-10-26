@@ -1,0 +1,75 @@
+---
+#
+# Resource file for Nitrate parameters (nitrate-sa regression).
+#
+# KNOWN LIMITATION: unlike dust-sa/seasalt-sa/sulfate-sa, this standalone
+# configuration cannot complete Initialize. NI2G_GridCompMod.F90's
+# Initialize unconditionally does
+#   ESMF_StateGet(import, 'DU', field) / 'SS'
+#   ESMF_InfoGetAlloc(field_info, key='radius'/'fnum', ...)
+# reading custom ESMF Info attributes that only DU2G's/SS2G's own
+# Initialize write onto their *exported* DU/SS fields. The generic
+# configurable_gridcomp "DataForNI" stand-in used by this test (see
+# run1/data-for-ni.yaml, run2/data-for-ni.yaml) can supply DU/SS field
+# *values* but has no mechanism to attach those custom attributes, so this
+# case fails at NI's Initialize. NI2G can only run with real, active
+# DU2G/SS2G (and SU2G, for SO4) instances upstream, i.e. inside the
+# GOCART2G parent -- see ../gocart+seasalt+dust+sulfate+nitrate for the
+# working configuration. Full details in
+# ../../NI2G_GridComp/mapl3-porting-notes.md ("Run-testing update").
+#
+# This directory is kept for structural parity with the other *-sa
+# regression directories, not because the case is expected to pass.
+#
+
+nbins: 5
+
+aerosol_radBands_optics_file: ExtData/chemistry/AerosolOptics/v2.x.x/x/opticsBands_NI.v2.1.0.RRTMGP.nc4
+aerosol_monochromatic_optics_file: ExtData/chemistry/AerosolOptics/v2.x.x/x/optics_NI.v2.1.0.nc4
+
+# Scavenging efficiency per bin [km-1]
+fscav: [0.0, 0.4, 0.4, 0.4, 0.4]
+
+# Large scale rainout efficiency per bin for gocart
+fwet: [1.0, 1.0, 1.0, 1.0, 0.3]
+
+# Dry particle radius [um], used for settling
+particle_radius_microns: [0.0, 0.2695, 0.2695, 2.1, 7.57]
+
+# Dry particle density [kg m-3]
+particle_density: [1000.0, 1769.0, 1725.0, 2200.0, 2650.0]
+
+# Molecular weight of species [kg mole-1]
+molecular_weight: [0.18, 0.18, 0.18, 0.18, 0.18]
+
+# Number of particles per kg mass
+fnum: [1.50e19, 1.50e19, 1.50e19, 1.50e19, 1.50e19]
+
+# Number median radius [um]
+particle_radius_number: [0.0118, 0.0118, 0.0118, 0.0118, 0.0118]
+
+# Sigma of lognormal number distribution
+sigma: [2.0, 2.0, 2.0, 2.0, 2.0]
+
+pressure_lid_in_hPa: 10.0
+
+# The MAPL2 baseline must use the same settings
+using_GMI: false
+
+# SettlingSolver options: gocart or ufs
+settling_scheme: gocart
+
+mapl:
+
+  setServices:
+    sharedObj: libNI2G_GridComp
+    userRoutine: ni2g_setservices_
+
+  misc:
+    activate_all_exports: true
+    restart:
+      internal: true
+    checkpoint:
+      export: true
+      import: true
+      internal: true

@@ -1,0 +1,43 @@
+mapl:
+
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
+  misc:
+    restart:
+      internal: true
+
+  states:
+    internal:
+      DELP:
+        standard_name: "pressure_thickness"
+        units: "Pa"
+        vertical_dim_spec: "c"
+      EMI_NH3_AG:
+        standard_name: "agriculture emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_BB:
+        standard_name: "biomass burning emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_EN:
+        standard_name: "energy emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_IN:
+        standard_name: "industry emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_OC:
+        standard_name: "ocean emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_RE:
+        standard_name: "resedential emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_TR:
+        standard_name: "transport emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"

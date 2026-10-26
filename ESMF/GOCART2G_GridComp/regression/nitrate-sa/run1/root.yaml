@@ -1,0 +1,66 @@
+---
+mapl:
+
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 12
+    vertical_grid:
+      grid_type: model
+      fields: {pressure: PLE}
+      num_levels: 181
+
+  children:
+    DataForNI:
+      dso: libconfigurable_gridcomp.so
+      setservices: setservices_
+      config_file: data-for-ni.yaml
+
+    FakeGOCART:
+      dso: libconfigurable_gridcomp.so
+      config_file: fake-gocart.yaml
+
+  connections:
+    - src_name: DELP
+      src_comp: DataForNI
+      src_intent: internal
+      dst_name: DELP
+      dst_comp: FakeGOCART
+    - src_name: EMI_NH3_AG
+      src_comp: DataForNI
+      src_intent: internal
+      dst_name: EMI_NH3_AG
+      dst_comp: FakeGOCART
+    - src_name: EMI_NH3_BB
+      src_comp: DataForNI
+      src_intent: internal
+      dst_name: EMI_NH3_BB
+      dst_comp: FakeGOCART
+    - src_name: EMI_NH3_EN
+      src_comp: DataForNI
+      src_intent: internal
+      dst_name: EMI_NH3_EN
+      dst_comp: FakeGOCART
+    - src_name: EMI_NH3_IN
+      src_comp: DataForNI
+      src_intent: internal
+      dst_name: EMI_NH3_IN
+      dst_comp: FakeGOCART
+    - src_name: EMI_NH3_OC
+      src_comp: DataForNI
+      src_intent: internal
+      dst_name: EMI_NH3_OC
+      dst_comp: FakeGOCART
+    - src_name: EMI_NH3_RE
+      src_comp: DataForNI
+      src_intent: internal
+      dst_name: EMI_NH3_RE
+      dst_comp: FakeGOCART
+    - src_name: EMI_NH3_TR
+      src_comp: DataForNI
+      src_intent: internal
+      dst_name: EMI_NH3_TR
+      dst_comp: FakeGOCART
