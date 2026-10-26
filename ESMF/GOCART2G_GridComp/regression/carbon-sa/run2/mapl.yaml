@@ -1,0 +1,8 @@
+app:
+  config: cap_driver.yaml
+
+esmf:
+  logKindFlag: ESMF_LOGKIND_MULTI_ON_ERROR
+  logAppendFlag: false
+
+app_petcount: 6
