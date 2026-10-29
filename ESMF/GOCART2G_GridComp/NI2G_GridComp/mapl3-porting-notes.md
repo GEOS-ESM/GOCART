@@ -330,12 +330,16 @@ the same way DU2G/SS2G/SU2G do.
   attach those custom attributes. Rather than extend
   `configurable_gridcomp` with generic attribute support, `run1`/`run2` now
   include a small dedicated `DuSsStub_GridComp` (see
-  `../DuSsStub_GridComp/DuSsStub_GridCompMod.F90`) that exports placeholder
-  `DU`/`SS` fields and attaches `radius`/`fnum` Info to them exactly like
-  DU2G/SS2G do (values copied from `DU2G_instance_DU.yaml`/
-  `SS2G_instance_SS.yaml`). It must be declared as a child *before*
-  `FakeGOCART` in `root.yaml` so its Initialize runs first. With that in
-  place, NI2G's Initialize gets past the radius/fnum read and fails later,
+  `../regression/DuSsStub_GridComp/DuSsStub_GridCompMod.F90`) that imports
+  `DU`/`SS` (connected to `DataForNI`'s internal `DU`/`SS`, i.e. the same
+  import netcdf4 file `DataForNI`'s other fields are read from) and
+  re-exports them, attaching `radius`/`fnum` Info to them exactly like
+  DU2G/SS2G do (radius/fnum values copied from `DU2G_instance_DU.yaml`/
+  `SS2G_instance_SS.yaml`). It must be declared as a child *after*
+  `DataForNI` but *before* `FakeGOCART` in `root.yaml` so its Initialize
+  runs after the DU/SS data is available and before NI2G reads the Info.
+  With that in place, NI2G's Initialize gets past the radius/fnum read and
+  fails later,
   at `nf90_open` of `opticsBands_NI.v2.1.0.RRTMGP.nc4` -- that file simply
   isn't present anywhere in the available ExtData input tree (not even
   under a `gocart+seasalt+dust+sulfate+nitrate` input directory, which
@@ -412,3 +416,21 @@ the same way DU2G/SS2G/SU2G do.
    checking, once a real baseline exists, that the sulforg01-03 activation
    modes / MAMnet `SUsum` pick up nonzero `SO4` from SU now feeding NI too
    (same question SU2G's notes raised for SU alone).
+
+## `DuSsStub_GridComp` relocation + real DU/SS data (follow-up)
+
+- Moved `DuSsStub_GridComp` from `../DuSsStub_GridComp` to
+  `../regression/DuSsStub_GridComp`: it is only ever used by the
+  `nitrate-sa` standalone regression harness, so it now lives under
+  `regression/` alongside the other test-only pieces (`regression/*-sa`
+  cases, `regression/CMakeLists.txt`). `regression/CMakeLists.txt` now
+  builds it (`add_subdirectory(DuSsStub_GridComp)`); the top-level
+  `GOCART2G_GridComp/CMakeLists.txt` no longer references it directly.
+- `DuSsStub_GridComp` no longer zero-fills its exported `DU`/`SS` fields.
+  It now declares matching `IMPORT` specs for `DU`/`SS`, connected (in
+  `run1`/`run2`'s `root.yaml`) to `DataForNI`'s internal `DU`/`SS` --
+  newly added to `data-for-ni.yaml` alongside the other internal fields
+  (`DELP`, `EMI_NH3_*`, ...) that are populated from the same import
+  netcdf4 (restart/checkpoint) file. `Initialize` copies the import data
+  onto the export fields before attaching the `radius`/`fnum` Info, so
+  NI2G now sees real DU/SS mixing ratios instead of zeros.
