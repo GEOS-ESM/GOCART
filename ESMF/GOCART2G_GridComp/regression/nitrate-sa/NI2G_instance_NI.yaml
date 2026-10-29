@@ -6,15 +6,16 @@
 #   ESMF_StateGet(import, 'DU', field) / 'SS'
 #   ESMF_InfoGetAlloc(field_info, key='radius'/'fnum', ...)
 # reading custom ESMF Info attributes that only DU2G's/SS2G's own
-# Initialize write onto their *exported* DU/SS fields. Since the generic
+# Initialize write onto their *exported* DU/SS fields. The generic
 # configurable_gridcomp "DataForNI" stand-in used by this test (see
-# run1/data-for-ni.yaml, run2/data-for-ni.yaml) can supply DU/SS field
-# *values* but has no mechanism to attach those custom attributes, run1/
-# run2's root.yaml also declare a small dedicated DuSsStub_GridComp child
-# (see ../DuSsStub_GridComp/DuSsStub_GridCompMod.F90) that exports
-# placeholder DU/SS fields carrying the radius/fnum Info, standing in for
-# DU2G/SS2G. Full details in ../../NI2G_GridComp/mapl3-porting-notes.md
-# ("Run-testing update").
+# run1/data-for-ni.yaml, run2/data-for-ni.yaml) supplies the real DU/SS
+# field *values* (same import netcdf4 file as DataForNI's other fields),
+# but has no mechanism to attach those custom attributes, so run1/run2's
+# root.yaml also declare a small dedicated DuSsStub_GridComp child (see
+# ../DuSsStub_GridComp/DuSsStub_GridCompMod.F90) that takes DataForNI's
+# DU/SS in as imports and re-exports them carrying the radius/fnum Info,
+# standing in for DU2G/SS2G. Full details in
+# ../../NI2G_GridComp/mapl3-porting-notes.md ("Run-testing update").
 #
 
 nbins: 5

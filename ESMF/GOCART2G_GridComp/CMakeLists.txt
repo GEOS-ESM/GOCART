@@ -40,9 +40,3 @@ if (NOT CMAKE_Fortran_COMPILER_ID MATCHES "NAG")
 endif ()
 
 add_subdirectory(regression)
-
-# Standalone shared library (loaded via dso: in YAML, like NI2G_GridComp.so),
-# used only by the regression/nitrate-sa standalone test harness. Not part
-# of the production GOCART2G_GridComp library, so it is added on its own
-# rather than via the 'alldirs'/SUBCOMPONENTS list above.
-add_subdirectory(DuSsStub_GridComp)

@@ -9,6 +9,22 @@ mapl:
 
   states:
     internal:
+      DU:
+        standard_name: "Dust Mixing Ratio all bins"
+        units: "kg kg-1"
+        vertical_dim_spec: "c"
+        ungridded_dims:
+          # dim_units must match DuSsStub_GridCompMod.F90's MAPL_UngriddedDim
+          # units="1" for its connected DU/SS imports, since the
+          # UNGRIDDED_DIMS aspect's equality check (used to validate the
+          # connection) compares name/units/extent.
+          - {dim_name: nbins, dim_units: "1", extent: 5}
+      SS:
+        standard_name: "Sea Salt Mixing Ratio all bins"
+        units: "kg kg-1"
+        vertical_dim_spec: "c"
+        ungridded_dims:
+          - {dim_name: nbins, dim_units: "1", extent: 5}
       DELP:
         standard_name: "pressure_thickness"
         units: "Pa"
