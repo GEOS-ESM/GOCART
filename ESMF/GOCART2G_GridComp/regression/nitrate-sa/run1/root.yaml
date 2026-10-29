@@ -19,11 +19,33 @@ mapl:
       setservices: setservices_
       config_file: data-for-ni.yaml
 
+    # Minimal stand-in for DU2G/SS2G: supplies placeholder DU/SS export
+    # fields carrying the 'radius'/'fnum' ESMF Info attributes that NI2G's
+    # Initialize unconditionally reads off its DU/SS imports. See
+    # ../../DuSsStub_GridComp/DuSsStub_GridCompMod.F90. Must be initialized
+    # before FakeGOCART (children are initialized in declaration order) so
+    # the Info is attached to the DU/SS fields before NI2G's Initialize
+    # reads it off the connected import fields.
+    DuSsStub:
+      dso: libDuSsStub_GridComp.so
+      setservices: setservices_
+      config_file: dusstub.yaml
+
     FakeGOCART:
       dso: libconfigurable_gridcomp.so
       config_file: fake-gocart.yaml
 
   connections:
+    - src_name: DU
+      src_comp: DuSsStub
+      src_intent: export
+      dst_name: DU
+      dst_comp: FakeGOCART
+    - src_name: SS
+      src_comp: DuSsStub
+      src_intent: export
+      dst_name: SS
+      dst_comp: FakeGOCART
     - src_name: DELP
       src_comp: DataForNI
       src_intent: internal

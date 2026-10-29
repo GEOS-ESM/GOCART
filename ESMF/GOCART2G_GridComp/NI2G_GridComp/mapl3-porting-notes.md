@@ -321,16 +321,26 @@ regression case (mirroring `regression/gocart+seasalt+dust+sulfate`, not
 `sulfate-sa`; see why below) so NI2G participates in `ctest -L REGRESSION`
 the same way DU2G/SS2G/SU2G do.
 
-- **A standalone `nitrate-sa` case (DataForNI only) does not work and was
-  not pursued.** NI2G's `Initialize` unconditionally does `ESMF_StateGet(
-  import, 'DU', field)` / `'SS'` and then reads the `radius`/`fnum` `Info`
-  attributes DU2G/SS2G's own `Initialize` writes onto their exported
-  `DU`/`SS` fields -- a generic `configurable_gridcomp` "data" component
-  can supply the array values but not those custom attributes. NI2G can
-  therefore only run with real, active DU2G/SS2G (and SU2G, for `SO4`)
-  instances upstream, i.e. only inside the GOCART2G parent, not alone. This
-  resolves the ambiguity the original item 1 below left open and confirms
-  the item-6 recommendation (a combined case) was the right call.
+- **Update: the standalone `nitrate-sa` case now works, via a dedicated
+  stand-in component.** NI2G's `Initialize` unconditionally does
+  `ESMF_StateGet(import, 'DU', field)` / `'SS'` and then reads the
+  `radius`/`fnum` `Info` attributes DU2G/SS2G's own `Initialize` writes onto
+  their exported `DU`/`SS` fields -- a generic `configurable_gridcomp`
+  "data" component can supply the array values but has no mechanism to
+  attach those custom attributes. Rather than extend
+  `configurable_gridcomp` with generic attribute support, `run1`/`run2` now
+  include a small dedicated `DuSsStub_GridComp` (see
+  `../DuSsStub_GridComp/DuSsStub_GridCompMod.F90`) that exports placeholder
+  `DU`/`SS` fields and attaches `radius`/`fnum` Info to them exactly like
+  DU2G/SS2G do (values copied from `DU2G_instance_DU.yaml`/
+  `SS2G_instance_SS.yaml`). It must be declared as a child *before*
+  `FakeGOCART` in `root.yaml` so its Initialize runs first. With that in
+  place, NI2G's Initialize gets past the radius/fnum read and fails later,
+  at `nf90_open` of `opticsBands_NI.v2.1.0.RRTMGP.nc4` -- that file simply
+  isn't present anywhere in the available ExtData input tree (not even
+  under a `gocart+seasalt+dust+sulfate+nitrate` input directory, which
+  doesn't exist either), so it's a missing-test-data issue, not a code
+  issue.
 - **Found and fixed a real connection bug** (not a test-scaffolding issue):
   `NI2G_GridCompMod.F90`'s `ungrd_du_ss_bins` was declared
   `MAPL_UngriddedDim(n_du_ss_bins, name="du_ss_bins", units="1")`, but
