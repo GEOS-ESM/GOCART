@@ -9854,6 +9854,9 @@ loop2: DO l = 1,nspecies_HL
 !  R. Yantosca 04/10/2008  point underflow and NaN's.
 !  S. Steenrod 04/15/2010 Modified to include into GMI model
 !  E. Sherman  08/06/2020 Moved to GOCART2G process library
+!  C. Mogno 11/03/2026  Added safety checks for NaN concentrations 
+!                       and mass conservation
+
 
 ! !Local Variables
   !=================================================================
@@ -9882,6 +9885,14 @@ loop2: DO l = 1,nspecies_HL
 
    ! Limit to test for zero ionic activity (phs, bmy, 4/10/08)
    real(kind=DP), PARAMETER :: EPS    = 1.0d-30
+   
+   ! Tolerances for end-of-routine mass-conservation closure check
+   ! - relative and absolute, to handle both high- and near-zero-
+   ! concentration - C Mogno Nov 2026
+   real(kind=DP), PARAMETER :: MASSTOL = 1.0d-6
+   real(kind=DP), PARAMETER :: ABSTOL  = 1.0d-9 
+   
+   real(kind=DP) :: TNO3_check, TNH4_check, ANO3_mol, GNO3_mol, ANH4_mol, GNH3_mol
 
    !=================================================================
    ! SCRATCH LOCAL VARIABLES and their descriptions:
@@ -10015,7 +10026,8 @@ loop2: DO l = 1,nspecies_HL
    real(kind=DP)  :: CRUTES( 3 )      ! Coefficients and roots of
    real(kind=DP)  :: GAMS( 2, 3 )     ! Array of activity coefficients
    real(kind=DP)  :: TMASSHNO3        ! Total nitrate (vapor and particle)
-   real(kind=DP)  :: GNO3_IN, ANO3_IN
+   real(kind=DP)  :: GNO3_IN, ANO3_IN ! input nitric acid and nitrate 
+   real(kind=DP)  :: GNH3_IN, ANH4_IN ! input ammonia and ammonium
    character (len=75) :: err_msg
 
    integer :: status
@@ -10025,6 +10037,16 @@ loop2: DO l = 1,nspecies_HL
 !  Begin...
 
       rc = __SUCCESS__
+         
+      ! Trap for NaN in input values - C. Mogno Nov 2026
+      IF ( RH /= RH .OR. TEMP /= TEMP ) THEN
+         RETURN
+      ENDIF      
+      IF ( SO4  /= SO4  ) SO4  = FLOOR
+      IF ( GNO3 /= GNO3 ) GNO3 = FLOOR
+      IF ( GNH3 /= GNH3 ) GNH3 = FLOOR
+      IF ( ANO3 /= ANO3 ) ANO3 = FLOOR
+      IF ( ANH4 /= ANH4 ) ANH4 = FLOOR 
 
       ! For extremely low relative humidity ( less than 1% ) set the
       ! water content to a minimum and skip the calculation.
@@ -10048,6 +10070,8 @@ loop2: DO l = 1,nspecies_HL
 
       GNO3_IN   = GNO3
       ANO3_IN   = ANO3
+      GNH3_IN   = GNH3
+      ANH4_IN   = ANH4
       TMASSHNO3 = MAX( 0.0d0, GNO3 + ANO3 )
 
       ! set the  molar ratio of ammonium to sulfate
@@ -10105,6 +10129,8 @@ loop2: DO l = 1,nspecies_HL
       K1A  = 1.805d-05 *  EXP(  -1.50d0 * T3 + 26.92d0 * T4 )
       K2SA = 1.015d-02 *  EXP(   8.85d0 * T3 + 25.14d0 * T4 )
       KW   = 1.010d-14 *  EXP( -22.52d0 * T3 + 26.92d0 * T4 )
+      ! preventing division by zero - Caterina Mogno Nov 2026
+      KW = MAX(FLOOR,KW)
       KPH  = 57.639d0  *  EXP(  13.79d0 * T3 -  5.39d0 * T4 ) * T6
       !K3   =  5.746E-17 * EXP( -74.38 * T3 + 6.12  * T4 ) * T6 * T6
       KHAT =  KPH * K1A / KW
@@ -10149,7 +10175,8 @@ loop2: DO l = 1,nspecies_HL
          GNH3  = MAX( FLOOR, GNH3  )
          GNO3  = MAX( FLOOR, GNO3  )
 
-         RETURN
+         !RETURN
+         GOTO 9999
       ENDIF
       !=================================================================
       ! High Ammonia Case
@@ -10209,7 +10236,8 @@ loop2: DO l = 1,nspecies_HL
                  GNH3  = MWNH3 * MAX( FLOOR, ( TNH4 - YNH4 ) )
                  GNO3  = GNO3_IN
                  ANO3  = ANO3_IN
-                 RETURN
+                 !RETURN
+                 GOTO 9999
               ENDIF
 
               ! to get here, BB .lt. 0.0, CC .gt. 0.0 always
@@ -10272,7 +10300,8 @@ loop2: DO l = 1,nspecies_HL
               GNH3  = MWNH3 * MAX( FLOOR, (TNH4 - YNH4 ) )
               GNO3  = GNO3_IN
               ANO3  = ANO3_IN
-              RETURN
+              !RETURN
+              GOTO 9999
            ENDIF
 
            ! Deal with degenerate case (yoj)
@@ -10334,7 +10363,8 @@ loop2: DO l = 1,nspecies_HL
               GNO3  = MAX( FLOOR, ( TMASSHNO3  - ANO3 ) )
               GNH3  = MWNH3 * MAX( FLOOR, ( TNH4 - YNH4 ) )
               AH2O  = 1000.0d0 * WH2O
-              RETURN
+              !RETURN
+              GOTO 9999
            ENDIF
 
         ENDDO
@@ -10353,7 +10383,8 @@ loop2: DO l = 1,nspecies_HL
         GNO3  = GNO3_IN
         ANO3  = ANO3_IN
         GNH3  = MAX( FLOOR, MWNH3 * (TNH4 - YNH4 ) )
-        RETURN
+        !RETURN
+        GOTO 9999
 
       !================================================================
       ! Low Ammonia Case
@@ -10390,10 +10421,17 @@ loop2: DO l = 1,nspecies_HL
          ! same amount of ASO4, ANH4, ANO3, AH2O so terminate early
          ! to swame computation
          !==============================================================
-         IF ( RATIO .LT. 0.5d0 ) RETURN ! FSB 04/09/2001
+         IF ( RATIO .LT. 0.5d0 ) THEN
+             !RETURN ! FSB 04/09/2001
+             GOTO 9999
+         ENDIF
 
          ! Check for zero water.
-         IF ( WH2O .EQ. 0.0d0 ) RETURN
+         IF ( WH2O .EQ. 0.0d0 ) THEN
+            !RETURN
+            GOTO 9999
+         ENDIF
+         
          ZSO4 = TSO4 / WH2O
 
          ! ZSO4 is the molality of total sulfate i.e. MSO4 + MHSO4
@@ -10403,10 +10441,12 @@ loop2: DO l = 1,nspecies_HL
          !IF ( ZSO4 .GT. 9.0 ) THEN ! 18 June 97
          !IF ( ZSO4 .GT. 9.d0 ) THEN ! H. Bian 24 June 2015
          IF ( ZSO4 .GT. 9.00 ) THEN ! H. Bian 24 June 2015
-            RETURN
+            !RETURN
+            GOTO 9999
          ENDIF
          IF ( ZSO4 .GT. 0.1d0 .and. TEMP .le. 220.d0) THEN ! H. Bian 24 June 2015
-            RETURN
+            !RETURN
+            GOTO 9999
          ENDIF
 
          ! *** Calculation may now proceed.
@@ -10510,7 +10550,8 @@ loop2: DO l = 1,nspecies_HL
                CALL AWATER ( IRH, TSO4, TNH4, TNO3, AH2O )
 
                ! Exit this subroutine
-               RETURN
+               !RETURN
+               GOTO 9999
             ENDIF
 
             GAMAHAT = ( GAMAS2 * GAMAS2 / ( GAMAAB * GAMAAB ) )
@@ -10521,7 +10562,8 @@ loop2: DO l = 1,nspecies_HL
             GAMOLD = GAMAHAT
             ! return with good solution
             IF ( EROR .LE. TOLER2 ) THEN
-               RETURN
+               !RETURN
+               GOTO 9999
             ENDIF
 
          ENDDO
@@ -10538,12 +10580,53 @@ loop2: DO l = 1,nspecies_HL
 
          CALL AWATER ( IRH, TSO4, TNH4, TNO3, AH2O )
 
-         RETURN
+         !RETURN
+         GOTO 9999
 
       ENDIF                     ! ratio .gt. 2.0
 
-      ! Return to calling program
+     
+      !------ Trap for produced NaN and check for mass conservation C. Mogno Nov 2026----------
+      9999 CONTINUE
 
+      !NaN check: if any value is NaN, return input values
+      IF ( ANO3 /= ANO3 .OR. GNO3 /= GNO3 .OR. &
+       ANH4 /= ANH4 .OR. GNH3 /= GNH3 ) THEN
+        ANO3 = ANO3_IN
+        GNO3 = GNO3_IN
+        ANH4 = ANH4_IN
+        GNH3 = GNH3_IN
+      ENDIF
+     
+      !Mass closure: nitrate
+      TNO3_check = ANO3 / MWNO3 + GNO3 / MWHNO3
+
+      IF ( ABS( TNO3_check - TNO3 ) > &
+        MAX( MASSTOL * TNO3, ABSTOL ) ) THEN
+
+        ANO3_mol = MIN( ANO3 / MWNO3, TNO3 )
+        GNO3_mol = MAX( 0.0d0, TNO3 - ANO3_mol )
+
+        ANO3 = MAX( FLOOR, ANO3_mol * MWNO3 )
+        GNO3 = MAX( FLOOR, GNO3_mol * MWHNO3 )
+      ENDIF
+
+      !Mass closure: ammonium
+      TNH4_check = ANH4 / MWNH4 + GNH3 / MWNH3
+
+      IF ( ABS( TNH4_check - TNH4 ) > &
+        MAX( MASSTOL * TNH4, ABSTOL ) ) THEN
+
+        ANH4_mol = MIN( ANH4 / MWNH4, TNH4 )
+        GNH3_mol = MAX( 0.0d0, TNH4 - ANH4_mol )
+
+        ANH4 = MAX( FLOOR, ANH4_mol * MWNH4 )
+        GNH3 = MAX( FLOOR, GNH3_mol * MWNH3 )
+     ENDIF
+     
+     ! Return to calling program
+     RETURN     
+   
    end subroutine RPMARES
 
 !------------------------------------------------------------------------------
