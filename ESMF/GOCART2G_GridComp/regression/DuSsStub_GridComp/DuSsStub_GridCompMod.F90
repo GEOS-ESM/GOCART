@@ -35,7 +35,8 @@ module mapl_DuSsStubGridComp_mod
    ! DU2G/SS2G components attach to their exported DU/SS fields.
    real, parameter :: DU_RADIUS(NBINS) = [0.73, 1.4, 2.4, 4.5, 8.0]
    real, parameter :: DU_FNUM(NBINS) = [2.45e14, 3.28e13, 6.52e12, 9.89e11, 1.76e11]
-   real, parameter :: SS_RADIUS(NBINS) = [0.079, 0.316, 1.119, 2.818, 7.772]
+   !real, parameter :: SS_RADIUS(NBINS) = [0.079, 0.316, 1.119, 2.818, 7.772]
+   real, parameter :: SS_RADIUS(NBINS) = [0.066, 0.176, 0.885, 2.061, 6.901]
    real, parameter :: SS_FNUM(NBINS) = [3.017e17, 1.085e16, 1.207e14, 9.391e12, 2.922e11]
 
 contains
