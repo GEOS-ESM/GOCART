@@ -35,18 +35,18 @@
 
    public SetServices
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !
-!   {\tt GOCART} is a gridded component from the GOCART model and includes 
+!   {\tt GOCART} is a gridded component from the GOCART model and includes
 !  dust, sea salt, sulfates, organic and black carbon. In addition, we
 !  also include closely related components for CO and CO2 with relatively
 !  simple parameterization of the chemical processes, but sharing
 !  consistent emissions with the aerosols.
 !
 !  This code derives from the pre-ESMF Chem component from GEOS-4. This
-!  GEOS-4 Chem "component" used ESMF like constructs (Chem component class, 
-!  import/export states, etc) but no ESMF specific data types because of 
-!  an odd incompatibility with the fvGCM code (the so-called 
+!  GEOS-4 Chem "component" used ESMF like constructs (Chem component class,
+!  import/export states, etc) but no ESMF specific data types because of
+!  an odd incompatibility with the fvGCM code (the so-called
 !  {\tt oldworld} library. Unlike GEOS-4, the Stratospheric Chemistry
 !  component is treated separately here.
 !
@@ -72,8 +72,11 @@
   end type GOCART_WRAP
 
 ! Use analyzed tracer fields? (for CoDAS IAU only)
-  logical, allocatable :: doCODAS(:)
-  character(len=ESMF_MAXSTR) :: codas_name
+  logical, allocatable       :: doCODAS(:)
+  character(len=ESMF_MAXSTR) :: codas_mode, codas_tmpl, codas_name
+  character(len=ESMF_MAXSTR) :: CurrentFile = 'N/A'
+  type(ESMF_FieldBundle)     :: VarBundle
+  logical                    :: VarBundleCreated = .false.
 
 CONTAINS
 
@@ -94,7 +97,7 @@ CONTAINS
     type(ESMF_GridComp), intent(INOUT) :: GC  ! gridded component
     integer, optional                  :: RC  ! return code
 
-! !DESCRIPTION: Sets Initialize, Run and Finalize services. 
+! !DESCRIPTION: Sets Initialize, Run and Finalize services.
 !
 ! !REVISION HISTORY:
 !
@@ -134,7 +137,6 @@ CONTAINS
 
 !                              ------------
 
-    
 !   Get my name and set-up traceback handle
 !   ---------------------------------------
     call ESMF_GridCompGet( GC, NAME=COMP_NAME, CONFIG=CF, __RC__ )
@@ -163,10 +165,9 @@ CONTAINS
        VERIFY_(status)
        state%chemReg = Chem_RegistryCreate(STATUS, rcfile=chem_registry_file)
         VERIFY_(STATUS)
-    end if    
+    end if
 
     r => state%chemReg   ! short hand
-    
 
 !                       ------------------------
 !                       ESMF Functional Services
@@ -186,7 +187,7 @@ CONTAINS
         call MAPL_GridCompSetEntryPoint ( GC, ESMF_METHOD_RUN,         Run2_,       __RC__ )
 
         call MAPL_GridCompSetEntryPoint ( GC, ESMF_METHOD_FINALIZE,    Finalize_,   __RC__ )
-        
+
 !       Store internal state in GC
 !       --------------------------
         call ESMF_UserCompSetInternalState ( GC, 'GOCART_state', wrap, STATUS )
@@ -196,7 +197,7 @@ CONTAINS
 
         if (MAPL_AM_I_ROOT()) then
          print *, trim(Iam)//': NOT ACTIVE, defaulting to Generic No-op stubs'
-        end if 
+        end if
 
         call MAPL_GenericSetServices ( GC, __RC__ )
         RETURN_(ESMF_SUCCESS)
@@ -222,7 +223,7 @@ CONTAINS
        UNITS      = 'Pa',                                  &
        DIMS       = MAPL_DimsHorzVert,                     &
        VLOCATION  = MAPL_VLocationEdge,                    &
-       RESTART    = MAPL_RestartSkip,     __RC__) 
+       RESTART    = MAPL_RestartSkip,     __RC__)
 
 !   Pressure thickness
 !   ------------------
@@ -313,7 +314,7 @@ CONTAINS
        UNITS      = 'kg kg-1',                             &
        DIMS       = MAPL_DimsHorzVert,                     &
        VLOCATION  = MAPL_VLocationCenter,                  &
-       RESTART    = MAPL_RestartSkip,     __RC__)  
+       RESTART    = MAPL_RestartSkip,     __RC__)
 
 !   QITOT + QITOT
 !   -------------
@@ -367,7 +368,7 @@ CONTAINS
   end if
 
 !    2-D Quantities
-!    --------------    
+!    --------------
 
 !    TROPP - Connectivity from SDYN to PHYS is TROPP_BLENDED to TROPP
 !    ----------------------------------------------------------------
@@ -390,7 +391,7 @@ CONTAINS
       ! RESTART    = MAPL_RestartSkip,                     &
                                           __RC__)
 
-!    PBL 
+!    PBL
 !    ---
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'ZPBL',                               &
@@ -608,16 +609,16 @@ CONTAINS
         VLOCATION  = MAPL_VLocationNone,                   &
         RESTART    = MAPL_RestartSkip,   __RC__)
 
-     call MAPL_AddImportSpec(GC,                           & 
-         SHORT_NAME = 'CNV_MFD',                           & 
+     call MAPL_AddImportSpec(GC,                           &
+         SHORT_NAME = 'CNV_MFD',                           &
          LONG_NAME  = 'detraining_mass_flux',              &
-         UNITS      = 'kg m-2 s-1',                        &    
-         DIMS       = MAPL_DimsHorzVert,                   &  
+         UNITS      = 'kg m-2 s-1',                        &
+         DIMS       = MAPL_DimsHorzVert,                   &
          VLOCATION  = MAPL_VLocationCenter,                &
          RESTART    = MAPL_RestartSkip,  __RC__)
 
-     call MAPL_AddImportSpec(GC,                           &                  
-         SHORT_NAME = 'CNV_MFC',                           & 
+     call MAPL_AddImportSpec(GC,                           &
+         SHORT_NAME = 'CNV_MFC',                           &
          LONG_NAME  = 'cumulative_mass_flux',              &
          UNITS      = 'kg m-2 s-1',                        &
          DIMS       = MAPL_DimsHorzVert,                   &
@@ -647,7 +648,7 @@ CONTAINS
         DIMS        = MAPL_DimsHorzOnly,                   &
         VLOCATION   = MAPL_VLocationNone,                  &
         RESTART     = MAPL_RestartSkip,  __RC__)
-     
+
      call MAPL_AddImportSpec(GC,                           &
         SHORT_NAME = 'CLDTT',                              &
         LONG_NAME  = 'total_cloud_area_fraction',          &
@@ -681,6 +682,14 @@ CONTAINS
      m = state%chemReg%i_GOCART
      n = state%chemReg%j_GOCART
 
+     call ESMF_ConfigGetAttribute(CF, codas_mode, Default="Normal", &
+          Label="CODAS_MODE:", RC=STATUS)
+     VERIFY_(STATUS)
+
+     call ESMF_ConfigGetAttribute(CF, codas_tmpl, Default="None", &
+          Label="CODAS_TMPL:", RC=STATUS)
+     VERIFY_(STATUS)
+
      ALLOCATE(doCODAS(m:n), STAT=STATUS)
      VERIFY_(STATUS)
      doCODAS(:) = .false.
@@ -694,7 +703,8 @@ CONTAINS
 
         if (codas_name == comp_name) doCODAS(i) = .true.
 
-        if (doCODAS(i)) then
+        ! Add increment imports (if we're not in split mode)
+        if (doCODAS(i) .and. adjustl(codas_mode) /= "Split") then
            if (MAPL_AM_I_ROOT()) print *, "CoDAS: Applying IAU to ", &
                                  trim(comp_name)//"::"//trim(field_name)
 
@@ -709,13 +719,13 @@ CONTAINS
            VERIFY_(STATUS)
         endif
      enddo
-     
+
 if ( r%doing_GOCART ) then
 
 ! !INTERNAL STATE:
 
 !
-!  NOTES: 
+!  NOTES:
 !    1)  vtitle as it stands is as the CF definition of long name.
 !        I may need to create a "standard name" in chemReg and pass
 !        this to GEOS Generic
@@ -723,7 +733,7 @@ if ( r%doing_GOCART ) then
 !
 
     nq = r%nq     ! total number of chemical tracers
-    
+
 ! Get BOOTSTRAP Default Values for GOCART INTERNAL
 ! ------------------------------------------------
     CALL ESMF_ConfigGetAttribute(CF, DEFVAL_CO2, Default=380.0e-6, Label='DEFVAL_CO2:', __RC__)
@@ -744,12 +754,12 @@ if ( r%doing_GOCART ) then
      STATUS = 1
      VERIFY_(STATUS)
     END IF
-     
+
 !   Loop over all constituents on registry
 !   --------------------------------------
-    do n = r%i_GOCART, r%j_GOCART 
+    do n = r%i_GOCART, r%j_GOCART
 
-       if (state%data_driven) then 
+       if (state%data_driven) then
           FRIENDLIES = trim(COMP_NAME)
 
           call ESMF_ConfigGetAttribute(CF, AEROFRIENDLY, Label='AERO_FRIENDLIES:', default=FRIENDLIES, __RC__)
@@ -776,7 +786,7 @@ if ( r%doing_GOCART ) then
        call MAPL_AddInternalSpec(GC,               &
           SHORT_NAME = trim(COMP_NAME)//'::'//trim(r%vname(n)), &
           LONG_NAME  = r%vtitle(n),                &
-          UNITS      = r%vunits(n),                &     
+          UNITS      = r%vunits(n),                &
           FRIENDLYTO = FRIENDLIES,                 &
           RESTART    = MAPL_RestartOptional,       &
           DEFAULT    = DEFVAL,                     &
@@ -827,7 +837,7 @@ end if ! doing GOCART
 !   --------
 
     RETURN_(ESMF_SUCCESS)
-  
+
   end subroutine SetServices
 
 
@@ -858,7 +868,7 @@ end if ! doing GOCART
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -877,14 +887,14 @@ end if ! doing GOCART
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    integer                         :: hdt         ! model     timestep (secs)
    integer                         :: rft
 
-   type(ESMF_Grid)                 :: grid       
- 
+   type(ESMF_Grid)                 :: grid
+
    integer                         :: i1=1, i2, ig=0, im  ! dist grid indices
    integer                         :: j1=1, j2, jg=0, jm  ! dist grid indices
    integer                         :: km, nq              ! dist grid indices
@@ -911,7 +921,7 @@ end if ! doing GOCART
    character(len=ESMF_MAXSTR)      :: short_name
    real                            :: f_aci_seasalt, maxclean, ccntuning
    character(LEN=ESMF_MAXSTR)      :: CLDMICRO
-     
+
    type(MAPL_VarSpec), pointer     :: InternalSpec(:)
    integer                         :: instance
 
@@ -929,7 +939,7 @@ end if ! doing GOCART
 
    type(ESMF_State)           :: providerState
    character(len=ESMF_MAXSTR) :: prefix
-  
+
   real(ESMF_KIND_R4),  dimension(4) :: Vect_Hcts
 
 !  Get my name and set-up traceback handle
@@ -992,7 +1002,7 @@ end if ! doing GOCART
                            staggerloc = ESMF_STAGGERLOC_CENTER, &
                            computationalCount = DIMS, __RC__)
 
-!  Associate the Internal State fields with our legacy state 
+!  Associate the Internal State fields with our legacy state
 !  ---------------------------------------------------------
    call MAPL_Get ( ggSTATE, INTERNALSPEC = InternalSpec, &
                             INTERNAL_ESMF_STATE = internal, &
@@ -1005,7 +1015,7 @@ end if ! doing GOCART
       CELL_AREA => null()
   else
       call MAPL_GetPointer(impChem, NAME='AREA', ptr=CELL_AREA, __RC__)
-  end if 
+  end if
 
 ! Local sizes of three dimensions
 !--------------------------------
@@ -1053,11 +1063,11 @@ end if ! doing GOCART
 #ifdef PRINT_STATES
 
    if (MAPL_AM_I_ROOT()) then
-       print *, trim(Iam)//': INTERNAL State during Initialize():' 
+       print *, trim(Iam)//': INTERNAL State during Initialize():'
        call ESMF_StatePrint ( internal )
        print *, trim(Iam)//': IMPORT   State during Initialize():'
        call ESMF_StatePrint ( impChem  )
-       print *, trim(Iam)//': EXPORT   State during Initialize():' 
+       print *, trim(Iam)//': EXPORT   State during Initialize():'
        call ESMF_StatePrint ( expChem  )
     end if
 
@@ -1076,11 +1086,11 @@ end if ! doing GOCART
 !         the subcomponents as bonafide ESMF components
 !-srf added Henrys law constants
 !   --------------------------------------------------------------
-    do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+    do n = ChemReg%i_GOCART, ChemReg%j_GOCART
        call ESMF_StateGet(internal, trim(COMP_NAME)//'::'//trim(ChemReg%vname(n)), field, __RC__)
        call ESMF_AttributeSet(field, NAME='ScavengingFractionPerKm', VALUE=ChemReg%fscav(n), __RC__)
-       Vect_Hcts(1:4)= ChemReg%hcts(1:4,n) 
-  
+       Vect_Hcts(1:4)= ChemReg%hcts(1:4,n)
+
        call ESMF_AttributeSet(field, 'SetofHenryLawCts', Vect_Hcts, __RC__)
     end do
 
@@ -1135,7 +1145,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -1154,12 +1164,12 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    real                            :: hdt         ! heartbeat time step (secs)
    real, pointer                   :: var(:,:,:)
-   integer                         :: n
+   integer                         :: nn
 
    type(ESMF_Config)               :: CF
 
@@ -1175,39 +1185,40 @@ CONTAINS
    real(ESMF_KIND_R4), allocatable :: SLR(:,:)
 
    real, pointer                   :: rh2(:,:,:)
-   integer                         :: in, jn
 
    type(GOCART_state), pointer     :: myState
 
-!  Variables for CoDAS IAU
+   ! Variables for CoDAS IAU
    real, pointer, dimension(:,:,:) :: ptr_inc => null()
    real, pointer, dimension(:,:,:) ::    qtot => null()
-   integer                         :: i, m
+   character(len=ESMF_MAXSTR)      :: ReplayMode, ifile_
+   type(ESMF_Alarm)                :: PredictorIsActive
+   logical                         :: doingPredictorNow, HasFile
+   character(len=4)                :: syy
+   character(len=2)                :: smm, sdd, sh, sm
+   integer                         :: yy_, mm_, dd_, h_, m_, s_
+   type(ESMF_TIME)                 :: currTime, fileTime_
+   type(ESMF_TimeInterval)         :: tsInt
 
 !                               ---
 
-!  Get my name and set-up traceback handle
-!  ---------------------------------------
-   call ESMF_GridCompGet( GC, NAME=COMP_NAME, CONFIG=CF, __RC__ )
+   ! Get my name and set-up traceback handle
+   call ESMF_GridCompGet(GC, NAME=COMP_NAME, CONFIG=CF, __RC__ )
    Iam = trim(COMP_NAME) // '::' // 'Run1_'
 
-!  Get my internal MAPL_Generic state
-!  -----------------------------------
-   call MAPL_GetObjectFromGC ( GC, ggState, __RC__)
+   ! Get my internal MAPL_Generic state
+   call MAPL_GetObjectFromGC(GC, ggState, __RC__)
 
    call MAPL_TimerOn(ggState, 'TOTAL')
    call MAPL_TimerOn(ggState, 'RUN')
 
-!  Get parameters from generic state.
-!  ----------------------------------
+   ! Get parameters from generic state.
    call MAPL_Get(ggState, LONS=LONS, LATS=LATS, ORBIT=ORBIT, RUNALARM=ALARM, __RC__)
 
-!  Get heartbeat time step 
-!  -----------------------
+   ! Get heartbeat time step
    call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
- 
-!  Get pre-ESMF parameters from gc and clock
-!  -----------------------------------------
+
+   ! Get pre-ESMF parameters from gc and clock
    call extract_ ( gc, clock, chemReg, gcChem, w_c, nymd, nhms, cdt, STATUS, state=myState )
    VERIFY_(STATUS)
 
@@ -1221,63 +1232,167 @@ CONTAINS
    allocate(  ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
    allocate(  SLR(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
 
-!  Update solar zenith angle
-!  --------------------------
+   ! Update solar zenith angle
    call MAPL_SunGetInsolation(LONS, LATS, ORBIT, r4ZTH, SLR, CLOCK=CLOCK, __RC__)
 
-!  Set pointers for sine/cosine zenith angle
-!  -----------------------------------------
-
-!  w_c%sinz => ...
+   ! Set pointers for sine/cosine zenith angle, fill in DELP and RH2
+   ! ---
    ZTH = r4ZTH
    w_c%cosz => zth
 
-!  Fill in delp
-!  ------------
-   call MAPL_GetPointer ( impChem, var, 'DELP', __RC__ )
+   call MAPL_GetPointer(impChem, var, 'DELP', __RC__)
    w_c%delp = var(:,:,:)
 
-!  Fill in RH
-!  ----------
-   call MAPL_GetPointer ( impChem, rh2, 'RH2', __RC__ )
+   call MAPL_GetPointer(impChem, rh2, 'RH2', __RC__)
    w_c%rh = rh2
 
-!  Apply CoDAS IAU if apropros 
-!  ---------------------------
-   m = ChemReg%i_GOCART
-   n = ChemReg%j_GOCART
+   ! Apply CoDAS IAU if apropros
+   ! ---
+   ! Normal, staggered increment application
+   if (adjustl(codas_mode) /= "Split") then
+      do nn = ChemReg%i_GOCART,ChemReg%j_GOCART
+         if (doCODAS(nn)) then
+            call MAPL_GetPointer(impChem, ptr_inc, &
+               "INC_"//TRIM(ChemReg%vname(nn)), notFoundOK=.TRUE., RC=STATUS)
+            VERIFY_(STATUS)
 
-   do i = m,n
-      if (doCODAS(i)) then
-         call MAPL_GetPointer ( impChem, ptr_inc,               &
-                                "INC_"//TRIM(ChemReg%vname(i)), &
-                                notFoundOK=.TRUE., RC=STATUS )
-         VERIFY_(STATUS)
-         call MAPL_GetPointer ( impChem, qtot, "QTOT", rc=STATUS )
+            call MAPL_GetPointer(impChem, qtot, "QTOT", RC=STATUS)
+            VERIFY_(STATUS)
+
+            ! Make increment total air, then apply
+            ! (6 hour divisor should be read from RC file)
+            ptr_inc = ptr_inc * (1. - qtot)
+            w_c%qa(nn)%data3d = w_c%qa(nn)%data3d + ptr_inc*cdt/(6.*60.*60.)
+         endif
+      enddo
+   else
+      ! Check if replay is running
+      ! (hard to believe, but this is how it's done in GEOS_GcmGridComp)
+      doingPredictorNow = .false.
+      call ESMF_ConfigGetAttribute(CF, ReplayMode, Label='REPLAY_MODE:', &
+         DEFAULT="NoReplay", RC=STATUS)
+
+      if (adjustl(ReplayMode) == "Regular") then
+         call ESMF_ClockGetAlarm(clock, "PredictorActive", PredictorIsActive, &
+            RC=STATUS)
          VERIFY_(STATUS)
 
-!        Make increment total air, then apply
-!        (6 hour divisor should be read from RC file)
-         ptr_inc = ptr_inc * (1. - qtot)
-         w_c%qa(i)%data3d = w_c%qa(i)%data3d + ptr_inc*cdt/(6.*60.*60.)
+         doingPredictorNow = ESMF_AlarmIsRinging(PredictorIsActive, RC=STATUS)
+         VERIFY_(STATUS)
       endif
+
+      yy_ = nymd/10000
+      mm_ = (nymd-yy_*10000)/100
+      dd_ = nymd-yy_*10000-mm_*100
+
+      h_ = nhms/10000
+      m_ = (nhms-h_*10000)/100
+      s_ = nhms-h_*10000-m_*100
+
+      ! Only apply increment if doing corrector
+      if (.not. doingPredictorNow) then
+         if (     h_ < 3  ) then
+            h_ = 0
+         elseif ( h_ < 9  ) then
+            h_ = 6
+         elseif ( h_ < 15 ) then
+            h_ = 12
+         elseif ( h_ < 21 ) then
+            h_ = 18
+         ! If 21z, get next day
+         else
+            call ESMF_TimeSet(currTime, yy=yy_, mm=mm_, dd=dd_, h=23, m=m_, s=0)
+            call ESMF_TimeIntervalSet(tsInt, s_r8=real(7200.0,8), __RC__)
+            call ESMF_TimeGet(currTime+tsInt, yy=yy_, mm=mm_, dd=dd_)
+            h_ = 0
+         endif
+
+         ! Parse file name
+         ifile_ = trim(codas_tmpl)
+         write(syy,'(I4.4)') yy_
+         call ReplaceChar_(ifile_, '%y4', syy)
+         write(smm,'(I2.2)') mm_
+         call ReplaceChar_(ifile_, '%m2', smm)
+         write(sdd,'(I2.2)') dd_
+         call ReplaceChar_(ifile_, '%d2', sdd)
+         write(sh,'(I2.2)') h_
+         call ReplaceChar_(ifile_, '%h2', sh)
+         write(sm,'(I2.2)') m_
+         call ReplaceChar_(ifile_, '%n2', sm)
+
+         ! Set default file time
+         call ESMF_TimeSet(fileTime_, yy=yy_, mm=mm_, dd=dd_, h=h_, m=m_, s=0)
+
+         ! Check if requested file is already in memory (in the VarBundle)
+         if (trim(ifile_) /= trim(CurrentFile)) then
+            inquire(file=trim(ifile_), exist=HasFile)
+            if (HasFile) then
+               ! Destroy old bundle first (if one exists)
+               if (VarBundleCreated) then
+                  call DestroyVarBundle_(RC=STATUS)
+                  VERIFY_(STATUS)
+               endif
+
+               ! Recreate bundle
+               call CreateVarBundle_(gc, RC=STATUS)
+               VERIFY_(STATUS)
+               VarBundleCreated = .true.
+
+               ! Read bundle. Read all variables as we might want them later on
+               call MAPL_Read_Bundle(VarBundle, trim(codas_tmpl), fileTime_, &
+                  file_override=trim(ifile_), RC=STATUS)
+               VERIFY_(STATUS)
+
+               CurrentFile = trim(ifile_)
+               if (MAPL_AM_I_ROOT()) then
+                  print *, trim(Iam)//': Read '//trim(ifile_)
+               endif
+            else
+               if (MAPL_AM_I_ROOT()) then
+                  print *, trim(Iam)//': File not found '//trim(ifile_)
+               endif
+            endif
+         else
+            if (MAPL_AM_I_ROOT()) then
+               print *, trim(Iam)//': Accessing previously read file '// &
+                  trim(ifile_)
+            endif
+         endif
+
+         if (HasFile) then
+            ! Get analysis field
+            do nn = ChemReg%i_GOCART, ChemReg%j_GOCART
+               if (doCODAS(nn)) then
+                  call ESMFL_BundleGetPointerToData(VarBundle, &
+                     trim(ChemReg%vname(nn)), ptr_inc, __RC__)
+
+                  call MAPL_GetPointer(impChem, qtot, "QTOT", RC=STATUS)
+                  VERIFY_(STATUS)
+
+                  ! Make increment total air, then apply
+                  ! (6 hour divisor should be read from RC file)
+                  ptr_inc = ptr_inc * (1. - qtot)
+                  w_c%qa(nn)%data3d = w_c%qa(nn)%data3d + ptr_inc*cdt/(6.*60.*60.)
+               endif
+            enddo
+         endif
+      endif ! .not. doingPredictorNow
+   endif ! adjustl(codas_mode) /= "Split"
+
+   ! Make sure tracers remain positive
+   ! ----
+   do nn = ChemReg%i_GOCART, ChemReg%j_GOCART
+      call Chem_UtilNegFiller(w_c%qa(nn)%data3d, w_c%delp, size(w_c%delp,1), &
+         size(w_c%delp,2), qmin=tiny(1.0))
    enddo
 
-!  Make sure tracers remain positive
-!  ---------------------------------
-   in = size(w_c%delp,1);   jn = size(w_c%delp,2)
-   do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
-      call Chem_UtilNegFiller ( w_c%qa(n)%data3d, w_c%delp, in, jn, &
-                                qmin=tiny(1.0) )
-   end do
-
-!  Call pre-ESMF version: runs at the heartbeat
-!  --------------------------------------------
-   call MAPL_TimerOn(ggState,'AERO1')
-   call Aero_GridCompRun1 ( gcChem, w_c, gc, impChem, expChem, &
-                            nymd, nhms, hdt, STATUS )
+   ! Call pre-ESMF version: runs at the heartbeat
+   ! ---
+   call MAPL_TimerOn(ggState, 'AERO1')
+   call Aero_GridCompRun1(gcChem, w_c, gc, impChem, expChem, nymd, nhms, &
+      hdt, STATUS)
    VERIFY_(STATUS)
-   call MAPL_TimerOff(ggState,'AERO1')
+   call MAPL_TimerOff(ggState, 'AERO1')
 
    deallocate(SLR,   __STAT__)
    deallocate(ZTH,   __STAT__)
@@ -1318,7 +1433,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -1337,7 +1452,7 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: hdt         ! heartbeat timestep (secs)
    real                            :: cdt         ! chemistry timestep (secs)
@@ -1364,7 +1479,7 @@ CONTAINS
    type(GOCART_state), pointer     :: myState
    real, pointer, dimension(:,:,:) :: ptr3d_int
    real, pointer, dimension(:,:,:) :: ptr3d_imp
-   
+
    logical                         :: run_alarm
    logical                         :: alarm_is_ringing
 
@@ -1373,7 +1488,7 @@ CONTAINS
    real, pointer, dimension(:,:)   :: totexttau, totscatau, &
                                       totextt25, totscat25, &
                                       totexttfm, totscatfm, &
-                                      totangstr 
+                                      totangstr
    real, pointer, dimension(:,:)   :: pm,        pm25,      &
                                       pm_rh35,   pm25_rh35, &
                                       pm_rh50,   pm25_rh50
@@ -1422,7 +1537,7 @@ CONTAINS
    call MAPL_TimerOn(ggState, 'TOTAL')
    call MAPL_TimerOn(ggState, 'RUN')
 
-!  Get heartbeat time step 
+!  Get heartbeat time step
 !  -----------------------
    call MAPL_GetResource(ggState, hdt, label='RUN_DT:', __RC__)
 
@@ -1441,13 +1556,13 @@ CONTAINS
    VERIFY_(STATUS)
 
    if (myState%data_driven) then
-       
+
        call MAPL_Get ( ggState, INTERNAL_ESMF_STATE=internal, __RC__ )
 
        do n = chemReg%i_GOCART, chemReg%j_GOCART
            call MAPL_GetPointer ( internal, NAME=trim(COMP_NAME)//'::'//trim(chemReg%vname(n)), ptr=ptr3d_int, __RC__ )
            call MAPL_GetPointer ( impChem,  NAME='clim'//trim(chemReg%vname(n)), ptr=ptr3d_imp, __RC__ )
-             
+
            ptr3d_int = ptr3d_imp
        end do
 
@@ -1455,7 +1570,7 @@ CONTAINS
        call MAPL_TimerOff(ggState, 'TOTAL')
 
        RETURN_(ESMF_SUCCESS)
-   end if 
+   end if
 
 
    allocate(r4ZTH(SIZE(LATS,1), SIZE(LATS,2)), __STAT__)
@@ -1486,7 +1601,7 @@ CONTAINS
 !  Make sure tracers remain positive
 !  ---------------------------------
    in = size(w_c%delp,1);   jn = size(w_c%delp,2)
-   do n = ChemReg%i_GOCART, ChemReg%j_GOCART 
+   do n = ChemReg%i_GOCART, ChemReg%j_GOCART
       call Chem_UtilNegFiller ( w_c%qa(n)%data3d, w_c%delp, in, jn, &
                                 qmin=tiny(1.0) )
    end do
@@ -1544,7 +1659,7 @@ CONTAINS
    type(ESMF_State), intent(inout) :: expChem     ! Export State
    integer, intent(out) ::  rc                    ! Error return code:
                                                   !  0 - all is well
-                                                  !  1 - 
+                                                  !  1 -
 
 ! !DESCRIPTION: This is a simple ESMF wrapper.
 !
@@ -1564,7 +1679,7 @@ CONTAINS
 
    type(Chem_Registry), pointer    :: chemReg
    type(Aero_GridComp), pointer    :: gcChem      ! Grid Component
-   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields     
+   type(Chem_Bundle), pointer      :: w_c         ! Chemical tracer fields
    integer                         :: nymd, nhms  ! time
    real                            :: cdt         ! chemistry timestep (secs)
    type(MAPL_MetaComp), pointer    :: ggState     ! GEOS Generic State
@@ -1602,7 +1717,7 @@ CONTAINS
 
 !  Destroy Chem_Registry
 !  ---------------------
-   call Chem_RegistryDestroy ( chemReg, STATUS ) 
+   call Chem_RegistryDestroy ( chemReg, STATUS )
    VERIFY_(STATUS)
 
 !  Destroy Legacy state
@@ -1614,6 +1729,14 @@ CONTAINS
 !  ------------------------------
    deallocate ( doCODAS, stat = STATUS )
    VERIFY_(STATUS)
+
+   ! Destroy VarBundle if it was created
+   if (VarBundleCreated) then
+      call DestroyVarBundle_(RC=STATUS)
+      VERIFY_(STATUS)
+      VarBundleCreated = .false.
+      CurrentFile = 'N/A'
+   endif
 
    call MAPL_TimerOff(ggState, 'FINALIZE')
    call MAPL_TimerOff(ggState, 'TOTAL')
@@ -1740,8 +1863,8 @@ logical function isDataDrivenGC_(gc, rc)
 
    type(ESMF_GridComp), intent(INout) :: gc
    integer, intent(out)               :: rc
- 
-!  local 
+
+!  local
    character(len=ESMF_MAXSTR)         :: IAm
    integer                            :: STATUS
 
@@ -1749,10 +1872,10 @@ logical function isDataDrivenGC_(gc, rc)
    character(len=ESMF_MAXSTR)         :: comp_name
    character(len=*), parameter        :: modifier = '.data'
 
-   call ESMF_GridCompGet(gc, name=comp_name, __RC__)   
+   call ESMF_GridCompGet(gc, name=comp_name, __RC__)
    i = index(trim(comp_name), trim(modifier), back=.true.)
- 
-   if (i > 0) then 
+
+   if (i > 0) then
        ! lets be strict
        if (comp_name(i:) == modifier) then
            isDataDrivenGC_ = .true.
@@ -1767,6 +1890,152 @@ logical function isDataDrivenGC_(gc, rc)
 
 end function isDataDrivenGC_
 
+! The rest is lifted from Christoph Keller's additions to GEOS-Chem to handle
+! increments
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: ReplaceChar_
+!
+! !DESCRIPTION: Replaces all characters in a string.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE ReplaceChar_ ( str, pattern, replace )
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)    :: pattern
+    CHARACTER(LEN=*), INTENT(IN)    :: replace
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(INOUT) :: str
+!
+! !REVISION HISTORY:
+!  20 Dec 2018 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER  :: I, LP, LS
+
+    LP = LEN(TRIM(pattern))
+    LS = LEN(TRIM(str))+1
+    I  = INDEX(TRIM(str),TRIM(pattern))
+    DO WHILE ( I > 0 )
+       str = TRIM(str(1:I-1))//TRIM(replace)//TRIM(str(I+LP:LS))
+       I = INDEX(TRIM(str),TRIM(pattern))
+    ENDDO
+
+  END SUBROUTINE ReplaceChar_
+!EOC
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CreateVarBundle_
+!
+! !DESCRIPTION: Helper routine to create the VarBundle (GEOS only).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CreateVarBundle_(gc, RC)
+!
+! !USES:
+!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+  type(ESMF_GridComp), intent(in) :: gc      ! Grid Component
+  INTEGER                         :: RC
+!
+! !REVISION HISTORY:
+!  23 Feb 2024 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(ESMF_Grid)                         :: grid
+
+    ! starts here
+    __Iam__('CreateVarBundle_')
+
+    ! Create bundle and attach grid to it
+    CALL ESMF_GridCompGet(gc, grid=grid, __RC__)
+    VarBundle = ESMF_FieldBundleCreate(name='AnaBundle', __RC__)
+    CALL ESMF_FieldBundleSet(VarBundle, grid=grid, __RC__)
+
+    ! Exit w/ success
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE CreateVarBundle_
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DestroyVarBundle_
+!
+! !DESCRIPTION: Helper routine to destroy the VarBundle (GEOS only).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DestroyVarBundle_( RC )
+!
+! !USES:
+!
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+  INTEGER                                 :: RC
+!
+! !REVISION HISTORY:
+!  23 Feb 2024 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    Integer                                 :: I, fieldcount
+    Type(esmf_field)                        :: bundle_field
+    Character(len=ESMF_MAXSTR), allocatable :: fieldnames(:)
+
+    ! starts here
+    __Iam__('DestroyVarBundle_')
+
+    ! Destroy the bundle
+    CALL ESMF_FieldBundleGet(VarBundle,fieldcount=fieldcount, __RC__ )
+    Allocate(fieldnames(fieldcount))
+    CALL ESMF_FieldBundleGet(VarBundle,fieldNameList=fieldnames, __RC__ )
+    Do I = 1,fieldCount
+       CALL ESMF_FieldBundleGet(VarBundle,trim(fieldnames(i)),field=bundle_field, __RC__ )
+       CALL ESMF_FieldDestroy(bundle_field,noGarbage=.true., __RC__ )
+    Enddo
+    Deallocate(fieldnames)
+    CALL ESMF_FieldBundleDestroy(VarBundle,noGarbage=.true., __RC__ )
+
+    ! Exit w/ success
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE DestroyVarBundle_
+!EOC
 
 end module GOCART_GridCompMod
-
