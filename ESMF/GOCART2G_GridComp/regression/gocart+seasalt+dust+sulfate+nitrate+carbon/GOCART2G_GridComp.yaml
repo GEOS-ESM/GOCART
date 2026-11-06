@@ -8,14 +8,13 @@ wavelengths_for_vertically_integrated_aop_in_nm: 550  # must be included in LUT
 aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
-# KNOWN LIMITATION: activating CA fails at SetServices. MAPL3's
-# MAPL_GridCompAddChild asserts is_valid_name() on every child name, which
-# rejects the dotted CA instance names (CA.oc, CA.bc, CA.br) inherited from
-# the MAPL2-era GOCART2G design ("Child name <CA.oc> does not conform to
-# GEOS standards."). This directory is kept for structural parity with
-# gocart+seasalt+dust+sulfate+nitrate, not because the case is expected to
-# pass. Full details in ../../CA2G_GridComp/mapl3-porting-notes.md
-# ("Run-testing update").
+# All three CA instances are active here (vs. CA: [] in
+# gocart+seasalt+dust+sulfate+nitrate). The dotted instance names
+# (CA.oc, CA.bc, CA.br) inherited from the MAPL2-era GOCART2G design are
+# accepted by MAPL3's is_valid_name() child-name check, which admits '.'
+# in addition to letters, digits and '_'. Verified end to end: all three
+# children pass SetServices and Initialize under the real GOCART2G parent.
+# Details in ../../CA2G_GridComp/mapl3-porting-notes.md.
 ACTIVE_INSTANCES:
   DU: [DU]  # [DU.data]
   SS: [SS]  # [SS.data]

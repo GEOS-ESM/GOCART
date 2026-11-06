@@ -325,6 +325,7 @@ contains
       real :: CDT ! chemistry timestep (secs)
       real :: HDT ! model timestep (secs)
       logical :: data_driven
+      character(len=:), allocatable :: diurnal_bb
 
       integer, allocatable, dimension(:) :: channels_
       integer :: nmom_
@@ -346,6 +347,11 @@ contains
       call MAPL_ClockGet(clock, dt=HDT, _RC)
       call MAPL_GridCompGetResource(gc, "GOCART2G_DT", CDT, default=real(HDT), _RC)
       self%CDT = CDT
+
+      ! Check whether to de-activate diurnal biomass burning (default is *on*)
+      call MAPL_GridCompGetResource(gc, "DIURNAL_BIOMASS_BURNING", diurnal_bb, default='YES', _RC)
+      diurnal_bb = ESMF_UtilStringUpperCase(diurnal_bb, _RC)
+      self%diurnal_bb = (trim(diurnal_bb) == 'YES')
 
       call MAPL_GridCompGetInternalState(gc, internal, _RC)
 

@@ -1,7 +1,6 @@
 # CA2G_GridComp MAPL3 porting plan
 
-Status: **code-complete, built, run-tested, blocked at Initialize** by a
-MAPL3 framework constraint (see "Run-testing update" below). Ported on top
+Status: **code-complete, built, and run-tested end to end.** Ported on top
 of `release/MAPL-v3`, following the SU2G port
 (`../SU2G_GridComp/mapl3-porting-notes.md`) as the primary template for the
 single-state-bundle `_AERO`/`_AERO_DP` export pattern, with NI2G
@@ -302,15 +301,15 @@ since all three instances share one code path and only differ by
 - Updated the stale `CA: []  # [CA.oc, CA.bc, CA.br] not ported to MAPL3
   yet` comment in both existing combined cases'
   (`gocart+seasalt+dust+sulfate`, `gocart+seasalt+dust+sulfate+nitrate`)
-  `GOCART2G_GridComp.yaml` to reflect the real, more specific status (code
-  ported, blocked by the `is_valid_name` issue below) -- `CA` itself is
-  still left as `[]` (disabled) in both, since enabling it would hit the
-  same blocker described below.
+  `GOCART2G_GridComp.yaml` to reflect the real status (code ported and
+  runnable). `CA` itself is still left as `[]` (disabled) in both, now
+  purely to keep those two cases' scope and published baselines unchanged;
+  CA coverage lives in `carbon-sa` and in the
+  `gocart+seasalt+dust+sulfate+nitrate+carbon` case below.
 
 ### 9. `gocart+seasalt+dust+sulfate+nitrate+carbon` combined-case harness
 
-Added (in a follow-up pass, after the blocker in "Run-testing update" below
-was already known and documented) a new combined-case directory,
+Added (in a follow-up pass) a new combined-case directory,
 `regression/gocart+seasalt+dust+sulfate+nitrate+carbon/`, extending
 `gocart+seasalt+dust+sulfate+nitrate` by activating all three CA instances
 (`CA.oc`, `CA.bc`, `CA.br`) through the real GOCART2G parent, matching the
@@ -331,9 +330,8 @@ production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
   (`OC_*`/`BC_*`/`BRC_*`, `pSOA_ANTHRO_VOC`, `pSOA_BIOB_VOC`); all met/
   surface fields CA needs were already present (shared with DU/SS/SU/NI).
 - `GOCART2G_GridComp.yaml`: `CA: [CA.oc, CA.bc, CA.br]` enabled (vs `[]` in
-  the parent `+nitrate` directory), with a comment documenting the expected
-  `is_valid_name` failure inline (mirroring `nitrate-sa`'s
-  "KNOWN LIMITATION" comment style).
+  the parent `+nitrate` directory), with a comment noting that the dotted
+  instance names are accepted by `is_valid_name`.
 - `run{1,2}/root.yaml`: the existing 92-field connection list (from
   `+nitrate`) extended with the 34 new CA fields, same
   `DataForGOCART2G -> GOCART2G` pattern.
@@ -347,113 +345,200 @@ production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
   `"CA.br"` entries (alongside `DU`/`SS`/`SU`/`NI`/`GOCART2G`).
 - Registered `gocart+seasalt+dust+sulfate+nitrate+carbon/run1`/`run2` in
   `regression/cases.txt`.
-- **Confirmed via manual `GEOS.x mapl.yaml`** (same recipe as `carbon-sa`)
-  that this case hits the identical, already-documented `is_valid_name`
-  blocker, but this time inside the *real* `GOCART2G_GridCompMod.F90`
-  itself rather than only the standalone test scaffolding:
+- **Confirmed via manual `GEOS.x mapl.yaml`** (same recipe as `carbon-sa`,
+  build/run environment: `module load ifx-stack`) that all three CA
+  instances are added, SetServices'd and Initialize'd by the *real*
+  `GOCART2G_GridCompMod.F90` `add_children__` call site, not just by the
+  standalone `carbon-sa` scaffolding:
   ```
-  FAIL at line=00442    MAPL_Generic.F90            <Child name <CA.oc> does not conform to GEOS standards.>
-  FAIL at line=01269    GOCART2G_GridCompMod.F90    <status=1>
-  FAIL at line=01250    GOCART2G_GridCompMod.F90    <status=1>
+  CA.oc: SetServices:: ...completed
+  CA.bc: SetServices:: ...completed
+  CA.br: SetServices:: ...completed
+  CA.oc: Initialize:: ...completed
+  CA.bc: Initialize:: ...completed
+  CA.br: Initialize:: ...completed
   ```
-  This is the first time the production parent's own `add_children__` call
-  site (not just `carbon-sa`'s copy of the same MAPL3 API) has been
-  exercised end to end with CA active, and it fails exactly as predicted.
-  `ctest -L REGRESSION` still passes (29/29) with this case included, since
-  it reports "skipping" (no baseline data) rather than actually invoking
-  `GEOS.x`.
+  The case still cannot be driven to completion by `ctest -L REGRESSION`
+  because no baseline/restart data has been published for it yet (it
+  reports "Regression data not found ... skipping", same as every case
+  before its baselines exist); the run above was done against a scratch
+  expdir with the restart reads disabled purely to exercise
+  SetServices/Initialize.
 
 ## Run-testing update (manual `GEOS.x`, not yet `ctest -L REGRESSION`)
 
-Built `CA2G_GridComp` and `GOCART2G_GridComp` (`cmake --build . --target
-GOCART2G_GridComp -j4`): **both build cleanly, zero errors/warnings**.
-Inspected the generated `GOCART2G_DeclarePointer___.h`/`GetPointer___.h`:
-the ALIAS-column pointers (`bcexttau`, `ocexttau`, `brexttau`, etc.) are
-generated correctly and map to the dotted ESMF field names as intended.
+Build/run environment: `module load ifx-stack` (ifx/2025.3,
+intelmpi/2021.17, Baselibs/8.33.0 -- the stack the build tree was
+configured against).
 
-Reconfigured (`cmake .`, without `GEOSpyD` loaded -- loading it breaks MPI
-detection in this environment) to pick up the new `carbon-sa/run{1,2}`
-cases in `cases.txt`; confirmed via `ctest -N` and `ctest -R carbon-sa -V`
-that the harness is wired correctly and reports "Regression data not found
-... skipping" exactly like `nitrate-sa` and every other case did before its
-baseline data existed -- i.e. no YAML/registration errors.
+Built `CA2G_GridComp`/`GOCART2G_GridComp` and relinked `GEOS.x`: **all
+build and link cleanly, zero errors/warnings**. Inspected the generated
+`GOCART2G_DeclarePointer___.h`/`GetPointer___.h`: the ALIAS-column pointers
+(`bcexttau`, `ocexttau`, `brexttau`, etc.) are generated correctly and map
+to the dotted ESMF field names as intended. The ALIAS column remains
+necessary, since the dotted instance names are retained.
 
-**Manually ran `GEOS.x mapl.yaml` against `carbon-sa/run1` and `run2`**
-(`mpiexec -n 6`, scratch expdir, `ExtData` symlinked from the shared
-regression-data tree, no restart data) to check CA2G's `Initialize`
-specifically, since no `ctest`-level baseline exists yet. **Found a real,
-previously-undiscovered blocker, not a missing-data issue:**
+**`carbon-sa/run1` and `carbon-sa/run2` both run to completion**
+(`mpiexec -n 6 GEOS.x mapl.yaml`, scratch expdir, `ExtData` symlinked from
+the shared regression-data tree, restarts from the partial baseline tree):
+exit status 0, zero `FAIL` lines, and the expected checkpoints are written:
 
-- Both runs fail identically, at `SetServices` (before `Initialize` is even
-  reached):
-  ```
-  FAIL at line=00035 ...uterMetaComponent_SMOD_add_child_by_spec
-  <Child name <CA.bc> does not conform to GEOS standards.>
-  ```
-- Root cause: MAPL3's `MAPL_GridCompAddChild` (all overloads, in
-  `src/Shared/@MAPL/superstructure/generic/MAPL_Generic.F90`) asserts
-  `is_valid_name(child_name)` before adding any child. `is_valid_name`
-  (`src/Shared/@MAPL/utils/Validation.F90`) requires names to start with a
-  letter and contain only letters/digits/underscores -- **no `.`
-  allowed**. This is a hard, repo-wide MAPL3 constraint (added in a
-  "Rename mapl3g_ module namespace to mapl_" / "enforce gridcomps use MAPL
-  umbrella" pass per `git log -- utils/Validation.F90`), not something
-  specific to the `carbon-sa` harness.
-- **This is not limited to `carbon-sa`.** `GOCART2G_GridCompMod.F90`'s own
-  `add_children__` calls the exact same `MAPL_GridCompAddChild(gc,
-  child_name, setservices, hconfig, _RC)` with `child_name =
-  "CA.oc"`/`"CA.bc"`/`"CA.br"` (from `ACTIVE_INSTANCES`). If the production
-  `GOCART2G_GridComp.yaml`'s `CA: [CA.oc, CA.bc, CA.br]` were enabled and
-  `GEOS.x` actually run, it would hit this identical assertion. This was
-  never caught before this session because all prior verification of the
-  CA2G parent wiring was compile-only (`cmake --build`), never an actual
-  `GEOS.x` execution with CA wired in -- the dotted-instance-name
-  convention is inherited unmodified from the MAPL2-era GOCART2G design,
-  which did not have this validation.
-- Per explicit direction, **not fixing this in this pass** (renaming the
-  instance-naming convention from dotted (`CA.oc`/`CA.bc`/`CA.br`) to
-  underscore-based (`CA_oc`/`CA_bc`/`CA_br`) would touch
+```
+checkpoints/last/CA.bc_export.nc
+checkpoints/last/CA.bc_import.nc
+checkpoints/last/CA.bc_internal.nc
+```
+
+### Resolved: dotted instance names and `is_valid_name`
+
+An earlier pass of this port recorded a hard blocker here: MAPL3's
+`MAPL_GridCompAddChild` (in
+`src/Shared/@MAPL/superstructure/generic/MAPL_Generic.F90`) asserts
+`is_valid_name(child_name)` on every child, and `is_valid_name`
+(`src/Shared/@MAPL/utils/Validation.F90`) rejected `.`, so `CA.oc`,
+`CA.bc`, `CA.br` failed with *"Child name <CA.bc> does not conform to GEOS
+standards."* before `Initialize` was ever reached.
+
+**This is no longer the case.** `Validation.F90`'s `is_valid_name` now
+admits `.` alongside letters, digits and `_` for characters after the
+first:
+
+```fortran
+is_valid = (verify(name(2:), LOWER // UPPER // DIGITS // '_'//'.') == 0)
+```
+
+Consequences for this port, all re-verified by running:
+
+- The dotted MAPL2-era instance-naming convention (`CA.oc`/`CA.bc`/`CA.br`)
+  is kept **unchanged**. The previously-contemplated cross-cutting rename
+  to underscores (`CA_oc`/`CA_bc`/`CA_br`), which would have touched
   `GOCART2G_GridCompMod.F90`, `CA2G_GridCompMod.F90`'s `GCsuffix`
   comparisons, every instance yaml/`.rc` filename, the
-  `GOCART2G_StateSpecs.rc` ALIAS rows (which would likely become
-  unnecessary, since e.g. `CA_bcEXTTAU` is already a legal Fortran
-  identifier without an alias), and the `carbon-sa` harness -- a
-  nontrivial, cross-cutting rename, left for a follow-up). **Documenting as
-  a known blocker instead**, same spirit as NI2G's missing aerosol-optics
-  ExtData finding: the port is code-complete and builds, but cannot
-  actually run end to end yet.
-- `ctest -L REGRESSION` passes cleanly today with `carbon-sa/run{1,2}`
-  included (both report "skipping", same as before baseline data exists);
-  this is orthogonal to the `is_valid_name` blocker above, which only
-  surfaces when `GEOS.x` is actually invoked (manually, since no baseline
-  exists yet to drive a real `ctest` run).
+  `GOCART2G_StateSpecs.rc` ALIAS rows and the `carbon-sa` harness, is
+  **not needed and has not been done**.
+- `GOCART2G_StateSpecs.rc`'s ALIAS column stays as-is: it is exactly what
+  maps the dotted ESMF field names onto legal Fortran identifiers in the
+  generated headers.
+- The aerosol-optics ExtData previously feared missing
+  (`opticsBands_{BC,OC,BR}.v2.1.0.RRTMGP.nc4` /
+  `optics_{BC,OC,BR}.v2.1.0.nc4`) resolves fine from the regression ExtData
+  tree; all three instances log their optics files and complete
+  `Initialize`.
+
+## Baseline comparison (`cmpchk.py`) and the bug it exposed
+
+With `carbon-sa/run{1,2}` running, `cmpchk.py` (plain `baseline - current`,
+no NaN masking) was used against the MAPL2-era baselines. Three distinct
+classes of difference showed up; only one was a real bug.
+
+### 1. REAL BUG, now fixed: `diurnal_bb` was never initialized
+
+`run1` (Run1 phase = emissions) showed non-zero diffs in `CA.bcphobic` /
+`CA.bcphilic`:
+
+```
+CA.bcphilic   diff (min, max, norm): -1.13e-11, 2.17e-11, 6.35e-11
+CA.bcphobic   diff (min, max, norm): -4.53e-11, 8.68e-11, 2.54e-10
+```
+
+These are small in absolute terms only because the whole field is ~1e-10
+kg/kg; locally the discrepancy reached **3200%**. The fingerprint pinned
+down the cause precisely:
+
+- only 2051 of 156384 points differed, in just **129 of 864 columns**
+  (sparse -> a biomass-burning source, not a global one);
+- diffs were confined to levels 175-180 (the near-surface injection
+  layers) and were a *constant* increment per level;
+- `diff(philic) / diff(phobic)` was exactly **0.25** = `(1 -
+  fHydrophobic) / fHydrophobic` with `fHydrophobic = 0.8`, i.e. the
+  missing mass went through the emission hydrophobic/hydrophilic split;
+- imports were bitwise identical, so it was not an input/ExtData issue.
+
+Root cause: `Run1` guards the biomass-burning diurnal cycle with
+`if (self%diurnal_bb)`, but **`self%diurnal_bb` was never assigned
+anywhere in the port** -- the MAPL2 original reads it in `Initialize`
+
+```fortran
+call ESMF_ConfigGetAttribute(universal_cfg, diurnal_bb, &
+     label='DIURNAL_BIOMASS_BURNING:', default='YES', __RC__)
+```
+
+and that block was dropped during porting. The field was therefore an
+uninitialized logical, which in practice evaluated `.false.`, silently
+**disabling diurnal biomass burning** (MAPL2 default is *on*).
+`SU2G_GridCompMod.F90` had been ported correctly and still had the
+equivalent block, which is what the fix was modelled on:
+
+```fortran
+! Check whether to de-activate diurnal biomass burning (default is *on*)
+call MAPL_GridCompGetResource(gc, "DIURNAL_BIOMASS_BURNING", diurnal_bb, default='YES', _RC)
+diurnal_bb = ESMF_UtilStringUpperCase(diurnal_bb, _RC)
+self%diurnal_bb = (trim(diurnal_bb) == 'YES')
+```
+
+**After the fix, `carbon-sa/run1` and `run2` reproduce the baseline
+bitwise** (`diff (min, max, norm): 0.0, 0.0, 0.0`) for `CA.bcphobic`,
+`CA.bcphilic`, and for `CA.bcDP`/`CA.bcSD`/`CA.bcWT` in `run2`.
+
+This class of bug (a resource read silently dropped, leaving an
+uninitialized `logical` that defaults to the *non-default* behaviour) is
+worth checking for in the other GOCART2G species ports.
+
+### 2. Expected: phase-1 checkpoint has NaN for Run2-only exports
+
+In `run1` the harness runs `run_phases: [Run1]` only, while `DP`
+(dry deposition), `SD` (sedimentation) and `WT` (wet deposition) are
+computed exclusively in `Run2`. MAPL3 initializes export fields to NaN
+("undefined"), so they are correctly still NaN in the `run1` checkpoint.
+The MAPL2 baseline shows values there only because MAPL2 zero-filled /
+carried over export memory. Not a defect -- MAPL3 is simply making
+"never written in this phase" visible. `cmpchk.py` has no NaN masking, so
+`NaN - value = NaN` propagates to all three printed statistics.
+
+### 3. Pre-existing: `SV` is declared but never computed
+
+`CA.bcSV` ("Aerosol Convective Scavenging") is NaN in *both* runs. `SV` is
+declared in `CA2G_StateSpecs.rc`, has a pointer generated into
+`CA2G_DeclarePointer___.h`, is fetched in `CA2G_GetPointer___.h` and is
+appended to the `_AERO_DP` bundle -- but **it is never assigned a value**,
+in the MAPL3 port *or* in the MAPL2 original (verified against
+`v11.11.0`). So this is an inherited dead export, not a porting
+regression. It shows as NaN now only because MAPL3 no longer zero-fills
+unwritten exports. Either CA2G should fill it or the spec should drop it.
+
+Note that `ctest`'s own comparison uses `NANS_ARE_EQUAL`, which tolerates
+NaN on both sides; `cmpchk.py` does not, which is why these show up here
+and not in the `ctest` runs.
 
 ## Open items (follow-ups, not blocking the code port)
 
-1. **Blocking for actual execution: dotted CA instance names
-   (`CA.oc`/`CA.bc`/`CA.br`) violate MAPL3's `is_valid_name` child-name
-   check.** See "Run-testing update" above. Until this is resolved (most
-   likely by renaming the convention to use underscores, and simplifying
-   away the `GOCART2G_StateSpecs.rc` ALIAS-column workaround at the same
-   time), neither `carbon-sa` nor the production GOCART2G parent can
-   actually initialize with CA active.
-2. **Missing ExtData, not yet confirmed**: even once item 1 is fixed, the
-   `opticsBands_{BC,OC,BR}.v2.1.0.RRTMGP.nc4`/`optics_{BC,OC,BR}.v2.1.0.nc4`
-   files referenced by each instance yaml are not present anywhere on this
-   filesystem (checked via `find / -xdev`), matching the NI2G precedent for
-   newly-ported species' aerosol-optics data. Expect `Initialize` to get
-   further than `SetServices` once item 1 is fixed, then fail on these
-   missing files, the same way NI2G's combined-case test did for
-   `optics_NI`.
-3. **No `carbon-sa` baseline data published** under
-   `/ford1/share/gmao_SIteam/regression-data/.../GOCART2G_GridComp/`; until
-   it is (and item 1 is fixed), `ctest -L REGRESSION` will keep reporting
-   "skipping" for `carbon-sa/run{1,2}`.
-4. **GMI/point-emissions paths untested**: `self%doing_point_emissions`
+1. **Publish regression baselines.** `carbon-sa/run{1,2}` and
+   `gocart+seasalt+dust+sulfate+nitrate+carbon/run{1,2}` are registered in
+   `regression/cases.txt` and verified by hand, but no baseline/restart
+   data exists for them under
+   `/ford1/share/gmao_SIteam/regression-data/.../GOCART2G_GridComp/`, so
+   `ctest -L REGRESSION` reports "skipping" for all four. Publishing the
+   baselines is what turns the manual verification above into real CI
+   coverage. (The `carbon-sa` runs above used a partial baseline tree that
+   is present locally but not published.)
+2. **CA left disabled in the two older combined cases.**
+   `gocart+seasalt+dust+sulfate` and `gocart+seasalt+dust+sulfate+nitrate`
+   still carry `CA: []`. This is now a deliberate scope/baseline-stability
+   choice, not a technical blocker: enabling CA there would invalidate
+   their published baselines. CA coverage lives in `carbon-sa` and
+   `gocart+seasalt+dust+sulfate+nitrate+carbon`.
+3. **Dead `SV` export**: `CA.bcSV` etc. are declared and bundled but never
+   assigned, in MAPL3 *and* MAPL2. Either compute it or remove it from
+   `CA2G_StateSpecs.rc`. See "Baseline comparison" above.
+4. **Audit other species for dropped resource reads**: the `diurnal_bb`
+   bug (see above) was a silently-omitted `Initialize` resource read
+   leaving an uninitialized `logical`. DU/SS/NI should be checked for the
+   same class of omission.
+5. **GMI/point-emissions paths untested**: `self%doing_point_emissions`
    defaults to `false` (`/dev/null`) in all three regression/production
    instance configs; the point-emissions code path itself is unexercised,
    same caveat class as SU2G's/NI2G's untested branches.
-5. **Data-driven (`.data`) instances**: still guarded by
+6. **Data-driven (`.data`) instances**: still guarded by
    `_FAIL("data driven section has not been activated yet")`, unchanged
    from the MAPL2 source; `CA.oc.data`/`CA.bc.data` are not wired into
    `ACTIVE_INSTANCES`/`PASSIVE_INSTANCES` anywhere, consistent with
