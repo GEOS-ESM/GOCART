@@ -10,7 +10,7 @@ Paths below are relative to the GOCART repository root unless stated otherwise.
 Component detail: [GOCART2G](../ESMF/GOCART2G_GridComp/ARCHITECTURE.md). Agent rules: [AGENTS.md](../AGENTS.md). Decision log: [decisions.md](decisions.md).
 > **Build status on this line:** built, partly ported. `@GEOSchem_GridComp/CMakeLists.txt` (`../CMakeLists.txt`) calls `esma_add_subdirectories(GOCART)` under the comment "Only GOCART is needed on release/MAPL-v3 (for GOCART2G_GridComp)". Within this repository, `ESMF/CMakeLists.txt` builds `Shared` and `GOCART2G_GridComp`; `Apps`, `Aerosol_GridComp`, `GOCART_GridComp` and `UFS` are commented out as "not yet ported to MAPL3 - restore when ported"; `ESMF/GOCART2G_GridComp/CMakeLists.txt` builds `GA_Environment`, `DU2G_GridComp`, `SS2G_GridComp`, `SU2G_GridComp` and comments out `CA2G_GridComp` and `NI2G_GridComp`. The Chemistry top-level library (`GEOS_ChemGridComp.F90`, which adds this component) is present but not compiled on this line: the `esma_add_library` block that builds it is commented out in `../CMakeLists.txt`; it says "Restore subdirs as components are ported to MAPL3". Statements below about Chemistry describe that file as it is (MAPL2 code, `MAPL_AddChild`, ESMF Config), not running code. The Chemistry `Shared` directory (`Chem_Base`, `Chem_Shared`) is also not built (`../CMakeLists.txt`: `Shared` appears only in a commented-out list).
 
-Up (on this line the parent's documents are not written yet; the MAPL2-line versions are on its `develop` branch):
+Up:
 - Parent repository `GEOSchem_GridComp`: `../../docs/ARCHITECTURE.md`.
 - Physics: `../../../ARCHITECTURE.md`.
 - Moist, a consumer of the aerosol activation method: `../../../GEOSmoist_GridComp/ARCHITECTURE.md`.

@@ -9,7 +9,7 @@ Other fixtures (for example GEOSadas, GEOSldas) may place this repository elsewh
 ## What this repository is
 Aerosol (and a few trace-gas) components for GEOS. On this line the aerosol component GOCART2G has been ported to MAPL3: specs are declared by ACG `*_StateSpecs.rc` files plus `MAPL_GridCompAddSpec` calls, configuration is YAML, children and connections use `MAPL_GridCompAddChild` and `MAPL_GridCompAddConnection` (`ESMF/GOCART2G_GridComp/GOCART2G_GridCompMod.F90`, `SetServices`). Only the dust, sea-salt and sulfate children are ported and built. See `docs/ARCHITECTURE.md`.
 
-> **Build status on this line:** built, partly ported. `@GEOSchem_GridComp/CMakeLists.txt` calls `esma_add_subdirectories(GOCART)`, with the comment "Only GOCART is needed on release/MAPL-v3 (for GOCART2G_GridComp)". Inside this repository `ESMF/CMakeLists.txt` builds `Shared` and `GOCART2G_GridComp`; `Apps`, `Aerosol_GridComp`, `GOCART_GridComp` and `UFS` are commented out as "not yet ported to MAPL3", and `GOCART2G_GridComp/CMakeLists.txt` comments out `CA2G_GridComp` and `NI2G_GridComp`. The Chemistry top-level library (`GEOS_ChemGridComp.F90`, which adds GOCART2G as a child) is present but not compiled on this line: the `esma_add_library` block that builds it is commented out in `../CMakeLists.txt` ("Restore subdirs as components are ported to MAPL3"). On the parent's side, `Chem_Base` and `Chem_Shared` (Chemistry `Shared` directory) are not built either. The documents of the parent repository do not exist yet on this line; the MAPL2-line versions are on its `develop` branch.
+> **Build status on this line:** built, partly ported. `@GEOSchem_GridComp/CMakeLists.txt` calls `esma_add_subdirectories(GOCART)`, with the comment "Only GOCART is needed on release/MAPL-v3 (for GOCART2G_GridComp)". Inside this repository `ESMF/CMakeLists.txt` builds `Shared` and `GOCART2G_GridComp`; `Apps`, `Aerosol_GridComp`, `GOCART_GridComp` and `UFS` are commented out as "not yet ported to MAPL3", and `GOCART2G_GridComp/CMakeLists.txt` comments out `CA2G_GridComp` and `NI2G_GridComp`. The Chemistry top-level library (`GEOS_ChemGridComp.F90`, which adds GOCART2G as a child) is present but not compiled on this line: the `esma_add_library` block that builds it is commented out in `../CMakeLists.txt` ("Restore subdirs as components are ported to MAPL3"). On the parent's side, `Chem_Base` and `Chem_Shared` (Chemistry `Shared` directory) are not built either.
 
 ## Documents
 | File | Content |
@@ -17,7 +17,7 @@ Aerosol (and a few trace-gas) components for GEOS. On this line the aerosol comp
 | `docs/ARCHITECTURE.md` | Placement, module map, build structure, interfaces to the rest of GEOS, links up and down |
 | `docs/decisions.md` | Previous architectural decisions (pattern, likely reason, open questions) |
 | `ESMF/GOCART2G_GridComp/ARCHITECTURE.md` | GOCART2G parent, the five aerosol children, `Process_Library`, `GA_Environment` |
-| `../docs/ARCHITECTURE.md` | Parent repository `GEOSchem_GridComp` (on this line the parent's documents are not written yet; the MAPL2-line versions are on its `develop` branch) |
+| `../docs/ARCHITECTURE.md` | Parent repository `GEOSchem_GridComp` |
 | `../../ARCHITECTURE.md` | Physics, the grandparent component |
 | `../../../../docs/ARCHITECTURE.md` | Repository `GEOSgcm_GridComp` overview |
 | `../../../../../../../docs/ARCHITECTURE.md` | GEOSgcm fixture overview |
