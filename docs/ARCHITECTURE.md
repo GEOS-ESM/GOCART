@@ -9,11 +9,11 @@ Other fixtures (for example GEOSadas, GEOSldas) may place this repository elsewh
 Paths below are relative to the GOCART repository root unless stated otherwise.
 Component detail: [GOCART2G](../ESMF/GOCART2G_GridComp/ARCHITECTURE.md). Agent rules: [AGENTS.md](../AGENTS.md). Decision log: [decisions.md](decisions.md).
 Up:
-- Parent repository `GEOSchem_GridComp`: [../../docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) (written separately).
-- Physics: [../../../ARCHITECTURE.md](../../../ARCHITECTURE.md).
-- Moist, a consumer of the aerosol activation method: [../../../GEOSmoist_GridComp/ARCHITECTURE.md](../../../GEOSmoist_GridComp/ARCHITECTURE.md).
-- Repository `GEOSgcm_GridComp`: [../../../../../docs/ARCHITECTURE.md](../../../../../docs/ARCHITECTURE.md).
-- Fixture: [../../../../../../../../docs/ARCHITECTURE.md](../../../../../../../../docs/ARCHITECTURE.md).
+- Parent repository `GEOSchem_GridComp`: `../../docs/ARCHITECTURE.md` (written separately).
+- Physics: `../../../ARCHITECTURE.md`.
+- Moist, a consumer of the aerosol activation method: `../../../GEOSmoist_GridComp/ARCHITECTURE.md`.
+- Repository `GEOSgcm_GridComp`: `../../../../../docs/ARCHITECTURE.md`.
+- Fixture: `../../../../../../../../docs/ARCHITECTURE.md`.
 
 ## 1. Purpose
 GOCART holds the aerosol components of GEOS. The code that runs in a standard GEOSgcm configuration is `GOCART2G`, a MAPL2 gridded component with five aerosol-species children (dust, sea salt, sulfate, carbonaceous, nitrate) plus two shared libraries. The repository also holds an older component (`GOCART_GridComp`, trace gases and legacy aerosol) and cap code for UFS (the NOAA Unified Forecast System). Chemistry adds GOCART2G as a child and passes its aerosol optical and microphysical states up to Radiation, Moist and Surface (`../GEOS_ChemGridComp.F90`, `SetServices`; `../GEOS_ChemGridComp.rc`, `ENABLE_GOCART2G`, outside this repository).
@@ -70,9 +70,9 @@ Everything below is on the Chemistry side unless noted. Chemistry file: `../GEOS
 ### 5.1 Aerosol states exported upward
 - GOCART2G exports `AERO` (an ESMF state) and `AERO_DP` (a field bundle, used for dry-deposition-related bins) (`ESMF/GOCART2G_GridComp/GOCART2G_GridCompMod.F90`, `SetServices`).
 - Chemistry promotes both from the provider child: `MAPL_AddExportSpec(..., CHILD_ID=AERO_PROVIDER)` (`../GEOS_ChemGridComp.F90`, `SetServices`).
-- Physics connects `AERO` from CHEM to Radiation and to Moist, and `AERO_DP` to Surface (`../../GEOS_PhysicsGridComp.F90`, `SetServices`; see the [Physics document](../../../ARCHITECTURE.md)).
+- Physics connects `AERO` from CHEM to Radiation and to Moist, and `AERO_DP` to Surface (`../../GEOS_PhysicsGridComp.F90`, `SetServices`; see the Physics document (`../../../ARCHITECTURE.md` in the fixture)).
 - `AERO` carries ESMF methods that consumers call, not only data: `run_aerosol_optics` (Radiation, GMI photolysis), `get_mixRatioSum`, `serialize_bundle`, `get_monochromatic_aop` (GAAS), `aerosol_activation_properties` (Moist) (`GOCART2G_GridCompMod.F90`, `Initialize`; `ESMF/Shared/GOCART2G_AerosolActivationMod.F90`, `setup_aerosol_activation`). Details in the [GOCART2G document](../ESMF/GOCART2G_GridComp/ARCHITECTURE.md).
-- Consumers of the methods (outside this repository): `GEOSsolar_GridComp/GEOS_SolarGridComp.F90` and `GEOSirrad_GridComp/GEOS_IrradGridComp.F90` (optics); `GEOSmoist_GridComp/aer_actv_single_moment.F90` (activation; see the [Moist document](../../../GEOSmoist_GridComp/ARCHITECTURE.md)); `@GAAS/GAAS_GridCompMod.F90`; `@GMI/GmiPhotolysis_GridCompClassMod.F90`.
+- Consumers of the methods (outside this repository): `GEOSsolar_GridComp/GEOS_SolarGridComp.F90` and `GEOSirrad_GridComp/GEOS_IrradGridComp.F90` (optics); `GEOSmoist_GridComp/aer_actv_single_moment.F90` (activation; see the Moist document (`../../../GEOSmoist_GridComp/ARCHITECTURE.md` in the fixture)); `@GAAS/GAAS_GridCompMod.F90`; `@GMI/GmiPhotolysis_GridCompClassMod.F90`.
 
 ### 5.2 Provider selection
 - `AERO_PROVIDER` selects the child that supplies `AERO`: `GetProvider_` maps `GOCART2G` to the child index (`../GEOS_ChemGridComp.F90`, `GetProvider_`). The code default in Chemistry is `GOCART2G`.
@@ -90,17 +90,17 @@ Made in `../GEOS_ChemGridComp.F90`, `SetServices`, with `MAPL_AddConnectivity`:
 | `GOCART2G` | `GAAS` | `AERO` (GAAS requires GOCART2G; `__raise__` otherwise) |
 | `GOCART2G` | `GMICHEM` | `AERO` |
 | `GOCART2G` | `CARMA` | `PSO4` as `CARMA_PSO4TOT` |
-The connections follow MAPL2 semantics: a connection between two components with the same spec shares the field (no copy). Whether a lag arises depends on the run order of the two components in Physics, which is set by the Physics and Chemistry Run routines (see the [Physics document](../../../ARCHITECTURE.md)); this document does not assert any lag.
+The connections follow MAPL2 semantics: a connection between two components with the same spec shares the field (no copy). Whether a lag arises depends on the run order of the two components in Physics, which is set by the Physics and Chemistry Run routines (see the Physics document (`../../../ARCHITECTURE.md` in the fixture)); this document does not assert any lag.
 
 ### 5.4 Run phases and timing
-- Parent: two run phases (`Run1`, `Run2`); each non-data child: three (`Run`, `Run2`, `Run0`); each data child: one (`Run`). (`GOCART2G_GridCompMod.F90`, `SetServices`; each child's `SetServices`). Chemistry calls phase 1 only for children with more than one run phase, and in its own `Run2` calls phase 2 for those and phase 1 for the others (`../GEOS_ChemGridComp.F90`, `Run1`, `Run2`). Physics runs Chemistry phase 1 after Surface phase 1 and phase 2 before Radiation (see the [Physics document](../../../ARCHITECTURE.md)).
+- Parent: two run phases (`Run1`, `Run2`); each non-data child: three (`Run`, `Run2`, `Run0`); each data child: one (`Run`). (`GOCART2G_GridCompMod.F90`, `SetServices`; each child's `SetServices`). Chemistry calls phase 1 only for children with more than one run phase, and in its own `Run2` calls phase 2 for those and phase 1 for the others (`../GEOS_ChemGridComp.F90`, `Run1`, `Run2`). Physics runs Chemistry phase 1 after Surface phase 1 and phase 2 before Radiation (see the Physics document (`../../../ARCHITECTURE.md` in the fixture)).
 - Time step: children read `RUN_DT` and `GOCART2G_DT` (default `RUN_DT`) (`ESMF/GOCART2G_GridComp/*/*2G_GridCompMod.F90`, `Initialize`). The fixture template sets `GOCART2G_DT: @CHEM_DT` (`Applications/@GEOSgcm_App/AGCM.rc.tmpl`); `CHEM_DT` is set per resolution in `set_resolution_params.csh`.
 
 ### 5.5 Tracer friendliness
 Chemistry collects "friendly" tracers from its children with `MAPL_GridCompGetFriendlies(..., AddGCPrefix=.true.)` for the lists ANALYSIS, TURBULENCE, DYNAMICS, MOIST, STRATCHEM, GMICHEM, GEOSCHEMCHEM, TR (`../GEOS_ChemGridComp.F90`, Initialize). GOCART2G internal species are declared friendly to `DYNAMICS:TURBULENCE:MOIST` in the ACG files (for example `ESMF/GOCART2G_GridComp/DU2G_GridComp/DU2G_StateSpecs.rc`, `friendlyto`). Recursion into grandchildren happens only with `AddGCPrefix` (`base/MAPL_Generic.F90`, comment).
 
 ### 5.6 Surface coupling by bin count
-Surface expects a fixed number of bins per aerosol species in `AERO_DP` and stops if the count differs (`GEOSsurface_GridComp/GEOS_SurfaceGridComp.F90`, `Run2`; counts `NUM_*` in `GEOSsurface_GridComp/Shared/StieglitzSnow.F90`, relative to the GEOSgcm_GridComp repository root: DU 5, BC 2, OC 2, SU 1, SS 5). The GOCART2G children set `nbins` in their instance rc files (`ESMF/GOCART2G_GridComp/*/*_instance_*.rc`, `nbins`). See [Surface](../../../GEOSsurface_GridComp/ARCHITECTURE.md).
+Surface expects a fixed number of bins per aerosol species in `AERO_DP` and stops if the count differs (`GEOSsurface_GridComp/GEOS_SurfaceGridComp.F90`, `Run2`; counts `NUM_*` in `GEOSsurface_GridComp/Shared/StieglitzSnow.F90`, relative to the GEOSgcm_GridComp repository root: DU 5, BC 2, OC 2, SU 1, SS 5). The GOCART2G children set `nbins` in their instance rc files (`ESMF/GOCART2G_GridComp/*/*_instance_*.rc`, `nbins`). See Surface (`../../../GEOSsurface_GridComp/ARCHITECTURE.md` in the fixture).
 
 ### 5.7 Other users of GOCART code
 - `@GMI` calls `ReadPointEmissions` from `GOCART2G_Process` and links `Process_Library` (`@GMI/GmiEmiss_GridCompClassMod.F90`, `@GMI/CMakeLists.txt`; outside this repository).
