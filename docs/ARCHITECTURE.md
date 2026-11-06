@@ -63,7 +63,6 @@ GCM (GEOSgcm_GridComp)
 - The parent `@GEOSchem_GridComp/CMakeLists.txt` depends on `GOCART_GridComp GOCART2G_GridComp` and calls `esma_add_subdirectories(Shared GOCART TR ...)` (outside this repository).
 - Tests: no test is registered in any CMake file of this repository; `ESMF/GOCART_GridComp/ut_GOCART.F90` is not referenced.
 - Continuous integration (`.github/workflows/workflow.yml`, `.circleci/config.yml`) builds the GEOSgcm fixture with several compilers.
-- Build compilers for local work: NAG first, then gfortran, from the fixture build tree (see `AGENTS.md`).
 
 ## 5. Interfaces to the rest of GEOS
 Everything below is on the Chemistry side unless noted. Chemistry file: `../GEOS_ChemGridComp.F90`.
