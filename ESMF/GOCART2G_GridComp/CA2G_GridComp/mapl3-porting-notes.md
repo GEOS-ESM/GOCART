@@ -9,7 +9,7 @@ multi-instance parent wiring and the "GOCART2G already anticipated this
 species" starting point.
 
 Scope of this pass, agreed up front:
-- Full port: code + GOCART2G parent wiring + a new standalone `carbon-sa`
+- Full port: code + GOCART2G parent wiring + a new standalone `carbon-bc-sa`
   regression harness (not code-only, not harness-only), mirroring the NI2G
   pass end to end.
 - Attempt an actual build (`cmake --build`) and an actual `GEOS.x` run in
@@ -123,7 +123,7 @@ instance. This drives most of the differences from the SU2G template:
 - Each instance yaml's `mapl:` block carries `misc: activate_all_imports:
   true, activate_all_exports: true, restart: {import: true, internal:
   true}, checkpoint: {export/import/internal: true}` -- used as-is for the
-  `carbon-sa` regression copy except with `activate_all_imports` dropped
+  `carbon-bc-sa` regression copy except with `activate_all_imports` dropped
   and `restart: import` dropped, matching SU2G's regression-vs-production
   instance yaml diff (imports are wired explicitly via `root.yaml`
   connections in the regression harness instead).
@@ -261,9 +261,9 @@ branch).
   parent's `deactivate_instances__` stub); no yaml change needed in the
   production config.
 
-### 8. `carbon-sa` regression harness
+### 8. `carbon-bc-sa` regression harness
 
-Added a new standalone case, `regression/carbon-sa/`, mirroring
+Added a new standalone case, `regression/carbon-bc-sa/`, mirroring
 `sulfate-sa`'s single-instance structure (one `DataForCA` +
 `FakeGOCART(CA.bc)` pair) rather than NI2G's combined-case structure,
 because -- unlike NI2G, which unconditionally reads `DU`/`SS`/`SO4` import
@@ -297,24 +297,24 @@ since all three instances share one code path and only differ by
   substituting `CA.bc` for `SU`.
 - `run{1,2}/CA_instance_CA.bc.yaml`: symlinks to `../CA2G_instance_CA.bc.yaml`,
   matching the `SU_instance_SU.yaml -> ../SU2G_instance_SU.yaml` convention.
-- Registered `carbon-sa/run1`/`carbon-sa/run2` in `regression/cases.txt`.
+- Registered `carbon-bc-sa/run1`/`carbon-bc-sa/run2` in `regression/cases.txt`.
 - Updated the stale `CA: []  # [CA.oc, CA.bc, CA.br] not ported to MAPL3
   yet` comment in both existing combined cases'
   (`gocart+seasalt+dust+sulfate`, `gocart+seasalt+dust+sulfate+nitrate`)
   `GOCART2G_GridComp.yaml` to reflect the real status (code ported and
   runnable). `CA` itself is still left as `[]` (disabled) in both, now
   purely to keep those two cases' scope and published baselines unchanged;
-  CA coverage lives in `carbon-sa` and in the
-  `gocart+seasalt+dust+sulfate+nitrate+carbon` case below.
+  CA coverage lives in `carbon-bc-sa` and in the
+  `gocart+seasalt+dust+sulfate+nitrate+carbon-bc` case below.
 
-### 9. `gocart+seasalt+dust+sulfate+nitrate+carbon` combined-case harness
+### 9. `gocart+seasalt+dust+sulfate+nitrate+carbon-bc` combined-case harness
 
 Added (in a follow-up pass) a new combined-case directory,
-`regression/gocart+seasalt+dust+sulfate+nitrate+carbon/`, extending
+`regression/gocart+seasalt+dust+sulfate+nitrate+carbon-bc/`, extending
 `gocart+seasalt+dust+sulfate+nitrate` by activating all three CA instances
 (`CA.oc`, `CA.bc`, `CA.br`) through the real GOCART2G parent, matching the
 production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
-`carbon-sa`, which only exercises one instance standalone via `FakeGOCART`.
+`carbon-bc-sa`, which only exercises one instance standalone via `FakeGOCART`.
 
 - `CA2G_instance_CA.{oc,bc,br}.yaml` (top-level): copies of the production
   `CA2G_GridComp/CA2G_instance_CA.{oc,bc,br}.yaml` with the same
@@ -324,9 +324,9 @@ production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
   `restart: internal: true`). No `setServices:` block is added (or needed),
   since these three instances are added via the parent's `add_children__`
   procedure call, the same as DU/SS/SU/NI here -- not via `dso`/DSO loading
-  as in the standalone `carbon-sa` harness.
+  as in the standalone `carbon-bc-sa` harness.
 - `data-for-gocart2g.yaml`: extended with the 34 CA-specific
-  emissions/aircraft/VOC-SOA fields from `carbon-sa`'s `data-for-ca.yaml`
+  emissions/aircraft/VOC-SOA fields from `carbon-bc-sa`'s `data-for-ca.yaml`
   (`OC_*`/`BC_*`/`BRC_*`, `pSOA_ANTHRO_VOC`, `pSOA_BIOB_VOC`); all met/
   surface fields CA needs were already present (shared with DU/SS/SU/NI).
 - `GOCART2G_GridComp.yaml`: `CA: [CA.oc, CA.bc, CA.br]` enabled (vs `[]` in
@@ -343,13 +343,13 @@ production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
   `GOCART2G_GridCompMod.F90`'s `add_children__`).
 - `run{1,2}/cmpchk.py`: `GRIDCOMPS` dict extended with `"CA.oc"`, `"CA.bc"`,
   `"CA.br"` entries (alongside `DU`/`SS`/`SU`/`NI`/`GOCART2G`).
-- Registered `gocart+seasalt+dust+sulfate+nitrate+carbon/run1`/`run2` in
+- Registered `gocart+seasalt+dust+sulfate+nitrate+carbon-bc/run1`/`run2` in
   `regression/cases.txt`.
-- **Confirmed via manual `GEOS.x mapl.yaml`** (same recipe as `carbon-sa`,
+- **Confirmed via manual `GEOS.x mapl.yaml`** (same recipe as `carbon-bc-sa`,
   build/run environment: `module load ifx-stack`) that all three CA
   instances are added, SetServices'd and Initialize'd by the *real*
   `GOCART2G_GridCompMod.F90` `add_children__` call site, not just by the
-  standalone `carbon-sa` scaffolding:
+  standalone `carbon-bc-sa` scaffolding:
   ```
   CA.oc: SetServices:: ...completed
   CA.bc: SetServices:: ...completed
@@ -378,7 +378,7 @@ build and link cleanly, zero errors/warnings**. Inspected the generated
 to the dotted ESMF field names as intended. The ALIAS column remains
 necessary, since the dotted instance names are retained.
 
-**`carbon-sa/run1` and `carbon-sa/run2` both run to completion**
+**`carbon-bc-sa/run1` and `carbon-bc-sa/run2` both run to completion**
 (`mpiexec -n 6 GEOS.x mapl.yaml`, scratch expdir, `ExtData` symlinked from
 the shared regression-data tree, restarts from the partial baseline tree):
 exit status 0, zero `FAIL` lines, and the expected checkpoints are written:
@@ -414,7 +414,7 @@ Consequences for this port, all re-verified by running:
   to underscores (`CA_oc`/`CA_bc`/`CA_br`), which would have touched
   `GOCART2G_GridCompMod.F90`, `CA2G_GridCompMod.F90`'s `GCsuffix`
   comparisons, every instance yaml/`.rc` filename, the
-  `GOCART2G_StateSpecs.rc` ALIAS rows and the `carbon-sa` harness, is
+  `GOCART2G_StateSpecs.rc` ALIAS rows and the `carbon-bc-sa` harness, is
   **not needed and has not been done**.
 - `GOCART2G_StateSpecs.rc`'s ALIAS column stays as-is: it is exactly what
   maps the dotted ESMF field names onto legal Fortran identifiers in the
@@ -427,7 +427,7 @@ Consequences for this port, all re-verified by running:
 
 ## Baseline comparison (`cmpchk.py`) and the bug it exposed
 
-With `carbon-sa/run{1,2}` running, `cmpchk.py` (plain `baseline - current`,
+With `carbon-bc-sa/run{1,2}` running, `cmpchk.py` (plain `baseline - current`,
 no NaN masking) was used against the MAPL2-era baselines. Three distinct
 classes of difference showed up; only one was a real bug.
 
@@ -476,7 +476,7 @@ diurnal_bb = ESMF_UtilStringUpperCase(diurnal_bb, _RC)
 self%diurnal_bb = (trim(diurnal_bb) == 'YES')
 ```
 
-**After the fix, `carbon-sa/run1` and `run2` reproduce the baseline
+**After the fix, `carbon-bc-sa/run1` and `run2` reproduce the baseline
 bitwise** (`diff (min, max, norm): 0.0, 0.0, 0.0`) for `CA.bcphobic`,
 `CA.bcphilic`, and for `CA.bcDP`/`CA.bcSD`/`CA.bcWT` in `run2`.
 
@@ -512,21 +512,21 @@ and not in the `ctest` runs.
 
 ## Open items (follow-ups, not blocking the code port)
 
-1. **Publish regression baselines.** `carbon-sa/run{1,2}` and
-   `gocart+seasalt+dust+sulfate+nitrate+carbon/run{1,2}` are registered in
+1. **Publish regression baselines.** `carbon-bc-sa/run{1,2}` and
+   `gocart+seasalt+dust+sulfate+nitrate+carbon-bc/run{1,2}` are registered in
    `regression/cases.txt` and verified by hand, but no baseline/restart
    data exists for them under
    `/ford1/share/gmao_SIteam/regression-data/.../GOCART2G_GridComp/`, so
    `ctest -L REGRESSION` reports "skipping" for all four. Publishing the
    baselines is what turns the manual verification above into real CI
-   coverage. (The `carbon-sa` runs above used a partial baseline tree that
+   coverage. (The `carbon-bc-sa` runs above used a partial baseline tree that
    is present locally but not published.)
 2. **CA left disabled in the two older combined cases.**
    `gocart+seasalt+dust+sulfate` and `gocart+seasalt+dust+sulfate+nitrate`
    still carry `CA: []`. This is now a deliberate scope/baseline-stability
    choice, not a technical blocker: enabling CA there would invalidate
-   their published baselines. CA coverage lives in `carbon-sa` and
-   `gocart+seasalt+dust+sulfate+nitrate+carbon`.
+   their published baselines. CA coverage lives in `carbon-bc-sa` and
+   `gocart+seasalt+dust+sulfate+nitrate+carbon-bc`.
 3. **Dead `SV` export**: `CA.bcSV` etc. are declared and bundled but never
    assigned, in MAPL3 *and* MAPL2. Either compute it or remove it from
    `CA2G_StateSpecs.rc`. See "Baseline comparison" above.
