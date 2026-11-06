@@ -30,6 +30,6 @@ Aerosol (and a few trace-gas) components for GEOS, written as MAPL2 gridded comp
 - `CCPP/GOCART_CCPP.F90` and `ESMF/NUOPC/NUOPC_Cap.F90` are empty files; the UFS cap is in `ESMF/UFS`.
 
 ## Build and test
-- Not built standalone in the GEOSgcm fixture: the repository is built as part of GEOSgcm (`CMakeLists.txt`, `esma_add_subdirectories`; `CHANGELOG.md` records that standalone builds were removed). Build with the NAG compiler first, then gfortran, from the fixture build tree.
+- Not built standalone in the GEOSgcm fixture: the repository is built as part of GEOSgcm (`CMakeLists.txt`, `esma_add_subdirectories`; `CHANGELOG.md` records that standalone builds were removed).
 - No unit tests are registered in this repository's CMake files (`ESMF/GOCART_GridComp/ut_GOCART.F90` is not referenced).
 - Pull requests need a `CHANGELOG.md` entry and labels (`.github/workflows/changelog-enforcer.yml`, `enforce-labels.yml`); YAML files are linted (`.github/workflows/validate_yaml_files.yml`, `.yamllint.yml`). Code owners: `.github/CODEOWNERS`.
