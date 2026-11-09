@@ -26,7 +26,7 @@ module GOCART2G_GridCompMod
    use SS2G_GridCompMod, only: SS2G_SetServices => SetServices
    use SU2G_GridCompMod, only: SU2G_SetServices => SetServices
    ! use CA2G_GridCompMod, only: CA2G_SetServices  => SetServices
-   ! use NI2G_GridCompMod, only: NI2G_SetServices  => SetServices
+   use NI2G_GridCompMod, only: NI2G_SetServices => SetServices
 
    implicit none
    private
@@ -187,6 +187,19 @@ contains
               itemtype=MAPL_STATEITEM_STATE, &
               _RC)
       end do
+      do iter = 1, size(self%NI%instances)
+         child = self%NI%instances(iter)
+         call MAPL_GridCompAddSpec( &
+              gc, &
+              state_intent=ESMF_STATEINTENT_IMPORT, &
+              short_name=child%name // "_AERO", &
+              standard_name="aerosol_mass_mixing_ratios_ng", &
+              dims="xyz", &
+              vertical_stagger=MAPL_VERTICAL_STAGGER_CENTER, &
+              units="kg kg-1", &
+              itemtype=MAPL_STATEITEM_STATE, &
+              _RC)
+      end do
       call MAPL_GridCompAddSpec( &
            gc, &
            state_intent=ESMF_STATEINTENT_EXPORT, &
@@ -262,38 +275,37 @@ contains
          end if
       end if
 
-      ! pchakrab: TODO - ACTIVATE ONCE NI HAS BEEN PORTED
-      ! ! Add connectivities for Nitrate component
-      ! ! Nitrate currently only supports one Nitrate component. Nitrate only
-      ! ! uses the first active dust and sea salt instance.
-      ! if (size(self%NI%instances) > 0) then
-      !    if ((self%DU%instances(1)%is_active)) then
-      !       call MAPL_GridCompAddConnectivity( &
-      !            gc, &
-      !            src_comp=self%DU%instances(1)%name, &
-      !            src_names="DU", &
-      !            dst_comp=self%NI%instances(1)%name, &
-      !            _RC)
-      !    end if
+      ! Add connectivities for the Nitrate component. Nitrate currently only
+      ! supports one Nitrate instance. Nitrate only uses the first active
+      ! dust, sea salt and sulfate instance.
+      if (size(self%NI%instances) > 0) then
+         if (self%DU%instances(1)%is_active) then
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=self%DU%instances(1)%name, &
+                 src_names="DU", &
+                 dst_comp=self%NI%instances(1)%name, &
+                 _RC)
+         end if
 
-      !    if ((self%SS%instances(1)%is_active)) then
-      !       call MAPL_GridCompAddConnectivity( &
-      !            gc, &
-      !            src_comp=self%SS%instances(1)%name, &
-      !            src_names="SS", &
-      !            dst_comp=self%NI%instances(1)%name, &
-      !            _RC)
-      !    end if
+         if (self%SS%instances(1)%is_active) then
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=self%SS%instances(1)%name, &
+                 src_names="SS", &
+                 dst_comp=self%NI%instances(1)%name, &
+                 _RC)
+         end if
 
-      !    if ((self%SU%instances(1)%is_active)) then
-      !       call MAPL_GridCompAddConnectivity( &
-      !            gc, &
-      !            src_comp=self%SU%instances(1)%name, &
-      !            src_names="SO4", &
-      !            dst_comp=self%NI%instances(1)%name, &
-      !            _RC)
-      !    end if
-      ! end if
+         if (self%SU%instances(1)%is_active) then
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=self%SU%instances(1)%name, &
+                 src_names="SO4", &
+                 dst_comp=self%NI%instances(1)%name, &
+                 _RC)
+         end if
+      end if
 
       ! Connections to Sea Salt's export items
       child_items = &
@@ -381,12 +393,38 @@ contains
                  dst_comp="<self>", &
                  dst_names=child%name // "_AERO", _RC)
             ! AERO_DP
+             call MAPL_GridCompAddConnection( &
+                  gc, &
+                  src_comp=child%name, &
+                  src_names=child%name // "_AERO_DP", &
+                  dst_comp="<self>", &
+                  dst_names=child%name // "_AERO_DP", _RC)
+         end if
+      end do
+
+      ! Connections to Nitrate's export items. No AERO_DP: unlike DU/SS/SU,
+      ! NI does not export a deposition bundle.
+      child_items = &
+           "NIEXTTAU, NISTEXTTAU, NISCATAU, NISTSCATAU, " // &
+           "NIEXTCOEF, NIEXTCOEFRH20, NIEXTCOEFRH80, " // &
+           "NISCACOEF, NISCACOEFRH20, NISCACOEFRH80, " // &
+           "NIBCKCOEF, NIEXTT25, NISCAT25, NIEXTTFM, NISCATFM, " // &
+           "NIANGSTR, NISMASS, NISMASS25, NH4SMASS"
+      do iter = 1, size(self%NI%instances)
+         child = self%NI%instances(iter)
+         if ((child%is_active) .and. (index(child%name, "data") == 0)) then
             call MAPL_GridCompAddConnection( &
                  gc, &
                  src_comp=child%name, &
-                 src_names=child%name // "_AERO_DP", &
+                 src_names=child_items, &
+                 dst_comp="<self>", _RC)
+            ! AERO
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child%name // "_AERO", &
                  dst_comp="<self>", &
-                 dst_names=child%name // "_AERO_DP", _RC)
+                 dst_names=child%name // "_AERO", _RC)
          end if
       end do
 
@@ -438,7 +476,7 @@ contains
       call add_aero_states_(self%SS%instances(:))
       call add_aero_states_(self%SU%instances(:))
       ! call add_aero_states_(self%CA%instances(:))
-      ! call add_aero_states_(self%NI%instances(:))
+      call add_aero_states_(self%NI%instances(:))
 
       ! Begin AERO_RAD
       ! Add variables to AERO_RAD state. Used in aerosol optics calculations
@@ -761,85 +799,44 @@ contains
          end if
       end do
 
-      ! ! Nitrates - NOTE! Nitrates currently only support one active instance
-      ! do n = 1, size(self%NI%instances)
-      !    if ((self%NI%instances(n)%is_active) .and. (index(self%NI%instances(n)%name, 'data') == 0 )) then
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niexttau, 'NIEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nistexttau, 'NISTEXTTAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscatau, 'NISCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nistscatau, 'NISTSCATAU', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niextcoef, 'NIEXTCOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niextcoefrh20, 'NIEXTCOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niextcoefrh80, 'NIEXTCOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscacoef, 'NISCACOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscacoefrh20, 'NISCACOEFRH20', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscacoefrh80, 'NISCACOEFRH80', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nibckcoef, 'NIBCKCOEF', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niextt25, 'NIEXTT25', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscat25, 'NISCAT25', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niexttfm, 'NIEXTTFM', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niscatfm, 'NISCATFM', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), niangstr, 'NIANGSTR', _RC)
+      ! Nitrate - NOTE! Nitrate currently only supports one active instance
+      do n = 1, size(self%NI%instances)
+         if ((self%NI%instances(n)%is_active) .and. (index(self%NI%instances(n)%name, 'data') == 0)) then
+            if (associated(totexttau)) totexttau = totexttau + niexttau
+            if (associated(totstexttau)) totstexttau = totstexttau + nistexttau
+            if (associated(totscatau)) totscatau = totscatau + niscatau
+            if (associated(totstscatau)) totstscatau = totstscatau + nistscatau
+            if (associated(totextt25)) totextt25 = totextt25 + niextt25
+            if (associated(totscat25)) totscat25 = totscat25 + niscat25
+            if (associated(totexttfm)) totexttfm = totexttfm + niexttfm
+            if (associated(totscatfm)) totscatfm = totscatfm + niscatfm
+            if (associated(totextcoef)) totextcoef = totextcoef + niextcoef
+            if (associated(totextcoefrh20)) totextcoefrh20 = totextcoefrh20 + niextcoefrh20
+            if (associated(totextcoefrh80)) totextcoefrh80 = totextcoefrh80 + niextcoefrh80
+            if (associated(totscacoef)) totscacoef = totscacoef + niscacoef
+            if (associated(totscacoefrh20)) totscacoefrh20 = totscacoefrh20 + niscacoefrh20
+            if (associated(totscacoefrh80)) totscacoefrh80 = totscacoefrh80 + niscacoefrh80
+            if (associated(totbckcoef)) totbckcoef = totbckcoef + nibckcoef
 
-      !       ! Iterate over the wavelengths
-      !       do w = 1, size(self%wavelengths_vertint)
-      !          if(associated(totexttau) .and. associated(niexttau)) totexttau(:,:,w) =
-      ! totexttau(:,:,w)+niexttau(:,:,w)
-      !          if(associated(totstexttau) .and. associated(nistexttau)) totstexttau(:,:,w) =
-      ! totstexttau(:,:,w)+nistexttau(:,:,w)
-      !          if(associated(totscatau) .and. associated(niscatau)) totscatau(:,:,w) =
-      ! totscatau(:,:,w)+niscatau(:,:,w)
-      !          if(associated(totstscatau) .and. associated(nistscatau)) totstscatau(:,:,w) =
-      ! totstscatau(:,:,w)+nistscatau(:,:,w)
-      !          if(associated(totextt25) .and. associated(niextt25)) totextt25(:,:,w) =
-      ! totextt25(:,:,w)+niextt25(:,:,w)
-      !          if(associated(totscat25) .and. associated(niscat25)) totscat25(:,:,w) =
-      ! totscat25(:,:,w)+niscat25(:,:,w)
-      !          if(associated(totexttfm) .and. associated(niexttfm)) totexttfm(:,:,w) =
-      ! totexttfm(:,:,w)+niexttfm(:,:,w)
-      !          if(associated(totscatfm) .and. associated(niscatfm)) totscatfm(:,:,w) =
-      ! totscatfm(:,:,w)+niscatfm(:,:,w)
-      !       end do
+            if (associated(pm) .and. associated(nismass) .and. associated(nh4smass)) &
+                 pm = pm + nismass + nh4smass
+            if (associated(pm25) .and. associated(nismass25) .and. associated(nh4smass)) &
+                 pm25 = pm25 + nismass25 + nh4smass
+            if (associated(pm_rh35) .and. associated(nismass) .and. associated(nh4smass)) &
+                 pm_rh35 = pm_rh35 + 1.33 * (nismass + nh4smass)
+            if (associated(pm25_rh35) .and. associated(nismass25) .and. associated(nh4smass)) &
+                 pm25_rh35 = pm25_rh35 + 1.33 * (nismass25 + nh4smass)
+            if (associated(pm_rh50) .and. associated(nismass) .and. associated(nh4smass)) &
+                 pm_rh50 = pm_rh50 + 1.51 * (nismass + nh4smass)
+            if (associated(pm25_rh50) .and. associated(nismass25) .and. associated(nh4smass)) &
+                 pm25_rh50 = pm25_rh50 + 1.51 * (nismass25 + nh4smass)
 
-      !       do w = 1, size(self%wavelengths_profile)
-      !          if(associated(totextcoef) .and. associated(niextcoef)) totextcoef(:,:,:,w) =
-      ! totextcoef(:,:,:,w)+niextcoef(:,:,:,w)
-      !          if(associated(totextcoefrh20) .and. associated(niextcoefrh20)) totextcoefrh20(:,:,:,w) =
-      ! totextcoefrh20(:,:,:,w)+niextcoefrh20(:,:,:,w)
-      !          if(associated(totextcoefrh80) .and. associated(niextcoefrh80)) totextcoefrh80(:,:,:,w) =
-      ! totextcoefrh80(:,:,:,w)+niextcoefrh80(:,:,:,w)
-      !          if(associated(totscacoef) .and. associated(niscacoef)) totscacoef(:,:,:,w) =
-      ! totscacoef(:,:,:,w)+niscacoef(:,:,:,w)
-      !          if(associated(totscacoefrh20) .and. associated(niscacoefrh20)) totscacoefrh20(:,:,:,w) =
-      ! totscacoefrh20(:,:,:,w)+niscacoefrh20(:,:,:,w)
-      !          if(associated(totscacoefrh80) .and. associated(niscacoefrh80)) totscacoefrh80(:,:,:,w) =
-      ! totscacoefrh80(:,:,:,w)+niscacoefrh80(:,:,:,w)
-      !          if(associated(totbckcoef) .and. associated(nibckcoef)) totbckcoef(:,:,:,w) =
-      ! totbckcoef(:,:,:,w)+nibckcoef(:,:,:,w)
-      !       end do
-
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nismass,   'NISMASS',   _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nismass25, 'NISMASS25', _RC)
-      !       call MAPL_StateGetPointer (gex(self%NI%instances(n)%id), nh4smass,  'NH4SMASS',   _RC)
-      !       if(associated(pm)        .and. associated(nismass)   .and. associated(nh4smass)) pm        = pm   +
-      ! nismass   + nh4smass
-      !       if(associated(pm25)      .and. associated(nismass25) .and. associated(nh4smass)) pm25      = pm25 +
-      ! nismass25 + nh4smass
-      !       if(associated(pm_rh35)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh35   = pm_rh35   +
-      ! 1.33*(nismass   + nh4smass)
-      !       if(associated(pm25_rh35) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh35 = pm25_rh35 +
-      ! 1.33*(nismass25 + nh4smass)
-      !       if(associated(pm_rh50)   .and. associated(nismass)   .and. associated(nh4smass)) pm_rh50   = pm_rh50   +
-      ! 1.51*(nismass   + nh4smass)
-      !       if(associated(pm25_rh50) .and. associated(nismass25) .and. associated(nh4smass)) pm25_rh50 = pm25_rh50 +
-      ! 1.51*(nismass25 + nh4smass)
-
-      !       if(associated(totangstr) .and. associated(niexttau) .and. associated(niangstr)) then
-      !          tau1 = tau1 + niexttau(:,:,ind550)*exp(c1*niangstr)
-      !          tau2 = tau2 + niexttau(:,:,ind550)*exp(c2*niangstr)
-      !       end if
-      !    end if
-      ! end do
+            if (associated(totangstr) .and. associated(niexttau) .and. associated(niangstr)) then
+               tau1 = tau1 + niexttau(:, :, ind550) * exp(c1 * niangstr)
+               tau2 = tau2 + niexttau(:, :, ind550) * exp(c2 * niangstr)
+            end if
+         end if
+      end do
 
       ! Sulfates
       nifactor = 132.14 / 96.06
@@ -1258,12 +1255,11 @@ contains
       call add_children__(gc, self%DU, DU2G_SetServices, _RC)
       call add_children__(gc, self%SS, SS2G_SetServices, _RC)
       call add_children__(gc, self%SU, SU2G_SetServices, _RC)
+      call add_children__(gc, self%NI, NI2G_SetServices, _RC)
       ! call add_children__(gc, self%CA, CA2G_SetServices, _RC)
-      ! call add_children__(gc, self%NI, NI2G_SetServices, _RC)
-      ! CA and NI are not ported, so their children are not created; anything
-      ! that checks is_active (e.g. Run2's nifactor) must not see them as active
+      ! CA is not ported, so its children are not created; anything that
+      ! checks is_active (e.g. Run2's PM totals) must not see it as active
       call deactivate_instances__(gc, self%CA, _RC)
-      call deactivate_instances__(gc, self%NI, _RC)
 
       _RETURN(_SUCCESS)
    end subroutine create_instances_

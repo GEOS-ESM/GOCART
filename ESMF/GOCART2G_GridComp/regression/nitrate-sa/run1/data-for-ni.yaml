@@ -1,0 +1,59 @@
+mapl:
+
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
+  misc:
+    restart:
+      internal: true
+
+  states:
+    internal:
+      DU:
+        standard_name: "Dust Mixing Ratio all bins"
+        units: "kg kg-1"
+        vertical_dim_spec: "c"
+        ungridded_dims:
+          # dim_units must match DuSsStub_GridCompMod.F90's MAPL_UngriddedDim
+          # units="1" for its connected DU/SS imports, since the
+          # UNGRIDDED_DIMS aspect's equality check (used to validate the
+          # connection) compares name/units/extent.
+          - {dim_name: nbins, dim_units: "1", extent: 5}
+      SS:
+        standard_name: "Sea Salt Mixing Ratio all bins"
+        units: "kg kg-1"
+        vertical_dim_spec: "c"
+        ungridded_dims:
+          - {dim_name: nbins, dim_units: "1", extent: 5}
+      DELP:
+        standard_name: "pressure_thickness"
+        units: "Pa"
+        vertical_dim_spec: "c"
+      EMI_NH3_AG:
+        standard_name: "agriculture emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_BB:
+        standard_name: "biomass burning emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_EN:
+        standard_name: "energy emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_IN:
+        standard_name: "industry emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_OC:
+        standard_name: "ocean emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_RE:
+        standard_name: "resedential emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"
+      EMI_NH3_TR:
+        standard_name: "transport emissions"
+        units: "kg m-2 s-1"
+        vertical_dim_spec: "n"

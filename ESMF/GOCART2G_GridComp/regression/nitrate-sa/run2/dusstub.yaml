@@ -1,0 +1,4 @@
+---
+mapl:
+  setServices:
+    sharedObj: libDuSsStub_GridComp
