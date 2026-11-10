@@ -31,6 +31,7 @@ Aerosol (and a few trace-gas) components for GEOS. On this line the aerosol comp
 - Resource files (`*.yaml`, and the `*.rc` that remain beside them) are installed to `etc/`; the instance `*.yaml` files are the ones read on this line (`ESMF/GOCART2G_GridComp/GOCART2G_GridCompMod.F90`, `add_children__`). The `*.rc` files beside them are MAPL2 leftovers that the ported code does not read.
 - `CCPP/GOCART_CCPP.F90` and `ESMF/NUOPC/NUOPC_Cap.F90` are empty files; the UFS cap is in `ESMF/UFS`, not built on this line.
 - `ESMF/GOCART2G_GridComp/SU2G_GridComp/mapl3-porting-notes.md` records the SU2G port steps and what is left after it.
+- Error handling in code you write or touch uses the MAPL3 macros (`@MAPL/include/MAPL_ErrLog.h`): `_RC` on calls, `_STAT` on `allocate`, `_ASSERT(cond, msg)` with a message, and `_RETURN(_SUCCESS)` at every successful exit. Convert `RC=STATUS`/`VERIFY_`/`ASSERT_`/`RETURN_` in any routine you change. `_RC` expands to two statements (`rc=status);_VERIFY(status`), so it cannot end a one-line `if`; use a block `if`. Do not add decorative `!----` separator lines.
 
 ## Build and test
 - Not built standalone in the GEOSgcm fixture: built as part of GEOSgcm (`CMakeLists.txt`, `esma_add_subdirectories`; `CHANGELOG.md` records that standalone builds were removed). Libraries built: `Chem_Shared2G`, `Process_Library`, `GOCART2G_GridComp` with `GA_Environment`, `DU2G`, `SS2G`, `SU2G`.

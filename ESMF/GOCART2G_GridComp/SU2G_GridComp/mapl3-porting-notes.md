@@ -13,8 +13,11 @@ Left after the port (none blocks it):
     AGCM and Physics are ported (SUPERDYN/`TRADV` -> PHYS/`TRADV`, drop
     Physics' MAPL2 `TRADV` export). Then check that the DU/SS bins are
     advected (step 4).
-  - Diffusion and convection: need MAPL3 turbulence and moist service
-    providers (step 4).
+  - Convection: subscribe SU, DU and SS to Moist's `MTR` service, which
+    Moist now provides (GEOSgcm_GridComp#1566, merged on
+    `release/MAPL-v3`) (step 4).
+  - Diffusion: subscribe SU, DU and SS to `TRDIFF` once Turbulence is
+    ported and provides it (step 4).
   - NI2G's `SO4` import from SU, plus DU->NI and SS->NI (step 10).
 - Fixed but not run-tested: DU2G `DustEmissionK14` undef and point-emission
   indices (no case uses them); GOCART2G `get_monochromatic_aop` (no caller).
@@ -232,8 +235,36 @@ Rewritten after DU/SS:
     `service_items=['DMS','SO2','SO4','MSA']` (`MAPL_GridCompAddSpec`
     argument; `items:` in YAML). DynCore/AdvCore already provide
     `TRADV`, and Superdyn re-exports it; no component subscribes yet.
-  - Turbulence and moist have no MAPL3 service providers yet; subscribe
-    once they exist.
+  - Service mapping, one subscription per MAPL2 friendly target, each
+    with the same `service_items` (the `advected_tracers` vector can be
+    reused) and for the computational instance only:
+
+    | MAPL2 `FRIENDLYTO` | MAPL3 service | Provider | Status |
+    |---|---|---|---|
+    | `DYNAMICS` | `TRADV` (`advected_quantities`) | FV3 DynCore/AdvCore | DONE |
+    | `MOIST` | `MTR` (`tracers_for_moist`) | Moist | TODO |
+    | `TURBULENCE` | `TRDIFF` (`turbulently_diffused_quantities`) | Turbulence | Blocked |
+
+    Tracers per child (MAPL2 `*_StateSpecs.rc`, all three targets on
+    each): SU2G `DMS`, `SO2`, `SO4`, `MSA`; DU2G `DU` and SS2G `SS`
+    (each one field with 5 ungridded bins). Not yet ported, same three
+    subscriptions later: CA2G `<inst>phobic`, `<inst>philic`; NI2G
+    `NH3`, `NH4a`, `NO3an1`-`NO3an3`. Data-driven instances had no
+    friendlies (their `friendlyto=` lines are commented out), so they
+    subscribe to nothing. No other MAPL2 friendly targets (`ANALYSIS`,
+    `CHEMISTRY`) appear in GOCART2G, so no other services.
+  - Moist (`GEOS_MoistGridComp.F90`, GEOSgcm_GridComp#1566, merged on
+    `release/MAPL-v3`) provides `MTR` as an export
+    service; it replaces MAPL2's `MTR` import that Physics filled with
+    the `FRIENDLYTO=MOIST` fields. GF reads `ScavengingFractionPerKm`
+    and `SetofHenryLawCts` from each field's ESMF Info
+    (`Process_Library.F90`); SU, DU and SS still set them on their
+    internals. Not yet checked how Physics connects GOCART's `MTR`
+    imports to Moist's export.
+  - Turbulence is not ported. `TRDIFF` is the name Moist uses for its
+    own subscription (replacing MAPL2's `TR` bundle); treat it as a
+    placeholder and rename both together when Turbulence settles the
+    provider.
   - Check whether the subscription belongs in SU or in a GOCART2G/PHYS
     ancestor, and do the same for DU and SS.
   - DONE: SetServices subscribes to `TRADV` with `service_items`
@@ -265,7 +296,7 @@ Rewritten after DU/SS:
       SUPERDYN/`TRADV` -> PHYS/`TRADV` and drop Physics' MAPL2 `TRADV`
       export. Until then the subscriptions are unused.
   - Open, for the first coupled run:
-    - duplicate names when several instances (e.g. two SU) subscribe;
+    - duplicate names when several instances (e.g. two SU) subscribe; code checked 2026-11-06, see the Self-subscription section of the GEOSmoist_GridComp `mapl3-porting-notes.md` (MAPL accepts duplicates, Moist's `CNV_Tracers_Init` looks fields up by name, and subscribed fields lose their short names in the bundle, as DynCore's `get_short_name` works around for `TRADV`);
     - `DU` and `SS` are single fields with 5 ungridded bins, while SU's
       are plain 3-D fields: check that the service and DynCore/AdvCore
       advect fields with an ungridded dimension (every bin), or split
@@ -607,5 +638,8 @@ Items 1-4 were checked at run time with the step-0 baseline (step 9).
      GOCART2G/CHEM/PHYS. Inactive until the AGCM connects SUPERDYN/`TRADV`
      -> PHYS/`TRADV` (needs the AGCM and Physics ports). Untested in a
      coupled run, including whether the ungridded DU/SS bins are advected.
-   - Diffusion and convection: not addressed; turbulence and moist have no
-     MAPL3 service providers yet.
+   - Convection: SU, DU and SS should subscribe to Moist's `MTR` with the
+     same items as `TRADV`; Moist provides it (GEOSgcm_GridComp#1566,
+     merged on `release/MAPL-v3`). Not yet subscribed.
+   - Diffusion: subscribe to `TRDIFF` (placeholder name) once Turbulence
+     is ported and provides it.

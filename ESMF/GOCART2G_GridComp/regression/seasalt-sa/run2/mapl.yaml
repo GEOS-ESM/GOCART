@@ -6,3 +6,4 @@ esmf:
   logAppendFlag: false
 
 app_petcount: 6
+pflogger: logging.yaml
