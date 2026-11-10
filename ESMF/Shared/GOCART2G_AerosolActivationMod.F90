@@ -300,7 +300,7 @@ contains
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
                ! the "5" refers to "_AERO", which we want to remove
-               ! to get the CA component name (e.g. CA_oc, or CA.oc.data)
+               ! to get the CA component name (e.g. CA_oc, or CA_oc_data)
                varNameLen = varNameLen - 5
                call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen) // "philic", farrayPtr=ptr_3d,&
                     & _RC)
@@ -327,7 +327,7 @@ contains
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
                ! the "5" refers to "_AERO", which we want to remove
-               ! to get the CA component name (e.g. CA_bc, or CA.bc.data)
+               ! to get the CA component name (e.g. CA_bc, or CA_bc_data)
                varNameLen = varNameLen - 5
                call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen) // "philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
@@ -342,7 +342,7 @@ contains
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
                ! the "5" refers to "_AERO", which we want to remove
-               ! to get the CA component name (e.g. CA_oc, or CA.oc.data)
+               ! to get the CA component name (e.g. CA_oc, or CA_oc_data)
                varNameLen = varNameLen - 5
                call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen) // "philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
@@ -357,7 +357,7 @@ contains
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
                ! the "5" refers to "_AERO", which we want to remove
-               ! to get the CA component name (e.g. CA_bc, or CA.bc.data)
+               ! to get the CA component name (e.g. CA_bc, or CA_bc_data)
                varNameLen = varNameLen - 5
                call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen) // "philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d

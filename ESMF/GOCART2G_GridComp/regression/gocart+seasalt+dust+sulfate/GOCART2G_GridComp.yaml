@@ -9,9 +9,9 @@ aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
 ACTIVE_INSTANCES:
-  DU: [DU]  # [DU.data]
-  SS: [SS]  # [SS.data]
-  SU: [SU]  # [SU.data]
+  DU: [DU]  # [DU_data]
+  SS: [SS]  # [SS_data]
+  SU: [SU]  # [SU_data]
   CA: []  # [CA_oc, CA_bc, CA_br] ported; exercised by the
           # gocart+seasalt+dust+sulfate+nitrate+carbon-bc case instead
           # (see ../../CA2G_GridComp/mapl3-porting-notes.md)

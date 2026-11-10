@@ -19,19 +19,19 @@
 
 # Include the constituent in the simulation?
 # ----------------------------------------------------
-ACTIVE_INSTANCES_DU:  DU #DU.test
+ACTIVE_INSTANCES_DU:  DU #DU_test
 PASSIVE_INSTANCES_DU:
 
-ACTIVE_INSTANCES_SS:   SS #  SS.data
+ACTIVE_INSTANCES_SS:   SS #  SS_data
 PASSIVE_INSTANCES_SS:
 
-ACTIVE_INSTANCES_SU:  SU   #SU.data
+ACTIVE_INSTANCES_SU:  SU   #SU_data
 PASSIVE_INSTANCES_SU:
 
-ACTIVE_INSTANCES_CA:   CA_oc  CA_bc  CA_br  #CA.oc.data CA.bc.datac
+ACTIVE_INSTANCES_CA:   CA_oc  CA_bc  CA_br  #CA_oc_data CA_bc_data
 PASSIVE_INSTANCES_CA:
 
-ACTIVE_INSTANCES_NI:  NI  #NI.data
+ACTIVE_INSTANCES_NI:  NI  #NI_data
 PASSIVE_INSTANCES_NI:
 
 # Set optics parameters

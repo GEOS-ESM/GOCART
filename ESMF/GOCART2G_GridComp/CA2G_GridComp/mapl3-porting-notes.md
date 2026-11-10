@@ -71,7 +71,7 @@ instance. This drives most of the differences from the SU2G template:
   path) apply to a given instance.
 - **`determine_data_driven(comp_name, data_driven, _RC)`**: the same shared
   helper NI2G uses (`Chem_AeroGeneric.F90`), called identically in
-  `SetServices`/`Initialize`/`Run` to decide the `.data`-suffix branch.
+  `SetServices`/`Initialize`/`Run` to decide the `_data`-suffix branch.
 - **No replenishment alarm, no `TRADV`/`FRIENDLYTO` subscription, no
   `pflogger`**: unlike SU2G/NI2G, CA2G's own internal fields
   (`<comp_name>phobic`/`<comp_name>philic`) were never friendly to
@@ -419,7 +419,7 @@ is_valid = (verify(name(2:), LOWER // UPPER // DIGITS // '_'//'.') == 0)
   `HistoryGridComp_private.F90` states the contract explicitly: *"Collection
   names are permitted to include period ('.') characters, but gridcomps are
   not."* A dotted child name contradicts that, and composed names such as
-  `CA.oc.data` are unparseable under a first-dot-wins grammar.
+  `CA_oc_data` are unparseable under a first-dot-wins grammar.
 - The `.` carried no information: nothing in GOCART ever split on it. The
   names were flat, opaque tokens everywhere they appeared.
 - `CA_bcEXTTAU` is a legal Fortran identifier, so the dot no longer forces
@@ -447,9 +447,9 @@ Remaining consequences:
   becomes `CA_bc_*.nc`. Likewise, existing GEOS internal restarts carry
   variables named `CA.bcphobic`/`CA.bcphilic`, which become
   `CA_bcphobic`/`CA_bcphilic`.
-- The commented-out `.data` instance variants (`CA.oc.data` etc., and
-  `DU.data`/`SS.data`/`SU.data`/`NI.data`) were deliberately left spelled
-  with periods; they need the same treatment if ever re-enabled.
+- The commented-out data-driven instance variants (`CA_oc_data` etc., and
+  `DU_data`/`SS_data`/`SU_data`/`NI_data`) were renamed to underscores
+  alongside the rest; they remain commented out and unwired.
 - The aerosol-optics ExtData previously feared missing
   (`opticsBands_{BC,OC,BR}.v2.1.0.RRTMGP.nc4` /
   `optics_{BC,OC,BR}.v2.1.0.nc4`) resolves fine from the regression ExtData
@@ -569,8 +569,8 @@ and not in the `ctest` runs.
    defaults to `false` (`/dev/null`) in all three regression/production
    instance configs; the point-emissions code path itself is unexercised,
    same caveat class as SU2G's/NI2G's untested branches.
-6. **Data-driven (`.data`) instances**: still guarded by
+6. **Data-driven (`_data`) instances**: still guarded by
    `_FAIL("data driven section has not been activated yet")`, unchanged
-   from the MAPL2 source; `CA.oc.data`/`CA.bc.data` are not wired into
+   from the MAPL2 source; `CA_oc_data`/`CA_bc_data` are not wired into
    `ACTIVE_INSTANCES`/`PASSIVE_INSTANCES` anywhere, consistent with
    DU/SS/SU's equivalents.

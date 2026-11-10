@@ -16,11 +16,11 @@ n_phase_function_moments_photolysis: 0
 # <gridcomp>.<variable> dive-down delimiter.
 # Details in ../../CA2G_GridComp/mapl3-porting-notes.md.
 ACTIVE_INSTANCES:
-  DU: [DU]  # [DU.data]
-  SS: [SS]  # [SS.data]
-  SU: [SU]  # [SU.data]
+  DU: [DU]  # [DU_data]
+  SS: [SS]  # [SS_data]
+  SU: [SU]  # [SU_data]
   CA: [CA_bc]
-  NI: [NI]  # [NI.data]
+  NI: [NI]  # [NI_data]
 
 PASSIVE_INSTANCES:
   DU: []
