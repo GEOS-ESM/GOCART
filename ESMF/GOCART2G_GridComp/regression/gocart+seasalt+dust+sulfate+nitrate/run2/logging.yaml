@@ -1,0 +1,35 @@
+schema_version: 1
+
+# MAPL's default logging writes every rank's warnings to warnings_and_errors.log
+# under an MPI lock. Without a field dictionary in the run directory, MAPL warns
+# once per variable spec per rank, and the lock serializes the ranks (about 6 s
+# of a 17 s Moist case). This config logs to the console only and sets the MAPL
+# logger to ERROR; MAPL.profiler keeps the timing tables on rank 0.
+
+formatters:
+   basic:
+      class: Formatter
+      format: '%(name)a15~: %(message)a'
+
+handlers:
+   console:
+      class: streamhandler
+      formatter: basic
+      unit: OUTPUT_UNIT
+      level: DEBUG
+
+root:
+   handlers: [console]
+   level: WARNING
+   root_level: INFO
+
+loggers:
+   MAPL:
+      level: ERROR
+      root_level: ERROR
+
+   MAPL.profiler:
+      handlers: [console]
+      propagate: FALSE
+      level: WARNING
+      root_level: INFO

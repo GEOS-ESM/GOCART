@@ -460,9 +460,15 @@ contains
             call MAPL_GridCompAddConnection( &
                  gc, &
                  src_comp=child%name, &
-                 src_names=child%name // "_AERO_DP", &
+                 src_names=child_items, &
+                 dst_comp="<self>", _RC)
+            ! AERO
+            call MAPL_GridCompAddConnection( &
+                 gc, &
+                 src_comp=child%name, &
+                 src_names=child%name // "_AERO", &
                  dst_comp="<self>", &
-                 dst_names=child%name // "_AERO_DP", _RC)
+                 dst_names=child%name // "_AERO", _RC)
          end if
       end do
 
