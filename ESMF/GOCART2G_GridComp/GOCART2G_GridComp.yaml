@@ -12,7 +12,7 @@ ACTIVE_INSTANCES:
   DU: [DU]  # [DU.data]
   SS: [SS]  # [SS.data]
   SU: [SU]  # [SU.data]
-  CA: [CA.oc, CA.bc, CA.br]  # [CA.oc.data, CA.bc.data]
+  CA: [CA_oc, CA_bc, CA_br]  # [CA.oc.data, CA.bc.data]
   NI: [NI]  # [NI.data]
 
 PASSIVE_INSTANCES:

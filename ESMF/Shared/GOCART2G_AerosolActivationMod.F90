@@ -296,11 +296,11 @@ contains
                density = densSO4 * ptr_3d + density
             end if
 
-            if (index(aeroList(i), "CA.oc") > 0) then
+            if (index(aeroList(i), "CA_oc") > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
                ! the "5" refers to "_AERO", which we want to remove
-               ! to get the CA component name (e.g. CA.oc, or CA.oc.data)
+               ! to get the CA component name (e.g. CA_oc, or CA.oc.data)
                varNameLen = varNameLen - 5
                call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen) // "philic", farrayPtr=ptr_3d,&
                     & _RC)
@@ -323,11 +323,11 @@ contains
 
       else if (index(mode_, "bcphilic") > 0) then ! Black Carbon
          do i = 1, size(aeroList)
-            if (index(aeroList(i), "CA.bc") > 0) then
+            if (index(aeroList(i), "CA_bc") > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
                ! the "5" refers to "_AERO", which we want to remove
-               ! to get the CA component name (e.g. CA.bc, or CA.bc.data)
+               ! to get the CA component name (e.g. CA_bc, or CA.bc.data)
                varNameLen = varNameLen - 5
                call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen) // "philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
@@ -338,11 +338,11 @@ contains
 
       else if (index(mode_, "ocphilic") > 0) then ! Organic Carbon
          do i = 1, size(aeroList)
-            if (index(aeroList(i), "CA.oc") > 0) then
+            if (index(aeroList(i), "CA_oc") > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
                ! the "5" refers to "_AERO", which we want to remove
-               ! to get the CA component name (e.g. CA.oc, or CA.oc.data)
+               ! to get the CA component name (e.g. CA_oc, or CA.oc.data)
                varNameLen = varNameLen - 5
                call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen) // "philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
@@ -353,11 +353,11 @@ contains
 
       else if (index(mode_, "brcphilic") > 0) then ! Organic Carbon
          do i = 1, size(aeroList)
-            if (index(aeroList(i), "CA.br") > 0) then
+            if (index(aeroList(i), "CA_br") > 0) then
                call ESMF_StateGet(state, trim(aeroList(i)), child_state, _RC)
                varNameLen = len_trim(aeroList(i))
                ! the "5" refers to "_AERO", which we want to remove
-               ! to get the CA component name (e.g. CA.bc, or CA.bc.data)
+               ! to get the CA component name (e.g. CA_bc, or CA.bc.data)
                varNameLen = varNameLen - 5
                call MAPL_StateGetPointer(child_state, itemName=aeroList(i)(1:varNameLen) // "philic", farrayPtr=ptr_3d, _RC)
                q = q + ptr_3d
@@ -688,7 +688,7 @@ contains
          else if (aeroName(1:min(2,len_trim(aeroName))) == 'OG' .or. &
                   aeroName(1:min(2,len_trim(aeroName))) == 'OC' .or. &
                   aeroName(1:min(2,len_trim(aeroName))) == 'BR' .or. &
-                  index(aeroName, 'CA.OC') > 0 .or. index(aeroName, 'CA.BR') > 0) then
+                  index(aeroName, 'CA_OC') > 0 .or. index(aeroName, 'CA_BR') > 0) then
             added_any = .false.
             baseName = trim(aeroList(i))
             varNameLen = len_trim(baseName)
@@ -709,7 +709,7 @@ contains
             end if
 
          else if (aeroName(1:min(2,len_trim(aeroName))) == 'BC' .or. &
-                  index(aeroName, 'CA.BC') > 0) then
+                  index(aeroName, 'CA_BC') > 0) then
             added_any = .false.
             baseName = trim(aeroList(i))
             varNameLen = len_trim(baseName)

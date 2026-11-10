@@ -9,7 +9,7 @@ GRIDCOMPS = {
     "SS": ["import", "internal", "export"],
     "SU": ["import", "internal", "export"],
     "NI": ["import", "internal", "export"],
-    "CA.bc": ["import", "internal", "export"],
+    "CA_bc": ["import", "internal", "export"],
     "GOCART2G": ["import", "export"],
 }
 

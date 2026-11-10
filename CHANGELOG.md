@@ -16,6 +16,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - setZeroKlid for non-radiatively active tracers in Run0
 
 ### Changed
+- Renamed the carbonaceous aerosol instances from the MAPL2-era dotted
+  spelling to underscores: `CA.oc`/`CA.bc`/`CA.br` -> `CA_oc`/`CA_bc`/`CA_br`.
+  The period conflicted with MAPL3 History's `<gridcomp>.<variable>`
+  dive-down delimiter, which `HistoryGridComp_private.F90` documents as
+  not permitted in gridcomp names, and it forced `.` into MAPL's global
+  `is_valid_name` grammar. The rename covers the child/instance names, the
+  `CA2G_instance_*` resource filenames (and their symlinks), ESMF field,
+  state and info-key names, the `GOCART2G_StateSpecs.rc` CA import rows,
+  the `carbon-bc-sa` and `...+carbon-bc` regression harnesses, and
+  `g2g_rst_generator.py`. Not zero-diff for I/O: checkpoint, restart and
+  History variable names change accordingly, so regression baselines and
+  existing restarts must be renamed or regenerated. The commented-out
+  `.data` instance variants were intentionally left untouched.
 - CI: removed the GOCART-only builds from GitHub Actions (`build_gocart`, `spack_build_gocart`) and CircleCI (`build-GOCART2G`, `build-GOCART2G-like-UFS`)
 - CI: the CircleCI GEOSgcm build now runs `ctest -L REGRESSION`
 - Changes to use the split CAP.yaml linked to MAPL PR #5371 and Issue #5355

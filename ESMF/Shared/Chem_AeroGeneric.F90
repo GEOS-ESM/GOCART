@@ -188,13 +188,13 @@ contains
             end do
          end if
 
-         ! CA's phobic/philic "bins" are per-species (CA.oc/CA.bc/CA.br),
+         ! CA's phobic/philic "bins" are per-species (CA_oc/CA_bc/CA_br),
          ! not per-size like DU/SS; the deposition bundle field names
          ! consumed downstream (e.g. by the land surface component for
          ! snow albedo modification) follow the legacy GOCART convention
-         ! of a 2-letter species suffix (OC/BC/BR) in place of "CA.xx",
-         ! e.g. varname "CA.ocDP" (comp_name // 'DP') -> "OCDP001"/"OCDP002"
-         if (index(trim(varname), "CA.oc") > 0) then
+         ! of a 2-letter species suffix (OC/BC/BR) in place of "CA_xx",
+         ! e.g. varname "CA_ocDP" (comp_name // 'DP') -> "OCDP001"/"OCDP002"
+         if (index(trim(varname), "CA_oc") > 0) then
             varname_new = "OC" // varname(6:)
             do iter = 1, size(orig_ptr, 3)
                write (bin_index, "(A, I0.3)") "", iter
@@ -215,7 +215,7 @@ contains
                     datacopyflag=ESMF_DATACOPY_REFERENCE, _RC)
                call MAPL_FieldBundleAdd(bundle, [field2d], _RC)
             end do
-         else if (index(trim(varname), "CA.bc") > 0) then
+         else if (index(trim(varname), "CA_bc") > 0) then
             varname_new = "BC" // varname(6:)
             do iter = 1, size(orig_ptr, 3)
                write (bin_index, "(A, I0.3)") "", iter
@@ -236,7 +236,7 @@ contains
                     datacopyflag=ESMF_DATACOPY_REFERENCE, _RC)
                call MAPL_FieldBundleAdd(bundle, [field2d], _RC)
             end do
-         else if (index(trim(varname), "CA.br") > 0) then
+         else if (index(trim(varname), "CA_br") > 0) then
             varname_new = "BR" // varname(6:)
             do iter = 1, size(orig_ptr, 3)
                write (bin_index, "(A, I0.3)") "", iter
@@ -420,7 +420,7 @@ contains
          aeroSum = aeroSum + ptr3d
          call MAPL_StateGetPointer(state, itemName="NO3an3", farrayPtr=ptr3d, _RC)
          aeroSum = aeroSum + ptr3d
-      else if ((aerosol_name == "CA.oc") .or. (aerosol_name == "CA.bc") .or. (aerosol_name == "CA.br")) then
+      else if ((aerosol_name == "CA_oc") .or. (aerosol_name == "CA_bc") .or. (aerosol_name == "CA_br")) then
          ! CA's two bins (hydrophobic/hydrophilic) are separate named
          ! fields (<name>phobic/<name>philic), not an ungridded array
          call MAPL_StateGetPointer(state, itemName=trim(aerosol_name)//"phobic", farrayPtr=ptr3d, _RC)

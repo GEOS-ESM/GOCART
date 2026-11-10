@@ -428,7 +428,7 @@ contains
       end do
 
       ! Connections to Carbonaceous aerosols' export items. Each CA instance
-      ! (CA.oc, CA.bc, CA.br) exports fields literally prefixed by its own
+      ! (CA_oc, CA_bc, CA_br) exports fields literally prefixed by its own
       ! instance name (ACG's '*' substitution in CA2G_StateSpecs.rc), so the
       ! connection source names must be built per-instance rather than as a
       ! single constant string like the other species.
@@ -564,9 +564,9 @@ contains
       call add_aero(aero, label="sum_of_internalState_aerosol_DU", label2="aerosolSumDU", geom=geom, km=km, _RC)
       call add_aero(aero, label="sum_of_internalState_aerosol_SS", label2="aerosolSumSS", geom=geom, km=km, _RC)
       call add_aero(aero, label="sum_of_internalState_aerosol_NI", label2="aerosolSumNI", geom=geom, km=km, _RC)
-      call add_aero(aero, label="sum_of_internalState_aerosol_CA.oc", label2="aerosolSumCA.oc", geom=geom, km=km, _RC)
-      call add_aero(aero, label="sum_of_internalState_aerosol_CA.bc", label2="aerosolSumCA.bc", geom=geom, km=km, _RC)
-      call add_aero(aero, label="sum_of_internalState_aerosol_CA.br", label2="aerosolSumCA.br", geom=geom, km=km, _RC)
+      call add_aero(aero, label="sum_of_internalState_aerosol_CA_oc", label2="aerosolSumCA_oc", geom=geom, km=km, _RC)
+      call add_aero(aero, label="sum_of_internalState_aerosol_CA_bc", label2="aerosolSumCA_bc", geom=geom, km=km, _RC)
+      call add_aero(aero, label="sum_of_internalState_aerosol_CA_br", label2="aerosolSumCA_br", geom=geom, km=km, _RC)
       call add_aero(aero, label="sum_of_internalState_aerosol_SU", label2="aerosolSumSU", geom=geom, km=km, _RC)
 
       call ESMF_InfoSet(aero_info, key="band_for_aerosol_optics", value=0, _RC)
@@ -914,7 +914,7 @@ contains
       ! Carbonaceous aerosols
       do n = 1, size(self%CA%instances)
          if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0) &
-              .and. (index(self%CA%instances(n)%name, 'CA.bc') > 0)) then
+              .and. (index(self%CA%instances(n)%name, 'CA_bc') > 0)) then
 
             ! Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -966,7 +966,7 @@ contains
             end if
 
          else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0) &
-              .and. (index(self%CA%instances(n)%name, 'CA.oc') > 0)) then
+              .and. (index(self%CA%instances(n)%name, 'CA_oc') > 0)) then
 
             ! Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -1020,7 +1020,7 @@ contains
             end if
 
          else if ((self%CA%instances(n)%is_active) .and. (index(self%CA%instances(n)%name, 'data') == 0) &
-              .and. (index(self%CA%instances(n)%name, 'CA.br') > 0)) then
+              .and. (index(self%CA%instances(n)%name, 'CA_br') > 0)) then
 
             ! Iterate over the wavelengths
             do w = 1, size(self%wavelengths_vertint)
@@ -1746,27 +1746,27 @@ contains
          end if
 
       case ("organicCarbon")
-         call getAerosolSum("CA.oc", state, aeroList, aeroOut, _RC)
+         call getAerosolSum("CA_oc", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.oc", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA_oc", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
          end if
 
       case ("blackCarbon")
-         call getAerosolSum("CA.bc", state, aeroList, aeroOut, _RC)
+         call getAerosolSum("CA_bc", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.bc", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA_bc", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut
          end if
 
       case ("brownCarbon")
-         call getAerosolSum("CA.br", state, aeroList, aeroOut, _RC)
+         call getAerosolSum("CA_br", state, aeroList, aeroOut, _RC)
 
-         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA.br", value=fld_name, _RC)
+         call ESMF_InfoGetCharAlloc(info, key="sum_of_internalState_aerosol_CA_br", value=fld_name, _RC)
          if (fld_name /= "") then
             call MAPL_StateGetPointer(state, itemName=fld_name, farrayPtr=var, _RC)
             var = aeroOut

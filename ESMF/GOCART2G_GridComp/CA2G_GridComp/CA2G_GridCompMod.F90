@@ -632,11 +632,11 @@ contains
 
 #include "CA2G_GetPointer___.h"
 
-      if (trim(comp_name) == 'CA.oc') then
+      if (trim(comp_name) == 'CA_oc') then
          GCsuffix = 'OC'
-      else if (trim(comp_name) == 'CA.bc') then
+      else if (trim(comp_name) == 'CA_bc') then
          GCsuffix = 'BC'
-      else if (trim(comp_name) == 'CA.br') then
+      else if (trim(comp_name) == 'CA_br') then
          GCsuffix = 'BR'
       end if
 
@@ -666,7 +666,7 @@ contains
       end if
 
       ! Implicit allocation with Fortran 2003
-      if (trim(comp_name) == 'CA.oc') then
+      if (trim(comp_name) == 'CA_oc') then
          aircraft_fuel_src = OC_AIRCRAFT
          biomass_src = OC_BIOMASS
          biofuel_src = OC_BIOFUEL
@@ -678,7 +678,7 @@ contains
          aviation_crs_src = OC_AVIATION_CRS
          allocate(biogvoc_src, mold=OC_MTPA, _STAT)
          biogvoc_src = ((OC_MTPA + OC_MTPO + OC_LIMO) * self%fMonoterpenes) + (OC_ISOPRENE * self%fIsoprene)
-      else if (trim(comp_name) == 'CA.bc') then
+      else if (trim(comp_name) == 'CA_bc') then
          aircraft_fuel_src = BC_AIRCRAFT
          biomass_src = BC_BIOMASS
          biofuel_src = BC_BIOFUEL
@@ -693,7 +693,7 @@ contains
          ! effectively does nothing since we set all its values to zero.
          allocate(biogvoc_src, mold=BC_BIOMASS, _STAT)
          biogvoc_src = 0.0
-      else if (trim(comp_name) == 'CA.br') then
+      else if (trim(comp_name) == 'CA_br') then
          aircraft_fuel_src = BRC_AIRCRAFT
          biomass_src = BRC_BIOMASS
          biogvoc_src = BRC_TERPENE
@@ -831,11 +831,11 @@ contains
       ! Get my private internal state
       _GET_NAMED_PRIVATE_STATE(gc, CA2G_GridComp, PRIVATE_STATE, self)
 
-      if (trim(comp_name) == 'CA.oc') then
+      if (trim(comp_name) == 'CA_oc') then
          GCsuffix = 'OC'
-      else if (trim(comp_name) == 'CA.bc') then
+      else if (trim(comp_name) == 'CA_bc') then
          GCsuffix = 'BC'
-      else if (trim(comp_name) == 'CA.br') then
+      else if (trim(comp_name) == 'CA_br') then
          GCsuffix = 'BR'
       end if
 
@@ -863,7 +863,7 @@ contains
       call setZeroKlid(self%km, self%klid, intPtr_philic)
 
       ! Add on SOA from Anthropogenic/Biomass-burning VOC oxidation
-      if (trim(comp_name) == 'CA.oc') then
+      if (trim(comp_name) == 'CA_oc') then
          pSOA_VOC = pSOA_ANTHRO_VOC
          where (1.01 * pSOA_VOC > MAPL2_UNDEF) pSOA_VOC = 0.0
 
@@ -872,7 +872,7 @@ contains
               PSOA = sum(pSOA_VOC * delp / airdens / MAPL_GRAV, 3)
       end if
 
-      if (trim(comp_name) == 'CA.br') then
+      if (trim(comp_name) == 'CA_br') then
          pSOA_VOC = pSOA_BIOB_VOC
          where (1.01 * pSOA_VOC > MAPL2_UNDEF) pSOA_VOC = 0.0
 
@@ -1052,11 +1052,11 @@ contains
 
       call MAPL_GridCompGet(gc, name=comp_name, _RC)
 
-      if (trim(comp_name) == 'CA.oc') then
+      if (trim(comp_name) == 'CA_oc') then
          GCsuffix = 'OC'
-      else if (trim(comp_name) == 'CA.bc') then
+      else if (trim(comp_name) == 'CA_bc') then
          GCsuffix = 'BC'
-      else if (trim(comp_name) == 'CA.br') then
+      else if (trim(comp_name) == 'CA_br') then
          GCsuffix = 'BR'
       end if
 

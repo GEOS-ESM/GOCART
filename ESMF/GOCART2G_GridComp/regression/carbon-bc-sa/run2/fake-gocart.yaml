@@ -13,8 +13,8 @@ mapl:
     sharedObj: libconfigurable_gridcomp
 
   children:
-    CA.bc:
+    CA_bc:
       dso: libCA2G_GridComp.so
       setservices: ca2g_setservices_
-      config_file: CA_instance_CA.bc.yaml
+      config_file: CA_instance_CA_bc.yaml
       run_phases: [Run2]

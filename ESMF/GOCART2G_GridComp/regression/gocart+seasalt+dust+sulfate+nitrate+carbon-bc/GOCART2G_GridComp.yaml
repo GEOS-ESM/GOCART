@@ -8,18 +8,18 @@ wavelengths_for_vertically_integrated_aop_in_nm: 550  # must be included in LUT
 aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
-# The CA.bc instance is active here (vs. CA: [] in
-# gocart+seasalt+dust+sulfate+nitrate). Only CA.bc is exercised for now;
-# CA.oc and CA.br are ported and runnable but not yet part of the
-# regression suite. The dotted instance name inherited from the MAPL2-era
-# GOCART2G design is accepted by MAPL3's is_valid_name() child-name check,
-# which admits '.' in addition to letters, digits and '_'.
+# The CA_bc instance is active here (vs. CA: [] in
+# gocart+seasalt+dust+sulfate+nitrate). Only CA_bc is exercised for now;
+# CA_oc and CA_br are ported and runnable but not yet part of the
+# regression suite. The instance names use '_' as the separator; the
+# MAPL2-era dotted spelling (CA.bc) was retired because '.' is History's
+# <gridcomp>.<variable> dive-down delimiter.
 # Details in ../../CA2G_GridComp/mapl3-porting-notes.md.
 ACTIVE_INSTANCES:
   DU: [DU]  # [DU.data]
   SS: [SS]  # [SS.data]
   SU: [SU]  # [SU.data]
-  CA: [CA.bc]
+  CA: [CA_bc]
   NI: [NI]  # [NI.data]
 
 PASSIVE_INSTANCES:

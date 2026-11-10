@@ -25,10 +25,10 @@ Scope of this pass, agreed up front:
 - `CA2G_StateSpecs.rc`: MAPL2 column layout (`FRIENDLYTO`, literal `2`
   ungridded sizes, `MAPL_RestartOptional`).
 - `GOCART2G_GridCompMod.F90` already anticipated CA in several places
-  (`ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` already present in
+  (`ACTIVE_INSTANCES: CA: [CA_oc, CA_bc, CA_br]` already present in
   `GOCART2G_GridComp.yaml`, `get_mixRatioSum`/`serialize_bundle`/
-  `run_aerosol_optics`/`getAerosolSum` already branching on `"CA.oc"`/
-  `"CA.bc"`/`"CA.br"`), but `create_instances_` was unconditionally calling a
+  `run_aerosol_optics`/`getAerosolSum` already branching on `"CA_oc"`/
+  `"CA_bc"`/`"CA_br"`), but `create_instances_` was unconditionally calling a
   `deactivate_instances__(gc, self%CA, _RC)` stub that logged a warning and
   never added CA as a real child (CA2G wasn't ported, same pattern NI2G's
   notes describe for NI before that port).
@@ -50,19 +50,19 @@ Scope of this pass, agreed up front:
 ## CA's structural difference from DU/SS/SU/NI
 
 CA2G is **one Fortran module shared by three independently-configured
-GridComp instances** (`CA.oc`, `CA.bc`, `CA.br` -- organic carbon, black
+GridComp instances** (`CA_oc`, `CA_bc`, `CA_br` -- organic carbon, black
 carbon, brown carbon), each with its own instance YAML/`.rc` (own
 `nbins=2`, `fscav`/`fwet`/particle properties, aerosol-optics LUT file,
 etc.), unlike DU/SS/SU/NI which each have exactly one active computational
 instance. This drives most of the differences from the SU2G template:
 
 - **`internal_variable_name`**: set to the scalar `trim(comp_name)` (e.g.
-  `"CA.bc"`), used only as an identifying token for
+  `"CA_bc"`), used only as an identifying token for
   `get_mixR`/`get_mixRatioSum`, not an actual field name -- same idiom NI2G
   introduced for its `"NI"` token.
 - **`GCsuffix`**: a local `character(len=2)` derived by comparing
-  `trim(comp_name)` against the literal strings `'CA.oc'`/`'CA.bc'`/
-  `'CA.br'` (`if/else if` chain, three places: `Run1`, the AERO-optics
+  `trim(comp_name)` against the literal strings `'CA_oc'`/`'CA_bc'`/
+  `'CA_br'` (`if/else if` chain, three places: `Run1`, the AERO-optics
   routine, and `Run_data`), mapping to `'OC'`/`'BC'`/`'BR'` respectively.
   This drives which emission import fields (`OC_*`/`BC_*`/`BRC_*`), which
   process-library behavior (`GOCART2G_Process`'s settling/wet-removal calls
@@ -112,8 +112,8 @@ instance. This drives most of the differences from the SU2G template:
 
 ### 2. Instance configuration
 
-- Three instance YAMLs: `CA2G_instance_CA.oc.yaml`, `CA2G_instance_CA.bc.yaml`,
-  `CA2G_instance_CA.br.yaml` (plus matching `.rc` files kept alongside, as
+- Three instance YAMLs: `CA2G_instance_CA_oc.yaml`, `CA2G_instance_CA_bc.yaml`,
+  `CA2G_instance_CA_br.yaml` (plus matching `.rc` files kept alongside, as
   DU/SS/SU/NI do), each with its own `aerosol_radBands_optics_file`/
   `aerosol_monochromatic_optics_file` pointing at
   `ExtData/chemistry/AerosolOptics/v2.x.x/x/opticsBands_{BC,OC,BR}...`/
@@ -227,7 +227,7 @@ branch).
   - SetServices: **per-instance dynamic connection strings** -- unlike
     DU/SS/SU/NI (one constant `child_items` string built once outside the
     loop), CA's `child_items` must be rebuilt *inside* the loop over
-    `self%CA%instances`, using `child%name` (e.g. `"CA.bc"`) as the literal
+    `self%CA%instances`, using `child%name` (e.g. `"CA_bc"`) as the literal
     prefix for each of the 13 export fields (`EXTTAU`, `STEXTTAU`,
     `SCATAU`, `STSCATAU`, `EXTCOEF`, `EXTCOEFRH20`, `EXTCOEFRH80`,
     `SCACOEF`, `SCACOEFRH20`, `SCACOEFRH80`, `BCKCOEF`, `ANGSTR`, `SMASS`),
@@ -239,15 +239,21 @@ branch).
 - `GOCART2G_StateSpecs.rc`: **ALIAS column added** (last column of the
   single IMPORT header) plus 39 new CA import rows
   (`#-imports-from-carbon-` section, 13 fields x 3 instances:
-  `CA.bcEXTTAU`/`CA.ocEXTTAU`/`CA.brEXTTAU`, etc.). The ALIAS column exists
-  **specifically because of CA**: the ACG (`MAPL_GridCompSpecs_ACG.py`)
-  normally derives a field's Fortran pointer variable name from its `NAME`
-  column, but `CA.bcEXTTAU` etc. contain a literal `.`, which is not a
-  legal Fortran identifier character. Adding `ALIAS` as the last column
-  (e.g. `bcexttau` for `CA.bcEXTTAU`) makes the generated
+  `CA_bcEXTTAU`/`CA_ocEXTTAU`/`CA_brEXTTAU`, etc.). The ALIAS column was
+  introduced **because of CA**: the ACG (`MAPL_GridCompSpecs_ACG.py`)
+  derives a field's Fortran pointer variable name from its `NAME`
+  column, and the original dotted spelling (`CA.bcEXTTAU`) contained a
+  literal `.`, which is not a legal Fortran identifier character. Adding
+  `ALIAS` as the last column
+  (e.g. `bcexttau` for `CA_bcEXTTAU`) makes the generated
   `GOCART2G_DeclarePointer___.h`/`GetPointer___.h` use the alias verbatim
-  as the Fortran variable name while keeping `CA.bcEXTTAU` as the actual
-  ESMF field/state name used for connections. Verified the existing
+  as the Fortran variable name while keeping `CA_bcEXTTAU` as the actual
+  ESMF field/state name used for connections. Since the rename to
+  underscores, `CA_bcEXTTAU` is itself a legal Fortran identifier, so the
+  ALIAS column is **no longer strictly required**; it is retained only
+  because the pointer names (`bcexttau` etc.) are what
+  `GOCART2G_GridCompMod.F90` refers to. Dropping it is a safe follow-up
+  that would also require renaming those pointer uses. Verified the existing
   DU/SS/SU/NI rows are unaffected (the ACG's row parser truncates/ignores
   trailing columns that are absent, so their un-aliased rows parse
   unchanged). A single IMPORT header for the whole file is required for
@@ -256,7 +262,7 @@ branch).
   in the same file would not safely append/merge an extra column across
   blocks.
 - `../CMakeLists.txt`: `CA2G_GridComp` enabled in `alldirs`.
-- `GOCART2G_GridComp.yaml`: `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]`
+- `GOCART2G_GridComp.yaml`: `ACTIVE_INSTANCES: CA: [CA_oc, CA_bc, CA_br]`
   was already present (pre-dating this port, left disabled only by the
   parent's `deactivate_instances__` stub); no yaml change needed in the
   production config.
@@ -265,13 +271,13 @@ branch).
 
 Added a new standalone case, `regression/carbon-bc-sa/`, mirroring
 `sulfate-sa`'s single-instance structure (one `DataForCA` +
-`FakeGOCART(CA.bc)` pair) rather than NI2G's combined-case structure,
+`FakeGOCART(CA_bc)` pair) rather than NI2G's combined-case structure,
 because -- unlike NI2G, which unconditionally reads `DU`/`SS`/`SO4` import
 fields and their custom `radius`/`fnum` `Info` attributes at `Initialize`
 -- a `grep` of `CA2G_GridCompMod.F90` confirmed **no cross-species
 `ESMF_StateGet` calls on `import` at all**: CA2G only needs generic
 met/emissions fields, the same standalone-friendly shape as SU2G. Picked
-the `CA.bc` (black carbon) instance arbitrarily as the one to exercise,
+the `CA_bc` (black carbon) instance arbitrarily as the one to exercise,
 since all three instances share one code path and only differ by
 `GCsuffix`/instance-config values.
 
@@ -279,26 +285,26 @@ since all three instances share one code path and only differ by
   `CA2G_StateSpecs.rc`'s IMPORT section (met/surface fields, emissions for
   OC/BC/BRC, aircraft/VOC-SOA fields), as a `configurable_gridcomp`
   `internal` state.
-- `CA2G_instance_CA.bc.yaml` (top-level, regression copy of
-  `CA2G_GridComp/CA2G_instance_CA.bc.yaml`): same resource values, `mapl:`
+- `CA2G_instance_CA_bc.yaml` (top-level, regression copy of
+  `CA2G_GridComp/CA2G_instance_CA_bc.yaml`): same resource values, `mapl:`
   block adapted to the SU2G regression pattern (`setServices: sharedObj:
   libCA2G_GridComp, userRoutine: ca2g_setservices_`;
   `activate_all_imports` dropped since imports are wired explicitly by
   `root.yaml`; `restart: internal: true` only).
-- `run{1,2}/fake-gocart.yaml`: one child, `CA.bc:` (dso
+- `run{1,2}/fake-gocart.yaml`: one child, `CA_bc:` (dso
   `libCA2G_GridComp.so`, `setservices: ca2g_setservices_`, `config_file:
-  CA_instance_CA.bc.yaml`, `run_phases: [Run1]`/`[Run2]`).
+  CA_instance_CA_bc.yaml`, `run_phases: [Run1]`/`[Run2]`).
 - `run{1,2}/root.yaml`: `DataForCA` + `FakeGOCART` children, `im_world: 12`/
   `num_levels: 181` geometry (matching SU2G/NI2G), and an explicit
   `connections:` list for all 58 fields (`src_comp: DataForCA, src_intent:
   internal` -> `dst_comp: FakeGOCART`, same name both sides).
 - `run{1,2}/cap_gridcomp.yaml`, `cap_driver.yaml`, `cap_restart.yaml`,
   `mapl.yaml`, `cmpchk.py`: near-verbatim copies of `sulfate-sa`'s,
-  substituting `CA.bc` for `SU`.
-- `run{1,2}/CA_instance_CA.bc.yaml`: symlinks to `../CA2G_instance_CA.bc.yaml`,
+  substituting `CA_bc` for `SU`.
+- `run{1,2}/CA_instance_CA_bc.yaml`: symlinks to `../CA2G_instance_CA_bc.yaml`,
   matching the `SU_instance_SU.yaml -> ../SU2G_instance_SU.yaml` convention.
 - Registered `carbon-bc-sa/run1`/`carbon-bc-sa/run2` in `regression/cases.txt`.
-- Updated the stale `CA: []  # [CA.oc, CA.bc, CA.br] not ported to MAPL3
+- Updated the stale `CA: []  # [CA_oc, CA_bc, CA_br] not ported to MAPL3
   yet` comment in both existing combined cases'
   (`gocart+seasalt+dust+sulfate`, `gocart+seasalt+dust+sulfate+nitrate`)
   `GOCART2G_GridComp.yaml` to reflect the real status (code ported and
@@ -312,8 +318,8 @@ since all three instances share one code path and only differ by
 Added (in a follow-up pass) a new combined-case directory,
 `regression/gocart+seasalt+dust+sulfate+nitrate+carbon-bc/`, extending
 `gocart+seasalt+dust+sulfate+nitrate` by activating all three CA instances
-(`CA.oc`, `CA.bc`, `CA.br`) through the real GOCART2G parent, matching the
-production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
+(`CA_oc`, `CA_bc`, `CA_br`) through the real GOCART2G parent, matching the
+production `ACTIVE_INSTANCES: CA: [CA_oc, CA_bc, CA_br]` shape -- unlike
 `carbon-bc-sa`, which only exercises one instance standalone via `FakeGOCART`.
 
 - `CA2G_instance_CA.{oc,bc,br}.yaml` (top-level): copies of the production
@@ -329,20 +335,20 @@ production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
   emissions/aircraft/VOC-SOA fields from `carbon-bc-sa`'s `data-for-ca.yaml`
   (`OC_*`/`BC_*`/`BRC_*`, `pSOA_ANTHRO_VOC`, `pSOA_BIOB_VOC`); all met/
   surface fields CA needs were already present (shared with DU/SS/SU/NI).
-- `GOCART2G_GridComp.yaml`: `CA: [CA.oc, CA.bc, CA.br]` enabled (vs `[]` in
-  the parent `+nitrate` directory), with a comment noting that the dotted
-  instance names are accepted by `is_valid_name`.
+- `GOCART2G_GridComp.yaml`: `CA: [CA_oc, CA_bc, CA_br]` enabled (vs `[]` in
+  the parent `+nitrate` directory), with a comment noting that the
+  instance names use `_` rather than the retired dotted spelling.
 - `run{1,2}/root.yaml`: the existing 92-field connection list (from
   `+nitrate`) extended with the 34 new CA fields, same
   `DataForGOCART2G -> GOCART2G` pattern.
 - `run{1,2}/CA_instance_CA.{oc,bc,br}.yaml`: symlinks to
   `../CA2G_instance_CA.{oc,bc,br}.yaml`, following the naming convention
   `add_children__` expects: `config_file = species%name // "_instance_" //
-  child_name // ".yaml"`, i.e. `species%name="CA"`, `child_name="CA.oc"` ->
-  `CA_instance_CA.oc.yaml` (confirmed by reading
+  child_name // ".yaml"`, i.e. `species%name="CA"`, `child_name="CA_oc"` ->
+  `CA_instance_CA_oc.yaml` (confirmed by reading
   `GOCART2G_GridCompMod.F90`'s `add_children__`).
-- `run{1,2}/cmpchk.py`: `GRIDCOMPS` dict extended with `"CA.oc"`, `"CA.bc"`,
-  `"CA.br"` entries (alongside `DU`/`SS`/`SU`/`NI`/`GOCART2G`).
+- `run{1,2}/cmpchk.py`: `GRIDCOMPS` dict extended with `"CA_oc"`, `"CA_bc"`,
+  `"CA_br"` entries (alongside `DU`/`SS`/`SU`/`NI`/`GOCART2G`).
 - Registered `gocart+seasalt+dust+sulfate+nitrate+carbon-bc/run1`/`run2` in
   `regression/cases.txt`.
 - **Confirmed via manual `GEOS.x mapl.yaml`** (same recipe as `carbon-bc-sa`,
@@ -351,12 +357,12 @@ production `ACTIVE_INSTANCES: CA: [CA.oc, CA.bc, CA.br]` shape -- unlike
   `GOCART2G_GridCompMod.F90` `add_children__` call site, not just by the
   standalone `carbon-bc-sa` scaffolding:
   ```
-  CA.oc: SetServices:: ...completed
-  CA.bc: SetServices:: ...completed
-  CA.br: SetServices:: ...completed
-  CA.oc: Initialize:: ...completed
-  CA.bc: Initialize:: ...completed
-  CA.br: Initialize:: ...completed
+  CA_oc: SetServices:: ...completed
+  CA_bc: SetServices:: ...completed
+  CA_br: SetServices:: ...completed
+  CA_oc: Initialize:: ...completed
+  CA_bc: Initialize:: ...completed
+  CA_br: Initialize:: ...completed
   ```
   The case still cannot be driven to completion by `ctest -L REGRESSION`
   because no baseline/restart data has been published for it yet (it
@@ -375,8 +381,7 @@ Built `CA2G_GridComp`/`GOCART2G_GridComp` and relinked `GEOS.x`: **all
 build and link cleanly, zero errors/warnings**. Inspected the generated
 `GOCART2G_DeclarePointer___.h`/`GetPointer___.h`: the ALIAS-column pointers
 (`bcexttau`, `ocexttau`, `brexttau`, etc.) are generated correctly and map
-to the dotted ESMF field names as intended. The ALIAS column remains
-necessary, since the dotted instance names are retained.
+to the ESMF field names as intended.
 
 **`carbon-bc-sa/run1` and `carbon-bc-sa/run2` both run to completion**
 (`mpiexec -n 6 GEOS.x mapl.yaml`, scratch expdir, `ExtData` symlinked from
@@ -384,41 +389,67 @@ the shared regression-data tree, restarts from the partial baseline tree):
 exit status 0, zero `FAIL` lines, and the expected checkpoints are written:
 
 ```
-checkpoints/last/CA.bc_export.nc
-checkpoints/last/CA.bc_import.nc
-checkpoints/last/CA.bc_internal.nc
+checkpoints/last/CA_bc_export.nc
+checkpoints/last/CA_bc_import.nc
+checkpoints/last/CA_bc_internal.nc
 ```
 
-### Resolved: dotted instance names and `is_valid_name`
+### Instance naming: `CA_oc`/`CA_bc`/`CA_br` (formerly `CA.oc`/`CA.bc`/`CA.br`)
 
-An earlier pass of this port recorded a hard blocker here: MAPL3's
+The carbon instances were originally named with a period separator
+(`CA.oc`, `CA.bc`, `CA.br`), inherited from the MAPL2-era GOCART2G design.
+An earlier pass of this port recorded a hard blocker: MAPL3's
 `MAPL_GridCompAddChild` (in
 `src/Shared/@MAPL/superstructure/generic/MAPL_Generic.F90`) asserts
 `is_valid_name(child_name)` on every child, and `is_valid_name`
-(`src/Shared/@MAPL/utils/Validation.F90`) rejected `.`, so `CA.oc`,
-`CA.bc`, `CA.br` failed with *"Child name <CA.bc> does not conform to GEOS
-standards."* before `Initialize` was ever reached.
-
-**This is no longer the case.** `Validation.F90`'s `is_valid_name` now
-admits `.` alongside letters, digits and `_` for characters after the
-first:
+(`src/Shared/@MAPL/utils/Validation.F90`) rejected `.`, so the dotted
+names failed with *"Child name <CA.bc> does not conform to GEOS
+standards."* before `Initialize` was ever reached. That was worked around
+by relaxing `Validation.F90` to admit `.`:
 
 ```fortran
 is_valid = (verify(name(2:), LOWER // UPPER // DIGITS // '_'//'.') == 0)
 ```
 
-Consequences for this port, all re-verified by running:
+**The instances have since been renamed to use `_`**, for three reasons:
 
-- The dotted MAPL2-era instance-naming convention (`CA.oc`/`CA.bc`/`CA.br`)
-  is kept **unchanged**. The previously-contemplated cross-cutting rename
-  to underscores (`CA_oc`/`CA_bc`/`CA_br`), which would have touched
-  `GOCART2G_GridCompMod.F90`, `CA2G_GridCompMod.F90`'s `GCsuffix`
-  comparisons, every instance yaml/`.rc` filename, the
-  `GOCART2G_StateSpecs.rc` ALIAS rows and the `carbon-bc-sa` harness, is
-  **not needed and has not been done**.
-- `GOCART2G_StateSpecs.rc`'s ALIAS column stays as-is: it is exactly what
-  maps the dotted ESMF field names onto legal Fortran identifiers in the
-  generated headers.
+- MAPL3 History uses `.` as the `<gridcomp>.<variable>` dive-down
+  delimiter (`gridcomps/history/HistoryUtilities.F90`,
+  `replace_delimiter`, which substitutes only the *first* `.`).
+  `HistoryGridComp_private.F90` states the contract explicitly: *"Collection
+  names are permitted to include period ('.') characters, but gridcomps are
+  not."* A dotted child name contradicts that, and composed names such as
+  `CA.oc.data` are unparseable under a first-dot-wins grammar.
+- The `.` carried no information: nothing in GOCART ever split on it. The
+  names were flat, opaque tokens everywhere they appeared.
+- `CA_bcEXTTAU` is a legal Fortran identifier, so the dot no longer forces
+  the `GOCART2G_StateSpecs.rc` ALIAS column (kept for now only so the
+  existing pointer names in `GOCART2G_GridCompMod.F90` are undisturbed).
+
+The rename touched `GOCART2G_GridCompMod.F90`, `CA2G_GridCompMod.F90`'s
+`GCsuffix` comparisons, `Chem_AeroGeneric.F90`,
+`GOCART2G_AerosolActivationMod.F90`, `g2g_rst_generator.py`, every instance
+yaml/`.rc` filename (and the symlinks in `AMIP/`, `AMIP.20C/` and the
+regression `run{1,2}/` dirs), the `GOCART2G_StateSpecs.rc` CA rows, and the
+`carbon-bc-sa` / `...+carbon-bc` harnesses.
+
+Note `Chem_AeroGeneric.F90`'s `varname(6:)` offset is unaffected: `CA_bc`
+is the same 5 characters wide as `CA.bc` was.
+
+Remaining consequences:
+
+- `Validation.F90`'s `PUNCTUATION = '_'//'.'` relaxation is no longer
+  needed by GOCART and could be reverted to `'_'` (its doc comment still
+  claims only letters/digits/underscores are allowed).
+- **Regression baselines must be regenerated or renamed.** Checkpoint and
+  restart filenames derive from the child name, so
+  `CA.bc_{import,internal,export}.nc` under `${REGRESSION_DATA_DIR}`
+  becomes `CA_bc_*.nc`. Likewise, existing GEOS internal restarts carry
+  variables named `CA.bcphobic`/`CA.bcphilic`, which become
+  `CA_bcphobic`/`CA_bcphilic`.
+- The commented-out `.data` instance variants (`CA.oc.data` etc., and
+  `DU.data`/`SS.data`/`SU.data`/`NI.data`) were deliberately left spelled
+  with periods; they need the same treatment if ever re-enabled.
 - The aerosol-optics ExtData previously feared missing
   (`opticsBands_{BC,OC,BR}.v2.1.0.RRTMGP.nc4` /
   `optics_{BC,OC,BR}.v2.1.0.nc4`) resolves fine from the regression ExtData
@@ -433,12 +464,12 @@ classes of difference showed up; only one was a real bug.
 
 ### 1. REAL BUG, now fixed: `diurnal_bb` was never initialized
 
-`run1` (Run1 phase = emissions) showed non-zero diffs in `CA.bcphobic` /
-`CA.bcphilic`:
+`run1` (Run1 phase = emissions) showed non-zero diffs in `CA_bcphobic` /
+`CA_bcphilic`:
 
 ```
-CA.bcphilic   diff (min, max, norm): -1.13e-11, 2.17e-11, 6.35e-11
-CA.bcphobic   diff (min, max, norm): -4.53e-11, 8.68e-11, 2.54e-10
+CA_bcphilic   diff (min, max, norm): -1.13e-11, 2.17e-11, 6.35e-11
+CA_bcphobic   diff (min, max, norm): -4.53e-11, 8.68e-11, 2.54e-10
 ```
 
 These are small in absolute terms only because the whole field is ~1e-10
@@ -477,8 +508,8 @@ self%diurnal_bb = (trim(diurnal_bb) == 'YES')
 ```
 
 **After the fix, `carbon-bc-sa/run1` and `run2` reproduce the baseline
-bitwise** (`diff (min, max, norm): 0.0, 0.0, 0.0`) for `CA.bcphobic`,
-`CA.bcphilic`, and for `CA.bcDP`/`CA.bcSD`/`CA.bcWT` in `run2`.
+bitwise** (`diff (min, max, norm): 0.0, 0.0, 0.0`) for `CA_bcphobic`,
+`CA_bcphilic`, and for `CA_bcDP`/`CA_bcSD`/`CA_bcWT` in `run2`.
 
 This class of bug (a resource read silently dropped, leaving an
 uninitialized `logical` that defaults to the *non-default* behaviour) is
@@ -497,7 +528,7 @@ carried over export memory. Not a defect -- MAPL3 is simply making
 
 ### 3. Pre-existing: `SV` is declared but never computed
 
-`CA.bcSV` ("Aerosol Convective Scavenging") is NaN in *both* runs. `SV` is
+`CA_bcSV` ("Aerosol Convective Scavenging") is NaN in *both* runs. `SV` is
 declared in `CA2G_StateSpecs.rc`, has a pointer generated into
 `CA2G_DeclarePointer___.h`, is fetched in `CA2G_GetPointer___.h` and is
 appended to the `_AERO_DP` bundle -- but **it is never assigned a value**,
@@ -527,7 +558,7 @@ and not in the `ctest` runs.
    choice, not a technical blocker: enabling CA there would invalidate
    their published baselines. CA coverage lives in `carbon-bc-sa` and
    `gocart+seasalt+dust+sulfate+nitrate+carbon-bc`.
-3. **Dead `SV` export**: `CA.bcSV` etc. are declared and bundled but never
+3. **Dead `SV` export**: `CA_bcSV` etc. are declared and bundled but never
    assigned, in MAPL3 *and* MAPL2. Either compute it or remove it from
    `CA2G_StateSpecs.rc`. See "Baseline comparison" above.
 4. **Audit other species for dropped resource reads**: the `diurnal_bb`
