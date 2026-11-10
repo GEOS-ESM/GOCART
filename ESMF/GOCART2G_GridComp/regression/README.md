@@ -94,9 +94,16 @@ reach the aerosol component.
 | `seasalt-sa` | SS2G (`SS`) | `SS_instance_SS.yaml` | `data-for-ss.yaml` |
 | `sulfate-sa` | SU2G (`SU`) | `SU_instance_SU.yaml` | `data-for-su.yaml` |
 | `nitrate-sa` | NI2G (`NI`) | `NI_instance_NI.yaml` | `data-for-ni.yaml` |
+| `carbon-bc-sa` | CA2G (`CA_bc`) | `CA_instance_CA_bc.yaml` | `data-for-ca.yaml` |
 
 The restarts are `DataFor<XX>_internal.nc` and `<XX>_internal.nc`. The
 baseline consists of `<XX>_{import,internal,export}.nc`.
+
+`carbon-bc-sa` is the one case where the `DataFor` component is not named
+after the child: the child is the CA2G *instance* `CA_bc`, so the restarts
+are `DataForCA_internal.nc` and `CA_bc_internal.nc`. Only the black-carbon
+instance is exercised; `CA_oc` and `CA_br` are ported and runnable but are
+not yet part of the suite.
 
 `nitrate-sa` has one more child, `DuSsStub` (`../DuSsStub_GridComp`, built only for this case):
 
@@ -140,6 +147,24 @@ The same as `gocart+seasalt+dust+sulfate`, with an NI child added:
 - **Imports:** `data-for-gocart2g.yaml` and `root.yaml` add NI's imports, such as the ammonia emissions `EMI_NH3_AG`, `EMI_NH3_BB` and `EMI_NH3_EN`.
 - **Restarts:** adds `NI_internal.nc`.
 - **Baseline:** adds `NI_{import,internal,export}.nc`.
+
+### `gocart+seasalt+dust+sulfate+nitrate+carbon-bc`
+
+The same as `gocart+seasalt+dust+sulfate+nitrate`, with a CA child added:
+
+- **Configs:** `GOCART2G_GridComp.yaml` lists `CA: [CA_bc]` (an empty list
+  in the case above); `CA_instance_CA_bc.yaml` is added. Only the
+  black-carbon instance is active, so the child is `CA_bc` rather than a
+  bare species name.
+- **Imports:** `data-for-gocart2g.yaml` and `root.yaml` add CA's imports,
+  such as the carbon emissions `BC_BIOMASS`, `BC_BIOFUEL` and
+  `BC_ANTEBC1`.
+- **Restarts:** adds `CA_bc_internal.nc`.
+- **Baseline:** adds `CA_bc_{import,internal,export}.nc`.
+
+This is the only case that exercises the parent's carbonaceous connection
+block (`GOCART2G_GridCompMod.F90`), including `CA_bc_AERO` and
+`CA_bc_AERO_DP`; `carbon-bc-sa` runs against `FakeGOCART` and so does not.
 
 ## Creating a case from MAPL2 captures
 
