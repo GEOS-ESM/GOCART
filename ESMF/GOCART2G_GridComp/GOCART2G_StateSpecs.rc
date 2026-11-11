@@ -5,7 +5,7 @@ category: IMPORT
 #----------------------------------------------------------------------------------------
 #  VARIABLE       | DIMENSIONS  |          Additional Metadata
 #----------------------------------------------------------------------------------------
-     NAME   | UNITS    | DIMS | VLOC | RESTART | UNGRIDDED | LONG NAME
+     NAME   | UNITS    | DIMS | VLOC | RESTART | UNGRIDDED | LONG NAME | ALIAS
 #----------------------------------------------------------------------------------------
  DELP          | Pa       | xyz  | C    |         |                           | pressure_thickness
 # RH2          | 1        | xyz  | C    |         |                           | Rel_Hum_after_moist
@@ -85,6 +85,46 @@ category: IMPORT
  NISMASS       | kg m-3   | xy   | N    | SKIP    |                           | Nitrate Surface Mass Concentration
  NISMASS25     | kg m-3   | xy   | N    | SKIP    |                           | Nitrate Surface Mass Concentration of Particulate Matter < 2.5 microns (PM2.5)
  NH4SMASS      | kg m-3   | xy   | N    | SKIP    |                           | Ammonium Surface Mass Concentration
+#-imports-from-carbon-
+ CA_bcEXTTAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Black Carbon Aerosol Optical Depth | bcexttau
+ CA_bcSTEXTTAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Black Carbon Stratospheric Aerosol Optical Thickness | bcstexttau
+ CA_bcSCATAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Black Carbon Aerosol Optical Depth Due to Scattering | bcscatau
+ CA_bcSTSCATAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Black Carbon Stratospheric Aerosol Optical Thickness Due to Scattering | bcstscatau
+ CA_bcEXTCOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Black Carbon Extinction Coefficient | bcextcoef
+ CA_bcEXTCOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Black Carbon Extinction Coefficient - Fixed RH=20% | bcextcoefrh20
+ CA_bcEXTCOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Black Carbon Extinction Coefficient - Fixed RH=80% | bcextcoefrh80
+ CA_bcSCACOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Black Carbon Scattering Coefficient | bcscacoef
+ CA_bcSCACOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Black Carbon Scattering Coefficient - Fixed RH=20% | bcscacoefrh20
+ CA_bcSCACOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Black Carbon Scattering Coefficient - Fixed RH=80% | bcscacoefrh80
+ CA_bcBCKCOEF     | m-1 sr-1 | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Black Carbon Backscatter Coefficient | bcbckcoef
+ CA_bcANGSTR      | 1        | xy   | N    | SKIP    |                           | Black Carbon Angstrom parameter [470-870 nm] | bcangstr
+ CA_bcSMASS       | kg m-3   | xy   | N    | SKIP    |                           | Black Carbon Surface Mass Concentration | bcsmass
+ CA_ocEXTTAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Organic Carbon Aerosol Optical Depth | ocexttau
+ CA_ocSTEXTTAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Organic Carbon Stratospheric Aerosol Optical Thickness | ocstexttau
+ CA_ocSCATAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Organic Carbon Aerosol Optical Depth Due to Scattering | ocscatau
+ CA_ocSTSCATAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Organic Carbon Stratospheric Aerosol Optical Thickness Due to Scattering | ocstscatau
+ CA_ocEXTCOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Organic Carbon Extinction Coefficient | ocextcoef
+ CA_ocEXTCOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Organic Carbon Extinction Coefficient - Fixed RH=20% | ocextcoefrh20
+ CA_ocEXTCOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Organic Carbon Extinction Coefficient - Fixed RH=80% | ocextcoefrh80
+ CA_ocSCACOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Organic Carbon Scattering Coefficient | ocscacoef
+ CA_ocSCACOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Organic Carbon Scattering Coefficient - Fixed RH=20% | ocscacoefrh20
+ CA_ocSCACOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Organic Carbon Scattering Coefficient - Fixed RH=80% | ocscacoefrh80
+ CA_ocBCKCOEF     | m-1 sr-1 | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Organic Carbon Backscatter Coefficient | ocbckcoef
+ CA_ocANGSTR      | 1        | xy   | N    | SKIP    |                           | Organic Carbon Angstrom parameter [470-870 nm] | ocangstr
+ CA_ocSMASS       | kg m-3   | xy   | N    | SKIP    |                           | Organic Carbon Surface Mass Concentration | ocsmass
+ CA_brEXTTAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Brown Carbon Aerosol Optical Depth | brexttau
+ CA_brSTEXTTAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Brown Carbon Stratospheric Aerosol Optical Thickness | brstexttau
+ CA_brSCATAU      | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Brown Carbon Aerosol Optical Depth Due to Scattering | brscatau
+ CA_brSTSCATAU    | 1        | xy   | N    | SKIP    | ungrd_wavelengths_vertint | Brown Carbon Stratospheric Aerosol Optical Thickness Due to Scattering | brstscatau
+ CA_brEXTCOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Brown Carbon Extinction Coefficient | brextcoef
+ CA_brEXTCOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Brown Carbon Extinction Coefficient - Fixed RH=20% | brextcoefrh20
+ CA_brEXTCOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Brown Carbon Extinction Coefficient - Fixed RH=80% | brextcoefrh80
+ CA_brSCACOEF     | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Brown Carbon Scattering Coefficient | brscacoef
+ CA_brSCACOEFRH20 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Brown Carbon Scattering Coefficient - Fixed RH=20% | brscacoefrh20
+ CA_brSCACOEFRH80 | m-1      | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Brown Carbon Scattering Coefficient - Fixed RH=80% | brscacoefrh80
+ CA_brBCKCOEF     | m-1 sr-1 | xyz  | C    | SKIP    | ungrd_wavelengths_profile | Brown Carbon Backscatter Coefficient | brbckcoef
+ CA_brANGSTR      | 1        | xy   | N    | SKIP    |                           | Brown Carbon Angstrom parameter [470-870 nm] | brangstr
+ CA_brSMASS       | kg m-3   | xy   | N    | SKIP    |                           | Brown Carbon Surface Mass Concentration | brsmass
 
 
 category: EXPORT

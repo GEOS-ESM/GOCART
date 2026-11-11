@@ -1,0 +1,316 @@
+---
+mapl:
+
+  setServices:
+    sharedObj: libconfigurable_gridcomp
+
+  geometry:
+    esmf_geom:
+      class: CubedSphere
+      im_world: 12
+    vertical_grid:
+      grid_type: model
+      fields: {pressure: PLE}
+      num_levels: 181
+
+  children:
+    DataForCA:
+      dso: libconfigurable_gridcomp.so
+      setservices: setservices_
+      config_file: data-for-ca.yaml
+
+    FakeGOCART:
+      dso: libconfigurable_gridcomp.so
+      config_file: fake-gocart.yaml
+
+  connections:
+    - src_name: FROCEAN
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: FROCEAN
+      dst_comp: FakeGOCART
+    - src_name: FRACI
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: FRACI
+      dst_comp: FakeGOCART
+    - src_name: LWI
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: LWI
+      dst_comp: FakeGOCART
+    - src_name: TROPP
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: TROPP
+      dst_comp: FakeGOCART
+    - src_name: U10M
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: U10M
+      dst_comp: FakeGOCART
+    - src_name: V10M
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: V10M
+      dst_comp: FakeGOCART
+    - src_name: USTAR
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: USTAR
+      dst_comp: FakeGOCART
+    - src_name: FRLAKE
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: FRLAKE
+      dst_comp: FakeGOCART
+    - src_name: AREA
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: AREA
+      dst_comp: FakeGOCART
+    - src_name: ZPBL
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: ZPBL
+      dst_comp: FakeGOCART
+    - src_name: SH
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: SH
+      dst_comp: FakeGOCART
+    - src_name: Z0H
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: Z0H
+      dst_comp: FakeGOCART
+    - src_name: CN_PRCP
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: CN_PRCP
+      dst_comp: FakeGOCART
+    - src_name: NCN_PRCP
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: NCN_PRCP
+      dst_comp: FakeGOCART
+    - src_name: AIRDENS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: AIRDENS
+      dst_comp: FakeGOCART
+    - src_name: DELP
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: DELP
+      dst_comp: FakeGOCART
+    - src_name: T
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: T
+      dst_comp: FakeGOCART
+    - src_name: RH2
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: RH2
+      dst_comp: FakeGOCART
+    - src_name: ZLE
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: ZLE
+      dst_comp: FakeGOCART
+    - src_name: PLE
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: PLE
+      dst_comp: FakeGOCART
+    - src_name: PFL_LSAN
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: PFL_LSAN
+      dst_comp: FakeGOCART
+    - src_name: PFI_LSAN
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: PFI_LSAN
+      dst_comp: FakeGOCART
+    - src_name: U
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: U
+      dst_comp: FakeGOCART
+    - src_name: V
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: V
+      dst_comp: FakeGOCART
+    - src_name: OC_AIRCRAFT
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_AIRCRAFT
+      dst_comp: FakeGOCART
+    - src_name: BC_AIRCRAFT
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_AIRCRAFT
+      dst_comp: FakeGOCART
+    - src_name: BRC_AIRCRAFT
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_AIRCRAFT
+      dst_comp: FakeGOCART
+    - src_name: pSOA_ANTHRO_VOC
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: pSOA_ANTHRO_VOC
+      dst_comp: FakeGOCART
+    - src_name: pSOA_BIOB_VOC
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: pSOA_BIOB_VOC
+      dst_comp: FakeGOCART
+    - src_name: OC_BIOMASS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_BIOMASS
+      dst_comp: FakeGOCART
+    - src_name: OC_ISOPRENE
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_ISOPRENE
+      dst_comp: FakeGOCART
+    - src_name: OC_MTPA
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_MTPA
+      dst_comp: FakeGOCART
+    - src_name: OC_MTPO
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_MTPO
+      dst_comp: FakeGOCART
+    - src_name: OC_LIMO
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_LIMO
+      dst_comp: FakeGOCART
+    - src_name: OC_BIOFUEL
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_BIOFUEL
+      dst_comp: FakeGOCART
+    - src_name: OC_ANTEOC1
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_ANTEOC1
+      dst_comp: FakeGOCART
+    - src_name: OC_ANTEOC2
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_ANTEOC2
+      dst_comp: FakeGOCART
+    - src_name: OC_SHIP
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_SHIP
+      dst_comp: FakeGOCART
+    - src_name: OC_AVIATION_LTO
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_AVIATION_LTO
+      dst_comp: FakeGOCART
+    - src_name: OC_AVIATION_CDS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_AVIATION_CDS
+      dst_comp: FakeGOCART
+    - src_name: OC_AVIATION_CRS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: OC_AVIATION_CRS
+      dst_comp: FakeGOCART
+    - src_name: BC_BIOMASS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_BIOMASS
+      dst_comp: FakeGOCART
+    - src_name: BC_BIOFUEL
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_BIOFUEL
+      dst_comp: FakeGOCART
+    - src_name: BC_ANTEBC1
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_ANTEBC1
+      dst_comp: FakeGOCART
+    - src_name: BC_ANTEBC2
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_ANTEBC2
+      dst_comp: FakeGOCART
+    - src_name: BC_SHIP
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_SHIP
+      dst_comp: FakeGOCART
+    - src_name: BC_AVIATION_LTO
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_AVIATION_LTO
+      dst_comp: FakeGOCART
+    - src_name: BC_AVIATION_CDS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_AVIATION_CDS
+      dst_comp: FakeGOCART
+    - src_name: BC_AVIATION_CRS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BC_AVIATION_CRS
+      dst_comp: FakeGOCART
+    - src_name: BRC_BIOMASS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_BIOMASS
+      dst_comp: FakeGOCART
+    - src_name: BRC_TERPENE
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_TERPENE
+      dst_comp: FakeGOCART
+    - src_name: BRC_BIOFUEL
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_BIOFUEL
+      dst_comp: FakeGOCART
+    - src_name: BRC_ANTEBRC1
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_ANTEBRC1
+      dst_comp: FakeGOCART
+    - src_name: BRC_ANTEBRC2
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_ANTEBRC2
+      dst_comp: FakeGOCART
+    - src_name: BRC_SHIP
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_SHIP
+      dst_comp: FakeGOCART
+    - src_name: BRC_AVIATION_LTO
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_AVIATION_LTO
+      dst_comp: FakeGOCART
+    - src_name: BRC_AVIATION_CDS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_AVIATION_CDS
+      dst_comp: FakeGOCART
+    - src_name: BRC_AVIATION_CRS
+      src_comp: DataForCA
+      src_intent: internal
+      dst_name: BRC_AVIATION_CRS
+      dst_comp: FakeGOCART

@@ -171,42 +171,42 @@ def createAeroRestart (dataOrig, aeroName):
     aero4[:,:,:] = dataOrig.variables['SO4'][:]
 
   elif aeroName == 'caoc':
-    aero1 = data.createVariable("CAphilicCA.oc", "f4", ("lev", "lat", "lon"))
+    aero1 = data.createVariable("CAphilicCA_oc", "f4", ("lev", "lat", "lon"))
     aero1.long_name = "Hydrophilic Carbonaceous Aerosol"
     aero1.units = "kg kg-1"
-    aero2 = data.createVariable("CAphobicCA.oc", "f4", ("lev", "lat", "lon"))
+    aero2 = data.createVariable("CAphobicCA_oc", "f4", ("lev", "lat", "lon"))
     aero2.long_name = "Hydrophobic Carbonaceous Aerosol"
     aero2.units = "kg kg-1"
 
-    aero1 = data.variables['CAphilicCA.oc']
+    aero1 = data.variables['CAphilicCA_oc']
     aero1[:,:,:] = dataOrig.variables['OCphilic'][:]
-    aero2 = data.variables['CAphobicCA.oc']
+    aero2 = data.variables['CAphobicCA_oc']
     aero2[:,:,:] = dataOrig.variables['OCphobic'][:]
 
   elif aeroName == 'cabc':
-    aero1 = data.createVariable("CAphilicCA.bc", "f4", ("lev", "lat", "lon"))
+    aero1 = data.createVariable("CAphilicCA_bc", "f4", ("lev", "lat", "lon"))
     aero1.long_name = "Hydrophilic Carbonaceous Aerosol"
     aero1.units = "kg kg-1"
-    aero2 = data.createVariable("CAphobicCA.bc", "f4", ("lev", "lat", "lon"))
+    aero2 = data.createVariable("CAphobicCA_bc", "f4", ("lev", "lat", "lon"))
     aero2.long_name = "Hydrophobic Carbonaceous Aerosol"
     aero2.units = "kg kg-1"
 
-    aero1 = data.variables['CAphilicCA.bc']
+    aero1 = data.variables['CAphilicCA_bc']
     aero1[:,:,:] = dataOrig.variables['BCphilic'][:]
-    aero2 = data.variables['CAphobicCA.bc']
+    aero2 = data.variables['CAphobicCA_bc']
     aero2[:,:,:] = dataOrig.variables['BCphobic'][:]
 
   elif aeroName == 'cabr':
-    aero1 = data.createVariable("CAphilicCA.br", "f4", ("lev", "lat", "lon"))
+    aero1 = data.createVariable("CAphilicCA_br", "f4", ("lev", "lat", "lon"))
     aero1.long_name = "Hydrophilic Carbonaceous Aerosol"
     aero1.units = "kg kg-1"
-    aero2 = data.createVariable("CAphobicCA.br", "f4", ("lev", "lat", "lon"))
+    aero2 = data.createVariable("CAphobicCA_br", "f4", ("lev", "lat", "lon"))
     aero2.long_name = "Hydrophobic Carbonaceous Aerosol"
     aero2.units = "kg kg-1"
 
-    aero1 = data.variables['CAphilicCA.br']
+    aero1 = data.variables['CAphilicCA_br']
     aero1[:,:,:] = dataOrig.variables['BRCphilic'][:]
-    aero2 = data.variables['CAphobicCA.br']
+    aero2 = data.variables['CAphobicCA_br']
     aero2[:,:,:] = dataOrig.variables['BRCphobic'][:]
 
   # Close file
