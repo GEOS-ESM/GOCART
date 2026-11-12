@@ -57,3 +57,74 @@ mapl:
         standard_name: "transport emissions"
         units: "kg m-2 s-1"
         vertical_dim_spec: "n"
+
+  connections:
+    - src_comp: <self>
+      src_name: DU
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: DU
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: DELP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: DELP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: EMI_NH3_AG
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: EMI_NH3_AG
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: EMI_NH3_BB
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: EMI_NH3_BB
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: EMI_NH3_EN
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: EMI_NH3_EN
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: EMI_NH3_IN
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: EMI_NH3_IN
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: EMI_NH3_OC
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: EMI_NH3_OC
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: EMI_NH3_RE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: EMI_NH3_RE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: EMI_NH3_TR
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: EMI_NH3_TR
+      dst_intent: export

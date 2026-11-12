@@ -40,12 +40,10 @@ mapl:
   connections:
     - src_name: DU
       src_comp: DataForNI
-      src_intent: internal
       dst_name: DU
       dst_comp: DuSsStub
     - src_name: SS
       src_comp: DataForNI
-      src_intent: internal
       dst_name: SS
       dst_comp: DuSsStub
     - src_name: DU
@@ -60,41 +58,33 @@ mapl:
       dst_comp: FakeGOCART
     - src_name: DELP
       src_comp: DataForNI
-      src_intent: internal
       dst_name: DELP
       dst_comp: FakeGOCART
     - src_name: EMI_NH3_AG
       src_comp: DataForNI
-      src_intent: internal
       dst_name: EMI_NH3_AG
       dst_comp: FakeGOCART
     - src_name: EMI_NH3_BB
       src_comp: DataForNI
-      src_intent: internal
       dst_name: EMI_NH3_BB
       dst_comp: FakeGOCART
     - src_name: EMI_NH3_EN
       src_comp: DataForNI
-      src_intent: internal
       dst_name: EMI_NH3_EN
       dst_comp: FakeGOCART
     - src_name: EMI_NH3_IN
       src_comp: DataForNI
-      src_intent: internal
       dst_name: EMI_NH3_IN
       dst_comp: FakeGOCART
     - src_name: EMI_NH3_OC
       src_comp: DataForNI
-      src_intent: internal
       dst_name: EMI_NH3_OC
       dst_comp: FakeGOCART
     - src_name: EMI_NH3_RE
       src_comp: DataForNI
-      src_intent: internal
       dst_name: EMI_NH3_RE
       dst_comp: FakeGOCART
     - src_name: EMI_NH3_TR
       src_comp: DataForNI
-      src_intent: internal
       dst_name: EMI_NH3_TR
       dst_comp: FakeGOCART

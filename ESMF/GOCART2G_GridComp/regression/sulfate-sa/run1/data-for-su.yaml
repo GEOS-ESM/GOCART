@@ -89,3 +89,144 @@ mapl:
         standard_name: "Cruise aircraft source species"
         units: "1"
         vertical_dim_spec: "n"
+
+  connections:
+    - src_comp: <self>
+      src_name: LWI
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: LWI
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: U10M
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: U10M
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: V10M
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: V10M
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: AREA
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: AREA
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: ZPBL
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: ZPBL
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: AIRDENS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: AIRDENS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: DELP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: DELP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: T
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: T
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: ZLE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: ZLE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: pSO2_OCS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: pSO2_OCS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_AIRCRAFT
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_AIRCRAFT
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_BIOMASS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_BIOMASS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_ANTHROL1
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_ANTHROL1
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_ANTHROL2
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_ANTHROL2
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_SHIPSO2
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_SHIPSO2
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_SHIPSO4
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_SHIPSO4
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_DMSO
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_DMSO
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_AVIATION_LTO
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_AVIATION_LTO
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_AVIATION_CDS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_AVIATION_CDS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_AVIATION_CRS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_AVIATION_CRS
+      dst_intent: export

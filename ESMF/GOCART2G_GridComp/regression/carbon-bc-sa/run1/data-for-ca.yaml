@@ -241,3 +241,410 @@ mapl:
         standard_name: "Cruise aircraft source species"
         units: "1"
         vertical_dim_spec: "n"
+
+  connections:
+    - src_comp: <self>
+      src_name: FROCEAN
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: FROCEAN
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: FRACI
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: FRACI
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: LWI
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: LWI
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: TROPP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: TROPP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: U10M
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: U10M
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: V10M
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: V10M
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: USTAR
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: USTAR
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: FRLAKE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: FRLAKE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: AREA
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: AREA
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: ZPBL
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: ZPBL
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SH
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SH
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: Z0H
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: Z0H
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: CN_PRCP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: CN_PRCP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: NCN_PRCP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: NCN_PRCP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: AIRDENS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: AIRDENS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: DELP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: DELP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: T
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: T
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: RH2
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: RH2
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: ZLE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: ZLE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: PLE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: PLE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: PFL_LSAN
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: PFL_LSAN
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: PFI_LSAN
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: PFI_LSAN
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: U
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: U
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: V
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: V
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_AIRCRAFT
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_AIRCRAFT
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_AIRCRAFT
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_AIRCRAFT
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_AIRCRAFT
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_AIRCRAFT
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: pSOA_ANTHRO_VOC
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: pSOA_ANTHRO_VOC
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: pSOA_BIOB_VOC
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: pSOA_BIOB_VOC
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_BIOMASS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_BIOMASS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_ISOPRENE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_ISOPRENE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_MTPA
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_MTPA
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_MTPO
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_MTPO
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_LIMO
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_LIMO
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_BIOFUEL
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_BIOFUEL
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_ANTEOC1
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_ANTEOC1
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_ANTEOC2
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_ANTEOC2
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_SHIP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_SHIP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_AVIATION_LTO
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_AVIATION_LTO
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_AVIATION_CDS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_AVIATION_CDS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: OC_AVIATION_CRS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: OC_AVIATION_CRS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_BIOMASS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_BIOMASS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_BIOFUEL
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_BIOFUEL
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_ANTEBC1
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_ANTEBC1
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_ANTEBC2
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_ANTEBC2
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_SHIP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_SHIP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_AVIATION_LTO
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_AVIATION_LTO
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_AVIATION_CDS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_AVIATION_CDS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BC_AVIATION_CRS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BC_AVIATION_CRS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_BIOMASS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_BIOMASS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_TERPENE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_TERPENE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_BIOFUEL
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_BIOFUEL
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_ANTEBRC1
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_ANTEBRC1
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_ANTEBRC2
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_ANTEBRC2
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_SHIP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_SHIP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_AVIATION_LTO
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_AVIATION_LTO
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_AVIATION_CDS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_AVIATION_CDS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: BRC_AVIATION_CRS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: BRC_AVIATION_CRS
+      dst_intent: export
