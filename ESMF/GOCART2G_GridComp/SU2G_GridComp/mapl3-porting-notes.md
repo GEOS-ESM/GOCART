@@ -170,9 +170,9 @@ token-stream check as step 1.
     was 1.0. MAPL3's `load_from_config` reads an array, so the YAML
     lists four `1.0` values.
   - Integer-looking reals (`-1`, `1700`) written as `-1.0`, `1700.0`.
-- No `.data` variant: the parent loads
-  `<species>_instance_<child>.yaml`, so `SU2G_instance_SU.data.yaml` is
-  only needed if `SU.data` is made active. DU and SS don't have one
+- No `_data` variant: the parent loads
+  `<species>_instance_<child>.yaml`, so `SU2G_instance_SU_data.yaml` is
+  only needed if `SU_data` is made active. DU and SS don't have one
   either.
 - SetServices: the `.rc` loading (with its `SU2G_instance_SU.rc`
   fallback) is gone; `GA_Environment%load_from_config(gc)` and

@@ -1,0 +1,42 @@
+---
+# Optics parameters
+aerosol_monochromatic_optics_wavelength_in_nm_from_LUT: [470, 550, 670, 870]
+
+wavelengths_for_profile_aop_in_nm: [470, 870]  # must be included in LUT
+wavelengths_for_vertically_integrated_aop_in_nm: 550  # must be included in LUT
+
+aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
+n_phase_function_moments_photolysis: 0
+
+# The CA_bc instance is active here (vs. CA: [] in
+# gocart+seasalt+dust+sulfate+nitrate). Only CA_bc is exercised for now;
+# CA_oc and CA_br are ported and runnable but not yet part of the
+# regression suite. The instance names use '_' as the separator; the
+# MAPL2-era dotted spelling (CA.bc) was retired because '.' is History's
+# <gridcomp>.<variable> dive-down delimiter.
+# Details in ../../CA2G_GridComp/mapl3-porting-notes.md.
+ACTIVE_INSTANCES:
+  DU: [DU]  # [DU_data]
+  SS: [SS]  # [SS_data]
+  SU: [SU]  # [SU_data]
+  CA: [CA_bc]
+  NI: [NI]  # [NI_data]
+
+PASSIVE_INSTANCES:
+  DU: []
+  SS: []
+  SU: []
+  CA: []
+  NI: []
+
+mapl:
+
+  setServices:
+    sharedObj: libGOCART2G_GridComp
+    userRoutine: gocart2g_setservices_
+
+  misc:
+    activate_all_exports: true
+    checkpoint:
+      export: true
+      import: true

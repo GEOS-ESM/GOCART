@@ -17,6 +17,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - setZeroKlid for non-radiatively active tracers in Run0
 
 ### Changed
+- Removed the period from GOCART2G instance names in favour of underscores.
+  The carbonaceous instances `CA.oc`/`CA.bc`/`CA.br` become
+  `CA_oc`/`CA_bc`/`CA_br`, and the data-driven variants `DU.data`,
+  `SS.data`, `SU.data`, `NI.data`, `CA.oc.data`, `CA.bc.data` (plus
+  `DU.test`) become `DU_data`, `SS_data`, `SU_data`, `NI_data`,
+  `CA_oc_data`, `CA_bc_data` and `DU_test`. The period conflicted with
+  MAPL3 History's `<gridcomp>.<variable>` dive-down delimiter, which
+  `HistoryGridComp_private.F90` documents as not permitted in gridcomp
+  names, and it forced `.` into MAPL's global `is_valid_name` grammar;
+  composed names such as `CA.oc.data` were unparseable under History's
+  first-dot-wins rule. The rename covers the child/instance names, the
+  `CA2G_instance_*` resource filenames (and their symlinks), ESMF field,
+  state and info-key names, the `GOCART2G_StateSpecs.rc` CA import rows,
+  the `carbon-bc-sa` and `...+carbon-bc` regression harnesses, and
+  `g2g_rst_generator.py`. The data-driven variants remain commented out
+  and unwired; the `index(name, "data")` dispatch is unaffected. The
+  unported legacy `GOCART_GridComp` (1G), which is excluded from the
+  build and keys off its own `modifier = '.data'`, was deliberately left
+  alone. Not zero-diff for I/O: checkpoint, restart and History variable
+  names change accordingly, so regression baselines and existing restarts
+  must be renamed or regenerated.
 - CI: removed the GOCART-only builds from GitHub Actions (`build_gocart`, `spack_build_gocart`) and CircleCI (`build-GOCART2G`, `build-GOCART2G-like-UFS`)
 - CI: the CircleCI GEOSgcm build now runs `ctest -L REGRESSION`
 - Changes to use the split CAP.yaml linked to MAPL PR #5371 and Issue #5355

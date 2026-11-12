@@ -5,7 +5,7 @@ set (alldirs
   DU2G_GridComp
   SS2G_GridComp
   SU2G_GridComp
-  # CA2G_GridComp
+  CA2G_GridComp
   NI2G_GridComp
 )
 
