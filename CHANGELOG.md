@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Added agent-oriented architecture documentation (`AGENTS.md`, `docs/ARCHITECTURE.md`, `docs/decisions.md`, `ESMF/GOCART2G_GridComp/ARCHITECTURE.md`)
+- Added a short repository map (`docs/ARCHITECTURE.md`: codemap, structure, contracts with the rest of GEOS, invariants, cross-cutting concerns, `AERO` callbacks) and an agent guide (`AGENTS.md`: scope, rules, status and to-dos, known traps, build and test) for the MAPL3 line, where only GOCART2G is available. They replace the per-directory architecture documents and `docs/decisions.md`.
 - Added support for the symbolic MAMnet implementation in GEOS, including export of MAMnet-predicted aerosol mode number concentrations for accumulation, Aitken, dust, sea salt, and primary carbonaceous modes.
 - Diagnostics for the vertical profile of fine mode (PM1) dust and sea salt
 - setZeroKlid for non-radiatively active tracers in Run0

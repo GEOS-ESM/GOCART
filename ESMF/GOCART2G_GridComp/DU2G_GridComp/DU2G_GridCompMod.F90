@@ -304,6 +304,11 @@ contains
               standard_name="advected_quantities", &
               itemtype=MAPL_STATEITEM_SERVICE, &
               service_items=advected_tracers, _RC)
+         ! TODO: also subscribe the same service_items to Moist's MTR service
+         ! (standard_name tracers_for_moist; convective transport, MAPL2
+         ! FRIENDLYTO=MOIST) and to TRDIFF (turbulently_diffused_quantities;
+         ! turbulent diffusion, MAPL2 FRIENDLYTO=TURBULENCE). An unconnected
+         ! subscription is accepted, so neither has to wait for a provider.
       end if
 
       ! This state holds fields needed by radiation
