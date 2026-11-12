@@ -37,3 +37,53 @@ mapl:
         standard_name: "fraction_of_lake"
         units: "1"
         vertical_dim_spec: "n"
+
+  connections:
+    - src_comp: <self>
+      src_name: DU_SRC
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: DU_SRC
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: WET1
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: WET1
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: LWI
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: LWI
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: DELP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: DELP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: U10M
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: U10M
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: V10M
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: V10M
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: FRLAKE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: FRLAKE
+      dst_intent: export

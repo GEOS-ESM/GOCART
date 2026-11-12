@@ -97,3 +97,158 @@ mapl:
         standard_name: "3D_flux_of_ice_nonconvective_precipitation"
         units: "kg/m2/s"
         vertical_dim_spec: "e"
+
+  connections:
+    - src_comp: <self>
+      src_name: LWI
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: LWI
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: TROPP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: TROPP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: USTAR
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: USTAR
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SH
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SH
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: Z0H
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: Z0H
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: ZPBL
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: ZPBL
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: CN_PRCP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: CN_PRCP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: NCN_PRCP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: NCN_PRCP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: AIRDENS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: AIRDENS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: DELP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: DELP
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: T
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: T
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: RH2
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: RH2
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: U
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: U
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: V
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: V
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: FCLD
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: FCLD
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_NO3
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_NO3
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_OH
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_OH
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: SU_H2O2
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: SU_H2O2
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: ZLE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: ZLE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: PLE
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: PLE
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: PFL_LSAN
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: PFL_LSAN
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: PFI_LSAN
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: PFI_LSAN
+      dst_intent: export

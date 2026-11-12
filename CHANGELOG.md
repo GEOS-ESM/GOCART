@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - setZeroKlid for non-radiatively active tracers in Run0
 
 ### Changed
+- GOCART2G regression configurations no longer connect a data component's `internal` item directly to an import
+  (MAPL3 requires `export -> import`). Each connected item is now re-exported in the data component's own config
+  (`src_intent: internal`, `dst_intent: export`, `<self>` -> `<self>`), and the `root.yaml` connection is a plain export -> import.
 - Removed the period from GOCART2G instance names in favour of underscores.
   The carbonaceous instances `CA.oc`/`CA.bc`/`CA.br` become
   `CA_oc`/`CA_bc`/`CA_br`, and the data-driven variants `DU.data`,

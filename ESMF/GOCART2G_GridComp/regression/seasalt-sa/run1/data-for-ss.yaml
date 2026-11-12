@@ -37,3 +37,53 @@ mapl:
         standard_name: "pressure_thickness"
         units: "Pa"
         vertical_dim_spec: "c"
+
+  connections:
+    - src_comp: <self>
+      src_name: FROCEAN
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: FROCEAN
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: FRACI
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: FRACI
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: U10M
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: U10M
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: V10M
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: V10M
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: USTAR
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: USTAR
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: TS
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: TS
+      dst_intent: export
+
+    - src_comp: <self>
+      src_name: DELP
+      src_intent: internal
+      dst_comp: <self>
+      dst_name: DELP
+      dst_intent: export

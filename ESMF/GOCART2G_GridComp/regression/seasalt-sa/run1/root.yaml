@@ -25,42 +25,35 @@ mapl:
   connections:
     - src_name: FROCEAN
       src_comp: DataForSS
-      src_intent: internal
       dst_name: FROCEAN
       dst_comp: FakeGOCART
 
     - src_name: FRACI
       src_comp: DataForSS
-      src_intent: internal
       dst_name: FRACI
       dst_comp: FakeGOCART
 
     - src_name: U10M
       src_comp: DataForSS
-      src_intent: internal
       dst_name: U10M
       dst_comp: FakeGOCART
 
     - src_name: V10M
       src_comp: DataForSS
-      src_intent: internal
       dst_name: V10M
       dst_comp: FakeGOCART
 
     - src_name: USTAR
       src_comp: DataForSS
-      src_intent: internal
       dst_name: USTAR
       dst_comp: FakeGOCART
 
     - src_name: TS
       src_comp: DataForSS
-      src_intent: internal
       dst_name: TS
       dst_comp: FakeGOCART
 
     - src_name: DELP
       src_comp: DataForSS
-      src_intent: internal
       dst_name: DELP
       dst_comp: FakeGOCART

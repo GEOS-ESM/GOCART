@@ -26,42 +26,35 @@ mapl:
   connections:
     - src_name: DU_SRC
       src_comp: DataForDU
-      src_intent: internal
       dst_name: DU_SRC
       dst_comp: FakeGOCART
 
     - src_name: WET1
       src_comp: DataForDU
-      src_intent: internal
       dst_name: WET1
       dst_comp: FakeGOCART
 
     - src_name: LWI
       src_comp: DataForDU
-      src_intent: internal
       dst_name: LWI
       dst_comp: FakeGOCART
 
     - src_name: DELP
       src_comp: DataForDU
-      src_intent: internal
       dst_name: DELP
       dst_comp: FakeGOCART
 
     - src_name: U10M
       src_comp: DataForDU
-      src_intent: internal
       dst_name: U10M
       dst_comp: FakeGOCART
 
     - src_name: V10M
       src_comp: DataForDU
-      src_intent: internal
       dst_name: V10M
       dst_comp: FakeGOCART
 
     - src_name: FRLAKE
       src_comp: DataForDU
-      src_intent: internal
       dst_name: FRLAKE
       dst_comp: FakeGOCART
