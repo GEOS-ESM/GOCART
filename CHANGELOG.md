@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 ### Added
-
+- RPMARES thermodynamic module (Process Library): added safety checks for NaN ammonium and nitrate conc. (GOCART@c4891fc)
 - Added support for the symbolic MAMnet implementation in GEOS, including export of MAMnet-predicted aerosol mode number concentrations for accumulation, Aitken, dust, sea salt, and primary carbonaceous modes.
 - Diagnostics for the vertical profile of fine mode (PM1) dust and sea salt
 - setZeroKlid for non-radiatively active tracers in Run0
