@@ -93,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Removed the duplicated `connections` list from the `data-for-gocart2g.yaml` files of the sulfate, nitrate and carbon-bc GOCART2G regression cases; it failed the YAML validation check.
 - Fixed ifx compilation errors in legacy GOCART GridComps (Ops emissions path):
   - Changed `intent(in)` to `intent(inout)` on `w_c` (`Chem_Bundle`) arguments in `Aero`, `CFC`, `CH4`, `CO`, `CO2`, and `Rn` GridComps, as sub-components temporarily modify registry indices
 - Additional fixes in `CO_GridCompMod.F90`:
