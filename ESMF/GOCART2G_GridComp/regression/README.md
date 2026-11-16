@@ -101,9 +101,8 @@ baseline consists of `<XX>_{import,internal,export}.nc`.
 
 `carbon-bc-sa` is the one case where the `DataFor` component is not named
 after the child: the child is the CA2G *instance* `CA_bc`, so the restarts
-are `DataForCA_internal.nc` and `CA_bc_internal.nc`. Only the black-carbon
-instance is exercised; `CA_oc` and `CA_br` are ported and runnable but are
-not yet part of the suite.
+are `DataForCA_internal.nc` and `CA_bc_internal.nc`. `CA_oc` and `CA_br`
+have no standalone case; they run only in `gocart`.
 
 `nitrate-sa` has one more child, `DuSsStub` (`../DuSsStub_GridComp`, built only for this case):
 
@@ -117,9 +116,10 @@ Root
 
 NI2G's Initialize reads the `radius` and `fnum` ESMF Info attributes from its `DU` and `SS` imports. Only DU2G's and SS2G's own Initialize set them, and a `configurable_gridcomp` cannot. `DuSsStub` imports `DU` and `SS` from `DataForNI`, sets the attributes as DU2G and SS2G do, and exports them; `root.yaml` connects those exports to `FakeGOCART`.
 
-### `gocart+seasalt+dust+sulfate`
+### `gocart`
 
-This case runs the real GOCART2G parent with its DU, SS and SU children:
+This case runs the real GOCART2G parent with the production set of
+children:
 
 ```
 Root
@@ -127,44 +127,26 @@ Root
 └── GOCART2G              (libGOCART2G_GridComp.so, run_phases: [RunN])
     ├── DU
     ├── SS
-    └── SU
+    ├── SU
+    ├── CA_oc
+    ├── CA_bc
+    ├── CA_br
+    └── NI
 ```
 
 - **Configs:** `GOCART2G_GridComp.yaml`, plus `DU_instance_DU.yaml`,
-  `SS_instance_SS.yaml` and `SU_instance_SU.yaml`.
+  `SS_instance_SS.yaml`, `SU_instance_SU.yaml`, `NI_instance_NI.yaml` and
+  `CA_instance_CA_{oc,bc,br}.yaml`.
 - **Imports:** `data-for-gocart2g.yaml` holds the combined imports of all
-  three aerosols.
-- **Restarts:** `DataForGOCART2G_internal.nc`, `DU_internal.nc`,
-  `SS_internal.nc` and `SU_internal.nc`.
-- **Baseline:** `{DU,SS,SU}_{import,internal,export}.nc` and
-  `GOCART2G_{import,export}.nc`.
+  children.
+- **Restarts:** `DataForGOCART2G_internal.nc` and
+  `{DU,SS,SU,NI,CA_oc,CA_bc,CA_br}_internal.nc`.
+- **Baseline:** `{DU,SS,SU,NI,CA_oc,CA_bc,CA_br}_{import,internal,export}.nc`
+  and `GOCART2G_{import,export}.nc`.
 
-### `gocart+seasalt+dust+sulfate+nitrate`
-
-The same as `gocart+seasalt+dust+sulfate`, with an NI child added:
-
-- **Configs:** `GOCART2G_GridComp.yaml` lists `NI: [NI]` (an empty list in the case above); `NI_instance_NI.yaml` is added.
-- **Imports:** `data-for-gocart2g.yaml` and `root.yaml` add NI's imports, such as the ammonia emissions `EMI_NH3_AG`, `EMI_NH3_BB` and `EMI_NH3_EN`.
-- **Restarts:** adds `NI_internal.nc`.
-- **Baseline:** adds `NI_{import,internal,export}.nc`.
-
-### `gocart+seasalt+dust+sulfate+nitrate+carbon-bc`
-
-The same as `gocart+seasalt+dust+sulfate+nitrate`, with a CA child added:
-
-- **Configs:** `GOCART2G_GridComp.yaml` lists `CA: [CA_bc]` (an empty list
-  in the case above); `CA_instance_CA_bc.yaml` is added. Only the
-  black-carbon instance is active, so the child is `CA_bc` rather than a
-  bare species name.
-- **Imports:** `data-for-gocart2g.yaml` and `root.yaml` add CA's imports,
-  such as the carbon emissions `BC_BIOMASS`, `BC_BIOFUEL` and
-  `BC_ANTEBC1`.
-- **Restarts:** adds `CA_bc_internal.nc`.
-- **Baseline:** adds `CA_bc_{import,internal,export}.nc`.
-
-This is the only case that exercises the parent's carbonaceous connection
-block (`GOCART2G_GridCompMod.F90`), including `CA_bc_AERO` and
-`CA_bc_AERO_DP`; `carbon-bc-sa` runs against `FakeGOCART` and so does not.
+This is the only case that exercises the parent's connection blocks
+(`GOCART2G_GridCompMod.F90`), for example `CA_bc_AERO` and `CA_bc_AERO_DP`;
+the `*-sa` cases run against `FakeGOCART` and so do not.
 
 ## Creating a case from MAPL2 captures
 
@@ -227,6 +209,10 @@ follows:
 | `<XX>_import_before_runPhaseN.nc` | `runN/checkpoints/2000-04-14T21:20:00/DataFor<XX>_internal.nc` |
 | `<XX>_internal_before_runPhaseN.nc` | `runN/checkpoints/2000-04-14T21:20:00/<XX>_internal.nc` |
 | `<XX>_*_after_runPhaseN.nc` | `baseline/` (for `cmpchk.py`) |
+
+MAPL2 names the carbon instances `CA.oc`, `CA.bc` and `CA.br`, in both the
+file names and the variable names (`CA.bcphobic`); rename both to `CA_oc`
+and so on (`ncrename`).
 
 The ctest baseline in `checkpoints/last/` is not the MAPL2 capture but a
 MAPL3 checkpoint from a known-good IntelLLVM run.

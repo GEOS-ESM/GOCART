@@ -8,14 +8,16 @@ wavelengths_for_vertically_integrated_aop_in_nm: 550  # must be included in LUT
 aerosol_photolysis_wavelength_in_nm_from_LUT: [200, 300, 400, 500, 600]
 n_phase_function_moments_photolysis: 0
 
+# The instance names use '_' as the separator; the MAPL2-era dotted
+# spelling (CA.bc) was retired because '.' is History's
+# <gridcomp>.<variable> dive-down delimiter.
+# Details in ../../CA2G_GridComp/mapl3-porting-notes.md.
 ACTIVE_INSTANCES:
   DU: [DU]  # [DU_data]
   SS: [SS]  # [SS_data]
   SU: [SU]  # [SU_data]
-  CA: []  # [CA_oc, CA_bc, CA_br] ported; exercised by the
-          # gocart+seasalt+dust+sulfate+nitrate+carbon-bc case instead
-          # (see ../../CA2G_GridComp/mapl3-porting-notes.md)
-  NI: []  # [NI] not ported to MAPL3 yet
+  CA: [CA_oc, CA_bc, CA_br]
+  NI: [NI]  # [NI_data]
 
 PASSIVE_INSTANCES:
   DU: []

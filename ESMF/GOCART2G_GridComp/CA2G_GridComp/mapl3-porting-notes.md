@@ -312,8 +312,12 @@ since all three instances share one code path and only differ by
   purely to keep those two cases' scope and published baselines unchanged;
   CA coverage lives in `carbon-bc-sa` and in the
   `gocart+seasalt+dust+sulfate+nitrate+carbon-bc` case below.
+  (Superseded: the combined cases were replaced by `gocart`; see step 10.)
 
 ### 9. `gocart+seasalt+dust+sulfate+nitrate+carbon-bc` combined-case harness
+
+*Superseded by step 10: this case was removed in favour of `gocart`, and
+the instance yamls are now named `CA2G_instance_CA_{oc,bc,br}.yaml`.*
 
 Added (in a follow-up pass) a new combined-case directory,
 `regression/gocart+seasalt+dust+sulfate+nitrate+carbon-bc/`, extending
@@ -370,6 +374,40 @@ production `ACTIVE_INSTANCES: CA: [CA_oc, CA_bc, CA_br]` shape -- unlike
   before its baselines exist); the run above was done against a scratch
   expdir with the restart reads disabled purely to exercise
   SetServices/Initialize.
+
+### 10. Combined cases replaced by a single `gocart` case (2026-11-16)
+
+The three combined cases (`gocart+seasalt+dust+sulfate`, `...+nitrate`,
+`...+nitrate+carbon-bc`) were replaced by one case, `regression/gocart/`,
+which runs GOCART2G with the production set of children: DU, SS, SU, NI,
+`CA_oc`, `CA_bc`, `CA_br` (`GOCART2G_GridComp.yaml`:
+`CA: [CA_oc, CA_bc, CA_br]`). `CA2G_instance_CA_{oc,br}.yaml` were added
+next to `CA2G_instance_CA_bc.yaml`, and `cmpchk.py`, `cases.txt` and
+`regression/README.md` were updated.
+
+Validated against MAPL2 captures (`~/input/gocart/C12L181/{before,after}`,
+one MAPL2 run per captured gridcomp; `CA.xx` names renamed to `CA_xx`
+before comparing). All seven children and `GOCART2G_export` match MAPL2 in
+both phases, apart from all-NaN fields (see below). Two things had to be
+right in the MAPL2 capture for GOCART2G's `run2` exports to match:
+
+- `TOT{EXT,SCA}COEF{,RH20,RH80}` and `TOTBCKCOEF` are sums of the
+  children's `*COEF` exports. MAPL2 allocates a child export only if
+  something requests it, so the capture's `HISTORY.rc` must list the
+  children's `*EXTCOEF`, `*SCACOEF` and `*BCKCOEF` (with `RH20`/`RH80`);
+  otherwise MAPL2's totals are 0.
+- `PM*` adds the nitrate term only if both `NISMASS` and `NH4SMASS` are
+  associated, so `HISTORY.rc` must also list `NH4SMASS`.
+
+In `run1`, GOCART2G's `PM*`, `TOT*` and `PSO4*` exports are NaN in MAPL3:
+GOCART2G `run1` only calls the children's Run1, and the totals are
+computed in `run2`. MAPL2 shows the previous step's values there.
+
+The staged data is in
+`~/regression-data/.../GOCART2G_GridComp/gocart/run{1,2}`. Files that are
+identical (under `nccmp`) to a standalone case's are relative symlinks to
+it, e.g. the DU/SS/SU/NI/`CA_bc` internals; `copy_restarts` follows them
+(`cmake -E copy_directory` dereferences symlinks).
 
 ## Run-testing update (manual `GEOS.x`, not yet `ctest -L REGRESSION`)
 
@@ -544,20 +582,16 @@ and not in the `ctest` runs.
 ## Open items (follow-ups, not blocking the code port)
 
 1. **Publish regression baselines.** `carbon-bc-sa/run{1,2}` and
-   `gocart+seasalt+dust+sulfate+nitrate+carbon-bc/run{1,2}` are registered in
-   `regression/cases.txt` and verified by hand, but no baseline/restart
-   data exists for them under
-   `/ford1/share/gmao_SIteam/regression-data/.../GOCART2G_GridComp/`, so
-   `ctest -L REGRESSION` reports "skipping" for all four. Publishing the
-   baselines is what turns the manual verification above into real CI
-   coverage. (The `carbon-bc-sa` runs above used a partial baseline tree that
-   is present locally but not published.)
-2. **CA left disabled in the two older combined cases.**
-   `gocart+seasalt+dust+sulfate` and `gocart+seasalt+dust+sulfate+nitrate`
-   still carry `CA: []`. This is now a deliberate scope/baseline-stability
-   choice, not a technical blocker: enabling CA there would invalidate
-   their published baselines. CA coverage lives in `carbon-bc-sa` and
-   `gocart+seasalt+dust+sulfate+nitrate+carbon-bc`.
+   `gocart/run{1,2}` are staged in `~/regression-data` and pass there
+   (step 10), but are not yet published to S3 or
+   `/ford1/share/gmao_SIteam/regression-data/.../GOCART2G_GridComp/`, which
+   is what `ctest` reads (`LOCAL_REGRESSION_DATA_DIR`). The old combined
+   cases' data in `~/regression-data` was removed (backup:
+   `~/regression-data-backups/gocart-combo-cases-2026-11-16/`); the
+   published copies should be removed along with publishing `gocart`.
+2. ~~**CA left disabled in the two older combined cases.**~~ Resolved: those
+   cases were replaced by `gocart`, which runs all three CA instances
+   (step 10).
 3. **Dead `SV` export**: `CA_bcSV` etc. are declared and bundled but never
    assigned, in MAPL3 *and* MAPL2. Either compute it or remove it from
    `CA2G_StateSpecs.rc`. See "Baseline comparison" above.

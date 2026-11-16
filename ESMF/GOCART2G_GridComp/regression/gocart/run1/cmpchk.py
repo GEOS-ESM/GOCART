@@ -3,12 +3,15 @@
 import numpy as np
 import netCDF4 as nc4
 
-PHASE = "2"
+PHASE = "1"
 GRIDCOMPS = {
     "DU": ["import", "internal", "export"],
     "SS": ["import", "internal", "export"],
     "SU": ["import", "internal", "export"],
     "NI": ["import", "internal", "export"],
+    "CA_oc": ["import", "internal", "export"],
+    "CA_bc": ["import", "internal", "export"],
+    "CA_br": ["import", "internal", "export"],
     "GOCART2G": ["import", "export"],
 }
 

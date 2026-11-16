@@ -314,6 +314,13 @@ ungridded dimension -- see "structural difference" above):
 
 ## Run-testing update (ctest -L REGRESSION)
 
+*Update (2026-11-16): the `gocart+seasalt+dust+sulfate+nitrate` case below
+was replaced by `regression/gocart/` (all GOCART2G children, NI included),
+which matches MAPL2 in both phases with data staged in `~/regression-data`.
+See `../CA2G_GridComp/mapl3-porting-notes.md`, step 10. The capture's
+`HISTORY.rc` must request `NH4SMASS`, or MAPL2's `PM*` lack the nitrate
+term.*
+
 Picked up the "next step" from open item 1 below: built GOCART2G
 (`DU2G`/`SS2G`/`SU2G`/`NI2G`) with `ifx-stack` against this checkout's
 existing MAPL3 build, and added a `gocart+seasalt+dust+sulfate+nitrate`
