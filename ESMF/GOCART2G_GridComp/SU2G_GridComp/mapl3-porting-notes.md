@@ -5,6 +5,10 @@ Steps 0-9 done: `sulfate-sa` and `gocart+seasalt+dust+sulfate` reproduce the
 MAPL2 baseline bit-for-bit, and GOCART2G's aerosol optics run with SOLAR as
 the caller.
 
+*Update (2026-11-16): `gocart+seasalt+dust+sulfate` was replaced by
+`regression/gocart/`, which runs all GOCART2G children; see
+`../CA2G_GridComp/mapl3-porting-notes.md`, step 10.*
+
 Left after the port (none blocks it):
 - Publish the regression data to S3 and the shared
   `/ford1/share/gmao_SIteam/regression-data` (step 9).

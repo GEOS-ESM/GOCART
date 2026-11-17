@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - CI: added a `workflow_dispatch` trigger and a spack refs note to the GitHub Actions workflow (from `develop`, #496)
+- Replaced the `gocart+seasalt+dust+sulfate`, `...+nitrate` and `...+nitrate+carbon-bc` GOCART2G regression cases with a single `gocart` case that runs the production children (DU, SS, SU, NI, CA_oc, CA_bc, CA_br).
 - GOCART2G regression configurations no longer connect a data component's `internal` item directly to an import
   (MAPL3 requires `export -> import`). Each connected item is now re-exported in the data component's own config
   (`src_intent: internal`, `dst_intent: export`, `<self>` -> `<self>`), and the `root.yaml` connection is a plain export -> import.
