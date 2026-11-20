@@ -1557,7 +1557,7 @@ end function DarmenovaDragPartition
     enddo
 
 ! Find radius and density of the wet particle
-    call mie%Query(550e-9,bin,   &
+    call mie%Query(550e-9, bin,   &
                          qa*delp/grav, &
                          rh, reff=radius, rUp=rUp, rhop=rhop, __RC__)
 !   Settling velocity of the wet particle
@@ -1573,6 +1573,8 @@ end function DarmenovaDragPartition
 ! Maring 2003 (https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2002JD002536) indicates that a correction is needed for dust particles with a diameter of 7.3 microns
     if(present(correctionMaring)) then
        if (correctionMaring .and. rUp(1,1,1)*1e6 >= 3.65) then
+       !if (correctionMaring) then      
+            print *, "Maring correction applied for bin ", bin, " and radius ", rUp(1,1,1)*1e6
             vsettle = max(1.0e-9, vsettle - v_upwardMaring)
        endif
     endif
@@ -4609,7 +4611,6 @@ end function DarmenovaDragPartition
    
 !  Calculate PM2.5 aerodynamic diameter at 35% RH (water removed for RH>35%)
    if( present(sfcmass25aerodynRH35) ) then
-      print *, 'working on sfcmass25aerodynRH35, allocating vars'
       ! Allocate working arrays - need 3D arrays for mie%Query
       allocate(rEff_wet(i1:i2,j1:j2,1), __STAT__)
       allocate(rEff_dry(i1:i2,j1:j2,1), __STAT__)
@@ -4626,7 +4627,6 @@ end function DarmenovaDragPartition
       ! Number of spatial points
       npts = (i2-i1+1) * (j2-j1+1)
       
-      print *, 'vars allocated, moving on to mie query'
       do n = nbegin, nbins
          ! Get particle density
          rhod_local = local_rhop(n)  ! from earlier calculation
